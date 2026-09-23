@@ -121,14 +121,14 @@ const load = async (games, roster = ROSTER) => {
 };
 const setScope = async scope => {
   await page.evaluate(s => {
-    [...document.querySelectorAll('.gi-players-scope button')]
+    [...document.querySelectorAll('[data-reports-secbar] [data-players-scope]')]
       .find(b => b.textContent.trim() === (s === 'game' ? 'Current game' : 'Full season'))?.click();
   }, scope);
   await sleep(500);
 };
 const setSection = async title => {
   await page.evaluate(t => {
-    [...document.querySelectorAll('.gi-players-nav button')]
+    [...document.querySelectorAll('[data-reports-secbar] .gi-players-roles button')]
       .find(b => b.textContent.trim().startsWith(t))?.click();
   }, title);
   await sleep(300);
@@ -142,8 +142,11 @@ await load([GAME_A, GAME_B]);
 const comp = await page.evaluate(() => {
   const board = document.querySelector('.gi-players-board');
   const report = document.querySelector('.gi-players-report');
-  const toolbar = document.querySelector('.gi-players-toolbar');
-  const nav = document.querySelector('.gi-players-nav');
+  // Role navigation and scope live in the shared secondary bar under the strip
+  // (coach-approved comp, 2026-09-23); the board's own toolbar keeps the sample.
+  const bar = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]');
+  const toolbar = bar?.querySelector('.gi-secbar-scope');
+  const nav = bar?.querySelector('.gi-players-roles');
   const row = document.querySelector('.gi-player-table tbody tr');
   const td = document.querySelector('.gi-player-table tbody td');
   const navBadge = nav?.querySelector('button > b');
@@ -153,8 +156,10 @@ const comp = await page.evaluate(() => {
     // Scope and role navigation must share ONE control row: the toolbar and the
     // nav sit on the same grid row of the report, not stacked full width.
     sameRow: toolbar && nav
-      ? Math.abs(toolbar.getBoundingClientRect().top - nav.getBoundingClientRect().top) < 2 : false,
-    reportColumns: report ? getComputedStyle(report).gridTemplateColumns.split(' ').length : 0,
+      ? Math.abs((toolbar.getBoundingClientRect().top + toolbar.getBoundingClientRect().bottom) / 2
+        - (nav.getBoundingClientRect().top + nav.getBoundingClientRect().bottom) / 2) < 2
+        && bar.getBoundingClientRect().height <= 46 : false,
+    barUnderStrip: bar ? Math.abs(bar.getBoundingClientRect().top - document.querySelector('[data-reports-strip]').getBoundingClientRect().bottom) < 0.5 : false,
     sectionStrip: !!document.querySelector('.gi-players-rule'),
     rowHeight: row ? Math.round(row.getBoundingClientRect().height) : null,
     dataFont: td ? getComputedStyle(td).fontSize : null,
@@ -173,9 +178,9 @@ const comp = await page.evaluate(() => {
   };
 });
 ok(comp.board, 'the Players tab renders the approved board');
-ok(comp.sameRow && comp.reportColumns === 2,
-  'scope and role navigation share one compact control row',
-  `sameRow=${comp.sameRow} columns=${comp.reportColumns}`);
+ok(comp.sameRow && comp.barUnderStrip,
+  'scope and role navigation share one compact control row: the secondary bar directly under the strip',
+  `sameRow=${comp.sameRow} underStrip=${comp.barUnderStrip}`);
 ok(!comp.sectionStrip, 'the redundant section-title strip is not rendered');
 ok(comp.rowHeight === 38, 'a data row is 38px tall', `measured ${comp.rowHeight}`);
 ok(comp.dataFont === '13px', 'data text is 13px', `measured ${comp.dataFont}`);
@@ -586,8 +591,8 @@ const interaction = await page.evaluate(() => {
   const tr = document.querySelector('.gi-player-table tbody tr');
   const td = tr.querySelector('td.tl');
   const th = document.querySelector('.gi-player-table thead th');
-  const nav = document.querySelector('.gi-players-nav button');
-  const scope = document.querySelector('.gi-players-scope button');
+  const nav = document.querySelector('[data-reports-secbar] .gi-players-roles button');
+  const scope = document.querySelector('[data-reports-secbar] [data-players-scope]');
   const box = () => { const r = tr.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
   const before = box();
   tr.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
@@ -643,7 +648,7 @@ ok(sortMark && parseFloat(sortMark.size) >= 10.5,
 console.log('\n== 11. Scope switching updates counts, rows, metrics and references together ==');
 const snapshot = async () => page.evaluate(() => ({
   sample: document.querySelector('.gi-players-sample')?.textContent.trim(),
-  navCounts: [...document.querySelectorAll('.gi-players-nav button > b')].map(b => b.textContent.trim()),
+  navCounts: [...document.querySelectorAll('[data-reports-secbar] .gi-players-roles button > b')].map(b => b.textContent.trim()),
   rows: document.querySelectorAll('.gi-player-table tbody tr').length,
   passYds: (() => {
     const m = [...document.querySelectorAll('.gi-player-module')]
@@ -675,7 +680,7 @@ await page.evaluate(() => window.app.reportsScreen.selectTab('players'));
 await sleep(600);
 const opened = await page.evaluate(() => ({
   scope: window.app.reportsScreen.playersScope,
-  active: [...document.querySelectorAll('.gi-players-scope button')]
+  active: [...document.querySelectorAll('[data-reports-secbar] [data-players-scope]')]
     .find(b => b.classList.contains('active'))?.textContent.trim(),
 }));
 ok(opened.scope === 'game' && opened.active === 'Current game',
@@ -740,10 +745,10 @@ ok(marker.padding === '0px 0px' && marker.border === '0px' && marker.fits,
 for (const [title, other] of [['Offense', 'season'], ['Defense', 'game'], ['Special Teams', 'season']]) {
   await setSection(title);
   const before = await page.evaluate(() =>
-    document.querySelector('.gi-players-nav button.active')?.textContent.trim());
+    document.querySelector('[data-reports-secbar] .gi-players-roles button.active')?.textContent.trim());
   await setScope(other);
   const after = await page.evaluate(() => ({
-    active: document.querySelector('.gi-players-nav button.active')?.textContent.trim(),
+    active: document.querySelector('[data-reports-secbar] .gi-players-roles button.active')?.textContent.trim(),
     controller: window.app.reportsScreen.playersSection,
   }));
   ok(after.active?.startsWith(title),

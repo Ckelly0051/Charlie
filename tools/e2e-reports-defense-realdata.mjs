@@ -9,9 +9,12 @@
  *    width and external height for both scopes at both desktop widths, and the
  *    ten KPIs with their canonical values.
  * 3. The dashboard's existing data contracts, unchanged by Revision 2.
- * 4. The sticky scope bar and the jump links, on the route's real scroller.
- * 5. Populated captures of the whole surface at 1920, 1440, 1280 and 390 in
- *    both scopes, as IMPLEMENTATION EVIDENCE ONLY - they confer no approval.
+ * 4. The four pages in the shared secondary bar (coach-approved comp,
+ *    2026-09-23): one section per page, the bar directly under the global
+ *    strip, and the selection surviving re-renders. The whole board is
+ *    measured by walking every page; a module appears on exactly one.
+ * 5. Populated captures of every page at 1920, 1440, 1280 and 390 in both
+ *    scopes, as IMPLEMENTATION EVIDENCE ONLY - they confer no approval.
  *
  * Chromium measures browser layout. It cannot certify installed WebView2
  * scrollbar rendering; that stays an installed check.
@@ -26,7 +29,7 @@ const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_I
 const OUT = `artifacts/defense-production-realdata/run-${process.pid}`;
 const DESKTOP = [[1440, 900], [1280, 900]];
 const KPI_LABELS = ['Total yards allowed', 'Rush yards allowed', 'Pass yards allowed', 'Yards / play', 'Takeaways',
-  'Explosive Plays Allowed', 'Touchdowns Allowed', 'Defensive Touchdowns', '3rd Down Stop %', '4th Down Stop %'];
+  'Explosive Plays', 'Touchdowns Allowed', 'Defensive Touchdowns', '3rd Down Stop %', '4th Down Stop %'];
 const SECTIONS = ['Defensive performance', 'Opponent offense', 'Scheme and passing defense', 'Situational results'];
 
 /* THE APPROVED REVISION 2 COMPOSITION on the canonical season: [title, width,
@@ -114,8 +117,55 @@ async function openDefense(gameId, scope) {
   await page.evaluate(() => { document.querySelector('.ws-reports')?.scrollTo(0, 0); document.querySelectorAll('.gi-native-toast').forEach(node => node.remove()); });
 }
 
-/** The rendered board, measured. */
-const measure = () => page.evaluate(() => {
+const PAGES = ['performance', 'opponent', 'scheme', 'situations'];
+const selectPage = async id => {
+  await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+  await sleep(150);
+};
+/** The WHOLE board, measured by walking its four pages in order. Each page is
+ *  measured on its own; positional keys carry the page so two pages' rows can
+ *  never be compared as one. Ends on Performance, which holds the KPI strip. */
+async function measure() {
+  const parts = [];
+  for (const id of PAGES) {
+    await selectPage(id);
+    const part = await measurePage();
+    part.page = id;
+    part.onPage = await page.evaluate(() => document.querySelector('.gi-def2')?.dataset.def2Page);
+    part.modules.forEach(module => { module.page = id; module.band = `${id}:${module.band}`; });
+    parts.push(part);
+  }
+  await selectPage('performance');
+  const first = parts[0];
+  return {
+    ...first,
+    present: parts.every(part => part.present),
+    pagesSeen: parts.map(part => part.onPage),
+    sectionsByPage: parts.map(part => part.sections),
+    kpiLabels: parts.flatMap(part => part.kpiLabels),
+    kpiValues: parts.flatMap(part => part.kpiValues),
+    kpiPages: parts.filter(part => part.kpiLabels.length).map(part => part.page),
+    sections: parts.flatMap(part => part.sections),
+    samples: parts.flatMap(part => part.samples),
+    kpiCohort: parts.map(part => part.kpiCohort).filter(Boolean).join(' | '),
+    moduleMetas: Object.assign({}, ...parts.map(part => part.moduleMetas)),
+    directionSnapSum: parts.reduce((sum, part) => sum + part.directionSnapSum, 0),
+    playTypeSnapSum: parts.reduce((sum, part) => sum + part.playTypeSnapSum, 0),
+    modules: parts.flatMap(part => part.modules),
+    pageOverflow: Math.max(...parts.map(part => part.pageOverflow)),
+    boardRight: Math.max(...parts.map(part => part.boardRight)),
+    text: parts.map(part => part.text).join(' '),
+    reportTitleClipped: parts.some(part => part.reportTitleClipped),
+    linescore: parts.some(part => part.linescore),
+    columnOrigins: parts.flatMap(part => part.columnOrigins),
+    subFloor: parts.flatMap(part => part.subFloor),
+    titleFonts: parts.flatMap(part => part.titleFonts),
+    zeroSnapCells: parts.flatMap(part => part.zeroSnapCells),
+  };
+}
+
+/** One rendered page of the board, measured. */
+const measurePage = () => page.evaluate(() => {
   const board = document.querySelector('.gi-def2');
   const text = node => (node?.textContent || '').replace(/\s+/g, ' ').trim();
   const modules = [...(board?.querySelectorAll('[data-def2-module]') || [])].map(module => {
@@ -238,6 +288,15 @@ ok(geometry.every(item => JSON.stringify(item.kpiLabels) === JSON.stringify(KPI_
   JSON.stringify(geometry.find(item => JSON.stringify(item.kpiLabels) !== JSON.stringify(KPI_LABELS))?.kpiLabels));
 ok(geometry.every(item => JSON.stringify(item.sections) === JSON.stringify(SECTIONS)),
   'every game renders the four sections in order', JSON.stringify(geometry.map(item => item.sections).find(s => JSON.stringify(s) !== JSON.stringify(SECTIONS))));
+ok(geometry.every(item => JSON.stringify(item.pagesSeen) === JSON.stringify(PAGES)
+  && item.sectionsByPage.every((sections, i) => sections.length === 1 && sections[0] === SECTIONS[i])),
+  'each of the four pages renders exactly its own section, in order',
+  JSON.stringify(geometry.map(item => ({ pages: item.pagesSeen, sections: item.sectionsByPage })).find(Boolean)));
+ok(geometry.every(item => JSON.stringify(item.kpiPages) === JSON.stringify(['performance'])),
+  'the ten-KPI strip renders once, on the Performance page', JSON.stringify(geometry.map(item => item.kpiPages)));
+const repeated = geometry.flatMap(item => item.modules.map(module => module.title)
+  .filter((title, i, all) => all.indexOf(title) !== i).map(title => `${item.game}@${item.width}:${title}`));
+ok(repeated.length === 0, 'every Defense module appears on exactly one page', JSON.stringify(repeated.slice(0, 4)));
 ok(geometry.every(item => !item.modules.some(module => module.title === 'Game-by-game')),
   'Current game scope never renders Game-by-game');
 const heightRule = module => {
@@ -258,7 +317,7 @@ ok(overflowing.length > 0 && overflowing.every(module => module.wrapScroll > mod
   JSON.stringify(overflowing.slice(0, 3)));
 const misaligned = geometry.flatMap(item => {
   const rows = new Map();
-  item.modules.forEach(module => rows.set(module.top, [...(rows.get(module.top) || []), module]));
+  item.modules.forEach(module => rows.set(`${module.page}:${module.top}`, [...(rows.get(`${module.page}:${module.top}`) || []), module]));
   return [...rows.values()].filter(row => row.length > 1 && (new Set(row.map(module => module.bottom)).size > 1
     || row.some(module => module.width > item.width / 2)))
     .map(row => `${item.game}@${item.width}:${row.map(module => module.title).join('+')}`);
@@ -673,16 +732,27 @@ ok(invariants.directions.find(row => row.name === 'Toward Strength')?.n === 1
   JSON.stringify(invariants.directions));
 
 /* The export is unchanged by Revision 2: the same four-section dashboard
-   model, built from the dashboard exactly as before. */
-const exportText = await page.evaluate(async () => {
-  let saved = null;
-  const prior = window.ffaSaveBlob;
-  window.ffaSaveBlob = blob => { saved = blob; };
-  document.querySelector('.gi-def2 .gi-def-export')?.click();
-  const html = saved ? await saved.text() : '';
-  window.ffaSaveBlob = prior;
-  return html;
-});
+   model, built from the dashboard exactly as before. A PAGE NEVER NARROWS IT:
+   exported from Performance and from Situations, the report is the same
+   four sections, identical apart from the generated-at stamp. */
+const exportFrom = async id => {
+  await selectPage(id);
+  return page.evaluate(async () => {
+    let saved = null;
+    const prior = window.ffaSaveBlob;
+    window.ffaSaveBlob = blob => { saved = blob; };
+    document.querySelector('[data-reports-secbar] [data-report-export="defense"]')?.click();
+    const html = saved ? await saved.text() : '';
+    window.ffaSaveBlob = prior;
+    return html;
+  });
+};
+const unstamped = html => html.replace(/Generated [^<]*/g, 'Generated');
+const exportText = await exportFrom('situations');
+const exportFromPerformance = await exportFrom('performance');
+ok(exportText.length > 1000 && unstamped(exportText) === unstamped(exportFromPerformance),
+  'the Defense export from the Situations page is identical to the export from Performance',
+  `${exportText.length} vs ${exportFromPerformance.length}`);
 ok(['Defensive Performance', 'Opponent Offense', 'Scheme', 'Situational Results']
   .every(label => exportText.includes(label)) && !exportText.includes('Defensive Tendency Tells')
   && !exportText.includes('Stop Rate') && exportText.includes('Top 6 formations')
@@ -755,38 +825,40 @@ ok(kpiFit.every(item => item.over <= 0 && item.rows === (item.w > 1240 ? 1 : 2))
   JSON.stringify(kpiFit.filter(item => item.over > 0 || item.rows !== (item.w > 1240 ? 1 : 2)).slice(0, 4)));
 await page.setViewport({ width: 1440, height: 900 });
 
-/* ══ 4. Sticky bar and jump links on the route's real scroller ═══════════ */
-console.log('\n== 4. Sticky controls and jump links ==');
+/* ══ 4. The four pages in the shared secondary bar ═══════════════════════ */
+console.log('\n== 4. Pages in the secondary bar ==');
 await page.setViewport({ width: 1440, height: 900 });
 await openDefense(stPeter.id, 'season');
-const sticky = await page.evaluate(async () => {
-  const scroller = document.querySelector('.ws-reports');
-  const bar = document.querySelector('.gi-def2-controls');
-  const tabs = document.querySelector('[data-reports-strip]');
-  const rest = { bar: Math.round(bar.getBoundingClientRect().top), head: Math.round(tabs.getBoundingClientRect().bottom) };
-  scroller.scrollTo(0, 3000);
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const pinned = Math.round(bar.getBoundingClientRect().top);
-  const top = Math.round(scroller.getBoundingClientRect().top);
-  const jumps = [];
-  for (const link of document.querySelectorAll('[data-def2-jump]')) {
-    scroller.scrollTo(0, 0);
-    link.click();
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const heading = document.getElementById(`def2-${link.dataset.def2Jump}`);
-    jumps.push({ id: link.dataset.def2Jump, headingTop: Math.round(heading.getBoundingClientRect().top),
-      barBottom: Math.round(bar.getBoundingClientRect().bottom), label: link.textContent.trim(),
-      cursor: getComputedStyle(link).cursor, underline: getComputedStyle(link).borderBottomStyle });
-  }
-  return { rest, pinned, top, jumps };
+const bar = await page.evaluate(() => {
+  const strip = document.querySelector('[data-reports-strip]').getBoundingClientRect();
+  const node = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]');
+  const rect = node?.getBoundingClientRect();
+  return {
+    top: rect?.top, stripBottom: strip.bottom,
+    labels: [...(node?.querySelectorAll('[data-section]') || [])].map(tab => tab.textContent.replace(/\s+/g, ' ').trim()),
+    scope: [...(node?.querySelectorAll('[data-defense-scope]') || [])].map(button => button.dataset.defenseScope),
+    export: !!node?.querySelector('[data-report-export="defense"]'),
+    inBoard: !!document.querySelector('.gi-def2 [data-reports-secbar-bar]'),
+  };
 });
-ok(sticky.rest.bar <= sticky.rest.head + 1 && sticky.pinned === sticky.top,
-  'the scope and jump bar sits directly under the global strip and stays pinned while the report scrolls', JSON.stringify(sticky));
-ok(sticky.jumps.length === 4 && sticky.jumps.every(jump => jump.headingTop >= jump.barBottom - 1 && jump.headingTop <= jump.barBottom + 12),
-  'each jump link lands its section heading just below the pinned bar', JSON.stringify(sticky.jumps));
-ok(JSON.stringify(sticky.jumps.map(jump => jump.label.replace('↓', '').trim())) === JSON.stringify(['Performance', 'Opponent offense', 'Scheme', 'Situations'])
-  && sticky.jumps.every(jump => jump.cursor === 'pointer' && jump.underline === 'solid'),
-  'the jump links carry their literal labels and read as interactive', JSON.stringify(sticky.jumps));
+ok(bar.top != null && Math.abs(bar.top - bar.stripBottom) < 0.5,
+  'the Defense pages sit in the secondary bar directly under the global strip', JSON.stringify(bar));
+ok(JSON.stringify(bar.labels) === JSON.stringify(['1Performance', '2Opponent offense', '3Scheme & passing', '4Situations']),
+  'the four pages carry their numbers and literal labels', JSON.stringify(bar.labels));
+ok(JSON.stringify(bar.scope) === JSON.stringify(['game', 'season']) && bar.export && !bar.inBoard,
+  'scope (Current game first) and Export report live in the bar, and no second control row remains in the board', JSON.stringify(bar));
+await selectPage('scheme');
+await page.evaluate(() => window.app.reportsScreen._renderActiveTab());
+await sleep(200);
+ok(await page.evaluate(() => window.app.reportsScreen.defenseSection === 'scheme'
+  && document.querySelector('.gi-def2')?.dataset.def2Page === 'scheme'
+  && document.querySelector('[data-reports-secbar] [data-section="scheme"]')?.getAttribute('aria-selected') === 'true'),
+  'the selected page is controller state and survives an ordinary re-render');
+await page.evaluate(() => document.querySelector('[data-defense-scope="game"]').click());
+await sleep(250);
+ok(await page.evaluate(() => document.querySelector('.gi-def2')?.dataset.def2Page === 'scheme'),
+  'changing scope keeps the selected page');
+await selectPage('performance');
 
 /* ══ 5. Populated captures of the whole surface ═══════════════════════════ */
 console.log('\n== 5. Captures ==');
@@ -799,14 +871,18 @@ for (const scope of ['season', 'game']) {
     captures.push({ scope, width, overflow: seen.pageOverflow, boardRight: seen.boardRight,
       tableScroll: seen.modules.filter(module => module.tableWider > 1).length,
       modules: seen.modules.length, columns: new Set(seen.modules.map(module => module.left)).size });
-    const total = await page.evaluate(() => document.querySelector('.ws-reports').scrollHeight);
-    const step = height - 120;
-    let frame = 0;
-    for (let top = 0; top < total; top += step) {
-      await page.evaluate(t => document.querySelector('.ws-reports').scrollTo(0, t), top);
-      await sleep(80);
-      await page.screenshot({ path: `${OUT}/${scope}-${width}-${String(++frame).padStart(2, '0')}.png` });
+    for (const id of PAGES) {
+      await selectPage(id);
+      const total = await page.evaluate(() => document.querySelector('.ws-reports').scrollHeight);
+      const step = height - 120;
+      let frame = 0;
+      for (let top = 0; top < total; top += step) {
+        await page.evaluate(t => document.querySelector('.ws-reports').scrollTo(0, t), top);
+        await sleep(80);
+        await page.screenshot({ path: `${OUT}/${scope}-${width}-${id}-${String(++frame).padStart(2, '0')}.png` });
+      }
     }
+    await selectPage('performance');
   }
 }
 ok(captures.every(item => item.overflow <= 0 && item.boardRight <= item.width),

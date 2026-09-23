@@ -94,6 +94,17 @@ const SCHEMA_ROWS = {
   'Field hash': 3, 'Personnel × situation': 6, Situational: 6,
   'Top 5 Tendencies': 5, 'By quarter': 4, 'Team profile': 6,
 };
+/* The six pages and the modules each holds, in the approved order. */
+const PAGE_MODULES = {
+  identity: ['Identity', 'Run / pass balance'],
+  calls: ['Play calls', 'Concepts', 'Formation', 'Play type', 'Play-action', 'Formation × Play Type',
+    'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes'],
+  structure: ['Personnel', 'Backfield', 'Motion', 'Play direction', 'Strength', 'Field hash'],
+  situations: ['Personnel × situation', 'Situational', 'Top 5 Tendencies', 'By quarter'],
+  field: ['Field heat map', 'Yards per play', 'Yards vs distance to go', 'Success by field position', 'Run / pass by down'],
+  advanced: ['Team profile', 'Expected points added'],
+};
+const PAGE_IDS = Object.keys(PAGE_MODULES);
 
 mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
@@ -127,7 +138,57 @@ for (const g of games) {
   for (const [w, h] of VIEWPORTS) {
     await page.setViewport({ width: w, height: h });
     await sleep(400);
-    const r = await page.evaluate(() => {
+    /* THE SIX PAGES (coach-approved secondary-nav comp, 2026-09-23). The board
+       is measured page by page and merged, so every schema assertion below
+       still covers the whole board; heights become one height PER PAGE. */
+    const parts = [];
+    for (const id of PAGE_IDS) {
+      await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+      await sleep(200);
+      const part = await measurePage();
+      part.page = id;
+      parts.push(part);
+      /* Capture at the page's real height. `fullPage` returns only the viewport
+         because the route scrolls inside its own container. */
+      const need = await page.evaluate(() => {
+        const b = document.querySelector('.gi-offense-board');
+        return b ? Math.ceil(b.getBoundingClientRect().height) + 320 : 900;
+      });
+      await page.setViewport({ width: w, height: Math.min(need, 8000) });
+      await sleep(300);
+      await page.evaluate(() => document.querySelectorAll('.gi-toast-stack .gi-native-toast').forEach(n => n.remove()));
+      await page.screenshot({ path: `${OUT}/w${games.indexOf(g) + 1}-${w}-${id}.png` });
+      await page.setViewport({ width: w, height: h });
+      await sleep(150);
+    }
+    await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="identity"]')?.click());
+    const r = {
+      board: parts.every(p => p.board), visible: parts.every(p => p.visible),
+      route: parts[0].route,
+      pages: parts.map(p => p.onPage),
+      byPage: Object.fromEntries(parts.map(p => [p.page, p.titles])),
+      titles: parts.flatMap(p => p.titles || []),
+      rows: Object.assign({}, ...parts.map(p => p.rows)),
+      moduleHeights: Object.assign({}, ...parts.map(p => p.moduleHeights)),
+      heldRows: parts.reduce((s, p) => s + (p.heldRows || 0), 0),
+      absent: parts.flatMap(p => p.absent || []),
+      teamProfileLabels: parts.flatMap(p => p.teamProfileLabels || []),
+      driveOutcomes: parts.flatMap(p => p.driveOutcomes || []),
+      epaBars: parts.flatMap(p => p.epaBars || []),
+      formType: parts.find(p => p.formType.rows)?.formType || parts[0].formType,
+      heights: Object.fromEntries(parts.map(p => [p.page, p.height])),
+      bottomEdge: parts.at(-1).bottomEdge,
+      ovX: Math.max(...parts.map(p => p.ovX)),
+      clipped: parts.flatMap(p => p.clipped || []),
+    };
+    observed.push({ game: g.name, w, ...r });
+  }
+  await page.setViewport({ width: 1440, height: 900 });
+}
+
+/** One rendered Offense page. */
+function measurePage() {
+  return page.evaluate(() => {
       const board = document.querySelector('.gi-offense-board');
       if (!board) return { board: false };
       const txt = el => (el?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -159,7 +220,7 @@ for (const g of games) {
         epaBars: [...board.querySelectorAll('.gi-epa-bar')].map(bar => ({
           label: txt(bar.querySelector('span')), value: txt(bar.querySelector('strong')),
         })),
-        zones: board.querySelectorAll('.gi-zone-rule').length,
+        onPage: board.dataset.offensePage,
         formType: {
           rows: board.querySelectorAll('.gi-form-type-grid tbody tr').length,
           cols: board.querySelectorAll('.gi-form-type-grid thead th').length - 1,
@@ -176,23 +237,6 @@ for (const g of games) {
         clipped: clipped.slice(0, 6),
       };
     });
-    observed.push({ game: g.name, w, ...r });
-
-    /* Capture at the board's real height. `fullPage` returns only the viewport
-       because the route scrolls inside its own container. */
-    const need = await page.evaluate(() => {
-      const b = document.querySelector('.gi-offense-board');
-      return b ? Math.ceil(b.getBoundingClientRect().height) + 320 : 900;
-    });
-    await page.setViewport({ width: w, height: Math.min(need, 8000) });
-    await sleep(450);
-    await page.evaluate(() => document.querySelectorAll('.gi-toast-stack .gi-native-toast').forEach(n => n.remove()));
-    const slug = `w${games.indexOf(g) + 1}-${w}`;
-    await page.screenshot({ path: `${OUT}/${slug}.png` });
-    await page.setViewport({ width: w, height: h });
-    await sleep(200);
-  }
-  await page.setViewport({ width: 1440, height: 900 });
 }
 
 console.log('\n== The approved schema holds on every game, at both release widths ==');
@@ -208,8 +252,14 @@ const wrongInventory = observed.filter(o =>
 ok(wrongInventory.length === 0,
   `all ${SCHEMA_MODULES.length} approved modules render in the approved order on every game`,
   JSON.stringify(wrongInventory.map(o => ({ game: o.game, w: o.w, titles: o.titles }))));
-ok(observed.every(o => o.zones === 6), 'six zone rules on every game',
-  JSON.stringify(observed.filter(o => o.zones !== 6).map(o => ({ game: o.game, zones: o.zones }))));
+ok(observed.every(o => JSON.stringify(o.pages) === JSON.stringify(PAGE_IDS)
+    && PAGE_IDS.every(id => JSON.stringify(o.byPage[id]) === JSON.stringify(PAGE_MODULES[id]))),
+  'six pages on every game, each holding exactly its own modules in order',
+  JSON.stringify(observed.filter(o => JSON.stringify(o.pages) !== JSON.stringify(PAGE_IDS)
+    || PAGE_IDS.some(id => JSON.stringify(o.byPage[id]) !== JSON.stringify(PAGE_MODULES[id])))
+    .map(o => ({ game: o.game, w: o.w, pages: o.pages, byPage: o.byPage })).slice(0, 2)));
+ok(observed.every(o => new Set(o.titles).size === o.titles.length),
+  'every module appears on exactly one page', JSON.stringify(observed.map(o => o.titles.length)));
 /* EXACT, not `<= cap`. The first version of this assertion certified a ceiling
    and called it a schema: it passed while every module was still content-sized,
    recorded six different board heights, and never failed on them. A declared
@@ -223,11 +273,13 @@ ok(wrongRows.length === 0, 'every module renders EXACTLY its approved row alloca
 /* ONE BOARD HEIGHT PER VIEWPORT. This is the whole claim — "the board has
    stable geometry for every game at a given viewport" — and nothing asserted
    it before. Six games producing 5102..5478px passed the old suite. */
+/* The board is now six pages, so the claim is made per page: each page is ONE
+   height at a given viewport on every game. */
 for (const [w] of VIEWPORTS) {
-  const heights = [...new Set(observed.filter(o => o.w === w).map(o => o.height))];
-  ok(heights.length === 1,
-    `the board is ONE height at ${w} across all ${games.length} games`,
-    JSON.stringify(observed.filter(o => o.w === w).map(o => ({ game: o.game, h: o.height }))));
+  const varying = PAGE_IDS.filter(id => new Set(observed.filter(o => o.w === w).map(o => o.heights[id])).size !== 1);
+  ok(varying.length === 0,
+    `every Offense page is ONE height at ${w} across all ${games.length} games`,
+    JSON.stringify(observed.filter(o => o.w === w).map(o => ({ game: o.game, h: o.heights }))));
 }
 const tallest1440 = observed.find(o => o.w === 1440)?.moduleHeights || {};
 ok(Math.max(...Object.values(tallest1440)) <= 950,
@@ -288,12 +340,12 @@ for (const [width, height] of VIEWPORTS) {
   await new Promise(r => setTimeout(r, 250));
   await page.evaluate(() => { window.app.reportsScreen.selectTab('season'); });
   await new Promise(r => setTimeout(r, 500));
-  await page.evaluate(() => {
-    const btn = [...document.querySelectorAll('.gi-report-pane nav button, .gi-report-pane [role="tab"]')]
-      .find(node => /^Offense$/.test(node.textContent.trim()));
-    if (btn) btn.click();
-  });
+  // Season's Offense view, then the embedded board's own Situations page,
+  // which holds Top 5 Tendencies.
+  await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-subtab="offense"]')?.click());
   await new Promise(r => setTimeout(r, 600));
+  await page.evaluate(() => document.querySelector('.gi-report-pane .gi-secbar.is-inline [data-section="situations"]')?.click());
+  await new Promise(r => setTimeout(r, 300));
   const measured = await page.evaluate(() => {
     const pane = document.querySelector('.gi-report-pane');
     const modules = [...(pane?.querySelectorAll('.gi-overview-module') || [])];
@@ -360,8 +412,11 @@ for (const [width] of VIEWPORTS) {
      and prove the subject is on screen before measuring it. */
   await page.evaluate(() => { window.app.reportsScreen.selectTab('offense'); });
   await new Promise(r => setTimeout(r, 350));
+  // Direction vs Strength lives on the Calls & tendencies page.
+  await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="calls"]')?.click());
+  await new Promise(r => setTimeout(r, 250));
   const onOffense = await page.evaluate(() => window.app.reportsScreen.activeTab === 'offense'
-    && !!document.querySelector('.gi-offense-board'));
+    && document.querySelector('.gi-offense-board')?.dataset.offensePage === 'calls');
   ok(onOffense, `${width}: the Offense board is on screen before Direction vs Strength is measured`);
   const dvs = await page.evaluate(() => {
     const module = [...document.querySelectorAll('.gi-overview-module')]
@@ -406,9 +461,9 @@ console.log(`  selected    : ${activeGame?.name}`);
 console.log('  scope       : current game, Reports > Offense');
 console.log(`  source      : ${SOURCE}`);
 console.log(`  read-only   : ${hashAfter === hashBefore ? 'CONFIRMED, sha256 unchanged' : 'FAILED — source changed'}`);
-console.log(`  captures    : ${OUT} (${games.length * VIEWPORTS.length} images, ${VIEWPORTS.map(v => v[0]).join(' and ')})`);
+console.log(`  captures    : ${OUT} (${games.length * VIEWPORTS.length * PAGE_IDS.length} images, one per page, ${VIEWPORTS.map(v => v[0]).join(' and ')})`);
 observed.filter(o => o.w === 1440).forEach(o =>
-  console.log(`  board       : ${o.game.padEnd(38)} ${o.height}px, ${o.titles.length} modules, ${o.absent.length} absent`));
+  console.log(`  board       : ${o.game.padEnd(38)} ${JSON.stringify(o.heights)}, ${o.titles.length} modules, ${o.absent.length} absent`));
 const moduleRanges = Object.keys(observed.find(o => o.w === 1440)?.moduleHeights || {}).map(name => {
   const values = observed.filter(o => o.w === 1440).map(o => o.moduleHeights[name]);
   return { name, min: Math.min(...values), max: Math.max(...values) };

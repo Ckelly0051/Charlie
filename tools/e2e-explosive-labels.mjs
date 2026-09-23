@@ -1,17 +1,21 @@
 /** Explosive-play terminology (docs/OPEN-DEFECTS.md, Coach Reports smoke
  *  Finding 3). A count is "Explosive Plays"; a percentage is "Explosive Plays
- *  Rate"; a defensive measure says "Allowed". Wording only: metric ids,
- *  thresholds, formulas, cohorts and stored data are untouched.
+ *  Rate"; a defensive measure in an export or a mixed report says "Allowed".
+ *  ON THE DEFENSE BOARD "Allowed" is implied and is NOT printed (review
+ *  correction, 2026-09-23): it wrapped compact KPI tiles and table headers.
+ *  Wording only: metric ids, thresholds, formulas, cohorts and stored data are
+ *  untouched.
  *
  *  1. Source: no user-visible string literal names the metric with the bare
  *     "Explosive", "Explosives", "Explosive Rate"/"rate" or the "Expl"
  *     abbreviation. The explosive DRIVE classification is a different term and
  *     is the one allowed exception.
  *  2. Rendered, canonical 2025 JV (read-only, hash-checked): every Reports tab
- *     and section, Defense at both scopes, and Study's metric picker. Every
- *     label naming the metric uses the approved wording; everything on the
- *     Defense board says Allowed; no such label is clipped or below 12.5px at
- *     1440, 1280 and 768.
+ *     and every page of it, Defense and Special Teams at both scopes, and
+ *     Study's metric picker. Every label naming the metric uses the approved
+ *     wording; the Defense board says exactly "Explosive Plays" / "Explosive
+ *     Plays Rate", its KPI label holds one line and its table headers keep
+ *     44px; no such label is clipped or below 12.5px at 1440, 1280 and 768.
  *  3. Exports: the game, season, Defense, Special Teams and Self-Scout HTML
  *     reports carry the same wording, with Allowed on defensive tables.
  *  4. Sparse and empty: a one-play season and a zero-play game render the
@@ -122,23 +126,30 @@ const collect = where => page.evaluate((mention, where) => {
 }, { source: MENTION.source, flags: MENTION.flags }, where);
 
 const tabs = ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'matchup', 'season'];
+/** Every page in the shared secondary bar, collected in turn; back to page 1. */
+async function walkPages(where) {
+  const found = [];
+  const ids = await page.evaluate(() => [...document.querySelectorAll('[data-reports-secbar] [data-section]')].map(n => n.dataset.section));
+  for (const id of ids) {
+    await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+    await sleep(200);
+    found.push(...await collect(`${where}#${id}`));
+  }
+  if (ids.length) await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), ids[0]);
+  return found;
+}
 async function crawl(width) {
   const found = [];
   for (const tab of tabs) {
     await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`).click(), tab);
     await sleep(300);
     found.push(...await collect(`${width}/${tab}`));
-    // Multi-section reports: every section a coach can open.
-    const sections = await page.evaluate(() => [...document.querySelectorAll('.gi-selfscout-nav button, .gi-season-nav button, .gi-def-secnav-item, .gi-mu-tabs button')].length);
-    for (let i = 0; i < sections; i++) {
-      await page.evaluate(n => [...document.querySelectorAll('.gi-selfscout-nav button, .gi-season-nav button, .gi-def-secnav-item, .gi-mu-tabs button')][n]?.click(), i);
-      await sleep(200);
-      found.push(...await collect(`${width}/${tab}#${i + 1}`));
-    }
+    // Multi-section reports: every page a coach can open.
+    found.push(...await walkPages(`${width}/${tab}`));
     if (tab === 'defense' || tab === 'special') {
       await page.evaluate(t => document.querySelector(t === 'defense' ? '[data-defense-scope="season"]' : '[data-st-scope="season"]')?.click(), tab);
       await sleep(300);
-      found.push(...await collect(`${width}/${tab}@season`));
+      found.push(...await walkPages(`${width}/${tab}@season`));
       await page.evaluate(t => document.querySelector(t === 'defense' ? '[data-defense-scope="game"]' : '[data-st-scope="game"]')?.click(), tab);
       await sleep(200);
     }
@@ -156,8 +167,23 @@ for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024]]) {
   ok(labels.length >= 20, `${w}: the crawl reaches explosive-play labels across Reports (${labels.length})`, String(labels.length));
   ok(wrong.length === 0, `${w}: every label uses Explosive Plays / Explosive Plays Rate / Allowed`, JSON.stringify(wrong.slice(0, 6)));
   const def = labels.filter(f => f.defense);
-  ok(def.length > 0 && def.every(f => /allowed/i.test(f.text)), `${w}: every Defense-board label says Allowed (${def.length})`,
-    JSON.stringify(def.filter(f => !/allowed/i.test(f.text)).slice(0, 4)));
+  ok(def.length > 0 && def.every(f => /^Explosive Plays( Rate)?$/.test(f.text)),
+    `${w}: every Defense-board label is "Explosive Plays" or "Explosive Plays Rate", Allowed implied (${def.length})`,
+    JSON.stringify(def.filter(f => !/^Explosive Plays( Rate)?$/.test(f.text)).slice(0, 4)));
+  /* The compact KPI tile: the label holds ONE line (18px line-height). With
+     "Allowed" it took two and pushed its value down against its neighbors. */
+  await page.evaluate(() => document.querySelector('[data-report-tab="defense"]').click());
+  await sleep(250);
+  await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click());
+  await sleep(200);
+  const kpiLabel = await page.evaluate(() => {
+    const span = [...document.querySelectorAll('[data-def2-kpi] span')].find(n => /Explosive/.test(n.textContent));
+    if (!span) return null;
+    const range = document.createRange(); range.selectNodeContents(span);
+    return { text: span.textContent.trim(), lines: range.getClientRects().length };
+  });
+  ok(kpiLabel?.text === 'Explosive Plays' && kpiLabel.lines === 1,
+    `${w}: the Defense KPI label reads "Explosive Plays" on one line`, JSON.stringify(kpiLabel));
   const clipped = found.filter(f => f.clipped);
   ok(clipped.length === 0, `${w}: no explosive-play label is clipped`, JSON.stringify(clipped.slice(0, 6)));
   const small = found.filter(f => f.font < 12.5 && !f.svg && !f.micro && !f.where.endsWith('/overview'));
@@ -175,9 +201,14 @@ for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024]]) {
     await sleep(250);
     await page.evaluate(s => document.querySelector(`[data-defense-scope="${s}"]`)?.click(), scope);
     await sleep(300);
-    tall.push(...await page.evaluate(s => [...document.querySelectorAll('.gi-def2-module thead tr')].filter(tr => tr.textContent.includes('Explosive'))
-      .map(tr => ({ scope: s, module: tr.closest('[data-def2-module]')?.dataset.def2Module, h: Math.round(tr.getBoundingClientRect().height) }))
-      .filter(r => r.h > 45), scope));
+    for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
+      await page.evaluate(p => document.querySelector(`[data-reports-secbar] [data-section="${p}"]`)?.click(), id);
+      await sleep(150);
+      tall.push(...await page.evaluate(s => [...document.querySelectorAll('.gi-def2-module thead tr')].filter(tr => tr.textContent.includes('Explosive'))
+        .map(tr => ({ scope: s, module: tr.closest('[data-def2-module]')?.dataset.def2Module, h: Math.round(tr.getBoundingClientRect().height) }))
+        .filter(r => r.h > 45), scope));
+    }
+    await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click());
   }
   await page.evaluate(() => document.querySelector('[data-defense-scope="game"]')?.click());
   ok(tall.length === 0, `${w}: every Defense table header carrying the explosive label keeps its 44px height`, JSON.stringify(tall.slice(0, 6)));
@@ -199,9 +230,9 @@ const exported = await page.evaluate(async () => {
   try {
     app.storage.exportHtmlReport(app.stats);
     app.season.exportHtml();
-    await click('defense', '.gi-def-export');
-    await click('special', '.gi-st-export');
-    await click('selfscout', '.gi-selfscout-acts button');
+    await click('defense', '[data-reports-secbar] [data-report-export="defense"]');
+    await click('special', '[data-reports-secbar] [data-report-export="special"]');
+    await click('selfscout', '[data-reports-secbar] [data-report-export="selfscout"]');
     await new Promise(r => setTimeout(r, 300));
     await Promise.all(pending);
   } finally { window.ffaSaveBlob = original; }

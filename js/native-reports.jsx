@@ -40,9 +40,9 @@ function NativeReportsRoute({ screen }) {
      report head, then ONE strip — perspective, the eight tabs, Export — whose
      y coordinate, height and tab x positions are identical on every tab.
      Nothing conditional sits above it: the title truncates rather than wraps,
-     the opponent picker lives in the head's fixed row, and the Overview
-     scorebug and the game KPI rail render BELOW the strip. Report-specific
-     scope, filters, jump links and section tabs stay inside each board. */
+     the opponent picker lives in the head's fixed row, and the secondary bar
+     and the Overview-only score render BELOW the strip. A multi-section
+     report's pages, scope and export live in that one secondary bar. */
   return <section class="gi-reports" id="statsDashboard" aria-labelledby="giReportsTitle" data-native-reports>
     <div class="gi-reports-reporthead" data-reports-main-chrome>
       <header class="gi-reports-head">
@@ -88,24 +88,13 @@ function NativeReportsRoute({ screen }) {
       </div>
     </div>
 
+    {/* THE SECONDARY BAR HOST (coach-approved comp,
+        design-comps/reports-secondary-nav-2026-09-23). Each multi-section
+        board portals its one SectionBar here, so every report's pages, scope
+        and export sit directly under the fixed strip at one position. Empty,
+        it takes no height: Overview has no bar. */}
+    <div class="gi-reports-secbar-host" data-reports-secbar></div>
     <div class="gi-reports-scorebug" data-reports-scorebug hidden></div>
-
-    {/* Reports redesign — the persistent KPI rail. Carries across every game-
-        scope tab (Overview/Offense/Defense/Special Teams/Players/Self-Scout/
-        Matchup) so the coach never loses the score/plays/success-rate context
-        while digging into a report. Populated by ReportsScreen._syncKpiRail —
-        this stays raw markup here because its numbers change on every tab and
-        game switch, the same reason the title/context block above is synced
-        rather than re-rendered by Preact. Hidden on Season (which carries its
-        own season-scope rail) and in opponent perspective (its own answer
-        sheet already states the sample). */}
-    {/* Reports redesign (item A): deliberately NOT data-reports-main-chrome.
-        _setChrome() force-sets every main-chrome node's `hidden` on every
-        render pass (including the MutationObserver-driven _syncPresentation),
-        which would unconditionally re-reveal the rail on the Season tab right
-        after _syncKpiRail() hid it. _syncKpiRail() is this element's sole
-        owner. */}
-    <div class="gi-hero gi-reports-rail" data-reports-rail hidden></div>
 
     <div class="gi-reports-special-head" hidden data-reports-special-chrome>
       <button type="button" class="gi-reports-back" onClick={() => screen.show()}><Icon name="prev-clip" />Back to reports</button>

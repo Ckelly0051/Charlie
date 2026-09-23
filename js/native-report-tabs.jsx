@@ -8,7 +8,7 @@
  * post-render DOM query/rebind pass.
  */
 import { useMemo, useState } from 'preact/hooks';
-import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ZoneNav, ZoneRule } from './native-report-kit.jsx';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { Charts } from './charts.js';
@@ -579,13 +579,17 @@ function SparseModule({ title, meta, cls = '', rows, children }) {
   </Module>;
 }
 
-const OFFENSE_ZONES = [
-  { id: 'gi-off-z1', label: 'Offensive identity' },
-  { id: 'gi-off-z2', label: 'Calls and tendencies' },
-  { id: 'gi-off-z3', label: 'Structure and deployment' },
-  { id: 'gi-off-z4', label: 'Situational analysis' },
-  { id: 'gi-off-z5', label: 'Field and production' },
-  { id: 'gi-off-z6', label: 'Advanced metrics' },
+/* The six approved zones are PAGES (coach-approved comp,
+   design-comps/reports-secondary-nav-2026-09-23): one on screen at a time,
+   selected from the shared secondary bar. Every module keeps its zone; the
+   coach kept six pages to leave room for growth. */
+const OFFENSE_PAGES = [
+  ['identity', 'Identity'],
+  ['calls', 'Calls & tendencies'],
+  ['structure', 'Structure'],
+  ['situations', 'Situations'],
+  ['field', 'Field & production'],
+  ['advanced', 'Advanced'],
 ];
 
 /* The approved Offense composition is the SCHEMA — the single owner for every
@@ -698,6 +702,8 @@ const mapFit = (rows, limit, fn) =>
  */
 export function OffenseTab({ stats, screen }) {
   const engine = screen.app.stats;
+  const [page, setPageState] = useState(OFFENSE_PAGES.some(([id]) => id === screen.offenseSection) ? screen.offenseSection : 'identity');
+  const setPage = id => { screen.offenseSection = id; setPageState(id); document.querySelector('.ws-reports')?.scrollTo?.(0, 0); };
   if (!stats.offPlays.length) {
     return <EmptyState
       title="No offensive snaps charted"
@@ -721,11 +727,12 @@ export function OffenseTab({ stats, screen }) {
   const byDown = view.runPassByDown(stats, engine);
   const cut = (type, val, label) => () => screen.watchCut(type, val, label);
 
-  return <div class="gi-overview-board gi-offense-board">
-    <ZoneNav zones={OFFENSE_ZONES} ariaLabel="Offense report sections" />
+  return <div class="gi-overview-board gi-offense-board" data-offense-page={page}>
+    <ReportSectionBar screen={screen} label="Offense report sections" navClass="gi-offense-pages" numbered
+      sections={OFFENSE_PAGES.map(([id, label]) => ({ id, label }))} active={page} onSelect={setPage} />
 
     {/* ── ZONE 1 — offensive identity ───────────────────────────────── */}
-    <ZoneRule id="gi-off-z1" title="Offensive identity" label="Personnel, formation, alignment, and primary call" />
+    {page === 'identity' && <>
     <KpiBand items={view.offenseKpis(stats)} />
     <div class="gi-overview-band gi-off-identity">
       <Module title="Identity" cls="is-offense" meta={`${stats.offPlays.length} snaps`}>
@@ -743,9 +750,10 @@ export function OffenseTab({ stats, screen }) {
         </tbody></table>
       </Module>
     </div>
+    </>}
 
     {/* ── ZONE 2 — calls and tendencies ─────────────────────────────── */}
-    <ZoneRule id="gi-off-z2" title="Calls and tendencies" label="Frequency and production" note="Opens film" />
+    {page === 'calls' && <>
     {/* The comp pairs these two in one band (`b-2`); production gave each a
         full-width band of its own, which is a different composition. */}
     <div class="gi-overview-band gi-off-b2">{calls.calls}{calls.concepts}</div>
@@ -799,9 +807,10 @@ export function OffenseTab({ stats, screen }) {
         </div>
       </Module>
     </div>
+    </>}
 
     {/* ── ZONE 3 — structure and deployment ─────────────────────────── */}
-    <ZoneRule id="gi-off-z3" title="Structure and deployment" label="Personnel, alignment, motion, direction, and hash" note="Opens film" />
+    {page === 'structure' && <>
     <div class="gi-overview-band gi-overview-band-3">
       <Module title="Personnel" meta="grouping" cls="is-offense gi-off-narrow-fit" rows={personnel}>
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(personnel, OFFENSE_ROWS.Personnel), screen)} />
@@ -824,9 +833,10 @@ export function OffenseTab({ stats, screen }) {
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(hash, OFFENSE_ROWS['Field hash']), screen)} />
       </Module>
     </div>
+    </>}
 
     {/* ── ZONE 4 — situational analysis ─────────────────────────────── */}
-    <ZoneRule id="gi-off-z4" title="Situational analysis" label="Down, distance, quarter, and personnel" note="Opens film" />
+    {page === 'situations' && <>
     {/* The comp's two bands: Personnel × situation beside Situational, then the
         Tendency matrix beside By quarter. Production had split these into two
         full-width bands and a pair in the wrong order, so Zone 4 read as four
@@ -853,9 +863,10 @@ export function OffenseTab({ stats, screen }) {
         </table>
       </Module>
     </div>
+    </>}
 
     {/* ── ZONE 5 — field and production ─────────────────────────────── */}
-    <ZoneRule id="gi-off-z5" title="Field and production" label="Distribution and field position" />
+    {page === 'field' && <>
     {/* Three bands, always. The two paired bands were conditional and used
         `.filter(Boolean)`, so a band could render one module, or none, and the
         board's shape moved with the data.
@@ -871,12 +882,14 @@ export function OffenseTab({ stats, screen }) {
     <div class="gi-overview-band gi-off-full"><NativeHeatMaps plays={stats.offPlays} screen={screen} /></div>
     <div class="gi-overview-band gi-off-b2e">{parts.histogram}{parts.scatter}</div>
     <div class="gi-overview-band gi-off-b2e">{parts.zones}{parts.downs}</div>
+    </>}
 
     {/* ── ZONE 6 — advanced metrics ─────────────────────────────────── */}
-    <ZoneRule id="gi-off-z6" title="Advanced metrics" label="Team profile and EPA" />
+    {page === 'advanced' && <>
     {/* Both bands always render; the modules themselves state any absence. */}
     <div class="gi-overview-band gi-off-full"><TeamProfile profile={shape?.teamProfile} cls="is-offense" /></div>
     <div class="gi-overview-band gi-off-full"><AdvancedEpa data={advanced} screen={screen} /></div>
+    </>}
   </div>;
 }
 /* The six roles the engine attributes, in the approved board order. `w` is the
@@ -1266,17 +1279,20 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
 
   return <div class="gi-overview-board gi-players-board">
     <div class="gi-players-report">
+      {/* Roles and the three-way scope live in the shared secondary bar
+          (coach-approved comp, 2026-09-23); the sample line stays with the
+          board it describes. A player's detail view keeps the scope and hides
+          the role pages, as before. */}
+      <ReportSectionBar screen={screen} label="Player roles" navClass="gi-players-roles"
+        sections={detail ? [] : PLAYER_SECTIONS.map(([id, title]) => {
+          const count = rolePlayers(sectionKeys(id)).size;
+          return { id, label: title, count: String(count), none: !count };
+        })}
+        active={section} onSelect={setSection}
+        scope={fixedScope ? null : [['game', 'Current game'], ['season', 'Full season'], ['selected', 'Selected games']].map(([id, label]) => ({
+          id, label, active: screen.playersScope === id, onSelect: () => screen.setPlayersScope(id), attrs: { 'data-players-scope': id } }))}
+        scopeExtra={!fixedScope && screen.playersScope === 'selected' ? <GamePicker screen={screen} /> : null} />
       {!fixedScope && <div class="gi-players-toolbar">
-        <span class="gi-players-toolbar-label">Scope</span>
-        <div class="gi-players-scope" role="group" aria-label="Players report scope">
-          <button type="button" class={screen.playersScope === 'game' ? 'active' : ''} aria-pressed={screen.playersScope === 'game'}
-            onClick={() => screen.setPlayersScope('game')}>Current game</button>
-          <button type="button" class={screen.playersScope === 'season' ? 'active' : ''} aria-pressed={screen.playersScope === 'season'}
-            onClick={() => screen.setPlayersScope('season')}>Full season</button>
-          <button type="button" class={screen.playersScope === 'selected' ? 'active' : ''} aria-pressed={screen.playersScope === 'selected'}
-            data-players-scope="selected" onClick={() => screen.setPlayersScope('selected')}>Selected games</button>
-        </div>
-        {screen.playersScope === 'selected' && <GamePicker screen={screen} />}
         {/* The role count keeps its denominator whenever a role is unattributed:
             `5 roles` reads as the whole set, `5/6 roles` says one is missing.
             A full six drops the denominator, because there is nothing absent
@@ -1286,13 +1302,6 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         }</b> roles · <b>{playCount}</b> charted plays{screen.playersScope === 'selected'
           ? ` · ${screen._playersSelectedLabel()}` : ''}</span>
       </div>}
-      {detail ? null : <nav class="gi-players-nav" aria-label="Player roles">
-        {PLAYER_SECTIONS.map(([id, title]) => {
-          const count = rolePlayers(sectionKeys(id)).size;
-          return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
-            aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
-        })}
-      </nav>}
       {detail ? <PlayerDetail detail={detail} screen={screen} scopeLabel={screen._playersScopeLabel()} /> : null}
       {detail ? null : <div class={`gi-players-sections cols-${columns.length}`} data-players-columns={columns.length}>
         {columns.map((column, index) => <div key={`${section}-col-${index}`} class="gi-players-col">
@@ -1594,7 +1603,6 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
     st4: (unit('fieldGoal').n || 0) + (unit('fieldGoalBlock').n || 0) + tryCharted,
     st5: (returnTable?.rows.length || 0) + (specialistTable?.rows.length || 0),
   };
-  const meta = ST_SECTIONS.find(s => s.id === section) || ST_SECTIONS[0];
 
   // `long` is the longest MADE kick, so attempts with no make leave it
   // unavailable. It must never render 0 -- a zero-yard field goal is not a
@@ -1605,22 +1613,27 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
   const BUCKETS = ['<30', '30-39', '40-49', '50+'];
   const byDist = new Map((st?.fg?.byDist || []).map(b => [b.label, b]));
 
+  /* Sections, scope and the report export live in the shared secondary bar
+     (coach-approved comp, 2026-09-23). A fixed-scope board (Season's child,
+     the opponent scout) keeps its titled toolbar and its own export there. */
+  const setScope = scope => { screen.specialTeamsScope = scope; screen._syncHeader(); screen._renderActiveTab(); };
+  const scope = fixedScope ? null : [
+    { id: 'game', label: 'Current game', active: screen.specialTeamsScope === 'game', onSelect: () => setScope('game'), attrs: { 'data-st-scope': 'game' } },
+    { id: 'season', label: 'Full season', active: screen.specialTeamsScope === 'season', onSelect: () => setScope('season'), attrs: { 'data-st-scope': 'season' } },
+  ];
+  const exportAction = fixedScope ? null : { label: 'Export report', attrs: { class: 'gi-secbar-export gi-st-export', 'data-report-export': 'special' },
+    onSelect: () => screen.exportSpecialTeams(stats, summary) };
+
   return <div class="gi-overview-board gi-st-board">
-    <div class="gi-st-toolbar">
-      {!fixedScope && <>
-        <span class="gi-st-toolbar-label">Scope</span>
-        <div class="gi-st-scope" role="group" aria-label="Special Teams report scope">
-          <button type="button" data-st-scope="game" class={screen.specialTeamsScope === 'game' ? 'active' : ''}
-            onClick={() => { screen.specialTeamsScope = 'game'; screen._syncHeader(); screen._renderActiveTab(); }}>Current game</button>
-          <button type="button" data-st-scope="season" class={screen.specialTeamsScope === 'season' ? 'active' : ''}
-            onClick={() => { screen.specialTeamsScope = 'season'; screen._syncHeader(); screen._renderActiveTab(); }}>Full season</button>
-        </div>
-      </>}
-      {fixedScope && <strong class="gi-st-toolbar-label">{title}</strong>}
+    <ReportSectionBar screen={screen} label="Special Teams units" navClass="gi-st-sections"
+      sections={ST_SECTIONS.map(s => ({ id: s.id, label: s.label, count: `${sectionCounts[s.id]} ${s.counts}`,
+        none: !sectionCounts[s.id], attrs: { 'data-st-section': s.id } }))}
+      active={section} onSelect={setSection} scope={scope} exportAction={exportAction} />
+    {fixedScope && <div class="gi-st-toolbar">
+      <strong class="gi-st-toolbar-label">{title}</strong>
       {toolbarAction}
-      <button class="btn btn-sm gi-st-export"
-        onClick={() => fixedScope ? screen.export('season-html') : screen.exportSpecialTeams(stats, summary)}>Export Report</button>
-    </div>
+      <button class="btn btn-sm gi-st-export" onClick={() => screen.export('season-html')}>Export Report</button>
+    </div>}
 
     {/* A `stats` tile renders label/number rows instead of one big figure --
         the same markup and classes the rail's Turnovers tile uses, so the two
@@ -1648,15 +1661,6 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       <b>{unassigned}</b> {unassigned === 1 ? 'snap is' : 'snaps are'} not assigned to a unit
     </p>}
 
-    <div class="gi-def-secnav" role="tablist" aria-label="Special Teams units">
-      {ST_SECTIONS.map(s => <button key={s.id} type="button" role="tab"
-        aria-selected={section === s.id} data-st-section={s.id}
-        class={`gi-def-secnav-item${section === s.id ? ' is-active' : ''}${sectionCounts[s.id] ? '' : ' is-none'}`}
-        onClick={() => setSection(s.id)}
-        aria-label={`${s.label} — ${sectionCounts[s.id]} ${s.counts}`}>
-        <b>{sectionCounts[s.id]}<i>{s.counts}</i></b>{s.label}</button>)}
-    </div>
-    <div class="gi-def-secrule"><h2>{meta.label}</h2></div>
 
     {section === 'st1' && <>
       <div class="gi-st-band gi-st-band-2">
@@ -1986,19 +1990,16 @@ export function SeasonTab({ model, screen }) {
   else body = <SeasonTrends model={model} />;
 
   const seasonName = screen.app.storage?.seasonStore?.data?.seasonName || 'Season';
-  return <div class="gi-overview-board gi-season-board">
+  /* Sections and the season export live in the shared secondary bar
+     (coach-approved comp, 2026-09-23). The season name is already the report
+     title in the fixed head, so the board no longer repeats it. The child
+     boards below are embedded and carry their own pages inline. */
+  return <div class="gi-overview-board gi-season-board" data-season-name={seasonName}>
+    <ReportSectionBar screen={screen} label="Season sections" navClass="gi-season-pages"
+      sections={SEASON_SECTIONS.map(([id, label]) => ({ id, label, attrs: { 'data-subtab': id } }))}
+      active={active} onSelect={setActive}
+      exportAction={{ label: 'Export report', attrs: { class: 'gi-secbar-export', 'data-report-export': 'season' }, onSelect: () => screen.export('season-html') }} />
     <div class="gi-season-report">
-      <div class="gi-season-identity">
-        <span>Season Report</span><strong>{seasonName}</strong>
-      </div>
-      <nav class="gi-season-nav" role="tablist" aria-label="Season sections">
-        {SEASON_SECTIONS.map(([id, label]) => <button key={id} type="button"
-          class={`gi-subtab ${active === id ? 'active' : ''}`} data-subtab={id} role="tab"
-          aria-selected={active === id} onClick={() => setActive(id)}>{label}</button>)}
-      </nav>
-      <div class="gi-season-acts">
-        <button type="button" class="btn" onClick={() => screen.export('season-html')}>Export report</button>
-      </div>
       <div class="gi-season-sections" data-subpane={active}>{body}</div>
     </div>
   </div>;
@@ -2219,18 +2220,17 @@ export function MatchupTab({ model, screen }) {
   };
   return <div class="gi-overview-board gi-matchup-board">
     <div class="gi-mu-report">
-      <div class="gi-mu-bar">
-        <div class="gi-mu-pick">
-          <label for="gi-mu-opponent">Opponent</label>
+      {/* The two directions are this report's pages and the opponent picker
+          filters it, so both live in the shared secondary bar (coach-approved
+          comp, 2026-09-23). The opponent sample stays with the board. */}
+      <ReportSectionBar screen={screen} label="Matchup direction" navClass="gi-mu-directions"
+        sections={available.map(([id, label]) => ({ id, label }))} active={active} onSelect={setTab}
+        scopeExtra={<label class="gi-secbar-scope gi-secbar-picker" for="gi-mu-opponent"><span>Opponent</span>
           <select id="gi-mu-opponent" value={opponent.name}
             onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>
             {opponents.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
-          </select>
-        </div>
-        <nav class="gi-mu-tabs" aria-label="Matchup direction">
-          {available.map(([id, label]) => <button key={id} type="button" class={active === id ? 'active' : undefined}
-            aria-current={active === id ? 'true' : undefined} onClick={() => setTab(id)}>{label}</button>)}
-        </nav>
+          </select></label>} />
+      <div class="gi-mu-bar">
         <div class="gi-mu-sample">
           <div><span>Opponent sample</span><strong>{sample.opponent}</strong></div>
         </div>
@@ -2634,26 +2634,23 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
 
   return <div class="gi-overview-board gi-selfscout-board">
     <div class="gi-selfscout-report">
+      {/* Sections and the report export live in the shared secondary bar
+          (coach-approved comp, 2026-09-23); the sample stays with the board. */}
+      <ReportSectionBar screen={screen} label="Self-Scout sections" navClass="gi-selfscout-pages"
+        sections={SELF_SCOUT_SECTIONS.map(([id, title]) => {
+          const count = ssSectionCount(id, counts);
+          return { id, label: title, count: String(count), none: !count };
+        })}
+        active={section} onSelect={setSection}
+        exportAction={{ label: 'Export report', attrs: { class: 'gi-secbar-export', 'data-report-export': 'selfscout' },
+          onSelect: () => (screen.exportSelfScout ? screen.exportSelfScout(report, defScout, performance, rows) : screen.export('season-html')) }} />
       <div class="gi-selfscout-toolbar">
-        <span class="gi-selfscout-toolbar-label">Scope</span>
         <span class="gi-selfscout-sample">
           {/* Both halves name the cohort. The defensive half said "defensive
               plays" while measuring the same classified subset, so it read as
               a different cohort from the offensive half beside it. */}
           <b>{report ? report.totalPlays : 0}</b> classified offensive plays · <b>{defSummary.totalPlays}</b> classified defensive plays
         </span>
-      </div>
-      <nav class="gi-selfscout-nav" aria-label="Self-Scout sections">
-        {SELF_SCOUT_SECTIONS.map(([id, title]) => {
-          const count = ssSectionCount(id, counts);
-          return <button key={id} type="button" class={`${section === id ? 'active' : ''}${count ? '' : ' is-none'}`}
-            aria-current={section === id ? 'true' : undefined} onClick={() => setSection(id)}>{title} <b>{count}</b></button>;
-        })}
-      </nav>
-      <div class="gi-selfscout-acts">
-        <button type="button" class="btn" onClick={() => (screen.exportSelfScout
-          ? screen.exportSelfScout(report, defScout, performance, rows)
-          : screen.export('season-html'))}>Export report</button>
       </div>
       <div class="gi-selfscout-sections">{body}</div>
     </div>

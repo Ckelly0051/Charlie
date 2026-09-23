@@ -12,7 +12,8 @@
  * pattern). A row with no resolvable refs renders with no click affordance
  * at all, never a dead click.
  */
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 
 export function KpiBand({ items }) {
   if (!items?.length) return null;
@@ -220,57 +221,63 @@ export function EmptyState({ title, body, action = null }) {
 }
 
 /**
- * A zone header. Offense carries roughly three times as many bands as Overview,
- * so the board needs a scan structure Overview's four bands never required.
- * Same type, colour and geometry as every other module header — the only new
- * thing is the level in the hierarchy.
+ * THE SECONDARY BAR (coach-approved comp
+ * design-comps/reports-secondary-nav-2026-09-23). One component for every
+ * multi-section report, rendered once directly under the fixed global strip.
+ *
+ *   - Left, SECONDARY NAVIGATION: this report's pages. A tab switches the
+ *     visible page, the Special Teams / Players interaction.
+ *   - Right, SCOPE: controls that filter this report (Current game first).
+ *   - Right, REPORT EXPORT: this report's own full export. A page selection
+ *     never narrows it.
+ *
+ * `sections` is [{ id, label, count?, none?, attrs? }]. `numbered` prefixes
+ * each tab with its position (Offense, Defense). `scope` is
+ * [{ id, label, active, onSelect, attrs? }] or null; `scopeExtra` renders
+ * beside it (Players' game picker, Matchup's opponent select). `exportAction`
+ * is { label, onSelect, attrs? } or null. `navClass` keeps a report's own
+ * navigation hook on the bar that replaced its in-board navigation.
  */
-export function ZoneRule({ id, title, label, note = null }) {
-  return <div class="gi-zone-rule" id={id}>
-    <h2>{title}</h2>{label ? <p>{label}</p> : null}{note ? <em>{note}</em> : null}
+export function SectionBar({ label, sections, active, onSelect, numbered = false, navClass = '',
+  scope = null, scopeLabel = 'Scope', scopeExtra = null, exportAction = null, inline = false }) {
+  if (!sections?.length && !scope && !scopeExtra && !exportAction) return null;
+  return <div class={`gi-secbar${inline ? ' is-inline' : ''}`} data-reports-secbar-bar>
+    <nav class={`gi-secbar-tabs ${navClass}`.trim()} role="tablist" aria-label={label}>
+      {(sections || []).map((section, index) => {
+        const on = section.id === active;
+        return <button key={section.id} type="button" role="tab" aria-selected={on} aria-current={on ? 'true' : undefined}
+          class={`gi-secbar-tab${on ? ' active' : ''}${section.none ? ' is-none' : ''}`} data-section={section.id}
+               aria-label={section.count != null && section.count !== '' ? `${section.label} ${section.count}` : undefined}
+          {...(section.attrs || {})} onClick={() => onSelect(section.id)}>
+          {numbered ? <i>{index + 1}</i> : null}<span>{section.label}</span>
+          {section.count != null && section.count !== '' ? <b>{section.count}</b> : null}
+        </button>;
+      })}
+    </nav>
+    {scope || scopeExtra || exportAction ? <div class="gi-secbar-right">
+      {scope ? <div class="gi-secbar-scope" role="group" aria-label={`${label} scope`}>
+        <span>{scopeLabel}</span>
+        <div class="gi-secbar-seg">
+          {scope.map(item => <button key={item.id} type="button" class={item.active ? 'active' : ''} aria-pressed={item.active}
+            {...(item.attrs || {})} onClick={item.onSelect}>{item.label}</button>)}
+        </div>
+      </div> : null}
+      {scopeExtra}
+      {exportAction ? <button type="button" class="gi-secbar-export" {...(exportAction.attrs || {})}
+        onClick={exportAction.onSelect}>{exportAction.label || 'Export report'}</button> : null}
+    </div> : null}
   </div>;
 }
 
 /**
- * Secondary navigation for a long report. Real buttons with a stable hit area,
- * hover, `:focus-visible`, and an active state that follows the coach down the
- * page via IntersectionObserver — the observer is disconnected on unmount, and
- * a route/tab/game/season/perspective change unmounts this component, so the
- * active zone resets by construction rather than by a reset call.
- *
- * `zones` is [{ id, label }]. Jumping honours `prefers-reduced-motion`.
+ * Where the bar renders. At the top level it portals into the route's one bar
+ * host, directly under the global strip, so every report's bar has the same
+ * position whatever the board below it does. A board embedded in another
+ * report (Season's child boards) has no host and keeps the same bar inline.
+ * The portal lives and dies with the board: a tab change unmounts it.
  */
-export function ZoneNav({ zones, ariaLabel = 'Report sections' }) {
-  const [active, setActive] = useState(zones[0]?.id || null);
-  useEffect(() => {
-    const targets = zones.map(zone => document.getElementById(zone.id)).filter(Boolean);
-    if (!targets.length || typeof IntersectionObserver !== 'function') return undefined;
-    // A zone counts as current once its header crosses the upper third of the
-    // scroller; the last one to cross wins, which is what reading down the page
-    // feels like. rootMargin keeps a zone current while its body is on screen.
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries.filter(entry => entry.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-      if (visible.length) setActive(visible[0].target.id);
-    }, { rootMargin: '-72px 0px -62% 0px', threshold: 0 });
-    targets.forEach(target => observer.observe(target));
-    return () => observer.disconnect();
-  }, [zones.map(zone => zone.id).join('|')]);
-  const jump = id => {
-    const target = document.getElementById(id);
-    if (!target) return;
-    setActive(id);
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-  };
-  return <nav class="gi-zone-nav" aria-label={ariaLabel}>
-    {zones.map((zone, index) => <button
-      key={zone.id}
-      type="button"
-      class={`gi-zone-nav-item${active === zone.id ? ' is-active' : ''}`}
-      data-zone-jump={zone.id}
-      aria-current={active === zone.id ? 'true' : undefined}
-      onClick={() => jump(zone.id)}
-    ><b>{index + 1}</b>{zone.label}</button>)}
-  </nav>;
+export function ReportSectionBar({ screen, ...props }) {
+  const host = screen?.sectionBarHost?.() || null;
+  const bar = <SectionBar {...props} inline={!host} />;
+  return host ? createPortal(bar, host) : bar;
 }

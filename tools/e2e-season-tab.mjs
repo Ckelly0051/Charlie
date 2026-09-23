@@ -73,9 +73,11 @@ let result = await page.evaluate(() => {
     plays: model.allPlays.length,
     perGame: model.perGame.map(row => row.name),
     refs: model.allPlays.map(play => app.stats.constructor._compositeRef(play)).filter(Boolean).sort(),
-    text: pane?.textContent || '',
+    // The season is named by the Reports head above the strip, and its seven
+    // views are the shared secondary bar's tabs (coach-approved comp, 2026-09-23).
+    text: `${document.querySelector('[data-reports-title]')?.textContent || ''} ${pane?.textContent || ''}`,
     native: !!pane?.querySelector('.gi-season-board'),
-    tabs: [...(pane?.querySelectorAll('[data-subtab]') || [])].map(node => node.dataset.subtab),
+    tabs: [...document.querySelectorAll('[data-reports-secbar] [data-subtab]')].map(node => node.dataset.subtab),
     legacyAbsent: typeof app.season.statsHtml === 'undefined'
       && typeof app.stats._renderSeason === 'undefined'
       && typeof app.stats._renderIndividualStats === 'undefined',
@@ -93,7 +95,7 @@ ok(result.refs.join('|') === 'g-one::1|g-one::2|g-one::3|g-two::1|g-two::2|g-two
 // The approved 2026-09-05 Overview is the Game Log, Situational Offense and
 // Scoring & Possessions. The log names each game by its own charted opponent
 // rather than by a composed display name, so that is what proves the content.
-ok(result.text.includes('Season Report') && result.text.includes('Game Log')
+ok(/ Report\b/.test(result.text) && result.text.includes('Game Log')
   && result.text.includes('Wildcats') && result.text.includes('Knights')
   && result.text.includes('Situational Offense') && result.text.includes('Scoring & Possessions'),
   'Native Season overview renders the canonical season content', result.text.slice(0, 300));
@@ -104,7 +106,7 @@ result = await page.evaluate(async () => {
   const pane = document.querySelector('#wsReports [data-native-report-content]');
   const labels = {};
   for (const id of ['offense', 'defense', 'special', 'players', 'scout', 'trends']) {
-    pane.querySelector(`[data-subtab="${id}"]`).click();
+    document.querySelector(`[data-reports-secbar] [data-subtab="${id}"]`).click();
     await new Promise(resolve => setTimeout(resolve, 40));
     labels[id] = pane.querySelector(`[data-subpane="${id}"]`)?.textContent.trim().length || 0;
   }

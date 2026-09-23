@@ -826,15 +826,19 @@ for (const [width, height] of VIEWPORTS) {
      fell below the fold. The subject here is the BOARD's rhythm, not the
      chrome's, so the route scrolls past exactly the head and strip before the
      capture; the crop then covers the board content the approved capture
-     covers. No board geometry or tolerance changes. */
+     covers. No board geometry or tolerance changes.
+     The compact Overview score (coach-approved comp, 2026-09-23) is chrome of
+     the same kind, sitting between the strip and the board, so the scroll now
+     runs to the report content's own top: every piece of chrome above the
+     board, and nothing of the board itself. */
   const settle = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   await settle();
   const shot = await page.screenshot();
   await page.evaluate(() => {
     const route = document.querySelector('.ws-reports');
     const head = document.querySelector('.gi-reports-reporthead');
-    const strip = document.querySelector('[data-reports-strip]');
-    if (route && head && strip) route.scrollTop = strip.getBoundingClientRect().bottom - head.getBoundingClientRect().top;
+    const content = document.querySelector('[data-native-report-content]');
+    if (route && head && content) route.scrollTop = content.getBoundingClientRect().top - head.getBoundingClientRect().top;
   });
   await settle();
   const boardShot = await page.screenshot();

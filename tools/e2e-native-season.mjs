@@ -72,7 +72,8 @@ state = await page.evaluate(() => ({
     value: card.querySelector('strong')?.textContent.trim(),
     label: card.querySelector('span')?.textContent.trim(),
   })),
-  subTabs: [...document.querySelectorAll('[data-pane="season"] .gi-subtab')].map(button => button.textContent.trim()),
+  // Season's sections are the shared secondary bar under the strip (2026-09-23).
+  subTabs: [...document.querySelectorAll('[data-reports-secbar] .gi-season-pages [data-subtab]')].map(button => button.textContent.trim()),
   model: (() => { const model = window.app.season.reportModel(); return { yards: model.stats.rushing.yards + model.stats.passing.yards, refs: model.allPlays.map(play => window.app.stats.constructor._compositeRef(play)).filter(Boolean).sort() }; })(),
   data: JSON.stringify(window.app.storage.seasonStore.data),
 }));
@@ -93,10 +94,11 @@ ok(state.model.refs.some(ref => ref.startsWith(fixture.firstId + '::'))
 
 // Approved broadcast-density chrome: Season owns its own aggregate header.
 // Returning to Overview reveals the scorebug while the retired KPI rail stays hidden.
-const railOnSeason = await page.evaluate(() => document.querySelector('[data-reports-rail]')?.hidden);
+// The rail is deleted (2026-09-23), so "hidden" now means absent from the DOM.
+const railOnSeason = await page.evaluate(() => !document.querySelector('[data-reports-rail], .gi-reports-rail'));
 await page.click('[data-report-tab="overview"]');
 await page.waitForFunction(() => !document.querySelector('[data-reports-scorebug]')?.hidden);
-const overviewChrome = await page.evaluate(() => ({ railHidden: document.querySelector('[data-reports-rail]')?.hidden, scorebugVisible: !document.querySelector('[data-reports-scorebug]')?.hidden }));
+const overviewChrome = await page.evaluate(() => ({ railHidden: !document.querySelector('[data-reports-rail], .gi-reports-rail'), scorebugVisible: !document.querySelector('[data-reports-scorebug]')?.hidden }));
 ok(railOnSeason === true && overviewChrome.railHidden === true && overviewChrome.scorebugVisible,
   'Season hides game chrome; Overview restores the approved scorebug without reviving the retired KPI rail',
   JSON.stringify({ railOnSeason, overviewChrome }));

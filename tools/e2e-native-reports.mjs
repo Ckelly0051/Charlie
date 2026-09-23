@@ -180,25 +180,23 @@ result = await page.evaluate(() => {
 ok(result.official.hidden===false && result.official.scores.join('|')==='21|14','The scorebug leads with the official Game Settings score when tagged scoring is incomplete',JSON.stringify(result.official));
 ok(!result.fired && result.hostile.images===0 && result.hostile.text.includes('<img src=x'),'Imported score values render as inert text in the approved scorebug',JSON.stringify(result.hostile));
 
-console.log('\n== 1c. Turnovers tile never claims an uncharted side, and Plays per Phase reads unambiguously ==');
+console.log('\n== 1c. The compact score\'s Turnover margin never claims an uncharted side ==');
 result = await page.evaluate(async () => {
   const app = window.app;
   const play = (id, unit, tags = {}) => ({
     id, timestamp: { start: id * 10, end: id * 10 + 5 },
     tags: { unit, custom: [], players: {}, grades: {}, ...tags }, notes: '', analysis: null,
   });
+  /* The game KPI rail is DELETED (coach-approved comp, 2026-09-23); its
+     turnover facts moved into the Overview compact score, so that is where
+     this block's subject -- never claim an uncharted side -- is read now. */
   const readRail = () => {
-    const rail = document.querySelector('[data-reports-rail]');
-    const tiles = [...(rail?.querySelectorAll('.gi-kpi') || [])];
-    const findTile = label => tiles.find(t => t.querySelector('.gi-kpi-label')?.textContent === label);
-    const to = findTile('Turnovers');
-    const ph = findTile('Plays per Phase');
+    const to = document.querySelector('[data-reports-scorebug] [data-scorebug-fact="margin"]');
     return {
       toPresent: !!to,
-      tone: to ? (to.classList.contains('is-pos') ? 'pos' : to.classList.contains('is-neg') ? 'neg' : '') : null,
-      toValue: to?.querySelector('.gi-kpi-value')?.textContent || null,
-      toSub: to?.querySelector('.gi-kpi-sub')?.textContent || null,
-      phaseValue: ph?.querySelector('.gi-kpi-value')?.textContent || null,
+      toValue: to?.querySelector('strong')?.textContent || null,
+      toSub: to?.querySelector('small')?.textContent || null,
+      railAnywhere: !!document.querySelector('[data-reports-rail], .gi-reports-rail'),
     };
   };
   const load = async (id, plays) => {
@@ -210,12 +208,7 @@ result = await page.evaluate(async () => {
     app.storage.seasonStore.data.activeGameId = id;
     app.storage._loadActiveGame();
     await app.workspaceShell.show('reports');
-    // The KPI rail is retired on Overview, Offense and now Defense, which
-    // carry the shared scorebug instead. Special Teams still owns the rail, so
-    // it is the tab that exercises this block's real subject -- the Turnovers
-    // tile and the Plays per Phase label. The rail itself is unchanged.
-    app.reportsScreen.specialTeamsScope = 'game';
-    app.reportsScreen.selectTab('special');
+    app.reportsScreen.selectTab('overview');
     await new Promise(r => setTimeout(r, 200));
     return readRail();
   };
@@ -244,17 +237,17 @@ result = await page.evaluate(async () => {
   ]);
   return { defenseOnly, offenseOnly, both };
 });
-ok(result.defenseOnly.toPresent && /Takeaways\s*1/.test(result.defenseOnly.toValue) && /Turnovers\s*No data/.test(result.defenseOnly.toValue) && /Turnover Margin\s*No data/.test(result.defenseOnly.toValue) && result.defenseOnly.toSub === 'no offensive snaps charted' && !result.defenseOnly.tone,
-  'A defense-only game shows only takeaways, never a fabricated "0 GA" or a colored margin', JSON.stringify(result.defenseOnly));
-ok(result.offenseOnly.toPresent && /Turnovers\s*1/.test(result.offenseOnly.toValue) && /Takeaways\s*No data/.test(result.offenseOnly.toValue) && /Turnover Margin\s*No data/.test(result.offenseOnly.toValue) && result.offenseOnly.toSub === 'no defensive snaps charted' && !result.offenseOnly.tone,
-  'An offense-only game shows only giveaways, never a fabricated "0 TA" or a colored margin', JSON.stringify(result.offenseOnly));
-// The margin is a named row inside the tile now, not a sub beneath it, so the
-// sub is empty when both sides are known -- it exists only to disclose a side
-// that was never charted.
-ok(result.both.toPresent && /Turnovers\s*1/.test(result.both.toValue) && /Takeaways\s*2/.test(result.both.toValue) && /Turnover Margin\s*\+1/.test(result.both.toValue) && result.both.tone === 'pos' && !result.both.toSub,
-  'Both units charted with a genuine takeaway margin colors green and states the real margin', JSON.stringify(result.both));
-ok(result.both.phaseValue === 'OFF2DEF2ST0',
-  'Plays per Phase reads as unambiguous literal labels, never a digit run that could be misread as one number', JSON.stringify(result.both));
+ok(result.defenseOnly.toPresent && result.defenseOnly.toValue === 'No data' && result.defenseOnly.toSub === '1 takeaway, turnovers not charted',
+  'A defense-only game shows only takeaways, never a fabricated "0 turnovers" or a margin', JSON.stringify(result.defenseOnly));
+ok(result.offenseOnly.toPresent && result.offenseOnly.toValue === 'No data' && result.offenseOnly.toSub === '1 turnover, takeaways not charted',
+  'An offense-only game shows only turnovers, never a fabricated "0 takeaways" or a margin', JSON.stringify(result.offenseOnly));
+ok(result.both.toPresent && result.both.toValue === '+1' && result.both.toSub === '2 takeaways, 1 turnover',
+  'Both units charted states the real margin and both counts', JSON.stringify(result.both));
+/* RETIRED, not weakened: `Plays per Phase reads as unambiguous literal labels`
+   pinned a tile of the deleted game KPI rail. Its subject is gone; Overview's
+   Snaps by phase module states the three phases as labeled rows. */
+ok([result.defenseOnly, result.offenseOnly, result.both].every(r => !r.railAnywhere),
+  'No report renders the deleted game KPI rail', JSON.stringify(result.both));
 
 console.log('\n== 1d. Overview keeps the official score primary without the rejected alarm ==');
 result = await page.evaluate(()=>{ window.app.reportsScreen.selectTab('overview'); window.app.reportsScreen._syncHeader(); return { scorebug:!document.querySelector('[data-reports-scorebug]')?.hidden, rejectedAlarm:!!document.querySelector('.scoreboard-mismatch,.gi-overview-reconciliation'), oldScoreboard:!!document.querySelector('.scoreboard-layout') }; });
@@ -316,12 +309,17 @@ result = await page.evaluate(() => {
     // section of the composition.
     special: ['Kickoff', 'Punt Return'], players: ['Rushing'],
     selfscout: ['Offensive Summary', 'Tendencies'],
-    season: ['Season'], matchup: ['Matchup'],
+    // The Season identity band is gone (its sections moved to the secondary
+    // bar); its football-specific surface is the chronological Game Log.
+    season: ['Game Log'], matchup: ['Matchup'],
   };
   for (const tab of Object.keys(needles)) {
     app.reportsScreen.selectTab(tab);
     const pane = document.querySelector(`[data-pane="${tab}"]`);
-    const text = (pane?.textContent || '').replace(/\s+/g, ' ').trim();
+    // A report's section navigation lives in the shared secondary bar under
+    // the strip (coach-approved comp, 2026-09-23), so it is read with the pane.
+    const bar = document.querySelector('[data-reports-secbar]');
+    const text = `${pane?.textContent || ''} ${bar?.textContent || ''}`.replace(/\s+/g, ' ').trim();
     evidence[tab] = { exists: !!pane, marker: needles[tab].some(needle => text.includes(needle)), length: text.length };
   }
   const after=JSON.stringify(app.storage.seasonStore.data);let at=0;while(at<before.length&&before[at]===after[at])at++;
@@ -371,9 +369,14 @@ const sourceGames = await page.evaluate(() => {
     log: [...pane.querySelectorAll('.gi-season-table tbody tr td:nth-child(3)')].map(cell => cell.textContent.trim()),
   };
 });
-const clickSeasonModule = async (tab, title) => {
-  await page.evaluate(key => document.querySelector(`[data-pane="season"] .gi-subtab[data-subtab="${key}"]`)?.click(), tab);
+const clickSeasonModule = async (tab, title, section = null) => {
+  await page.evaluate(key => document.querySelector(`[data-reports-secbar] [data-subtab="${key}"]`)?.click(), tab);
   await sleep(50);
+  /* An embedded Offense board carries its own pages in an inline bar. */
+  if (section) {
+    await page.evaluate(id => document.querySelector(`[data-pane="season"] .gi-secbar.is-inline [data-section="${id}"]`)?.click(), section);
+    await sleep(50);
+  }
   return page.evaluate(moduleTitle => {
     const pane = document.querySelector('[data-pane="season"]');
     const module = [...pane.querySelectorAll('.gi-overview-module')]
@@ -388,7 +391,7 @@ const clickSeasonModule = async (tab, title) => {
     return detail;
   }, title);
 };
-const clicks = [await clickSeasonModule('offense', 'Play calls'), await clickSeasonModule('players', 'Rushing')];
+const clicks = [await clickSeasonModule('offense', 'Play calls', 'calls'), await clickSeasonModule('players', 'Rushing')];
 result = await page.evaluate(() => {
   const app = window.app;
   const model = app.season.reportModel();
@@ -444,7 +447,7 @@ result = await page.evaluate(async () => {
   return {
     legacyAbsent: typeof app.stats._renderMatchupInto !== 'function',
     native: !!pane?.querySelector('.gi-matchup-board'),
-    directions: [...(pane?.querySelectorAll('.gi-mu-tabs button') || [])].map(node => node.textContent.trim()),
+    directions: [...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')].map(node => node.textContent.trim()),
     labels: [...(pane?.querySelectorAll('.gi-mu-unit strong') || [])].map(node => node.textContent.trim()),
     watch: watches.at(-1) || null,
   };
@@ -499,7 +502,7 @@ result = await page.evaluate(async () => {
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   pane=document.querySelector('[data-pane="matchup"]');
   const empty={
-    directions:[...pane.querySelectorAll('.gi-mu-tabs button')].map(n=>n.textContent.trim()),
+    directions:[...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')].map(n=>n.textContent.trim()),
     note:pane.querySelector('.gi-mu-note')?.textContent||'',
     joins:[...pane.querySelectorAll('table.gi-mu-decision tbody tr')].map(row=>row.children[1]?.textContent.trim()),
   };
@@ -609,17 +612,29 @@ result = await page.evaluate(async () => {
   // Every game/season scope opens on Current game (coach decision,
   // 2026-09-22). This block measures the season cohort, so it records the
   // default and then chooses Full season through the real button.
+  // Scope and pages live in the shared secondary bar under the strip
+  // (coach-approved comp, 2026-09-23), not inside the pane.
+  const scopeButton = key => document.querySelector(`[data-reports-secbar] [data-defense-scope="${key}"]`);
+  const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const gameByDefault = app.reportsScreen.defenseScope === 'game'
-    && document.querySelector('[data-pane="defense"] [data-defense-scope="game"].is-active') != null;
-  document.querySelector('[data-pane="defense"] [data-defense-scope="season"]')?.click();
-  // Defense Revision 2 is one vertically scrolling report: every section is
-  // on screen together, so nothing needs activating before it is read.
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    && scopeButton('game')?.classList.contains('active') === true;
+  scopeButton('season')?.click();
+  await frame();
   // The exact production path -- same cohort the rendered pane used.
   const { scoped, labels } = app.reportsScreen._defenseCohort();
   const model = app.stats.defensivePerformance(scoped, labels);
   const pane = document.querySelector('[data-pane="defense"]');
-  const seasonActive = pane?.querySelector('[data-defense-scope="season"].is-active') != null;
+  const seasonActive = scopeButton('season')?.classList.contains('active') === true;
+  // Each of the four sections is its own page; read every heading in page order.
+  const headings = [];
+  for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
+    document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
+    await frame();
+    headings.push(...[...pane.querySelectorAll('[data-def2-section] h2')].map(node => node.textContent.trim()));
+  }
+  // Production by play type lives on the Opponent offense page.
+  document.querySelector('[data-reports-secbar] [data-section="opponent"]')?.click();
+  await frame();
   const runInside = model.playTypes.find(row => row.name === 'Run Inside');
   const duplicateRefs = model.summary.refs.filter(ref => ref.endsWith('::1'));
   const moduleByTitle = title => pane?.querySelector(`[data-def2-module="${title}"]`);
@@ -636,7 +651,6 @@ result = await page.evaluate(async () => {
   const answerHeaderPosition = answerHead?.querySelector('th') ? getComputedStyle(answerHead.querySelector('th')).position : '';
   const answerHeadPosition = answerHead ? getComputedStyle(answerHead).position : '';
   const answerRowsClearHeader = !answerHead || !answerFirst || answerFirst.getBoundingClientRect().top >= answerHead.getBoundingClientRect().bottom - 1;
-  const before = pane?.querySelector('[data-def2-kpi="Total yards allowed"] strong')?.textContent || '';
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
   app.filmNavigation.watch = refs => { watched = refs; return true; };
@@ -649,8 +663,12 @@ result = await page.evaluate(async () => {
   const watchedRunInside = watched;
   watched = null;
   app.filmNavigation.watch = originalWatch;
-  pane?.querySelector('[data-defense-scope="game"]')?.click();
-  const gameActive = document.querySelector('[data-pane="defense"] [data-defense-scope="game"].is-active') != null;
+  document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click();
+  await frame();
+  const before = pane?.querySelector('[data-def2-kpi="Total yards allowed"] strong')?.textContent || '';
+  scopeButton('game')?.click();
+  await frame();
+  const gameActive = scopeButton('game')?.classList.contains('active') === true;
   const after = document.querySelector('[data-pane="defense"] [data-def2-kpi="Total yards allowed"] strong')?.textContent || '';
   app.reportsScreen.defenseScope = 'game';
   app.storage.seasonStore.data.games = originalGames;
@@ -663,9 +681,8 @@ result = await page.evaluate(async () => {
     duplicateRefs, games: model.byGame.map(row => row.name),
     gameByDefault, seasonActive, gameActive, before, after, typeRowsBefore, heldTypeRows, typeModuleHeight, typeSnaps, expectedTypes,
     watchedRunInside, answerHeaderPosition, answerHeadPosition, answerRowsClearHeader,
-    // Revision 2 renders its four sections in order on one page.
-    headings: [...(pane?.querySelectorAll('[data-def2-section] h2') || [])]
-      .map(node => node.textContent.trim()),
+    // Revision 2's four sections, one per page, read in page order.
+    headings,
     // The fixture's third game is opponent-scout with real defensive-shaped
     // plays; a broken _defenseCohort filter would both inflate the season
     // total past 4 and add "Scout Game" to byGame.
@@ -756,30 +773,31 @@ result = await page.evaluate(async () => {
   app.reportsScreen.defenseScope = 'season';
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
-  // Self-scout is section 5 of the Defense tab strip.
-  [...document.querySelectorAll('.gi-def-secnav-item')]
-    .find(b => b.textContent.includes('Self-scout'))?.click();
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const { scoped } = app.reportsScreen._defenseCohort();
   const defScout = app.stats.generateDefensiveSelfScout(scoped);
   const pane = document.querySelector('[data-pane="defense"]');
-  const noLegacyMarkers = pane?.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length === 0;
-  // Self-scout is no longer one .ss-def-section block: predictability and
-  // the tells table are modules inside section 5 of the Defense tab strip.
-  // The tells table and the recommendation rows are the same elements.
-  const section = pane?.querySelector('.gi-def2') || pane;
-  const summaryText = [...(section?.querySelectorAll('.gi-overview-module > header span') || [])]
-    .map(el => el.textContent).find(txt => /defensive snaps/i.test(txt)) || '';
-  const recDivs = [...(section?.querySelectorAll('.gi-def-recs > .ss-rec') || [])].map(el => el.textContent);
-  const tellRowEls = [...(section?.querySelectorAll('.ss-tells tbody tr') || [])];
   const frontTell = defScout.tells.find(t => t.dim === 'vs Front' && t.label === 'Bear & Stack');
-  const frontTellRow = tellRowEls.find(row => row.cells[0]?.textContent.trim() === 'Bear & Stack'
-    && row.cells[1]?.textContent.trim() === 'vs Front');
+  // The board is four pages now; every absence below is read on all four, so
+  // no page can hide a revived Self-Scout module from this check.
+  let noLegacyMarkers = true, section = null, summaryText = '', frontTellRow = null, watchedFrontTell = null;
+  const recDivs = [], tellRowEls = [];
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
   app.filmNavigation.watch = refs => { watched = refs; return true; };
-  frontTellRow?.click();
-  const watchedFrontTell = watched;
+  for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
+    document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    noLegacyMarkers = noLegacyMarkers && pane?.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length === 0;
+    section = pane?.querySelector('.gi-def2') || section;
+    summaryText ||= [...(pane?.querySelectorAll('.gi-overview-module > header span') || [])]
+      .map(el => el.textContent).find(txt => /defensive snaps/i.test(txt)) || '';
+    recDivs.push(...[...(pane?.querySelectorAll('.gi-def-recs > .ss-rec') || [])].map(el => el.textContent));
+    const rows = [...(pane?.querySelectorAll('.ss-tells tbody tr') || [])];
+    tellRowEls.push(...rows);
+    const row = rows.find(r => r.cells[0]?.textContent.trim() === 'Bear & Stack' && r.cells[1]?.textContent.trim() === 'vs Front');
+    if (row) { frontTellRow = row; row.click(); watchedFrontTell = watched; }
+  }
+  document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click();
   app.filmNavigation.watch = originalWatch;
   app.storage.seasonStore.data.games = originalGames;
   app.storage.seasonStore.data.activeGameId = originalActiveGameId;
@@ -889,7 +907,7 @@ result = await page.evaluate(async () => {
   const summary = app.stats._specialTeamsSummary(scoped, stStats);
   const pane = document.querySelector('[data-pane="special"]');
   const noLegacyMarkers = pane?.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length === 0;
-  const seasonActive = pane?.querySelector('.gi-st-scope button.active')?.textContent.trim() === 'Full season';
+  const seasonActive = document.querySelector('[data-reports-secbar] [data-st-scope].active')?.textContent.trim() === 'Full season';
   // Captured now, before the Current-game click below re-renders the pane --
   // avoids any doubt about reading a post-unmount/detached reference.
   const kpiCards = [...(pane?.querySelectorAll('.gi-overview-kpi') || [])].map(node => ({
@@ -917,7 +935,7 @@ result = await page.evaluate(async () => {
 
   // Field-goal distance bucket -- bare id 1's make (game 'a', <30 bucket).
   // Lives in the Kicking game section now, so select it first.
-  pane?.querySelector('[data-st-section="st4"]')?.click();
+  document.querySelector('[data-reports-secbar] [data-st-section="st4"]')?.click();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const fgBucket = [...(pane?.querySelectorAll('.gi-st-bucket') || [])]
     .find(node => node.querySelector('span')?.textContent.trim() === '<30 yds');
@@ -929,7 +947,7 @@ result = await page.evaluate(async () => {
   // reused), proving the individual table is season-wide, not the active
   // game -- and the hostile roster name must render as plain text nearby.
   // Specialists section in the approved composition.
-  pane?.querySelector('[data-st-section="st5"]')?.click();
+  document.querySelector('[data-reports-secbar] [data-st-section="st5"]')?.click();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const kickerTable = [...(pane?.querySelectorAll('.gi-overview-module') || [])]
     .find(node => node.querySelector('header strong')?.textContent.trim() === 'Kicking and punting');
@@ -955,8 +973,8 @@ result = await page.evaluate(async () => {
   app.filmNavigation.watch = originalWatch;
 
   // Current-game scope must shrink to game 'a' only.
-  pane?.querySelector('[data-st-scope="game"]')?.click();
-  const gameActive = document.querySelector('[data-pane="special"] [data-st-scope="game"].active')?.textContent.trim() === 'Current game';
+  document.querySelector('[data-reports-secbar] [data-st-scope="game"]')?.click();
+  const gameActive = document.querySelector('[data-reports-secbar] [data-st-scope="game"].active')?.textContent.trim() === 'Current game';
   const { scoped: gameScoped } = app.reportsScreen._specialTeamsCohort();
   const gameOnlyStats = app.stats.compute(gameScoped);
   app.reportsScreen.specialTeamsScope = 'season';
@@ -1031,7 +1049,7 @@ result = await page.evaluate(async () => {
   app.reportsScreen.show();
   app.reportsScreen.selectTab('special');
   const pane = document.querySelector('[data-pane="special"]');
-  pane?.querySelector('[data-st-section="st4"]')?.click();
+  document.querySelector('[data-reports-secbar] [data-st-section="st4"]')?.click();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const title = node => node.querySelector('header strong')?.textContent.trim();
   const modules = [...(pane?.querySelectorAll('.gi-overview-module') || [])];
@@ -1062,9 +1080,12 @@ ok(result.worstRatio <= 2.2,
   'No module towers over its own band -- the stretched panels keep a band visually even', JSON.stringify(result));
 
 console.log('\n== 3. A self-report row launches the exact active-game film cohort ==');
-result = await page.evaluate(() => {
+result = await page.evaluate(async () => {
   const app = window.app;
   app.reportsScreen.selectTab('offense');
+  // Play calls lives on the Calls & tendencies page of the Offense board.
+  document.querySelector('[data-reports-secbar] [data-section="calls"]')?.click();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   // Migrated components (native-report-kit.jsx `Watchable`) wire film activation
   // through a real onClick/onKeyDown closure over `screen.watchCut`/`watchRefs`
   // -- there is no delegated data-cut-type attribute to read back, so the proof
@@ -1207,11 +1228,10 @@ result = await page.evaluate(async () => {
   window.ffaSaveBlob = (blob, name) => pending.push(blob.text().then(html => captures.push({ name, html })));
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
-  document.querySelector('.gi-def2 .gi-def-export')?.click();
+  // Each report's own export sits at the right of the shared secondary bar.
+  document.querySelector('[data-reports-secbar] [data-report-export="defense"]')?.click();
   app.reportsScreen.selectTab('selfscout');
-  // Scope, section navigation and Export share one control row in the
-  // approved composition; the command lives in the row's action cell.
-  document.querySelector('.gi-selfscout-acts .btn')?.click();
+  document.querySelector('[data-reports-secbar] [data-report-export="selfscout"]')?.click();
   await Promise.all(pending);
   window.ffaSaveBlob = save;
   return captures;
@@ -1448,18 +1468,27 @@ const shape = await page.evaluate(async () => {
   // sortable, film-linked DataTable every other breakdown uses. The proof of
   // "multiple exact-film entry points" is that table's real onClick rows, not
   // a `.gi-ramp-row` mark that no longer exists by design.
-  const formationModule = [...root.querySelectorAll('.gi-overview-module')].find(m => m.querySelector('header strong')?.textContent.trim() === 'Formation');
   const resolveToken = name => { const probe = document.createElement('div'); probe.style.background = `var(${name})`;
     document.body.appendChild(probe); const value = getComputedStyle(probe).backgroundColor; probe.remove(); return value; };
   const tokens = { turnover: resolveToken('--gi-turnover'), neutral: resolveToken('--gi-7'), cat1: resolveToken('--gi-cat-1') };
-  const histFills = [...root.querySelectorAll('.gi-hist rect')].map(r => getComputedStyle(r).fill);
+  /* The board is six pages; every mark is counted on whichever page owns it. */
+  const seen = { formationRows: 0, formationClickableRows: 0, histBars: 0, scatterPoints: 0, zoneCells: 0, multiples: 0 };
+  const histFills = [];
+  for (const id of ['identity', 'calls', 'structure', 'situations', 'field', 'advanced']) {
+    document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
+    await new Promise(resolve => setTimeout(resolve, 60));
+    const formationModule = [...root.querySelectorAll('.gi-overview-module')].find(m => m.querySelector('header strong')?.textContent.trim() === 'Formation');
+    seen.formationRows += formationModule?.querySelectorAll('tbody tr').length || 0;
+    seen.formationClickableRows += formationModule?.querySelectorAll('tbody tr.cut-row').length || 0;
+    seen.histBars += root.querySelectorAll('.gi-hist rect').length;
+    seen.scatterPoints += root.querySelectorAll('.gi-scatter circle').length;
+    seen.zoneCells += root.querySelectorAll('.gi-zone').length;
+    seen.multiples += root.querySelectorAll('.gi-multiple').length;
+    histFills.push(...[...root.querySelectorAll('.gi-hist rect')].map(r => getComputedStyle(r).fill));
+  }
+  document.querySelector('[data-reports-secbar] [data-section="identity"]')?.click();
   return {
-    formationRows: formationModule?.querySelectorAll('tbody tr').length || 0,
-    formationClickableRows: formationModule?.querySelectorAll('tbody tr.cut-row').length || 0,
-    histBars: root.querySelectorAll('.gi-hist rect').length,
-    scatterPoints: root.querySelectorAll('.gi-scatter circle').length,
-    zoneCells: root.querySelectorAll('.gi-zone').length,
-    multiples: root.querySelectorAll('.gi-multiple').length,
+    ...seen,
     // The engine owns every derived number; charts.js is handed them.
     engineBins: dist ? dist.bins.reduce((sum, bin) => sum + bin.count, 0) : 0,
     enginePoints: points.length,
@@ -1596,6 +1625,14 @@ const rhetorical = [];
 for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season']) {
   await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`)?.click(), tab);
   await new Promise(r => setTimeout(r, 500));
+  /* ...AND EVERY PAGE of it: a multi-section report shows one page at a time,
+     so a guard reading only the first page would pass vacuously on the rest. */
+  const sections = await page.evaluate(() => [...document.querySelectorAll('[data-reports-secbar] [data-section]')].map(node => node.dataset.section));
+  for (const section of sections.length ? sections : [null]) {
+  if (section) {
+    await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), section);
+    await new Promise(r => setTimeout(r, 120));
+  }
   const found = await page.evaluate(tabId => {
     const host = document.querySelector('#statsDashboard, .gi-reports');
     if (!host) return [`${tabId}: NO HOST`];
@@ -1615,8 +1652,12 @@ for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'self
       .filter(text => openers.test(text))
       .forEach(text => bad.push(`${tabId}: ${text}`));
     return bad;
-  }, tab);
+  }, section ? `${tab}/${section}` : tab);
   found.forEach(item => rhetorical.push(item));
+  }
+  // Leave each report on its first page, as a coach would find it: a page
+  // selection is controller state and would otherwise carry into later blocks.
+  if (sections.length) await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), sections[0]);
 }
 ok(rhetorical.length === 0,
   'Report headings and captions name the data literally — no questions, no prose openers',
@@ -1653,8 +1694,11 @@ result = await page.evaluate(async () => {
   // -- Season scope: both games' plays are on screen at once, sharing bare id 5.
   app.reportsScreen.selectTab('season');
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  document.querySelector('.gi-subtab[data-subtab="offense"]')?.click();
+  document.querySelector('[data-reports-secbar] [data-subtab="offense"]')?.click();
   await new Promise(r => setTimeout(r, 200));
+  // The embedded Offense board's Field & production page holds the summary.
+  document.querySelector('[data-pane="season"] .gi-secbar.is-inline [data-section="field"]')?.click();
+  await new Promise(r => setTimeout(r, 100));
   const cells = [...document.querySelectorAll('.gi-off-field-cell')];
   const dotA = cells.find(d => /Own 21–40/.test(d.textContent || ''));
   const dotB = cells.find(d => /Opp 39–21/.test(d.textContent || ''));
@@ -1666,6 +1710,8 @@ result = await page.evaluate(async () => {
   // -- Game scope: only gA is loaded, so its dot carries the BARE id (no ::).
   app.reportsScreen.selectTab('offense');
   await new Promise(r => setTimeout(r, 200));
+  document.querySelector('[data-reports-secbar] [data-section="field"]')?.click();
+  await new Promise(r => setTimeout(r, 100));
   const gameDot = [...document.querySelectorAll('.gi-off-field-cell')]
     .find(d => /Own 21–40/.test(d.textContent || ''));
   gameDot?.click();

@@ -2098,7 +2098,7 @@ export class StatsEngine {
 
     const comparison = [
       { name: 'Yards / play', kind: 'number', current: d.summary.ypp, comparison: cd.summary.ypp },
-      { name: 'Explosive Plays Allowed Rate', kind: 'percent', current: rate(d.summary.explosives, d.summary.measured),
+      { name: 'Explosive Plays Rate', kind: 'percent', current: rate(d.summary.explosives, d.summary.measured),
         comparison: rate(cd.summary.explosives, cd.summary.measured) },
       { name: 'Disruption rate', kind: 'percent', current: rate(dis.distinct.length, ps.length),
         comparison: rate(cdis.distinct.length, compare.length) },

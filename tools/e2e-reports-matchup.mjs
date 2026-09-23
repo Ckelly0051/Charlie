@@ -252,7 +252,7 @@ const load = async (games, opponent = '', activeId = 'g1') => {
 };
 const frame = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 const setDirection = async label => {
-  await page.evaluate(text => [...document.querySelectorAll('.gi-mu-tabs button')]
+  await page.evaluate(text => [...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')]
     .find(b => b.textContent.trim() === text)?.click(), label);
   await sleep(350);
 };
@@ -276,7 +276,7 @@ const comp = await page.evaluate(() => {
     board: !!board, report: !!report,
     capped: report ? Math.round(report.getBoundingClientRect().width) : 0,
     padding: board ? getComputedStyle(board).paddingLeft : '',
-    tabs: [...document.querySelectorAll('.gi-mu-tabs button')].map(b => b.textContent.trim()),
+    tabs: [...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')].map(b => b.textContent.trim()),
     panes: document.querySelectorAll('.gi-mu-pane').length,
     sections: [...document.querySelectorAll('.gi-mu-title h2')].map(h => h.textContent.trim()),
     units: [...document.querySelectorAll('.gi-mu-unit strong')].map(u => u.textContent.trim()),
@@ -287,7 +287,7 @@ const comp = await page.evaluate(() => {
     fixed: row ? getComputedStyle(row.closest('table')).tableLayout : '',
     colgroup: document.querySelectorAll('table.gi-mu-decision col').length,
     sticky: head ? getComputedStyle(head).position : '',
-    sharedRail: !document.querySelector('[data-reports-rail]')?.hidden,
+    sharedRail: !!document.querySelector('[data-reports-rail], .gi-reports-rail'),
     sharedBug: !document.querySelector('[data-reports-scorebug]')?.hidden,
     sharedTitle: document.querySelector('[data-reports-title]')?.textContent.trim(),
     sharedContext: document.querySelector('[data-reports-context]')?.textContent.trim(),
@@ -354,7 +354,7 @@ ok(defended.units[0] === 'Our Defense' && defended.units[1] === 'St. Mary Falcon
    discard it, the same correction Players and Self-Scout both needed. */
 await page.evaluate(() => window.app.reportsScreen._renderActiveTab());
 await sleep(400);
-const held = await page.evaluate(() => document.querySelector('.gi-mu-tabs button.active')?.textContent.trim());
+const held = await page.evaluate(() => document.querySelector('[data-reports-secbar] .gi-mu-directions button.active')?.textContent.trim());
 ok(defended.screen === 'our-defense' && held === 'Our Defense vs Their Offense',
   'the selected direction survives an ordinary Reports re-render', `${defended.screen} / ${held}`);
 await setDirection('Our Offense vs Their Defense');
@@ -653,7 +653,7 @@ ok(found.length === 0, 'none of the retired report prose survives on the board',
 console.log('\n== 15. Partial ==');
 await load(PARTIAL(), 'Holy Cross');
 const partial = await page.evaluate(() => ({
-  tabs: [...document.querySelectorAll('.gi-mu-tabs button')].map(b => b.textContent.trim()),
+  tabs: [...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')].map(b => b.textContent.trim()),
   sections: [...document.querySelectorAll('.gi-mu-title h2')].map(h => h.textContent.trim()),
   note: document.querySelector('.gi-mu-note')?.textContent.trim() || '',
   rows: document.querySelectorAll('table.gi-mu-decision tbody tr').length,

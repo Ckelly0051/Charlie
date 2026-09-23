@@ -61,10 +61,13 @@ const OVERVIEW = { '9.5|SPAN': 19, '12|SPAN': 16 };
    renders below the shared floor, in either scope, at either width. */
 const DEFENSE = {};
 /* Offense's own broadcast micro-labels: tile and strip labels inside its
-   approved comp, identical at both widths. */
+   approved comp, identical at both widths. Counted over all six pages.
+   2026-09-23: the three `10.5|EM` zone-rule notes are gone with the zone
+   rules themselves (the zones became pages in the secondary bar); no other
+   element changed. */
 const OFFENSE_BASE = {
   '9.5|SPAN': 16, '10|SPAN': 17, '10|H4': 1, '10.5|SMALL': 23, '10.5|SPAN': 19,
-  '10.5|EM': 3, '10.5|STRONG': 6, '11|SMALL': 10, '11|SPAN': 8, '11|H4': 6,
+  '10.5|STRONG': 6, '11|SMALL': 10, '11|SPAN': 8, '11|H4': 6,
   '11.5|DIV': 3, '12|DIV': 6,
 };
 /* The narrow-width exception, and the whole of it: the eight `gi-off-narrow-fit`
@@ -196,7 +199,33 @@ for (const [width, height] of WIDTHS) {
   for (const board of BOARDS) {
     await page.evaluate(tab => window.app.reportsScreen.selectTab(tab), board.tab);
     await sleep(850);
-    observed.push({ ...board, width, ...await census() });
+    /* Offense and Defense were one scrolling board each and are now pages in
+       the shared secondary bar (coach-approved comp, 2026-09-23). The census is
+       of the WHOLE board, so it is taken on every page and summed; nothing
+       about what is counted changes. Every other board keeps the census it
+       always had, taken on the page it opens on. */
+    if (board.tab === 'offense' || board.tab === 'defense') {
+      const ids = await page.evaluate(() => [...document.querySelectorAll('[data-reports-secbar] [data-section]')].map(n => n.dataset.section));
+      const parts = [];
+      for (const id of ids) {
+        await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+        await sleep(250);
+        parts.push(await census());
+      }
+      await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), ids[0]);
+      const min = Math.min(...parts.map(p => p.min));
+      const signature = {};
+      parts.forEach(p => Object.entries(p.signature || {}).forEach(([k, v]) => { signature[k] = (signature[k] || 0) + v; }));
+      observed.push({ ...board, width, pages: ids.length,
+        missing: parts.some(p => p.missing), empty: parts.every(p => p.empty),
+        min, total: parts.reduce((s, p) => s + (p.total || 0), 0), below: parts.reduce((s, p) => s + (p.below || 0), 0),
+        signature, narrowModules: parts.flatMap(p => p.narrowModules || []).sort(),
+        narrowCellCount: parts.reduce((s, p) => s + (p.narrowCellCount || 0), 0),
+        narrowOwnedCells: parts.reduce((s, p) => s + (p.narrowOwnedCells || 0), 0),
+        carriers: [...new Set(parts.filter(p => p.min === min).flatMap(p => p.carriers || []))].slice(0, 4) });
+    } else {
+      observed.push({ ...board, width, ...await census() });
+    }
   }
 }
 await page.setViewport({ width: 1440, height: 900 });
@@ -248,7 +277,7 @@ for (const row of observed.filter(item => item.tab === 'offense')) {
    inferred from the buckets above. */
 const TOTALS = {
   'overview@1440': 35, 'overview@1280': 35,
-  'offense@1440': 118, 'offense@1280': 323,
+  'offense@1440': 115, 'offense@1280': 320,
   'defense@1440': 0, 'defense@1280': 0,
   'special@1440': 0, 'special@1280': 0,
   'players@1440': 0, 'players@1280': 0,

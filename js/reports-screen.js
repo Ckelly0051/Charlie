@@ -14,11 +14,22 @@ const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'playe
 const SCOREBUG_TABS = new Set(['overview']);
 
 /**
- * Tabs whose own board already opens on its KPIs, so the generic current-game
- * rail would only restate them. Every other current-game self report keeps the
- * rail's non-score metrics; no tab shows a Final Score tile.
+ * A game result needs BOTH official scores. `Number('')` and `Number(null)` are
+ * 0, so a missing opponent score would otherwise read as a shutout Win. A score
+ * counts only as a finite, non-negative number actually entered.
  */
-const NO_RAIL_TABS = new Set(['overview', 'offense', 'defense']);
+function officialScore(value) {
+  if (value == null || typeof value === 'boolean') return null;
+  const raw = typeof value === 'string' ? value.trim() : value;
+  if (raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+export function gameResult(scoreUs, scoreThem) {
+  const us = officialScore(scoreUs), them = officialScore(scoreThem);
+  if (us == null || them == null) return null;
+  return us > them ? 'Win' : us < them ? 'Loss' : 'Tie';
+}
 
 /** Native Reports route controller. StatsEngine owns formulas; this class owns all live presentation. */
 export class ReportsScreen {
@@ -62,6 +73,18 @@ export class ReportsScreen {
     // discarded and the board would snap back to Our Offense vs Their
     // Defense under the coach's hands.
     this.matchupTab = 'our-offense';
+    // Offense's six zones and Defense's four sections are PAGES in the shared
+    // secondary bar (coach-approved comp, 2026-09-23). The selected page is
+    // controller state for the same reason every other report's section is: a
+    // scope change or any ordinary re-render remounts the board.
+    this.offenseSection = 'identity';
+    this.defenseSection = 'performance';
+  }
+
+  /** The one secondary-bar host, directly under the global strip. A board with
+   *  sections portals its SectionBar here; none, and the host stays empty. */
+  sectionBarHost() {
+    return this._mode === 'main' ? this.host?.querySelector('[data-reports-secbar]') || null : null;
   }
 
   mount(host) {
@@ -196,14 +219,6 @@ export class ReportsScreen {
     return true;
   }
 
-  /**
-   * Reports redesign — the persistent KPI rail (item A). Literal labels: Final
-   * Score, Total Plays, Plays Charted, Plays per Phase, Success Rate. Reads
-   * StatsEngine._kpiRailData(), which is a read-only count over the canonical
-   * play list — no value is computed here. Hidden on Season (own rail) and in
-   * opponent perspective (its own answer-sheet header already states the
-   * sample), so it never duplicates a header the tab already carries.
-   */
   /** The export's own dashboard, built exactly as it was before Revision 2:
    *  the scoped cohort with game labels. The on-screen board names opponents
    *  instead, and must not change what the exported report prints. */
@@ -295,103 +310,14 @@ export class ReportsScreen {
     return this.app.workspaceShell?.show?.('breakdown');
   }
 
+  /** The Overview score is the only game-summary chrome left. The generic game
+   *  KPI rail that repeated on every detail tab is DELETED (coach-approved comp,
+   *  2026-09-23): each detail report opens on its own content, and the rail's
+   *  non-score facts - plays charted and turnover margin - live in the compact
+   *  Overview score. The name is kept because every presentation sync calls it. */
   _syncKpiRail() {
-    const rail = this.host?.querySelector('[data-reports-rail]');
-    if (!rail) return;
     const stats = this.app.stats;
-    const data = stats?._kpiRailData?.(stats.compute());
-    this._syncScorebug(data);
-    // The shared scorebug is the game-context header for the redesigned
-    // self-report tabs, so those tabs must not ALSO carry the generic KPI rail
-    // -- two stacked KPI strips is the duplication the Offense design review
-    // removed. The rail appears only for reports that are actually scoped to
-    // the current game. Season-scoped boards and Matchup state their own scope
-    // and never borrow game-only numbers from this shared strip.
-    if (this._mode !== 'main' || this.perspective !== 'self'
-      || !this._usesCurrentGameContext() || NO_RAIL_TABS.has(this.activeTab)) { rail.hidden = true; return; }
-    if (!data || !data.totalPlays) { rail.hidden = true; return; }
-    const esc = Charts._esc;
-    const tile = (label, value, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${esc(String(value))}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
-    // A raw-HTML variant for the one tile whose value needs real markup
-    // (the phase segments below), not another escaped string.
-    const tileHtml = (label, valueHtml, sub, tone) => `<div class="gi-kpi${tone ? ` is-${tone}` : ''}"><div class="gi-kpi-label">${esc(label)}</div><div class="gi-kpi-value">${valueHtml}</div>${sub ? `<div class="gi-kpi-sub">${esc(sub)}</div>` : ''}</div>`;
-    // Codex review of `d567f5c` (2026-08-17): "50O / 13D / 3ST" reads as
-    // "500 / 13D / 3ST" at a glance, worse on mobile. Unambiguous literal
-    // labels instead -- no digit run is ever adjacent to another digit.
-    //
-    // Coach (2026-08-17): the "O 29, D 20, ST 18" middot spacing read
-    // uneven. Root cause: `font-variant-numeric:tabular-nums` fixes DIGIT
-    // width but not the surrounding letters/dot/spaces, so a literal
-    // "O 29, D 20" string has no consistent rhythm -- each segment's own
-    // proportional width differs from the tabular numbers inside it. Real
-    // markup with flex `gap` and a CSS-drawn separator replaces the manual
-    // spaces so the rhythm is even by construction, not by eyeballed spacing.
-    //
-    // Coach (2026-08-17, Charlie Gate): the pipe-joined single line clipped
-    // to "O:29 | D:20 | ST:1..." -- text-based nowrap layout can always run
-    // out of horizontal room at some tile width. Three fixed mini-columns
-    // instead: label stacked above its number, using vertical space rather
-    // than horizontal, so it cannot clip regardless of tile width -- there
-    // is no overflow/ellipsis in this layout for a value to be lost to.
-    const phaseCol = (label, n) => `<div class="gi-kpi-phase-col"><span class="gi-kpi-phase-l">${esc(label)}</span><span class="gi-kpi-phase-n">${esc(String(n))}</span></div>`;
-    const phase = `<div class="gi-kpi-phase">${phaseCol('OFF', data.units.offense)}${phaseCol('DEF', data.units.defense)}${phaseCol('ST', data.units.special)}</div>`;
-    const success = data.successRate != null ? `${Math.round(parseFloat(data.successRate))}%` : '—';
-    // Turnovers must say both directions -- giving the ball away and taking
-    // it away are opposite outcomes and neither is honest alone on a rail
-    // that also carries defensive plays-per-phase. Tone (green/red) is only
-    // ever the genuine net margin; a side with nothing charted is disclosed
-    // rather than guessed as zero, and never colored either way.
-    // Coach (2026-09-04): `0 GA, 1 TA` was two invented abbreviations. GA is
-    // Goals Against in hockey and soccer; TA is not a football abbreviation at
-    // all. And "giveaway" was doing no work here: a giveaway IS a turnover,
-    // named from the side that lost it, so a "Turnovers" tile reporting
-    // giveaways said the same word twice.
-    //
-    // Three values, each spelled out, in the SAME three-mini-column layout
-    // Plays per Phase already uses -- a pattern this rail arrived at precisely
-    // because a one-line separated string first read unevenly and then clipped
-    // at a Charlie Gate. Label stacked over number cannot clip at any tile
-    // width. Turnovers is what we lost, Takeaways is what we got, Margin is
-    // the number a coach actually quotes.
-    let turnoverTile = '';
-    if (data.turnovers) {
-      const { giveaways, takeaways } = data.turnovers;
-      const stat = (label, value) =>
-        `<span class="gi-kpi-stat"><span class="gi-kpi-stat-l">${esc(label)}</span><span class="gi-kpi-stat-n">${esc(String(value))}</span></span>`;
-      const margin = (giveaways != null && takeaways != null) ? takeaways - giveaways : null;
-      // A side with nothing charted is disclosed, never guessed as zero, and
-      // the margin is only ever coloured when it is a genuine net.
-      const body = `<div class="gi-kpi-stats">`
-        + `<div class="gi-kpi-stat-row">`
-          + stat('Turnovers', giveaways == null ? 'No data' : giveaways)
-          + `<span class="gi-kpi-stat-sep" aria-hidden="true">|</span>`
-          + stat('Takeaways', takeaways == null ? 'No data' : takeaways)
-        + `</div>`
-        + `<div class="gi-kpi-stat-row">`
-          + stat('Turnover Margin', margin == null ? 'No data' : (margin > 0 ? `+${margin}` : String(margin)))
-        + `</div>`
-        + `</div>`;
-      const sub = giveaways == null ? 'no offensive snaps charted'
-        : takeaways == null ? 'no defensive snaps charted' : '';
-      // tileHtml, not tile: the value is real markup, and tile() escapes.
-      turnoverTile = tileHtml('Turnovers', body, sub,
-        margin == null ? '' : margin > 0 ? 'pos' : margin < 0 ? 'neg' : '');
-    }
-    // No Final Score tile: the game score is shown on Overview only.
-    rail.innerHTML = [
-      tile('Total Plays', data.totalPlays),
-      // Coach (2026-09-04): the charted count and its denominator are one
-      // fact, so they share one line -- a whole sub row spent on "of 70" was
-      // vertical space bought for nothing.
-      tile('Plays Charted', `${data.playsCharted}/${data.totalPlays}`),
-      tileHtml('Plays per Phase', phase),
-      // Coach: "on-schedule" is commentary, not a definitional label. And the
-      // unit belongs in the header rather than a sub beneath the number --
-      // "Offense Success Rate" is the stat's name, not an annotation on it.
-      tile('Offense Success Rate', success),
-      turnoverTile,
-    ].join('');
-    rail.hidden = false;
+    this._syncScorebug(stats?._kpiRailData?.(stats.compute()));
   }
 
   _syncScorebug(data) {
@@ -417,14 +343,33 @@ export class ReportsScreen {
     const team = context.team?.name || game.teamName || 'Our Team';
     const opponent = game.opponent || 'Opponent';
 
-    const offense = computed.offPlays?.length || 0;
-    const yards = (computed.rushing?.yards || 0) + (computed.passing?.yards || 0);
-    const ypp = offense ? (yards / offense).toFixed(1) : '—';
+    /* THE COMPACT SCORE (coach-approved comp, 2026-09-23): the linescore beside
+       three facts no Overview tile states. The Yards-per-play story is gone
+       (the Overview KPI band owns Yards / play), and so is the right-side game
+       name, which repeated the opponent the linescore already names. Result
+       uses the OFFICIAL scores only; the linescore's charted fallback is not a
+       settled result. Turnover margin is the rail's own figure. */
+    const result = gameResult(game.scoreUs, game.scoreThem);
+    const when = [game.week ? `Week ${game.week}` : '',
+      game.date ? new Date(`${game.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '']
+      .filter(Boolean).join(' · ');
+    const turnovers = data.turnovers || {};
+    const margin = turnovers.giveaways != null && turnovers.takeaways != null ? turnovers.takeaways - turnovers.giveaways : null;
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    /* A side nobody charted is never a zero: a defense-only game states its
+       takeaways and says turnovers were not charted, and has no margin. */
+    const marginSub = margin != null ? `${plural(turnovers.takeaways, 'takeaway')}, ${plural(turnovers.giveaways, 'turnover')}`
+      : turnovers.takeaways != null ? `${plural(turnovers.takeaways, 'takeaway')}, turnovers not charted`
+        : turnovers.giveaways != null ? `${plural(turnovers.giveaways, 'turnover')}, takeaways not charted` : '';
+    const fact = (label, value, sub, key) => `<div class="gi-scorebug-fact" data-scorebug-fact="${key}"><span>${esc(label)}</span><strong>${esc(String(value))}</strong><small>${esc(sub || '')}</small></div>`;
 
     bug.classList.add('is-linescore');
     bug.innerHTML = `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
-      <div class="gi-scorebug-story"><strong>${ypp}</strong><span><b>Yards per play</b> ${yards}&nbsp;yds, ${offense}&nbsp;snaps</span></div>
-      <div class="gi-scorebug-meta"><strong>${esc(context.game?.name || 'Current game')}</strong><span>${data.playsCharted} of ${data.totalPlays} plays charted</span></div>`;
+      <div class="gi-scorebug-facts">
+        ${fact('Result', result || 'No data', when, 'result')}
+        ${fact('Charted', `${data.playsCharted} of ${data.totalPlays}`, 'plays', 'charted')}
+        ${fact('Turnover margin', margin == null ? 'No data' : (margin > 0 ? `+${margin}` : String(margin)), marginSub, 'margin')}
+      </div>`;
     bug.hidden = false;
   }
 

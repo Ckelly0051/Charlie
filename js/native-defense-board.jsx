@@ -1,8 +1,10 @@
 /**
  * Reports > Defense, Revision 2.
  *
- * One vertically scrolling report: a sticky scope and jump-link bar, a ten-KPI
- * strip, and four ordered sections of fixed-height modules. Every value comes
+ * Four PAGES selected from the shared secondary bar (coach-approved comp,
+ * design-comps/reports-secondary-nav-2026-09-23) - Performance, Opponent
+ * offense, Scheme & passing, Situations - each its existing numbered section
+ * of fixed-height modules; Performance opens with the ten-KPI strip. Every value comes
  * from `StatsEngine.defenseBoard()`; this file formats and lays out, and derives
  * no football value.
  *
@@ -19,7 +21,7 @@
  * so a pair's top and bottom edges align; an unmatched module spans the row.
  */
 import { useState } from 'preact/hooks';
-import { Watchable, EmptyState } from './native-report-kit.jsx';
+import { Watchable, EmptyState, ReportSectionBar } from './native-report-kit.jsx';
 import '../css/native-defense-board.css';
 
 /* Module chrome: a 50px header, a 44px table header and two 1px borders. */
@@ -60,10 +62,10 @@ const wholePercent = value => value == null ? null : `${value}%`;
 const runPass = row => row.n ? `${row.runs}R / ${row.passes}P` : null;
 
 const SECTIONS = [
-  { id: 'performance', number: '01', title: 'Defensive performance', jump: 'Performance' },
-  { id: 'opponent', number: '02', title: 'Opponent offense', jump: 'Opponent offense' },
-  { id: 'scheme', number: '03', title: 'Scheme and passing defense', jump: 'Scheme' },
-  { id: 'situations', number: '04', title: 'Situational results', jump: 'Situations' },
+  { id: 'performance', number: '01', title: 'Defensive performance', page: 'Performance' },
+  { id: 'opponent', number: '02', title: 'Opponent offense', page: 'Opponent offense' },
+  { id: 'scheme', number: '03', title: 'Scheme and passing defense', page: 'Scheme & passing' },
+  { id: 'situations', number: '04', title: 'Situational results', page: 'Situations' },
 ];
 
 /** Row data for a table: `cells` in column order, plus its own film refs. */
@@ -73,7 +75,7 @@ function buildSections(board, seasonScope) {
   const b = board;
   const performance = [];
   if (seasonScope) performance.push({ title: 'Game-by-game', wide: true, slots: 6,
-    heads: ['Opponent', 'Yards', 'Rush', 'Pass', 'Yds/play', 'Explosive Plays Allowed', 'TO', 'Touchdowns Allowed'],
+    heads: ['Opponent', 'Yards', 'Rush', 'Pass', 'Yds/play', 'Explosive Plays', 'TO', 'Touchdowns Allowed'],
     rows: b.byGame.map(r => row([r.name, r.yards, r.runYards, r.passYards, r.ypp, r.explosives, r.takeaways, r.touchdownsAllowed], r.refs)) });
   performance.push(
     { title: 'Disruption', schema: 'fixed', slots: 6, heads: ['Event', 'Plays', 'Rate', 'Eligible snaps'],
@@ -82,7 +84,7 @@ function buildSections(board, seasonScope) {
       heads: ['Measure', seasonScope ? 'Season' : 'Game', seasonScope ? 'Last 3' : 'Season'],
       rows: b.comparison.map(r => row([r.name, r.kind === 'percent' ? percent(r.current) : r.current,
         r.kind === 'percent' ? percent(r.comparison) : r.comparison])) },
-    { title: 'By down', schema: 'fixed', slots: 4, heads: ['Down', 'Total yards', 'Yds/play', 'Explosive Plays Allowed'],
+    { title: 'By down', schema: 'fixed', slots: 4, heads: ['Down', 'Total yards', 'Yds/play', 'Explosive Plays'],
       rows: b.downs.map(r => row([r.name, r.yards, r.ypp, r.explosives], r.refs)) },
     { title: 'By quarter', schema: 'fixed', slots: 4, heads: ['Quarter', 'Total yards', 'Yds/play', 'Vs baseline', 'Touchdowns Allowed'],
       rows: b.quarters.map(r => row([r.name, r.yards, r.ypp, r.vsAverage, r.touchdownsAllowed], r.refs)) },
@@ -107,7 +109,7 @@ function buildSections(board, seasonScope) {
        Both numbers are printed — the unique snaps behind the module and the tag
        count its rows add up to — which makes the overlap visible without a
        sentence about it. The unique count comes from the rows' own film refs. */
-    { title: 'Production by play type', slots: 7, heads: ['Play type', 'Snaps', 'Yards', 'Yds/play', 'Explosive Plays Allowed', 'Touchdowns Allowed'],
+    { title: 'Production by play type', slots: 7, heads: ['Play type', 'Snaps', 'Yards', 'Yds/play', 'Explosive Plays', 'Touchdowns Allowed'],
       meta: `${new Set(b.playTypes.flatMap(r => r.refs || [])).size} snaps · ${
         b.playTypes.reduce((sum, r) => sum + (Number(r.n) || 0), 0)} tags`,
       rows: b.playTypes.map(r => row([r.name, r.n, r.yards, r.ypp, r.explosives, r.touchdownsAllowed], r.refs)) },
@@ -115,27 +117,27 @@ function buildSections(board, seasonScope) {
        whole gap between its yardage and the classified total above it. */
     { title: 'Performance by Play Direction', schema: 'fixed', slots: 4,
       meta: `${b.directions.reduce((sum, r) => sum + (Number(r.n) || 0), 0)} direction-tagged snaps`,
-      heads: ['Direction', 'Snaps', 'Share', 'Run / pass', 'Yards', 'Yds/play', 'Off succ', 'Explosive Plays Allowed'],
+      heads: ['Direction', 'Snaps', 'Share', 'Run / pass', 'Yards', 'Yds/play', 'Off succ', 'Explosive Plays'],
       rows: b.directions.map(r => row([r.name, r.n, percent(r.share), runPass(r), r.yards, r.ypp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Top 10 Formations Faced', wide: true, slots: 10, cap: true,
-      heads: ['Offensive look', 'Snaps', 'Share', 'Run / pass', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
+      heads: ['Offensive look', 'Snaps', 'Share', 'Run / pass', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays'],
       rows: b.formations.map(r => row([r.name, r.n, percent(r.share), `${r.runs}R / ${r.passes}P`, r.rushYpp, r.passYpp, percent(r.success), r.explosives], r.refs)) },
-    { title: 'Personnel faced', slots: 5, heads: ['Personnel', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays Allowed'],
+    { title: 'Personnel faced', slots: 5, heads: ['Personnel', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays'],
       rows: b.personnel.map(r => row([r.name, r.n, runPass(r), r.ypp, r.explosives], r.refs)) },
-    { title: 'Backfield faced', slots: 5, heads: ['Backfield', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays Allowed'],
+    { title: 'Backfield faced', slots: 5, heads: ['Backfield', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays'],
       rows: b.backfields.map(r => row([r.name, r.n, runPass(r), r.ypp, r.explosives], r.refs)) },
     { title: 'Run / Pass vs Strength', wide: true, schema: 'fixed', slots: 3,
-      heads: ['Relationship', 'Snaps', 'Share', 'Runs', 'Run Rate', 'Rush y/p', 'Passes', 'Pass Rate', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
+      heads: ['Relationship', 'Snaps', 'Share', 'Runs', 'Run Rate', 'Rush y/p', 'Passes', 'Pass Rate', 'Pass y/p', 'Off succ', 'Explosive Plays'],
       rows: b.strength.map(r => row([r.name, r.n, percent(r.share), r.runs, percent(r.runRate), r.rushYpp, r.passes,
         percent(r.passRate), r.passYpp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Defensive answers by offensive look', wide: true, slots: 10, pitch: 60, cls: 'is-answers',
-      heads: ['Offensive look', 'Defensive call', 'Snaps', 'Call share', 'Rush y/p', 'Pass y/p', 'Explosive Plays Allowed', 'Off succ'],
+      heads: ['Offensive look', 'Defensive call', 'Snaps', 'Call share', 'Rush y/p', 'Pass y/p', 'Explosive Plays', 'Off succ'],
       rows: b.answers.map(r => row([r.look, r.call, r.n, percent(r.share), r.rushYpp, r.passYpp, r.explosives, percent(r.success)], r.refs)) },
   ];
 
   const s = b.passingSummary;
   const callCells = r => row([r.name, r.n, r.yards, r.ypp, r.vsAverage, r.explosives], r.refs);
-  const callHeads = ['Call', 'Snaps', 'Yards', 'Yds/play', 'Vs avg', 'Explosive Plays Allowed'];
+  const callHeads = ['Call', 'Snaps', 'Yards', 'Yds/play', 'Vs avg', 'Explosive Plays'];
   const scheme = [
     { title: 'Passing Defense Summary', wide: true, schema: 'summary', slots: 1,
       heads: ['Dropbacks', 'Comp / att', 'Comp%', 'Yds/att', 'Sacks', 'INT'],
@@ -145,16 +147,16 @@ function buildSections(board, seasonScope) {
       : [{ title: 'Top Calls', slots: 4, pitch: 64, cls: 'is-calls', cap: true, heads: callHeads, rows: b.calls.top.map(callCells) },
         { title: 'Worst Calls', slots: 4, pitch: 64, cls: 'is-calls', cap: true, heads: callHeads, rows: b.calls.worst.map(callCells) }]),
     { title: 'Blitz Performance', wide: true, schema: 'fixed', slots: 4,
-      heads: ['Cohort', 'Snaps', 'Share', 'Yds/play', 'Off succ', 'Explosive Plays Allowed', 'Comp / att', 'Sacks', 'INT'],
+      heads: ['Cohort', 'Snaps', 'Share', 'Yds/play', 'Off succ', 'Explosive Plays', 'Comp / att', 'Sacks', 'INT'],
       rows: b.blitz.map(r => row([r.name, r.n, percent(r.share), r.ypp, percent(r.success), r.explosives,
         r.attempts == null ? null : `${r.completions} / ${r.attempts}`, r.sacks, r.interceptions], r.refs)) },
     { title: 'Pressure by situation', slots: 6, heads: ['Situation', 'Snaps', 'Blitz%', 'Blitz y/p', 'Base y/p'],
       rows: b.pressure.map(r => row([r.name, r.n, wholePercent(r.blitzPct), r.blitzYpp, r.baseYpp], r.refs)) },
     ...[['Front performance', b.fronts], ['Coverage performance', b.coverages]].filter(([, rows]) => rows.length)
-      .map(([title, rows]) => ({ title, slots: 7, heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
+      .map(([title, rows]) => ({ title, slots: 7, heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays'],
         rows: rows.map(r => row([r.name, r.n, r.rushYpp, r.passYpp, percent(r.success), r.explosives], r.refs)) })),
     { title: 'Blitz Type Performance', wide: true, schema: 'fixed', slots: 4,
-      heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays Allowed'],
+      heads: ['Structure', 'Snaps', 'Rush y/p', 'Pass y/p', 'Off succ', 'Explosive Plays'],
       rows: b.blitzTypes.map(r => row([r.name, r.n, r.rushYpp, r.passYpp, percent(r.success), r.explosives], r.refs)) },
     { title: 'Passing by coverage', slots: 7, heads: ['Scheme', 'Dropbacks', 'Comp / att', 'Comp%', 'Yds/att', 'Sacks', 'INT'],
       rows: b.passingByCoverage.map(r => row([r.name, r.dropbacks, r.attempts ? `${r.completions} / ${r.attempts}` : null,
@@ -173,11 +175,11 @@ function buildSections(board, seasonScope) {
     { title: 'High-leverage field position', wide: true, schema: 'fixed', slots: 6, pitch: 48,
       heads: ['Situation', 'Sample', 'Yds/play', 'Touchdowns Allowed'],
       rows: b.highLeverage.map(r => row([r.name, r.sampleRate !== undefined ? percent(r.sampleRate) : r.sample, r.ypp, r.touchdownsAllowed], r.refs)) },
-    { title: 'Field zone', wide: true, slots: 5, heads: ['Zone', 'Snaps', 'Yards', 'Yds/play', 'Explosive Plays Allowed'],
+    { title: 'Field zone', wide: true, slots: 5, heads: ['Zone', 'Snaps', 'Yards', 'Yds/play', 'Explosive Plays'],
       rows: b.zones.map(r => row([r.name, r.n, r.yards, r.ypp, r.explosives], r.refs)) },
     { title: 'By hash', schema: 'fixed', slots: 5, heads: ['Hash', 'Snaps', 'Yards', 'Yds/play'],
       rows: b.hashes.map(r => row([r.name, r.n, r.yards, r.ypp], r.refs)) },
-    { title: 'Motion', slots: 5, heads: ['Motion', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays Allowed'],
+    { title: 'Motion', slots: 5, heads: ['Motion', 'Snaps', 'Run / pass', 'Yds/play', 'Explosive Plays'],
       rows: b.motions.map(r => row([r.name, r.n, runPass(r), r.ypp, r.explosives], r.refs)) },
   ];
 
@@ -230,7 +232,7 @@ function DefenseModule({ module, screen }) {
               onClick={() => sortBy(index)}
               onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); sortBy(index); } }}>
               {head}<span class="gi-def2-sortmark" aria-hidden="true">↕</span></th>
-          : <th key={head} class={head === 'Explosive Plays Allowed' ? 'is-expl' : undefined}>{head}</th>)}</tr></thead>
+          : <th key={head} class={head === 'Explosive Plays' ? 'is-expl' : undefined}>{head}</th>)}</tr></thead>
         <tbody>
           {rows.map((item, index) => <Watchable key={`${index}-${item.cells[0]}`} tag="tr"
             onActivate={item.refs.length ? () => screen.watchRefs(item.refs, `${item.cells[0]} ${title}`) : undefined}
@@ -245,14 +247,11 @@ function DefenseModule({ module, screen }) {
   </section>;
 }
 
-function scrollOwner(node) {
-  for (let el = node?.parentElement; el; el = el.parentElement) {
-    if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) return el;
-  }
-  return document.scrollingElement;
-}
-
 export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
+  /* The page is controller state, like every other report's section: a scope
+     change re-renders the board, and a page held only here would reset. */
+  const [page, setPageState] = useState(SECTIONS.some(s => s.id === screen.defenseSection) ? screen.defenseSection : 'performance');
+  const setPage = id => { screen.defenseSection = id; setPageState(id); document.querySelector('.ws-reports')?.scrollTo?.(0, 0); };
   if (!board?.total) return <EmptyState title="No defensive snaps charted" body="No defensive plays are charted for this scope."
     action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
   const seasonScope = fixedScope || screen.defenseScope === 'season';
@@ -262,39 +261,31 @@ export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
   const kpis = [
     ['Total yards allowed', cell(k.yards)], ['Rush yards allowed', cell(k.runYards)], ['Pass yards allowed', cell(k.passYards)],
     ['Yards / play', k.ypp == null ? '—' : k.ypp.toFixed(1)], ['Takeaways', cell(k.takeaways)],
-    ['Explosive Plays Allowed', cell(k.explosives)], ['Touchdowns Allowed', cell(k.touchdownsAllowed)],
+    ['Explosive Plays', cell(k.explosives)], ['Touchdowns Allowed', cell(k.touchdownsAllowed)],
     ['Defensive Touchdowns', cell(k.defensiveTouchdowns)],
     ['3rd Down Stop %', cell(percent(k.thirdDownStop))], ['4th Down Stop %', cell(percent(k.fourthDownStop))],
   ];
-  const setScope = (scope, event) => {
+  const setScope = scope => {
     screen.defenseScope = scope;
-    scrollOwner(event.currentTarget)?.scrollTo?.({ top: 0 });
+    document.querySelector('.ws-reports')?.scrollTo?.(0, 0);
     screen._syncHeader();
     screen._renderActiveTab();
   };
-  const jump = (id, event) => {
-    event.preventDefault();
-    document.getElementById(`def2-${id}`)?.scrollIntoView({ block: 'start' });
-  };
+  /* Scope and the report export live in the shared bar. The export is the
+     FULL four-section report whatever page is showing. */
+  const scope = fixedScope ? null : [
+    { id: 'game', label: 'Current game', active: !seasonScope, onSelect: () => setScope('game'), attrs: { 'data-defense-scope': 'game' } },
+    { id: 'season', label: 'Full season', active: seasonScope, onSelect: () => setScope('season'), attrs: { 'data-defense-scope': 'season' } },
+  ];
+  const exportAction = { label: 'Export report', attrs: { class: 'gi-secbar-export gi-def-export', 'data-report-export': 'defense' },
+    onSelect: () => (fixedScope ? screen.export('season-html') : screen.exportDefense(screen._defenseExportDashboard(), scoped)) };
 
-  return <div class="gi-def2" data-def2-scope={seasonScope ? 'season' : 'game'}>
-    <div class="gi-def2-controls">
-      {!fixedScope && <div class="gi-def2-scope" role="group" aria-label="Defense report scope">
-        <button type="button" data-defense-scope="game" class={seasonScope ? '' : 'is-active'} aria-pressed={!seasonScope}
-          onClick={event => setScope('game', event)}>Current game</button>
-        <button type="button" data-defense-scope="season" class={seasonScope ? 'is-active' : ''} aria-pressed={seasonScope}
-          onClick={event => setScope('season', event)}>Full season</button>
-      </div>}
-      <nav class="gi-def2-jumps" aria-label="Jump to section">
-        <span class="gi-def2-jumps-label">JUMP TO</span>
-        {SECTIONS.map(section => <a key={section.id} href={`#def2-${section.id}`} data-def2-jump={section.id}
-          onClick={event => jump(section.id, event)}>{section.jump}<span aria-hidden="true">↓</span></a>)}
-        <button type="button" class="btn btn-sm gi-def-export"
-          onClick={() => fixedScope ? screen.export('season-html') : screen.exportDefense(screen._defenseExportDashboard(), scoped)}>Export Report</button>
-      </nav>
-    </div>
+  return <div class="gi-def2" data-def2-scope={seasonScope ? 'season' : 'game'} data-def2-page={page}>
+    <ReportSectionBar screen={screen} label="Defense report sections" navClass="gi-def2-pages" numbered
+      sections={SECTIONS.map(section => ({ id: section.id, label: section.page }))} active={page} onSelect={setPage}
+      scope={scope} exportAction={exportAction} />
     <div class="gi-def2-body">
-      {SECTIONS.map(section => <>
+      {SECTIONS.filter(section => section.id === page).map(section => <>
         <div class="gi-def2-heading" id={`def2-${section.id}`} key={`heading-${section.id}`} data-def2-section={section.id}>
           <span>{section.number}</span><h2>{section.title}</h2><small>{sample}</small>
           {/* The KPI strip below measures the classified subset, and says so in

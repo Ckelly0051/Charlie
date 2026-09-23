@@ -113,23 +113,38 @@ const SCHEMA_ROWS = {
   'Top 5 Tendencies': 5, 'By quarter': 4, 'Team profile': 6,
 };
 const ABSENCE = 'Insufficient charted data';
-/** Module titles as rendered, with the computed `· Big N` suffix normalized so
- *  the inventory compares against the schema name rather than the data. */
-const readBoard = () => page.evaluate(() => {
+/* THE SIX PAGES (coach-approved secondary-nav comp, 2026-09-23). The six zones
+   became selectable pages in the shared secondary bar; each page holds exactly
+   its zone's modules, in the approved order, and nothing else. */
+const PAGES = [
+  ['identity', 'Identity', ['Identity', 'Run / pass balance']],
+  ['calls', 'Calls & tendencies', ['Play calls', 'Concepts', 'Formation', 'Play type', 'Play-action',
+    'Formation × Play Type', 'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes']],
+  ['structure', 'Structure', ['Personnel', 'Backfield', 'Motion', 'Play direction', 'Strength', 'Field hash']],
+  ['situations', 'Situations', ['Personnel × situation', 'Situational', 'Top 5 Tendencies', 'By quarter']],
+  ['field', 'Field & production', ['Field heat map', 'Yards per play', 'Yards vs distance to go',
+    'Success by field position', 'Run / pass by down']],
+  ['advanced', 'Advanced', ['Team profile', 'Expected points added']],
+];
+const showPage = async id => {
+  await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+  await sleep(150);
+};
+/** One rendered page. Module titles are read with the computed `· Big N`
+ *  suffix normalized so the inventory compares against the schema name. */
+const readPage = () => page.evaluate(() => {
   const board = document.querySelector('.gi-offense-board');
   if (!board) return { board: false };
   const txt = el => (el?.textContent || '').replace(/\s+/g, ' ').trim();
   const mods = [...board.querySelectorAll('.gi-overview-module')];
+  const name = m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '');
   return {
     board: true,
-    titles: mods.map(m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '')),
+    page: board.dataset.offensePage,
+    titles: mods.map(name),
     rawTitles: mods.map(m => txt(m.querySelector('header > strong'))),
-    rows: Object.fromEntries(mods.map(m => [
-      txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, ''),
-      m.querySelectorAll('tbody tr').length])),
-    absent: mods.filter(m => /Insufficient charted data/.test(m.textContent))
-      .map(m => txt(m.querySelector('header > strong')).replace(/\s*·\s*Big\s*\d+$/, '')),
-    zones: board.querySelectorAll('.gi-zone-rule').length,
+    rows: Object.fromEntries(mods.map(m => [name(m), m.querySelectorAll('tbody tr').length])),
+    absent: mods.filter(m => /Insufficient charted data/.test(m.textContent)).map(name),
     formType: {
       rows: board.querySelectorAll('.gi-form-type-grid tbody tr').length,
       cols: board.querySelectorAll('.gi-form-type-grid thead th').length - 1,
@@ -138,35 +153,78 @@ const readBoard = () => page.evaluate(() => {
     ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   };
 });
+/** The WHOLE board: every page, in order, merged. Ends on Identity. */
+const readBoard = async () => {
+  const parts = [];
+  for (const [id] of PAGES) { await showPage(id); parts.push(await readPage()); }
+  await showPage('identity');
+  return {
+    board: parts.every(p => p.board),
+    pages: parts.map(p => p.page),
+    byPage: parts.map(p => p.titles),
+    titles: parts.flatMap(p => p.titles || []),
+    rawTitles: parts.flatMap(p => p.rawTitles || []),
+    rows: Object.assign({}, ...parts.map(p => p.rows)),
+    absent: parts.flatMap(p => p.absent || []),
+    formType: parts.find(p => p.formType?.rows)?.formType || parts[0].formType,
+    ovX: Math.max(...parts.map(p => p.ovX)),
+  };
+};
 
-console.log('\n== 1. The approved six-zone composition ==');
+console.log('\n== 1. The six zones are six pages in the shared secondary bar ==');
 await load({ plays: FULL });
 const zones = await page.evaluate(() => {
   const board = document.querySelector('.gi-offense-board');
+  const strip = document.querySelector('[data-reports-strip]').getBoundingClientRect();
+  const bar = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]');
   return {
     board: !!board,
-    rules: [...document.querySelectorAll('.gi-zone-rule')].map(r => ({
-      id: r.id, title: r.querySelector('h2')?.textContent.trim(), label: r.querySelector('p')?.textContent.trim() })),
-    navLabels: [...document.querySelectorAll('.gi-zone-nav-item')].map(b => b.textContent.replace(/^\d/, '').trim()),
+    barTop: bar?.getBoundingClientRect().top, stripBottom: strip.bottom,
+    navLabels: [...(bar?.querySelectorAll('[data-section]') || [])].map(b => ({
+      id: b.dataset.section, label: b.querySelector('span')?.textContent.trim(), number: b.querySelector('i')?.textContent.trim() })),
+    inBoardNav: !!board?.querySelector('[data-reports-secbar-bar], .gi-zone-nav, .gi-zone-rule'),
     kpis: [...document.querySelectorAll('.gi-overview-kpi')].map(k => k.querySelector('span')?.textContent.trim()),
   };
 });
 ok(zones.board, 'the Offense tab renders the offense board');
-ok(zones.rules.length === 6 && zones.rules.every((r, i) => r.id === `gi-off-z${i + 1}`),
-  'six zones render in order with stable ids', JSON.stringify(zones.rules.map(r => r.id)));
-const EXPECT_ZONES = [
-  ['Offensive identity', 'Personnel, formation, alignment, and primary call'],
-  ['Calls and tendencies', 'Frequency and production'],
-  ['Structure and deployment', 'Personnel, alignment, motion, direction, and hash'],
-  ['Situational analysis', 'Down, distance, quarter, and personnel'],
-  ['Field and production', 'Distribution and field position'],
-  ['Advanced metrics', 'Team profile and EPA'],
-];
-ok(EXPECT_ZONES.every(([t, l], i) => zones.rules[i]?.title === t && zones.rules[i]?.label === l),
-  'every zone carries its approved title and supporting label',
-  JSON.stringify(zones.rules));
-ok(zones.navLabels.length === 6 && zones.navLabels.every((l, i) => l.toLowerCase() === EXPECT_ZONES[i][0].toLowerCase()),
-  'the zone nav lists all six zones in composition order', JSON.stringify(zones.navLabels));
+ok(zones.barTop != null && Math.abs(zones.barTop - zones.stripBottom) < 0.5 && !zones.inBoardNav,
+  'the Offense pages sit in the secondary bar directly under the strip, with no zone nav or rule left in the board',
+  JSON.stringify({ barTop: zones.barTop, stripBottom: zones.stripBottom, inBoardNav: zones.inBoardNav }));
+ok(JSON.stringify(zones.navLabels) === JSON.stringify(PAGES.map(([id, label], i) => ({ id, label, number: String(i + 1) }))),
+  'the bar lists the six numbered pages in composition order', JSON.stringify(zones.navLabels));
+const pageWalk = await readBoard();
+ok(JSON.stringify(pageWalk.pages) === JSON.stringify(PAGES.map(([id]) => id))
+  && PAGES.every(([, , modules], i) => JSON.stringify(pageWalk.byPage[i]) === JSON.stringify(modules)),
+  'each page renders exactly its zone\'s modules, in the approved order',
+  JSON.stringify(pageWalk.byPage));
+ok(new Set(pageWalk.titles).size === pageWalk.titles.length && pageWalk.titles.length === SCHEMA_MODULES.length,
+  'every Offense module appears on exactly one page', JSON.stringify(pageWalk.titles));
+await page.evaluate(() => window.app.reportsScreen._renderActiveTab());
+await showPage('structure');
+await page.evaluate(() => window.app.reportsScreen._renderActiveTab());
+await sleep(150);
+ok(await page.evaluate(() => window.app.reportsScreen.offenseSection === 'structure'
+  && document.querySelector('.gi-offense-board')?.dataset.offensePage === 'structure'),
+  'the selected Offense page is controller state and survives an ordinary re-render');
+/* A page never narrows the full-report export: the game HTML export from the
+   Advanced page is the export from Identity, apart from its generated stamp. */
+const exportOn = async id => {
+  await showPage(id);
+  return page.evaluate(async () => {
+    let saved = null; const prior = window.ffaSaveBlob;
+    window.ffaSaveBlob = blob => { saved = blob; };
+    window.app.reportsScreen.export('html');
+    await new Promise(r => setTimeout(r, 300));
+    window.ffaSaveBlob = prior;
+    return saved ? (await saved.text()).replace(/Generated [^<]*/g, 'Generated') : '';
+  });
+};
+const exportIdentity = await exportOn('identity');
+const exportAdvanced = await exportOn('advanced');
+ok(exportIdentity.length > 1000 && exportIdentity === exportAdvanced,
+  'the full game export from the Advanced page is identical to the export from Identity',
+  `${exportIdentity.length} vs ${exportAdvanced.length}`);
+await showPage('identity');
 
 console.log('\n== 2. The KPI band is the approved six, and excludes Yards/play ==');
 ok(zones.kpis.length === 6, 'the KPI band has exactly six columns', JSON.stringify(zones.kpis));
@@ -267,61 +325,47 @@ ok(refs.refs.length > 0 && refs.refs.every(r => new RegExp(`^${refs.gid}::\\d+$`
   'every ref it opens is a composite gameId::playId for the active game',
   JSON.stringify(refs.refs.slice(0, 4)));
 
-console.log('\n== 8. Zone 3 keeps its approved grouping and order ==');
-const zone3 = await page.evaluate(() => {
-  const rule = document.getElementById('gi-off-z3');
-  const out = []; let el = rule?.nextElementSibling;
-  while (el && !el.classList.contains('gi-zone-rule')) {
-    if (el.classList.contains('gi-overview-band')) {
-      out.push([...el.children].map(m => m.querySelector('header strong')?.textContent.trim()));
-    }
-    el = el.nextElementSibling;
-  }
-  return out;
-});
+console.log('\n== 8. The Structure page keeps its approved grouping and order ==');
+await showPage('structure');
+const zone3 = await page.evaluate(() => [...document.querySelectorAll('.gi-offense-board > .gi-overview-band')]
+  .map(band => [...band.children].map(m => m.querySelector('header strong')?.textContent.trim())));
+await showPage('identity');
 ok(JSON.stringify(zone3[0]) === JSON.stringify(['Personnel', 'Backfield', 'Motion']),
   'Zone 3 row one is Personnel, Backfield, Motion', JSON.stringify(zone3[0]));
 ok(JSON.stringify(zone3[1]) === JSON.stringify(['Play direction', 'Strength', 'Field hash']),
   'Zone 3 row two is Play direction, Strength, Field hash', JSON.stringify(zone3[1]));
 
-console.log('\n== 9. The linescore is Overview-only; the rail carries no score ==');
-/* Coach-approved global strip, 2026-09-22: the game linescore renders on
-   Overview only. Offense and Defense open on their own KPI bands, so they
-   carry neither the linescore nor the generic rail; game-scoped Special Teams
-   and Players keep the rail's non-score metrics. */
+console.log('\n== 9. The compact score is Overview-only; the game KPI rail is gone ==');
+/* Coach-approved secondary-nav comp, 2026-09-23: the game KPI rail that
+   repeated on detail tabs is DELETED, and the Overview compact score is the
+   only game-summary chrome. Assertions about the rail's own tiles are retired
+   with it; what remains is that no tab carries a rail and only Overview a score. */
 const chrome = {};
-for (const tab of ['overview', 'offense', 'defense', 'special', 'players']) {
+for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'selfscout']) {
   await page.evaluate(t => window.app.reportsScreen.selectTab(t), tab);
   await sleep(450);
   chrome[tab] = await page.evaluate(() => ({
-    bug: document.querySelector('[data-reports-scorebug]')?.hidden !== true,
-    rail: document.querySelector('[data-reports-rail]')?.hidden !== true,
+    bug: document.querySelector('[data-reports-scorebug]')?.hidden === false,
+    rail: !!document.querySelector('[data-reports-rail], .gi-reports-rail'),
+    facts: [...document.querySelectorAll('[data-reports-scorebug] [data-scorebug-fact]')].map(n => n.dataset.scorebugFact),
   }));
 }
-ok(chrome.overview.bug && !chrome.overview.rail, 'Overview shows the scorebug and hides the rail', JSON.stringify(chrome.overview));
-ok(!chrome.offense.bug && !chrome.offense.rail, 'Offense shows neither the linescore nor the rail', JSON.stringify(chrome.offense));
-ok(!chrome.defense.bug && !chrome.defense.rail,
-  'current-game Defense shows neither the linescore nor the rail', JSON.stringify(chrome.defense));
-ok(chrome.special.rail && !chrome.special.bug && chrome.players.rail && !chrome.players.bug,
-  'current-game Special Teams and Players keep the non-score rail and no linescore', JSON.stringify([chrome.special, chrome.players]));
-const seasonSpecial = await page.evaluate(async () => {
-  // This fixture charts no Special Teams, so the board renders its empty state
-  // without scope buttons; set the scope exactly as those buttons do.
-  const sc = window.app.reportsScreen;
-  sc.selectTab('special');
-  sc.specialTeamsScope = 'season'; sc._syncHeader(); sc._renderActiveTab();
-  await new Promise(r => setTimeout(r, 300));
-  const out = { bug: document.querySelector('[data-reports-scorebug]')?.hidden !== true,
-    rail: document.querySelector('[data-reports-rail]')?.hidden !== true };
-  sc.specialTeamsScope = 'game'; sc._syncHeader(); sc._renderActiveTab();
-  return out;
+ok(chrome.overview.bug && chrome.overview.facts.join(',') === 'result,charted,margin',
+  'Overview shows the compact score with Result, Charted and Turnover margin', JSON.stringify(chrome.overview));
+ok(['offense', 'defense', 'special', 'players', 'selfscout'].every(tab => !chrome[tab].bug),
+  'no detail tab shows the score', JSON.stringify(chrome));
+ok(Object.values(chrome).every(c => !c.rail), 'no tab renders the deleted game KPI rail', JSON.stringify(chrome));
+const overviewFacts = await page.evaluate(() => {
+  window.app.reportsScreen.selectTab('overview');
+  const bug = document.querySelector('[data-reports-scorebug]');
+  const opponent = window.app.storage.gameInfo.opponent;
+  const facts = bug?.querySelector('.gi-scorebug-facts')?.textContent || '';
+  return { opponent, inFacts: facts.includes(opponent), facts,
+    result: bug?.querySelector('[data-scorebug-fact="result"] strong')?.textContent };
 });
-ok(!seasonSpecial.rail && !seasonSpecial.bug, 'full-season Special Teams suppresses all game chrome', JSON.stringify(seasonSpecial));
-const railLabels = await page.evaluate(() => { window.app.reportsScreen.selectTab('players');
-  return [...document.querySelectorAll('[data-reports-rail] .gi-kpi-label')].map(n => n.textContent.trim()); });
-ok(railLabels.length > 0 && !railLabels.includes('Final Score'), 'the game rail carries no Final Score tile', JSON.stringify(railLabels));
-ok(Object.values(chrome).every(c => !(c.bug && c.rail)),
-  'no tab ever shows the scorebug and the generic rail at the same time', JSON.stringify(chrome));
+ok(overviewFacts.result === 'Win' && !overviewFacts.inFacts,
+  'the compact score states the official Result and never repeats the opponent name beside the linescore',
+  JSON.stringify(overviewFacts));
 
 console.log('\n== 10. Each full team name, quarters, and total share one aligned row ==');
 const geometry = [];
@@ -387,19 +431,27 @@ console.log('\n== 13. A sticky column header never covers its own first row ==')
 // measured against the page scroller, so inside a wrap it pins the header
 // 42px down and holds it there, on top of the first data row.
 await load({ plays: FULL });
-const sticky = await page.evaluate(() => [...document.querySelectorAll('.gi-offense-board .gi-table-wrap')]
-  .map(w => {
-    const th = w.querySelector('thead th'), tr = w.querySelector('tbody tr');
-    if (!th || !tr) return null;
-    return { mod: w.previousElementSibling?.querySelector('strong')?.textContent.trim(),
-      overlap: Math.round(th.getBoundingClientRect().bottom - tr.getBoundingClientRect().top) };
-  }).filter(Boolean));
+const sticky = [];
+for (const [id] of PAGES) {
+  await showPage(id);
+  sticky.push(...await page.evaluate(() => [...document.querySelectorAll('.gi-offense-board .gi-table-wrap')]
+    .map(w => {
+      const th = w.querySelector('thead th'), tr = w.querySelector('tbody tr');
+      if (!th || !tr) return null;
+      return { mod: w.previousElementSibling?.querySelector('strong')?.textContent.trim(),
+        overlap: Math.round(th.getBoundingClientRect().bottom - tr.getBoundingClientRect().top) };
+    }).filter(Boolean)));
+}
+await showPage('identity');
 ok(sticky.length > 0 && sticky.every(s => s.overlap <= 1),
   'no table header overlaps its first data row',
   JSON.stringify(sticky.filter(s => s.overlap > 1)));
 
 console.log('\n== 14. Column labels remain readable and explanatory subheads are absent ==');
-const type = await page.evaluate(() => {
+const typeByPage = [];
+for (const [id] of PAGES) {
+await showPage(id);
+typeByPage.push(await page.evaluate(() => {
   const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
   const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
   const L = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
@@ -409,11 +461,15 @@ const type = await page.evaluate(() => {
     const cs = getComputedStyle(el), f = L(rgb(cs.color)), g = L(bgOf(el));
     return { size: parseFloat(cs.fontSize), family: cs.fontFamily.split(',')[0].replace(/"/g, ''),
       ratio: +(((Math.max(f, g) + 0.05) / (Math.min(f, g) + 0.05)).toFixed(2)) }; };
-  const visibleExplainers = [...document.querySelectorAll('.gi-offense-board .gi-overview-module>header span, .gi-offense-board .gi-zone-rule p')]
+  const visibleExplainers = [...document.querySelectorAll('.gi-offense-board .gi-overview-module>header span')]
     .filter(el => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0)
     .map(el => el.textContent.trim());
   return { th: probe('.gi-offense-board .gi-overview-module th'), visibleExplainers };
-});
+}));
+}
+await showPage('identity');
+/* Every page is read; the label probe is the first page that has a table. */
+const type = { th: typeByPage.find(p => p.th)?.th || null, visibleExplainers: typeByPage.flatMap(p => p.visibleExplainers) };
 ok(type.th && type.th.size >= 12 && !/Condensed/i.test(type.th.family),
   'column labels are operational copy in the body face at the label token size, not a condensed display face',
   JSON.stringify(type.th));
@@ -426,30 +482,31 @@ console.log('\n== 15. Season > Offense embeds the same board without duplicate i
 await load({ plays: FULL, tab: 'season' });
 // Season carries its own sub-tabs and opens on Overview; the embedded
 // OffenseTab only exists once its Offense sub-tab is selected.
-await page.evaluate(() => [...document.querySelectorAll('.gi-season-nav .gi-subtab')]
-  .find(b => b.textContent.trim() === 'Offense')?.click());
+await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-subtab="offense"]')?.click());
 await sleep(700);
 const season = await page.evaluate(() => ({
   activeTab: window.app.reportsScreen.activeTab,
   stack: document.querySelectorAll('.gi-season-sections').length,
   boards: document.querySelectorAll('.gi-offense-board').length,
   inStack: document.querySelectorAll('.gi-season-sections .gi-offense-board').length,
-  z1: document.querySelectorAll('#gi-off-z1').length,
-  navs: document.querySelectorAll('.gi-zone-nav').length,
+  // Season's own bar holds its sections; the embedded board carries its six
+  // pages INLINE, inside its section, never in the route's bar host.
+  hostBars: document.querySelectorAll('[data-reports-secbar] [data-reports-secbar-bar]').length,
+  inlineBars: document.querySelectorAll('.gi-season-sections .gi-secbar.is-inline .gi-offense-pages').length,
 }));
 ok(season.activeTab === 'season' && season.stack === 1,
   'the route is still on the Season tab -- a document-wide "Offense" lookup leaves it for the main tab of that name',
   JSON.stringify(season));
 ok(season.boards === 1 && season.inStack === 1,
   'the Season tab renders exactly one offense board, inside the Season section host', JSON.stringify(season));
-ok(season.z1 <= 1 && season.navs <= 1, 'no zone id or zone nav is duplicated across the mounted tabs', JSON.stringify(season));
+ok(season.hostBars === 1 && season.inlineBars === 1,
+  'Season keeps one secondary bar under the strip and the embedded Offense pages render inline in its section', JSON.stringify(season));
 
 // SeasonOffense passes OffenseTab a plain shim object, not ReportsScreen, so
 // every method the tab calls has to exist on it. A season with no offensive
 // snaps renders the tab's empty state there, whose command is one such call.
 await load({ plays: [{ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }], tab: 'season' });
-await page.evaluate(() => [...document.querySelectorAll('.gi-season-nav .gi-subtab')]
-  .find(b => b.textContent.trim() === 'Offense')?.click());
+await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-subtab="offense"]')?.click());
 await sleep(700);
 const seasonCta = await page.evaluate(async () => {
   if (window.app.reportsScreen.activeTab !== 'season') return { onSeason: false };
@@ -474,6 +531,8 @@ for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 720]]) {
   // both assertions for free: nothing is laid out, so page overflow is 0 and
   // a band's child count is whatever the markup says regardless of geometry.
   await load({ plays: FULL, tab: 'offense' });
+  // The three-column structure bands live on the Structure page.
+  await showPage('structure');
   widths.push(await page.evaluate(v => {
     const board = document.querySelector('.gi-offense-board');
     const rect = board?.getBoundingClientRect();
@@ -502,7 +561,10 @@ ok(widths.every(r => r.bandTracks.length > 0 && r.bandTracks.every(n => n === 3)
 
 console.log('\n== 17. Nothing on the board renders below the type floor ==');
 await load({ plays: FULL });
-const floor = await page.evaluate(() => {
+const floorParts = [];
+for (const [id] of PAGES) {
+await showPage(id);
+floorParts.push(await page.evaluate(() => {
   const all = [...document.querySelectorAll('.gi-offense-board *')]
     .filter(el => el.childElementCount === 0 && (el.textContent || '').trim())
     .map(el => ({ tag: el.tagName, text: el.textContent.trim().slice(0, 12),
@@ -518,7 +580,11 @@ const floor = await page.evaluate(() => {
   const fieldCells = [...document.querySelectorAll('.gi-off-field-cell')]
     .map(el => ({ text: el.textContent.trim(), size: parseFloat(getComputedStyle(el).fontSize) }));
   return { tiny: all.filter(o => o.size && o.size < 9.5), charts, fieldCells, total: all.length };
-});
+}));
+}
+await showPage('identity');
+const floor = { tiny: floorParts.flatMap(p => p.tiny), charts: floorParts.flatMap(p => p.charts),
+  fieldCells: floorParts.flatMap(p => p.fieldCells), total: floorParts.reduce((s, p) => s + p.total, 0) };
 // The charts have to be on screen before their labels can be judged. Asserting
 // only "nothing is under the floor" passes just as happily when nothing
 // rendered at all, which is exactly what happened while the fixture carried no
@@ -549,7 +615,7 @@ ok(populated.board, 'the Offense board renders before any schema measurement');
 ok(eqArr(populated.titles, SCHEMA_MODULES),
   `the board renders the approved ${SCHEMA_MODULES.length} modules in the approved order`,
   JSON.stringify(populated.titles));
-ok(populated.zones === 6, 'six zone rules', String(populated.zones));
+ok(JSON.stringify(populated.pages) === JSON.stringify(PAGES.map(([id]) => id)), 'six pages, walked in order', JSON.stringify(populated.pages));
 ok(populated.formType.rows === 3 && populated.formType.cols === 5 && populated.formType.populated > 0,
   'Formation × Play Type fills its fixed 3 x 5 footprint with computed intersections',
   JSON.stringify(populated.formType));

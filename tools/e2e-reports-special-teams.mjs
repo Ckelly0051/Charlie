@@ -94,8 +94,10 @@ const shape = await page.evaluate(() => {
     board: !!pane.querySelector('.gi-st-board'),
     kpis: pane.querySelectorAll('.gi-st-board .gi-overview-kpi').length,
     ledger: pane.querySelectorAll('.gi-st-unit-card').length,
-    navs: pane.querySelectorAll('.gi-def-secnav-item').length,
-    rules: pane.querySelectorAll('.gi-def-secrule').length,
+    // The five sections are pages in the shared secondary bar under the strip
+    // (coach-approved comp, 2026-09-23); one page's modules are on screen.
+    navs: document.querySelectorAll('[data-reports-secbar] [data-st-section]').length,
+    rules: document.querySelectorAll('[data-reports-secbar] [data-st-section][aria-selected="true"]').length,
     names: [...pane.querySelectorAll('.gi-st-unit-name')].map(e => e.textContent.trim()),
   };
 });
@@ -384,12 +386,10 @@ ok(scope.def === 'game', 'Special Teams opens on Current game');
 await page.evaluate(() => document.querySelector('[data-st-scope="season"]')?.click());
 await sleep(250);
 ok(scope.buttons === 2, 'the Full season / Current game control is preserved');
-const chrome = await page.evaluate(() => ({
-  rail: !document.querySelector('[data-reports-rail]')?.hidden,
-  bug: !document.querySelector('[data-reports-scorebug]')?.hidden,
-}));
+/* The game KPI rail is deleted (coach-approved comp, 2026-09-23); `rail` now
+   asserts it stays absent in both scopes. */
 const scopeChrome = await page.evaluate(() => ({
-  ...({ rail: !document.querySelector('[data-reports-rail]')?.hidden,
+  ...({ rail: !!document.querySelector('[data-reports-rail], .gi-reports-rail'),
     bug: !document.querySelector('[data-reports-scorebug]')?.hidden }),
   title: document.querySelector('[data-reports-title]')?.textContent.trim(),
   context: document.querySelector('[data-reports-context]')?.textContent.trim(),
@@ -400,11 +400,12 @@ ok(!scopeChrome.rail && !scopeChrome.bug && /Special Teams$/.test(scopeChrome.ti
 await page.evaluate(() => document.querySelector('[data-st-scope="game"]')?.click());
 await sleep(250);
 const gameChrome = await page.evaluate(() => ({
-  rail: !document.querySelector('[data-reports-rail]')?.hidden,
+  rail: !!document.querySelector('[data-reports-rail], .gi-reports-rail'),
+  bug: !document.querySelector('[data-reports-scorebug]')?.hidden,
   title: document.querySelector('[data-reports-title]')?.textContent.trim(),
   context: document.querySelector('[data-reports-context]')?.textContent.trim(),
 }));
-ok(gameChrome.rail && !/Special Teams$/.test(gameChrome.title) && gameChrome.context !== 'Full season',
+ok(!gameChrome.rail && !gameChrome.bug && !/Special Teams$/.test(gameChrome.title) && gameChrome.context !== 'Full season',
   'current-game Special Teams restores current-game chrome', JSON.stringify(gameChrome));
 
 /* ══ 9. Nothing regressed visually ════════════════════════════════════════ */
@@ -448,10 +449,9 @@ await load([
   { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '18' },
 ]);
 const badges = await page.evaluate(() => {
-  const pane = document.querySelector('[data-native-report-content]');
-  return [...pane.querySelectorAll('.gi-def-secnav-item')].map(item => ({
+  return [...document.querySelectorAll('[data-reports-secbar] [data-st-section]')].map(item => ({
     text: item.textContent.replace(/\s+/g, ' ').trim(),
-    noun: item.querySelector('b i')?.textContent?.trim() || null,
+    noun: (item.querySelector('b')?.textContent?.trim().match(/^\d+ (snaps?|attempts?|players?)$/) || [])[1] || null,
     aria: item.getAttribute('aria-label'),
   }));
 });

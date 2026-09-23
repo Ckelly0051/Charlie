@@ -61,14 +61,14 @@ const scan = () => page.evaluate(() => {
   // has to see them -- when the boards moved to that markup the sweep silently
   // stopped covering every module title on two routes.
   const HEADING_SELECTOR = 'h1, h2, h3, h4, h5,'
-    + ' .gi-overview-module > header > strong, .gi-zone-rule h2, .gi-def-secrule h2';
+    + ' .gi-overview-module > header > strong, .gi-secbar-tab';
   [...root.querySelectorAll(HEADING_SELECTOR)].filter(visible).forEach(el => {
     headings++;
     const text = (el.textContent || '').trim();
     if (openers.test(text) || text.endsWith('?')) bad.push(`HEAD "${text}"`);
   });
   [...root.querySelectorAll('.viz-caption, .self-scout-intro, figcaption, .gi-lens-head p,'
-    + ' .gi-overview-module > header > span, .gi-zone-rule p, .gi-def-secrule p, .gi-def-note')]
+    + ' .gi-overview-module > header > span, .gi-def-note')]
     .filter(visible).forEach(el => {
       captions++;
       const text = (el.textContent || '').trim();
@@ -126,22 +126,34 @@ for (const tab of ['overview', 'offense', 'defense', 'special', 'players', 'self
   await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`)?.click(), tab);
   await new Promise(r => setTimeout(r, 600));
   record(`reports/${tab}`, await scan());
-  // Defense Revision 2 renders all four sections on one page, so the single
-  // scan above reads every section heading and module title. Prove that it
-  // did, rather than trusting a green sweep that could be reading nothing.
+  /* A multi-section report shows one page at a time from the shared secondary
+     bar (coach-approved comp, 2026-09-23), so the sweep scans EVERY page; a
+     scan of the first page alone would pass vacuously on the others. Season's
+     pages are its sub-views. */
+  const pages = await page.evaluate(() => [...document.querySelectorAll('[data-reports-secbar] [data-section]')].map(node => node.dataset.section));
+  for (const id of pages.slice(1)) {
+    await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+    await new Promise(r => setTimeout(r, 400));
+    record(`reports/${tab}/${id}`, await scan());
+    // Prove the sweep read the Defense board: count what it saw across pages.
+    if (tab === 'defense') {
+      const part = await page.evaluate(() => ({
+        sections: document.querySelectorAll('.gi-def2 [data-def2-section] h2').length,
+        modules: document.querySelectorAll('.gi-def2 [data-def2-module] > header > h3').length,
+      }));
+      defenseCoverage.sections += part.sections; defenseCoverage.modules += part.modules;
+    }
+  }
   if (tab === 'defense') {
-    defenseCoverage = await page.evaluate(() => ({
+    await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click());
+    await new Promise(r => setTimeout(r, 300));
+    const part = await page.evaluate(() => ({
       sections: document.querySelectorAll('.gi-def2 [data-def2-section] h2').length,
       modules: document.querySelectorAll('.gi-def2 [data-def2-module] > header > h3').length,
     }));
+    defenseCoverage.sections += part.sections; defenseCoverage.modules += part.modules;
   }
-  if (tab === 'season') {
-    for (const sub of ['offense', 'defense', 'special', 'players', 'scout', 'trends']) {
-      await page.evaluate(s => document.querySelector(`[data-pane="season"] .gi-subtab[data-subtab="${s}"]`)?.click(), sub);
-      await new Promise(r => setTimeout(r, 400));
-      record(`reports/season/${sub}`, await scan());
-    }
-  }
+  if (pages.length) await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), pages[0]);
 }
 
 console.log(`\n  inspected ${seen.headings} headings and ${seen.captions} captions across every route`);

@@ -154,7 +154,7 @@ const load = async (list, rosters = null) => {
   await sleep(850);
 };
 const setSection = async title => {
-  await page.evaluate(t => [...document.querySelectorAll('.gi-season-nav .gi-subtab')]
+  await page.evaluate(t => [...document.querySelectorAll('[data-reports-secbar] .gi-season-pages button')]
     .find(b => b.textContent.trim() === t)?.click(), title);
   await sleep(500);
 };
@@ -176,32 +176,38 @@ console.log('\n== 1. The approved composition ==');
 await load(FULL);
 const comp = await page.evaluate(() => {
   const report = document.querySelector('.gi-season-report');
-  const identity = document.querySelector('.gi-season-identity');
-  const nav = document.querySelector('.gi-season-nav');
-  const acts = document.querySelector('.gi-season-acts');
+  /* The season's sections and Export live in the shared secondary bar under
+     the strip (coach-approved comp, 2026-09-23). The board's own identity band
+     is retired: the Reports head, directly above the strip, names the season. */
+  const bar = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]');
+  const nav = bar.querySelector('.gi-season-pages');
+  const acts = bar.querySelector('[data-report-export="season"]');
   const box = el => el?.getBoundingClientRect();
+  const mid = el => (box(el).top + box(el).bottom) / 2;
   return {
     board: !!document.querySelector('.gi-season-board'),
-    sections: [...nav.querySelectorAll('.gi-subtab')].map(b => b.textContent.trim()),
-    identity: identity.textContent.trim(),
-    oneRow: Math.abs(box(identity).top - box(nav).top) < 2 && Math.abs(box(nav).top - box(acts).top) < 2,
-    exportLabel: acts.querySelector('button')?.textContent.trim(),
+    sections: [...nav.querySelectorAll('button')].map(b => b.textContent.trim()),
+    identity: document.querySelector('[data-reports-title]')?.textContent.trim(),
+    retiredIdentity: !!document.querySelector('.gi-season-identity'),
+    oneRow: Math.abs(mid(nav) - mid(acts)) < 2 && box(bar).height <= 46
+      && Math.abs(box(bar).top - box(document.querySelector('[data-reports-strip]')).bottom) < 0.5,
+    exportLabel: acts?.textContent.trim(),
     capped: Math.round(box(report).width) <= 1648,
-    active: nav.querySelector('.gi-subtab.active')?.textContent.trim(),
-    railHidden: document.querySelector('.gi-reports-rail')?.hidden !== false,
+    active: nav.querySelector('button.active')?.textContent.trim(),
+    railHidden: !document.querySelector('[data-reports-rail], .gi-reports-rail'),
   };
 });
 ok(comp.board, 'the Season board renders');
 ok(JSON.stringify(comp.sections) === JSON.stringify(
   ['Overview', 'Offense', 'Defense', 'Special Teams', 'Players', 'Self-Scout', 'Trends']),
 'exactly the seven approved sections, in order', JSON.stringify(comp.sections));
-ok(comp.oneRow, 'season identity, section navigation and Export share one control row');
+ok(comp.oneRow, 'section navigation and Export share one control row: the secondary bar under the strip');
 ok(comp.exportLabel === 'Export report', 'the export command reads "Export report"', comp.exportLabel);
 ok(comp.capped, 'the report canvas is capped at 1648px');
 ok(comp.active === 'Overview', 'the board opens on Overview', comp.active);
-ok(comp.identity.includes('Season Report') && comp.identity.includes('2026 Mavericks JV'),
-  'the board names the season it is reporting', comp.identity);
-ok(comp.railHidden, 'the game-scope KPI rail stays hidden on Season');
+ok(/Report$/.test(comp.identity || '') && comp.identity.includes('2026 Mavericks JV') && !comp.retiredIdentity,
+  'the Reports head names the season it is reporting, with no second identity band in the board', comp.identity);
+ok(comp.railHidden, 'no game-scope KPI rail renders on Season');
 
 /* ══ 2. Overview KPIs ═════════════════════════════════════════════════════ */
 console.log('\n== 2. Overview KPIs ==');
@@ -568,13 +574,13 @@ await load(FULL);
 const readOnly = await page.evaluate(async () => {
   const before = JSON.stringify(window.app.storage.seasonStore.data);
   for (const title of ['Offense', 'Defense', 'Special Teams', 'Players', 'Self-Scout', 'Trends', 'Overview']) {
-    [...document.querySelectorAll('.gi-season-nav .gi-subtab')].find(b => b.textContent.trim() === title)?.click();
+    [...document.querySelectorAll('[data-reports-secbar] .gi-season-pages button')].find(b => b.textContent.trim() === title)?.click();
     await new Promise(r => requestAnimationFrame(r));
   }
   const save = window.ffaSaveBlob;
   let captured = null, pending = null;
   window.ffaSaveBlob = (blob, name) => { pending = blob.text().then(html => { captured = { html, name }; }); };
-  document.querySelector('.gi-season-acts .btn')?.click();
+  document.querySelector('[data-reports-secbar] [data-report-export="season"]')?.click();
   await pending;
   window.ffaSaveBlob = save;
   const after = JSON.stringify(window.app.storage.seasonStore.data);

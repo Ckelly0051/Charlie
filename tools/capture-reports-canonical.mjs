@@ -70,7 +70,7 @@ try {
       ['Structure', 'self-scout-structure'], ['Defense', 'self-scout-defense'],
       ['Tendencies', 'self-scout-tendencies'],
     ]) {
-      await page.evaluate(text => [...document.querySelectorAll('.gi-selfscout-nav button')]
+      await page.evaluate(text => [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
         .find(button => button.textContent.includes(text))?.click(), label);
       await capture(name, width, height);
     }
@@ -78,7 +78,7 @@ try {
     await page.evaluate(() => window.app.reportsScreen.selectTab('season'));
     await pause();
     for (const [section, name] of [['overview', 'season-overview'], ['trends', 'season-trends']]) {
-      await page.evaluate(id => document.querySelector(`.gi-season-nav [data-subtab="${id}"]`)?.click(), section);
+      await page.evaluate(id => document.querySelector(`[data-reports-secbar] [data-subtab="${id}"]`)?.click(), section);
       await capture(name, width, height);
     }
 
@@ -88,7 +88,7 @@ try {
       ['Our Offense vs Their Defense', 'matchup-our-offense'],
       ['Our Defense vs Their Offense', 'matchup-our-defense'],
     ]) {
-      await page.evaluate(text => [...document.querySelectorAll('.gi-mu-tabs button')]
+      await page.evaluate(text => [...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')]
         .find(button => button.textContent.trim() === text)?.click(), label);
       await capture(name, width, height);
     }

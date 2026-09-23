@@ -80,14 +80,14 @@ console.log('\n== 2. Self-Scout TAB renders the defensive section ==');
 r = await page.evaluate(async () => {
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Defense')?.click();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
   const titles = [...(pane?.querySelectorAll('.gi-ss-module > header strong') || [])]
     .map(node => node.textContent.trim());
   return {
-    active: pane?.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
+    active: document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim(),
     titles,
   };
 });
@@ -115,7 +115,7 @@ r = await page.evaluate(async () => {
   window.app.tagger.plays = plays;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Defense')?.click();
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const selfScoutHasDef = [...document.querySelectorAll('#statsDashboard [data-pane="selfscout"] .gi-ss-module > header strong')]
@@ -123,12 +123,19 @@ r = await page.evaluate(async () => {
   window.app.reportsScreen.selectTab('defense');
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   const def = document.querySelector('#statsDashboard [data-pane="defense"]');
-  // Revision 2: four ordered sections on one page, not a tab strip.
-  const headings = [...(def?.querySelectorAll('[data-def2-section] h2') || [])];
-  const scheme = [...(def?.querySelectorAll('[data-def2-module]') || [])].map(node => node.dataset.def2Module);
+  // Four ordered sections, one per page in the shared secondary bar
+  // (coach-approved comp, 2026-09-23); every page is read in order.
+  const headings = [], scheme = [];
+  for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
+    document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    headings.push(...[...(def?.querySelectorAll('[data-def2-section] h2') || [])].map(node => node.textContent.trim()));
+    scheme.push(...[...(def?.querySelectorAll('[data-def2-module]') || [])].map(node => node.dataset.def2Module));
+  }
+  document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click();
   return {
     selfScoutHasDef,
-    defenseSections: headings.map(node => node.textContent.trim()),
+    defenseSections: headings,
     defenseHasScheme: (scheme.includes('Call Performance') || (scheme.includes('Top Calls') && scheme.includes('Worst Calls')))
       && scheme.includes('Blitz Performance') && scheme.includes('Pressure by situation')
   };
@@ -187,7 +194,7 @@ r = await page.evaluate(async () => {
     playType:'Run Inside', formation:'Ace & Empty', result:'Gain', yardage:'8' }));
   const escapedReport = stats.generateSelfScout();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
@@ -200,7 +207,7 @@ r = await page.evaluate(async () => {
     rawTellLabel: escapedReport.tells.find(t => t.cutType === 'formation')?.label || '',
     tellText,
     cutRows: pane.querySelectorAll('.gi-ss-table tbody tr.cut-row').length,
-    active: pane.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
+    active: document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim(),
   };
 });
 ok(r.runPassTotal === 1 && r.runPassComputed === 1,
@@ -239,7 +246,7 @@ r = await page.evaluate(async () => {
   }).length;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
@@ -253,7 +260,7 @@ r = await page.evaluate(async () => {
     // which is what the film cut resolves on.
     bucketLabel: /3rd &amp; 7\+/.test(pane.innerHTML),
     legacyBucketLabel: /3rd &amp; (Long|Short|Medium)\b/.test(pane.innerHTML),
-    active: pane.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
+    active: document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim(),
   };
 });
 ok(r.comboVal === 'Trips__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
@@ -283,7 +290,7 @@ r = await page.evaluate(async () => {
   const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Trips__3|Long')).length;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
@@ -328,7 +335,7 @@ r = await page.evaluate(async () => {
   // Render and check DOM
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Structure')?.click();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');
@@ -368,7 +375,7 @@ r = await page.evaluate(async () => {
   const engine = window.app.stats;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
-  [...document.querySelectorAll('.gi-selfscout-nav button')]
+  [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(button => button.firstChild.textContent.trim() === 'Tendencies')?.click();
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   const pane = document.querySelector('#statsDashboard [data-pane="selfscout"]');

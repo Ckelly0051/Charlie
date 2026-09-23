@@ -190,26 +190,6 @@
 }
 .gi-reports .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
 .gi-reports .gi-trend-legend span:last-child { text-align: right; }
-
-.gi-subtab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--gi-faint, #8a97a8);
-  font: inherit;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: color .12s ease, border-color .12s ease;
-}
-.gi-subtab:hover { color: var(--gi-text, #e6edf3); }
-.gi-subtab.active {
-  color: var(--gi-accent, #3b82f6);
-  border-bottom-color: var(--gi-accent, #3b82f6);
-}
 /* --- Exact play-call analysis: dense tables, no decorative empty panels ---
    `.gi-call-grid` is retired: the Offense composition places Play calls and
    Concepts as peer modules in a band, so the band owns those two columns and

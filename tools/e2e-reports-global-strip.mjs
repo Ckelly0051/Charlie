@@ -15,14 +15,20 @@
  *    each board's own controls sit below it.
  * 3. Score: the linescore renders on Overview only, below the strip, with its
  *    existing arithmetic (quarters sum to the totals); no detail tab shows a
- *    score or a Final Score tile.
+ *    score, a Final Score tile, or the retired game KPI banner.
  * 4. Scope: every game/season control opens on Current game, and a deliberate
  *    Full season choice survives ordinary re-renders and tab changes.
  * 5. Outer frame: each report fills its board at 1920/1440/1280, with no empty
  *    stage band around it.
  * 6. Players: names after one- and two-digit jersey numbers start at one x.
- * 7. Populated captures of every tab at 1440 and 1280 -- IMPLEMENTATION
- *    EVIDENCE ONLY, conferring no approval.
+ * 7. Populated captures of every tab at 1440, 1280, 768 and 390 --
+ *    IMPLEMENTATION EVIDENCE ONLY, conferring no approval.
+ * 8. The secondary bar (coach-approved comp, 2026-09-23): one bar directly
+ *    under the strip with the same box on all seven multi-section reports,
+ *    unmoved by page or scope changes; none on Overview; no second control
+ *    row inside any board; no game KPI rail anywhere.
+ * 9. Narrow layouts at 768 and 390: the bar stacks inside the viewport and no
+ *    tab overflows the page.
  */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
@@ -115,7 +121,7 @@ const chrome = () => page.evaluate(() => {
     exportBox: box(document.querySelector('[data-reports-strip] #btnExportStats')),
     bug: visible(bug) ? { box: box(bug), totals: [...bug.querySelectorAll('.gi-scorebug-row:not(.is-head) .gi-scorebug-total')].map(n => n.textContent.trim()),
       quarters: [...bug.querySelectorAll('.gi-scorebug-row:not(.is-head)')].map(row => [...row.querySelectorAll('.gi-scorebug-q')].map(n => Number(n.textContent.trim()))) } : null,
-    rail: visible(rail) ? { box: box(rail), labels: [...rail.querySelectorAll('.gi-kpi-label')].map(n => n.textContent.trim()) } : null,
+    rail: !!rail || !!document.querySelector('.gi-reports-rail'),
     content: box(document.querySelector('.gi-reports-content')),
     finalScoreAnywhere: [...document.querySelectorAll('.gi-reports *')].some(node => node.childElementCount === 0 && /^final score$/i.test(node.textContent.trim()) && node.getClientRects().length),
     pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -173,10 +179,10 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
   await go('defense');
   const belowStrip = await page.evaluate(() => {
     const strip = document.querySelector('[data-reports-strip]').getBoundingClientRect();
-    const controls = ['.gi-def2-scope', '.gi-def2-jumps'].map(s => document.querySelector(s)?.getBoundingClientRect());
+    const controls = ['[data-reports-secbar] .gi-secbar-tabs', '[data-reports-secbar] .gi-secbar-scope'].map(s => document.querySelector(s)?.getBoundingClientRect());
     return controls.every(r => r && r.top >= strip.bottom - 0.5);
   });
-  ok(belowStrip, `${width}: Defense scope and jump links render below the global strip`);
+  ok(belowStrip, `${width}: Defense pages and scope render below the global strip`);
 
   /* 3. Score: Overview only, below the strip, arithmetic intact. */
   const bug = reference.bug;
@@ -188,8 +194,8 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
     ok(!states[tab].bug, `${width}: ${tab} shows no linescore`);
     ok(!states[tab].finalScoreAnywhere, `${width}: ${tab} shows no Final Score tile`);
   }
-  ok(!!states.players.rail && states.players.rail.labels.includes('Total Plays') && !states.players.rail.labels.includes('Final Score'),
-    `${width}: Players keeps its non-score game metrics without a Final Score tile`, JSON.stringify(states.players.rail?.labels));
+  ok(TABS.every(tab => !states[tab].rail), `${width}: no report repeats the game KPI banner`,
+    TABS.filter(tab => states[tab].rail).join(','));
 
   /* 4. Scope defaults and persistence. */
   const scopes = await page.evaluate(() => {
@@ -200,8 +206,8 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
     `${width}: Defense, Special Teams and Players open on Current game`, JSON.stringify(scopes));
   await go('defense');
   ok(await page.evaluate(() => document.querySelector('.gi-def2')?.dataset.def2Scope === 'game'
-    && document.querySelector('[data-defense-scope="game"]')?.classList.contains('is-active')), `${width}: the Defense board renders Current game by default`);
-  ok(await page.evaluate(() => document.querySelector('.gi-def2-scope button')?.dataset.defenseScope === 'game'), `${width}: Current game is the first Defense scope control`);
+    && document.querySelector('[data-defense-scope="game"]')?.classList.contains('active')), `${width}: the Defense board renders Current game by default`);
+  ok(await page.evaluate(() => document.querySelector('[data-reports-secbar] .gi-secbar-seg button')?.dataset.defenseScope === 'game'), `${width}: Current game is the first Defense scope control`);
   await page.evaluate(() => document.querySelector('[data-defense-scope="season"]').click());
   await sleep(300);
   const seasonDefense = await chrome();
@@ -214,7 +220,7 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
   await page.evaluate(() => document.querySelector('[data-defense-scope="game"]').click());
   await go('special');
   ok(await page.evaluate(() => document.querySelector('[data-st-scope="game"]')?.classList.contains('active')
-    && document.querySelector('.gi-st-scope button')?.dataset.stScope === 'game'), `${width}: Special Teams opens on Current game, listed first`);
+    && document.querySelector('[data-reports-secbar] .gi-secbar-seg button')?.dataset.stScope === 'game'), `${width}: Special Teams opens on Current game, listed first`);
   await page.evaluate(() => document.querySelector('[data-st-scope="season"]').click());
   await sleep(300);
   const specialSeason = await chrome();
@@ -233,6 +239,60 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
   ok(!opponent.bug, `${width}: the opponent perspective shows no linescore`);
   await page.evaluate(() => document.querySelector('[data-report-perspective="self"]').click());
   await sleep(300); await quiet();
+
+  /* 8. THE SECONDARY BAR (coach-approved comp, 2026-09-23). One bar, one
+     position: directly under the strip on every multi-section report, the
+     same box on all seven, unmoved by page or scope changes; none on Overview,
+     whose compact score starts at the strip instead. */
+  const secbar = () => page.evaluate(() => {
+    const box = node => { if (!node) return null; const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, bottom: r.bottom }; };
+    const host = document.querySelector('[data-reports-secbar]');
+    const bar = host?.querySelector('[data-reports-secbar-bar]');
+    const tabsRow = bar?.querySelector('.gi-secbar-tabs');
+    return {
+      bar: box(bar), hostChildren: host?.childElementCount ?? -1, hostHeight: host?.getBoundingClientRect().height ?? -1,
+      strip: box(document.querySelector('[data-reports-strip]')),
+      content: box(document.querySelector('.gi-reports-content')),
+      bug: box(document.querySelector('[data-reports-scorebug]:not([hidden])')),
+      tabsScroll: tabsRow ? tabsRow.scrollWidth - tabsRow.clientWidth : null,
+      clipped: [...(bar?.querySelectorAll('button, select') || [])].filter(n => n.scrollWidth > n.clientWidth + 0.5).map(n => n.textContent.trim()),
+      inBoardBars: document.querySelectorAll('.gi-reports-content [data-reports-secbar-bar]:not(.is-inline)').length,
+    };
+  });
+  const MULTI = ['offense', 'defense', 'special', 'players', 'selfscout', 'matchup', 'season'];
+  const bars = {};
+  for (const tab of TABS) { await go(tab); bars[tab] = await secbar(); }
+  const ref = bars.offense.bar;
+  for (const tab of MULTI) {
+    const b = bars[tab];
+    ok(same(b.bar, ref), `${width}: the secondary bar on ${tab} has Offense's exact box`, JSON.stringify({ tab: b.bar, offense: ref }));
+    ok(b.bar && Math.abs(b.bar.y - b.strip.bottom) < 0.5 && b.content.y >= b.bar.bottom - 0.5,
+      `${width}: on ${tab} the bar sits directly under the strip and the board directly under the bar`, JSON.stringify({ bar: b.bar, strip: b.strip.bottom, content: b.content.y }));
+    ok(b.tabsScroll === 0 && b.clipped.length === 0, `${width}: no bar control on ${tab} is clipped or scrolls`, JSON.stringify({ scroll: b.tabsScroll, clipped: b.clipped }));
+    ok(b.inBoardBars === 0, `${width}: ${tab} renders no second control bar inside its board`);
+  }
+  ok(ref && ref.h === 46, `${width}: the secondary bar is the comp's 46px`, JSON.stringify(ref));
+  ok(bars.overview.hostChildren === 0 && bars.overview.hostHeight === 0 && !bars.overview.bar
+    && bars.overview.bug && Math.abs(bars.overview.bug.y - bars.overview.strip.bottom) < 0.5,
+    `${width}: Overview has no secondary bar; its compact score starts at the strip`, JSON.stringify(bars.overview));
+  /* Page and scope changes move neither the strip nor the bar. */
+  const moves = [];
+  for (const [tab, clicks] of [
+    ['offense', ['calls', 'structure', 'situations', 'field', 'advanced', 'identity'].map(id => `[data-section="${id}"]`)],
+    ['defense', ['opponent', 'scheme', 'situations', 'performance'].map(id => `[data-section="${id}"]`)
+      .concat(['[data-defense-scope="season"]', '[data-section="situations"]', '[data-defense-scope="game"]', '[data-section="performance"]'])],
+    ['special', ['[data-st-scope="season"]', '[data-st-section="st4"]', '[data-st-scope="game"]', '[data-st-section="st1"]']],
+    ['players', ['[data-players-scope="season"]', '[data-players-scope="game"]']],
+  ]) {
+    await go(tab);
+    for (const sel of clicks) {
+      await page.evaluate(s => document.querySelector(`[data-reports-secbar] ${s}`)?.click(), sel);
+      await sleep(200);
+      const b = await secbar(), c = await chrome();
+      if (!same(b.bar, ref) || !reference.tabs.every((t, i) => same(t.box, c.tabs[i].box))) moves.push(`${tab} ${sel}: ${JSON.stringify(b.bar)}`);
+    }
+  }
+  ok(moves.length === 0, `${width}: no Offense/Defense page change and no scope change moves the strip or the bar`, JSON.stringify(moves));
 
   /* 5 + 7. Frame and captures. */
   for (const tab of TABS) {
@@ -284,6 +344,54 @@ for (const [width, height] of [[1920, 1080], [1440, 900], [1280, 800]]) {
     await go(tab);
     await page.evaluate(() => document.querySelector('.ws-reports')?.scrollTo(0, 0));
     await page.screenshot({ path: `${OUT}/1920-${tab}.png` });
+  }
+}
+
+/* 9. Narrow layouts: the secondary bar stacks its pages over its scope and
+   export, stays under the strip, and nothing overflows the page. Every tab is
+   captured for inspection. */
+for (const [width, height] of [[768, 1024], [390, 844]]) {
+  await boot(width, height);
+  for (const tab of TABS) {
+    await go(tab);
+    await page.evaluate(() => document.querySelector('.ws-reports')?.scrollTo(0, 0));
+    const narrow = await page.evaluate(() => {
+      const strip = document.querySelector('[data-reports-strip]')?.getBoundingClientRect();
+      const bar = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]')?.getBoundingClientRect();
+      const right = document.querySelector('[data-reports-secbar] .gi-secbar-right')?.getBoundingClientRect();
+      const tabs = document.querySelector('[data-reports-secbar] .gi-secbar-tabs')?.getBoundingClientRect();
+      return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        bar: bar ? { top: bar.top, right: bar.right } : null, stripBottom: strip?.bottom,
+        stacked: right && tabs ? right.top >= tabs.bottom - 0.5 : null };
+    });
+    ok(narrow.overflow <= 0, `${width}: no page-level horizontal overflow on ${tab}`, String(narrow.overflow));
+    if (tab === 'overview') {
+      /* The compact score at narrow widths: every quarter and the total on
+         screen, and the three facts on their own row, each value on one line. */
+      const score = await page.evaluate(w => {
+        const bug = document.querySelector('[data-reports-scorebug]');
+        const cells = [...bug.querySelectorAll('.gi-scorebug-q, .gi-scorebug-total')].map(n => n.getBoundingClientRect());
+        const table = bug.querySelector('.gi-scorebug-score')?.getBoundingClientRect();
+        const facts = bug.querySelector('.gi-scorebug-facts')?.getBoundingClientRect();
+        const values = [...bug.querySelectorAll('.gi-scorebug-fact strong')].map(n => {
+          const range = document.createRange(); range.selectNodeContents(n);
+          return { text: n.textContent, lines: range.getClientRects().length, over: n.scrollWidth > n.clientWidth + 0.5 };
+        });
+        // The route frame itself ends 0.59px past a 390 viewport (sub-pixel
+        // layout); a cell on that edge is on screen, a clipped one is ~60px out.
+        return { inside: cells.every(r => r.right <= w + 1 && r.left >= 0), cells: cells.length,
+          below: !!(facts && table && facts.top >= table.bottom - 0.5), values };
+      }, width);
+      ok(score.cells === 15 && score.inside, `${width}: all four quarters and the total of both teams are on screen`, JSON.stringify(score));
+      ok(score.below && score.values.length === 3 && score.values.every(v => v.lines === 1 && !v.over),
+        `${width}: the three score facts sit on their own row, each value on one line`, JSON.stringify(score));
+    }
+    if (tab !== 'overview') {
+      ok(narrow.bar && Math.abs(narrow.bar.top - narrow.stripBottom) < 0.5 && narrow.bar.right <= width + 1
+        && narrow.stacked !== false,
+        `${width}: ${tab}'s bar sits under the strip, inside the viewport, pages above scope and export`, JSON.stringify(narrow));
+    }
+    await page.screenshot({ path: `${OUT}/${width}-${tab}.png` });
   }
 }
 

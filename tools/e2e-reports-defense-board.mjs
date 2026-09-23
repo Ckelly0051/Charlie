@@ -89,7 +89,32 @@ const setGame = async id => {
   }, id);
   await sleep(300);
 };
-const board = () => page.evaluate(() => {
+/* The board is four pages in the shared secondary bar (coach-approved comp,
+   2026-09-23). `board()` walks all four and merges them, so every assertion
+   below still sees the whole report; each module sits on exactly one page. */
+const PAGES = ['performance', 'opponent', 'scheme', 'situations'];
+const showPage = async id => {
+  await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+  await sleep(120);
+};
+const board = async () => {
+  const parts = [];
+  for (const id of PAGES) {
+    await showPage(id);
+    const part = await boardPage();
+    part.modules.forEach(module => { module.page = id; });
+    parts.push(part);
+  }
+  await showPage('performance');
+  return {
+    ...parts[0],
+    kpis: Object.assign({}, ...parts.map(part => part.kpis)),
+    modules: parts.flatMap(part => part.modules),
+    text: parts.map(part => part.text).join(' '),
+    bandWidth: Math.max(...parts.map(part => part.bandWidth)),
+  };
+};
+const boardPage = () => page.evaluate(() => {
   const root = document.querySelector('.gi-def2');
   const text = node => (node?.textContent || '').replace(/\s+/g, ' ').trim();
   return {
@@ -198,10 +223,13 @@ seen = await board();
 const personnel = moduleOf(seen, 'Personnel faced');
 ok(personnel?.rows.length === 2 && personnel.height === 220 && personnel.held === 1,
   'a variable module with unused capacity renders dash rows instead of dead space', JSON.stringify(personnel));
+await showPage(personnel?.page);
 const heldText = await page.evaluate(() => [...document.querySelectorAll('[data-def2-module="Personnel faced"] tr.is-held td')].map(td => td.textContent));
+await showPage('performance');
 ok(heldText.length === 5 && heldText.every(value => value === '-'), 'a held row is a formatted dash in every column', JSON.stringify(heldText));
 
 await clickScope('season');
+await showPage(moduleOf(await board(), 'Opponent possessions')?.page || 'performance');
 const scroll = await page.evaluate(async () => {
   const module = document.querySelector('[data-def2-module="Opponent possessions"]');
   const wrap = module.querySelector('.gi-def2-tablewrap');
@@ -216,6 +244,7 @@ const scroll = await page.evaluate(async () => {
 ok(scroll.rows > 8 && scroll.height === 460 && scroll.after === 460 && scroll.scrollHeight > scroll.client && scroll.scrolled && scroll.held === 0,
   'more possessions than capacity scroll inside a fixed 460px module with no dash rows', JSON.stringify(scroll));
 ok(Math.abs(scroll.headOffset) <= 1, 'the table header stays visible at the top of the module while it scrolls', JSON.stringify(scroll));
+await showPage('performance');
 
 /* ══ 5. Pairing ══════════════════════════════════════════════════════════ */
 console.log('\n== 5. Pairing ==');
@@ -248,6 +277,8 @@ ok(seen.kpis['4th Down Stop %'] !== '—' && seen.kpis['Yards / play'] === '—'
 console.log('\n== 7. Player contributions sorting ==');
 await setGame('a');
 await clickScope('game');
+// Player contributions is on the Performance page.
+await showPage('performance');
 const readPlayers = () => page.evaluate(() => {
   const table = document.querySelector('[data-def2-module="Defensive player contributions"] table');
   return {
@@ -296,30 +327,29 @@ ok(byEnter.heads[1].sort === 'ascending' && ordered(byEnter.rows.filter(row => !
 ok(byEnter.rows.some(row => row.cells[0] === '#22 Delta') && byEnter.rows.some(row => row.cells[0] === '#31 Echo'),
   'players carry their roster names, including a takeaway-only player', JSON.stringify(byEnter.rows.map(row => row.cells[0])));
 
-/* ══ 8. Jump links ═══════════════════════════════════════════════════════ */
-console.log('\n== 8. Jump links ==');
+/* ══ 8. Pages (supersede the retired jump links) ═════════════════════════ */
+console.log('\n== 8. Pages ==');
 await clickScope('season');
-const jumps = await page.evaluate(async () => {
-  const scroller = document.querySelector('.ws-reports');
-  const bar = document.querySelector('.gi-def2-controls');
-  const out = [];
-  for (const link of document.querySelectorAll('[data-def2-jump]')) {
-    scroller.scrollTo(0, 0);
-    link.click();
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const heading = document.getElementById(`def2-${link.dataset.def2Jump}`);
-    out.push({ id: link.dataset.def2Jump, heading: Math.round(heading.getBoundingClientRect().top),
-      bar: Math.round(bar.getBoundingClientRect().bottom), scrolled: scroller.scrollTop, hash: location.hash });
-  }
-  return out;
-});
-ok(jumps.length === 4 && jumps.every(jump => jump.heading >= jump.bar - 1 && jump.heading <= jump.bar + 12)
-  && jumps.slice(1).every(jump => jump.scrolled > 0) && jumps.every(jump => !jump.hash.includes('def2')),
-  'each jump link scrolls its section heading to just below the pinned bar without rewriting the route hash', JSON.stringify(jumps));
+const pages = [];
+for (const id of PAGES) {
+  await page.evaluate(() => document.querySelector('.ws-reports')?.scrollTo(0, 400));
+  await showPage(id);
+  pages.push(await page.evaluate(() => ({
+    page: document.querySelector('.gi-def2')?.dataset.def2Page,
+    sections: [...document.querySelectorAll('[data-def2-section]')].map(node => node.dataset.def2Section),
+    scrolled: document.querySelector('.ws-reports')?.scrollTop,
+    hash: location.hash,
+    jumpLinks: document.querySelectorAll('[data-def2-jump]').length,
+  })));
+}
+await showPage('performance');
+ok(pages.every((item, i) => item.page === PAGES[i] && item.sections.length === 1 && item.scrolled === 0
+    && !item.hash.includes('def2') && item.jumpLinks === 0),
+  'each page shows exactly one section, opens at the top of the report, and never rewrites the route hash', JSON.stringify(pages));
 
 /* ══ 9. Literal labels ═══════════════════════════════════════════════════ */
 seen = await board();
-ok(!/\bTD\b|ADDED/.test(seen.text) && /Touchdowns Allowed/.test(seen.text) && /Explosive Plays Allowed/.test(seen.text)
+ok(!/\bTD\b|ADDED/.test(seen.text) && /Touchdowns Allowed/.test(seen.text) && /Explosive Plays\b/.test(seen.text) && !/Explosive Plays Allowed/.test(seen.text)
   && /with Run\/Pass charted/.test(seen.text) && /1st Downs Allowed/.test(seen.text) && /Allowed %/.test(seen.text)
   && /Red-zone Touchdown Rate/.test(seen.text),
   'the board uses its literal labels and no ambiguous TD abbreviation or proposal marker');
@@ -552,13 +582,23 @@ const cohortMeta = await page.evaluate(async () => {
   document.querySelector('[data-defense-scope="game"]')?.click();
   await new Promise(r => setTimeout(r, 500));
   const text = n => (n?.textContent || '').replace(/\s+/g, ' ').trim();
+  // Module cohort labels are read on every page they live on.
+  const metaEntries = [], kpiEntries = [];
+  let cohortText = '';
+  for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
+    document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
+    await new Promise(r => setTimeout(r, 150));
+    metaEntries.push(...[...document.querySelectorAll('[data-def2-meta]')].map(n => [n.dataset.def2Meta, text(n)]));
+    kpiEntries.push(...[...document.querySelectorAll('[data-def2-kpi]')].map(n => [n.dataset.def2Kpi, text(n.querySelector('strong'))]));
+    cohortText ||= text(document.querySelector('[data-def2-cohort="performance"]'));
+  }
+  document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click();
   const board = app.stats.defenseBoard(app.reportsScreen._defenseScopedPlays || plays.map(p => ({ ...p, __gid: 'g-meta' })),
     { labels: { 'g-meta': 'Cohorts' }, seasonPlays: plays.map(p => ({ ...p, __gid: 'g-meta' })), roster: {}, scope: 'game' });
   return {
-    cohort: text(document.querySelector('[data-def2-cohort="performance"]')),
-    metas: Object.fromEntries([...document.querySelectorAll('[data-def2-meta]')].map(n => [n.dataset.def2Meta, text(n)])),
-    kpis: Object.fromEntries([...document.querySelectorAll('[data-def2-kpi]')]
-      .map(n => [n.dataset.def2Kpi, text(n.querySelector('strong'))])),
+    cohort: cohortText,
+    metas: Object.fromEntries(metaEntries),
+    kpis: Object.fromEntries(kpiEntries),
     // Independently derived from the board model, not from the rendered string.
     model: { measured: board.measured, total: board.total,
       directionSnaps: board.directions.reduce((s, r) => s + r.n, 0),

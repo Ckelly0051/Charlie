@@ -161,7 +161,7 @@ const load = async plays => {
   await sleep(650);
 };
 const setSection = async title => {
-  await page.evaluate(t => [...document.querySelectorAll('.gi-selfscout-nav button')]
+  await page.evaluate(t => [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(b => b.textContent.trim().startsWith(t))?.click(), title);
   await sleep(320);
 };
@@ -197,16 +197,19 @@ console.log('\n== 1. The approved composition ==');
 await load(FULL);
 const comp = await page.evaluate(() => {
   const report = document.querySelector('.gi-selfscout-report');
-  const toolbar = document.querySelector('.gi-selfscout-toolbar');
-  const nav = document.querySelector('.gi-selfscout-nav');
-  const acts = document.querySelector('.gi-selfscout-acts');
+  // Section navigation and Export share the one secondary bar under the strip
+  // (coach-approved comp, 2026-09-23).
+  const bar = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]');
+  const nav = bar.querySelector('.gi-selfscout-pages');
+  const acts = bar.querySelector('[data-report-export="selfscout"]');
   const box = el => el?.getBoundingClientRect();
+  const mid = el => (box(el).top + box(el).bottom) / 2;
   return {
     board: !!document.querySelector('.gi-selfscout-board'),
     sections: [...nav.querySelectorAll('button')].map(b => b.firstChild.textContent.trim()),
-    // Scope, section navigation and Export share ONE control row.
-    oneRow: Math.abs(box(toolbar).top - box(nav).top) < 2 && Math.abs(box(nav).top - box(acts).top) < 2,
-    exportLabel: acts.querySelector('button')?.textContent.trim(),
+    oneRow: Math.abs(mid(nav) - mid(acts)) < 2 && box(bar).height <= 46
+      && Math.abs(box(bar).top - box(document.querySelector('[data-reports-strip]')).bottom) < 0.5,
+    exportLabel: acts?.textContent.trim(),
     capped: Math.round(box(report).width) <= 1648,
     centred: Math.abs(box(report).left - (window.innerWidth - box(report).width - box(report).left)) < 40,
     navCounts: [...nav.querySelectorAll('button > b')].map(b => b.textContent.trim()),
@@ -221,7 +224,7 @@ ok(comp.board, 'the Self-Scout board renders');
 ok(JSON.stringify(comp.sections) === JSON.stringify(
   ['Offensive Summary', 'Calls & Situations', 'Structure', 'Defense', 'Tendencies']),
 'five sections in the approved order', JSON.stringify(comp.sections));
-ok(comp.oneRow, 'scope, section navigation and Export share one control row');
+ok(comp.oneRow, 'section navigation and Export share one control row: the secondary bar under the strip');
 ok(comp.exportLabel === 'Export report', 'the export command reads "Export report"', comp.exportLabel);
 ok(comp.capped, 'the report canvas is capped at 1648px');
 ok(comp.active === 'Offensive Summary', 'the board opens on Offensive Summary', comp.active);
@@ -280,7 +283,7 @@ const type = await page.evaluate(() => {
   const th = document.querySelector('table.gi-ss-table thead th');
   const td = document.querySelector('table.gi-ss-table tbody td');
   const tr = document.querySelector('table.gi-ss-table tbody tr');
-  const navButton = document.querySelector('.gi-selfscout-nav button');
+  const navButton = document.querySelector('[data-reports-secbar] .gi-selfscout-pages button');
   const all = [...document.querySelectorAll('.gi-selfscout-board *')]
     .filter(el => el.childNodes.length && [...el.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim()));
   return {
@@ -303,8 +306,10 @@ ok(type.thSize === 12.5 && type.thWeight === 600, 'table column headers are 12.5
 ok(/Plex Sans/.test(type.thFace) && !/Condensed/.test(type.thFace), 'column headers use Plex Sans', type.thFace);
 ok(type.tdSize === 13, 'data rows are 13px', String(type.tdSize));
 ok(type.rowHeight === 38, 'data rows are 38px', String(type.rowHeight));
-ok(type.navSize === 12.5 && type.navTransform === 'none',
-  'section navigation is readable 12.5px Sans with no forced uppercase', `${type.navSize} / ${type.navTransform}`);
+/* The section tabs are the shared secondary bar's, whose approved comp
+   (design-comps/reports-secondary-nav-2026-09-23/comp.css) sets them at 13px. */
+ok(type.navSize === 13 && type.navTransform === 'none',
+  'section navigation is the secondary bar\'s readable 13px Sans with no forced uppercase', `${type.navSize} / ${type.navTransform}`);
 ok(type.floor >= SELF_SCOUT_TYPE_FLOOR,
   `the board holds the shared ${SELF_SCOUT_TYPE_FLOOR}px coach-facing floor`,
   String(type.floor));
@@ -531,7 +536,7 @@ await setSection('Structure');
 await page.evaluate(() => window.app.reportsScreen._renderActiveTab());
 await sleep(400);
 const held = await page.evaluate(() => ({
-  active: document.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim(),
+  active: document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim(),
   controller: window.app.reportsScreen.selfScoutSection,
 }));
 ok(held.active === 'Structure', 'the selected section survives a Reports re-render', held.active);
@@ -541,7 +546,7 @@ await sleep(300);
 await page.evaluate(() => window.app.reportsScreen.selectTab('selfscout'));
 await sleep(500);
 const returned = await page.evaluate(() =>
-  document.querySelector('.gi-selfscout-nav button.active')?.firstChild.textContent.trim());
+  document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim());
 ok(returned === 'Structure', 'leaving and returning to Self-Scout keeps the section', returned);
 
 /* ══ 10. Interaction states ═══════════════════════════════════════════════ */
@@ -555,14 +560,14 @@ const states = await page.evaluate(() => {
       w: el.getBoundingClientRect().width, h: el.getBoundingClientRect().height };
     return rest;
   };
-  const nav = document.querySelector('.gi-selfscout-nav button:not(.active)');
+  const nav = document.querySelector('[data-reports-secbar] .gi-selfscout-pages button:not(.active)');
   const th = document.querySelector('table.gi-ss-table thead th');
   const row = document.querySelector('table.gi-ss-table tbody tr.cut-row');
   return {
     navRest: probe(nav), thCursor: th ? getComputedStyle(th).cursor : '',
     rowCursor: row ? getComputedStyle(row).cursor : '',
     rowTabIndex: row ? row.tabIndex : null, rowRole: row ? row.getAttribute('role') : null,
-    exportCursor: getComputedStyle(document.querySelector('.gi-selfscout-acts .btn')).cursor,
+    exportCursor: getComputedStyle(document.querySelector('[data-reports-secbar] [data-report-export="selfscout"]')).cursor,
     navCursor: nav ? getComputedStyle(nav).cursor : '',
   };
 });
@@ -573,14 +578,14 @@ ok(states.navCursor === 'pointer' && states.thCursor === 'pointer'
 ok(states.rowTabIndex === 0 && states.rowRole === 'button', 'a film row is keyboard reachable',
   `${states.rowTabIndex}/${states.rowRole}`);
 const hover = await page.evaluate(async () => {
-  const nav = document.querySelector('.gi-selfscout-nav button:not(.active)');
+  const nav = document.querySelector('[data-reports-secbar] .gi-selfscout-pages button:not(.active)');
   const box = nav.getBoundingClientRect();
   return { w: box.width, h: box.height };
 });
-await page.hover('.gi-selfscout-nav button:not(.active)');
+await page.hover('[data-reports-secbar] .gi-selfscout-pages button:not(.active)');
 await frame();
 const afterHover = await page.evaluate(() => {
-  const nav = document.querySelector('.gi-selfscout-nav button:not(.active)');
+  const nav = document.querySelector('[data-reports-secbar] .gi-selfscout-pages button:not(.active)');
   const box = nav.getBoundingClientRect();
   return { bg: getComputedStyle(nav).backgroundColor, w: box.width, h: box.height };
 });
@@ -816,12 +821,13 @@ console.log('\n== 13. Season report Self-Scout ==');
 await load(FULL);
 await page.evaluate(() => window.app.reportsScreen.selectTab('season'));
 await sleep(700);
-await page.evaluate(() => [...document.querySelectorAll('.gi-subtab')]
+await page.evaluate(() => [...document.querySelectorAll('[data-reports-secbar] [data-subtab]')]
   .find(b => b.textContent.trim() === 'Self-Scout')?.click());
 await sleep(600);
 const season = await page.evaluate(() => ({
   board: !!document.querySelector('.gi-selfscout-board'),
-  sections: [...document.querySelectorAll('.gi-selfscout-nav button')].map(b => b.firstChild.textContent.trim()),
+  // Embedded in Season, the board carries its own sections in an inline bar.
+  sections: [...document.querySelectorAll('[data-pane="season"] .gi-secbar.is-inline .gi-selfscout-pages button')].map(b => b.firstChild.textContent.trim()),
   kpis: document.querySelectorAll('.gi-overview-kpi').length,
   metas: document.querySelectorAll('.gi-ss-module > header span').length,
 }));
