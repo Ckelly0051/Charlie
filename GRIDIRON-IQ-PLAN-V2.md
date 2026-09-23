@@ -51,6 +51,44 @@
 > are not open Home work. All unresolved product defects are indexed in
 > `docs/OPEN-DEFECTS.md`.
 
+## Next Work Packages - Coach-Aligned (2026-09-23)
+
+The coach has finished listing findings for this smoke pass for now. The
+sequence below is an agreed grouping for efficient repair, not approval of a
+new comp, an installed build, or the Reports release. Keep the individual
+findings open in `docs/OPEN-DEFECTS.md` until verified.
+
+1. **Reports composition and navigation.** Remove the repeated game KPI
+   banner from detail tabs. Keep a compact, nonduplicative score and summary
+   on Overview, including removal of the redundant right-side opponent name.
+   Design a consistent secondary-tab pattern for multi-section reports, using
+   Special Teams and Players as the interaction reference while leaving the
+   approved global strip stable. A coach-reviewed comp must settle the Offense
+   and Defense long-page conversion before code changes. Preserve all modules,
+   cohorts, film actions, and exports. Decide where the requested down-and-
+   distance chart belongs during this design pass; build and validate its
+   analytics as a separate checkpoint using existing charted fields.
+   **Status 2026-09-23:** comp ready for coach review at
+   `design-comps/reports-secondary-nav-2026-09-23/`; not approved or built.
+2. **Breakdown charting.** Reproduce and repair the installed charting-library
+   save failure before adding choices. Tighten desktop chip padding and
+   between-section gaps without shrinking type. Make custom Play Call and
+   built-in Play Type independently collapsible, retaining a clear selected
+   state. Add optional run-gap hit and motion start/end direction as first-
+   class charting fields, without inferring values for old plays; carry their
+   semantics through reporting and export where applicable.
+3. **Film Room.** Review a video-first comp with the editable breakdown table
+   docked beneath the video by default, plus movable/resizable video and table
+   arrangements and a usable reset. Keep playback, selection, table editing,
+   and narrow-screen behavior intact. Treat this as a separate higher-risk
+   checkpoint from the charting-form changes.
+
+Use focused tests and canonical 2025 JV data checks for each checkpoint, then
+one integrated full gate and installed smoke covering all three packages on a
+new candidate. No package or production acceptance is implied by the plan.
+Broader visualization work remains lower priority and should accompany a
+substantive analysis feature rather than become a standalone redesign.
+
 ## Home Accepted Baseline - Current Production Rejected (2026-09-10)
 
 The approved comp remains the design contract for all three meaningful Home states: first launch, season library/no open season, and a populated open season. The `1.12.0-70` installed snapshot was accepted, but current Home production is `REJECTED` after the `1.12.0-74` installed screen was reported visually off. Do not interpret the accepted baseline below as current production acceptance. First launch is part of Home, not a centered Team Hub onboarding panel. It offers structured program and season identity, guided/manual setup, recovery, and sample-season actions. The rejected `FirstTeam` presentation is deleted. Home now owns the season-library presentation; Team Hub retains only its existing service and focused-form boundaries.
@@ -178,6 +216,21 @@ Approved design-only checkpoint: 87 focused checks, 23 captures, representative 
 The reviewed `design-comps/breakdown-workspace-2026-08/breakdown.html` has now been implemented in the live route. Chart has the responsive vertical rail / horizontal strip / on-demand Plays browser; Film Room has a wider desktop table and top-aligned film/detail column; the charting deck follows the compact header, neutral label color, aligned Situation/spot controls and independent Players & Grades disclosures. Existing domain controllers, full tag vocabulary, virtualization and persistence remain in place.
 
 Build and focused behavioral checks passed; populated production screenshots and open/empty states are recorded in `artifacts/breakdown-comp-live/`. Charlie approved the installed **1.12.0-68 Beta** presentation on 2026-08-31, including the wide-screen vertical play rail. Slightly tighter vertical tagging padding is a deferred next-pass nit, not a blocker or authorization to reopen this layout now. This is presentation acceptance, not a claim that every installed workflow has been tested or that the whole app's design is finished. See the current `CLAUDE.md` handoff for test changes, discovered defects, and exact scope.
+
+**New Breakdown direction, 2026-09-23; not implemented.** The next Film Room
+composition should give video priority and dock its editable breakdown table
+below the video by default. Let the coach move the table between bottom and
+side positions, resize the video/table split, restore a default layout, and
+retain the chosen layout without breaking video controls, editing, or the
+large-game table virtualizer. This supersedes the side-by-side Film Room
+composition as the target for the next design pass; it does not revoke the
+historical `1.12.0-68` acceptance. In the same Breakdown update, repair the
+installed charting-library save failure and tighten desktop chip/section
+spacing without shrinking chip type; Play Call and Play Type choice sets need
+independent collapse controls. The three requested analytical additions are
+run-gap hit charting, motion-direction charting, and a down-and-distance chart,
+as detailed in the six-item future-review shortlist below. Design approval,
+implementation, and installed smoke are still pending.
 
 **Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
 
@@ -968,6 +1021,39 @@ desktop Reports composition pass. They should reuse the canonical analytics
 registry, stored charting data, and film-navigation service rather than create
 parallel formulas or report-only data models.
 
+**Coach-prioritized six for future review (2026-09-22):** This is a shortlist,
+not approval to change the current report compositions or charting schema.
+Keep the shared Reports strip and unaffected tabs intact; design and verify
+only the charting and report surfaces each item actually touches.
+
+1. **Down-and-distance chart.** A dedicated, scannable report by down and
+   distance with play count, run/pass split, top calls, yards/play, success,
+   eligible sample, and exact film links. The tags already exist; the current
+   by-down and situational tables are not a substitute for this chart.
+2. **Run gap hit.** Add a first-class A/B/C/D gap or named run-lane tag, then
+   build a strength-aware hit chart without treating broad Left/Middle/Right
+   direction as exact gap data. See the run hit/gap follow-on below.
+3. **Motion direction.** Keep motion type and separately chart its direction
+   or start/end side for film-linked tendencies.
+4. **Pass target and catch location.** Chart field side and depth of the target
+   and catch separately from total gain; do not infer either from play direction.
+5. **Receiver route and release.** Tie route and release to the identified
+   receiver so player and formation tendencies can be queried reliably.
+6. **QB run classification.** Distinguish designed QB runs, scrambles, and RPO
+   keepers rather than deriving intent from Run/Pass or Play Type alone.
+
+New fields remain optional on historical plays; uncharted values are missing,
+not zero. Each report addition needs a focused composition decision, canonical
+analytics, export parity, and exact contributing film references.
+
+**Lower-priority visualization expansion (coach finding, 2026-09-23).** Offense
+currently carries the visible chart treatment the coach wants to see more
+widely. Add useful visualizations to other Reports tabs as part of later
+functional/reporting work, not as a standalone cosmetic pass. The
+down-and-distance and run-gap work above are natural opportunities. Each chart
+must expose its eligible sample, match the underlying table or metric, and
+open its contributing film; do not replace legible data with decoration.
+
 1. **Interactive drive chart.** Show every possession in game order with start
    and end field position, play count, outcome, points, and yards separated into
    rushing, passing, and accepted-penalty contributions. Selecting a drive must
@@ -996,6 +1082,19 @@ parallel formulas or report-only data models.
    film context, and never silently overwrite coach-entered data. Evaluate this
    work by verified tag accuracy, correction burden, and minutes saved per game
    before treating it as a commercial differentiator.
+6. **Coach-owned AI analysis exchange.** First export a versioned, season-wide
+   analysis pack for upload to a coach's chosen AI workspace: one row per play,
+   stable `gameId::playId` references, charted fields, and a data dictionary for
+   scope, eligibility, missing values, and football definitions. Exclude video,
+   local film paths, and player identities by default. This is distinct from
+   the current active-game Breakdown CSV and presentation-oriented HTML exports.
+   Then support optional import of a schema-validated game-plan draft containing
+   notes, findings, and supporting play references. Validate season identity and
+   every reference, preview additions and unresolved items, and require coach
+   approval before saving; never let imported text overwrite charted data.
+   A direct in-app AI account/API integration is a separate later decision, not
+   a prerequisite for this export/import workflow. Uploading to a cloud AI
+   workspace remains an explicit coach choice, not an on-device privacy claim.
 
 ### V2-G: Plan As A Coaching Workflow
 

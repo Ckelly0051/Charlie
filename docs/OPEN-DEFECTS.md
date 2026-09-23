@@ -1,5 +1,49 @@
 # GridIron IQ Open Defects
 
+## Coach Reports smoke findings (2026-09-23)
+
+**Intake checkpoint:** The coach has finished listing findings for now and
+aligned on the three-package sequence in `GRIDIRON-IQ-PLAN-V2.md` (Reports,
+Breakdown charting, then Film Room). This closes intake, not the defects or
+the installed smoke verdict. No repairs are claimed by this checkpoint.
+
+**Finding 1 — open, no repair yet.** The game KPI banner (Total Plays, Plays
+Charted, Plays per Phase, Offense Success Rate, Turnovers) still appears on
+several detail report tabs. Keep this summary on Overview only; detail tabs
+should begin with their own report content under the unchanged global strip.
+Condense the Overview score/summary area rather than repeating a second wide
+banner. Its right-side matchup name is redundant with the opponent already
+named in the box score on the left; remove that duplicate while retaining
+useful, nonduplicated game context. Preserve the actual metrics and their
+canonical sourcing. Check every Reports tab, both perspectives where
+applicable, at desktop widths. The installed candidate's version was not
+identified with this finding. No UI fix or acceptance is claimed.
+
+**Finding 2 — open, no repair yet.** Internal Reports navigation is
+inconsistent: Offense uses zone jump links on one long page, Defense uses a
+different jump bar, while Special Teams and Players use section tabs that
+switch the visible page. The coach prefers the Special Teams/Players pattern
+and wants one way to navigate report sections. Keep the already approved
+global Reports strip fixed; evaluate a shared secondary-tab component in the
+same position and style within every multi-section report, with report-specific
+scope and export controls kept separate from navigation. Do not add empty tabs
+to single-page reports. Converting Offense and Defense from long-scroll jump
+links to pages changes their approved compositions and needs a coach-reviewed
+comp before implementation. Preserve every existing module, its data cohort,
+film action, and full-report export. This is a design recommendation awaiting
+approval, not a selected or repaired implementation.
+
+**Design checkpoint, 2026-09-23 — comp ready for coach review; findings 1
+and 2 remain OPEN.** `design-comps/reports-secondary-nav-2026-09-23/`
+(`index.html`, decisions and tradeoffs in `RATIONALE.md`) proposes one shared
+secondary bar under the unchanged global strip, Offense as six pages and
+Defense as four, no game rail on any tab, a compact Overview score without the
+duplicate matchup name, and the down-and-distance chart as the first module of
+the Offense and Defense Situations pages. Its captures are the production build
+on a read-only canonical 2025 JV copy with a presentation layer applied; no
+production UI or calculation changed. The comp's own focused checks pass
+(strip geometry unchanged, every Offense/Defense block on exactly one page).
+
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 
 **IN PROGRESS, NOT APPROVED AS A RELEASE.** Coach findings from the installed
@@ -70,7 +114,7 @@ Defense, Players and Special Teams boards. They also do not advance any
 `design-approvals/APPROVALS.json` production status. The full `1.12.0-94`
 installed verdict and release gate remain pending.
 
-> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-22: Charlie approved the
+> **Status:** CURRENT DEFECT INDEX. Updated 2026-09-23: Charlie approved the
 > `1.12.0-92` Home visual composition. `1.12.0-93` packages the follow-up
 > source repairs, but its installed acceptance is pending and a coach screenshot
 > disproved the Defense Edit library spacing fix. This does not certify unrun installed
@@ -1363,6 +1407,38 @@ edge-to-edge by design; the top bar's 18px inset is not.
     installed one. Its manifest is likewise untouched.
 
 ## Breakdown
+
+**OPEN 2026-09-23 — charting-library editing fails in the installed app.** In
+Breakdown > Edit library > Fronts, adding the new choice `Rhino` leaves the
+choice unsaved and displays "Could not save that choice. Check available app
+storage." The screenshot establishes this failure for Fronts; the other five
+library groups have not yet been checked. Earlier source/browser tests and the
+`1.12.0-93` repair record below do not override this installed finding. The
+message is the generic failure returned by `SettingsScreen.addTagChoice()`
+after `TagLibrary.add()` fails its storage readback; it does not establish that
+storage capacity is the cause. Include this repair in the same Breakdown update
+as the Film Room layout work; working library editing is an acceptance blocker
+for that update. Reproduce in
+the installed app, identify the actual write/readback failure, and verify that
+a new front appears immediately in the Defense deck and remains available
+after closing and reopening the app. Check all library groups, program/team
+scoping, and failure feedback; do not change existing play tags to repair the
+choice library.
+
+**OPEN 2026-09-23 — desktop charting deck wastes vertical space.** Chip height
+and the gaps between chips, fields, and sections force avoidable scrolling in
+the desktop Breakdown deck. Keep the existing chip font size and weight: the
+text is the button, so reclaim space from vertical padding and gaps, not type.
+Tighten spacing across all charting units at desktop widths while preserving
+clear active/focus states and the larger coarse-pointer treatment. In
+particular, custom Play
+Calls such as `26 Blast` and built-in Play Types such as `Run Inside` need
+independent disclosure controls: the coach must be able to collapse either
+choice set without hiding the other or unrelated formation/result fields.
+Show any selected value in a collapsed set's header so charted state remains
+visible. Verify populated offense and defense decks at 1920, 1440, and 1280;
+the target is more visible choices with less scrolling, never smaller text.
+Include this in the pending Breakdown layout update; no UI repair is claimed.
 
 1. **Delete play - REPAIRED 2026-09-10.** `PlayTagger.deleteCurrentPlay()` read
    `id` before assigning it. It now captures `currentPlayId` before any delete
