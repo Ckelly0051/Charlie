@@ -63,6 +63,25 @@ adversarial regression coverage. Label them as synthetic. Their results cannot
 prove Reports visual parity or football correctness and cannot advance a
 surface to `IMPLEMENTED_UNVERIFIED`, `PRODUCTION_ACCEPTED`, or `RELEASED`.
 
+### Reports global-strip acceptance
+
+The coach approved the navigation concept at
+`design-comps/reports-global-strip-2026-09-22.html` on 2026-09-22. It is
+implemented in source (`160533c`) and pinned by
+`tools/e2e-reports-global-strip.mjs`, which covers the checks below on a
+read-only canonical copy (264 assertions; it honors `GIQ_REALDATA_OPTIONAL`).
+It is not installed-smoke accepted. Verify with the canonical
+season at 1440 and 1280 that all eight top-level tabs share one y coordinate,
+height and stable x positions while navigating Overview through Season; the
+score appears only on Overview and never shifts the strip. Check Season last,
+Current game defaults where scope is offered, full production-board content
+below the strip, no black empty outer frame, and aligned Players names after
+one- and two-digit jersey numbers. Keep report-specific section tabs and
+scope controls below the global strip. Compare real bounding rectangles and
+populated screenshots, not just DOM presence or zero overflow. Existing
+Reports behavior, export, film and data harnesses remain in scope; the comp's
+short placeholder tables cannot establish data or visual parity.
+
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
 cannot certify Reports acceptance. Every Reports evidence handoff must include

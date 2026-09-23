@@ -8,13 +8,30 @@
 
 > **Release checkpoint, 2026-09-22:** unsigned Windows `1.12.0-94` is the latest
 > installer, built from source `81fe261` in a clean detached worktree with a
-> local version bump that is not yet committed. Its coach smoke is pending.
+> local version bump that is not yet committed. Its coach smoke is in progress,
+> with no complete installed verdict.
 > It carries the corrected Breakdown library spacing, completed Reports/export
 > work, and Balanced strength label. `1.12.0-91` passed the coach's Players,
 > Defense cohort, and Special Teams installed smoke; `1.12.0-92` received a
 > bounded Home visual-composition approval. None is tagged, pushed, or
 > published. Home and Reports remain formally `REJECTED` in the valid registry,
 > whose audit now passes. See `CLAUDE.md` for the package and smoke scope.
+>
+> **Reports global navigation decision, 2026-09-22:** the coach approved
+> `design-comps/reports-global-strip-2026-09-22.html` as the shared top-level
+> navigation concept for all eight Our Program Reports tabs. It is not an
+> approval of the comp's abbreviated data tables or an installed production
+> verdict. Keep the Program/Season/Game context above a stable tab strip;
+> moving from Overview to Season must require no vertical mouse movement.
+> Season is the last tab and the dedicated full-season parent. Scope-capable
+> detail tabs default to Current game; the Offense season-selector idea was
+> withdrawn. Show the game linescore only on Overview. The black outer frame
+> and Players jersey/name alignment found in the same smoke are separate
+> open defects in `docs/OPEN-DEFECTS.md`. Reuse the existing complete boards
+> below the strip and verify canonical data after implementation.
+> **Status:** implemented in source with the frame and Players name repairs
+> (`160533c`); canonical browser evidence is green; it needs a new installer
+> and the coach's installed smoke.
 >
 > **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
 > `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are

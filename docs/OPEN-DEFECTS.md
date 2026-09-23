@@ -1,5 +1,74 @@
 # GridIron IQ Open Defects
 
+## Installed Reports smoke, 1.12.0-94 (2026-09-22)
+
+**IN PROGRESS, NOT APPROVED AS A RELEASE.** Coach findings from the installed
+candidate are open; `SMOKE-1.12.0-94.md` identifies the package. The approved
+navigation concept is
+`design-comps/reports-global-strip-2026-09-22.html`.
+It is a standalone comp, not a full report-board redesign.
+
+**Items 1-4 are REPAIRED IN SOURCE, 2026-09-22, commit `160533c` — not
+packaged, not installed-smoke verified.** Browser evidence is
+`tools/e2e-reports-global-strip.mjs` on a read-only copy of the canonical
+2025 JV season (264/264, six mutations verified red) plus the existing
+Reports, export, film and shell harnesses; captures are in
+`artifacts/reports-global-strip/`. Chromium cannot certify the installed
+WebView2 rendering, so each item stays open for the next installer's smoke.
+
+1. **Shared Reports navigation — REPAIRED IN SOURCE (`160533c`).** The top-level tabs
+   are global within the selected season, yet report-specific chrome gives
+   Special Teams, Players, Self-Scout, Season and Matchup different navigation
+   geometry. Use one persistent strip at the same screen y coordinate and with
+   stable tab positions across Overview, Offense, Defense, Special Teams,
+   Players, Self-Scout, Matchup and Season. Overview-to-Season must be a purely
+   horizontal mouse move. Put Season last. Keep the Program/Season/Game context
+   selectors above the strip; place report-specific scope, filters and section
+   links below it. Where a board offers game/season scope, default to Current
+   game; Season remains the dedicated full-season parent. The proposal to add
+   an Offense season selector was withdrawn, not a finding.
+   *Repair:* one strip in the route owner — fixed 50px head, then a 44px strip
+   of perspective, eight equal tab tracks and Export. Measured identical tab
+   boxes on all eight reports at 1440x900 and 1280x800, in both navigation
+   directions, after scope changes and in the opponent perspective, where the
+   four self-only tabs are now disabled rather than hidden. Defense and
+   Special Teams now open on Current game, listed first.
+2. **Score presentation — REPAIRED IN SOURCE (`160533c`).** The game score/linescore should appear on
+   Overview only. The current shared scorebug above Offense and current-game
+   Defense is no longer the approved presentation; Players and other detail
+   reports need no score at the top. Score and other conditional report content
+   must not move the global tab strip. Preserve the score's real data source;
+   this is a placement/visibility decision, not an analytics rewrite.
+   *Repair:* the linescore renders on Overview only, below the strip, with the
+   official 41-0 total and quarters summing to it on the canonical Week 1. The
+   Offense linescore and the Defense linescore with its Base front / Base
+   coverage / Blitz rate identity strip are retired, not moved. The game rail
+   on Special Teams, Players and Self-Scout keeps Total Plays, Plays Charted,
+   Plays per Phase, Offense Success Rate and Turnovers and drops Final Score.
+3. **Reports outer frame — REPAIRED IN SOURCE (`160533c`).** Recent report boards show a black empty
+   surround that makes the surface look unfinished. Remove the visible frame
+   or extend the board surface to its edges, consistently across affected
+   tabs. Do not truncate or replace the full report content with the short
+   placeholder data in the navigation comp.
+   *Repair:* the Players, Self-Scout, Matchup and Season reports were capped at
+   1648px and centred in a full-width near-black board, which exposed the
+   frame at 1920. The cap is removed, so each report fills its board at
+   1920/1440/1280. Season's 12px stage band above its report is also removed;
+   that band was a decision of the revised Season comp, so this is a recorded
+   divergence from that comp made to answer the coach's frame finding.
+4. **Players name column — REPAIRED IN SOURCE (`160533c`).** A one-digit jersey number currently leaves
+   the following name left of names following two-digit numbers. Reserve a
+   two-digit-width number slot so all names begin at the same x coordinate in
+   every Players table. Preserve the number and name as distinct readable data.
+   *Repair:* the number sits in a one-cell grid beside a hidden `#00`, so the
+   slot measures the real glyphs; names after `#5` and `#42` start at one x in
+   every table on the canonical season.
+
+The installed findings do not revoke the bounded `1.12.0-91` approvals for
+Defense, Players and Special Teams boards. They also do not advance any
+`design-approvals/APPROVALS.json` production status. The full `1.12.0-94`
+installed verdict and release gate remain pending.
+
 > **Status:** CURRENT DEFECT INDEX. Updated 2026-09-22: Charlie approved the
 > `1.12.0-92` Home visual composition. `1.12.0-93` packages the follow-up
 > source repairs, but its installed acceptance is pending and a coach screenshot
@@ -8,7 +77,7 @@
 > formal `productionStatus: REJECTED`. The Home manifest now records that valid
 > status, allowing the design-approvals audit to inspect all surfaces.
 > A later unsigned `1.12.0-94` installer packages the source correction and
-> Reports/export changes; its coach smoke is pending.
+> Reports/export changes; its coach smoke is in progress, not approved.
 > Previously updated 2026-09-21: the installed
 > `1.12.0-91` smoke was APPROVED by the coach. It closes both `1.12.0-90` REVISE
 > verdicts — Reports > Players composition and Reports > Defense cohort
@@ -797,8 +866,8 @@ What was wrong, and what was done:
 
 No installer, version bump, tag, push, publication, full gate, or coach-data
 write occurred in this repair. `1.12.0-80` remains a historical installed
-visual-scope pass and is not an accepted release; no installed build contains
-these repairs.
+visual-scope pass and is not an accepted release. Later beta packages contain
+the descendant source; current installed status is recorded at the top.
 
 ## The Defense cohort contract — charted versus measured
 
@@ -941,8 +1010,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
    2026-09-10 review. Detail, reconciliation and mutation evidence are in
    `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; the production decision record
    is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`. No surface
-   advanced past `REJECTED`, and no installed WebView2 smoke has been run
-   against these repairs, so none of it is accepted state.
+   advanced past `REJECTED`. Installed `1.12.0-94` smoke is in progress, but
+   it has not accepted this work as production state.
 
    **Codex review round 1, repaired 2026-09-10:**
    - Player return production now uses the team report's measured-return

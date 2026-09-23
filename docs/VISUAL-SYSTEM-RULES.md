@@ -193,6 +193,41 @@ meets the floor" when it only means "this board has not got worse."
 - Mobile keeps the same transparent, underline-led selection language in its
   dedicated bottom navigation.
 
+### Reports Global Strip - implemented in source, installed smoke pending
+
+Implemented 2026-09-22 in `160533c` (`js/native-reports.jsx`,
+`js/reports-screen.js`, `css/native-reports.css`): a fixed 50px report head,
+then one 44px strip whose perspective column is 248px, whose eight tabs share
+equal tracks, and whose Export sits at the right; Offense's linescore and
+Defense's linescore/identity band are retired. Pinned by
+`tools/e2e-reports-global-strip.mjs`. Not in any installer yet.
+
+Coach-approved 2026-09-22 comp:
+`design-comps/reports-global-strip-2026-09-22.html`. This approves the
+shared navigation composition, not the abbreviated report tables in the comp
+or production acceptance of a Reports board.
+
+- Program, Season and Game selectors stay above Reports. One shared
+  top-level strip carries Our game/Opponent scout, the eight Reports tabs and
+  Export. Its vertical position, height and tab x positions are identical on
+  Overview, Offense, Defense, Special Teams, Players, Self-Scout, Matchup and
+  Season. Switching Overview to Season is a horizontal pointer movement;
+  active state, title length, score visibility, scope and viewport content do
+  not shift the strip.
+- Tab order: Overview, Offense, Defense, Special Teams, Players, Self-Scout,
+  Matchup, Season. Season is the dedicated full-season parent. A report with
+  game/season scope opens on Current game; no Offense season selector is
+  requested. Report-specific scope, filters and section tabs sit below the
+  global strip and retain their existing report behavior.
+- The game linescore appears only on Overview, below the stable strip. Detail
+  tabs do not reserve dead score space. The score's sourcing and football
+  arithmetic are unchanged by this presentation decision.
+- Keep the full production boards under the strip. The comp's short tables
+  are placeholders, not row limits. At 1440 and 1280, inspect populated
+  canonical data for fixed tab geometry, no clipping/overlap, and consistent
+  content edges; compare tab bounding boxes before and after navigation, not
+  just the absence of overflow.
+
 ## Context Selectors
 
 - **They are controls, and must look like controls.** One neutral graphite
@@ -306,4 +341,5 @@ non-builder review of `7afa94d..44adcc6` failed the pre-gate checkpoint: four
 Reports harnesses were red, two of them against hash-protected approved
 evidence. The repairs are recorded in `docs/OPEN-DEFECTS.md`. `1.12.0-80` remains
 a historical installed visual-scope pass; this repair is un-packaged source work
-made after that installer, so no installed build contains it.
+made after that installer. Later beta packages contain its descendant source;
+their installed status is recorded in `CLAUDE.md`.

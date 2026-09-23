@@ -7,12 +7,22 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
+**Reports global strip — IMPLEMENTED IN SOURCE (`160533c`), NOT PACKAGED,
+NOT SMOKE-APPROVED:** `design-comps/reports-global-strip-2026-09-22.html`
+defines one fixed top-level strip on all eight Our Program Reports tabs,
+Season last, with Current game as the default where a scope choice exists and
+the game linescore only on Overview. The comp's abbreviated tables are
+placeholders; the full production boards are unchanged below the strip. The
+same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
+findings. Browser evidence on the canonical season is green
+(`e2e-reports-global-strip`); no installer contains it, and neither the
+installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
 **Main-checkout version:** `1.12.0-93` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). The latest installer is
 `1.12.0-94`, built from `81fe261` in a clean detached worktree with a local,
 uncommitted four-owner version bump. See `SMOKE-1.12.0-94.md` for its recorded
-hash and pending coach smoke; do not mistake that package for this checkout's
+hash and in-progress coach smoke; do not mistake that package for this checkout's
 committed version.
 
 **Prior packaging status:** `1.12.0-93` is an unsigned Home and Breakdown repair
@@ -1606,9 +1616,10 @@ chrome. There is no section-title strip: it repeated the active role tab and
 counts already on screen. Role counts are plain text, not boxed badges. Role
 headings are readable IBM Plex Sans at 12.5px with no tracking or forced
 uppercase; data rows are 38px at 13px; bands meet on thin rules so the six
-tables read as one report surface; and the report canvas is capped at 1648px
-and centred inside a board that carries no padding of its own, because
-uncapped at 1920 a name sits most of a screen from its first measurement.
+tables read as one report surface. The report canvas was capped at 1648px
+and centred; that cap left an empty near-black frame at 1920 (installed
+`1.12.0-94` finding) and was removed on 2026-09-22, so the report now fills
+its board.
 
 **The tables own their column geometry.** Each role emits a `colgroup` and
 renders `table-layout:fixed`, so the same measurement is the same width in
@@ -1716,8 +1727,9 @@ time: Offensive Summary, Calls & Situations, Structure, Defense, Tendencies.
 The production page it replaces measured 4,257px at 1440 — nearly five
 viewports of undifferentiated modules with the whole defensive report below the
 offensive one. Scope, the section navigation and Export share **one control
-row**; the report canvas is capped at 1648px and centred inside a board that
-carries no padding of its own, the same geometry the Players board uses.
+row**; the report fills a board that carries no padding of its own, the same
+geometry the Players board uses (the former 1648px cap was removed with the
+2026-09-22 outer-frame repair).
 
 **Offensive Summary and Defense share one composition:** six KPI tiles, then
 three two-column rows — Positive Plays | Negative Plays, Top Calls | Worst
@@ -2068,16 +2080,32 @@ Generic `yardage`/`result` on ST plays stay unread by design:
 dedicated ST fields remain authoritative, and that data is recorded as an input
 to a later projection decision.
 
-**Shared Reports chrome follows the report's actual scope.**
+**THE GLOBAL STRIP (source, 2026-09-22; installed smoke pending).** One
+route owner, `native-reports.jsx`, renders a fixed 50px report head (title,
+context, opponent picker, Scout opponent) and then ONE 44px strip —
+`Our game` / `Opponent scout`, the eight tabs on equal tracks in the order
+Overview, Offense, Defense, Special Teams, Players, Self-Scout, Matchup,
+Season, and Export. Every tab has the same bounding box on all eight reports
+at 1440 and 1280, so Overview to Season is a horizontal move. Nothing
+conditional sits above the strip: the title truncates rather than wraps, and
+the linescore, the game rail and every board's own scope, filter, jump and
+section controls render below it. The opponent perspective DISABLES the four
+self-only tabs instead of hiding them, because hiding one moves every tab
+after it. Defense and Special Teams scope open on Current game, listed first,
+like Players; the choice is controller state and survives re-renders.
+
 `ReportsScreen._usesCurrentGameContext()` is the single scope decision. The
-scorebug can render only for a tab in `SCOREBUG_TABS` that is also using the
-current game; the generic KPI rail can render only for another current-game
-report. Full-season Defense, Special Teams and Players, the Season board, and
+scorebug can render only for a tab in `SCOREBUG_TABS` (Overview alone) that is
+also using the current game; the generic KPI rail can render only for another
+current-game report outside `NO_RAIL_TABS` (Overview, Offense, Defense, whose
+boards open on their own KPIs), and it carries no Final Score tile. Full-season Defense, Special Teams and Players, the Season board, and
 Matchup suppress both game-only elements. Their shared header names their real
 scope. Current-game scope buttons resynchronize the header before rendering,
 so changing scope cannot leave stale game or season framing behind.
 
-**Overview, Offense and Defense share one LINESCORE scorebug.** One complete
+**The LINESCORE scorebug is Overview-only (source, 2026-09-22).** Offense's
+linescore and Defense's linescore with its identity strip are retired, not
+moved; the score's sources and arithmetic are unchanged. One complete
 team occupies each row: full team name, Q1-Q4 and total. Quarter and total
 columns are fixed and shared by both rows, so every score has an unambiguous
 team. Full names are never abbreviated, ellipsized or replaced by nicknames;
@@ -2142,7 +2170,8 @@ new Overview evidence path and the remaining measured work are all in
 `docs/OPEN-DEFECTS.md`; the enforceable typography contract is
 `docs/VISUAL-SYSTEM-RULES.md`. `1.12.0-80` remains a historical installed
 visual-scope pass; this repair is un-packaged source work made after that
-installer, so no installed build contains it. **A global token change is an
+installer. This is the history of that repair; later beta packages contain its
+descendants. **A global token change is an
 app-wide change, including to the rasters a comp was approved against** — repair
 the geometry first, then regenerate the affected canonical evidence under a new
 tracked path and name the old one as superseded.
@@ -2163,15 +2192,18 @@ came out of Codex's 2026-09-10 review. The ledger, reconciliation and mutation
 evidence are in `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, the production
 decision record is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`,
 and `docs/OPEN-DEFECTS.md` carries the open questions. No surface advanced past
-`REJECTED` and no installed smoke has been run against the repairs, so none of
-it is accepted state.
+`REJECTED`. Installed `1.12.0-94` smoke is now in progress, but no full verdict
+has accepted these repairs as production state.
 
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
-3. **Next installed Reports smoke** — Offense, Self-Scout, Season, Matchup and
-   the revised white-background HTML/PDF exports need the coach's installed
-   verdict. The Offense board has canonical-data verification at 1440 and 1280;
+3. **Current `1.12.0-94` installed Reports smoke** — Offense, Self-Scout,
+   Season, Matchup and the revised white-background HTML/PDF exports still
+   need the coach's complete installed verdict. The shared global strip and
+   the outer-frame / jersey-slot repairs are implemented in source after this
+   package (`160533c`) and need a new installer and smoke. The Offense board
+   has canonical-data verification at 1440 and 1280;
    the three call modules remain held because the season has no charted calls.
    Self-Scout, Season and Matchup have canonical-data browser verification but
    no installed verdict. Season Game Log rows open the selected game's Reports
@@ -2395,7 +2427,12 @@ tie-break, the Rate denominator, the exact season-side joins and
 per-cohort metric polarity, the supporting sections, the partial and empty
 states, the separate `Opponent` / `Season` film cohorts, the nullified-penalty
 exclusion, order-independent multi-select identities, field-faithful call
-matching, per-cohort game counts, the charted-perspective red zone, our pick-six as a stop, scope chrome and 1440/1280 containment, 80).
+matching, per-cohort game counts, the charted-perspective red zone, our pick-six as a stop, scope chrome and 1440/1280 containment, 80) and
+`tools/e2e-reports-global-strip.mjs` (the global strip on the canonical season:
+identical tab boxes across all eight reports, both directions, scope changes
+and the opponent perspective; order, fit and no scrolling; the Overview-only
+linescore and its arithmetic; Current-game defaults and persistence; the
+outer frame at 1920/1440/1280; the Players name column, 264).
 
 Non-negotiable:
 - A failing-first regression for every repaired defect. Watch it fail for the

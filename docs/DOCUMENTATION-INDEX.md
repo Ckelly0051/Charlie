@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-19.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-22.
 
 ## Current Authority
 
@@ -26,16 +26,23 @@
 
 ## Current Snapshot
 
-- Current source includes the Defense Revision 2 scoring and field-perspective
-  repairs through `95310d6`. The latest focused verification is recorded in
-  `CLAUDE.md` and `docs/TESTING.md`; run the full gate before the next installer.
-- Installed `1.12.0-88` is approved for beta use for the previously recorded
-  Breakdown and film-health scope. It does not accept the newer Defense or
-  Special Teams source work. Nothing is tagged, pushed or published here.
-- The rapid-scrubbing `Film missing` report remains open but intermittent and
-  deprioritized. Next is the bounded Reports > Special Teams correctness and
-  visual pass recorded in `docs/OPEN-DEFECTS.md`; Home rail scaling remains
-  separate.
+- The main checkout is `1.12.0-93`. The latest unsigned installer is
+  `1.12.0-94`, built from `81fe261` in a clean detached worktree with a local,
+  uncommitted four-owner version bump. Its installed coach smoke is in
+  progress, not approved as a release; see `SMOKE-1.12.0-94.md`.
+- The installed `1.12.0-91` smoke approved the bounded Players, Defense cohort
+  and Special Teams presentation changes. The `1.12.0-92` smoke approved Home's
+  visual composition only; later Home/Breakdown fixes still need installed
+  verification. The rapid-scrubbing `Film missing` report remains open but
+  deprioritized. Nothing is tagged, pushed or published.
+- The coach approved a new Reports global navigation concept on 2026-09-22:
+  `design-comps/reports-global-strip-2026-09-22.html`. It is implemented in
+  source (`160533c`) with the outer-frame and Players name repairs, and is not
+  in an installer or installed-smoke accepted.
+  Current `1.12.0-94` Reports smoke findings, including the outer frame,
+  Overview-only score and Players name alignment, are indexed in
+  `docs/OPEN-DEFECTS.md`; the shared visual contract is in
+  `docs/VISUAL-SYSTEM-RULES.md`.
 - Current production status: Home and all eight Our Program Reports surfaces are
   `REJECTED`; approved comps remain binding design evidence.
 - Current harness inventory is discovered from `tools/e2e-*.mjs`; do not copy a
