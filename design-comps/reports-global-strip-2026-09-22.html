@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gridiron IQ - Reports global strip comp</title>
+  <style>
+    :root{color-scheme:dark;--bg:#111;--panel:#1b1b1b;--panel2:#222;--line:#3a3a3a;--muted:#a0a5ac;--text:#f5f6f8;--gold:#e7ad1e;--cyan:#36bee5;--green:#48bb79;font-family:Arial,Helvetica,sans-serif}
+    *{box-sizing:border-box}html,body{margin:0;min-width:1024px;min-height:100%;background:var(--bg);color:var(--text)}button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+    .appbar{height:76px;display:flex;align-items:flex-end;padding:0 18px;border-bottom:1px solid #555;background:#1b1b1b}
+    .brand{align-self:center;margin-right:48px;font-size:18px;font-weight:800;white-space:nowrap}.brand span{color:#4789ef}
+    .appnav{display:flex;align-self:stretch;align-items:flex-end;gap:12px}.appnav span{height:52px;display:flex;align-items:center;padding:0 20px;color:#cbd0d4;font-size:17px;font-weight:700}.appnav .on{border-bottom:3px solid var(--gold);color:#fff}
+    .status{margin:auto 0 auto auto;border:1px solid #287d4a;padding:8px 10px;color:#5ccc84;font-size:12px;font-weight:700}
+    .selectors{height:64px;display:grid;grid-template-columns:21% 35% minmax(0,1fr) 256px;border-bottom:1px solid #5a5a5a;background:#303030}
+    .selector{min-width:0;display:flex;flex-direction:column;justify-content:center;padding:0 15px;border-right:1px solid #606060}.selector small{margin-bottom:4px;color:#c0c6cc;font-size:11px;font-weight:700}.selector strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+    .program-toggle{display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:0 14px;gap:0;background:#171717}.program-toggle button{height:42px;border:0;background:transparent;color:var(--cyan);font-size:12px;font-weight:700}.program-toggle .on{border-bottom:3px solid var(--gold);color:white}
+    .report-head{height:50px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:20px;padding:0 24px;border-bottom:1px solid var(--line);background:#181818}
+    .report-head h1{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:17px;line-height:1.15;text-transform:uppercase;letter-spacing:0}.report-head p{margin:3px 0 0;color:var(--muted);font-size:11px}
+    .head-actions{display:flex;gap:7px}.head-actions button{height:30px;padding:0 12px;border:1px solid #575757;background:#272727;color:#f3f3f3;font-size:12px;font-weight:700}
+    .global-strip{height:44px;display:grid;grid-template-columns:210px minmax(0,1fr) 150px;gap:10px;align-items:stretch;padding:0 24px;border-bottom:1px solid #515151;background:#171717}
+    .perspective{display:flex;align-items:center;gap:0;min-width:0}.perspective button{height:32px;flex:1;border:1px solid #444;background:#222;color:#a9adb4;font-size:12px;font-weight:700;white-space:nowrap}.perspective button+button{border-left:0}.perspective .on{color:#fff;background:#2c2c2c;border-bottom:3px solid var(--gold)}
+    .tabs{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));height:43px;min-width:0}.tabs button{min-width:0;padding:0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;border-right:1px solid #303030;background:transparent;color:#a7abb2;font-size:12px;font-weight:700}.tabs button:hover{background:#292929;color:#fff}.tabs button[aria-current="page"]{background:#272727;color:#fff;border-bottom:3px solid var(--gold)}
+    .export{display:flex;align-items:center;justify-content:flex-end}.export button{height:30px;padding:0 13px;border:1px solid #575757;background:#272727;color:#fff;font-size:12px;font-weight:700}
+    main{padding:0 24px 30px}.score{display:none;height:96px;grid-template-columns:380px repeat(3,minmax(0,1fr));border-bottom:2px solid var(--gold);background:#1c1c1c}.score.show{display:grid}.score>div{padding:16px;border-right:1px solid #414141}.score small,.metrics small{display:block;color:#aeb2b7;font-size:11px;font-weight:700;text-transform:uppercase}.score strong{display:block;margin-top:7px;font-size:28px;line-height:1}.score .teams strong{font-size:18px}.score em{font-style:normal;color:var(--cyan)}
+    .section-controls{height:48px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #333}.section-controls>span{margin-right:10px;color:#aeb3ba;font-size:11px;font-weight:700;text-transform:uppercase}.section-controls button{height:31px;padding:0 13px;border:0;background:#242424;color:#bbc0c6;font-size:12px;font-weight:700}.section-controls button.on{color:#fff;border-bottom:3px solid var(--cyan)}
+    .metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-top:2px solid var(--gold)}.metrics>div{min-height:82px;padding:14px;border-right:1px solid var(--line);background:#1b1b1b}.metrics>div:last-child{border-right:0}.metrics strong{display:block;margin-top:8px;font-size:26px;line-height:1}
+    .tables{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:18px;background:var(--line)}.table{min-width:0;padding:14px;background:#1b1b1b;border-top:2px solid var(--cyan)}.table:first-child{border-top-color:var(--gold)}.table h2{margin:0 0 12px;font-size:15px}.row{display:grid;grid-template-columns:1fr 80px 80px;gap:12px;min-height:37px;align-items:center;border-top:1px solid #383838;font-size:13px}.row span:nth-child(n+2){text-align:right}.name{display:flex;align-items:center;gap:11px}.jersey{display:inline-block;width:25px;color:var(--cyan);font-variant-numeric:tabular-nums;text-align:right}.muted{color:#9ba1a8}
+    @media(max-width:1250px){.global-strip{grid-template-columns:188px minmax(0,1fr) 84px;padding:0 16px;gap:5px}.report-head{padding:0 16px}.tabs button{font-size:11px}.export button{padding:0 8px}.selectors{grid-template-columns:20% 33% minmax(0,1fr) 220px}main{padding-inline:16px}}
+  </style>
+</head>
+<body>
+  <div class="appbar"><div class="brand">GRIDIRON <span>IQ</span></div><nav class="appnav" aria-label="Application"><span>Home</span><span>Break Down</span><span>Study</span><span class="on">Reports</span><span>Plan</span></nav><div class="status">Film Linked</div></div>
+  <div class="selectors" aria-label="Report context"><div class="selector"><small>PROGRAM</small><strong>Mavericks</strong></div><div class="selector"><small>SEASON</small><strong>2025 St. Joseph Mavericks - JV</strong></div><div class="selector"><small>GAME</small><strong>Week 1 vs St. Peter Lutheran Patriots</strong></div><div class="program-toggle"><button class="on" type="button">Our Program</button><button type="button">Opponent Scout</button></div></div>
+  <div class="report-head"><div><h1 id="title">Week 1 vs St. Peter Lutheran Patriots</h1><p id="context">2025 St. Joseph Mavericks - JV, 67 plays</p></div><div class="head-actions"><button type="button">Scout opponent</button></div></div>
+  <div class="global-strip"><div class="perspective"><button class="on" type="button">Our game</button><button type="button">Opponent scout</button></div><nav class="tabs" aria-label="Report sections"><button type="button" data-tab="overview" aria-current="page">Overview</button><button type="button" data-tab="offense">Offense</button><button type="button" data-tab="defense">Defense</button><button type="button" data-tab="special">Special Teams</button><button type="button" data-tab="players">Players</button><button type="button" data-tab="selfscout">Self-Scout</button><button type="button" data-tab="matchup">Matchup</button><button type="button" data-tab="season">Season</button></nav><div class="export"><button type="button">Export</button></div></div>
+  <main>
+    <div class="score show" id="score"><div class="teams"><small>Final score</small><strong>Mavericks 41 - 0 Patriots</strong></div><div><small>Offense</small><strong>289 <em>yds</em></strong></div><div><small>Defense</small><strong>0 <em>yds allowed</em></strong></div><div><small>Turnover margin</small><strong>+1</strong></div></div>
+    <div class="section-controls" id="sections"><span>Overview</span><button type="button" class="on">Game summary</button><button type="button">Scoring</button><button type="button">Drives</button></div>
+    <div class="metrics" id="metrics"><div><small>Total plays</small><strong>67</strong></div><div><small>Plays charted</small><strong>67 / 67</strong></div><div><small>Offense success</small><strong>68%</strong></div><div><small>Takeaways</small><strong>1</strong></div><div><small>Games in season</small><strong>6</strong></div></div>
+    <div class="tables"><section class="table"><h2 id="left-title">Offense</h2><div class="row muted"><span>Category</span><span>Plays</span><span>Yards</span></div><div class="row"><span>Rushing</span><span>25</span><span>255</span></div><div class="row"><span>Passing</span><span>3</span><span>34</span></div><div class="row"><span>Touchdowns</span><span>6</span><span>-</span></div></section><section class="table"><h2 id="right-title">Defense</h2><div class="row muted"><span>Category</span><span>Plays</span><span>Yards</span></div><div class="row"><span>Rushing allowed</span><span>13</span><span>0</span></div><div class="row"><span>Passing allowed</span><span>2</span><span>0</span></div><div class="row"><span>Takeaways</span><span>1</span><span>-</span></div></section></div>
+  </main>
+  <script>
+    const labels={overview:'Overview',offense:'Offense',defense:'Defense',special:'Special Teams',players:'Players',selfscout:'Self-Scout',matchup:'Matchup',season:'Season'};
+    const sections={overview:['Game summary','Scoring','Drives'],offense:['Current game','Identity','Calls','Situations'],defense:['Current game','Performance','Front','Situations'],special:['Current game','All units','Kickoff','Punt'],players:['Current game','All roles','Offense','Defense','Special Teams'],selfscout:['Offensive summary','Calls','Structure','Tendencies'],matchup:['Opponent','Our offense vs their defense','Our defense vs their offense'],season:['Overview','Offense','Defense','Special Teams','Players','Trends']};
+    const metrics={overview:[['Total plays','67'],['Plays charted','67 / 67'],['Offense success','68%'],['Takeaways','1'],['Games in season','6']],offense:[['Total yards','289'],['Rush yards','255'],['Pass yards','34'],['Yards / play','10.3'],['Touchdowns','6']],defense:[['Yards allowed','0'],['Takeaways','1'],['3rd down stop','100%'],['Touchdowns allowed','0'],['Defensive TD','0']],special:[['ST snaps','18'],['Kickoffs','1'],['Kick returns','2'],['Punt returns','1'],['Conversions','0 / 1']],players:[['Players','11'],['Offense','8'],['Defense','7'],['Special Teams','4'],['Roles','6']],selfscout:[['Classified offense','28'],['Classified defense','15'],['Success rate','67.9%'],['Explosive rate','32.1%'],['Negative play rate','7.1%']],matchup:[['Opponent games','1'],['Opponent defense snaps','31'],['Season games','6'],['Our offense snaps','190'],['Situation calls','5']],season:[['Games','6'],['Record','3 - 2 - 1'],['Points for','106'],['Points against','45'],['Yards / game','176.3']]};
+    function select(tab){
+      document.querySelectorAll('[data-tab]').forEach(button=>button.setAttribute('aria-current',button.dataset.tab===tab?'page':'false'));
+      const season=tab==='season',matchup=tab==='matchup';
+      document.getElementById('title').textContent=season?'2025 St. Joseph Mavericks - JV report':matchup?'Matchup: OL Lakes Lakers':'Week 1 vs St. Peter Lutheran Patriots';
+      document.getElementById('context').textContent=season?'Full season - 6 games':matchup?'Season film and opponent film':'2025 St. Joseph Mavericks - JV, 67 plays';
+      document.getElementById('score').classList.toggle('show',tab==='overview');
+      const control=document.getElementById('sections');control.replaceChildren();
+      const heading=document.createElement('span');heading.textContent=labels[tab];control.append(heading);
+      sections[tab].forEach((value,index)=>{const button=document.createElement('button');button.type='button';button.textContent=value;if(index===0)button.className='on';button.addEventListener('click',()=>{control.querySelectorAll('button').forEach(item=>item.classList.toggle('on',item===button))});control.append(button)});
+      const box=document.getElementById('metrics');box.replaceChildren();metrics[tab].forEach(([name,value])=>{const item=document.createElement('div'),label=document.createElement('small'),number=document.createElement('strong');label.textContent=name;number.textContent=value;item.append(label,number);box.append(item)});
+      document.getElementById('left-title').textContent=tab==='players'?'Rushing':season?'Game log':labels[tab]+' summary';
+      document.getElementById('right-title').textContent=tab==='players'?'Tackles':season?'Season totals':'Related data';
+      const rows=document.querySelectorAll('.table .row');
+      if(tab==='players'){
+        rows[1].innerHTML='<span class="name"><span class="jersey">#42</span>Leo Johnson</span><span>14</span><span>223</span>';
+        rows[2].innerHTML='<span class="name"><span class="jersey">#5</span>Ben Kelly</span><span>1</span><span>2</span>';
+        rows[3].innerHTML='<span class="name"><span class="jersey">#16</span>Joey Raab</span><span>5</span><span>12</span>';
+        rows[5].innerHTML='<span class="name"><span class="jersey">#5</span>Ben Kelly</span><span>4</span><span>-</span>';
+        rows[6].innerHTML='<span class="name"><span class="jersey">#81</span>Jace Schaffer</span><span>4</span><span>-</span>';
+        rows[7].innerHTML='<span class="name"><span class="jersey">#27</span>Keegan Ward</span><span>3</span><span>-</span>';
+      }else{
+        rows[1].innerHTML='<span>Rushing</span><span>25</span><span>255</span>';
+        rows[2].innerHTML='<span>Passing</span><span>3</span><span>34</span>';
+        rows[3].innerHTML='<span>Touchdowns</span><span>6</span><span>-</span>';
+        rows[5].innerHTML='<span>Rushing allowed</span><span>13</span><span>0</span>';
+        rows[6].innerHTML='<span>Passing allowed</span><span>2</span><span>0</span>';
+        rows[7].innerHTML='<span>Takeaways</span><span>1</span><span>-</span>';
+      }
+    }
+    document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>select(button.dataset.tab)));
+  </script>
+</body>
+</html>
+
