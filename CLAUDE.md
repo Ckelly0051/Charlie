@@ -11,7 +11,9 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 NOT SMOKE-APPROVED:** `design-comps/reports-global-strip-2026-09-22.html`
 defines one fixed top-level strip on all eight Our Program Reports tabs,
 Season last, with Current game as the default where a scope choice exists and
-the game linescore only on Overview. The comp's abbreviated tables are
+the game linescore only on Overview. Its scope and production mapping are in
+`design-comps/reports-global-strip-2026-09-22/RATIONALE.md`. The comp's
+abbreviated tables are
 placeholders; the full production boards are unchanged below the strip. The
 same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green

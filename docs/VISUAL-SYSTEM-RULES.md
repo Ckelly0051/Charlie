@@ -205,7 +205,9 @@ Defense's linescore/identity band are retired. Pinned by
 Coach-approved 2026-09-22 comp:
 `design-comps/reports-global-strip-2026-09-22.html`. This approves the
 shared navigation composition, not the abbreviated report tables in the comp
-or production acceptance of a Reports board.
+or production acceptance of a Reports board. The decision record and
+production-to-comp mapping are in
+`design-comps/reports-global-strip-2026-09-22/RATIONALE.md`.
 
 - Program, Season and Game selectors stay above Reports. One shared
   top-level strip carries Our game/Opponent scout, the eight Reports tabs and
