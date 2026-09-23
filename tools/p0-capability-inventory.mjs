@@ -34,7 +34,7 @@ export const P0_CAPABILITIES = [
   { id:'breakdown.all-fields', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Every production offense, defense, player, custom, note, and situation control remains present in the native form' },
   { id:'breakdown.tag-save', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'All 20 plays retain multi-select Play Type and Result' },
   { id:'breakdown.special-teams', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native Special Teams stores its structured returner and exposes dedicated kick, return, field-goal, and try units without the legacy Scored-by control' },
-  { id:'breakdown.penalties', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native penalty editor stores multiple independent fouls and actual enforcement' },
+  { id:'breakdown.penalties', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native penalty editor stores independent rulings without a duplicate next-snap form' },
   { id:'breakdown.save-next', surface:'breakdown', evidence:'data', harness:'e2e-native-tagging.mjs', assertion:'Native Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback' },
   { id:'breakdown.drawing-tools', surface:'breakdown', evidence:'behavior', harness:'e2e-tagging.mjs', assertion:'digit with NO play selected still arms the tool' },
   { id:'breakdown.drawing-playback', surface:'breakdown', evidence:'behavior', harness:'e2e-breakdown-video.mjs', assertion:'Playback canvas paints only when entering or leaving an annotated frame' },

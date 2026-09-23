@@ -225,7 +225,10 @@ for (const [unit, playId] of units) {
       const editAlign = editButtons.map(btn => {
         const owner = btn.closest('.gi-tag-field') || btn.closest('.gi-play-call');
         const right = owner?.getBoundingClientRect().right;
-        return { field: owner?.dataset?.nativeField || (owner?.matches('.gi-play-call') ? 'playCall' : undefined), delta: right != null ? right - btn.getBoundingClientRect().right : null };
+        const box = btn.getBoundingClientRect();
+        const preceding = btn.previousElementSibling?.getBoundingClientRect();
+        return { field: owner?.dataset?.nativeField || (owner?.matches('.gi-play-call') ? 'playCall' : undefined),
+          gap: preceding ? box.left - preceding.right : null, spare: right != null ? right - box.right : null };
       });
       return {
         formScroll: form ? form.scrollWidth : null, formClient: form ? form.clientWidth : null,
@@ -236,12 +239,20 @@ for (const [unit, playId] of units) {
     // 10. scrollWidth <= clientWidth + 1 at every required width, per unit.
     ok(data.formScroll != null && data.formScroll <= data.formClient + 1, `${unit} at ${width}: charting pane has no internal horizontal scrollbar`, data);
     ok(data.pageOverflow <= 1, `${unit} at ${width}: no page-level horizontal overflow`, data);
-    // 11. Every Edit Library right edge aligns to the full module content
-    // edge. Chip rows are content-dependent and deliberately end at different
-    // positions; using them as the alignment target recreated the defect.
+    // 11. SUPERSEDED 2026-09-22 (5d8936a): the coach's 1.12.0-93 screenshot
+    // rejected Edit Library stranded at the far module edge. Each one now sits
+    // beside its own label -- 4-12px after the preceding label element, the
+    // same rule e2e-native-tagging pins -- and never crosses its field's edge.
+    // The play-call Edit Library is not a chip field and was not moved: it
+    // keeps its original module-edge alignment.
     for (const entry of data.editAlign) {
-      if (entry.delta == null) continue;
-      ok(Math.abs(entry.delta) <= 1, `${unit} at ${width}: Edit Library (${entry.field}) aligns to the module edge`, entry);
+      if (entry.gap == null || entry.spare == null) continue;
+      if (entry.field === 'playCall') {
+        ok(Math.abs(entry.spare) <= 1, `${unit} at ${width}: Edit Library (playCall) aligns to the module edge`, entry);
+        continue;
+      }
+      ok(entry.gap >= 4 && entry.gap <= 12 && entry.spare >= -1,
+        `${unit} at ${width}: Edit Library (${entry.field}) sits beside its label inside the field`, entry);
     }
   }
 }
