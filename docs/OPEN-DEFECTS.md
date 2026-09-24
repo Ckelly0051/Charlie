@@ -1735,9 +1735,16 @@ default to both docks.
 the shown-plays summary (coach direction: fill the two cards' spare height
 with information).** The play card lists every chartable field for the
 selected play in groups — Situation, the unit's own look first, the look it
-faced, Play & result (or Special teams), Players with roster names, Penalty
-and Notes when present — read through the chyron's own projection and result
-wording, with `Not charted` where the unit charts a field nobody filled. The
+faced, Play & result (or Special teams), Players with roster names, Grades
+when any were charted, Custom (every custom field and the custom tags),
+Penalty and Notes when present — read through the chyron's own projection and
+result wording, with `Not charted` where the unit charts a field nobody
+filled. A Special Teams play lists its structured event in full: kick kind,
+direction, distance, hang time, operation time and landing spot; return
+attempted, yards and end spot; recovered by; onside and fake (Yes/No, which
+the model stores as flags); the try's attempt, bad snap, block and turnover;
+scored by, through `SpecialTeamsModel.scoringTeam`; and the event's own
+credited kicker, punter, returner, blocker and recoverer. The
 table-below controls card adds **Shown plays**: the filtered plays measured by
 the Reports owners, never a third formula — offense through `compute()`
 (Success Rate, yards per play, explosives), defense through the Defense
@@ -1750,9 +1757,22 @@ canonical games a whole-game filter reads exactly what its board reads (OL
 Lakes defense 3.4 over 37 run/pass snaps). **Known difference on the same
 screen:** the table's `Yds` column header averages only plays with charted
 yardage (`avg 4.4` for that game), while the summary follows the board (3.4).
-The header formula is unchanged and is a separate decision. Evidence:
-`e2e-film-room-sheet` (22; the uncharted wording and the canonical parity each
-red under mutation).
+**Resolved the same day (coach direction):** the header now reads the
+summary's yards per play for a single-unit set (`3.4 / play`) and shows no
+average for a mix of units or a set under five plays, because unlike units do
+not average.
+
+**Review of `97b2f37` / `5cd5313`, REPAIRED:** (1) a Special Teams touchdown
+the editor saved in `specialTeams.outcome.score` with no Touchdown result tag
+counted zero; the summary now reads the structured event and splits it into
+touchdowns for, against, and side not charted (a legacy snap, or a loose ball
+nobody recovered). (2) The play sheet omitted grades, custom fields and tags
+and most Special Teams detail; all are listed above. (3) The one-program
+column claim was written before the program's sets; a failed write left the
+old list claimed and the next launch fell back to presets. The claim now
+follows a successful save. Evidence: `e2e-film-room-sheet` (27) and
+`e2e-film-room-columns` (21); every one of the four repairs has a check that
+fails with the defect restored.
 
 **Codex review of `c1cce33`, both REPAIRED (`5cd5313`).** The old global
 column list now seeds All plays for one program only (claim marker
