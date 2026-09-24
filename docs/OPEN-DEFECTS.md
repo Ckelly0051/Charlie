@@ -1731,6 +1731,37 @@ save label; mutation-verified), and
 `e2e-breakdown-lifecycle` section 6 repointed from the superseded side-by-side
 default to both docks.
 
+**IMPLEMENTED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — the play sheet and
+the shown-plays summary (coach direction: fill the two cards' spare height
+with information).** The play card lists every chartable field for the
+selected play in groups — Situation, the unit's own look first, the look it
+faced, Play & result (or Special teams), Players with roster names, Penalty
+and Notes when present — read through the chyron's own projection and result
+wording, with `Not charted` where the unit charts a field nobody filled. The
+table-below controls card adds **Shown plays**: the filtered plays measured by
+the Reports owners, never a third formula — offense through `compute()`
+(Success Rate, yards per play, explosives), defense through the Defense
+board's dashboard (yards per play allowed) and `defensiveCohortMetrics()`'s
+stop rate, touchdowns and turnovers through the canonical predicates; a mix of
+units states its counts only. It is not shown in the table-beside or phone
+bars, where it would push the table down. `StatsEngine.playSetSummary()` owns
+it; `NativeFilmRoomScreen` adds it to every published snapshot. On all six
+canonical games a whole-game filter reads exactly what its board reads (OL
+Lakes defense 3.4 over 37 run/pass snaps). **Known difference on the same
+screen:** the table's `Yds` column header averages only plays with charted
+yardage (`avg 4.4` for that game), while the summary follows the board (3.4).
+The header formula is unchanged and is a separate decision. Evidence:
+`e2e-film-room-sheet` (22; the uncharted wording and the canonical parity each
+red under mutation).
+
+**Codex review of `c1cce33`, both REPAIRED (`5cd5313`).** The old global
+column list now seeds All plays for one program only (claim marker
+`ffa_film_room_cols_claimed_by`; the old key is untouched); another program
+starts from the preset. The Columns sheet passes the set it shows, a write
+naming another unit's set is refused, and the sheet closes when the unit
+filter changes under it. `e2e-film-room-columns` 20, each new check red on the
+unfixed code.
+
 **IMPLEMENTED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — Film Room column
 sets per unit (coach direction).** The table keeps four column sets —
 Offense, Defense, Special Teams and All plays — and the table's unit FILTER
