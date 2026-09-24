@@ -122,6 +122,23 @@ current game and full season; captures in `artifacts/reports-global-strip/`
 1920/1440/1280/390). Unverified: installed WebView2 rendering, and the coach's
 verdict on the composition.
 
+**Global input regression from the secondary bar — FOUND BY THE FULL GATE AND
+REPAIRED IN SOURCE 2026-09-23 (`87371cd`); present in the `1.12.0-96`
+installer.** `0e84464` portaled the bar with `createPortal` from
+`preact/compat`. Importing compat installs global option hooks that rewrite
+`onChange` to `onInput` on every text and date input, so change-committed
+fields outside Reports stopped committing on change: `e2e-native-tagging`
+72/76 (three-digit yardage, the Special Teams and penalty editors) and
+`e2e-study-screen` 109/115 (date ranges, Plan fields, saved views). All four
+affected harnesses were green at `759a82b` and red from `0e84464` onward. The
+repair renders the bar into its host with core Preact's `render()`. In real
+use typing fires `input`, so the installed effect is per-keystroke commits
+rather than dead fields; that behavior is not verified in WebView2. The same
+gate found `e2e-play-call-charting` and `e2e-realdata` still reading the
+pre-page one-scroll boards; both were repointed to the pages, not weakened.
+Full gate at `87371cd`: 125/125, zero skipped, zero failed. **`1.12.0-96` must
+not be smoked as the Reports candidate.**
+
 **Down-and-distance chart — implemented in source 2026-09-23 (`80941c7`);
 not packaged, installed smoke pending.** The comp's item 7, first on Offense >
 Situations and Defense > Situations, with one engine owner, exact film refs and

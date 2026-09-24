@@ -32,6 +32,14 @@ pending.
 first on Offense > Situations and Defense > Situations. Not in `1.12.0-96`;
 Reports approval waits on ONE new package carrying the secondary bar plus this
 chart, and Charlie's smoke of that combined result.
+**`1.12.0-96` carries a global input regression; do not smoke it as the
+Reports candidate.** The secondary bar's `createPortal` came from
+`preact/compat`, and importing compat rewrites `onChange` to `onInput` on
+every text and date input in the app, so change-committed fields (charting
+yardage, the Special Teams and penalty editors, Study date ranges and Plan
+fields) commit per keystroke instead of on change. Repaired in `87371cd`
+with a core-Preact portal; **never import `preact/compat`.** Full gate at
+`87371cd`: 125/125, zero skipped, zero failed.
 **Main-checkout version:** `1.12.0-95` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is
@@ -2575,7 +2583,8 @@ Non-negotiable:
   agent Bash tool fails with `ENAMETOOLONG` on `uv_spawn`. Git Bash itself works
   through its explicit path. Use PowerShell for ordinary work, and for the gate
   use the invocation documented in `docs/TESTING.md`:
-  `& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --self-test'`
+  `& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh'`.
+  `--self-test` only proves the failure detector and runs no harness.
 - Do not commit `dist/`, `node_modules/`, or `src-tauri/target/`.
 
 ---
