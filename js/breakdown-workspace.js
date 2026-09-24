@@ -1,3 +1,5 @@
+import { h, render as preactRender } from 'preact';
+import { BreakdownRoute } from './native-breakdown-route.jsx';
 import '../css/native-breakdown-route.css';
 
 /** Dedicated Break Down route using the canonical production DOM surfaces. */
@@ -36,6 +38,7 @@ export class BreakdownWorkspace {
     this.scoutMode = 'self';
     this._contextGameId = null;
     this._bound = false;
+    this.toolsOpen = false;
   }
 
   mount(host) {
@@ -43,51 +46,13 @@ export class BreakdownWorkspace {
     if (this.host === host && this.app.breakdownTheater._mounted) return true;
     if (this.host) this.restore();
     this.host = host;
-    host.innerHTML = `
-      <div class="gi-breakdown-route" data-native-breakdown-route>
-        <header class="gi-breakdown-toolbar" aria-label="Break Down tools">
-          <div class="gi-breakdown-context" role="group" aria-label="Film context">
-            <button type="button" data-bd-context="self">Our Program</button>
-            <button type="button" data-bd-context="scout">Opponent Scout</button>
-          </div>
-          <div class="gi-breakdown-view" role="group" aria-label="Break Down view">
-            <button type="button" class="active" data-bd-view="chart" aria-pressed="true">Chart</button>
-            <button type="button" data-bd-view="film-room" aria-pressed="false">Film Room</button>
-          </div>
-          <div class="gi-breakdown-layout" role="group" aria-label="Film Room layout">
-            <span class="gi-breakdown-layout-label" aria-hidden="true">Table</span>
-            <button type="button" data-fr-dock="bottom" aria-pressed="true" aria-label="Table below film">Below</button>
-            <button type="button" data-fr-dock="side" aria-pressed="false" aria-label="Table beside film">Beside</button>
-            <button type="button" data-fr-reset aria-label="Reset Film Room layout">Reset</button>
-          </div>
-          <div class="gi-breakdown-tools">
-            <button type="button" data-bd-tools-toggle aria-haspopup="menu" aria-controls="bdMoreTools" aria-expanded="false">More tools</button>
-            <div class="gi-breakdown-commands" id="bdMoreTools" role="menu">
-              <button type="button" role="menuitem" data-bd-context="quick"><svg aria-hidden="true"><use href="assets/icons.svg#icon-chart"/></svg>Quick chart</button>
-              <button type="button" role="menuitem" data-bd-customize><svg aria-hidden="true"><use href="assets/icons.svg#icon-tag"/></svg>Customize fields</button>
-              <button type="button" role="menuitem" data-bd-game><svg aria-hidden="true"><use href="assets/icons.svg#icon-notes"/></svg>Game settings</button>
-              <button type="button" role="menuitem" data-bd-film-focus aria-pressed="false"><svg aria-hidden="true"><use href="assets/icons.svg#icon-scan"/></svg><span>Film focus</span></button>
-            </div>
-          </div>
-          <span class="gi-breakdown-save is-saved" id="bdSaveState">Saved</span>
-        </header>
-        <div class="gi-breakdown-composition">
-          <section class="gi-breakdown-theater-host" data-breakdown-theater-host></section>
-          <aside class="gi-breakdown-rail-host" data-breakdown-rail-host aria-label="Game plays"></aside>
-          <div class="gi-breakdown-splitter" data-fr-splitter role="separator" tabindex="0" aria-label="Resize film and table"></div>
-          <div class="gi-breakdown-film-controls-host" data-breakdown-film-controls-host></div>
-          <aside class="gi-breakdown-deck" aria-label="Charting deck">
-            <div class="gi-breakdown-tagging-host" data-breakdown-tagging-host></div>
-            <div class="gi-breakdown-film-room-host" data-breakdown-film-room-host hidden></div>
-          </aside>
-        </div>
-      </div>`;
+    this._rendered = false;
+    this._renderRoute();
     try {
       if (!this.app.breakdownTheater.mount(host.querySelector('[data-breakdown-theater-host]'), { railHost: host.querySelector('[data-breakdown-rail-host]') })) throw new Error('Break Down theater did not mount.');
       if (!this.app.nativeTagging.mount(host.querySelector('[data-breakdown-tagging-host]'))) throw new Error('Break Down tagging did not mount.');
       if (!this.app.nativeFilmRoom.mount(host.querySelector('[data-breakdown-film-room-host]'), host.querySelector('[data-breakdown-film-controls-host]'))) throw new Error('Break Down Film Room did not mount.');
       this._bind();
-      this._applyLayout();
       this._setView(this.view);
       const savedFilmFocus = this.filmFocus;
       this.filmFocus = false;
@@ -98,49 +63,36 @@ export class BreakdownWorkspace {
       this.app.nativeFilmRoom.restore();
       this.app.nativeTagging.restore();
       this.app.breakdownTheater.restore();
-      host.innerHTML = '';
+      preactRender(null, host);
       this.host = null;
       throw error;
     }
   }
   _bind() {
-    if (!this._bound) {
-      this._bound = true;
-      ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded']
-        .forEach(event => this.app.tagger?.on(event, () => requestAnimationFrame(() => this.render())));
-      this.app.quickChart?.on('mode-changed', () => requestAnimationFrame(() => this.render()));
-      this.app.gameContext?.subscribe(() => this.render());
-    }
-    this.host?.querySelector('[data-bd-tools-toggle]')?.addEventListener('click', () => this._toggleTools());
-    this.host?.querySelector('.gi-breakdown-tools')?.addEventListener('keydown', event => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      const button = this.host?.querySelector('[data-bd-tools-toggle]');
-      this._closeTools();
-      button?.focus();
-    });
-    this.host?.querySelectorAll('[data-bd-context]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this._setContext(btn.dataset.bdContext);
-        this._closeTools();
-      });
-    });
-    this.host?.querySelector('[data-bd-customize]')?.addEventListener('click', () => {
-      this._closeTools();
-      this.app.tagLibrarySettings?.open();
-    });
-    this.host?.querySelector('[data-bd-game]')?.addEventListener('click', () => {
-      this._closeTools();
-      this.app.gameScreen?.open({ mode: 'edit' });
-    });
-    this.host?.querySelectorAll('[data-bd-view]').forEach(btn => btn.addEventListener('click', () => this._setView(btn.dataset.bdView, { userInitiated: true })));
-    this.host?.querySelector('[data-bd-film-focus]')?.addEventListener('click', () => {
-      this._closeTools();
-      this._setFilmFocus(!this.filmFocus);
-    });
-    this.host?.querySelectorAll('button[data-fr-dock]').forEach(btn => btn.addEventListener('click', () => this.setFilmLayout({ dock: btn.dataset.frDock })));
-    this.host?.querySelector('[data-fr-reset]')?.addEventListener('click', () => this.resetFilmLayout());
-    this._bindSplitter();
+    if (this._bound) return;
+    this._bound = true;
+    ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded']
+      .forEach(event => this.app.tagger?.on(event, () => requestAnimationFrame(() => this.render())));
+    this.app.quickChart?.on('mode-changed', () => requestAnimationFrame(() => this.render()));
+    this.app.gameContext?.subscribe(() => this.render());
+  }
+
+  /** The route's state, which BreakdownRoute draws. */
+  snapshot() {
+    const quick = !!this.app.quickChart?.isActive;
+    return {
+      view: this.view,
+      context: quick ? 'quick' : this.scoutMode === 'scout' ? 'scout' : 'self',
+      layout: { ...this.filmLayout },
+      filmFocus: this.filmFocus,
+      toolsOpen: this.toolsOpen,
+      saveState: this.saveState,
+    };
+  }
+  /** Synchronous, so the DOM is current when a command returns. */
+  _renderRoute() {
+    if (!this.host) return;
+    preactRender(h(BreakdownRoute, { workspace: this, state: this.snapshot() }), this.host);
   }
 
   /** Change the dock and/or the film's share of the current dock; persisted. */
@@ -152,13 +104,13 @@ export class BreakdownWorkspace {
       next[next.dock] = Math.round(Math.min(hi, Math.max(lo, Number(video))) * 10) / 10;
     }
     this.filmLayout = next;
-    this._applyLayout();
+    this._renderRoute();
     if (persist) this._saveLayout();
     return this.filmLayout;
   }
   resetFilmLayout() {
     this.filmLayout = { ...BreakdownWorkspace.LAYOUT_DEFAULT };
-    this._applyLayout();
+    this._renderRoute();
     try { localStorage.removeItem(BreakdownWorkspace.LAYOUT_KEY); } catch (e) {}
     return this.filmLayout;
   }
@@ -166,86 +118,16 @@ export class BreakdownWorkspace {
     try { localStorage.setItem(BreakdownWorkspace.LAYOUT_KEY, JSON.stringify(this.filmLayout)); }
     catch (e) { console.error('Film Room layout could not be saved', e); }
   }
-  _applyLayout() {
-    const route = this.host?.querySelector('[data-native-breakdown-route]');
-    if (!route) return;
-    const { dock } = this.filmLayout, video = this.filmLayout[dock];
-    const [lo, hi] = BreakdownWorkspace.LAYOUT_LIMITS[dock];
-    route.dataset.frDock = dock;
-    route.style.setProperty('--fr-video', `${video}%`);
-    const splitter = this.host.querySelector('[data-fr-splitter]');
-    if (splitter) {
-      // The separator runs across the split: a horizontal line between stacked
-      // panes, a vertical one between side-by-side panes.
-      splitter.setAttribute('aria-orientation', dock === 'bottom' ? 'horizontal' : 'vertical');
-      splitter.setAttribute('aria-valuemin', String(lo));
-      splitter.setAttribute('aria-valuemax', String(hi));
-      splitter.setAttribute('aria-valuenow', String(video));
-      splitter.setAttribute('aria-valuetext', `Film ${Math.round(video)}%`);
-    }
-    // utton[...]: the route itself carries data-fr-dock as its dock state.
-    this.host.querySelectorAll('button[data-fr-dock]').forEach(btn => {
-      const active = btn.dataset.frDock === dock;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
-  }
-  _bindSplitter() {
-    const splitter = this.host?.querySelector('[data-fr-splitter]');
-    const composition = this.host?.querySelector('.gi-breakdown-composition');
-    if (!splitter || !composition) return;
-    const pctAt = event => {
-      const rect = composition.getBoundingClientRect();
-      return this.filmLayout.dock === 'bottom'
-        ? ((event.clientY - rect.top) / rect.height) * 100
-        : ((event.clientX - rect.left) / rect.width) * 100;
-    };
-    splitter.addEventListener('pointerdown', event => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      splitter.setPointerCapture?.(event.pointerId);
-      splitter.classList.add('is-dragging');
-      const move = e => this.setFilmLayout({ video: pctAt(e) }, { persist: false });
-      const up = e => {
-        splitter.releasePointerCapture?.(e.pointerId);
-        splitter.classList.remove('is-dragging');
-        splitter.removeEventListener('pointermove', move);
-        splitter.removeEventListener('pointerup', up);
-        splitter.removeEventListener('pointercancel', up);
-        this._saveLayout();
-      };
-      splitter.addEventListener('pointermove', move);
-      splitter.addEventListener('pointerup', up);
-      splitter.addEventListener('pointercancel', up);
-    });
-    splitter.addEventListener('dblclick', () => this.setFilmLayout({ video: BreakdownWorkspace.LAYOUT_DEFAULT[this.filmLayout.dock] }));
-    splitter.addEventListener('keydown', event => {
-      const bottom = this.filmLayout.dock === 'bottom';
-      const [lo, hi] = BreakdownWorkspace.LAYOUT_LIMITS[this.filmLayout.dock];
-      const now = this.filmLayout[this.filmLayout.dock];
-      const step = { [bottom ? 'ArrowUp' : 'ArrowLeft']: -2, [bottom ? 'ArrowDown' : 'ArrowRight']: 2, PageUp: -10, PageDown: 10 }[event.key];
-      let next = null;
-      if (step != null) next = now + step;
-      else if (event.key === 'Home') next = lo;
-      else if (event.key === 'End') next = hi;
-      if (next == null) return;
-      event.preventDefault();
-      this.setFilmLayout({ video: next });
-    });
-  }
 
   _toggleTools() {
-    const menu = this.host?.querySelector('.gi-breakdown-tools');
-    const button = menu?.querySelector('[data-bd-tools-toggle]');
-    const open = !menu?.classList.contains('is-open');
-    menu?.classList.toggle('is-open', open);
-    button?.setAttribute('aria-expanded', String(open));
+    this.toolsOpen = !this.toolsOpen;
+    this._renderRoute();
   }
 
   _closeTools() {
-    const menu = this.host?.querySelector('.gi-breakdown-tools');
-    menu?.classList.remove('is-open');
-    menu?.querySelector('[data-bd-tools-toggle]')?.setAttribute('aria-expanded', 'false');
+    if (!this.toolsOpen) return;
+    this.toolsOpen = false;
+    this._renderRoute();
   }
 
   _setView(view, { userInitiated = false } = {}) {
@@ -262,16 +144,10 @@ export class BreakdownWorkspace {
     if (userInitiated && this.filmFocus) this._setFilmFocus(false);
     this.view = filmRoom ? 'film-room' : 'chart';
     this.app.breakdownTheater?.setView(this.view);
-    const tagging = this.host?.querySelector('[data-breakdown-tagging-host]');
-    const grid = this.host?.querySelector('[data-breakdown-film-room-host]');
-    if (tagging) tagging.hidden = filmRoom;
-    if (grid) grid.hidden = !filmRoom;
+    // The route host is the shell's element, outside the rendered tree; the
+    // shell CSS keys the Film Room bracket on it.
     this.host?.classList.toggle('is-film-room', filmRoom);
-    this.host?.querySelectorAll('[data-bd-view]').forEach(btn => {
-      const active = btn.dataset.bdView === this.view;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
+    this._renderRoute();
   }
   _setFilmFocus(enabled, { persist = true } = {}) {
     const next = !!enabled;
@@ -283,17 +159,11 @@ export class BreakdownWorkspace {
       this._filmFocusOpenedStrip = false;
     }
     this.filmFocus = next;
-    const route = this.host?.querySelector('[data-native-breakdown-route]');
-    route?.classList.toggle('is-film-focus', this.filmFocus);
-    const button = this.host?.querySelector('[data-bd-film-focus]');
-    if (button) {
-      button.classList.toggle('active', this.filmFocus);
-      button.setAttribute('aria-pressed', String(this.filmFocus));
-      button.querySelector('span').textContent = this.filmFocus ? 'Show charting' : 'Film focus';
-    }
+    this._renderRoute();
     if (persist) { try { localStorage.setItem('ffa_breakdown_film_focus', this.filmFocus ? '1' : '0'); } catch (e) {} }
   }
   _setContext(context) {
+    this._closeTools();
     if (context === 'quick') {
       this.app.quickChart?.toggle();
       this.render();
@@ -340,19 +210,7 @@ export class BreakdownWorkspace {
   render() {
     if (!this.host) return;
     this._syncScoutGame();
-    const scout = this.scoutMode === 'scout';
-    const quick = !!this.app.quickChart?.isActive;
-    this.host.querySelectorAll('[data-bd-context]').forEach(btn => {
-      const active = btn.dataset.bdContext === (quick ? 'quick' : scout ? 'scout' : 'self');
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
-    const save = this.host.querySelector('#bdSaveState');
-    if (save) {
-      save.textContent = this.saveState === 'pending' ? 'Saving...' : 'Saved';
-      save.classList.toggle('is-pending', this.saveState === 'pending');
-      save.classList.toggle('is-saved', this.saveState !== 'pending');
-    }
+    this._renderRoute();
   }
   _ordinal(down) {
     return ({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[String(down)] || String(down);
@@ -364,7 +222,7 @@ export class BreakdownWorkspace {
     this.app.nativeFilmRoom?.restore();
     this.app.nativeTagging?.restore();
     this.app.breakdownTheater?.restore();
-    this.host.innerHTML = '';
+    preactRender(null, this.host);
     this.host = null;
     return true;
   }
