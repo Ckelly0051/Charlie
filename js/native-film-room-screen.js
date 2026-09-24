@@ -47,6 +47,11 @@ export class NativeFilmRoomScreen {
   _withSummary(snap) {
     const stats = this.app.stats;
     snap.summary = stats?.playSetSummary ? stats.playSetSummary(this.grid._visiblePlays(), { side: snap.summarySide }) : null;
+    // One unit: the Yds header reads the summary's yards per play (the boards'
+    // cohort). A mix of units has no honest average, so it shows none.
+    const s = snap.summary;
+    const ypp = s && (s.side === 'offense' || s.side === 'defense') && s.ypp != null && s.n >= 5 ? Number(s.ypp).toFixed(1) : null;
+    for (const col of snap.columns || []) if (col.type === 'yds') col.tendency = ypp == null ? '' : `${ypp} / play`;
     return snap;
   }
   snapshot() { return this._withSummary(this.grid.nativeSnapshot()); }

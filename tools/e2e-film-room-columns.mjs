@@ -164,6 +164,29 @@ const bad = await page.evaluate(() => {
 ok(bad.off.join() === 'sit,formation' && bad.def.join() === PG.defense.join() && bad.all.length > 0,
   'unknown columns are dropped and an unusable set falls back', JSON.stringify(bad));
 
+// Review (5cd5313): the old list is claimed only after the program's sets are
+// durable. A failed write leaves it unclaimed, so the next launch still seeds.
+const durable = await page.evaluate(() => {
+  const grid = window.app.playGrid, CLAIM = 'ffa_film_room_cols_claimed_by';
+  const real = localStorage.getItem('ffa_active_team_id'), owner = localStorage.getItem(CLAIM);
+  localStorage.removeItem(CLAIM);
+  localStorage.setItem('ffa_active_team_id', 'team-d');
+  const set = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (k, v) { if (k === 'ffa_film_room_columns_team-d') throw new DOMException('full', 'QuotaExceededError'); return set.call(this, k, v); };
+  grid._colSets();
+  const afterFail = localStorage.getItem(CLAIM);
+  Storage.prototype.setItem = set;
+  delete grid._colSetsByTeam['team-d'];
+  const all = grid._colSets().all.slice();
+  const afterRetry = localStorage.getItem(CLAIM);
+  localStorage.removeItem('ffa_film_room_columns_team-d');
+  if (owner == null) localStorage.removeItem(CLAIM); else localStorage.setItem(CLAIM, owner);
+  if (real == null) localStorage.removeItem('ffa_active_team_id'); else localStorage.setItem('ffa_active_team_id', real);
+  return { afterFail, afterRetry, all };
+});
+ok(durable.afterFail === null && durable.afterRetry === 'team-d' && JSON.stringify(durable.all) === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
+  'a failed save leaves the old list unclaimed; the next read seeds from it and claims it', JSON.stringify(durable));
+
 ok(errors.length === 0, 'no page errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

@@ -205,12 +205,33 @@ export class BreakdownTheaterScreen {
       row('Quarter', tags.quarter), row('Down & distance', chyron.situation), row('Field position', chyron.ball),
       row('Hash', tags.hash), row('Drive', driveNumber ? driveLabel(drivePossessionSide(tags), driveNumber, this._driveLabelMode()) : ''),
     ] });
+    const spot = v => (v && (v.fieldSide === 'own' || v.fieldSide === 'opp') && String(v.yardLine || '').trim()
+      ? `${v.fieldSide === 'opp' ? 'Opp' : 'Own'} ${String(v.yardLine).trim()}` : '');
+    const side = t => (t === 'subject' ? (scout ? 'Scouted team' : 'Our team') : t === 'opponent' ? (scout ? 'Other team' : 'Opponent') : t === 'unknown' ? 'Unknown' : '');
+    const st = unit === 'special' ? SpecialTeamsModel.normalize(play.specialTeams) : null;
     if (unit === 'special') {
-      const st = SpecialTeamsModel.normalize(play.specialTeams);
+      // Every field the Special Teams editor charts, from the structured event.
+      // A legacy snap has none; its unit and result still read from the chyron.
+      const isTry = st && (st.unit === 'try' || st.unit === 'tryDefense');
+      const yn = v => (v === true ? 'Yes' : v === false ? 'No' : '');
+      const yds = v => (v != null ? `${v} yds` : '');
       groups.push({ key: 'special', title: 'Special teams', rows: [
         row('Unit', chyron.ourValue), row('Result', chyron.result),
-        row('Kick distance', st?.kick?.distance != null ? `${st.kick.distance} yds` : ''),
-        row('Return yards', st?.return?.yards != null ? `${st.return.yards} yds` : ''),
+        ...(isTry ? [
+          row('Attempt', st.attemptType === 'twoPoint' ? 'Two-point' : st.attemptType === 'extraPoint' ? 'Extra point' : st.attemptType || ''),
+          row('Bad snap', st.events.badSnap ? 'Yes' : 'No'), row('Blocked', st.events.blocked ? 'Yes' : 'No'),
+          row('Turnover', st.events.turnover || ''),
+        ] : [
+          row('Kick', st?.kick?.kind), row('Kick direction', st?.kick?.direction),
+          row('Kick distance', yds(st?.kick?.distance)), row('Hang time', st?.kick?.hangTime != null ? `${st.kick.hangTime} s` : ''),
+          row('Operation time', st?.kick?.operationTime != null ? `${st.kick.operationTime} s` : ''),
+          row('Landing spot', spot(st?.kick?.landing)),
+          row('Return attempted', yn(st?.return?.attempted)), row('Return yards', yds(st?.return?.yards)),
+          row('Return ended', spot(st?.return?.end)),
+          row('Recovered by', side(st?.outcome?.recoveredBy)),
+          row('Onside', st ? (st.isOnside ? 'Yes' : 'No') : ''), row('Fake', st ? (st.isFake ? 'Yes' : 'No') : ''),
+        ]),
+        row('Scored by', st?.outcome?.score ? side(SpecialTeamsModel.scoringTeam(st)) : ''),
       ] });
     } else {
       const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent offensive look' : 'Our offensive look', rows: [
@@ -227,11 +248,24 @@ export class BreakdownTheaterScreen {
       ] });
     }
     const LABELS = { ballCarrier: 'Ball carrier', passer: 'Passer', receiver: 'Receiver', tackler: 'Tackler', takeaway: 'Takeaway', kicker: 'Kicker', returner: 'Returner' };
-    const players = Object.entries(LABELS)
-      .map(([role, label]) => [label, String(tags.players?.[role] ?? '').split(/[,+]/).map(s => s.trim()).filter(Boolean)])
+    const ST_ROLES = { kicker: 'Kicker', punter: 'Punter', returner: 'Returner', blocker: 'Blocker', recoverer: 'Recoverer' };
+    const credited = st ? Object.entries(ST_ROLES).map(([role, label]) => [label, st.players?.[role] || tags.players?.[role] || ''])
+      : Object.entries(LABELS).map(([role, label]) => [label, tags.players?.[role] ?? '']);
+    const players = credited
+      .map(([label, value]) => [label, String(value ?? '').split(/[,+]/).map(s => s.trim()).filter(Boolean)])
       .filter(([, nums]) => nums.length)
       .map(([label, nums]) => ({ label, value: nums.map(person).join(', ') }));
     groups.push({ key: 'players', title: 'Players', rows: players.length ? players : [row('Players', '')] });
+    const grade = v => { const n = Number(v); return Number.isFinite(n) ? (n > 0 ? `+${n}` : String(n)) : String(v); };
+    const graded = Object.entries(LABELS).filter(([role]) => String(tags.grades?.[role] ?? '').trim() !== '')
+      .map(([role, label]) => ({ label, value: grade(tags.grades[role]) }));
+    if (graded.length) groups.push({ key: 'grades', title: 'Grades', rows: graded });
+    const defs = this.app.customFields?.defs || [];
+    const customTags = Array.isArray(tags.custom) ? tags.custom.filter(Boolean) : [];
+    groups.push({ key: 'custom', title: 'Custom', rows: [
+      ...defs.map(def => row(def.name, tags.customFields?.[def.id])),
+      row('Tags', customTags.join(', ')),
+    ] });
     const penalties = (play.penalties ? PenaltyModel.normalizeList(play.penalties) : []).filter(p => p.foul || p.yards != null);
     if (penalties.length) groups.push({ key: 'penalty', title: 'Penalty', rows: penalties.map((p, i) => ({
       label: penalties.length > 1 ? `Penalty ${i + 1}` : 'Foul',

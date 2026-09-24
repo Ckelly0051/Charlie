@@ -146,7 +146,8 @@ function PlaySetSummary({ summary }) {
       [def ? 'Takeaways' : 'Turnovers', String(summary.turnovers)],
     ];
   } else if (summary.side === 'special') {
-    rows = [['Touchdowns', String(summary.touchdowns)]];
+    rows = [['Touchdowns for', String(summary.tdFor)], ['Touchdowns against', String(summary.tdAgainst)]];
+    if (summary.tdUnattributed) rows.push(['Touchdowns, side not charted', String(summary.tdUnattributed)]);
   } else {
     rows = [['Offense', String(summary.counts.offense)], ['Defense', String(summary.counts.defense)], ['Special teams', String(summary.counts.special)]];
   }

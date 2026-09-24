@@ -203,10 +203,7 @@ export class PlayGrid {
     if (!stored) {
       let owner = null;
       try { owner = localStorage.getItem(CLAIM); } catch (e) {}
-      if (!owner || owner === team) {
-        legacyAll = this._loadCols();
-        try { localStorage.setItem(CLAIM, team); } catch (e) {}
-      }
+      if (!owner || owner === team) legacyAll = this._loadCols();
     }
     const sets = {};
     for (const scope of PlayGrid.COLUMN_SCOPES) {
@@ -216,15 +213,20 @@ export class PlayGrid {
         : PlayGrid.PRESETS[PlayGrid.SCOPE_PRESET[scope]].slice();
     }
     this._colSetsByTeam[team] = sets;
-    // A program's first sets are written at once, so the claim and the sets agree.
-    if (!stored) this._saveCols();
+    // A program's first sets are written at once, and the old list is claimed
+    // only after they are durable: claiming first and then failing the write
+    // left the old list claimed by a program that never saved it, so the next
+    // launch fell back to presets (review, 5cd5313).
+    if (!stored && this._saveCols() && legacyAll) {
+      try { localStorage.setItem(CLAIM, team); } catch (e) {}
+    }
     return sets;
   }
   get cols() { return this._colSets()[this._colScope()]; }
   set cols(list) { this._colSets()[this._colScope()] = Array.isArray(list) ? list.slice() : []; }
   _saveCols() {
-    try { localStorage.setItem(this.columnsKey(), JSON.stringify(this._colSets())); }
-    catch (e) { console.error('Film Room columns could not be saved', e); }
+    try { localStorage.setItem(this.columnsKey(), JSON.stringify(this._colSets())); return true; }
+    catch (e) { console.error('Film Room columns could not be saved', e); return false; }
   }
   _loadSavedFilters() {
     try { return JSON.parse(localStorage.getItem('ffa_film_room_filters') || '[]') || []; } catch (e) { return []; }
@@ -326,12 +328,11 @@ export class PlayGrid {
 
   /** One-line tendency under a column header, over the VISIBLE plays. */
   _tendency(col, visible) {
-    if (col.type === 'yds') {
-      const ys = visible.map(p => parseInt(p.tags.yardage, 10)).filter(Number.isFinite);
-      if (ys.length < 3) return '';
-      const avg = ys.reduce((s, y) => s + y, 0) / ys.length;
-      return `avg ${avg.toFixed(1)}`;
-    }
+    // The Yds header states the shown plays' yards per play, which the Film
+    // Room screen fills from StatsEngine.playSetSummary -- the boards' own
+    // cohort. Averaging only the plays with charted yardage printed avg 4.4
+    // beside a board and a summary reading 3.4 (review, 97b2f37).
+    if (col.type === 'yds') return '';
     if (col.key === 'runPass') {
       const rp = visible.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
       if (rp.length < 3) return '';

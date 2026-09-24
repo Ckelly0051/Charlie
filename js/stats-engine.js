@@ -5515,7 +5515,22 @@ export class StatsEngine {
     const out = { side, n: rows.length, counts, measured: null, runs: null, passes: null, ypp: null,
       rateLabel: null, rate: null, explosives: null, touchdowns: null, turnovers: null };
     if (side === 'special') {
-      out.touchdowns = rows.filter(p => S.hasResult(p, 'Touchdown')).length;
+      /* A Special Teams touchdown lives in the structured event
+         (`specialTeams.outcome.score`), which the Special Teams editor saves
+         without necessarily setting a Touchdown result tag (review, 97b2f37).
+         Its side is `SpecialTeamsModel.scoringTeam` -- the scoreboard's own
+         rule, so a loose ball nobody recovered stays unattributed. A legacy
+         snap carries no structured event and no side: its Touchdown result is
+         counted as side not charted. */
+      out.tdFor = 0; out.tdAgainst = 0; out.tdUnattributed = 0;
+      for (const p of rows) {
+        const event = SpecialTeamsModel.normalize(p.specialTeams);
+        const scored = event ? event.outcome.score === 'touchdown' : S.hasResult(p, 'Touchdown');
+        if (!scored) continue;
+        const team = event ? SpecialTeamsModel.scoringTeam(event) : 'unknown';
+        if (team === 'subject') out.tdFor++; else if (team === 'opponent') out.tdAgainst++; else out.tdUnattributed++;
+      }
+      out.touchdowns = out.tdFor + out.tdAgainst + out.tdUnattributed;
       return out;
     }
     const own = rows.filter(p => unitOf(p) === side);
