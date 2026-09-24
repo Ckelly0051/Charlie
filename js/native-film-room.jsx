@@ -167,9 +167,20 @@ function PlaySetSummary({ summary }) {
  * the table when it is beside the film or on a phone -- and the table section
  * holds only the table. Same controller, same snapshot, one owner each.
  */
-function FilmRoomControls({ screen }) {
+/** Attaches a view to its screen for as long as it is mounted. */
+function useAttached(screen, kind, root) {
+  useLayoutEffect(() => {
+    const host = root.current.parentElement;
+    screen.attachHost(kind, host);
+    return () => screen.detachHost(kind, host);
+  }, [screen]);
+}
+
+export function FilmRoomControls({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
+  const root = useRef(null);
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
+  useAttached(screen, 'controls', root);
   // The Columns sheet edits one unit's set and is non-modal. When the unit
   // filter changes the set on screen, the sheet closes rather than keep
   // showing, and naming, the set it was opened for (Codex, c1cce33).
@@ -206,7 +217,7 @@ function FilmRoomControls({ screen }) {
     });
   };
   const groups = [...new Set(FILTERS.map(item => item.group))];
-  return <section class="gi-film-controls" data-film-controls aria-label="Breakdown table controls">
+  return <section class="gi-film-controls" data-film-controls aria-label="Breakdown table controls" ref={root}>
     <header class="gi-film-controls-head">
       <h2>Breakdown table</h2>
       <p>{state.visible === state.total ? state.total + ' plays' : state.visible + ' of ' + state.total + ' plays'}</p>
@@ -230,8 +241,10 @@ function FilmRoomControls({ screen }) {
   </section>;
 }
 
-function NativeFilmRoom({ screen }) {
+export function NativeFilmRoom({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
+  const root = useRef(null);
+  useAttached(screen, 'table', root);
   const [active, setActive] = useState(null);
   const tableRef = useRef(null);
   // V2-H row windowing state. `viewport` is measured, not assumed, and is
@@ -417,7 +430,7 @@ function NativeFilmRoom({ screen }) {
     return nodes;
   };
 
-  return <section class="gi-film-room" data-native-film-room aria-label="Film Room breakdown table">
+  return <section class="gi-film-room" data-native-film-room aria-label="Film Room breakdown table" ref={root}>
     <div class="gi-film-table-wrap" ref={tableRef} onScroll={onTableScroll} onKeyDown={event => {
       if (event.key === 'ArrowUp') move(event, 0, -1);
       else if (event.key === 'ArrowDown') move(event, 0, 1);
@@ -453,5 +466,8 @@ export function mountNativeFilmRoom({ host, controlsHost, screen }) {
   if (!screen) throw new Error('Native Film Room requires a screen controller.');
   render(<NativeFilmRoom screen={screen} />, host);
   render(<FilmRoomControls screen={screen} />, controlsHost);
-  return { unmount() { render(null, host); render(null, controlsHost); } };
+}
+export function unmountNativeFilmRoom({ host, controlsHost }) {
+  if (host) render(null, host);
+  if (controlsHost) render(null, controlsHost);
 }

@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { useLayoutEffect, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { TagLibrary } from './tag-library.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import '../css/native-tagging.css';
@@ -354,12 +354,18 @@ function Players({screen, state}) {
   </Group>;
 }
 
-function NativeTagging({screen}) {
+export function NativeTagging({screen}) {
   const [state,setState] = useState(() => screen.snapshot());
   const [customTag,setCustomTag] = useState('');
+  const root = useRef(null);
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
+  useLayoutEffect(() => {
+    const host = root.current.parentElement;
+    screen.attachHost(host);
+    return () => screen.detachHost(host);
+  }, [screen]);
   const chips = (field,label,options,hint,library) => <Chips screen={screen} field={field} label={label} options={options} value={state.values[field]} hint={hint} library={library}/>;
-  return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging>
+  return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging ref={root}>
     <header class="gi-tag-context">
       <div class="gi-tag-title">
         <div class="gi-tag-play-identity"><h2>{state.currentPlayId == null ? 'Select play' : `Play ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
@@ -473,8 +479,9 @@ function NativeTagging({screen}) {
   </section>;
 }
 
+/** Standalone root, for a tagging form outside the Break Down route. */
 export function mountNativeTagging({host,screen}) {
   if (!host || !screen) throw new Error('Native tagging requires a host and controller.');
   render(<NativeTagging screen={screen}/>,host);
-  return { unmount(){ render(null,host); } };
 }
+export function unmountNativeTagging(host) { if (host) render(null,host); }

@@ -1,4 +1,4 @@
-import { mountNativeTagging } from './native-tagging.jsx';
+import { mountNativeTagging, unmountNativeTagging } from './native-tagging.jsx';
 import { StatsEngine } from './stats-engine.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
@@ -22,8 +22,10 @@ export class NativeTaggingScreen {
   constructor(app) {
     this.app = app;
     this.tagger = app.tagger;
-    this.host = null;
-    this._view = null;
+    // Elements a tagging view is attached to, most recent last: the Break Down
+    // route's deck cell, and any standalone host mount() rendered into.
+    this._hosts = [];
+    this._ownRoots = [];
     this._listeners = new Set();
     this.activeRole = 'ballCarrier';
     this._publishQueued = false;
@@ -62,31 +64,52 @@ export class NativeTaggingScreen {
       .forEach(event => this.tagger?.on(event, () => this._queuePublish()));
   }
 
+  /** The element the current tagging view is attached to. */
+  get host() { return this._hosts[this._hosts.length - 1] || null; }
+
+  /** A standalone mount takes the view over from the Break Down route: one
+   *  presentation at a time, as before the route owned its children. The
+   *  route draws this screen's view only while this is false. */
+  get standalone() { return this._ownRoots.length > 0; }
+  _rerenderRoute() { this.app.breakdownWorkspace?._renderRoute?.(); }
+
+  /** Standalone: render the form into a host this screen owns. The Break Down
+   *  route renders the same component in its own tree. */
   mount(host) {
     if (!host) return false;
-    if (this.host === host && this._view) return true;
-    if (this.host) this.restore();
-    this.host = host;
+    if (this._hosts.includes(host)) return true;
+    this._ownRoots.push(host);
     try {
-      this._view = mountNativeTagging({ host, screen: this });
-      this._publish();
+      this._rerenderRoute();
+      mountNativeTagging({ host, screen: this });
       return true;
     } catch (error) {
-      this.host = null;
-      this._view = null;
+      unmountNativeTagging(host);
+      this._ownRoots.splice(this._ownRoots.indexOf(host), 1);
+      this._rerenderRoute();
       throw error;
     }
   }
 
   restore() {
-    if (!this.host) return false;
+    if (!this._ownRoots.length) return false;
+    for (const host of this._ownRoots.splice(0)) unmountNativeTagging(host);
+    this._rerenderRoute();
+    return true;
+  }
+
+  /** A tagging view's layout effect and cleanup. */
+  attachHost(host) {
+    this._hosts.push(host);
+    this._publish();
+  }
+  detachHost(host) {
+    const index = this._hosts.indexOf(host);
+    if (index >= 0) this._hosts.splice(index, 1);
+    if (this._hosts.length) return;
     clearTimeout(this._saveTimer);
     this._saveTimer = null;
     this._saveConfirmed = false;
-    this._view?.unmount?.();
-    this._view = null;
-    this.host = null;
-    return true;
   }
 
   subscribe(listener) {

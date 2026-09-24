@@ -47,11 +47,11 @@ export class BreakdownWorkspace {
     if (this.host) this.restore();
     this.host = host;
     this._rendered = false;
-    this._renderRoute();
     try {
-      if (!this.app.breakdownTheater.mount(host.querySelector('[data-breakdown-theater-host]'), { railHost: host.querySelector('[data-breakdown-rail-host]') })) throw new Error('Break Down theater did not mount.');
-      if (!this.app.nativeTagging.mount(host.querySelector('[data-breakdown-tagging-host]'))) throw new Error('Break Down tagging did not mount.');
-      if (!this.app.nativeFilmRoom.mount(host.querySelector('[data-breakdown-film-room-host]'), host.querySelector('[data-breakdown-film-controls-host]'))) throw new Error('Break Down Film Room did not mount.');
+      // One tree: the route renders the theater, rail, deck and Film Room as
+      // components, and each attaches to its controller while mounted.
+      this._renderRoute();
+      if (!this.app.breakdownTheater._mounted) throw new Error('Break Down theater did not mount.');
       this._bind();
       this._setView(this.view);
       const savedFilmFocus = this.filmFocus;
@@ -60,9 +60,6 @@ export class BreakdownWorkspace {
       this.render();
       return true;
     } catch (error) {
-      this.app.nativeFilmRoom.restore();
-      this.app.nativeTagging.restore();
-      this.app.breakdownTheater.restore();
       preactRender(null, host);
       this.host = null;
       throw error;
@@ -219,9 +216,8 @@ export class BreakdownWorkspace {
   restore() {
     if (!this.host) return false;
     if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
-    this.app.nativeFilmRoom?.restore();
-    this.app.nativeTagging?.restore();
-    this.app.breakdownTheater?.restore();
+    // Unmounting the tree detaches every child view: the media goes home and
+    // the Film Room closes the overlays it opened.
     preactRender(null, this.host);
     this.host = null;
     return true;

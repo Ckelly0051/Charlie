@@ -1,4 +1,7 @@
-import { useRef, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
+import { NativeBreakdownTheater, NativePlayRail } from './native-breakdown-theater.jsx';
+import { NativeTagging } from './native-tagging.jsx';
+import { NativeFilmRoom, FilmRoomControls } from './native-film-room.jsx';
 
 /*
  * THE BREAK DOWN ROUTE (rebuild, 2026-09-24; docs/BREAKDOWN-REBUILD-PLAN.md).
@@ -10,7 +13,9 @@ import { useRef, useState } from 'preact/hooks';
  * returns, as it was before.
  *
  * The grid cells keep their `*-host` classes and data hooks: they are the
- * layout's named areas, and the CSS and harnesses address them.
+ * layout's named areas, and the CSS and harnesses address them. The child
+ * views render inside them as part of this one tree; each still reads its own
+ * controller, and attaches to it for as long as it is mounted.
  */
 
 const Icon = ({ name }) => <svg aria-hidden="true"><use href={`assets/icons.svg#icon-${name}`} /></svg>;
@@ -68,6 +73,18 @@ function Splitter({ workspace, layout }) {
 
 export function BreakdownRoute({ workspace, state }) {
   const toolsToggle = useRef(null);
+  const app = workspace.app;
+  const { breakdownTheater: theater, nativeTagging: tagging, nativeFilmRoom: filmRoomScreen } = app;
+  // Built once: a route re-render (a splitter drag, a view switch) hands the
+  // same vnodes back, so Preact skips the children and they update only from
+  // their own controllers.
+  const views = useMemo(() => ({
+    theater: <NativeBreakdownTheater screen={app.breakdownTheater} hasRailHost />,
+    rail: <NativePlayRail screen={app.breakdownTheater} />,
+    controls: <FilmRoomControls screen={app.nativeFilmRoom} />,
+    tagging: <NativeTagging screen={app.nativeTagging} />,
+    table: <NativeFilmRoom screen={app.nativeFilmRoom} />,
+  }), [app]);
   const { view, context, layout, filmFocus, toolsOpen, saveState } = state;
   const filmRoom = view === 'film-room';
   const pressed = active => ({ class: active ? 'active' : undefined, 'aria-pressed': String(active) });
@@ -104,13 +121,13 @@ export function BreakdownRoute({ workspace, state }) {
       <span class={`gi-breakdown-save ${saveState === 'pending' ? 'is-pending' : 'is-saved'}`} id="bdSaveState">{saveState === 'pending' ? 'Saving...' : 'Saved'}</span>
     </header>
     <div class="gi-breakdown-composition">
-      <section class="gi-breakdown-theater-host" data-breakdown-theater-host></section>
-      <aside class="gi-breakdown-rail-host" data-breakdown-rail-host aria-label="Game plays"></aside>
+      <section class="gi-breakdown-theater-host" data-breakdown-theater-host>{!theater.standalone && views.theater}</section>
+      <aside class="gi-breakdown-rail-host" data-breakdown-rail-host aria-label="Game plays">{!theater.standalone && views.rail}</aside>
       <Splitter workspace={workspace} layout={layout} />
-      <div class="gi-breakdown-film-controls-host" data-breakdown-film-controls-host></div>
+      <div class="gi-breakdown-film-controls-host" data-breakdown-film-controls-host>{!filmRoomScreen.standalone && views.controls}</div>
       <aside class="gi-breakdown-deck" aria-label="Charting deck">
-        <div class="gi-breakdown-tagging-host" data-breakdown-tagging-host hidden={filmRoom}></div>
-        <div class="gi-breakdown-film-room-host" data-breakdown-film-room-host hidden={!filmRoom}></div>
+        <div class="gi-breakdown-tagging-host" data-breakdown-tagging-host hidden={filmRoom}>{!tagging.standalone && views.tagging}</div>
+        <div class="gi-breakdown-film-room-host" data-breakdown-film-room-host hidden={!filmRoom}>{!filmRoomScreen.standalone && views.table}</div>
       </aside>
     </div>
   </div>;

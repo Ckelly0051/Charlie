@@ -4,7 +4,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { groupPlaysByDrive, drivePossessionSide, driveLabel, driveNumberOf } from './football-rules.js';
 import { ST_UNITS, ST_OUTCOMES, TRY_RESULT_LABELS } from './native-tagging.jsx';
-import { mountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
+import { mountNativeBreakdownTheater, unmountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
 
 // The model's own score enum (SpecialTeamsModel.SCORES), given coach-facing
 // text. Not duplicated app vocabulary — these are the literal enum members,
@@ -22,8 +22,13 @@ const ST_SCORE_LABELS = { touchdown: 'Touchdown', fieldGoal: 'Field Goal', extra
 export class BreakdownTheaterScreen {
   constructor(app) {
     this.app = app;
-    this.host = null;
     this.media = document.getElementById('videoContainer');
+    // Theater views attached, most recent last. The Break Down route renders
+    // one in its tree; a standalone mount() renders another. The one media
+    // node lives in the most recent view's slot and returns to the previous
+    // one, or home, when that view detaches.
+    this._views = [];
+    this._ownRoots = [];
     this.fullscreenTarget = null;
     this._native = null;
     this._listeners = new Set();
@@ -70,41 +75,74 @@ export class BreakdownTheaterScreen {
     this.app.gameContext?.subscribe?.(() => this._publish());
   }
 
+  /** The element the current theater view renders into. */
+  get host() { return this._views[this._views.length - 1]?.root || null; }
+
+  /** A standalone mount takes the view over from the Break Down route: one
+   *  presentation at a time, as before the route owned its children. The
+   *  route draws this screen's view only while this is false. */
+  get standalone() { return this._ownRoots.length > 0; }
+  _rerenderRoute() { this.app.breakdownWorkspace?._renderRoute?.(); }
+
+  /** Standalone: render the theater (and optionally the rail) into hosts this
+   *  screen owns. The Break Down route renders the same components in its own
+   *  tree instead; both attach through attachView(). */
   mount(host, { railHost = null } = {}) {
     if (!host || !this.media) return false;
-    if (this._mounted) this.restore();
+    if (this._views.some(view => view.root === host)) return true;
+    const roots = { host, railHost };
+    this._ownRoots.push(roots);
     try {
-      this.host = host;
-      this._native = mountNativeBreakdownTheater({ host, railHost, screen: this });
-      this.fullscreenTarget = this._native.fullscreenTarget;
-      this._native.mediaSlot.appendChild(this.media);
-      this.media.classList.add('gi-native-video');
-      this._mounted = true;
-      this._resizeMedia();
-      this._publish();
+      this._rerenderRoute();
+      mountNativeBreakdownTheater({ host, railHost, screen: this });
+      if (!this._views.some(view => view.root === host)) throw new Error('Native Break Down theater did not attach.');
       return true;
     } catch (error) {
-      this._returnMediaHome();
-      this._native?.unmount?.();
-      this._native = null;
-      this.fullscreenTarget = null;
-      this.host = null;
+      unmountNativeBreakdownTheater(roots);
+      this._ownRoots.splice(this._ownRoots.indexOf(roots), 1);
+      this._rerenderRoute();
       throw error;
     }
   }
 
   restore() {
-    if (!this._mounted) return false;
+    if (!this._ownRoots.length) return false;
+    for (const roots of this._ownRoots.splice(0)) unmountNativeBreakdownTheater(roots);
+    this._rerenderRoute();
+    return true;
+  }
+
+  /** A theater view's layout effect: it takes the media node. */
+  attachView(view) {
+    if (!view?.mediaSlot || !view?.fullscreenTarget) throw new Error('A theater view needs a media slot and a fullscreen surface.');
+    this._views.push(view);
+    this._adoptTopView();
+    this._publish();
+  }
+
+  /** Its cleanup: the media goes to the previous view, or home. */
+  detachView(view) {
+    const index = this._views.indexOf(view);
+    if (index < 0) return;
+    this._views.splice(index, 1);
+    if (this._views.length) { this._adoptTopView(); return; }
     this._mounted = false;
     this.stripCollapsed = false;
     this.media.classList.remove('gi-native-video');
     this._returnMediaHome();
-    this._native?.unmount?.();
     this._native = null;
     this.fullscreenTarget = null;
-    this.host = null;
     this._resizeMedia();
-    return true;
+  }
+
+  _adoptTopView() {
+    const view = this._views[this._views.length - 1];
+    this._native = view;
+    this.fullscreenTarget = view.fullscreenTarget;
+    view.mediaSlot.appendChild(this.media);
+    this.media.classList.add('gi-native-video');
+    this._mounted = true;
+    this._resizeMedia();
   }
 
   _returnMediaHome() {

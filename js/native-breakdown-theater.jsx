@@ -206,19 +206,40 @@ function ChartActions({ screen, state }) {
   </div>;
 }
 
-function NativePlayRail({ screen }) {
+export function NativePlayRail({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
   return <PlayStrip screen={screen} state={state} />;
 }
 
-function NativeBreakdownTheater({ screen, hasRailHost }) {
+export function NativeBreakdownTheater({ screen, hasRailHost }) {
   const [state, setState] = useState(() => screen.snapshot());
+  const surface = useRef(null);
+  const slot = useRef(null);
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
+  // The view takes the one canonical media node for as long as it is mounted
+  // and gives it back on cleanup; a re-render never moves or re-creates it.
+  useLayoutEffect(() => {
+    const fullscreenTarget = surface.current;
+    const view = {
+      root: fullscreenTarget.closest('[data-native-breakdown-theater]').parentElement,
+      mediaSlot: slot.current,
+      fullscreenTarget,
+      updatePlayback({ time, duration, progress }) {
+        const times = fullscreenTarget.querySelectorAll('.gi-theater-time');
+        if (times[0]) times[0].textContent = screen.formatTime(time);
+        if (times[1]) times[1].textContent = screen.formatTime(duration);
+        const scrub = fullscreenTarget.querySelector('.gi-theater-scrub');
+        if (scrub) scrub.value = String(progress);
+      },
+    };
+    screen.attachView(view);
+    return () => screen.detachView(view);
+  }, [screen]);
   return <section class="gi-breakdown-theater" data-native-breakdown-theater data-unit={state.chyron?.ourTone === 'def' ? 'defense' : 'offense'} data-view={state.view} aria-label="Film theater">
-    <div class="gi-theater-player" data-native-player-surface>
+    <div class="gi-theater-player" data-native-player-surface ref={surface}>
       <div class="gi-theater-stage">
-        <div class="gi-theater-media-slot" data-native-media-slot />
+        <div class="gi-theater-media-slot" data-native-media-slot ref={slot} />
       </div>
       <Chyron state={state} />
       <Transport screen={screen} state={state} />
@@ -230,27 +251,15 @@ function NativeBreakdownTheater({ screen, hasRailHost }) {
   </section>;
 }
 
+/** Standalone roots, for a theater outside the Break Down route. The route
+ *  renders the same two components in its own tree. */
 export function mountNativeBreakdownTheater({ host, railHost, screen }) {
   if (!host) throw new Error('Native Break Down theater requires a host.');
   if (!screen) throw new Error('Native Break Down theater requires a screen controller.');
   render(<NativeBreakdownTheater screen={screen} hasRailHost={!!railHost} />, host);
-  // Separate native roots share the same controller snapshot. Importing the
-  // React compatibility portal would also change form event semantics app-wide.
   if (railHost) render(<NativePlayRail screen={screen} />, railHost);
-  const mediaSlot = host.querySelector('[data-native-media-slot]');
-  const fullscreenTarget = host.querySelector('[data-native-player-surface]');
-  if (!mediaSlot) throw new Error('Native Break Down theater media slot did not mount.');
-  if (!fullscreenTarget) throw new Error('Native Break Down theater fullscreen surface did not mount.');
-  return {
-    mediaSlot,
-    fullscreenTarget,
-    updatePlayback({ time, duration, progress }) {
-      const times = fullscreenTarget.querySelectorAll('.gi-theater-time');
-      if (times[0]) times[0].textContent = screen.formatTime(time);
-      if (times[1]) times[1].textContent = screen.formatTime(duration);
-      const scrub = fullscreenTarget.querySelector('.gi-theater-scrub');
-      if (scrub) scrub.value = String(progress);
-    },
-    unmount() { render(null, host); if (railHost) render(null, railHost); },
-  };
+}
+export function unmountNativeBreakdownTheater({ host, railHost }) {
+  if (host) render(null, host);
+  if (railHost) render(null, railHost);
 }

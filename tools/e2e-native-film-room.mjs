@@ -49,6 +49,9 @@ const mounted = await page.evaluate(async () => {
   // No section property or classic render method remains.
 
   const priorClassicApiAbsent = !('section' in app.playGrid) && typeof app.playGrid._render === 'undefined';
+  // What the Break Down route's own Film Room holds, if the route is showing:
+  // a standalone mount takes the view over and restore hands it back.
+  window.__s5bRouteSubscribers = app.playGrid._nativeListeners.size;
   const host = document.createElement('div');
   host.id = 's5bTestHost';
   host.style.cssText = 'position:fixed;inset:160px 0 0 0;z-index:99999;background:var(--gi-1)';
@@ -238,14 +241,24 @@ ok(geometry[1440].type.control >= 12.5 && geometry[1440].type.table >= 13 && geo
 
 await page.click('[data-film-columns]');
 await page.waitForSelector('.gi-film-columns');
-state = await page.evaluate(() => {
+state = await page.evaluate(async () => {
   const app = window.app;
+  /* Settle saves the earlier steps left pending, so the comparison measures only the restore. */
+  await app.storage.flushPendingSaves();
   const before = JSON.stringify(app.storage.seasonStore.data);
   const overlaysBefore = app.overlays.snapshot().overlays.length;
   const restored = app.nativeFilmRoom.restore();
+  // The route's table re-subscribes after paint (useEffect).
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const standaloneHosts = ['s5bTestHost', 's5bTestControlsHost'].map(id => document.getElementById(id));
   return {
     restored,
-    nativeGone: !document.querySelector('[data-native-film-room]'),
+    // The standalone copy is gone; any Film Room left is the route's own.
+    nativeGone: standaloneHosts.every(root => !root.querySelector('[data-native-film-room], [data-film-controls]'))
+      && [...document.querySelectorAll('[data-native-film-room]')].every(node => node.closest('[data-native-breakdown-route]')),
+    routeSubscribers: window.__s5bRouteSubscribers,
+    routeLive: !!document.querySelector('[data-native-breakdown-route]'),
+    routeHasFilmRoom: !!document.querySelector('[data-breakdown-film-room-host] > [data-native-film-room]') && !!document.querySelector('[data-breakdown-film-controls-host] > [data-film-controls]'),
     classicApiAbsent: !('section' in app.playGrid) && typeof app.playGrid._render === 'undefined',
     subscribers: app.playGrid._nativeListeners.size,
     dataSame: before === JSON.stringify(app.storage.seasonStore.data),
@@ -253,10 +266,11 @@ state = await page.evaluate(() => {
     overlaysAfter: app.overlays.snapshot().overlays.length,
   };
 });
-ok(state.restored && state.nativeGone && state.subscribers === 0 && state.classicApiAbsent,
+ok(state.restored && state.nativeGone && state.subscribers === state.routeSubscribers && state.classicApiAbsent,
   'Restore unmounts native presentation and its scoped subscription -- and does not resurrect #playGridSection', JSON.stringify(state));
 ok(state.overlaysBefore === 1 && state.overlaysAfter === 0, 'Restore closes Film Room-owned overlays', JSON.stringify(state));
 ok(state.dataSame, 'Restore is a season-data no-op');
+ok(!state.routeLive || state.routeHasFilmRoom, 'Restore hands the Film Room back to a live Break Down route (table and controls)', JSON.stringify({ routeLive: state.routeLive, routeHasFilmRoom: state.routeHasFilmRoom }));
 ok(errors.length === 0, 'Native Film Room journey has zero page errors', errors.join(' | '));
 
 await browser.close();
