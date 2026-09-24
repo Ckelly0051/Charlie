@@ -122,7 +122,7 @@ export class PlayGrid {
     this._raf = null;
     this._optionCache = {};
     this._nativeListeners = new Set();
-    this.cols = this._loadCols();
+    this._colSetsByTeam = {};
     this.savedFilters = this._loadSavedFilters();
 
     this._wireDomainEvents();
@@ -159,8 +159,55 @@ export class PlayGrid {
     } catch (e) {}
     return PlayGrid.PRESETS.default.slice();
   }
+  /* COLUMN SETS PER UNIT (coach direction, 2026-09-24). The table keeps four
+     column sets -- Offense, Defense, Special Teams, and All plays -- and the
+     unit FILTER picks which one is on screen, so turning on Blitz while viewing
+     Defense changes only the defense table. `cols` is the active set, so every
+     existing reader and writer keeps working. Sets belong to the program: one
+     settings key per team, read lazily so a program switch brings its own.
+     The first time a program has none, All plays inherits the coach's existing
+     single column list (`ffa_film_room_cols`, still read through the E3b
+     upgrade rule) and each unit set starts from its preset. The legacy key is
+     left untouched. */
+  static COLUMN_SCOPES = Object.freeze(['all', 'offense', 'defense', 'special']);
+  static SCOPE_PRESET = Object.freeze({ all: 'default', offense: 'offense', defense: 'defense', special: 'special' });
+  static SCOPE_LABEL = Object.freeze({ all: 'All plays', offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
+  _teamId() {
+    try { return localStorage.getItem('ffa_active_team_id') || 'default'; } catch (e) { return 'default'; }
+  }
+  columnsKey() { return `ffa_film_room_columns_${this._teamId()}`; }
+  _colScope() {
+    const unit = this.f?.unit;
+    return unit === 'offense' || unit === 'defense' || unit === 'special' ? unit : 'all';
+  }
+  _colSets() {
+    const team = this._teamId();
+    if (this._colSetsByTeam[team]) return this._colSetsByTeam[team];
+    const known = new Set(PlayGrid.COLUMNS.map(c => c.key));
+    let stored = null;
+    // A program saved before its id existed (first run) wrote under `default`;
+    // it inherits those sets rather than losing them.
+    const read = key => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } };
+    stored = read(this.columnsKey());
+    if (!stored && team !== 'default' && (stored = read('ffa_film_room_columns_default'))) {
+      // Claimed once: the first program moves them to its own key, so a later
+      // program starts from the presets instead of another program's choices.
+      try { localStorage.setItem(this.columnsKey(), JSON.stringify(stored)); localStorage.removeItem('ffa_film_room_columns_default'); } catch (e) {}
+    }
+    const sets = {};
+    for (const scope of PlayGrid.COLUMN_SCOPES) {
+      const list = Array.isArray(stored?.[scope]) ? stored[scope].filter(k => known.has(k)) : [];
+      sets[scope] = list.length ? list
+        : scope === 'all' ? this._loadCols()
+        : PlayGrid.PRESETS[PlayGrid.SCOPE_PRESET[scope]].slice();
+    }
+    return (this._colSetsByTeam[team] = sets);
+  }
+  get cols() { return this._colSets()[this._colScope()]; }
+  set cols(list) { this._colSets()[this._colScope()] = Array.isArray(list) ? list.slice() : []; }
   _saveCols() {
-    try { localStorage.setItem('ffa_film_room_cols', JSON.stringify(this.cols)); } catch (e) {}
+    try { localStorage.setItem(this.columnsKey(), JSON.stringify(this._colSets())); }
+    catch (e) { console.error('Film Room columns could not be saved', e); }
   }
   _loadSavedFilters() {
     try { return JSON.parse(localStorage.getItem('ffa_film_room_filters') || '[]') || []; } catch (e) { return []; }
@@ -503,14 +550,21 @@ export class PlayGrid {
       editable: col.type !== 'st-readonly' && col.type !== 'pen-readonly',
     }));
     const selected = new Set(this.selected);
-    const rows = visible.map(play => ({
-      id: play.id,
-      unit: play.tags?.unit === 'defense' || play.tags?.unit === 'special' ? play.tags.unit : 'offense',
-      current: play.id === this.tagger.currentPlayId,
-      selected: selected.has(play.id),
-      untagged: PlayGrid.isUntagged(play),
-      cells: Object.fromEntries(columns.map(col => [col.key, this._plainCell(play, col)])),
-    }));
+    // All plays mixes units: a unit-specific column is blank, and not editable,
+    // on a row of another unit (Front on an offensive snap), never a dash.
+    const scope = this._colScope();
+    const colUnit = Object.fromEntries(this._visibleCols().map(col => [col.key, col.unit || '']));
+    const rows = visible.map(play => {
+      const unit = play.tags?.unit === 'defense' || play.tags?.unit === 'special' ? play.tags.unit : 'offense';
+      const na = scope === 'all' ? columns.filter(col => colUnit[col.key] && colUnit[col.key] !== unit).map(col => col.key) : [];
+      return {
+        id: play.id, unit, na,
+        current: play.id === this.tagger.currentPlayId,
+        selected: selected.has(play.id),
+        untagged: PlayGrid.isUntagged(play),
+        cells: Object.fromEntries(columns.map(col => [col.key, na.includes(col.key) ? '' : this._plainCell(play, col)])),
+      };
+    });
     return {
       total: plays.length,
       visible: visible.length,
@@ -523,8 +577,10 @@ export class PlayGrid {
       savedFilters: this.savedFilters.map((item, index) => ({ index, name: item.name })),
       watchCount: this._watchPool(visible).length,
       presets: Object.keys(PlayGrid.PRESETS),
-      allColumns: PlayGrid.COLUMNS.map(col => ({ key: col.key, label: col.label })),
+      allColumns: PlayGrid.COLUMNS.map(col => ({ key: col.key, label: col.label, unit: col.unit || '' })),
       activeColumns: [...this.cols],
+      columnScope: scope,
+      columnScopeLabel: PlayGrid.SCOPE_LABEL[scope],
     };
   }
 

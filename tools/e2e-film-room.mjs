@@ -584,10 +584,10 @@ r = await page.evaluate(async () => {
   screen.applyPreset('defense');
   await raf2();
   const defHeads = [...document.querySelectorAll('[data-native-film-room] thead th span')].map(h => h.textContent.trim());
-  const saved = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
+  const saved = ((g) => (JSON.parse(localStorage.getItem(g.columnsKey()) || '{}') || {})[g._colScope()] || [])(window.app.playGrid);
   screen.setColumn('quarter', true);
   await raf2();
-  const withQtr = JSON.parse(localStorage.getItem('ffa_film_room_cols') || '[]');
+  const withQtr = ((g) => (JSON.parse(localStorage.getItem(g.columnsKey()) || '{}') || {})[g._colScope()] || [])(window.app.playGrid);
   screen.applyPreset('default');
   await raf2();
   return { defHeads, saved, withQtr, expected: window.app.playGrid.constructor.PRESETS.defense };
@@ -752,7 +752,10 @@ await reopenFilmRoom();
 r = await page.evaluate(() => {
   const tagger = window.app.tagger;
   const play = tagger.plays[0];
-  return { skip: !play, playId: play?.id };
+  // Since 2026-09-24 a defense column is blank on an offensive row in All plays,
+  // so Coverage Family is exercised on a defensive play, as a coach would.
+  const def = tagger.plays.find(p => p.tags?.unit === 'defense');
+  return { skip: !play, playId: play?.id, defId: def?.id ?? play?.id };
 });
 if (r.skip) {
   ok(true, 'the now-editable columns actually render a cell to interact with (skipped: no play)');
@@ -762,32 +765,37 @@ if (r.skip) {
   ok(true, 'E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event (skipped: no play)');
   ok(true, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction (skipped: no play)');
 } else {
-  const playId = r.playId;
+  const playId = r.playId, defId = r.defId;
+  const playFor = key => (key === 'coverageFamily' ? defId : playId);
   await page.evaluate((id) => window.app.tagger.selectPlay(id), playId);
   await frame();
   const colsBefore = await page.evaluate(() => window.app.playGrid.cols.slice());
   const selBefore = await page.evaluate(() => window.app.tagger.currentPlayId);
-  const before = await page.evaluate((id) => JSON.stringify(window.app.tagger.getPlay(id).tags), playId);
+  const before = await page.evaluate((ids) => JSON.stringify(ids.map(id => window.app.tagger.getPlay(id).tags)), [playId, defId]);
   await page.evaluate(() => { window.__giUpdCount = 0; window.app.tagger.on('play-updated', () => { window.__giUpdCount++; }); });
 
   const results = {};
   for (const key of ['qbAlignment', 'coverageFamily']) {
+    const pid = playFor(key);
+    // Bring the key's play into the table's rendered window.
+    await page.evaluate((id) => { const rows = window.app.playGrid.nativeSnapshot().rows; const i = rows.findIndex(r => r.id === id); const wrap = document.querySelector('.gi-film-table-wrap'); if (wrap && i >= 0) { wrap.scrollTop = Math.max(0, i * 34 - 40); wrap.dispatchEvent(new Event('scroll')); } }, pid);
+    await frame();
     await page.evaluate((k) => {
       const grid = window.app.playGrid;
       if (!grid.cols.includes(k)) { grid.cols = [...grid.cols, k]; grid._notifyNative(); }
     }, key);
     await frame();
-    results[key + 'Rendered'] = await page.evaluate((id, k) => !!document.querySelector(`[data-cell="${id}:${k}"]`), playId, key);
+    results[key + 'Rendered'] = await page.evaluate((id, k) => !!document.querySelector(`[data-cell="${id}:${k}"]`), pid, key);
     if (!results[key + 'Rendered']) continue;
 
     // 2nd click on the same cell genuinely opens the editor.
-    await openCellEditor(playId, key);
+    await openCellEditor(pid, key);
     results[key + 'EditorFromClick'] = await editorOpen();
     await escapeEditor();
     await frame();
 
     // Enter on the focused cell also opens it.
-    await page.evaluate((id, k) => document.querySelector(`[data-cell="${id}:${k}"]`)?.click(), playId, key);
+    await page.evaluate((id, k) => document.querySelector(`[data-cell="${id}:${k}"]`)?.click(), pid, key);
     await frame();
     await page.evaluate(() => document.querySelector('[data-native-film-room] .is-focus')
       ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
@@ -799,10 +807,10 @@ if (r.skip) {
     // A direct native editor() call (the non-UI path) also produces a real
     // editable model -- the exact function the JSX itself calls to build the
     // popover, without going through a click at all.
-    results[key + 'EditorFromDirect'] = await page.evaluate((id, k) => !!window.app.nativeFilmRoom.editor(id, k), playId, key);
+    results[key + 'EditorFromDirect'] = await page.evaluate((id, k) => !!window.app.nativeFilmRoom.editor(id, k), pid, key);
   }
   const updatesCount = await page.evaluate(() => window.__giUpdCount);
-  const after = await page.evaluate((id) => JSON.stringify(window.app.tagger.getPlay(id).tags), playId);
+  const after = await page.evaluate((ids) => JSON.stringify(ids.map(id => window.app.tagger.getPlay(id).tags)), [playId, defId]);
   r = { skip: false, ...results, updates: updatesCount, unchanged: after === before };
   await page.evaluate((cols) => { window.app.playGrid.cols = cols; window.app.playGrid._notifyNative(); }, colsBefore);
   await frame();

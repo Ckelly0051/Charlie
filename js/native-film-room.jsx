@@ -57,8 +57,14 @@ function filterOn(filters, group, value) {
   return (filters[group] || []).includes(value);
 }
 
+/* The panel edits the column set on screen (the unit filter picks it); that
+   unit's own fields lead the list, then the fields every unit shares. */
 function ColumnsPanel({ screen, state }) {
   const [active, setActive] = useState(() => new Set(state.activeColumns));
+  const scope = state.columnScope;
+  const rank = col => (scope !== 'all' && col.unit === scope ? 0 : !col.unit ? 1 : scope === 'all' ? 1 : 2);
+  const listed = state.allColumns.map((col, index) => ({ ...col, index }))
+    .sort((a, b) => rank(a) - rank(b) || a.index - b.index);
   const toggle = (key, checked) => {
     if (!screen.setColumn(key, checked)) return;
     setActive(current => {
@@ -72,7 +78,8 @@ function ColumnsPanel({ screen, state }) {
       screen.applyPreset(name);
       setActive(new Set(screen.snapshot().activeColumns));
     }}>{name}</button>)}</div>
-    <div class="gi-film-column-list">{state.allColumns.map(col => <label key={col.key}>
+    <p class="gi-film-columns-scope" data-column-scope={scope}>Columns for {state.columnScopeLabel}</p>
+    <div class="gi-film-column-list">{listed.map(col => <label key={col.key} data-column-unit={col.unit || 'shared'}>
       <input type="checkbox" checked={active.has(col.key)} onChange={event => toggle(col.key, event.currentTarget.checked)} />
       <span>{col.label}</span>
     </label>)}</div>
@@ -133,7 +140,7 @@ function FilmRoomControls({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
   const openColumns = anchor => screen.overlays.sheet({
-    title: 'Film Room columns',
+    title: state.columnScopeLabel + ' columns',
     modal: false,
     returnFocus: anchor,
     content: <ColumnsPanel screen={screen} state={state} />,
@@ -344,15 +351,15 @@ function NativeFilmRoom({ screen }) {
       data-cell={row.id + ':' + col.key}
       tabIndex={(activeVisible ? active?.playId === row.id && active?.colKey === col.key : rowIndex === 0 && colIndex === 0) ? 0 : -1}
       class={active?.playId === row.id && active?.colKey === col.key ? 'is-focus' : ''}
-      title={col.editable ? 'Select play; activate again to edit' : 'Select play'}
+      title={col.editable && !row.na?.includes(col.key) ? 'Select play; activate again to edit' : 'Select play'}
       onClick={event => {
         const next = { playId: row.id, colKey: col.key };
         const same = active?.playId === row.id && active?.colKey === col.key;
         focusCell(next);
-        if (same) openEditor(event.currentTarget, row, col);
+        if (same && !row.na?.includes(col.key)) openEditor(event.currentTarget, row, col);
       }}
-      onDblClick={event => openEditor(event.currentTarget, row, col)}
-    >{row.cells[col.key] || <span class="is-empty">--</span>}</button></td>)}
+      onDblClick={event => { if (!row.na?.includes(col.key)) openEditor(event.currentTarget, row, col); }}
+    >{row.na?.includes(col.key) ? null : row.cells[col.key] || <span class="is-empty">--</span>}</button></td>)}
   </tr>;
   // Walks the disjoint segments in order, inserting a spacer for the gap
   // before each one (and a trailing spacer after the last), so the rendered
@@ -384,7 +391,7 @@ function NativeFilmRoom({ screen }) {
         // Enter shortcut (Save & Next) also fires as the event bubbles past
         // this table, silently advancing the selected play underneath the
         // editor that just opened.
-        if (cell && row && col) { event.preventDefault(); event.stopPropagation(); openEditor(cell, row, col); }
+        if (cell && row && col && !row.na?.includes(col.key)) { event.preventDefault(); event.stopPropagation(); openEditor(cell, row, col); }
       }
     }}>
       <table>

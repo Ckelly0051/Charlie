@@ -180,7 +180,7 @@ await page.evaluate(() => {
 await page.waitForFunction(() => !!document.querySelector('[data-cell="1:defFront"]'));
 state = await page.evaluate(() => ({
   cols: window.app.playGrid.cols,
-  stored: JSON.parse(localStorage.getItem('ffa_film_room_cols')),
+  stored: (JSON.parse(localStorage.getItem(window.app.playGrid.columnsKey())) || {})[window.app.playGrid._colScope()],
 }));
 ok(state.cols.includes('defFront') && JSON.stringify(state.cols) === JSON.stringify(state.stored), 'Native column preset persists through the canonical preference path', JSON.stringify(state));
 await page.evaluate(() => window.app.overlays.dismissTop('done'));
