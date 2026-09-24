@@ -221,7 +221,7 @@ The smallest existing harness for the route or domain you touched.
 | Team Hub / registry | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-v2b-control-center` |
 | Break Down — theater/film | `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle` |
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
-| Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout` (37: docks, split limits, reset, persistence, table behavior beside the film) |
+| Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout` (39: docks, split limits, reset, persistence, table behavior beside the film, toolbar fit with the pending save label) |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-reports-global-strip`, `e2e-explosive-labels`, `e2e-copy-standard`, `e2e-native-reports`, `e2e-reports-export-realdata`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
@@ -510,13 +510,13 @@ defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
 
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
-| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library-storage` (23: full-store failure, version-history migration, six library groups) |
+| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library-storage` (25: full-store failure, version-history migration, six library groups, restore with a failed and a durable backup) |
 | Overlays | `e2e-native-overlay` |
 | Quick Chart | `e2e-native-quick-chart` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-play-call-charting`, `e2e-core` |
 | Analytics | `e2e-analytics-registry`, `e2e-analytics-metrics`, `e2e-analytics-projection`, `e2e-parity` |
 | Film identity / relink | `e2e-clip-identity`, `e2e-clip-match`, `e2e-relink-legacy`, `e2e-relink-linked`, `e2e-film-index`, `e2e-film-persist`, `e2e-linked-film` |
-| Persistence / catalog | `e2e-sql-catalog`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions`, `e2e-revision-fence`, `e2e-snapshot-envelope` |
+| Persistence / catalog | `e2e-sql-catalog`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions` (17: includes four reordered-completion write races), `e2e-revision-fence`, `e2e-snapshot-envelope` |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
 | Import / export | `e2e-csv-roundtrip`, `e2e-csv-projection`, `e2e-legacy-film-fields` |
 | Cross-cutting guards | `audit-design-approvals`, `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |

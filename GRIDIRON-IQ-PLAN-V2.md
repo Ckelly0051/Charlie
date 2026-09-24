@@ -227,8 +227,12 @@ The reviewed `design-comps/breakdown-workspace-2026-08/breakdown.html` has now b
 Build and focused behavioral checks passed; populated production screenshots and open/empty states are recorded in `artifacts/breakdown-comp-live/`. Charlie approved the installed **1.12.0-68 Beta** presentation on 2026-08-31, including the wide-screen vertical play rail. Slightly tighter vertical tagging padding is a deferred next-pass nit, not a blocker or authorization to reopen this layout now. This is presentation acceptance, not a claim that every installed workflow has been tested or that the whole app's design is finished. See the current `CLAUDE.md` handoff for test changes, discovered defects, and exact scope.
 
 **New Breakdown direction, 2026-09-23; IMPLEMENTED IN SOURCE 2026-09-24, not
-packaged, installed smoke pending** (record: docs/OPEN-DEFECTS.md > Breakdown;
-run-gap and motion-direction fields remain unbuilt). The next Film Room
+packaged, installed smoke pending** (record: `docs/OPEN-DEFECTS.md` > Breakdown;
+run-gap and motion-direction fields remain unbuilt). A second pass the same day
+serialized catalog writes (a slower earlier write could erase a later version),
+made a version restore stop when its backup is not durable, removed the dead
+tag-form bridges from `PlayTagger` and `App`, and deleted 67 unproduced
+`workspace-shell.css` branches (6 flagged ones are live and kept). The next Film Room
 composition should give video priority and dock its editable breakdown table
 below the video by default. Let the coach move the table between bottom and
 side positions, resize the video/table split, restore a default layout, and

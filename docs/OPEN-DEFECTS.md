@@ -1666,14 +1666,32 @@ never the consumer.
   Recovery is the only presentation owner, and its save/restore now await the
   backend.
 
-Evidence: `e2e-tag-library-storage` (23: a genuinely full store, the named
+- **REPAIRED 2026-09-24 (Codex review of `9c4371b`) — concurrent catalog
+  writes lost data.** Every `CatalogPersistence` mutation exports the whole
+  shared db. With the first of two concurrent `saveVersion` writes held, both
+  reported success and the reopened catalog held only the first: the earlier
+  write's bytes, which predate the second change, landed last. A failed first
+  write's rollback had the same hole — its pre-change snapshot also predated
+  the second save. `_exclusive()` now queues every mutation (season save and
+  delete, touch, backups, versions, legacy import) through its snapshot,
+  change, disk write and rollback.
+- **REPAIRED 2026-09-24 (same review) — restore broke its safety promise.**
+  `VersionManager.restore()` says the current game is backed up first, but it
+  replaced the game even when that backup returned `null`. It now stops, says
+  `Version restore stopped: the current game could not be backed up first.`
+  and changes nothing.
+
+Evidence: `e2e-tag-library-storage` (25: a genuinely full store, the named
 failure, migration including a failed-then-retried import, all six library
 groups in the live deck, persistence across reload, team scoping, charted
-values untouched, new snapshots off localStorage; mutation-verified),
-`e2e-catalog-versions` (13: rollback and all-or-nothing import after reopen),
-`e2e-integrity`, `e2e-native-recovery`. **Browser tests cannot certify the
-installed catalog write or the WebView2 migration** — see the installed checks
-below.
+values untouched, new snapshots off localStorage, restore with a failed and a
+durable backup; mutation-verified), `e2e-catalog-versions` (17: rollback,
+all-or-nothing import, and four reordered-completion races — two saves, a
+failing first save, an import beside a save, a season save beside a version
+save — each checked after reopen; all four red with the queue disabled),
+`e2e-catalog-persistence` (73), `e2e-integrity`, `e2e-native-recovery`.
+**Browser tests cannot certify the installed catalog write or the WebView2
+migration** — see the installed checks below.
 
 **REPAIRED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — desktop charting
 deck wasted vertical space.** Group body 8/12 → 6/10 px, field gap 4 → 3, chip
@@ -1702,11 +1720,14 @@ the stored layout (`ffa_film_room_layout`), and an unreadable or out-of-range
 stored value falls back or clamps. Below 1001px the existing stacked mobile
 layout is unchanged and carries no splitter. The table's row windowing
 re-measures when the split moves. The toolbar's `Table` caption hides below
-1366px because the extra group left Film focus 32px short at 1280; the table's
+1366px because the extra group left Film focus 32px short at 1280, and the
+toolbar gaps tighten to 8px there: `9c4371b` fit only while the save label read
+`Saved`, and `Saving...` pushed Film focus 2px over its container. The table's
 filter chips now wrap instead of scrolling sideways. Evidence:
-`e2e-film-room-layout` (37: both docks, drag and keyboard limits, persistence
+`e2e-film-room-layout` (39: both docks, drag and keyboard limits, persistence
 across reload, reset, a failed layout write, selection, inline edit and scroll
-to play 300 beside the film, Film focus, 1280/1920/900; mutation-verified), and
+to play 300 beside the film, Film focus, 1280/1920/900 including the pending
+save label; mutation-verified), and
 `e2e-breakdown-lifecycle` section 6 repointed from the superseded side-by-side
 default to both docks.
 
@@ -1718,20 +1739,54 @@ harness now checks that sink); the `.tag-chip` / `.chip-remove` and
 `.version-*` rules in `styles.css`; `.ws-classic-outlet` in
 `workspace-shell.css`; `.gi-diagram-actions` and `.gi-penalty-situation` in
 `native-tagging.css`. The Break Down route target is `breakdown-workspace`, not
-`classic-workspace`. **Retained, and why:** `PlayTagger.tagForm` (always null),
-`_updateFormEnabled`, `applyUnitMode`'s DOM body, `_disabledHintText`, and App's
-`_bindScoutMode` / `_bindTagNav` lookups are the same kind of dead bridge but
-have ~40 source and harness call sites; they are a separate cleanup, not kept
-on purpose. `#videoContainer` and the media-foundation rules are the live media
-owner. `SeasonStore.adoptLegacyRoster`, `tag-projection.js`, legacy `stType`
-reads and `ffa_versions_default` are saved-data compatibility and stay.
-`workspace-shell.css` holds 73 dead non-Breakdown branches (retired Home/Team
-Hub layout) found by the same ownership model; also a separate cleanup.
+`classic-workspace`.
+
+**Finished the same day (second pass).** `PlayTagger.tagForm` (always null) is
+gone with everything that only served it: `_updateFormEnabled()` and its 15
+call sites in the tagger, `HistoryManager`, `PlaylistManager` and
+`StorageManager` plus nine test tools, `_disabledHintText()`, the `.tag-group-head` binding, the
+disabled-form click hint and `applyUnitMode()` — whose whole body was tag-form
+DOM — with its five callers. `unitField`, `defaultUnit` and `_saveField` are the
+live unit state and stay; the native deck derives its disabled state from the
+current play. In `App`, `_bindScoutMode` keeps only its live `defaultUnit`
+update, and `_bindTagNav` is deleted: the tagger's toast hookup is its own
+line, and every element it bound (`#btnTagPrev`, `#btnTagSaveNext`,
+`#btnTagSkip`, `#yardsMinus`, `#yardsPlus`, `#tagYardage`, `#tagDistance`,
+`#autoDDToggle`, `#carrySchemeToggle`) has no producer — the native deck owns
+previous, save-and-next, skip, Enter-to-advance and both toggles. The `Y`
+shortcut no longer falls back to `#tagYardage`.
+
+**`workspace-shell.css`: 67 of 73 suspected branches removed, 6 retained.** The
+ownership model flagged 73; it does not read class names inside a template
+interpolation (`${selected ? ' selected' : ''}`) or carried as data
+(`cls: 'ws-fact-green'` rendered through `class={film.cls}`), so each flag was
+checked against the source. Removed: the retired Team Hub and old Home
+workspace layout (`.ws-team-hub`, `.ws-section-head`, `.ws-empty`,
+`.ws-link-strong`, `.ws-season-rail`, `.ws-metric*`, `.ws-workspace-grid`,
+`.ws-games-col`, `.ws-detail*`, `.ws-game-list`, `.ws-game-name`,
+`.ws-game-cell*`, `.ws-game-arrow`, `.ws-continue-*`, `.ws-mini-*`,
+`.ws-opponent`, `.ws-badge`, `.ws-score*`, `.ws-dash`, `.ws-facts`, `.ws-fact`,
+`.ws-phase`, `.ws-phase-head`) and the reader-only
+`#statsDashboard .stats-overlay` offsets. Retained with their live producer:
+`.ws-game-row.selected` (`native-home.jsx` game row), `.ws-fact-green`,
+`.ws-fact-warn`, `.ws-fact-muted` (`home-screen.js` film fact, rendered by
+`native-home.jsx`), `.ws-bar.cyan i` and `.ws-bar.gold i` (`native-home.jsx`
+phase bars). The file is not added to the enforced audit, because those six
+would read as dead to the model. Checked: `e2e-workspace-shell` (100), the
+five Home harnesses, `e2e-native-team-hub` (20), `e2e-responsive-containment`
+(105), and populated Home captures at 1440 and 390.
+
+**Retained, and why.** `#videoContainer` and the media-foundation rules are the
+live media owner. `SeasonStore.adoptLegacyRoster`, `tag-projection.js`, legacy
+`stType` reads and `ffa_versions_default` are saved-data compatibility.
+`_loadTagForm` / `_clearTagForm` are live: they load the tagger's field state
+for the current play, which the native deck and every report read.
 
 **Installed checks still required (not certifiable in Chromium):** on the
 installed build, first launch migrates version history into the catalog (the
 `versions` table holds the games' save points; Settings > Recovery lists them;
-restoring one works) and localStorage drops well below its quota; Edit library
+restoring one works, and leaves a `Backup before restore` save point) and
+localStorage drops well below its quota; Edit library
 adds `Rhino` to Fronts and a value to each of the other five groups, each
 appears in the live deck at once and after closing and reopening the app;
 Film Room opens with the table below, `Beside`, drag, `Reset` and a chosen
