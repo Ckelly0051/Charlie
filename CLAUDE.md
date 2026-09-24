@@ -48,7 +48,22 @@ verified once-only migration, and `TagLibrary` reports its write errors. Film
 Room is video first (table below by default, `Beside`, resizable, `Reset`,
 persisted); the chart deck is tighter with independent Play Call / Play Type
 folds. The installed library fix is NOT approved. Record and installed checks:
-`docs/OPEN-DEFECTS.md` > Breakdown.
+`docs/OPEN-DEFECTS.md` > Breakdown. The later Film Room work (per-unit
+column sets, the play sheet, the shown-plays summary) ran the full gate at
+`28fb35a`: 129/130, the one red being the `e2e-tag-library-storage` fixture,
+not the product; fixed test-only in `8c2ea1a` and green on its own rerun. **Coach decision 2026-09-24: no `1.12.0-99` installer and
+no smoke of this batch** — Break Down is about to be rebuilt, so smoking the
+current structure is wasted. The installed checks (settings save on a full
+profile, the once-only version-history move) carry into the rebuild's
+installer.
+**BREAK DOWN REBUILD — NEXT (coach direction 2026-09-24).** The approved
+layout stays; the structure changes. Today the route is five Preact roots (the
+theater, play rail, Film Room controls, charting deck and Film Room grid)
+mounted into boxes that `breakdown-workspace.js` writes as HTML, arranged by
+CSS grid and kept in step through `PlayTagger` events — which is why every
+layout move this week needed a new host and new wiring. The rebuild makes the
+route one owner of its layout and view state, with the existing domain APIs
+unchanged.
 **Version history never goes back into localStorage** — it is what starved
 every settings write; `VersionManager` stores only through the storage backend.
 **`CatalogPersistence` has ONE writer at a time.** Every mutation exports the

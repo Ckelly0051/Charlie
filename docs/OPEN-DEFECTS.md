@@ -1774,6 +1774,21 @@ follows a successful save. Evidence: `e2e-film-room-sheet` (27) and
 `e2e-film-room-columns` (21); every one of the four repairs has a check that
 fails with the defect restored.
 
+**Full gate at `28fb35a`, 2026-09-24: 129/130; the one red is fixed test-only
+in `8c2ea1a` and passes 25/25 on its own rerun (no source changed, so the
+full gate was not repeated). `e2e-tag-library-storage` failed three checks because its
+full-store fixture left up to a few hundred characters free and adding a
+choice grows the stored library by a few. The per-program column key shifted
+how much the page had written before the fill, the add fit, and nothing
+failed. No product change: the fixture now closes the slack with
+one-character keys and asserts that a one-character write fails too;
+mutation-verified by swallowing the `QuotaExceededError` in `TagLibrary`.
+
+**No installer or smoke for this batch (coach decision 2026-09-24).** Break
+Down is being rebuilt next, so the Film Room work, the version-history move
+and the library save fix are smoked in the rebuild's installer instead. Until
+then none of it is installed or approved.
+
 **Codex review of `c1cce33`, both REPAIRED (`5cd5313`).** The old global
 column list now seeds All plays for one program only (claim marker
 `ffa_film_room_cols_claimed_by`; the old key is untouched); another program

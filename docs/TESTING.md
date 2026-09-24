@@ -510,7 +510,7 @@ defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
 
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
-| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library-storage` (25: full-store failure, version-history migration, six library groups, restore with a failed and a durable backup) |
+| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library-storage` (25: full-store failure with no slack left, not even for a one-character write, version-history migration, six library groups, restore with a failed and a durable backup) |
 | Overlays | `e2e-native-overlay` |
 | Quick Chart | `e2e-native-quick-chart` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-play-call-charting`, `e2e-core` |
