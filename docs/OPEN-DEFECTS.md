@@ -1,5 +1,36 @@
 # GridIron IQ Open Defects
 
+## Installed smoke, 1.12.0-98 (findings list complete, 2026-09-24)
+
+Findings logged as the coach lists them; no repair starts until the coach
+says the list is complete (smoke-findings protocol). Coach: "the rest looks
+good." Deferred by the coach, not findings for this pass: Self-Scout and
+Opponent Scout still need their rework, to be taken up later.
+
+**S98-1 — repaired in source (`4c76169`), not packaged.** Matchup's `Coverage Answers` section is renamed
+`Coverages`.
+
+**S98-2 — repaired in source (`4c76169`), not packaged.** Offense page 3's heading `Structure and deployment`
+is renamed `Structure and execution` (coach listed it twice, items 2 and 5;
+one finding). The secondary-bar tab stays `Structure`. The same OffenseTab
+renders inside Season > Offense, so one change covers both.
+
+**S98-3 — CLOSED, no change (coach, 2026-09-24).** Matchup's unit cards show
+our offense in cyan and their defense in gold. Coach first read that as
+backwards (gold is offense, blue defense), then ruled on the source fact:
+Matchup's approved comp colours by FILM COHORT — gold opponent film, cyan
+season film — across the cards, the key, the table text and the film
+buttons. **Keep Matchup's colour scheme as-is.**
+
+**S98-4 — CLOSED, correct (coach, 2026-09-24).** Offense > Calls & tendencies
+> Play-action shows `Power-I, 1 PA play, 0.0`. Coach had not realized a snap
+was tagged Play Action. It is exactly one snap: ND Prep Fighting Irish, play
+22, Q2, 4th & 11, `Medium Pass + Play Action`, incomplete (the `0.0`). The
+coach confirmed the tag and the `Power-I` formation, which is a charted
+formation in the tagging deck. **The play-action data is correct; no repair.**
+
+**Scope for repair: S98-1 and S98-2, labels only.**
+
 ## Installed smoke, 1.12.0-97 (stopped at S97-1, 2026-09-23; continues on 1.12.0-98)
 
 **Finding S97-1 — repaired in source 2026-09-24 (`77aea58`) at the coach's

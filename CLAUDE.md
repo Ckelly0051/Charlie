@@ -1062,7 +1062,7 @@ or `playConcept` values in any of its six games, so Play calls, Concepts and
 Calls by situation honestly hold their static slots with dashes.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
-Structure and deployment, Situational analysis, Field and production, Advanced
+Structure and execution (renamed from `Structure and deployment`, smoke S98-2), Situational analysis, Field and production, Advanced
 metrics — which since 2026-09-23 (`0e84464`, in `1.12.0-97`, installed smoke pending) are six
 PAGES in the shared secondary bar (`Identity`, `Calls & tendencies`,
 `Structure`, `Situations`, `Field & production`, `Advanced`), one on screen at a
@@ -2006,7 +2006,7 @@ and `Our Defense vs Their Offense`, one on screen at a time — now leads with
 `Situational Calls`: what the opponent most often calls in each of five fixed
 situations, and what our own season produced against that exact charted look.
 Beneath it sit paired `Production by Play Type` tables, and then the
-direction's own support section — `Coverage Answers` on the offense-facing
+direction's own support section — `Coverages` (formerly `Coverage Answers`, smoke S98-1) on the offense-facing
 tab, `Personnel and Formation` on the defense-facing one. The broad KPI strip
 is gone; every performance value now sits beside the cohort and situation that
 produced it.
