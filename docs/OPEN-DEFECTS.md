@@ -74,7 +74,8 @@ Tackles identity column holding the longest canonical name at 1440, Players
 modules take an 8px inset. Self-Scout's and Season's approved 14px module
 titles are now 17px, recorded in their harnesses. Overview is untouched: its
 approved broadcast composition is a separate coach decision. Evidence:
-`tools/e2e-reports-module-system.mjs` (34) and captures in
+`tools/e2e-reports-module-system.mjs` (40, with the season's roster loaded so
+Players name fit and alignment are checked on real names) and captures in
 `artifacts/reports-{players,selfscout,matchup,season}-module-system/`.
 Full gate at `5f208e1` (the whole S97-1 module-system pass): 126 harnesses,
 126 green, zero skipped, zero failed.

@@ -164,12 +164,16 @@ checks. The type-floor census for Special Teams stays at zero. Captures:
 `artifacts/reports-special-teams-module-system/`.
 
 Players, Self-Scout, Matchup and Season joined on 2026-09-24 (`cba2f4c`,
-`cc3db88`, `b70b758`, `75673a2`). `e2e-reports-module-system` (34) walks every
+`cc3db88`, `b70b758`, `75673a2`). `e2e-reports-module-system` (40) walks every
 section of Players, Self-Scout and Matchup, and Season's own Overview and
 Trends, on the canonical 2025 JV season (read-only, hash-checked) at 1440 and
 1280: the numbered heading first on the page, every module outlined with the
 50px title bar and a 17px sentence-case title, no uppercase micro-header and no
-page overflow. It takes a per-board module, title-bar and title selector,
+page overflow. It loads the season's own roster (not persisted), so Players
+renders real names, and checks every rostered name in full, unclipped and
+starting at one x after one- and two-digit numbers (mutation-verified by
+dropping the roster, the `#00` number-width reserve and the identity width).
+It takes a per-board module, title-bar and title selector,
 because Matchup builds its sections from its own components. Mutation-verified
 per board by dropping the board from the shared block (or, for Matchup,
 removing its block). Pins moved with the direction and recorded where they

@@ -2553,7 +2553,7 @@ and the opponent perspective; order, fit and no scrolling; the Overview-only
 linescore and its arithmetic; Current-game defaults and persistence; the
 outer frame at 1920/1440/1280; the Players name column; the secondary bar and the 768/390 layouts, 360) and
 `tools/e2e-reports-module-system.mjs` (the Defense module system on Players,
-Self-Scout, Matchup and Season's own sections, canonical season, 1440/1280, 34) and
+Self-Scout, Matchup and Season's own sections, canonical season with its roster, Players name fit and alignment, 1440/1280, 40) and
 `tools/e2e-reports-down-distance.mjs` (the down-and-distance chart: synthetic
 missing/sparse tags, zero denominators, overlapping play types, both success
 rules, exact refs, selection and film, scope and Season embeds, screen/export
