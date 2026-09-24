@@ -157,7 +157,6 @@ const repair = await page.evaluate(async () => {
     tagger.plays = legacyPlays;
     tagger.nextId = 103;
     tagger.currentPlayId = 101;
-    tagger._updateFormEnabled();
     playlist.reset();
 
     const imported = [];

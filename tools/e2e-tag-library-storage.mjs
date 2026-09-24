@@ -167,6 +167,34 @@ const fresh = await page.evaluate(async seasonId => {
 }, scope.seasonId);
 ok(fresh.id && fresh.listed && fresh.keys.length === 0, 'a new game version is stored and listed without touching localStorage', JSON.stringify(fresh));
 
+console.log('\n== 7. Restore replaces the game only after its backup is durable ==');
+const restore = await page.evaluate(async () => {
+  const app = window.app, tagger = app.tagger, backend = app.storage.seasonStore.backend;
+  const play = () => tagger.plays.find(p => p.id === 1);
+  play().tags.yardage = '7'; tagger._emit('play-updated', play());
+  const v1 = await app.versions.snapshot('Seven yards', true);
+  play().tags.yardage = '3'; tagger._emit('play-updated', play());
+  const confirm = tagger._confirmDialog;
+  tagger._confirmDialog = async () => true;
+  const toasts = []; const toast = tagger.toast; tagger.toast = m => toasts.push(m);
+  // Failure: the backup save point does not reach disk.
+  const save = backend.saveVersion.bind(backend);
+  backend.saveVersion = async () => null;
+  const failed = await app.versions.restore(v1);
+  backend.saveVersion = save;
+  const afterFail = { yards: play().tags.yardage, backups: (await app.versions.list()).filter(v => v.label === 'Backup before restore').length };
+  // Success: the backup lands, then the version replaces the game.
+  const done = await app.versions.restore(v1);
+  const afterOk = { yards: tagger.plays.find(p => p.id === 1)?.tags.yardage, backups: (await app.versions.list()).filter(v => v.label === 'Backup before restore').length };
+  tagger._confirmDialog = confirm; tagger.toast = toast;
+  return { v1, failed, afterFail, done, afterOk, toasts };
+});
+ok(restore.v1 && restore.failed === false && restore.afterFail.yards === '3' && restore.afterFail.backups === 0
+  && restore.toasts.some(t => /could not be backed up/.test(t)),
+  'a restore whose backup fails stops, says so, and leaves the current game unchanged', JSON.stringify(restore));
+ok(restore.done === true && restore.afterOk.yards === '7' && restore.afterOk.backups === 1,
+  'with a durable backup the restore replaces the game and keeps one backup', JSON.stringify(restore));
+
 ok(errors.length === 0, 'no page errors', JSON.stringify(errors.slice(0, 3)));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

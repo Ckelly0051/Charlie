@@ -13,7 +13,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    [data-native-field], and a "form enabled" reading through the form's own
    .gi-native-tagging.is-disabled class (which the native form derives
    independently from tagger.getCurrentPlay(), not from the legacy
-   _updateFormEnabled() DOM toggle, which is now a guarded no-op). The rare-
+   _updateFormEnabled() DOM toggle, deleted 2026-09-24). The rare-
    result UI itself changed shape: the old expandable chip section is now a
    <select> "More results" dropdown (native-tagging.jsx's ResultField) — the
    dropdown's placeholder option text shows a "(N)" count when a rare result

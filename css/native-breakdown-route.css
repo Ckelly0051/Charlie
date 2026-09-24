@@ -126,9 +126,10 @@
   body.ws-shell-active.ws-route-breakdown #wsCtxGame{flex:0 1 clamp(280px,26vw,440px)}
   body.ws-shell-active.ws-route-breakdown .ws-ctx-label{display:inline;color:var(--gi-bd-copy);font-size:10px}
 }
-/* Below 1366 the Film Room toolbar is 32px short at 1280; the group keeps its
-   accessible name and each button its full label, so the visible caption goes. */
-@media(max-width:1365px){.gi-breakdown-layout-label{display:none}}
+/* Below 1366 the Film Room toolbar is 32px short at 1280 (34 while the save
+   label reads "Saving..."); the group keeps its accessible name and each button
+   its full label, so the visible caption goes and the toolbar gaps tighten. */
+@media(max-width:1365px){.gi-breakdown-layout-label{display:none}.gi-breakdown-toolbar{gap:8px}.gi-breakdown-tools{padding-left:8px}}
 @media(max-width:1100px){
   .gi-breakdown-tools{position:relative;margin-left:auto;padding:0;border:0}
   .gi-breakdown-tools>[data-bd-tools-toggle]{display:block}

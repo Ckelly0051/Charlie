@@ -254,10 +254,8 @@ export class PlayTagger {
       tackler: new PlainInput(), takeaway: new PlainInput(), kicker: new PlainInput(), returner: new PlainInput(),
     };
 
-    // Unit toggle (Offense / Defense / Special Teams) drives the tag form.
-    // tagForm no longer resolves to authored markup. Every consumer guards its
-    // absence, so it stays null rather than becoming a fabricated stand-in.
-    this.tagForm = null;
+    // The charting unit (Offense / Defense / Special Teams). The native deck
+    // renders it; this field is the tagger's own record of it.
     this.unitField = new PlainField();
     this.defaultUnit = 'offense';
 
@@ -280,46 +278,7 @@ export class PlayTagger {
 
     this._bindEvents();
 
-    // Lay the form out for the default side before any play is selected,
-    // otherwise every side group would be visible at once.
     if (this.unitField) this.unitField.value = this.defaultUnit;
-    this.applyUnitMode(this.defaultUnit);
-
-    // Start disabled — chip taps with no play selected used to LOOK accepted
-    // but were silently discarded (_saveField bails). Dim + block the form
-    // until a play exists so input can never vanish.
-    this._updateFormEnabled();
-
-    // A disabled form must never feel dead: clicking the gray area explains
-    // how to activate it instead of silently doing nothing.
-    this.tagForm?.addEventListener('click', (e) => {
-      if (!this.tagForm.classList.contains('form-disabled')) return;
-      if (e.target.closest('.tag-nav')) return;
-      const plain = this._disabledHintText().replace(/<[^>]+>/g, '').replace(/&amp;/g, '&');
-      this.toast?.(plain);
-      const hint = document.getElementById('tagFormHint');
-      if (hint && !hint.classList.contains('hidden')) {
-        hint.classList.remove('hint-pulse');
-        void hint.offsetWidth;
-        hint.classList.add('hint-pulse');
-      }
-    });
-  }
-
-  /**
-   * Enable the tag form only when a play is selected. Without this, ChipField
-   * toggles the chip visuals before _saveField() finds no current play, so
-   * the coach's input looks saved but writes nowhere — silent data loss.
-   */
-  _updateFormEnabled() {
-    if (!this.tagForm) return;
-    const enabled = !!this.getCurrentPlay();
-    this.tagForm.classList.toggle('form-disabled', !enabled);
-    const hint = document.getElementById('tagFormHint');
-    if (hint) {
-      hint.classList.toggle('hidden', enabled);
-      if (!enabled) hint.innerHTML = this._disabledHintText();
-    }
   }
 
   /** "N / M tagged" — the same computation app.js's legacy _updateTagProgress
@@ -330,12 +289,6 @@ export class PlayTagger {
     const total = this.plays.length;
     const tagged = this.plays.filter(isPlayTagged).length;
     return `${tagged} / ${total} tagged`;
-  }
-
-  _disabledHintText() {
-    return this.plays.length
-      ? 'Select a play to tag — click a row in the play list, or hit <b>Save &amp; Next</b> to start at play 1'
-      : 'Mark a play to start tagging — press <kbd>[</kbd> at the snap, <kbd>]</kbd> at the whistle (or the Mark Start / Mark End buttons under the video)';
   }
 
   _bindEvents() {
@@ -363,15 +316,6 @@ export class PlayTagger {
       this.unitField.addEventListener('change', () => this._onUnitFieldChanged());
     }
 
-    // Collapsible secondary side groups (e.g. "Defense Faced" while charting
-    // offense). Clicking the group header toggles its body.
-    if (this.tagForm) {
-      this.tagForm.querySelectorAll('.tag-group-head').forEach(head => {
-        head.addEventListener('click', () => {
-          head.parentElement.classList.toggle('collapsed');
-        });
-      });
-    }
   }
 
   /**
@@ -401,7 +345,6 @@ export class PlayTagger {
       clipName: name || ''
     };
     this.plays.push(play);
-    this._updateFormEnabled();
     this.selectPlay(play.id);
     this._emit('play-created', play);
     return play;
@@ -452,7 +395,6 @@ export class PlayTagger {
       placeholder.timestamp = { start: this.pendingStart, end: endTime };
       delete placeholder.autoFull;
       this.pendingStart = null;
-      this._updateFormEnabled();
       this.selectPlay(placeholder.id);
       this._emit('play-updated', placeholder);
       return;
@@ -506,7 +448,6 @@ export class PlayTagger {
     else this.plays.splice(insertAt, 0, play);
     this.pendingStart = null;
 
-    this._updateFormEnabled();
     this.selectPlay(play.id);
     this._emit('play-created', play);
   }
@@ -573,7 +514,6 @@ export class PlayTagger {
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._clearTagForm();
-    this._updateFormEnabled();
     this._emit('play-deleted');
     undoToast();
     if (this.plays.length > 0) {
@@ -613,7 +553,6 @@ export class PlayTagger {
         stType: '', players: {}, grades: {}, custom: [], customFields: {}
       };
       play.notes = '';
-      this._updateFormEnabled();
       this._emit('play-updated', play);
     }
 
@@ -875,7 +814,6 @@ export class PlayTagger {
   selectPlay(id) {
     this.currentPlayId = id;
     const play = this.getPlay(id);
-    this._updateFormEnabled();
     if (!play) return;
     this._loadTagForm(play);
 
@@ -1156,7 +1094,6 @@ export class PlayTagger {
     }
     const unit = play.tags.unit || this.defaultUnit || 'offense';
     if (this.unitField) this.unitField.value = unit;
-    this.applyUnitMode(unit);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
     this._updateDdReadout();
@@ -1200,7 +1137,6 @@ export class PlayTagger {
     // Make the side "sticky": the user's choice carries forward to the next
     // untagged play (Save & Next) until they change it again.
     this.defaultUnit = unit;
-    this.applyUnitMode(unit);
   }
 
   /**
@@ -1242,44 +1178,10 @@ export class PlayTagger {
     return true;
   }
 
-  /**
-   * Lay out the tag form for the given unit. The active side's fields lead;
-   * the other side collapses into a one-tap "faced" group; Special Teams
-   * swaps in its own fields. Nothing is destroyed — just reordered/hidden.
-   */
-  applyUnitMode(unit) {
-    unit = unit || 'offense';
-    const form = this.tagForm;
-    if (!form) return;
-    form.classList.remove('mode-offense', 'mode-defense', 'mode-special');
-    form.classList.add('mode-' + unit);
-
-    const groups = {
-      offense: form.querySelector('.group-offense'),
-      defense: form.querySelector('.group-defense'),
-      special: form.querySelector('.group-special'),
-    };
-    for (const g of Object.values(groups)) {
-      if (g) g.classList.remove('is-secondary', 'is-hidden', 'collapsed');
-    }
-    if (unit === 'offense') {
-      groups.defense && groups.defense.classList.add('is-secondary', 'collapsed');
-      groups.special && groups.special.classList.add('is-hidden');
-    } else if (unit === 'defense') {
-      groups.offense && groups.offense.classList.add('is-secondary', 'collapsed');
-      groups.special && groups.special.classList.add('is-hidden');
-    } else { // special teams
-      groups.offense && groups.offense.classList.add('is-hidden');
-      groups.defense && groups.defense.classList.add('is-hidden');
-    }
-
-  }
-
   _clearTagForm() {
     for (const el of Object.values(this.tagFields)) el.value = '';
     for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
     for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
-    this._updateFormEnabled();
   }
 
   nextPlay() {
@@ -1393,7 +1295,6 @@ export class PlayTagger {
       if (this._stripStAlignment(play)) this._loadTagForm(play);
       this._emit('play-updated', play);
     }
-    this.applyUnitMode(unit);
   }
 
   _absYL(tags) {

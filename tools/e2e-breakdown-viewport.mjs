@@ -74,7 +74,7 @@ await page.evaluate(async () => {
         players: {}, grades: {}, custom: [] } };
   });
   app.tagger.plays = game.plays; app.tagger.nextId = 25;
-  app.tagger._updateFormEnabled(); app.tagger._emit('plays-loaded'); app.tagger.selectPlay(1);
+  app.tagger._emit('plays-loaded'); app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
 });
 

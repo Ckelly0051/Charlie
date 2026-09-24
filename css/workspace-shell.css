@@ -47,12 +47,9 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 /* Every native destination is a real grid viewport. Keeping this contract on
    the shell prevents a route-specific stylesheet omission from collapsing an
    otherwise mounted screen in WebView2. */
-.ws-home,.ws-team-hub,.ws-breakdown,.ws-study,.ws-reports,.ws-plan-state{min-width:0;min-height:0}
-.ws-team-hub,.ws-study,.ws-reports,.ws-plan-state{overflow-y:auto}.ws-topbar,.ws-mobile-head{height:var(--ws-top);background:var(--ws-nav);border-bottom:1px solid var(--ws-line);display:flex;align-items:center;padding:0 18px;gap:10px}.ws-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}.ws-film-chip{font-size:12px;color:var(--ws-muted);border:1px solid var(--ws-line);padding:6px 9px;border-radius:var(--gi-radius)}.ws-icon-btn{width:34px;height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text)}.ws-more-btn{width:auto;padding:0 10px;font-weight:700}.ws-more-btn span{margin-left:3px;color:var(--ws-muted)}.ws-mobile-head{display:none}.ws-home{overflow:auto;padding:22px 28px 20px;min-width:0}.ws-home>*{max-width:1280px;margin-left:auto;margin-right:auto}.ws-home-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}.ws-eyebrow{font-size:11.5px;color:var(--ws-sel-text);text-transform:uppercase;font-weight:800;letter-spacing:1px}.ws-home h1,.ws-plan-state h1{font-family:var(--gi-cond);font-size:34px;line-height:1;margin:6px 0;font-weight:800}.ws-home-head p{color:var(--ws-muted)}.ws-btn{height:36px;padding:0 13px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);font-weight:700}.ws-btn:hover:not(:disabled),.ws-link:hover{border-color:var(--ws-line-strong);background:var(--ws-hover)}.ws-btn:disabled{opacity:.4;cursor:not-allowed}.ws-btn.ws-primary{background:var(--ws-blue);border-color:var(--ws-blue)}.ws-btn.ws-small{height:30px;padding:0 10px;font-size:12px}.ws-section-head{display:flex;align-items:center;border-bottom:1px solid var(--ws-line);padding-bottom:10px}.ws-section-head h2{font-size:13px}.ws-link{margin-left:auto;border:0;background:transparent;color:var(--ws-sel-text);font-size:12px}.ws-empty{padding:22px 5px;color:var(--ws-muted);border-bottom:1px solid var(--ws-line)}.ws-empty.ws-error{color:var(--ws-red);border-left:3px solid var(--ws-red);padding-left:12px}.ws-plan-state{display:grid;place-items:center;text-align:center}.ws-plan-state span{font-size:12px;letter-spacing:1px;color:var(--ws-sel-text);font-weight:800}.ws-plan-state .ws-btn{margin-top:14px}.ws-mobile-brand{border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}.ws-mobile-head select{margin-left:auto;height:34px;max-width:145px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);padding:0 8px}
+.ws-home,.ws-breakdown,.ws-study,.ws-reports,.ws-plan-state{min-width:0;min-height:0}
+.ws-study,.ws-reports,.ws-plan-state{overflow-y:auto}.ws-topbar,.ws-mobile-head{height:var(--ws-top);background:var(--ws-nav);border-bottom:1px solid var(--ws-line);display:flex;align-items:center;padding:0 18px;gap:10px}.ws-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}.ws-film-chip{font-size:12px;color:var(--ws-muted);border:1px solid var(--ws-line);padding:6px 9px;border-radius:var(--gi-radius)}.ws-icon-btn{width:34px;height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text)}.ws-more-btn{width:auto;padding:0 10px;font-weight:700}.ws-more-btn span{margin-left:3px;color:var(--ws-muted)}.ws-mobile-head{display:none}.ws-home{overflow:auto;padding:22px 28px 20px;min-width:0}.ws-home>*{max-width:1280px;margin-left:auto;margin-right:auto}.ws-home-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}.ws-eyebrow{font-size:11.5px;color:var(--ws-sel-text);text-transform:uppercase;font-weight:800;letter-spacing:1px}.ws-home h1,.ws-plan-state h1{font-family:var(--gi-cond);font-size:34px;line-height:1;margin:6px 0;font-weight:800}.ws-home-head p{color:var(--ws-muted)}.ws-btn{height:36px;padding:0 13px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);font-weight:700}.ws-btn:hover:not(:disabled),.ws-link:hover{border-color:var(--ws-line-strong);background:var(--ws-hover)}.ws-btn:disabled{opacity:.4;cursor:not-allowed}.ws-btn.ws-primary{background:var(--ws-blue);border-color:var(--ws-blue)}.ws-btn.ws-small{height:30px;padding:0 10px;font-size:12px}.ws-link{margin-left:auto;border:0;background:transparent;color:var(--ws-sel-text);font-size:12px}.ws-plan-state{display:grid;place-items:center;text-align:center}.ws-plan-state span{font-size:12px;letter-spacing:1px;color:var(--ws-sel-text);font-weight:800}.ws-plan-state .ws-btn{margin-top:14px}.ws-mobile-brand{border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}.ws-mobile-head select{margin-left:auto;height:34px;max-width:145px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);padding:0 8px}
 @media(max-width:900px){.ws-topbar{display:none}.ws-main{height:100vh;grid-template-rows:48px minmax(0,1fr)}.ws-mobile-head{display:flex;height:48px;padding:0 10px}.ws-home{padding:22px 15px}.ws-home-head{display:block}.ws-home-head .ws-home-actions{margin-top:14px}.ws-home h1{font-size:29px}}
-
-.ws-shell-active #statsDashboard .stats-overlay{left:0;top:var(--ws-top)}
-@media(max-width:900px){.ws-shell-active #statsDashboard .stats-overlay{left:0;top:48px}}
 
 /* One desktop route owner. The retired left rail is gone; every destination
    uses this compact top navigation and mobile keeps its bottom navigation. */
@@ -91,9 +88,6 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 
 .ws-plan-picker{width:min(460px,calc(100vw - 32px));margin:auto;padding:0;border:1px solid var(--ws-line-strong);border-radius:var(--gi-radius);background:var(--ws-nav);color:var(--ws-text);box-shadow:var(--gi-shadow-overlay)}.ws-plan-picker::backdrop{background:var(--gi-scrim);backdrop-filter:blur(2px)}.ws-plan-picker form{display:grid;gap:16px;padding:24px}.ws-plan-picker h2{margin:-8px 0 0;font-size:23px}.ws-plan-picker p{display:grid;gap:4px;margin:0;padding:12px;border-left:3px solid var(--ws-blue);background:var(--ws-raised)}.ws-plan-picker p span{color:var(--ws-muted);font-size:12px}.ws-plan-picker label{display:grid;gap:7px;color:var(--ws-muted);font-size:12px;font-weight:800;text-transform:uppercase}.ws-plan-picker select,.ws-plan-picker input{width:100%;height:42px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-ink);color:var(--ws-text);padding:0 11px;font:inherit;text-transform:none}.ws-plan-picker select:focus,.ws-plan-picker input:focus{outline:2px solid var(--ws-sel-text);outline-offset:1px}.ws-plan-picker-name[hidden]{display:none}.ws-plan-picker-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:2px}.ws-plan-picker-actions .ws-btn{min-height:42px}
 @media(max-width:480px){.ws-plan-picker{width:calc(100vw - 20px)}.ws-plan-picker form{padding:20px 16px}.ws-plan-picker-actions .ws-btn{height:44px;flex:1}}
-
-.ws-link-strong{color:var(--ws-sel-text);font-weight:600}
-.ws-section-head .ws-link+.ws-link{margin-left:10px}
 /* Retired breadcrumb/game-dropdown and breadcrumb-as-switcher rules were
    deleted here rather than left inert, along with the markup they styled.
    NOTE for any dead-CSS sweep: `gd-score` MUST survive. It is
@@ -122,13 +116,6 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
    same mark Reports gives `.stats-section>h3` and the deck gives its group
    headers. `--gi-lower-third` is the design system's one diagonal; it reached
    two surfaces in the last pass and stops at four here. */
-.ws-section-head{border-bottom:1px solid var(--ws-line);padding-bottom:0;align-items:flex-end}
-.ws-section-head h2{
-  display:inline-flex;align-items:center;min-height:24px;margin:0 0 -1px;
-  padding:0 24px 0 11px;background:var(--gi-3);color:var(--gi-12);
-  clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
-  font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
-}
 
 /* Labels take the mono label role. 800-weight sans at 11.5px with 1px tracking
    was the pre-S6-4e treatment; the scale exists so a label is one decision. */
@@ -222,88 +209,32 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 
 /* Season-record rail: six metrics for the OPEN season, honest zeros when a
  * season is open but empty rather than hidden entirely. */
-.ws-season-rail{display:grid;grid-template-columns:1.1fr repeat(4,.8fr) 1.2fr;border:1px solid var(--ws-line);border-left:0;border-right:0;background:var(--ws-nav);margin-bottom:14px}
-.ws-metric{padding:7px 16px;border-right:1px solid var(--ws-line);min-width:0}
-.ws-metric:last-child{border-right:0}
-.ws-metric label{display:block;font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--ws-muted)}
-.ws-metric strong{display:block;margin-top:3px;font:var(--gi-text-stat);font-variant-numeric:var(--gi-num-feat);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ws-metric strong.ws-metric-small{font:600 13px/1.3 var(--gi-sans)}
 
 /* Two-column season workspace: games list (whole-row preview) + selected-game
  * detail. Below 1150px this collapses to one column, matching the existing
  * classic-workspace responsive convention this file already uses elsewhere. */
-.ws-workspace-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,.85fr);gap:22px;align-items:start}
-.ws-games-col,.ws-detail{min-width:0}
-.ws-detail{background:var(--ws-nav);border:1px solid var(--ws-line);padding:13px 16px}
-.ws-game-list{margin-top:8px;border-top:1px solid var(--ws-line)}
 .ws-game-row{position:relative;width:100%;min-height:56px;display:grid;grid-template-columns:minmax(210px,1.6fr) 76px 82px minmax(120px,.9fr) 26px;align-items:center;gap:0;border:0;border-bottom:1px solid var(--ws-line);background:transparent;text-align:left;padding:0;cursor:pointer;color:var(--ws-text);font-family:var(--gi-sans)}
 .ws-game-row:hover{background:var(--ws-raised)}
 .ws-game-row.selected{background:var(--ws-sel);box-shadow:inset 4px 0 var(--gi-bd-gold)}
 .ws-game-row:focus-visible{outline:none;box-shadow:var(--gi-focus)}
 .ws-game-row>*{min-width:0;padding:0 12px}
-.ws-game-name strong{display:block;font:600 14px/1.3 var(--gi-sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ws-game-name small,.ws-game-cell small{display:block;margin-top:3px;color:var(--ws-muted);font-size:11.5px}
-.ws-game-cell strong{display:block;font:var(--gi-text-display);font-size:17px}
-.ws-game-cell .ws-loading{color:var(--ws-muted);font:600 12px var(--gi-sans)}
-.ws-game-arrow{font-size:19px;color:var(--ws-muted);text-align:center}
 
 /* Continue-where-you-left-off + season progress, side by side under the list. */
-.ws-continue-row{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ws-line);background:var(--ws-nav)}
-.ws-continue-block{padding:10px 15px;border-right:1px solid var(--ws-line)}
-.ws-continue-block:last-child{border-right:0}
-.ws-continue-block strong{display:block;margin-top:4px;font:600 14px/1.3 var(--gi-sans)}
-.ws-continue-block small{display:block;margin-top:3px;color:var(--ws-muted)}
-.ws-mini-label{font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--ws-muted)}
-.ws-mini-progress{height:6px;margin-top:10px;background:var(--ws-active)}
-.ws-mini-progress i{display:block;width:0;height:100%;background:var(--gi-bd-gold)}
-.ws-mini-progress i.is-season{background:var(--ws-green)}
 
 /* Selected-game detail panel. */
-.ws-detail-empty{padding:18px 2px;color:var(--ws-muted)}
-.ws-opponent{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--ws-line)}
-.ws-badge{width:52px;height:52px;display:grid;place-items:center;border:1px solid var(--ws-line-strong);background:var(--ws-raised);font:var(--gi-text-display);font-size:21px;color:var(--gi-bd-gold)}
-.ws-opponent h3{margin:0;font:var(--gi-text-display);font-size:19px}
-.ws-opponent p{margin:4px 0 0;color:var(--ws-muted);font-size:11.5px}
-.ws-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;padding:9px 0;border-bottom:1px solid var(--ws-line)}
-.ws-score-them{text-align:right}
-.ws-score label{display:block;font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--ws-muted)}
-.ws-score strong{font:var(--gi-text-display);font-size:30px}
-.ws-dash{padding:0 12px 6px;color:var(--ws-muted);font-size:17px}
-.ws-facts{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--ws-line)}
-.ws-fact{padding:6px 6px;border-right:1px solid var(--ws-line)}
-.ws-fact:nth-child(2n){border-right:0}
-.ws-fact:nth-child(n+3){border-top:1px solid var(--ws-line)}
-.ws-fact label{display:block;font:var(--gi-text-label);font-size:9.5px;letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--ws-muted)}
-.ws-fact strong{display:block;margin-top:3px;font-size:13.5px}
 .ws-fact-green{color:var(--ws-green)}
 .ws-fact-warn{color:var(--ws-amber)}
 .ws-fact-muted{color:var(--ws-muted)}
-.ws-phase{padding:8px 0;border-bottom:1px solid var(--ws-line)}
-.ws-phase-head{display:flex;justify-content:space-between;font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--ws-muted)}
 .ws-phase-rows{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
 .ws-phase-row{display:grid;grid-template-columns:22px 1fr 32px;gap:8px;align-items:center;font-size:11.5px}
 .ws-bar{height:6px;background:var(--ws-active)}
 .ws-bar i{display:block;height:100%;background:var(--ws-blue)}
 .ws-bar.cyan i{background:var(--gi-bd-cyan)}
 .ws-bar.gold i{background:var(--gi-bd-gold)}
-.ws-detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.ws-detail-actions .ws-gold{grid-column:1/-1;background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:900}
-.ws-detail-actions .ws-gold:disabled{opacity:.45}
-
-@media(max-width:1150px){
-  .ws-workspace-grid{grid-template-columns:1fr}
-  .ws-detail{order:-1}
-  .ws-season-rail{grid-template-columns:repeat(3,1fr)}
-}
 @media(max-width:900px){
   .ws-contextbar{display:none}
-  .ws-continue-row{grid-template-columns:1fr}
-  .ws-continue-block{border-right:0;border-bottom:1px solid var(--ws-line)}
-  .ws-continue-block:last-child{border-bottom:0}
   /* A 5-column desktop row (name/plays/charted/film/arrow) cannot fit a phone
    * viewport -- name + film health + the tap arrow are what a coach needs at
    * a glance; plays/charted are still one tap away in the detail panel. */
   .ws-game-row{grid-template-columns:minmax(0,1fr) auto 20px;min-height:52px}
-  .ws-game-cell:not([data-film-health]){display:none}
-  .ws-game-cell[data-film-health]{text-align:right}
 }

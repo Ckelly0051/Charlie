@@ -49,6 +49,25 @@ export class CatalogPersistence {
     this.catalog = catalog;
     this.fs = fs;
     this._loaded = false;   // has the shared db been opened from disk this session?
+    this._tail = Promise.resolve();
+  }
+
+  /**
+   * ONE WRITER AT A TIME (2026-09-24). Every mutation below changes the one
+   * shared in-memory db and then exports ALL of it to disk. Two unserialized
+   * writers race: A mutates and starts writing bytes that hold A; B mutates and
+   * writes bytes that hold A+B; if A's slower write lands last, disk holds A
+   * only and B -- reported durable -- is gone after a reopen. A's rollback on
+   * failure had the same hole: its pre-A snapshot predates B, so reopening from
+   * it erased B from memory too. Each mutation's snapshot, change, disk write and
+   * rollback now run inside this queue, so a later write is never overwritten by
+   * an earlier one and a rollback only ever undoes its own change. Reads are not
+   * queued; nothing here calls one queued method from another.
+   */
+  _exclusive(fn) {
+    const run = this._tail.then(fn, fn);
+    this._tail = run.then(() => {}, () => {});
+    return run;
   }
 
   /**
@@ -114,49 +133,51 @@ export class CatalogPersistence {
    * save path now does the same.
    */
   async saveSeason(id, data) {
-    if (!id || !data || !Array.isArray(data.games)) return false;
-    // A save has exactly one owner. Allowing the scoped backend id and the
-    // payload id to disagree can split one logical save across two seasons:
-    // SqlCatalog keys by data.id while the JSON fallback keys by `id`.
-    // Fail before opening or writing either store.
-    if (data.id && String(data.id) !== String(id)) return false;
-    await this._ensureLoaded();
-    let snapshot = null;
-    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
-    // A mutation without rollback bytes can turn a later write failure into an
-    // empty in-memory catalog (`open(undefined)`). Refuse before touching state.
-    if (!snapshot || !snapshot.length) return false;
-    data.id = id;
-    this.catalog.setCurrentSeason(id);
-    if (!this.catalog.saveSeason(data)) return false;
-    let okDb = false;
-    try { await this.fs.writeDb(this.catalog.toBytes()); okDb = true; } catch (e) { okDb = false; }
-    if (!okDb) {
-      // The on-disk db is unchanged (write failed); re-sync memory to it so
-      // the in-memory catalog cannot diverge from disk, mirroring
-      // deleteSeason()'s own rollback shape. A failed canonical commit must
-      // produce zero writes anywhere -- json, mirror, or the in-memory
-      // catalog itself.
-      try {
-        this.catalog.close();
-        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
-        this._loaded = true;
-      } catch (e2) {
-        this._loaded = false;
-        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+    return this._exclusive(async () => {
+      if (!id || !data || !Array.isArray(data.games)) return false;
+      // A save has exactly one owner. Allowing the scoped backend id and the
+      // payload id to disagree can split one logical save across two seasons:
+      // SqlCatalog keys by data.id while the JSON fallback keys by `id`.
+      // Fail before opening or writing either store.
+      if (data.id && String(data.id) !== String(id)) return false;
+      await this._ensureLoaded();
+      let snapshot = null;
+      try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+      // A mutation without rollback bytes can turn a later write failure into an
+      // empty in-memory catalog (`open(undefined)`). Refuse before touching state.
+      if (!snapshot || !snapshot.length) return false;
+      data.id = id;
+      this.catalog.setCurrentSeason(id);
+      if (!this.catalog.saveSeason(data)) return false;
+      let okDb = false;
+      try { await this.fs.writeDb(this.catalog.toBytes()); okDb = true; } catch (e) { okDb = false; }
+      if (!okDb) {
+        // The on-disk db is unchanged (write failed); re-sync memory to it so
+        // the in-memory catalog cannot diverge from disk, mirroring
+        // deleteSeason()'s own rollback shape. A failed canonical commit must
+        // produce zero writes anywhere -- json, mirror, or the in-memory
+        // catalog itself.
+        try {
+          this.catalog.close();
+          await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+          this._loaded = true;
+        } catch (e2) {
+          this._loaded = false;
+          try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+        }
+        return false;
       }
-      return false;
-    }
-    // PC-2: season.json under app-data is retired as a live authority
-    // (Invariant #5) -- it sat beside library.db on the same disk and
-    // supplied zero recovery benefit that the db itself didn't already
-    // have, while giving a rejected/stale write a second readable place to
-    // resurrect from. The Documents mirror survives as the ONLY sidecar,
-    // and only in its role as a PC-3 recovery SNAPSHOT (never consulted by
-    // a normal load) -- written only once the canonical db write is
-    // confirmed durable, same as before.
-    if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
-    return true;
+      // PC-2: season.json under app-data is retired as a live authority
+      // (Invariant #5) -- it sat beside library.db on the same disk and
+      // supplied zero recovery benefit that the db itself didn't already
+      // have, while giving a rejected/stale write a second readable place to
+      // resurrect from. The Documents mirror survives as the ONLY sidecar,
+      // and only in its role as a PC-3 recovery SNAPSHOT (never consulted by
+      // a normal load) -- written only once the canonical db write is
+      // confirmed durable, same as before.
+      if (this.fs.writeMirror) { try { await this.fs.writeMirror(id, data); } catch (e) {} }
+      return true;
+    });
   }
 
   /** Canonical library metadata. The catalog, not library.json, owns truth. */
@@ -212,13 +233,15 @@ export class CatalogPersistence {
   }
 
   async touchOpened(id) {
-    if (!id) return false;
-    await this._ensureLoaded();
-    try {
-      this.catalog.touchOpened(id);
-      await this.fs.writeDb(this.catalog.toBytes());
-      return true;
-    } catch (e) { return false; }
+    return this._exclusive(async () => {
+      if (!id) return false;
+      await this._ensureLoaded();
+      try {
+        this.catalog.touchOpened(id);
+        await this.fs.writeDb(this.catalog.toBytes());
+        return true;
+      } catch (e) { return false; }
+    });
   }
 
   /**
@@ -230,30 +253,32 @@ export class CatalogPersistence {
    * (deleting it against a stale on-disk db would let the season resurrect).
    */
   async deleteSeason(id) {
-    await this._ensureLoaded();
-    // Snapshot the PRE-DELETE db bytes so rollback restores memory from RAM, not
-    // from disk — a writeDb failure can be accompanied by a transient readDb
-    // failure, and re-reading a failing disk would blank the whole catalog.
-    let snapshot = null;
-    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
-    if (!snapshot || !snapshot.length) return false;
-    try {
-      this.catalog.deleteSeason(id);
-      await this.fs.writeDb(this.catalog.toBytes());
-      return true;
-    } catch (e) {
-      // The on-disk db is unchanged (write failed); re-sync memory to it from the
-      // snapshot so there is no split-brain, independent of readDb succeeding.
+    return this._exclusive(async () => {
+      await this._ensureLoaded();
+      // Snapshot the PRE-DELETE db bytes so rollback restores memory from RAM, not
+      // from disk — a writeDb failure can be accompanied by a transient readDb
+      // failure, and re-reading a failing disk would blank the whole catalog.
+      let snapshot = null;
+      try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+      if (!snapshot || !snapshot.length) return false;
       try {
-        this.catalog.close();
-        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
-        this._loaded = true;
-      } catch (e2) {
-        this._loaded = false;
-        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+        this.catalog.deleteSeason(id);
+        await this.fs.writeDb(this.catalog.toBytes());
+        return true;
+      } catch (e) {
+        // The on-disk db is unchanged (write failed); re-sync memory to it from the
+        // snapshot so there is no split-brain, independent of readDb succeeding.
+        try {
+          this.catalog.close();
+          await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+          this._loaded = true;
+        } catch (e2) {
+          this._loaded = false;
+          try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+        }
+        return false;
       }
-      return false;
-    }
+    });
   }
 
   // ---- backup ring (canonical, in the shared db) ---------------------------
@@ -288,28 +313,30 @@ export class CatalogPersistence {
   // season write it accompanies -- only callers that actually depend on this
   // method's own success (restoreBackup's safety snapshot) now see the truth.
   async createBackup(id, data, label) {
-    if (!id || !data) return null;
-    await this._ensureLoaded();
-    let snapshot = null;
-    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
-    if (!snapshot || !snapshot.length) return null;
-    let bid = null;
-    try { bid = this.catalog.createBackup(id, data, label || 'Save'); }
-    catch (e) { return null; }
-    try {
-      await this.fs.writeDb(this.catalog.toBytes());
-      return bid;
-    } catch (e) {
+    return this._exclusive(async () => {
+      if (!id || !data) return null;
+      await this._ensureLoaded();
+      let snapshot = null;
+      try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+      if (!snapshot || !snapshot.length) return null;
+      let bid = null;
+      try { bid = this.catalog.createBackup(id, data, label || 'Save'); }
+      catch (e) { return null; }
       try {
-        this.catalog.close();
-        await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
-        this._loaded = true;
-      } catch (e2) {
-        this._loaded = false;
-        try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+        await this.fs.writeDb(this.catalog.toBytes());
+        return bid;
+      } catch (e) {
+        try {
+          this.catalog.close();
+          await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);
+          this._loaded = true;
+        } catch (e2) {
+          this._loaded = false;
+          try { await this._ensureLoaded(); } catch (e3) {}   // last-ditch: re-read disk
+        }
+        return null;
       }
-      return null;
-    }
+    });
   }
   async listBackups(id) {
     if (!id) return [];
@@ -322,10 +349,12 @@ export class CatalogPersistence {
     try { return this.catalog.getBackup(id, backupId); } catch (e) { return null; }
   }
   async deleteBackup(id, backupId) {
-    if (!id || !backupId) return;
-    await this._ensureLoaded();
-    try { this.catalog.deleteBackup(id, backupId); } catch (e) { return; }
-    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    return this._exclusive(async () => {
+      if (!id || !backupId) return;
+      await this._ensureLoaded();
+      try { this.catalog.deleteBackup(id, backupId); } catch (e) { return; }
+      try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    });
   }
 
   // ---- version history (named save points, in the shared db) ---------------
@@ -337,21 +366,23 @@ export class CatalogPersistence {
   // rollback shape: snapshot the bytes, write, and on failure reopen from the
   // snapshot and report failure.
   async _durably(mutate) {
-    await this._ensureLoaded();
-    let snapshot = null;
-    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
-    if (!snapshot || !snapshot.length) return { ok: false };
-    let value;
-    try { value = mutate(); } catch (e) { console.error('Catalog version write failed', e); return { ok: false }; }
-    try {
-      await this.fs.writeDb(this.catalog.toBytes());
-      return { ok: true, value };
-    } catch (e) {
-      console.error('Catalog version write did not reach disk', e);
-      try { this.catalog.close(); await this.catalog.open(snapshot); this._loaded = true; }
-      catch (e2) { this._loaded = false; try { await this._ensureLoaded(); } catch (e3) {} }
-      return { ok: false };
-    }
+    return this._exclusive(async () => {
+      await this._ensureLoaded();
+      let snapshot = null;
+      try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+      if (!snapshot || !snapshot.length) return { ok: false };
+      let value;
+      try { value = mutate(); } catch (e) { console.error('Catalog version write failed', e); return { ok: false }; }
+      try {
+        await this.fs.writeDb(this.catalog.toBytes());
+        return { ok: true, value };
+      } catch (e) {
+        console.error('Catalog version write did not reach disk', e);
+        try { this.catalog.close(); await this.catalog.open(snapshot); this._loaded = true; }
+        catch (e2) { this._loaded = false; try { await this._ensureLoaded(); } catch (e3) {} }
+        return { ok: false };
+      }
+    });
   }
   async saveVersion(seasonId, gameId, v) {
     if (!seasonId || !gameId || !v) return null;
@@ -378,10 +409,12 @@ export class CatalogPersistence {
     try { return this.catalog.getVersion(id); } catch (e) { return null; }
   }
   async deleteVersion(id) {
-    if (id == null) return;
-    await this._ensureLoaded();
-    try { this.catalog.deleteVersion(id); } catch (e) { return; }
-    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    return this._exclusive(async () => {
+      if (id == null) return;
+      await this._ensureLoaded();
+      try { this.catalog.deleteVersion(id); } catch (e) { return; }
+      try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
+    });
   }
 
   // PC-1: explicit-identity contract for version ownership (documented in
@@ -393,12 +426,14 @@ export class CatalogPersistence {
     try { return this.catalog.getVersionScoped(seasonId, gameId, id); } catch (e) { return null; }
   }
   async deleteVersionScoped(seasonId, gameId, id) {
-    if (!seasonId || !gameId || id == null) return false;
-    await this._ensureLoaded();
-    let owned = false;
-    try { owned = this.catalog.deleteVersionScoped(seasonId, gameId, id); } catch (e) { return false; }
-    if (owned) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
-    return owned;
+    return this._exclusive(async () => {
+      if (!seasonId || !gameId || id == null) return false;
+      await this._ensureLoaded();
+      let owned = false;
+      try { owned = this.catalog.deleteVersionScoped(seasonId, gameId, id); } catch (e) { return false; }
+      if (owned) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
+      return owned;
+    });
   }
 
   /**
@@ -408,22 +443,24 @@ export class CatalogPersistence {
    * or clobbers. Returns the count migrated. Never throws (a bad json is skipped).
    */
   async migrateJsonSeasons(ids) {
-    if (!Array.isArray(ids) || !ids.length) return 0;
-    await this._ensureLoaded();
-    let migrated = 0;
-    for (const id of ids) {
-      let inDb = false;
-      try { inDb = !!this.catalog.loadSeason(id); } catch (e) { inDb = false; }
-      if (inDb) continue;
-      let json = null;
-      try { json = await this.fs.readJson(id); } catch (e) { json = null; }
-      if (json && Array.isArray(json.games)) {
-        json.id = json.id || id;
-        this.catalog.setCurrentSeason(id);
-        try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}
+    return this._exclusive(async () => {
+      if (!Array.isArray(ids) || !ids.length) return 0;
+      await this._ensureLoaded();
+      let migrated = 0;
+      for (const id of ids) {
+        let inDb = false;
+        try { inDb = !!this.catalog.loadSeason(id); } catch (e) { inDb = false; }
+        if (inDb) continue;
+        let json = null;
+        try { json = await this.fs.readJson(id); } catch (e) { json = null; }
+        if (json && Array.isArray(json.games)) {
+          json.id = json.id || id;
+          this.catalog.setCurrentSeason(id);
+          try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}
+        }
       }
-    }
-    if (migrated) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
-    return migrated;
+      if (migrated) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
+      return migrated;
+    });
   }
 }

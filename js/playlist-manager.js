@@ -309,7 +309,6 @@ export class PlaylistManager {
     // correct game, so this can never misplace or lose them.
     this._backfillDurations(newClips);
 
-    this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
     this._updateClipCount();
     // Plays were pushed directly (not via tagger.createPlay), so listeners —
@@ -459,7 +458,6 @@ export class PlaylistManager {
     }
     this._updatePlaylistUI();
     this._updateClipCount();
-    this.tagger._updateFormEnabled();
 
     const cur = this.tagger.getCurrentPlay();
     if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
@@ -641,7 +639,6 @@ export class PlaylistManager {
     // index > activeClipIndex: the active clip's position is unchanged.
     if (this.clips.length && !wasActive) this._preloadNext(this.activeClipIndex);
 
-    this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
     this._updateClipCount();
     // A DELIBERATE in-app deletion, so the durable clip identity goes too —
@@ -727,7 +724,6 @@ export class PlaylistManager {
         }
       }
     }
-    this.tagger._updateFormEnabled();
     this._updatePlaylistUI();
     this._updateClipCount();
     return true;

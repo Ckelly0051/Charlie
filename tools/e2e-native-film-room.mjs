@@ -40,7 +40,6 @@ const mounted = await page.evaluate(async () => {
   }));
   app.tagger.plays = game.plays;
   app.tagger.nextId = 9;
-  app.tagger._updateFormEnabled();
   app.tagger._emit('plays-loaded');
   app.tagger.selectPlay(1);
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));

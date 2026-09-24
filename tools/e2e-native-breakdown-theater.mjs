@@ -32,7 +32,7 @@ const mounted = await page.evaluate(async () => {
       result: index === 6 ? 'Interception + Touchdown' : index === 9 ? 'Touchdown' : 'Gain',
       yardage: index === 6 ? '-12' : String(index + 2), players: {}, grades: {}, custom: [] }, notes: '', analysis: null,
   }));
-  app.tagger.plays = game.plays; app.tagger.nextId = 13; app.tagger._updateFormEnabled();  app.tagger._emit('plays-loaded'); app.tagger.selectPlay(1);
+  app.tagger.plays = game.plays; app.tagger.nextId = 13; app.tagger._emit('plays-loaded'); app.tagger.selectPlay(1);
   const before = JSON.stringify(app.storage.seasonStore.data);
   const media = document.getElementById('videoContainer');
   const host = document.createElement('div'); host.id = 's5aTestHost';

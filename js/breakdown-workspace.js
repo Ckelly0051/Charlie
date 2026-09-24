@@ -329,7 +329,6 @@ export class BreakdownWorkspace {
     if (!changedGame || this.app.tagger?.getCurrentPlay()) return;
     const unit = this.app.tagger?.defaultUnit || 'offense';
     if (this.app.tagger?.unitField) this.app.tagger.unitField.value = unit;
-    this.app.tagger?.applyUnitMode?.(unit);
   }
 
   setSaveState(state) {

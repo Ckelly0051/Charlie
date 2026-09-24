@@ -100,7 +100,12 @@ export class VersionManager {
       'Restore Version');
     if (!ok) return false;
     const prior = this.storage._serialize();
-    await this.snapshot('Backup before restore', false);
+    // The dialog promised a backup. Without a durable one, nothing is replaced.
+    const backup = await this.snapshot('Backup before restore', false);
+    if (!backup) {
+      this.tagger.toast?.('Version restore stopped: the current game could not be backed up first.');
+      return false;
+    }
     this.storage._deserialize(data);
     // Undo history is per-game state; re-baseline it the same way a game load does.
     if (window.app && window.app.history && window.app.history.reset) window.app.history.reset();

@@ -1585,7 +1585,6 @@ export class StorageManager {
       }
     }
 
-    this.tagger._updateFormEnabled();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
 
     if (data.currentPlayId) {
@@ -2100,7 +2099,6 @@ export class StorageManager {
     }
 
     if (count > 0) {
-      this.tagger._updateFormEnabled();
       this.tagger._emit('play-created');
     }
 

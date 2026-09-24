@@ -140,7 +140,6 @@ try {
     const app=window.app;
     app.tagger.plays=[];
     app.tagger.currentPlayId=null;
-    app.tagger._updateFormEnabled();
     app.tagger._emit('plays-loaded');
   });
   await settle();

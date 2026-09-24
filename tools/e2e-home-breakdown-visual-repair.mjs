@@ -202,7 +202,7 @@ await page.evaluate(async () => {
     { id: 2, timestamp: { start: 6, end: 11 }, notes: '', tags: { unit: 'defense', down: '2', distance: '4', quarter: 'Q1', hash: 'Left', fieldSide: 'own', yardLine: '30', defFront: '4-3', coverage: 'Cover 3', coverageFamily: 'Zone', blitz: 'A-Gap', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', players: {}, grades: {}, custom: [] } },
     { id: 3, timestamp: { start: 12, end: 17 }, notes: '', tags: { unit: 'special', down: '', distance: '', quarter: 'Q2', players: {}, grades: {}, custom: [] }, specialTeams: { unit: 'punt', outcome: { status: 'returned' }, kick: { distance: 42, hangTime: 4.2, landing: { fieldSide: 'opp', yardLine: 35 } }, return: { yards: 8, end: { fieldSide: 'opp', yardLine: 43 } }, players: {} } },
   ];
-  app.tagger.plays = game.plays; app.tagger.nextId = 4; app.tagger._updateFormEnabled(); app.tagger._emit('plays-loaded');
+  app.tagger.plays = game.plays; app.tagger.nextId = 4; app.tagger._emit('plays-loaded');
   app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
 });

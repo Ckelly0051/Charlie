@@ -2,9 +2,9 @@
    localStorage `ffa_versions_<season::game>` onto rows in the shared library db.
    Named/auto save-points become rows keyed by (season_id, game_id), capped at
    VMAX per game, evicting AUTO-saves before MANUAL ones (VersionManager's rule).
-   Pure module, NOT yet wired into VersionManager (dormant groundwork). Verifies:
-   save/list/get/delete, per-game scoping, reopen durability, and the eviction
-   policy. Run:  node tools/e2e-catalog-versions.mjs */
+   VersionManager's store since 2026-09-24. Verifies: save/list/get/delete,
+   per-game scoping, reopen durability, the eviction policy, rollback on a
+   failed write, all-or-nothing import, and serialized concurrent writes. Run:  node tools/e2e-catalog-versions.mjs */
 import initSqlJs from 'sql.js';
 import { SqlCatalog } from '../js/sql-catalog.js';
 import { CatalogPersistence } from '../js/catalog-persistence.js';
@@ -106,6 +106,82 @@ function makeFs() {
   ok(imported === true && back.length === 22 && JSON.stringify(body) === JSON.stringify(many[5].data),
     'an import is all-or-nothing, never pruned, and reads back identical after reopening from disk',
     JSON.stringify({ imported, n: back.length }));
+}
+
+// ---- 5. Concurrency: a later write is never overwritten by an earlier one ---
+// Codex repro (2026-09-24): delay the FIRST of two concurrent saveVersion disk
+// writes, let the second finish, then release the first. Both reported
+// success, but the reopened catalog held only the first.
+const idle = () => new Promise(r => setTimeout(r, 20));
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveVersion('s1', 'g0', snap('seed', true, 1));
+  // The first of the next two writes is held; the second passes at once.
+  const realWrite = fs.writeDb;
+  let calls = 0, releaseFirst;
+  fs.writeDb = async (b) => { calls++; if (calls === 1) await new Promise(r => { releaseFirst = r; }); return realWrite(b); };
+  const a = cp.saveVersion('s1', 'g1', snap('First', true, 1));
+  const b = cp.saveVersion('s1', 'g1', snap('Second', true, 2));
+  await idle(); await idle();
+  releaseFirst && releaseFirst();
+  const [ra, rb] = await Promise.all([a, b]);
+  const back = await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).listVersions('s1', 'g1');
+  ok(!!ra && !!rb && back.map(v => v.label).join(',') === 'First,Second',
+    'two concurrent saves with the first write held both reach disk and survive a reopen', JSON.stringify({ ra, rb, back: back.map(v => v.label) }));
+}
+{
+  // The first write FAILS after the second was queued: its rollback must undo
+  // only its own change, and the second must still land.
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveVersion('s1', 'g0', snap('seed', true, 1));
+  const realWrite = fs.writeDb;
+  let calls = 0, releaseFirst;
+  fs.writeDb = async (b) => { calls++; if (calls === 1) { await new Promise(r => { releaseFirst = r; }); throw new Error('disk down'); } return realWrite(b); };
+  const a = cp.saveVersion('s1', 'g1', snap('Lost', true, 1));
+  const b = cp.saveVersion('s1', 'g1', snap('Kept', true, 1));
+  await idle(); await idle();
+  releaseFirst && releaseFirst();
+  const [ra, rb] = await Promise.all([a, b]);
+  const mem = (await cp.listVersions('s1', 'g1')).map(v => v.label).join(',');
+  const disk = (await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).listVersions('s1', 'g1')).map(v => v.label).join(',');
+  ok(ra === null && !!rb && mem === 'Kept' && disk === 'Kept',
+    'a failed first write rolls back only itself; the queued second save lands in memory and on disk', JSON.stringify({ ra, rb, mem, disk }));
+}
+{
+  // An import and a save racing: neither may erase the other.
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveVersion('s1', 'g0', snap('seed', true, 1));
+  const realWrite = fs.writeDb;
+  let calls = 0, releaseFirst;
+  fs.writeDb = async (b) => { calls++; if (calls === 1) await new Promise(r => { releaseFirst = r; }); return realWrite(b); };
+  const imp = cp.importVersions('s1', 'g2', [snap('I1', true, 1), snap('I2', false, 1)]);
+  const sv = cp.saveVersion('s1', 'g3', snap('Solo', true, 1));
+  await idle(); await idle();
+  releaseFirst && releaseFirst();
+  const [ri, rs] = await Promise.all([imp, sv]);
+  const re = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const g2 = (await re.listVersions('s1', 'g2')).length, g3 = (await re.listVersions('s1', 'g3')).length;
+  ok(ri === true && !!rs && g2 === 2 && g3 === 1, 'a held import and a concurrent save both survive a reopen', JSON.stringify({ ri, rs, g2, g3 }));
+}
+{
+  // Seasons share the same db: a season save racing a version save.
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveVersion('s1', 'g0', snap('seed', true, 1));
+  const realWrite = fs.writeDb;
+  let calls = 0, releaseFirst;
+  fs.writeDb = async (b) => { calls++; if (calls === 1) await new Promise(r => { releaseFirst = r; }); return realWrite(b); };
+  const sv = cp.saveVersion('s1', 'g1', snap('V', true, 1));
+  const ss = cp.saveSeason('s9', { id: 's9', seasonName: 'Race', games: [{ id: 'gx', name: 'gx', plays: [], gameInfo: {} }] });
+  await idle(); await idle();
+  releaseFirst && releaseFirst();
+  const [rv, rsn] = await Promise.all([sv, ss]);
+  const re = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const hasSeason = !!(await re.loadSeason('s9')), hasVersion = (await re.listVersions('s1', 'g1')).length === 1;
+  ok(!!rv && rsn === true && hasSeason && hasVersion, 'a held version write and a concurrent season save both survive a reopen', JSON.stringify({ rv, rsn, hasSeason, hasVersion }));
 }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

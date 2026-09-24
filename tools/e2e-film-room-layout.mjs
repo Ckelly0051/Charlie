@@ -225,6 +225,9 @@ for (const [w, h] of [[1280, 800], [1920, 1080]]) {
   await page.setViewport({ width: w, height: h }); await settle(page);
   m = await measure();
   ok(m.pageOverflow <= 0 && m.toolsOverflow === 0 && m.theater.b <= m.deck.y + 11, `${w}: film above table with no page or toolbar overflow`, JSON.stringify({ p: m.pageOverflow, t: m.toolsOverflow }));
+  // The save label is widest while a write is pending ("Saving...").
+  const pending = await page.evaluate(() => { const ws = window.app.breakdownWorkspace; ws.setSaveState('pending'); const t = document.querySelector('.gi-breakdown-tools'); const over = t.scrollWidth - t.clientWidth; ws.setSaveState('saved'); return over; });
+  ok(pending === 0, `${w}: no toolbar overflow while the save label reads Saving...`, String(pending));
 }
 await page.setViewport({ width: 900, height: 1024 }); await settle(page);
 m = await measure();

@@ -244,8 +244,9 @@ class App {
     this.storage.enableAutoSave();
 
 
-    // Tag navigation & chip shortcuts
-    this._bindTagNav();
+    // Surface tagger feedback (e.g. "Mark the start first") through the
+    // shared toast. Lazy lambda — history may not exist yet at bind time.
+    this.tagger.toast = (msg, opts) => this.history?._toast(msg, opts);
 
     // Scout mode UI
     this._bindScoutMode();
@@ -1212,79 +1213,10 @@ class App {
       return 'offense'; // offense or scout (charts both, default offense layout)
     };
     const apply = ({ perspective }) => {
-      const isScout = perspective === 'scout';
-      document.getElementById('scoutSection')?.classList.toggle('hidden', !isScout);
-      document.getElementById('tagForm')?.classList.toggle('is-scout', isScout);
       this.tagger.defaultUnit = unitFromPerspective(perspective);
     };
     this.gameContext.subscribe(apply);
     apply(this.gameContext.snapshot());
-  }
-
-  _bindTagNav() {
-    const btnPrev = document.getElementById('btnTagPrev');
-    const btnNext = document.getElementById('btnTagSaveNext');
-    const btnSkip = document.getElementById('btnTagSkip');
-    const yardsMinus = document.getElementById('yardsMinus');
-    const yardsPlus = document.getElementById('yardsPlus');
-    const yardsInput = document.getElementById('tagYardage');
-
-    btnPrev?.addEventListener('click', () => {
-      this.notes?.flush();
-      if (this.cutupPlayer?.active) {
-        this.cutupPlayer.prev();
-        return;
-      }
-      this.tagger.prevPlay();
-      this._autoPlayCurrent();
-    });
-    btnNext?.addEventListener('click', () => this._advancePlay());
-    // Skip = move on WITHOUT carrying this play's situation forward (it was
-    // previously identical to Save & Next — a fake choice).
-    btnSkip?.addEventListener('click', () => this._advancePlay({ skip: true }));
-
-    // Surface tagger feedback (e.g. "Mark the start first") through the
-    // shared toast. Lazy lambda — history may not exist yet at bind time.
-    this.tagger.toast = (msg, opts) => this.history?._toast(msg, opts);
-
-    // Enter inside yardage/distance saves & advances — the global Enter
-    // shortcut ignores inputs, which forced a mouse trip to Save & Next on
-    // every play. This is the hottest path in the whole tagging flow.
-    [yardsInput, document.getElementById('tagDistance')].forEach(inp => {
-      inp?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this._advancePlay();
-        }
-      });
-    });
-
-    // Auto down & distance toggle. S7: PlayTagger.setAutoDD is the one write
-    // path now — the checkbox (if present) is an optional mirror of it.
-    const autoDD = document.getElementById('autoDDToggle');
-    if (autoDD) {
-      autoDD.checked = this.tagger.autoDD;
-      autoDD.addEventListener('change', () => this.tagger.setAutoDD(autoDD.checked));
-    }
-
-    // Carry formation/personnel/front/coverage to the next play (opt-in).
-    const carryScheme = document.getElementById('carrySchemeToggle');
-    if (carryScheme) {
-      carryScheme.checked = this.tagger.carryScheme;
-      carryScheme.addEventListener('change', () => this.tagger.setCarryScheme(carryScheme.checked));
-    }
-
-    // Yardage is a magnitude (positive); the Result chip sets the direction.
-    yardsMinus?.addEventListener('click', () => {
-      const v = parseInt(yardsInput.value) || 0;
-      yardsInput.value = Math.max(0, v - 1);
-      yardsInput.dispatchEvent(new Event('change'));
-    });
-    yardsPlus?.addEventListener('click', () => {
-      const v = parseInt(yardsInput.value) || 0;
-      yardsInput.value = v + 1;
-      yardsInput.dispatchEvent(new Event('change'));
-    });
   }
 
   _autoPlayCurrent() {
@@ -1434,7 +1366,7 @@ class App {
     if (e.code === 'KeyY' && !e.shiftKey) {
       e.preventDefault();
       const nativeYd = document.querySelector('[data-native-tagging] [data-native-field="yardage"] input');
-      const yd = nativeYd?.getClientRects().length ? nativeYd : document.getElementById('tagYardage');
+      const yd = nativeYd?.getClientRects().length ? nativeYd : null;
       if (yd) { yd.focus(); yd.select(); }
       return true;
     }

@@ -150,7 +150,6 @@ export class HistoryManager {
     // ?? keeps a stored 0; fall back to max-id+1 (not plays.length+1, which can
     // duplicate an existing id when ids are non-contiguous after deletes).
     this.tagger.nextId = data.nextId ?? (Math.max(0, ...this.tagger.plays.map(p => Number(p.id) || 0)) + 1);
-    this.tagger._updateFormEnabled();
     const cid = data.currentPlayId;
     if (cid && this.tagger.getPlay(cid)) {
       this.tagger.currentPlayId = cid;
