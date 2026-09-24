@@ -12,8 +12,8 @@
  * pattern). A row with no resolvable refs renders with no click affordance
  * at all, never a dead click.
  */
-import { useMemo, useState } from 'preact/hooks';
-import { createPortal } from 'preact/compat';
+import { render } from 'preact';
+import { useLayoutEffect, useMemo, useState } from 'preact/hooks';
 import { StatsEngine } from './stats-engine.js';
 
 export function KpiBand({ items }) {
@@ -276,11 +276,22 @@ export function SectionBar({ label, sections, active, onSelect, numbered = false
  * position whatever the board below it does. A board embedded in another
  * report (Season's child boards) has no host and keeps the same bar inline.
  * The portal lives and dies with the board: a tab change unmounts it.
+ *
+ * It is core Preact, never preact/compat. Importing compat installs global
+ * option hooks that turn every text and date input's onChange into onInput
+ * across the whole app, which broke charting yardage, Study date ranges and
+ * every other change-committed field the moment Reports loaded.
  */
+function HostPortal({ host, children }) {
+  useLayoutEffect(() => { render(children, host); });
+  useLayoutEffect(() => () => render(null, host), [host]);
+  return null;
+}
+
 export function ReportSectionBar({ screen, ...props }) {
   const host = screen?.sectionBarHost?.() || null;
   const bar = <SectionBar {...props} inline={!host} />;
-  return host ? createPortal(bar, host) : bar;
+  return host ? <HostPortal host={host}>{bar}</HostPortal> : bar;
 }
 
 /**

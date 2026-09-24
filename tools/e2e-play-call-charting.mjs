@@ -187,6 +187,10 @@ state = await page.evaluate(async () => {
   await app.workspaceShell.show('reports');
   app.reportsScreen.selectTab('offense');
   await new Promise(resolve => setTimeout(resolve, 100));
+  // Offense is paged (secondary bar, 2026-09-23): the call modules live on
+  // Calls & tendencies, one page on screen at a time.
+  document.querySelector('[data-reports-secbar] [data-section="calls"]')?.click();
+  await new Promise(resolve => setTimeout(resolve, 100));
   const root = document.querySelector('#wsReports');
   // The two "Play Calls" module tables (call performance, concept roll-up)
   // both render through the shared DataTable component and share its default
