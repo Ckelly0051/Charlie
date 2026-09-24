@@ -301,7 +301,9 @@ const MINIMA = {
   overview: 9.5, offense: 10.5, defense: 12.5,
   // Special Teams migrated to the shared floor on 2026-09-19, the second board
   // after Defense to hold it with nothing below.
-  special: 12.5, players: 12.5, selfscout: 12.5, season: 12.5, matchup: 12.5,
+  special: 12.5, players: 12.5, season: 12.5, matchup: 12.5,
+  // Self-Scout's smallest text rose to 13px with the 2026-09-24 module system.
+  selfscout: 13,
 };
 for (const [tab, expected] of Object.entries(MINIMA)) {
   const rows = observed.filter(item => item.tab === tab);

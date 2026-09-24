@@ -296,7 +296,9 @@ const type = await page.evaluate(() => {
     floor: Math.min(...all.map(el => parseFloat(getComputedStyle(el).fontSize))),
   };
 });
-ok(type.titleSize === 14, 'module titles are 14px', String(type.titleSize));
+/* 14px (revision 4) until 2026-09-24, when the coach moved every Reports board
+   to the Defense module system's 17px title bar (1.12.0-97 smoke S97-1). */
+ok(type.titleSize === 17, 'module titles are 17px', String(type.titleSize));
 ok(/Plex Sans/.test(type.titleFace) && !/Condensed/.test(type.titleFace),
   'module titles use readable IBM Plex Sans', type.titleFace);
 ok(type.titleTransform === 'none' && (type.titleSpacing === 'normal' || parseFloat(type.titleSpacing) === 0),

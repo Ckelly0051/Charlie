@@ -31,6 +31,8 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const BOARDS = [
   { tab: 'players', board: '.gi-players-board', attr: 'data-section',
     sections: [['all', 'All roles'], ['off', 'Offense'], ['def', 'Defense'], ['st', 'Special Teams']] },
+  { tab: 'selfscout', board: '.gi-selfscout-board', attr: 'data-section',
+    sections: [['summary', 'Offensive Summary'], ['offense', 'Calls & Situations'], ['structure', 'Structure'], ['defense', 'Defense'], ['tendencies', 'Tendencies']] },
 ];
 
 if (!existsSync(SOURCE)) {

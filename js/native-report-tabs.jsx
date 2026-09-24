@@ -2668,7 +2668,7 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
   else if (section === 'tendencies') body = <SsTendenciesSection report={report} defScout={defScout} screen={screen} />;
   else body = <SsSummarySection summary={summary} performance={performance} screen={screen} />;
 
-  return <div class="gi-overview-board gi-selfscout-board">
+  return <div class="gi-overview-board gi-selfscout-board" data-ss-section={section}>
     <div class="gi-selfscout-report">
       {/* Sections and the report export live in the shared secondary bar
           (coach-approved comp, 2026-09-23); the sample stays with the board. */}
@@ -2680,14 +2680,20 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
         active={section} onSelect={setSection}
         exportAction={{ label: 'Export report', attrs: { class: 'gi-secbar-export', 'data-report-export': 'selfscout' },
           onSelect: () => (screen.exportSelfScout ? screen.exportSelfScout(report, defScout, performance, rows) : screen.export('season-html')) }} />
-      <div class="gi-selfscout-toolbar">
-        <span class="gi-selfscout-sample">
-          {/* Both halves name the cohort. The defensive half said "defensive
-              plays" while measuring the same classified subset, so it read as
-              a different cohort from the offensive half beside it. */}
-          <b>{report ? report.totalPlays : 0}</b> classified offensive plays · <b>{defSummary.totalPlays}</b> classified defensive plays
-        </span>
-      </div>
+      {/* The page heading, the Defense board's hierarchy (coach direction,
+          1.12.0-97 smoke S97-1); the sample line is its cohort statement. */}
+      {(() => {
+        const index = SELF_SCOUT_SECTIONS.findIndex(([id]) => id === section);
+        return <header class="gi-report-heading">
+          <span>{String(index + 1).padStart(2, '0')}</span><h2>{SELF_SCOUT_SECTIONS[index][1]}</h2>
+          <small class="gi-selfscout-toolbar"><span class="gi-selfscout-sample">
+            {/* Both halves name the cohort. The defensive half said "defensive
+                plays" while measuring the same classified subset, so it read as
+                a different cohort from the offensive half beside it. */}
+            <b>{report ? report.totalPlays : 0}</b> classified offensive plays · <b>{defSummary.totalPlays}</b> classified defensive plays
+          </span></small>
+        </header>;
+      })()}
       <div class="gi-selfscout-sections">{body}</div>
     </div>
   </div>;
