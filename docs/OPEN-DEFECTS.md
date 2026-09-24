@@ -1,5 +1,35 @@
 # GridIron IQ Open Defects
 
+## Installed smoke, 1.12.0-97 (in progress, 2026-09-23)
+
+**Finding S97-1 — open. The Offense pages carry several unrelated visual
+treatments.** Coach, on Identity, Situations and Structure: different header
+styles, headline styles and fonts per page, as though the old long board was
+cut into pages unchanged. Offense gold / Defense blue is correct; the
+treatment should be one system. Cause, from source: the pages kept each old
+zone's module styles (gold uppercase micro-headers with a left gold rail on
+Identity and Structure, gray uppercase KPI labels, condensed display values),
+and the down-and-distance chart added a third style of its own (sentence-case
+15px white title, gray cohort line, and a 2px CYAN top rule, which is
+Defense's color, on an Offense page; `css/native-reports.css` `.gi-dd`). Not
+yet audited: the other Offense pages, the Defense pages and the chart on
+Defense. No repair started, per the smoke-findings protocol.
+
+*Coach direction, same finding:* Defense Revision 2's hierarchy is the model
+for Offense — a large primary heading per page (`02 Opponent offense`), a
+large sentence-case module title under a colored top rule (`Production by
+play type`), then smaller sentence-case column labels and rows. Offense takes
+that same hierarchy in gold. This replaces the Offense board's inherited
+micro-header treatment, which the approved Offense comp specified, so the
+repair is a coach-directed change to that comp's typography and must be
+recorded in the Offense production RATIONALE. The chart's title style already
+follows the Defense hierarchy; on Offense its rule becomes gold.
+Clarified by the coach: the point is the headings and the module outlines,
+not the color — "Defense looks clean." Defense modules are separate outlined
+boxes with 20px gutters and a title bar; Offense modules are packed into
+bands that share rules, with a left accent rail. Offense adopts the Defense
+module outline, spacing and heading scale.
+
 ## Coach Reports smoke findings (2026-09-23)
 
 **Intake checkpoint:** The coach has finished listing findings for now and
