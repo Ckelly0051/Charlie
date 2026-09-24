@@ -54,7 +54,7 @@ const measure = () => page.evaluate(() => {
   return {
     dock: route?.dataset.frDock, video: route?.style.getPropertyValue('--fr-video'),
     theater: box('[data-breakdown-theater-host]'), deck: box('.gi-breakdown-deck'), splitter: box('[data-fr-splitter]'),
-    table: box('.gi-film-table-wrap'), group: box('.gi-breakdown-layout'),
+    table: box('.gi-film-table-wrap'), group: box('.gi-breakdown-layout'), controls: box('[data-film-controls]'),
     aria: splitter && { role: splitter.getAttribute('role'), orient: splitter.getAttribute('aria-orientation'), now: Number(splitter.getAttribute('aria-valuenow')), min: Number(splitter.getAttribute('aria-valuemin')), max: Number(splitter.getAttribute('aria-valuemax')), tab: splitter.tabIndex },
     pressed: [...document.querySelectorAll('button[data-fr-dock]')].map(b => `${b.dataset.frDock}:${b.getAttribute('aria-pressed')}`).join(','),
     stored: localStorage.getItem('ffa_film_room_layout'),
@@ -69,7 +69,9 @@ await seed();
 let m = await measure();
 ok(m.dock === 'bottom' && m.video === '62%', 'the default dock is below the film at a 62% film share', JSON.stringify({ dock: m.dock, video: m.video }));
 ok(m.theater && m.deck && m.theater.b <= m.splitter.y + 1 && m.splitter.b <= m.deck.y + 1, 'film, separator and table stack top to bottom', JSON.stringify({ t: m.theater, s: m.splitter, d: m.deck }));
-ok(Math.abs(m.theater.w - m.deck.w) < 2 && m.theater.h > m.deck.h, 'the film and table share the full width and the film takes the larger share', JSON.stringify({ t: m.theater, d: m.deck }));
+// Approved 2026-09-24: the film band is the film plus the table's controls card;
+// together they span the table's width, and the band is the larger share.
+ok(m.controls && Math.abs(m.theater.x - m.deck.x) < 2 && Math.abs(m.controls.r - m.deck.r) < 2 && m.theater.h > m.deck.h, 'the film band (film + controls card) spans the table width and takes the larger share', JSON.stringify({ t: m.theater, c: m.controls, d: m.deck }));
 ok(m.aria?.role === 'separator' && m.aria.orient === 'horizontal' && m.aria.now === 62 && m.aria.min === 40 && m.aria.max === 75 && m.aria.tab === 0,
   'the splitter is a focusable separator stating its orientation, value and limits', JSON.stringify(m.aria));
 ok(m.pressed === 'bottom:true,side:false', 'the Below control reads pressed', m.pressed);
@@ -216,10 +218,65 @@ r = await page.evaluate(async () => {
 ok(!r.threw && r.dock === 'side', 'a failed layout write still applies the layout on screen', JSON.stringify(r));
 await page.evaluate(() => window.app.breakdownWorkspace.resetFilmLayout());
 
+console.log('\n== 9b. Approved composition (coach, 2026-09-24): cards beside the film ==');
+// Table below: the play card is a full-height column against the table's
+// controls card, both the height of the top band, and the table starts at its
+// column headers. Every play detail shows; a long card scrolls inside itself.
+const comp = () => page.evaluate(() => {
+  const box = e => { if (!e || !e.getClientRects().length) return null; const b = e.getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; };
+  const card = document.querySelector('.gi-theater-selected-play');
+  const controls = document.querySelector('[data-film-controls]');
+  const cs = card && getComputedStyle(card);
+  return {
+    theater: box(document.querySelector('[data-breakdown-theater-host]')),
+    stage: box(document.querySelector('.gi-theater-stage')),
+    card: box(card), controls: box(controls),
+    table: box(document.querySelector('.gi-film-table-wrap')), deck: box(document.querySelector('.gi-breakdown-deck')),
+    controlsInTable: !!document.querySelector('[data-native-film-room] [data-film-controls]'),
+    cardInStage: !!document.querySelector('.gi-theater-stage .gi-theater-selected-play'),
+    details: card ? card.querySelectorAll('details').length : null,
+    cardText: card?.textContent || '',
+    rule: cs && `${cs.borderTopWidth} ${cs.borderTopStyle}`, ruleColor: cs?.borderTopColor,
+    gold: getComputedStyle(document.documentElement).getPropertyValue('--gi-bd-gold').trim(),
+    cardScroll: card && { overflow: cs.overflowY, sh: card.scrollHeight, ch: card.clientHeight },
+    controlsScroll: controls && getComputedStyle(controls).overflowY,
+  };
+});
+await page.setViewport({ width: 1280, height: 800 });
+await page.evaluate(() => { window.app.breakdownWorkspace.resetFilmLayout(); window.app.tagger.selectPlay(5); });
+await settle(page);
+let c = await comp();
+ok(c.controls && !c.controlsInTable && c.controls.l >= c.theater.r - 1 && Math.abs(c.controls.t - c.theater.t) <= 1 && Math.abs(c.controls.b - c.theater.b) <= 1,
+  'table below: the table controls are their own card, right of the film, the full height of the band', JSON.stringify(c));
+ok(c.card && !c.cardInStage && c.card.r <= c.controls.l && c.controls.l - c.card.r <= 8 && Math.abs(c.card.t - c.theater.t) <= 1 && Math.abs(c.card.b - c.theater.b) <= 1,
+  'table below: the play card is a full-height column against the controls card', JSON.stringify({ card: c.card, controls: c.controls, theater: c.theater }));
+ok(c.stage && c.stage.r <= c.card.l, 'the film stage ends where the play card begins (nothing overlaps the film)', JSON.stringify({ stage: c.stage, card: c.card }));
+ok(c.table && c.table.t - c.deck.t <= 60, 'the table starts at its column headers, with no title or filter rows above them', JSON.stringify({ table: c.table, deck: c.deck }));
+ok(c.details === 0 && /Play 5/.test(c.cardText), 'the play card shows every detail with no disclosure', JSON.stringify({ details: c.details, text: c.cardText.slice(0, 80) }));
+ok(c.rule === '2px solid' && c.cardScroll.overflow === 'auto' && c.controlsScroll === 'auto',
+  'the play card carries its gold top rule, and both cards scroll inside themselves', JSON.stringify({ rule: c.rule, color: c.ruleColor, scroll: c.cardScroll, controls: c.controlsScroll }));
+// A play whose notes run long scrolls inside the card; the card never grows.
+const before = c.card;
+await page.evaluate(() => { const t = window.app.tagger, p = t.getPlay(5); p.notes = Array.from({ length: 60 }, (_, i) => `Note line ${i + 1}: backside tackle blocks down, guard pulls.`).join('\n'); t._emit('play-updated', p); t.selectPlay(5); });
+await settle(page);
+c = await comp();
+ok(c.cardScroll.sh > c.cardScroll.ch && c.card.t === before.t && c.card.b === before.b,
+  'long play notes scroll inside the play card without changing its size', JSON.stringify({ scroll: c.cardScroll, before, after: c.card }));
+await page.evaluate(() => { const t = window.app.tagger, p = t.getPlay(5); p.notes = ''; t._emit('play-updated', p); });
+// Table beside: the controls are a bar over the table, the play card sits in the film column.
+await page.evaluate(() => window.app.breakdownWorkspace.setFilmLayout({ dock: 'side' }, { persist: false }));
+await settle(page);
+c = await comp();
+ok(c.controls && Math.abs(c.controls.l - c.deck.l) <= 1 && c.controls.b <= c.table.t + 1 && c.card.r <= c.theater.r,
+  'table beside: the controls are a bar over the table and the play card stays in the film column', JSON.stringify(c));
+await page.evaluate(() => window.app.breakdownWorkspace.resetFilmLayout());
+await page.setViewport({ width: 1440, height: 900 }); await settle(page);
+
 console.log('\n== 10. Film focus and narrow widths ==');
 await page.evaluate(() => window.app.breakdownWorkspace._setFilmFocus(true)); await settle(page);
 m = await measure();
-ok(!m.splitter && !m.deck, 'Film focus hides the table and its splitter', JSON.stringify({ s: m.splitter, d: m.deck }));
+const focusControls = await page.evaluate(() => { const e = document.querySelector('[data-film-controls]'); return !!(e && e.getClientRects().length); });
+ok(!m.splitter && !m.deck && !focusControls, 'Film focus hides the table, its controls and its splitter', JSON.stringify({ s: m.splitter, d: m.deck, focusControls }));
 await page.evaluate(() => window.app.breakdownWorkspace._setFilmFocus(false)); await settle(page);
 for (const [w, h] of [[1280, 800], [1920, 1080]]) {
   await page.setViewport({ width: w, height: h }); await settle(page);

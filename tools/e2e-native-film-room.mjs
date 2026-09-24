@@ -51,9 +51,15 @@ const mounted = await page.evaluate(async () => {
   const priorClassicApiAbsent = !('section' in app.playGrid) && typeof app.playGrid._render === 'undefined';
   const host = document.createElement('div');
   host.id = 's5bTestHost';
-  host.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--gi-1)';
+  host.style.cssText = 'position:fixed;inset:160px 0 0 0;z-index:99999;background:var(--gi-1)';
   document.body.appendChild(host);
-  const didMount = app.nativeFilmRoom.mount(host);
+  // The table's controls are their own region with their own host, a sibling
+  // of the table's (render() owns each host's children).
+  const controlsHost = document.createElement('div');
+  controlsHost.id = 's5bTestControlsHost';
+  controlsHost.style.cssText = 'position:fixed;top:0;left:0;right:0;height:160px;z-index:99999;background:var(--gi-1)';
+  document.body.appendChild(controlsHost);
+  const didMount = app.nativeFilmRoom.mount(host, controlsHost);
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   return {
     didMount,
@@ -75,7 +81,8 @@ if (shotDir) await (await page.$('[data-native-film-room]')).screenshot({ path: 
 let state = await page.evaluate(() => [...document.querySelectorAll('[data-cell][tabindex="0"]')].map(cell => cell.dataset.cell));
 ok(JSON.stringify(state) === JSON.stringify(['1:sit']), 'Keyboard users receive one initial grid entry point', JSON.stringify(state));
 await page.focus('[data-cell="1:sit"]');
-ok(mounted.subscribers === 1, 'Native subscription is scoped to the mounted deck');
+// Two roots since 2026-09-24: the table and its controls region, one each.
+ok(mounted.subscribers === 2, 'Native subscriptions are scoped to the mounted table and its controls', String(mounted.subscribers));
 
 state = await page.evaluate(() => {
   const cell = document.querySelector('[data-cell="1:formation"]');
@@ -94,7 +101,7 @@ await page.click('[data-filter="rp:Pass"]');
 state = await page.evaluate(() => ({
   actual: [...document.querySelectorAll('.gi-film-table-wrap tbody tr')].map(row => Number(row.querySelector('.is-play button').textContent.trim().replace(/^[ODS]/, ''))),
   expected: window.app.playGrid._visiblePlays().map(play => play.id),
-  label: document.querySelector('.gi-film-room-head p')?.textContent,
+  label: document.querySelector('.gi-film-controls-head p')?.textContent,
   tabStops: [...document.querySelectorAll('[data-cell][tabindex="0"]')].map(cell => cell.dataset.cell),
 }));
 ok(JSON.stringify(state.actual) === JSON.stringify(state.expected) && state.actual.length > 0, 'Native filters use the canonical AND/OR matcher', JSON.stringify(state));

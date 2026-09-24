@@ -119,6 +119,70 @@ function CellEditor({ screen, model, close }) {
   </form>;
 }
 
+/**
+ * THE TABLE'S CONTROLS ARE THEIR OWN REGION (coach direction, 2026-09-24).
+ * Title, count, Columns, Watch, saved filters and the filter chips used to sit
+ * inside the table section, where they spent two and a half rows of a table
+ * that is half the reason Film Room exists. They are a separate root with a
+ * separate host in the Break Down composition, so the route decides where they
+ * go -- a vertical card beside the film when the table is below it, a bar over
+ * the table when it is beside the film or on a phone -- and the table section
+ * holds only the table. Same controller, same snapshot, one owner each.
+ */
+function FilmRoomControls({ screen }) {
+  const [state, setState] = useState(() => screen.snapshot());
+  useLayoutEffect(() => screen.subscribe(setState), [screen]);
+  const openColumns = anchor => screen.overlays.sheet({
+    title: 'Film Room columns',
+    modal: false,
+    returnFocus: anchor,
+    content: <ColumnsPanel screen={screen} state={state} />,
+    actions: [{ key: 'done', label: 'Done', tone: 'primary', default: true }],
+  });
+  const openSaved = anchor => screen.overlays.popover({
+    title: 'Saved Film Room filters',
+    anchor,
+    items: state.savedFilters.flatMap(item => [
+      { key: 'apply-' + item.index, label: item.name, onSelect: () => screen.applySavedFilter(item.index) },
+      { key: 'delete-' + item.index, label: 'Delete ' + item.name, tone: 'destructive', onSelect: () => screen.deleteSavedFilter(item.index) },
+    ]),
+  });
+  const saveFilter = anchor => {
+    let name = '';
+    screen.overlays.dialog({
+      title: 'Save this Film Room filter',
+      returnFocus: anchor,
+      content: <label class="gi-film-save-filter">Filter name<input autoFocus maxLength="40" placeholder="3rd down passes" onInput={event => { name = event.currentTarget.value; }} /></label>,
+      actions: [
+        { key: 'cancel', label: 'Cancel' },
+        { key: 'save', label: 'Save filter', tone: 'primary', default: true, onSelect: () => screen.saveFilter(name) },
+      ],
+    });
+  };
+  const groups = [...new Set(FILTERS.map(item => item.group))];
+  return <section class="gi-film-controls" data-film-controls aria-label="Breakdown table controls">
+    <header class="gi-film-controls-head">
+      <h2>Breakdown table</h2>
+      <p>{state.visible === state.total ? state.total + ' plays' : state.visible + ' of ' + state.total + ' plays'}</p>
+    </header>
+    <div class="gi-film-controls-actions">
+      <button type="button" data-film-columns onClick={event => openColumns(event.currentTarget)}>Columns</button>
+      <button type="button" data-film-watch class="is-primary" disabled={!state.watchCount} onClick={() => screen.watch()}>Watch {state.watchCount}</button>
+      {state.filterActive && <button type="button" onClick={() => screen.clearFilters()}>Clear filters</button>}
+      {state.filterActive && <button type="button" onClick={event => saveFilter(event.currentTarget)}>Save filter</button>}
+      {state.savedFilters.length > 0 && <button type="button" onClick={event => openSaved(event.currentTarget)}>Saved filters</button>}
+    </div>
+    <div class="gi-film-filters" role="group" aria-label="Film Room filters">{groups.map(group =>
+      <div class="gi-film-filter-group" key={group} data-filter-group={group}>{FILTERS.filter(item => item.group === group).map(item => <button
+        type="button" key={item.group + item.value}
+        data-filter={item.group + ':' + item.value}
+        class={filterOn(state.filters, item.group, item.value) ? 'is-active' : ''}
+        aria-pressed={filterOn(state.filters, item.group, item.value)}
+        onClick={() => screen.toggleFilter(item.group, item.value)}
+      >{item.label}</button>)}</div>)}</div>
+  </section>;
+}
+
 function NativeFilmRoom({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
   const [active, setActive] = useState(null);
@@ -242,33 +306,6 @@ function NativeFilmRoom({ screen }) {
   // entirely. See computeRowSegments() above.
   const segments = computeRowSegments(total, windowStart, windowEnd, activeRowIndex);
 
-  const openColumns = anchor => screen.overlays.sheet({
-    title: 'Film Room columns',
-    modal: false,
-    returnFocus: anchor,
-    content: <ColumnsPanel screen={screen} state={state} />,
-    actions: [{ key: 'done', label: 'Done', tone: 'primary', default: true }],
-  });
-  const openSaved = anchor => screen.overlays.popover({
-    title: 'Saved Film Room filters',
-    anchor,
-    items: state.savedFilters.flatMap(item => [
-      { key: 'apply-' + item.index, label: item.name, onSelect: () => screen.applySavedFilter(item.index) },
-      { key: 'delete-' + item.index, label: 'Delete ' + item.name, tone: 'destructive', onSelect: () => screen.deleteSavedFilter(item.index) },
-    ]),
-  });
-  const saveFilter = anchor => {
-    let name = '';
-    screen.overlays.dialog({
-      title: 'Save this Film Room filter',
-      returnFocus: anchor,
-      content: <label class="gi-film-save-filter">Filter name<input autoFocus maxLength="40" placeholder="3rd down passes" onInput={event => { name = event.currentTarget.value; }} /></label>,
-      actions: [
-        { key: 'cancel', label: 'Cancel' },
-        { key: 'save', label: 'Save filter', tone: 'primary', default: true, onSelect: () => screen.saveFilter(name) },
-      ],
-    });
-  };
   const openEditor = (anchor, row, col) => {
     const model = screen.editor(row.id, col.key);
     if (!model) return;
@@ -334,23 +371,6 @@ function NativeFilmRoom({ screen }) {
   };
 
   return <section class="gi-film-room" data-native-film-room aria-label="Film Room breakdown table">
-    <header class="gi-film-room-head">
-      <div class="gi-film-room-head-id"><span class="gi-eyebrow">Breakdown table</span><p>{state.visible === state.total ? state.total + ' plays' : state.visible + ' of ' + state.total + ' plays'}</p></div>
-      <div class="gi-film-room-actions">
-        {state.filterActive && <button type="button" onClick={() => screen.clearFilters()}>Clear filters</button>}
-        {state.filterActive && <button type="button" onClick={event => saveFilter(event.currentTarget)}>Save filter</button>}
-        {state.savedFilters.length > 0 && <button type="button" onClick={event => openSaved(event.currentTarget)}>Saved filters</button>}
-        <button type="button" data-film-columns onClick={event => openColumns(event.currentTarget)}>Columns</button>
-        <button type="button" data-film-watch class="is-primary" disabled={!state.watchCount} onClick={() => screen.watch()}>Watch {state.watchCount}</button>
-      </div>
-    </header>
-    <div class="gi-film-filters" aria-label="Film Room filters">{FILTERS.map(item => <button
-      type="button" key={item.group + item.value}
-      data-filter={item.group + ':' + item.value}
-      class={filterOn(state.filters, item.group, item.value) ? 'is-active' : ''}
-      aria-pressed={filterOn(state.filters, item.group, item.value)}
-      onClick={() => screen.toggleFilter(item.group, item.value)}
-    >{item.label}</button>)}</div>
     <div class="gi-film-table-wrap" ref={tableRef} onScroll={onTableScroll} onKeyDown={event => {
       if (event.key === 'ArrowUp') move(event, 0, -1);
       else if (event.key === 'ArrowDown') move(event, 0, 1);
@@ -380,9 +400,11 @@ function NativeFilmRoom({ screen }) {
   </section>;
 }
 
-export function mountNativeFilmRoom({ host, screen }) {
+export function mountNativeFilmRoom({ host, controlsHost, screen }) {
   if (!host) throw new Error('Native Film Room requires a host.');
+  if (!controlsHost) throw new Error('Native Film Room requires a controls host.');
   if (!screen) throw new Error('Native Film Room requires a screen controller.');
   render(<NativeFilmRoom screen={screen} />, host);
-  return { unmount() { render(null, host); } };
+  render(<FilmRoomControls screen={screen} />, controlsHost);
+  return { unmount() { render(null, host); render(null, controlsHost); } };
 }

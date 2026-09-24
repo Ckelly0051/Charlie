@@ -178,7 +178,7 @@ function SelectedPlay({ state }) {
     <header><strong>Play {c.playId}</strong><span>{[c.situation, c.ball, c.hash === '—' ? '' : `${c.hash} hash`].filter(Boolean).join(' · ')}</span></header>
     <strong class="gi-selected-call">{c.ourValue}</strong>
     <p>{c.result}</p>
-    {c.lookLabel && <details><summary>More detail</summary><p>{c.lookLabel}: {c.lookValue}</p></details>}
+    {c.lookLabel && <p>{c.lookLabel}: {c.lookValue}</p>}
     {state.currentNotes && <p class="gi-selected-notes">{state.currentNotes}</p>}
     {state.currentDrive && <p>{state.currentDrive}</p>}
   </section>;
@@ -212,7 +212,6 @@ function NativeBreakdownTheater({ screen, hasRailHost }) {
     <div class="gi-theater-player" data-native-player-surface>
       <div class="gi-theater-stage">
         <div class="gi-theater-media-slot" data-native-media-slot />
-        <SelectedPlay state={state} />
       </div>
       <Chyron state={state} />
       <Transport screen={screen} state={state} />
@@ -220,6 +219,7 @@ function NativeBreakdownTheater({ screen, hasRailHost }) {
     <AngleBar screen={screen} state={state} />
     <ChartActions screen={screen} state={state} />
     {!hasRailHost && <PlayStrip screen={screen} state={state} />}
+    <SelectedPlay state={state} />
   </section>;
 }
 

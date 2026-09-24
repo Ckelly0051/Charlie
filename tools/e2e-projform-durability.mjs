@@ -177,8 +177,9 @@ await page.evaluate(() => {
   if (grid && !grid.cols.includes('backfield')) { grid.cols = [...grid.cols, 'backfield']; }
   const host = document.createElement('div');
   host.id = 'projformFilmRoomHost';
-  document.body.append(host);
-  window.app.nativeFilmRoom.mount(host);
+  const controlsHost = document.createElement('div');
+  document.body.append(controlsHost, host);
+  window.app.nativeFilmRoom.mount(host, controlsHost);
   if (grid) grid.refresh();
 });
 // Wait for the CELL, not for a fixed number of milliseconds -- same reasoning

@@ -75,6 +75,7 @@ export class BreakdownWorkspace {
           <section class="gi-breakdown-theater-host" data-breakdown-theater-host></section>
           <aside class="gi-breakdown-rail-host" data-breakdown-rail-host aria-label="Game plays"></aside>
           <div class="gi-breakdown-splitter" data-fr-splitter role="separator" tabindex="0" aria-label="Resize film and table"></div>
+          <div class="gi-breakdown-film-controls-host" data-breakdown-film-controls-host></div>
           <aside class="gi-breakdown-deck" aria-label="Charting deck">
             <div class="gi-breakdown-tagging-host" data-breakdown-tagging-host></div>
             <div class="gi-breakdown-film-room-host" data-breakdown-film-room-host hidden></div>
@@ -84,7 +85,7 @@ export class BreakdownWorkspace {
     try {
       if (!this.app.breakdownTheater.mount(host.querySelector('[data-breakdown-theater-host]'), { railHost: host.querySelector('[data-breakdown-rail-host]') })) throw new Error('Break Down theater did not mount.');
       if (!this.app.nativeTagging.mount(host.querySelector('[data-breakdown-tagging-host]'))) throw new Error('Break Down tagging did not mount.');
-      if (!this.app.nativeFilmRoom.mount(host.querySelector('[data-breakdown-film-room-host]'))) throw new Error('Break Down Film Room did not mount.');
+      if (!this.app.nativeFilmRoom.mount(host.querySelector('[data-breakdown-film-room-host]'), host.querySelector('[data-breakdown-film-controls-host]'))) throw new Error('Break Down Film Room did not mount.');
       this._bind();
       this._applyLayout();
       this._setView(this.view);

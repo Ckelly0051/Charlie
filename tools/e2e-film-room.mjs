@@ -153,7 +153,7 @@ r = await page.evaluate(async () => {
   // visible count is, and is exactly what every comparison below already
   // means by "rows()".
   const rows = () => window.app.playGrid.nativeSnapshot().visible;
-  const clearFilters = () => [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
+  const clearFilters = () => [...document.querySelectorAll('.gi-film-controls-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   const all = rows();
   chip('downs', '3').click();
   await raf2();
@@ -168,7 +168,7 @@ r = await page.evaluate(async () => {
   const SE = window.app.stats.constructor;
   const expectedThirdPass = window.app.tagger.plays.filter(p =>
     String(p.tags.down) === '3' && SE.isPass(p)).length;
-  const showing = document.querySelector('.gi-film-room-head p').textContent;
+  const showing = document.querySelector('.gi-film-controls-head p').textContent;
   clearFilters();
   await raf2();
   const cleared = rows();
@@ -186,7 +186,7 @@ r = await page.evaluate(async () => {
   const rows = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   const expected = window.app.tagger.plays.filter(p =>
     String(p.tags.result || '').split(/\s*\+\s*/).map(s => s.trim()).includes('Touchdown')).length;
-  [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
+  [...document.querySelectorAll('.gi-film-controls-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   await raf2();
   return { rows, expected };
 });
@@ -198,7 +198,7 @@ r = await page.evaluate(async () => {
   await raf2();
   const rows = document.querySelectorAll('[data-native-film-room] tbody tr').length;
   const emptyShown = !!document.querySelector('.gi-film-empty');
-  [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
+  [...document.querySelectorAll('.gi-film-controls-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   await raf2();
   return { rows, emptyShown };
 });
@@ -256,7 +256,7 @@ r = await page.evaluate(async () => {
   await raf2();
   const watch = document.querySelector('[data-film-watch]');
   const out = { label: watch.textContent, disabled: watch.disabled };
-  [...document.querySelectorAll('.gi-film-room-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
+  [...document.querySelectorAll('.gi-film-controls-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   grid.selected.clear();
   await raf2();
   return out;

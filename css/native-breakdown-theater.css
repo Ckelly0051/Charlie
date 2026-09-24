@@ -71,14 +71,21 @@
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-stage{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:12px;padding:12px;overflow-y:auto}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-media-slot{flex:0 0 auto;width:100%;height:auto;aspect-ratio:16/9}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-selected-play{flex:0 0 auto}
-/* TABLE BELOW (the default Film Room dock): the theater is wide and short, so
-   the film and its play card sit side by side at the stage's full height
-   instead of stacking. The film keeps 16:9 at the stage height and the card is
-   a fixed 320px beside it, so spare width never goes to an empty card. */
+/* The play card is the theater's last child, outside the player, so Film
+   focus and fullscreen never carry it. Table beside and phone: it sits under
+   the play actions. */
+.gi-breakdown-theater[data-view="film-room"]>.gi-theater-selected-play{flex:0 0 auto;max-height:40%;overflow-y:auto}
+/* TABLE BELOW (the default Film Room dock, coach direction 2026-09-24): the
+   card is a full-height column against the table's controls card, from the
+   top of the band down to the table. The film centers in what remains, so its
+   spare width reads as even margins rather than a gap on one side. Every
+   detail shows; a long card scrolls inside itself. */
 @media(min-width:1001px){
-  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"] .gi-theater-stage{flex-direction:row;align-items:stretch;justify-content:center;gap:8px;padding:8px;overflow:hidden}
-  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"] .gi-theater-media-slot{flex:0 1 auto;width:auto;height:100%;max-width:calc(100% - 328px)}
-  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"] .gi-theater-selected-play{flex:0 0 320px;overflow-y:auto}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"]{display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:minmax(0,1fr) auto auto;column-gap:6px}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"]>*{grid-column:1}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"]>.gi-theater-selected-play{grid-column:2;grid-row:1/-1;max-height:none;height:100%;margin:0;overflow-y:auto}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"] .gi-theater-stage{flex-direction:row;align-items:stretch;justify-content:center;padding:8px;overflow:hidden}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"] .gi-theater-media-slot{flex:0 1 auto;width:auto;height:100%;max-width:100%}
 }
 .gi-theater-player:fullscreen .gi-theater-media-slot,.gi-theater-player:-webkit-full-screen .gi-theater-media-slot{flex:1;aspect-ratio:auto;height:100%}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-chyron .is-call,.gi-breakdown-theater[data-view="film-room"] .gi-theater-chyron .is-wide{display:none}

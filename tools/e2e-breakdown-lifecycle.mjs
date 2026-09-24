@@ -79,7 +79,7 @@ state = await page.evaluate(() => {
     chartHidden: document.querySelector('[data-breakdown-tagging-host]').hidden,
     filmVisible: !document.querySelector('[data-breakdown-film-room-host]').hidden,
     rowIds: snap.rows.map(row => row.id),
-    displayed: document.querySelector('.gi-film-room-head p')?.textContent,
+    displayed: document.querySelector('.gi-film-controls-head p')?.textContent,
     mediaSame: document.getElementById('videoContainer').__s5dIdentity === true,
   };
 });
@@ -88,10 +88,10 @@ ok(state.chartHidden && state.filmVisible && state.mediaSame,
 ok(JSON.stringify(state.rowIds) === '[1,2,3]' && state.displayed === '3 plays',
   'Displayed play total and row identities equal the source game', JSON.stringify(state));
 await page.click('[data-filter="unit:offense"]');
-await page.waitForFunction(() => document.querySelector('.gi-film-room-head p')?.textContent === '2 of 3 plays');
+await page.waitForFunction(() => document.querySelector('.gi-film-controls-head p')?.textContent === '2 of 3 plays');
 state = await page.evaluate(() => {
   const snap = window.app.nativeFilmRoom.snapshot();
-  return { rowIds: snap.rows.map(row => row.id), count: snap.watchCount, displayed: document.querySelector('.gi-film-room-head p')?.textContent };
+  return { rowIds: snap.rows.map(row => row.id), count: snap.watchCount, displayed: document.querySelector('.gi-film-controls-head p')?.textContent };
 });
 ok(JSON.stringify(state.rowIds) === '[1,3]' && state.count === 2 && state.displayed === '2 of 3 plays',
   'Film Room filter, displayed count, and Watch cohort resolve the exact same plays', JSON.stringify(state));
@@ -216,7 +216,10 @@ for (const [width, height, dock, minVisibleFilm] of [[1920,1080,'bottom',180],[1
       theater: { left: theater.left, right: theater.right, top: theater.top, bottom: theater.bottom, width: theater.width },
       deck: { left: deck.left, right: deck.right, top: deck.top, bottom: deck.bottom, width: deck.width },
       film: { top: film.top, bottom: film.bottom, width: film.width, height: film.height, visibleHeight: visibleFilmHeight, visibleRows },
-      sideBySide: Math.abs(theater.top - deck.top) <= 1 && deck.left >= theater.right - 1,
+      // Beside: the table's column starts at the film's top with the controls
+      // bar over the table (approved 2026-09-24), so the deck sits under it.
+      sideBySide: deck.left >= theater.right - 1 && deck.top >= theater.top && deck.top - theater.top <= 160
+        && !!document.querySelector('[data-film-controls]') && document.querySelector('[data-film-controls]').getBoundingClientRect().bottom <= deck.top + 1,
       // 6px route gutter on each side.
       stacked: deck.top >= theater.bottom - 1 && Math.abs(deck.width - route.width) <= 14,
       tableVisible: !!document.querySelector('[data-native-film-room]')?.getClientRects().length,

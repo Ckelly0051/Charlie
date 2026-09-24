@@ -1,17 +1,9 @@
-.gi-film-room{display:grid;grid-template-rows:auto auto minmax(0,1fr);min-width:0;min-height:0;height:100%;background:var(--gi-1);color:var(--gi-12);font-family:var(--gi-sans)}
-.gi-film-room-head{display:flex;align-items:center;gap:18px;min-width:0;min-height:44px;padding:5px 12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
-.gi-film-room-head-id{display:flex;align-items:center;gap:12px;min-width:0}
-.gi-film-room-head p{margin:0;color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
-.gi-film-room-actions{display:flex;gap:6px;margin-left:auto}
+.gi-film-room{display:grid;grid-template-rows:minmax(0,1fr);min-width:0;min-height:0;height:100%;background:var(--gi-1);color:var(--gi-12);font-family:var(--gi-sans)}
 .gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:var(--gi-control);border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-12);font:var(--gi-text-control)}
 .gi-film-room button:hover,.gi-film-columns button:hover,.gi-film-cell-editor button:hover{border-color:var(--gi-9);background:var(--gi-4)}
 .gi-film-room button:focus-visible,.gi-film-columns button:focus-visible,.gi-film-cell-editor button:focus-visible,.gi-film-cell-editor input:focus-visible{outline:2px solid var(--gi-10);outline-offset:1px}
 .gi-film-room button.is-primary,.gi-film-cell-editor button.is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-film-room button:disabled{cursor:default;opacity:.55}
-.gi-film-room-actions button{padding:0 10px;white-space:nowrap}
-.gi-film-filters{display:flex;flex-wrap:wrap;gap:4px;min-width:0;padding:7px 12px;border-bottom:1px solid var(--gi-7)}
-.gi-film-filters button{flex:0 0 auto;min-height:30px;padding:0 9px;background:transparent;color:var(--gi-bd-copy)}
-.gi-film-filters button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-film-table-wrap{position:relative;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}
 .gi-film-table-wrap table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font:var(--gi-text-body)}
 .gi-film-table-wrap thead{position:sticky;top:0;z-index:2;background:var(--gi-3)}
@@ -47,23 +39,8 @@
 .gi-film-cell-editor footer{display:flex;justify-content:flex-end;gap:6px;padding-top:5px;border-top:1px solid var(--gi-6)}
 .gi-film-cell-editor footer button{padding:0 12px}
 .gi-film-save-filter{display:grid;gap:7px;color:var(--gi-11);font:var(--gi-text-label)}
-@media(max-width:900px){.gi-film-room-head{align-items:flex-start;flex-wrap:wrap}.gi-film-room-actions{width:100%;margin-left:0;overflow-x:auto}.gi-film-column-list{grid-template-columns:1fr}.gi-film-table-wrap thead th{min-width:110px}}
-@media(pointer:coarse){.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:44px}.gi-film-filters button{min-height:44px}.gi-film-table-wrap th,.gi-film-table-wrap td{height:44px}.gi-film-table-wrap td>button{min-height:44px}.gi-film-table-wrap input[type="checkbox"]{width:20px;height:20px}}
-/* ══ S6-6b — DESIGN RULES LAST ═══════════════════════════════════════════════
-
-   THE EYEBROW WAS BUILT AND THEN HIDDEN. `native-film-room.jsx:160` renders
-   `<span class="gi-eyebrow">Breakdown table</span>` and line 6 of this file
-   clipped it to 1x1px. The identical span in native-tagging.css:21 is visible.
-   Same component, same class, opposite treatment — so the two halves of Break
-   Down disagreed about whether a route announces itself. It announces itself,
-   and it does it with the system's one diagonal. */
-.gi-film-room-head .gi-eyebrow{
-  position:static;width:auto;height:auto;overflow:visible;clip-path:var(--gi-lower-third);background:var(--gi-lower-third-fill);
-  display:inline-flex;align-items:center;align-self:center;min-height:22px;
-  padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);
-  font:var(--gi-text-eyebrow);letter-spacing:var(--gi-track-label);text-transform:uppercase;
-}
-
+@media(max-width:900px){.gi-film-column-list{grid-template-columns:1fr}.gi-film-table-wrap thead th{min-width:110px}}
+@media(pointer:coarse){.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:44px}.gi-film-table-wrap th,.gi-film-table-wrap td{height:44px}.gi-film-table-wrap td>button{min-height:44px}.gi-film-table-wrap input[type="checkbox"]{width:20px;height:20px}}
 /* SQUARE. `--gi-radius` is 0 because broadcast graphics are angular; this file
    hard-coded 3px on every control and 2px on the play badge, so Film Room was
    the one route with rounded corners. */
@@ -79,11 +56,26 @@
 .gi-film-save-filter input:focus-visible,.gi-film-table-wrap td>button:focus-visible{
   outline:none;box-shadow:var(--gi-focus)}
 
-/* Filter chips become one segmented run rather than loose pills, matching the
-   Break Down toolbar's context switch. */
-.gi-film-filters{gap:0;padding:7px 12px}
-.gi-film-filters button{border-left-width:0}
-.gi-film-filters button:first-child{border-left-width:1px}
-.gi-film-filters button.is-active{box-shadow:var(--gi-press)}
 
-@media(max-width:600px){.gi-film-room-head{padding:8px}.gi-film-filters{padding:6px 8px}.gi-film-room-actions button{padding:0 9px}.gi-film-room-head p{font-size:13px}}
+@media(max-width:600px){}
+
+/* THE TABLE'S CONTROLS (2026-09-24). Their own region, placed by the Break Down
+   composition; they style themselves rather than borrowing the table's rules.
+   Base: a bar over the table (table beside the film, or a phone). The route
+   turns it into a vertical card when the table is below the film. */
+.gi-film-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0;height:100%;padding:8px 12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12);font-family:var(--gi-sans)}
+.gi-film-controls-head{display:flex;align-items:baseline;gap:10px;min-width:0}
+.gi-film-controls-head h2{margin:0;font:600 14px var(--gi-sans);white-space:nowrap}
+.gi-film-controls-head p{margin:0;color:var(--gi-bd-copy);font:500 13px var(--gi-sans);white-space:nowrap}
+.gi-film-controls-actions{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.gi-film-controls button{min-height:var(--gi-control);padding:0 10px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-12);font:var(--gi-text-control);white-space:nowrap;cursor:pointer}
+.gi-film-controls button:hover{border-color:var(--gi-9);background:var(--gi-4)}
+.gi-film-controls button:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+.gi-film-controls button:disabled{cursor:default;opacity:.55}
+.gi-film-controls button.is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
+.gi-film-filters{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;min-width:0}
+.gi-film-filter-group{display:flex;flex-wrap:wrap}
+.gi-film-filters button{min-height:30px;padding:0 9px;background:transparent;color:var(--gi-bd-copy)}
+.gi-film-filter-group button+button{border-left-width:0}
+.gi-film-filters button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);box-shadow:var(--gi-press)}
+@media(pointer:coarse){.gi-film-controls button{min-height:44px}}

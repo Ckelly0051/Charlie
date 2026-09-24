@@ -76,6 +76,12 @@
    further down owns Film Room, and the layout controls and splitter hide. */
 .ws-breakdown.is-film-room .gi-breakdown-rail-host{display:none}
 .gi-breakdown-splitter{display:none}
+/* The table's controls are their own area (2026-09-24): one element, placed by
+   the grid — a card right of the film when the table is below it, a bar over
+   the table when it is beside the film or on a phone. Chart and Film focus
+   show none. */
+.gi-breakdown-film-controls-host{display:none;grid-area:controls;min-width:0;min-height:0}
+.ws-breakdown.is-film-room .gi-breakdown-route:not(.is-film-focus) .gi-breakdown-film-controls-host{display:block}
 .gi-breakdown-layout{display:none;flex:0 0 auto;gap:0;border:1px solid var(--gi-7)}
 .gi-breakdown-layout>button{border:0;min-height:32px;background:transparent}
 .gi-breakdown-layout>button+button{border-left:1px solid var(--gi-7)}
@@ -84,15 +90,24 @@
 @media(min-width:1001px){
   .ws-breakdown.is-film-room .gi-breakdown-layout{display:flex}
   .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="bottom"]:not(.is-film-focus) .gi-breakdown-composition{
-    grid-template-columns:minmax(0,1fr);
+    grid-template-columns:minmax(0,1fr) 256px;
     grid-template-rows:minmax(240px,var(--fr-video,62%)) 10px minmax(180px,1fr);
-    grid-template-areas:'theater' 'split' 'deck'
+    grid-template-areas:'theater controls' 'split split' 'deck deck';
+    column-gap:6px
   }
   .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="side"]:not(.is-film-focus) .gi-breakdown-composition{
     grid-template-columns:minmax(360px,var(--fr-video,45%)) 10px minmax(420px,1fr);
-    grid-template-rows:minmax(0,1fr);
-    grid-template-areas:'theater split deck'
+    grid-template-rows:auto minmax(0,1fr);
+    grid-template-areas:'theater split controls' 'theater split deck'
   }
+  /* Table below: the controls are a vertical card right of the film, the full
+     height of the top band, so the table below starts at its first row. */
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-controls{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px;padding:12px;overflow-y:auto;border:1px solid var(--gi-7);border-top:2px solid var(--gi-bd-gold)}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-controls-head{flex-direction:column;align-items:flex-start;gap:2px}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-controls-actions{display:grid;grid-template-columns:1fr 1fr;margin-left:0}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-filters{flex-direction:column;flex-basis:auto;gap:8px}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-filter-group{flex-wrap:nowrap}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-filter-group button{flex:1 1 auto;padding:0 6px}
   .ws-breakdown.is-film-room .gi-breakdown-route:not(.is-film-focus) .gi-breakdown-splitter{
     display:block;grid-area:split;position:relative;background:var(--gi-1);touch-action:none
   }
@@ -151,7 +166,7 @@
   .gi-breakdown-deck{overflow:visible}
   .gi-breakdown-tagging-host{height:auto;overflow:visible}
   .gi-breakdown-film-room-host{height:600px}
-  .ws-breakdown.is-film-room .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:520px 600px;grid-template-areas:'theater' 'deck'}
+  .ws-breakdown.is-film-room .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:520px auto 600px;grid-template-areas:'theater' 'controls' 'deck'}
   .gi-breakdown-route.is-film-focus .gi-breakdown-composition{grid-template-rows:70vh}
 }
 @media(max-width:620px){
