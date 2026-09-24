@@ -378,7 +378,10 @@ for (const [width, height] of VIEWPORTS) {
   ok(measured.escape <= 0,
     `${width}: no tendency row escapes its fixed panel at season scope`,
     JSON.stringify({ escape: measured.escape }));
-  ok(measured.panelHeight === 378,
+  /* 378 until 2026-09-24; the module-system pass (1.12.0-97 smoke S97-1)
+     replaced the micro-header with the 50px title bar every module carries,
+     32px taller, and the reserved footprint grew by exactly that. */
+  ok(measured.panelHeight === 410,
     `${width}: the reserved panel height is unchanged`, String(measured.panelHeight));
   ok(measured.engagedScrollers.length === 0 && measured.pageOverflowX === 0,
     `${width}: Season > Offense engages no scroller and no page overflow`,

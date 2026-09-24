@@ -478,6 +478,53 @@ ok(type.visibleExplainers.length === 0,
   'Offense module and zone headers render no explanatory secondary prose',
   JSON.stringify(type.visibleExplainers));
 
+console.log('\n== 14b. Every page uses the Defense module system (1.12.0-97 smoke S97-1) ==');
+/* Coach direction: Offense reads like Defense Revision 2 — a numbered page
+   heading, each module its own outlined box on 20px gutters with a 50px title
+   bar (a 2px gold rule over a 17px sentence-case title), sentence-case column
+   and tile labels, and no uppercase micro-headers or left accent rails. */
+const ZONE_TITLES = { identity: 'Offensive identity', calls: 'Calls and tendencies', structure: 'Structure and deployment',
+  situations: 'Situational analysis', field: 'Field and production', advanced: 'Advanced metrics' };
+const system = [];
+for (const [index, [id]] of PAGES.entries()) {
+  await showPage(id);
+  system.push(await page.evaluate((pageId, number) => {
+    const board = document.querySelector('.gi-offense-board');
+    const heading = board.querySelector(':scope > .gi-off-heading');
+    const gold = heading ? getComputedStyle(heading.querySelector('span')).color : null;
+    const mods = [...board.querySelectorAll('.gi-overview-module')];
+    const bad = [];
+    for (const m of mods) {
+      const cs = getComputedStyle(m), head = m.querySelector(':scope > header'), hs = getComputedStyle(head);
+      const title = getComputedStyle(head.querySelector('strong'));
+      const name = head.textContent.trim();
+      if (parseFloat(cs.borderTopWidth) < 1 || parseFloat(cs.borderLeftWidth) < 1 || parseFloat(cs.borderRightWidth) < 1) bad.push(`${name}: no outline`);
+      if (getComputedStyle(m, '::before').display !== 'none') bad.push(`${name}: accent rail`);
+      if (Math.round(head.getBoundingClientRect().height) !== 50 || hs.borderTopWidth !== '2px' || hs.borderTopColor !== gold) bad.push(`${name}: title bar`);
+      if (parseFloat(title.fontSize) < 17 || title.textTransform !== 'none' || /Condensed/i.test(title.fontFamily)) bad.push(`${name}: title type`);
+    }
+    const gaps = [...board.querySelectorAll(':scope > .gi-overview-band')].filter(b => b.children.length > 1)
+      .map(b => getComputedStyle(b).columnGap);
+    const upper = [...board.querySelectorAll('*')].filter(el => el.getClientRects().length
+      && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
+      && getComputedStyle(el).textTransform === 'uppercase').map(el => el.textContent.trim().slice(0, 20));
+    return { page: pageId, heading: heading && { n: heading.querySelector('span').textContent, title: heading.querySelector('h2').textContent,
+      first: board.querySelector(':scope > :not(.gi-secbar)') === heading, expectedN: String(number).padStart(2, '0') },
+      modules: mods.length, bad, gaps, upper };
+  }, id, index + 1));
+}
+await showPage('identity');
+ok(system.every(p => p.heading && p.heading.first && p.heading.n === p.heading.expectedN && p.heading.title === ZONE_TITLES[p.page]),
+  'every Offense page opens on its numbered heading and full zone title',
+  JSON.stringify(system.map(p => ({ page: p.page, heading: p.heading }))));
+ok(system.every(p => p.modules > 0 && p.bad.length === 0),
+  'every module is an outlined box with the 50px gold title bar and a 17px sentence-case title, and no accent rail',
+  JSON.stringify(system.flatMap(p => p.bad).slice(0, 8)));
+ok(system.every(p => p.gaps.every(g => g === '20px')),
+  'module bands sit on 20px gutters, not shared 1px rules', JSON.stringify(system.map(p => ({ page: p.page, gaps: p.gaps }))));
+ok(system.every(p => p.upper.length === 0),
+  'no Offense label renders as an uppercase micro-header', JSON.stringify(system.flatMap(p => p.upper).slice(0, 8)));
+
 console.log('\n== 15. Season > Offense embeds the same board without duplicate ids ==');
 await load({ plays: FULL, tab: 'season' });
 // Season carries its own sub-tabs and opens on Overview; the embedded

@@ -584,12 +584,12 @@ function SparseModule({ title, meta, cls = '', rows, children }) {
    selected from the shared secondary bar. Every module keeps its zone; the
    coach kept six pages to leave room for growth. */
 const OFFENSE_PAGES = [
-  ['identity', 'Identity'],
-  ['calls', 'Calls & tendencies'],
-  ['structure', 'Structure'],
-  ['situations', 'Situations'],
-  ['field', 'Field & production'],
-  ['advanced', 'Advanced'],
+  ['identity', 'Identity', 'Offensive identity'],
+  ['calls', 'Calls & tendencies', 'Calls and tendencies'],
+  ['structure', 'Structure', 'Structure and deployment'],
+  ['situations', 'Situations', 'Situational analysis'],
+  ['field', 'Field & production', 'Field and production'],
+  ['advanced', 'Advanced', 'Advanced metrics'],
 ];
 
 /* The approved Offense composition is the SCHEMA — the single owner for every
@@ -730,6 +730,16 @@ export function OffenseTab({ stats, screen }) {
   return <div class="gi-overview-board gi-offense-board" data-offense-page={page}>
     <ReportSectionBar screen={screen} label="Offense report sections" navClass="gi-offense-pages" numbered
       sections={OFFENSE_PAGES.map(([id, label]) => ({ id, label }))} active={page} onSelect={setPage} />
+    {/* The page heading, in the Defense board's hierarchy (coach direction,
+        1.12.0-97 smoke S97-1): number, the zone's full name, then its cohort.
+        The count is compute()'s offensive cohort, which is the classified one. */}
+    {(() => {
+      const index = OFFENSE_PAGES.findIndex(([id]) => id === page);
+      return <header class="gi-off-heading">
+        <span>{String(index + 1).padStart(2, '0')}</span><h2>{OFFENSE_PAGES[index][2]}</h2>
+        <small>{stats.offPlays.length} classified snaps</small>
+      </header>;
+    })()}
 
     {/* ── ZONE 1 — offensive identity ───────────────────────────────── */}
     {page === 'identity' && <>

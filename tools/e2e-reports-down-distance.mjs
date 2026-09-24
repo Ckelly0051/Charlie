@@ -166,8 +166,10 @@ const readChart = (side, root = '') => page.evaluate((s, r) => {
         success: text(c.querySelector('[data-dd-success]')), ypp: text(c.querySelector('[data-dd-ypp]')),
         selected: c.classList.contains('is-selected'), tag: c.tagName }]));
   const board = chart.parentElement;
+  // The page heading (number, title, cohort) is page chrome, as the Defense
+  // section heading is; the chart must be the first MODULE under it.
   const first = s === 'offense'
-    ? [...board.children].find(n => n.getClientRects().length && !n.matches('.gi-secbar')) === chart
+    ? [...board.children].find(n => n.getClientRects().length && !n.matches('.gi-secbar, .gi-off-heading')) === chart
     : chart.previousElementSibling?.matches('[data-def2-section]') && chart.nextElementSibling?.matches('.gi-def2-bands');
   return { cells, first, cohort: text(chart.querySelector('[data-dd-cohort]')),
     detail: text(chart.querySelector('[data-dd-detail] h4')), watch: text(chart.querySelector('[data-dd-watch]')),

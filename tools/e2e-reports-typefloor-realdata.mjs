@@ -64,17 +64,21 @@ const DEFENSE = {};
    approved comp, identical at both widths. Counted over all six pages.
    2026-09-23: the three `10.5|EM` zone-rule notes are gone with the zone
    rules themselves (the zones became pages in the secondary bar); no other
-   element changed. */
+   element changed.
+   2026-09-24: the module-system pass (1.12.0-97 smoke S97-1) put every Offense
+   heading, KPI and tile label, heat-map cell, lens and EPA sub-heading and
+   column label at or above the floor: 115 -> 49 at 1440, minimum 9.5 -> 10.5.
+   What remains is inside charts - matrix-cell splits, zone-strip and down
+   captions, EPA contribution bars - which that pass did not restyle. */
 const OFFENSE_BASE = {
-  '9.5|SPAN': 16, '10|SPAN': 17, '10|H4': 1, '10.5|SMALL': 23, '10.5|SPAN': 19,
-  '10.5|STRONG': 6, '11|SMALL': 10, '11|SPAN': 8, '11|H4': 6,
-  '11.5|DIV': 3, '12|DIV': 6,
+  '10.5|SMALL': 10, '10.5|SPAN': 19, '10.5|STRONG': 6, '11|SPAN': 8, '12|DIV': 6,
 };
 /* The narrow-width exception, and the whole of it: the eight `gi-off-narrow-fit`
-   modules contribute exactly forty column labels and 165 cells at 1280. Before
+   modules contribute exactly 165 cells at 1280 (their forty column labels
+   reached the floor on 2026-09-24). Before
    the rule was scoped to that class it was scoped to every module on the board,
    which is how 876 of 997 elements sat below the floor. */
-const OFFENSE_NARROW_FIT = { '11.5|TH': 40, '12|TD': 165 };
+const OFFENSE_NARROW_FIT = { '12|TD': 165 };
 const OFFENSE_NARROW_MODULES = [
   'Backfield', 'Field hash', 'Formation', 'Motion',
   'Personnel', 'Play direction', 'Play type', 'Strength',
@@ -267,7 +271,7 @@ for (const row of observed.filter(item => item.tab === 'offense')) {
   ok(JSON.stringify(row.narrowModules) === JSON.stringify(OFFENSE_NARROW_MODULES),
     `Offense at ${row.width} scopes gi-off-narrow-fit to the eight named modules`,
     JSON.stringify(row.narrowModules));
-  const expectedCells = row.width <= 1300 ? 205 : 0;
+  const expectedCells = row.width <= 1300 ? 165 : 0;
   ok(row.narrowCellCount === expectedCells && row.narrowOwnedCells === expectedCells,
     `Offense at ${row.width} keeps every sub-floor table cell inside gi-off-narrow-fit`,
     JSON.stringify({ expectedCells, below: row.narrowCellCount, owned: row.narrowOwnedCells }));
@@ -277,7 +281,7 @@ for (const row of observed.filter(item => item.tab === 'offense')) {
    inferred from the buckets above. */
 const TOTALS = {
   'overview@1440': 35, 'overview@1280': 35,
-  'offense@1440': 115, 'offense@1280': 320,
+  'offense@1440': 49, 'offense@1280': 214,
   'defense@1440': 0, 'defense@1280': 0,
   'special@1440': 0, 'special@1280': 0,
   'players@1440': 0, 'players@1280': 0,
@@ -294,7 +298,7 @@ ok(wrongTotals.length === 0,
 /* Each board's minimum, pinned in BOTH directions. Down is a regression; up
    means the migration happened and the rules file must be updated with it. */
 const MINIMA = {
-  overview: 9.5, offense: 9.5, defense: 12.5,
+  overview: 9.5, offense: 10.5, defense: 12.5,
   // Special Teams migrated to the shared floor on 2026-09-19, the second board
   // after Defense to hold it with nothing below.
   special: 12.5, players: 12.5, selfscout: 12.5, season: 12.5, matchup: 12.5,
