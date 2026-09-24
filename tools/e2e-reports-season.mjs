@@ -653,8 +653,10 @@ const type = await page.evaluate(() => {
     floor: Math.min(...all.map(el => parseFloat(getComputedStyle(el).fontSize))),
     fonts: [...document.fonts].filter(f => f.status === 'loaded').map(f => `${f.family} ${f.weight}`) };
 });
-ok(type.titleSize === 14 && /Plex Sans/.test(type.titleFace) && !/Condensed/.test(type.titleFace),
-  'module titles are 14px IBM Plex Sans', `${type.titleSize} / ${type.titleFace}`);
+/* 14px until 2026-09-24, when the coach moved every Reports board to the
+   Defense module system's 17px title bar (1.12.0-97 smoke S97-1). */
+ok(type.titleSize === 17 && /Plex Sans/.test(type.titleFace) && !/Condensed/.test(type.titleFace),
+  'module titles are 17px IBM Plex Sans', `${type.titleSize} / ${type.titleFace}`);
 ok(type.thSize === 12.5 && type.thWeight === 600 && /Plex Sans/.test(type.thFace),
   'table headers are 12.5px semibold Plex Sans', `${type.thSize} / ${type.thWeight}`);
 ok(type.tdSize === 13 && type.rowHeight === 38, 'table rows are 13px on 38px rows',

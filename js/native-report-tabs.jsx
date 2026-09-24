@@ -2036,7 +2036,20 @@ export function SeasonTab({ model, screen }) {
       active={active} onSelect={setActive}
       exportAction={{ label: 'Export report', attrs: { class: 'gi-secbar-export', 'data-report-export': 'season' }, onSelect: () => screen.export('season-html') }} />
     <div class="gi-season-report">
-      <div class="gi-season-sections" data-subpane={active}>{body}</div>
+      <div class="gi-season-sections" data-subpane={active}>
+        {/* Season's own sections take the page heading of the Defense board's
+            hierarchy (coach direction, 1.12.0-97 smoke S97-1). An embedded
+            board (Offense, Defense, Special Teams, Players, Self-Scout) brings
+            its own heading, so Season adds none above it. */}
+        {active === 'overview' || active === 'trends' ? (() => {
+          const index = SEASON_SECTIONS.findIndex(([id]) => id === active);
+          return <header class="gi-report-heading">
+            <span>{String(index + 1).padStart(2, '0')}</span><h2>{SEASON_SECTIONS[index][1]}</h2>
+            <small>{model.summary.games} games</small>
+          </header>;
+        })() : null}
+        {body}
+      </div>
     </div>
   </div>;
 }

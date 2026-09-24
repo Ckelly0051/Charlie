@@ -37,6 +37,11 @@ const BOARDS = [
      section and its title row is the title bar. */
   { tab: 'matchup', board: '.gi-matchup-board', attr: 'data-section', module: '.gi-mu-section', head: '.gi-mu-title', title: 'h2',
     sections: [['our-offense', 'Our Offense vs Their Defense'], ['our-defense', 'Our Defense vs Their Offense']] },
+  /* Season's own sections; the boards it embeds bring their own headings and
+     are pinned by their own harnesses. The third value is the section's
+     position in Season's bar. */
+  { tab: 'season', board: '.gi-season-board', attr: 'data-subtab',
+    sections: [['overview', 'Overview', 1], ['trends', 'Trends', 7]] },
 ];
 
 if (!existsSync(SOURCE)) {
@@ -103,10 +108,10 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
     await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`).click(), board.tab);
     await sleep(400);
     const seen = [];
-    for (const [index, [id, title]] of board.sections.entries()) {
+    for (const [index, [id, title, number]] of board.sections.entries()) {
       await page.evaluate((a, s) => document.querySelector(`[data-reports-secbar] [${a}="${s}"]`)?.click(), board.attr, id);
       await sleep(250);
-      seen.push({ id, ...(await measure(board.board, index + 1, title,
+      seen.push({ id, ...(await measure(board.board, number ?? index + 1, title,
         { moduleSel: board.module || '.gi-overview-module', headSel: board.head || 'header', titleSel: board.title || 'strong' })) });
     }
     ok(seen.every(s => !s.missing && s.heading && s.heading.first && s.heading.n === s.heading.expectedN && s.heading.title === s.heading.expectedTitle),
