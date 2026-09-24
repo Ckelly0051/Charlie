@@ -7,7 +7,7 @@ aligned on the three-package sequence in `GRIDIRON-IQ-PLAN-V2.md` (Reports,
 Breakdown charting, then Film Room). This closes intake, not the defects or
 the installed smoke verdict. No repairs are claimed by this checkpoint.
 
-**Finding 1 — implemented in source (`0e84464`), installed smoke pending;
+**Finding 1 — implemented (`0e84464`), packaged in `1.12.0-97`, installed smoke pending;
 see below.** The game KPI banner (Total Plays, Plays
 Charted, Plays per Phase, Offense Success Rate, Turnovers) still appears on
 several detail report tabs. Keep this summary on Overview only; detail tabs
@@ -20,7 +20,7 @@ canonical sourcing. Check every Reports tab, both perspectives where
 applicable, at desktop widths. The installed candidate's version was not
 identified with this finding. No UI fix or acceptance is claimed.
 
-**Finding 2 — implemented in source (`0e84464`), installed smoke pending;
+**Finding 2 — implemented (`0e84464`), packaged in `1.12.0-97`, installed smoke pending;
 see below.** Internal Reports navigation is
 inconsistent: Offense uses zone jump links on one long page, Defense uses a
 different jump bar, while Special Teams and Players use section tabs that
@@ -62,8 +62,8 @@ metric identifiers, change thresholds, formulas, cohorts, or saved data, and
 do not replace unrelated terms such as an explosive drive classification.
 No implementation or installed acceptance is claimed here.
 
-*Repaired in source 2026-09-23 (`4beec7d`); not packaged, not
-installed-smoke verified.* Every user-visible label now reads **Explosive
+*Repaired 2026-09-23 (`4beec7d`); packaged in `1.12.0-97` (and the unsmoked
+`1.12.0-96`), not installed-smoke verified.* Every user-visible label now reads **Explosive
 Plays**, **Explosive Plays Rate** or **Explosive Plays Allowed [Rate]**
 across Reports, Study, the season summaries, chart labels and the white HTML
 exports. Study's neutral concept name is **Explosive Plays Rate** by coach
@@ -78,7 +78,7 @@ exports on the canonical season at 1440/1280/768 plus sparse and empty games.
 Known and outside this finding: the Defense Down & Distance header already
 wraps to three lines at 768.
 
-*Review correction, 2026-09-23 (`0e84464`); not packaged.* On the Defense
+*Review correction, 2026-09-23 (`0e84464`); packaged in `1.12.0-97`.* On the Defense
 board "Allowed" is implied and made compact KPI tiles and table headers wrap,
 so the board reads **Explosive Plays** and **Explosive Plays Rate**; the
 Defense HTML export and mixed reports (Overview, game export) keep
@@ -87,8 +87,8 @@ replaced by one sized for the word `Explosive` (80px, 72px in a half module),
 which also stops the eleven-column Run / Pass vs Strength and Defensive
 answers tables clipping it at 768. The KPI label now holds one line.
 
-**Findings 1 and 2 — implemented in source 2026-09-23 (`0e84464`); not
-packaged, installed smoke pending.** Built to the comp above; composition only,
+**Findings 1 and 2 — implemented 2026-09-23 (`0e84464`); packaged in
+`1.12.0-97`, installed smoke pending.** Built to the comp above; composition only,
 no calculation or cohort changed.
 - *Finding 2:* one shared `SectionBar` sits directly under the global strip on
   all seven multi-section reports with one 46px box: pages left, scope and the
@@ -101,7 +101,7 @@ no calculation or cohort changed.
   Offense zone nav and zone rules, the Defense sticky scope/jump bar, the
   Season identity band. Boards embedded in Season carry the same bar inline.
   The down-and-distance chart was built afterwards as its own checkpoint
-  (see below); it is not in `1.12.0-96`.
+  (see below); both are in `1.12.0-97`.
 - *Finding 1:* the game KPI rail is deleted from every tab. Overview's compact
   score is the linescore beside Result (official scores only), Charted and
   Turnover margin, with no duplicate matchup name; a one-sided game states the
@@ -123,8 +123,8 @@ current game and full season; captures in `artifacts/reports-global-strip/`
 verdict on the composition.
 
 **Global input regression from the secondary bar — FOUND BY THE FULL GATE AND
-REPAIRED IN SOURCE 2026-09-23 (`87371cd`); present in the `1.12.0-96`
-installer.** `0e84464` portaled the bar with `createPortal` from
+REPAIRED 2026-09-23 (`87371cd`); present in the never-smoked `1.12.0-96`
+installer, repaired in `1.12.0-97`.** `0e84464` portaled the bar with `createPortal` from
 `preact/compat`. Importing compat installs global option hooks that rewrite
 `onChange` to `onInput` on every text and date input, so change-committed
 fields outside Reports stopped committing on change: `e2e-native-tagging`
@@ -137,10 +137,10 @@ rather than dead fields; that behavior is not verified in WebView2. The same
 gate found `e2e-play-call-charting` and `e2e-realdata` still reading the
 pre-page one-scroll boards; both were repointed to the pages, not weakened.
 Full gate at `87371cd`: 125/125, zero skipped, zero failed. **`1.12.0-96` must
-not be smoked as the Reports candidate.**
+not be smoked; `1.12.0-97` supersedes it.**
 
-**Down-and-distance chart — implemented in source 2026-09-23 (`80941c7`);
-not packaged, installed smoke pending.** The comp's item 7, first on Offense >
+**Down-and-distance chart — implemented 2026-09-23 (`80941c7`); packaged in
+`1.12.0-97`, installed smoke pending.** The comp's item 7, first on Offense >
 Situations and Defense > Situations, with one engine owner, exact film refs and
 the same cells in the game, season and Defense HTML exports. Found while
 verifying and repaired before commit: the chart's rows first sized to their
@@ -152,9 +152,9 @@ Distance table's charted Snaps (e.g. season 1st & 7+: 56 run/pass vs 60
 charted), and the header says which cohort it is. Review finding repaired
 (`cd0fb40`): a selected cell holding only untyped snaps listed `No play type
 charted` beside the counted `No play type N` row; it now shows the counted row
-alone. **The `1.12.0-96` installer predates `80941c7` and must not be smoked as
-the combined result. Reports approval waits on one new package carrying the
-secondary bar and this chart, and Charlie's smoke of that combined result.**
+alone. **`1.12.0-97` (`SMOKE-1.12.0-97.md`) is the combined package carrying the
+secondary bar and this chart; Reports approval waits on Charlie's installed
+smoke of it.**
 Evidence: `tools/e2e-reports-down-distance.mjs` (47) and captures in `artifacts/reports-down-distance/`.
 
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
@@ -166,7 +166,7 @@ navigation concept is
 It is a standalone comp, not a full report-board redesign.
 
 **Items 1-4 are REPAIRED IN SOURCE, 2026-09-22, commit `160533c`; packaged
-in `1.12.0-95` (2026-09-22) with its installed smoke pending, so not
+in `1.12.0-95` (never smoked) and again in `1.12.0-97`, installed smoke pending, so not
 installed-smoke verified.** Browser evidence is
 `tools/e2e-reports-global-strip.mjs` on a read-only copy of the canonical
 2025 JV season (264/264, six mutations verified red) plus the existing

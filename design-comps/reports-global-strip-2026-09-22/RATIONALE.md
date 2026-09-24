@@ -3,7 +3,8 @@
 Date: 2026-09-22
 
 Status: **navigation comp approved by the coach**. Implemented in source by
-`160533c`; not packaged, installed-smoke approved, or production accepted.
+`160533c`; packaged in `1.12.0-95` (never smoked) and `1.12.0-97`; not
+installed-smoke approved or production accepted.
 
 The approved interactive artifact is the byte-identical sibling file
 `../reports-global-strip-2026-09-22.html`. It stays at its committed path so

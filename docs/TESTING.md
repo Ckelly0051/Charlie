@@ -84,7 +84,7 @@ short placeholder tables cannot establish data or visual parity.
 The harness generates untracked screenshots in `artifacts/reports-global-strip/`;
 run it to produce captures on a clean checkout.
 
-### Reports secondary bar (source 2026-09-23, installed smoke pending)
+### Reports secondary bar (2026-09-23, in `1.12.0-97`, installed smoke pending)
 
 `design-comps/reports-secondary-nav-2026-09-23` is implemented in `0e84464`.
 `e2e-reports-global-strip` (now 360) also pins: one secondary bar directly

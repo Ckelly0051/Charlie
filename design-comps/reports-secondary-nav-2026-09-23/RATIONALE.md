@@ -143,7 +143,7 @@ and runs the comp's focused checks:
    StatsEngine owner over the existing twelve buckets, cohort statements,
    exact film refs, export parity, and synthetic plus canonical tests.
 
-## Implementation record (2026-09-23, `0e84464`; installed smoke pending)
+## Implementation record (2026-09-23, `0e84464`; packaged in `1.12.0-97`, installed smoke pending)
 
 Items 1-8 above are implemented as written; item 9 is not started. Where
 production departs from or adds to the list:
@@ -165,7 +165,7 @@ production departs from or adds to the list:
   `_kpiRailData`; when one side was not charted the margin reads `No data` and
   its sub-line states the observed side and names the other as not charted.
 
-## Implementation record, item 9 (2026-09-23, `80941c7`; not packaged)
+## Implementation record, item 9 (2026-09-23, `80941c7`; packaged in `1.12.0-97`, installed smoke pending)
 
 The down-and-distance chart is built as proposed in item 7, with these
 decisions:

@@ -7,8 +7,8 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 `branches: ['**']` and no workflow or source path references it.
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
-**Reports global strip — IMPLEMENTED (`160533c`), PACKAGED IN `1.12.0-95`,
-NOT SMOKE-APPROVED:** `design-comps/reports-global-strip-2026-09-22.html`
+**Reports global strip — IMPLEMENTED (`160533c`), PACKAGED IN `1.12.0-95` AND
+`1.12.0-97`, NOT SMOKE-APPROVED:** `design-comps/reports-global-strip-2026-09-22.html`
 defines one fixed top-level strip on all eight Our Program Reports tabs,
 Season last, with Current game as the default where a scope choice exists and
 the game linescore only on Overview. Its scope and production mapping are in
@@ -17,36 +17,38 @@ abbreviated tables are
 placeholders; the full production boards are unchanged below the strip. The
 same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green
-(`e2e-reports-global-strip`). The `1.12.0-95` installer contains it; neither
-the installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
+(`e2e-reports-global-strip`). The `1.12.0-95` and `1.12.0-97` installers
+contain it; neither an installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
 **Reports secondary bar — IMPLEMENTED (`0e84464`, 2026-09-23), PACKAGED IN
-`1.12.0-96`, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
+`1.12.0-97`, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
 (implementation record in its RATIONALE). One shared bar under the strip on
 the seven multi-section reports; Offense six pages, Defense four; the game KPI
 rail deleted; a compact Overview score; the Defense board says `Explosive
-Plays`. Coach Reports smoke Findings 1 and 2 are repaired in source only; see
-`docs/OPEN-DEFECTS.md`. The `1.12.0-96` installer contains it; its installed smoke is
-pending.
-**Reports down-and-distance chart — IMPLEMENTED IN SOURCE (`80941c7`,
-2026-09-23), NOT PACKAGED, NOT SMOKE-APPROVED:** item 7 of the same comp,
-first on Offense > Situations and Defense > Situations. Not in `1.12.0-96`;
-Reports approval waits on ONE new package carrying the secondary bar plus this
-chart, and Charlie's smoke of that combined result.
-**`1.12.0-96` carries a global input regression; do not smoke it as the
-Reports candidate.** The secondary bar's `createPortal` came from
-`preact/compat`, and importing compat rewrites `onChange` to `onInput` on
-every text and date input in the app, so change-committed fields (charting
-yardage, the Special Teams and penalty editors, Study date ranges and Plan
-fields) commit per keystroke instead of on change. Repaired in `87371cd`
-with a core-Preact portal; **never import `preact/compat`.** Full gate at
-`87371cd`: 125/125, zero skipped, zero failed.
-**Main-checkout version:** `1.12.0-95` (`js/app.js` `APP_VERSION`,
+Plays`. Coach Reports smoke Findings 1 and 2 are repaired; see
+`docs/OPEN-DEFECTS.md`.
+**Reports down-and-distance chart — IMPLEMENTED (`80941c7`, `cd0fb40`,
+2026-09-23), PACKAGED IN `1.12.0-97`, NOT SMOKE-APPROVED:** item 7 of the same
+comp, first on Offense > Situations and Defense > Situations. Reports approval
+waits on Charlie's installed smoke of `1.12.0-97`, which carries the secondary
+bar and this chart together.
+**Never import `preact/compat`.** The secondary bar's first `createPortal`
+came from it, and importing compat rewrites `onChange` to `onInput` on every
+text and date input in the app, so change-committed fields (charting yardage,
+the Special Teams and penalty editors, Study date ranges and Plan fields)
+committed per keystroke. Repaired in `87371cd` with a core-Preact portal. The
+never-smoked `1.12.0-96` installer carries the defect and is superseded.
+**Main-checkout version:** `1.12.0-97` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is
-`1.12.0-95`**, built from the clean main checkout at `8b926a6` (the committed
-four-owner bump on top of `8ed64ec`, whose full gate was 123/123). Its
-installed coach smoke is **pending**; see `SMOKE-1.12.0-95.md`. It is not an
-installed approval, tag, push or published release.
+`1.12.0-97`**, the combined Reports smoke candidate, built from the clean main
+checkout at `2799be5` (the committed four-owner bump on top of `1faa1df`; the
+full gate at the last code commit `87371cd` was 125/125, zero skipped, zero
+failed). Its installed coach smoke is **pending**; see `SMOKE-1.12.0-97.md`.
+It is not an installed approval, tag, push or published release.
+**Superseded unsmoked installers:** `1.12.0-96` (`21f5688`; secondary bar
+only, with the `preact/compat` input regression) and `1.12.0-95` (`8b926a6`;
+global strip). Neither received an installed smoke; their checks are carried
+into `SMOKE-1.12.0-97.md`.
 
 **Preceding installer:** `1.12.0-94`, built from `81fe261` in a clean detached
 worktree with a local, uncommitted version bump. Its installed coach smoke was
@@ -1056,7 +1058,7 @@ Calls by situation honestly hold their static slots with dashes.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
 Structure and deployment, Situational analysis, Field and production, Advanced
-metrics — which since 2026-09-23 (`0e84464`, installed smoke pending) are six
+metrics — which since 2026-09-23 (`0e84464`, in `1.12.0-97`, installed smoke pending) are six
 PAGES in the shared secondary bar (`Identity`, `Calls & tendencies`,
 `Structure`, `Situations`, `Field & production`, `Advanced`), one on screen at a
 time; the zone nav and zone rules are retired, every module renders on exactly
@@ -1091,7 +1093,7 @@ owns the geometry. `ReportsScreen` passes the scoped cohort, the full-season
 cohort, opponent labels (`gameInfo.opponent`) and the roster; Season > Defense
 gets the same board from `SeasonManager.reportModel().defenseBoard`.
 
-**Composition (pages since 2026-09-23, `0e84464`, installed smoke pending).**
+**Composition (pages since 2026-09-23, `0e84464`, in `1.12.0-97`; installed smoke pending).**
 Four ordered sections — Defensive performance, Opponent offense, Scheme and
 passing defense, Situational results — are four PAGES in the shared secondary
 bar (`Performance`, `Opponent offense`, `Scheme & passing`, `Situations`), one
@@ -2120,7 +2122,7 @@ Generic `yardage`/`result` on ST plays stay unread by design:
 dedicated ST fields remain authoritative, and that data is recorded as an input
 to a later projection decision.
 
-**THE GLOBAL STRIP (source, 2026-09-22; installed smoke pending).** One
+**THE GLOBAL STRIP (`160533c`, 2026-09-22; in `1.12.0-97`, installed smoke pending).** One
 route owner, `native-reports.jsx`, renders a fixed 50px report head (title,
 context, opponent picker, Scout opponent) and then ONE 44px strip —
 `Our game` / `Opponent scout`, the eight tabs on equal tracks in the order
@@ -2134,7 +2136,7 @@ self-only tabs instead of hiding them, because hiding one moves every tab
 after it. Defense and Special Teams scope open on Current game, listed first,
 like Players; the choice is controller state and survives re-renders.
 
-**THE SECONDARY BAR (source `0e84464`, 2026-09-23; installed smoke pending).**
+**THE SECONDARY BAR (`0e84464`, 2026-09-23; in `1.12.0-97`, installed smoke pending).**
 Built to `design-comps/reports-secondary-nav-2026-09-23` (its RATIONALE records
 the implementation). Directly under the strip sits ONE bar, `SectionBar` in
 `native-report-kit.jsx`, with the same 46px box on all seven multi-section
@@ -2150,7 +2152,7 @@ tightens (Special Teams' five counted sections otherwise lost 59px at 1280);
 below 1100 it stacks pages over scope and export. The proposed
 down-and-distance chart is built separately (below).
 
-**THE DOWN-AND-DISTANCE CHART (source `80941c7`, 2026-09-23; not packaged).**
+**THE DOWN-AND-DISTANCE CHART (`80941c7`, 2026-09-23; in `1.12.0-97`, installed smoke pending).**
 First on Offense > Situations (our offense) and Defense > Situations (the
 opponent's offense): 1st-4th by 1-3 / 4-6 / 7+, each cell with snaps, a
 run/pass split, success and yards/play; selecting a cell shows its top play
@@ -2281,11 +2283,14 @@ has accepted these repairs as production state.
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
-3. **Current `1.12.0-94` installed Reports smoke** — Offense, Self-Scout,
-   Season, Matchup and the revised white-background HTML/PDF exports still
-   need the coach's complete installed verdict. The shared global strip and
-   the outer-frame / jersey-slot repairs are implemented in source after this
-   package (`160533c`) and need a new installer and smoke. The Offense board
+3. **Current Reports smoke: `1.12.0-97`** (`SMOKE-1.12.0-97.md`) — the global
+   strip and the outer-frame / jersey-slot repairs (`160533c`), the secondary
+   bar (`0e84464`), the down-and-distance chart (`80941c7`) and the
+   `preact/compat` input repair (`87371cd`) in one package. Offense,
+   Self-Scout, Season, Matchup and the revised white-background HTML/PDF
+   exports still need the coach's complete installed verdict; the incomplete
+   `1.12.0-94` smoke gave none, and `1.12.0-95` / `1.12.0-96` were never
+   smoked. The Offense board
    has canonical-data verification at 1440 and 1280;
    the three call modules remain held because the season has no charted calls.
    Self-Scout, Season and Matchup have canonical-data browser verification but
