@@ -65,10 +65,15 @@ await page.evaluate(async (data, gid) => {
   const app = window.app, store = app.storage.seasonStore;
   store.data = store._normalize(JSON.parse(JSON.stringify(data)));
   store.currentSeasonId = data.id; store.data.id = data.id; store.data.activeGameId = gid;
-  await app.storage._loadActiveGame(); app.workspaceShell.show('reports');
+  await app.storage._loadActiveGame();
+  /* The season's own roster, so Players renders real names rather than bare
+     numbers. Without it no capture or check here could see name fit or
+     alignment (review finding, 2026-09-24). Not persisted. */
+  app.roster.loadFrom((data.roster || []).map(p => ({ ...p, num: String(p.num) })), { persist: false });
+  app.workspaceShell.show('reports');
 }, season, game.id);
 await sleep(600);
-console.log(`  ${season.seasonName}: ${season.games.length} games; St. Peter Lutheran current game; read-only copy`);
+console.log(`  ${season.seasonName}: ${season.games.length} games, ${(season.roster || []).length} rostered players; St. Peter Lutheran current game; read-only copy`);
 
 const measure = (boardSel, number, title, parts) => page.evaluate((sel, n, t, { moduleSel, headSel, titleSel }) => {
   const board = document.querySelector(`[data-native-report-content] ${sel}`);
@@ -125,6 +130,44 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
       JSON.stringify(seen.flatMap(s => s.upper).slice(0, 8)));
     ok(seen.every(s => s.ovX <= 0), `${board.tab} @${width}: no page-level horizontal overflow`,
       JSON.stringify(seen.map(s => ({ id: s.id, ovX: s.ovX }))));
+    if (board.tab === 'players') {
+      /* NAMES, not numbers. Every attributed player with a roster entry shows
+         the full roster name, no name is clipped or ellipsised, and within each
+         table every name starts at one x whatever the jersey number's width. */
+      const names = [];
+      for (const [id] of board.sections) {
+        await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
+        await sleep(250);
+        names.push({ id, ...(await page.evaluate(roster => {
+          const byNum = Object.fromEntries(roster.map(p => [String(p.num), p.name]));
+          const rows = [], starts = [];
+          for (const table of document.querySelectorAll('[data-native-report-content] .gi-players-board table.gi-player-table')) {
+            const lefts = [];
+            for (const ident of table.querySelectorAll('.gi-player-ident')) {
+              const num = ident.dataset.playerOpen, name = byNum[num];
+              const textNode = [...ident.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+              let left = null;
+              if (textNode) { const range = document.createRange(); range.selectNodeContents(textNode); left = Math.round(range.getBoundingClientRect().left); }
+              const cell = ident.closest('td');
+              rows.push({ num, expected: name || null, shown: (textNode?.textContent || '').trim(),
+                clipped: ident.scrollWidth > ident.clientWidth + 1 || (cell && cell.scrollWidth > cell.clientWidth + 1) });
+              if (name && left != null) lefts.push(left);
+            }
+            if (lefts.length > 1) starts.push(Math.max(...lefts) - Math.min(...lefts));
+          }
+          return { rows, spread: Math.max(0, ...starts) };
+        }, season.roster || [])) });
+      }
+      const rows = names.flatMap(n => n.rows);
+      const named = rows.filter(r => r.expected);
+      ok(named.length > 0 && named.every(r => r.shown === r.expected),
+        `players @${width}: every rostered player shows the full roster name (${named.length} rows)`,
+        JSON.stringify(named.filter(r => r.shown !== r.expected).slice(0, 6)));
+      ok(rows.every(r => !r.clipped), `players @${width}: no player name is clipped or ellipsised`,
+        JSON.stringify(rows.filter(r => r.clipped).slice(0, 6)));
+      ok(names.every(n => n.spread <= 1), `players @${width}: names start at one x in every table, whatever the jersey number's width`,
+        JSON.stringify(names.map(n => ({ id: n.id, spread: n.spread }))));
+    }
   }
 }
 
