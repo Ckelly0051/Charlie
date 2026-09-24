@@ -3465,7 +3465,7 @@
 .gi-reports :is(.gi-offense-board,.gi-st-board,.gi-players-board,.gi-selfscout-board) .gi-drive-outcome{background:var(--gi-2)}
 /* Like Defense, the Offense pane draws no frame of its own: no accent rail,
    no pane ground. Each module carries its own outline. */
-.gi-reports [data-native-main-report]:is([data-pane="offense"],[data-pane="special"],[data-pane="players"],[data-pane="selfscout"]){background:transparent;border:0}.gi-reports :is(.gi-offense-board,.gi-st-board,.gi-players-board,.gi-selfscout-board){background:transparent}
+.gi-reports [data-native-main-report]:is([data-pane="offense"],[data-pane="special"],[data-pane="players"],[data-pane="selfscout"],[data-pane="matchup"]){background:transparent;border:0}.gi-reports :is(.gi-offense-board,.gi-st-board,.gi-players-board,.gi-selfscout-board){background:transparent}
 .gi-reports :is(.gi-offense-board,.gi-st-board,.gi-players-board,.gi-selfscout-board) .gi-off-field-grid{margin:0 -12px;background:var(--gi-5)}
 .gi-reports :is(.gi-offense-board,.gi-st-board,.gi-players-board,.gi-selfscout-board) .gi-off-field-cell{padding:12px 8px;background:var(--gi-2)}
 .gi-reports :is(.gi-offense-board,.gi-st-board,.gi-players-board,.gi-selfscout-board) button.gi-off-field-cell:hover{background:var(--gi-3)}
@@ -3543,3 +3543,34 @@
 .gi-reports .gi-selfscout-board .gi-ss-band+.gi-ss-band .gi-ss-module{border-top:1px solid var(--gi-5)}
 .gi-reports .gi-selfscout-board .gi-overview-kpis{margin:0}
 .gi-reports .gi-selfscout-board .gi-overview-module th{background:var(--gi-3);color:var(--gi-11);text-transform:none;letter-spacing:0}.gi-reports .gi-selfscout-board .gi-ss-module table.gi-ss-table th{background:var(--gi-3);color:var(--gi-11);text-transform:none;letter-spacing:0}
+
+/* Matchup on the same system. It is built from its own section components,
+   so the system is applied to them directly: each section is an outlined box
+   whose title row is the 50px title bar; the two samples are one panel of two
+   cards; the opponent sample is the heading's cohort statement. Its accent is
+   the neutral line, because a Matchup section holds both cohorts, which keep
+   their own colours (opponent film gold, season film cyan). */
+.gi-reports .gi-matchup-board{--mod-accent:var(--gi-bd-draw);background:transparent}
+.gi-reports .gi-matchup-board .gi-mu-report{border:0;background:transparent}
+.gi-reports .gi-matchup-board .gi-mu-pane{display:grid;gap:20px}
+.gi-reports .gi-matchup-board .gi-report-heading .gi-mu-bar{display:block;margin:0 0 0 auto;padding:0;background:transparent}
+.gi-reports .gi-matchup-board .gi-report-heading .gi-mu-sample{display:block;padding:0;background:transparent}
+.gi-reports .gi-matchup-board .gi-report-heading .gi-mu-sample>div{display:flex;align-items:baseline;gap:8px}
+.gi-reports .gi-matchup-board .gi-report-heading .gi-mu-sample span{color:var(--gi-11);font:400 13px/1.4 var(--gi-sans);text-transform:none}
+.gi-reports .gi-matchup-board .gi-report-heading .gi-mu-sample strong{margin:0;color:var(--gi-12);font:600 13px/1.4 var(--gi-sans)}
+.gi-reports .gi-matchup-board .gi-mu-units{gap:0;background:var(--gi-2);border:1px solid var(--gi-5)}
+.gi-reports .gi-matchup-board .gi-mu-unit{padding:14px 16px;background:transparent}
+.gi-reports .gi-matchup-board .gi-mu-unit+.gi-mu-unit{border-left:1px solid var(--gi-5)}
+.gi-reports .gi-matchup-board .gi-mu-unit span{color:var(--gi-11);font:400 13px/16px var(--gi-sans);text-transform:none}
+.gi-reports .gi-matchup-board .gi-mu-unit strong{font:600 17px/22px var(--gi-sans)}
+.gi-reports .gi-matchup-board .gi-mu-unit small{color:var(--gi-11);font:400 13px/1.3 var(--gi-sans)}
+.gi-reports .gi-matchup-board .gi-mu-section{padding:0 12px 12px;background:var(--gi-2);border:1px solid var(--gi-5)}
+.gi-reports .gi-matchup-board .gi-mu-title{
+  height:50px;min-height:0;margin:0 -12px 8px;padding:0 16px;background:transparent;
+  border-left:0;border-top:2px solid var(--mod-accent);border-bottom:1px solid var(--gi-4)
+}
+.gi-reports .gi-matchup-board .gi-mu-title h2{color:var(--gi-12);font:600 17px/22px var(--gi-sans);text-transform:none;letter-spacing:0}
+.gi-reports .gi-matchup-board .gi-mu-key{color:var(--gi-11);font:400 13px/1 var(--gi-sans);text-transform:none}
+.gi-reports .gi-matchup-board .gi-mu-compare-grid{gap:20px;background:transparent}
+.gi-reports .gi-matchup-board .gi-mu-compare h3{margin:4px 0 6px;font:600 14px/18px var(--gi-sans);letter-spacing:0;text-transform:none}
+.gi-reports .gi-matchup-board .gi-mu-section table.gi-mu-table th{background:var(--gi-3);color:var(--gi-11);text-transform:none;letter-spacing:0}

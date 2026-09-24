@@ -33,6 +33,10 @@ const BOARDS = [
     sections: [['all', 'All roles'], ['off', 'Offense'], ['def', 'Defense'], ['st', 'Special Teams']] },
   { tab: 'selfscout', board: '.gi-selfscout-board', attr: 'data-section',
     sections: [['summary', 'Offensive Summary'], ['offense', 'Calls & Situations'], ['structure', 'Structure'], ['defense', 'Defense'], ['tendencies', 'Tendencies']] },
+  /* Matchup builds its sections from its own components; the module is the
+     section and its title row is the title bar. */
+  { tab: 'matchup', board: '.gi-matchup-board', attr: 'data-section', module: '.gi-mu-section', head: '.gi-mu-title', title: 'h2',
+    sections: [['our-offense', 'Our Offense vs Their Defense'], ['our-defense', 'Our Defense vs Their Offense']] },
 ];
 
 if (!existsSync(SOURCE)) {
@@ -61,20 +65,20 @@ await page.evaluate(async (data, gid) => {
 await sleep(600);
 console.log(`  ${season.seasonName}: ${season.games.length} games; St. Peter Lutheran current game; read-only copy`);
 
-const measure = (boardSel, number, title) => page.evaluate((sel, n, t) => {
+const measure = (boardSel, number, title, parts) => page.evaluate((sel, n, t, { moduleSel, headSel, titleSel }) => {
   const board = document.querySelector(`[data-native-report-content] ${sel}`);
   if (!board) return { missing: true };
   const heading = board.querySelector('.gi-report-heading');
   const firstShown = [...board.querySelectorAll('*')].find(el => el.getClientRects().length
-    && !el.closest('.gi-secbar') && (el.matches('.gi-report-heading') || el.matches('.gi-overview-module, .gi-overview-kpis, table')));
+    && !el.closest('.gi-secbar') && (el.matches('.gi-report-heading') || el.matches(`${moduleSel}, .gi-overview-kpis, table`)));
   const accentOf = el => getComputedStyle(el).getPropertyValue('--mod-accent').trim();
   const bad = [];
-  const mods = [...board.querySelectorAll('.gi-overview-module')].filter(m => m.getClientRects().length);
+  const mods = [...board.querySelectorAll(moduleSel)].filter(m => m.getClientRects().length);
   for (const m of mods) {
-    const head = m.querySelector(':scope > header');
-    const name = (head?.querySelector('strong')?.textContent || '?').trim();
+    const head = m.querySelector(`:scope > ${headSel}`);
+    const name = (head?.querySelector(titleSel)?.textContent || '?').trim();
     if (!head) { bad.push(`${name}: no title bar`); continue; }
-    const cs = getComputedStyle(m), hs = getComputedStyle(head), ts = getComputedStyle(head.querySelector('strong'));
+    const cs = getComputedStyle(m), hs = getComputedStyle(head), ts = getComputedStyle(head.querySelector(titleSel));
     if (parseFloat(cs.borderTopWidth) < 1 || parseFloat(cs.borderLeftWidth) < 1 || parseFloat(cs.borderRightWidth) < 1) bad.push(`${name}: no outline`);
     if (getComputedStyle(m, '::before').display !== 'none' && getComputedStyle(m, '::before').content !== 'none') bad.push(`${name}: accent rail`);
     if (Math.round(head.getBoundingClientRect().height) !== 50 || hs.borderTopWidth !== '2px' || !accentOf(m)) bad.push(`${name}: title bar`);
@@ -89,7 +93,7 @@ const measure = (boardSel, number, title) => page.evaluate((sel, n, t) => {
     modules: mods.length, bad, upper,
     ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   };
-}, boardSel, number, title);
+}, boardSel, number, title, parts);
 
 for (const [width, height] of [[1440, 900], [1280, 800]]) {
   await page.setViewport({ width, height });
@@ -102,7 +106,8 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
     for (const [index, [id, title]] of board.sections.entries()) {
       await page.evaluate((a, s) => document.querySelector(`[data-reports-secbar] [${a}="${s}"]`)?.click(), board.attr, id);
       await sleep(250);
-      seen.push({ id, ...(await measure(board.board, index + 1, title)) });
+      seen.push({ id, ...(await measure(board.board, index + 1, title,
+        { moduleSel: board.module || '.gi-overview-module', headSel: board.head || 'header', titleSel: board.title || 'strong' })) });
     }
     ok(seen.every(s => !s.missing && s.heading && s.heading.first && s.heading.n === s.heading.expectedN && s.heading.title === s.heading.expectedTitle),
       `${board.tab} @${width}: every section opens on its numbered heading and name`,

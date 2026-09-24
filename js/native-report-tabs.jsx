@@ -2266,11 +2266,17 @@ export function MatchupTab({ model, screen }) {
             onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>
             {opponents.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
           </select></label>} />
-      <div class="gi-mu-bar">
-        <div class="gi-mu-sample">
-          <div><span>Opponent sample</span><strong>{sample.opponent}</strong></div>
-        </div>
-      </div>
+      {/* The page heading, the Defense board's hierarchy (coach direction,
+          1.12.0-97 smoke S97-1); the opponent sample is its cohort statement. */}
+      {(() => {
+        const index = MATCHUP_TABS.findIndex(([id]) => id === active);
+        return <header class="gi-report-heading">
+          <span>{String(index + 1).padStart(2, '0')}</span><h2>{MATCHUP_TABS[index][1]}</h2>
+          <small class="gi-mu-bar"><span class="gi-mu-sample">
+            <div><span>Opponent sample</span><strong>{sample.opponent}</strong></div>
+          </span></small>
+        </header>;
+      })()}
       {active === 'our-offense'
         ? <MuOffenseLane lane={model.offense} names={names['our-offense']} screen={screen} />
         : <MuDefenseLane lane={model.defense} names={names['our-defense']} screen={screen} />}
