@@ -287,3 +287,30 @@ whether the height still resembled the approved board. It did not: 5617px at
 - The real-data gate now pins those six labels, the fixed board height, and a
   maximum module footprint so a giant chart cannot pass merely because every
   game is giant in the same way.
+
+## Revision 5 — the Defense module system (coach direction, 2026-09-24)
+
+Recorded here, not in the hash-protected comp RATIONALE, because it is a
+coach-directed change to the approved comp's typography and module chrome.
+
+In the `1.12.0-97` installed smoke (finding S97-1) the coach found that the six
+Offense pages each carried a different treatment: the long board had been cut
+into pages with its broadcast chrome intact — modules packed into bands on
+shared 1px rules, a left accent rail, 9.5px uppercase condensed micro-headers —
+while the new down-and-distance chart used a third style. The coach chose
+Defense Revision 2's hierarchy for Offense ("Defense looks clean"; the point is
+the headings and module outlines, not the color):
+
+- a numbered page heading with the zone's full name and the classified cohort;
+- every module an outlined box on 20px gutters with a 50px title bar — a 2px
+  gold rule over a 17px sentence-case title;
+- Defense's KPI strip; sentence-case tile, lens and sub-heading labels in the
+  body face; 12.5px sentence-case column labels on a header band;
+- no rail or ground on the Offense pane.
+
+What did not change: the six pages, the module inventory and order, every row
+allocation, the 12-column tracks, one height per page on every game, and all
+data. The Top 5 Tendencies reserved panel grows from 378px to 410px, exactly
+the taller title bar. Chart internals (matrix cells, zone strips, EPA bars,
+the radar) keep their own styles. Implementation `77aea58`; evidence
+`e2e-reports-offense` §14b and `artifacts/reports-offense-module-system/`.

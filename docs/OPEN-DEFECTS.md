@@ -2,8 +2,10 @@
 
 ## Installed smoke, 1.12.0-97 (in progress, 2026-09-23)
 
-**Finding S97-1 — open. The Offense pages carry several unrelated visual
-treatments.** Coach, on Identity, Situations and Structure: different header
+**Finding S97-1 — repaired in source 2026-09-24 (`77aea58`) at the coach's
+direction to proceed; not packaged, awaiting the coach's review of the
+captures and an installed smoke. The Offense pages carried several unrelated
+visual treatments.** Coach, on Identity, Situations and Structure: different header
 styles, headline styles and fonts per page, as though the old long board was
 cut into pages unchanged. Offense gold / Defense blue is correct; the
 treatment should be one system. Cause, from source: the pages kept each old
@@ -29,6 +31,23 @@ not the color — "Defense looks clean." Defense modules are separate outlined
 boxes with 20px gutters and a title bar; Offense modules are packed into
 bands that share rules, with a left accent rail. Offense adopts the Defense
 module outline, spacing and heading scale.
+
+*Repair (`77aea58`):* every Offense page opens on a numbered heading
+(`01 Offensive identity` … `06 Advanced metrics`, with the classified cohort);
+every module is an outlined box on 20px gutters with a 50px title bar (2px
+gold rule, 17px sentence-case title); the Offense pane draws no rail or ground
+of its own; the KPI strip is Defense's; tile, heat-map, lens and EPA
+sub-heading labels are sentence case in the body face; column labels are
+12.5px sentence case on a header band. The down-and-distance chart takes the
+same title bar, gold on Offense and cyan on Defense. Composition, row
+allocations and data are unchanged. Audited as part of the repair: Defense
+already used this system and its harnesses are unchanged. Not restyled: chart
+internals (Formation × Play Type and Top 5 Tendencies cells, zone-strip and
+down-chart captions, EPA contribution bars and stat cards, the radar's small
+monospace labels), which still carry the Offense type-floor census's 49
+sub-floor elements. Captures: `artifacts/reports-offense-module-system/`
+(canonical 2025 JV, St. Peter Lutheran, read-only copy, every page at 1440 and
+1280).
 
 ## Coach Reports smoke findings (2026-09-23)
 
@@ -1171,7 +1190,8 @@ edge-to-edge by design; the top bar's 18px inset is not.
 2. **The Offense narrow-width exception — SCOPED 2026-09-12, band still open.**
    Eight five-column modules share a 379px band half at 1280 and measure
    387-418px of content at the floor, so at that width their cells keep 12px
-   body and 11.5px column labels. The approved board forbids both an internal
+   body. (Their 11.5px column labels reached the floor in the 2026-09-24
+   module-system pass, S97-1.) The approved board forbids both an internal
    scroller and a resize.
 
    The exception was scoped to `.gi-offense-board .gi-overview-module th, td` —

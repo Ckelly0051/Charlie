@@ -100,7 +100,7 @@ facts on their own row, and no page overflow. It captures every tab at 1440,
 **Every multi-page board is measured page by page.** A harness that reads only
 the page a report opens on passes vacuously for the others, so the Offense,
 Defense, copy-standard, explosive-label, typefloor and rhetorical-copy checks
-walk every page of the bar and merge what they saw. `e2e-reports-offense` (62)
+walk every page of the bar and merge what they saw. `e2e-reports-offense` (66)
 and `e2e-reports-offense-realdata` (47) pin each Offense page's exact module
 list, every module on exactly one page, one height per page on all six
 canonical games, controller-state page selection, and a game export identical
@@ -139,6 +139,21 @@ overflow at 1440/1280/768. Captures: `artifacts/reports-down-distance/`.
 Mutation-verified: reading missing yardage as zero, inventing an `Unknown`
 play type, using offense success on defense, printing an unformatted export
 value and dropping the down check each red their assertions.
+
+### Offense module system (2026-09-24, smoke finding S97-1)
+
+`e2e-reports-offense` §14b walks all six Offense pages and pins the Defense
+module system the coach chose: a numbered page heading with the full zone
+title first on every page; every module an outlined box with the 50px title
+bar (2px gold rule, 17px sentence-case title in the body face) and no accent
+rail; 20px gutters between modules; and no uppercase micro-header anywhere on
+the board. Mutation-verified: removing the CSS block reds the outline, gutter
+and uppercase checks; printing the short page label in the heading reds the
+heading check. Moved with the chrome, each recorded in its harness: the Top 5
+Tendencies reserved panel (378 -> 410px), the chart's "first on the page"
+check (skips the page heading), and the Offense type-floor census (115 -> 49
+at 1440, 320 -> 214 at 1280, minimum 10.5px). Captures:
+`artifacts/reports-offense-module-system/`.
 
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip

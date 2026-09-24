@@ -1029,7 +1029,8 @@ module-level line survives only where there is no row structure — `SparseModul
 is no longer used by this tab. **`Top 5 Tendencies`** — retitled from
 `Tendency matrix`, because it renders the five most frequent row values and
 deterministically drops the rest, so the cap is named the way `Top 10 Plays`
-is — reserves a 378px panel instead, because its column dimension is chosen at
+is — reserves a fixed panel (378px, 410px since the 2026-09-24 module-system
+title bar) instead, because its column dimension is chosen at
 runtime and cannot be enumerated. Its ROW pitch is fixed at 54px so the five
 approved rows always fit that panel: left to size themselves the rows reached
 70px at full-season scope, five of them plus a 30px header needed 380px inside
@@ -1067,10 +1068,24 @@ layout runs over a **12-column rhythm**. Every band divides on a gridline the
 six-column KPI band also uses (two-column bands run 8fr/4fr or 6fr/6fr,
 three-column bands three 4fr tracks), because the generic band's 65.9% split
 missed the KPI band's 66.7% by under a percent and read as a defect rather
-than a design. Bands are `align-items:start` and paint their column rules with
-a box-shadow into the existing 1px gap: sized to content, the band's own
-`--bd-rule` background would otherwise show under a short module as a solid
-slab, and collapsing the gap moves every rule ~1.4px out of alignment.
+than a design.
+
+**THE OFFENSE PAGES USE THE DEFENSE MODULE SYSTEM (`77aea58`, 2026-09-24;
+coach direction in the `1.12.0-97` smoke, finding S97-1; not packaged).** Cut
+into pages, the long board's treatment — modules packed into bands on shared
+1px rules, a left accent rail, 9.5px uppercase condensed micro-headers — read
+as pasted pages with a different style each. Defense Revision 2's hierarchy
+is the one system, in gold: a numbered page heading (`01 Offensive identity`
+with the classified cohort), every module an outlined box on 20px gutters
+with a 50px title bar (2px gold rule, 17px sentence-case title), Defense's KPI
+strip, sentence-case tile, lens and sub-heading labels in the body face, and
+12.5px sentence-case column labels on a header band. The Offense pane draws
+no rail or ground; the down-and-distance chart takes the same title bar (gold
+on Offense, cyan on Defense). The block is declared last in
+`css/native-reports.css` and supersedes the band box-shadow rules; the 12-column
+tracks are unchanged. Chart internals keep their own styles. Pinned by
+`e2e-reports-offense` §14b. The Top 5 Tendencies reserved panel is 410px (it
+was 378 before the taller title bar).
 
 **Reports > Defense is REVISION 2 (2026-09-17), and its installed smoke PASSED
 on 2026-09-21 (`1.12.0-91`).** Built from the coach-approved Revision 2 comp —
@@ -2209,9 +2224,9 @@ safety on a defensive play: quarters sum to totals on both rows.
 **Reports typography has one shared target and explicitly recorded debt.**
 The coach-facing floor is 12.5px. Defense Revision 2 is the one fully migrated
 board: nothing on it renders below the floor. Overview retains only its approved
-broadcast micro-labels; Offense retains approved micro-labels and, at
-1280, a temporary 12px body / 11.5px column-label exception on the eight named
-`gi-off-narrow-fit` modules. Self-Scout, Season and Matchup migrated to the
+broadcast micro-labels; Offense retains sub-floor text only inside charts
+(49 elements at 1440 since the 2026-09-24 module-system pass) and, at 1280, a
+temporary 12px body exception on the eight named `gi-off-narrow-fit` modules. Self-Scout, Season and Matchup migrated to the
 shared floor on 2026-09-22. None of those exceptions creates a second standard;
 the exact canonical-season census and the work required to remove them live in
 `docs/VISUAL-SYSTEM-RULES.md` and `docs/OPEN-DEFECTS.md`.
@@ -2489,7 +2504,7 @@ release widths, perspective-safe title tooltips and read-only captures, 35),
 `tools/e2e-reports-offense.mjs` (the Offense composition, its football
 contracts, the shared scorebug rule, and the static schema — module inventory
 and order, EXACT row allocations, and identical schema under populated, sparse,
-empty and over-cap data with deterministic ranking, truncation and padding, and the six pages, 62),
+empty and over-cap data with deterministic ranking, truncation and padding, the six pages, and the Defense module system on every page, 66),
 `tools/e2e-reports-offense-realdata.mjs` (the canonical six-game season,
 read-only and hash-checked, every game at 1440 and 1280: approved module
 inventory and order, exact row allocations, held slots, one board height,
