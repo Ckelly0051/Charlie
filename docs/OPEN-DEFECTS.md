@@ -1731,6 +1731,25 @@ save label; mutation-verified), and
 `e2e-breakdown-lifecycle` section 6 repointed from the superseded side-by-side
 default to both docks.
 
+**IMPLEMENTED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — Film Room column
+sets per unit (coach direction).** The table keeps four column sets —
+Offense, Defense, Special Teams and All plays — and the table's unit FILTER
+(not the charting deck's unit) picks the one on screen. The Columns panel is
+titled for the set it edits (`Defense columns`), lists that unit's fields
+first, and changes only that set. In All plays a unit-specific column is
+blank, and opens no editor by click or Enter, on a row of another unit (Front
+on an offensive snap) — never a dash. Sets are saved per program under
+`ffa_film_room_columns_<team>`; `PlayGrid.cols` is the active set, so every
+existing reader and writer is unchanged. A program's first sets come from the
+coach's existing single list (All plays, through the E3b upgrade rule) and the
+unit presets; the old `ffa_film_room_cols` key is left untouched. Sets saved
+before a program id existed (first run) are claimed once by the first program
+that reads them. Reordering and a complete field list (drive, field position,
+players, grades, custom fields, special-teams detail) are deferred by the
+coach. Evidence: `e2e-film-room-columns` (17, red when the scope is forced to
+All plays), `e2e-film-room` (174; two storage reads repointed to the per-unit
+store, and the E4-2 Coverage Family editor exercised on a defensive play).
+
 **Film Room composition APPROVED BY THE COACH ON SCREEN, 2026-09-24 (browser
 captures at 1280 and 1920; installed smoke pending).** With the table below,
 the top band is the film, then a full-height **play card**, then the table's
