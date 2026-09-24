@@ -134,15 +134,16 @@ await page.evaluate(async () => {
     P(2, { unit: 'offense', runPass: 'Pass', playType: 'Short Pass + Screen', down: '1', distance: '10', yardage: String(seed), result: 'Gain', formation: 'Ace' }),
     P(3, { unit: 'offense', runPass: 'Run', playType: 'Run Outside', down: '3', distance: '2', yardage: '3', result: 'Gain', formation: 'Ace' }),
     P(4, { unit: 'offense', runPass: 'Pass', playType: 'Deep Pass', down: '2', distance: '9', yardage: '', result: 'Incomplete', formation: 'Ace' }),
+    P(8, { unit: 'offense', runPass: 'Run', playType: '', down: '4', distance: '1', yardage: '1', result: 'Gain', formation: 'Ace' }),
     P(5, { unit: 'defense', runPass: 'Run', playType: 'Run Inside', down: '1', distance: '10', yardage: '4', result: 'Gain', defFront: '4-3', coverage: 'Cover 3' }),
     P(6, { unit: 'defense', runPass: 'Pass', playType: 'Short Pass', down: '3', distance: '7', yardage: '8', result: 'Gain', defFront: '4-3', coverage: 'Cover 3' }),
     P(7, { unit: 'defense', runPass: 'Pass', playType: 'Short Pass', down: '3', distance: '8', yardage: '2', result: 'Gain', defFront: '4-3', coverage: 'Cover 3' }),
   ];
   const store = app.storage.seasonStore;
   store.data.games = [
-    { id: 'syn-a', name: 'Week 1', nextId: 8, plays: make(7), annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
+    { id: 'syn-a', name: 'Week 1', nextId: 9, plays: make(7), annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
       gameInfo: { opponent: 'Wildcats', date: '2026-09-04', week: '1', perspective: 'self', scoreUs: 14, scoreThem: 7 } },
-    { id: 'syn-b', name: 'Week 2', nextId: 8, plays: make(12), annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
+    { id: 'syn-b', name: 'Week 2', nextId: 9, plays: make(12), annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
       gameInfo: { opponent: 'Knights', date: '2026-09-11', week: '2', perspective: 'self', scoreUs: 7, scoreThem: 10 } },
   ];
   store.data.activeGameId = 'syn-a';
@@ -190,7 +191,7 @@ await go('offense'); await pageTo('situations');
 let shown = await readChart('offense');
 let model = await engineChart('offense');
 ok(!!shown && shown.first, 'Offense > Situations opens on the down-and-distance chart', JSON.stringify(shown && { first: shown.first }));
-ok(sameAsEngine(shown, await formatted(model)) && shown.cohort === '4 of 4 run/pass snaps carry down and distance',
+ok(sameAsEngine(shown, await formatted(model)) && shown.cohort === '5 of 5 run/pass snaps carry down and distance',
   'every rendered offense cell prints the engine\'s values; held cells are dashes and not buttons', JSON.stringify({ shown: shown.cells, cohort: shown.cohort }));
 ok(shown.cells['1|Long'].selected && /1st & 7\+ 2 plays/.test(shown.detail) && shown.watch === 'Watch 2 plays',
   'the busiest cell opens selected with its detail and Watch N plays', JSON.stringify({ detail: shown.detail, watch: shown.watch }));
@@ -207,6 +208,11 @@ const watched = await page.evaluate(async () => {
 });
 ok(watched.length === 1 && eq(watched[0].refs, ['syn-a::3']) && /3rd & 1-3/.test(watched[0].label),
   'selecting a cell and pressing Watch opens exactly that cell\'s composite refs (live game stamped with its id)', JSON.stringify(watched));
+await page.evaluate(() => document.querySelector('[data-dd-chart="offense"] [data-dd-cell="4|Short"]').click()); await sleep(120);
+const untyped = await readChart('offense');
+ok(eq(untyped.types, ['No play type1']) && /4th & 1-3 1 plays/.test(untyped.detail),
+  'a cell holding only untyped snaps lists the counted No play type row once, with no second absence line', JSON.stringify(untyped.types));
+await page.evaluate(() => document.querySelector('[data-dd-chart="offense"] [data-dd-cell="3|Short"]').click()); await sleep(120);
 await page.evaluate(() => window.app.reportsScreen._renderActiveTab()); await sleep(200);
 ok((await readChart('offense')).cells['3|Short'].selected, 'the selected cell is controller state and survives a re-render');
 const heldClick = await page.evaluate(() => {
@@ -275,7 +281,7 @@ const seasonModel = await page.evaluate(() => {
   const m = window.app.season.reportModel();
   return { off: window.app.stats.downDistanceChart(m.stats.offPlays, { side: 'offense' }), def: m.defenseBoard.downDistanceChart };
 });
-ok(seasonOff && sameAsEngine(seasonOff, await formatted(seasonModel.off)) && seasonOff.cohort === '8 of 8 run/pass snaps carry down and distance',
+ok(seasonOff && sameAsEngine(seasonOff, await formatted(seasonModel.off)) && seasonOff.cohort === '10 of 10 run/pass snaps carry down and distance',
   'Season > Offense > Situations shows the season chart', JSON.stringify(seasonOff?.cohort));
 await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-subtab="defense"]').click()); await sleep(300);
 await page.evaluate(() => document.querySelector('[data-pane="season"] .gi-secbar.is-inline [data-section="situations"]')?.click()); await sleep(200);

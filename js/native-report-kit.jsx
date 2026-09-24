@@ -337,9 +337,7 @@ export function DownDistanceChart({ chart, screen, side, title }) {
             <div><dt>{yppLabel}</dt><dd>{detail.ypp}</dd><small>{selected.yardsMeasured} of {selected.n} with yardage</small></div>
           </dl>
           <p>Top play types{selected.typeTags > selected.n ? ` · ${selected.typeTags} tags on ${selected.n} snaps` : ''}</p>
-          <ol data-dd-types>{selected.playTypes.length
-            ? selected.playTypes.slice(0, 3).map(type => <li key={type.name}><span>{type.name}</span><b>{type.n}</b></li>)
-            : <li><span>No play type charted</span></li>}
+          <ol data-dd-types>{selected.playTypes.slice(0, 3).map(type => <li key={type.name}><span>{type.name}</span><b>{type.n}</b></li>)}
             {selected.untyped ? <li class="is-muted"><span>No play type</span><b>{selected.untyped}</b></li> : null}</ol>
           {selected.refs.length
             ? <button type="button" class="gi-dd-watch" data-dd-watch
