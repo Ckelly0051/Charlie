@@ -1731,6 +1731,29 @@ save label; mutation-verified), and
 `e2e-breakdown-lifecycle` section 6 repointed from the superseded side-by-side
 default to both docks.
 
+**Film Room composition APPROVED BY THE COACH ON SCREEN, 2026-09-24 (browser
+captures at 1280 and 1920; installed smoke pending).** With the table below,
+the top band is the film, then a full-height **play card**, then the table's
+**controls card** (title, count, Columns, Watch, saved filters, the filters in
+four groups), and the table starts at its column headers — 6 rows at 1280×800
+instead of 3. The film centers in what remains, so its spare width is even
+margin. The play card shows every detail with no `More detail` disclosure, and
+both cards scroll inside themselves when their content runs long. With the
+table beside the film the controls are a bar over the table; on a phone they
+are a bar above it. Structure: the controls are their own root in their own
+composition host (`data-breakdown-film-controls-host`), mounted by
+`NativeFilmRoomScreen.mount(host, controlsHost)` from the same controller and
+snapshot; the grid places them, and the table section holds only the table.
+The play card is the theater's last child, outside the player, so Film focus
+and fullscreen never carry it. The retired in-table header rules (and the S6-6b
+eyebrow and segmented-run blocks that styled it) are deleted. Evidence:
+`e2e-film-room-layout` (47: placement per dock, full-height adjacency, no
+disclosure, the gold rule, long notes scrolling inside a fixed card, Film
+focus; the new assertions red when the card is not full height or not a
+scroller); selectors and mounts repointed without changing assertions in
+`e2e-film-room`, `e2e-native-film-room` (subscriptions are now two, one per
+root), `e2e-breakdown-lifecycle` and `e2e-projform-durability`.
+
 **Legacy Breakdown code removed 2026-09-24.** Deleted, each with no producer in
 production: `PlayTagger`'s lookups of `#tagChips`, `#customTagInput`,
 `#btnNewDrive`, `#tagResultRare` and `#tagResultMore` with every branch that read
