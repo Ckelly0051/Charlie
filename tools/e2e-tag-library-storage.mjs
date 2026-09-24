@@ -70,11 +70,19 @@ const seeded = await page.evaluate(({ seasonId, gameId }) => {
       catch (e) { last = e.name; break; }
     }
   }
-  // Probe with a write the size of the stored charting library (~1.6 KB).
+  // The smallest snapshot still leaves up to a few hundred characters of
+  // slack, and adding one choice grows the stored library by only a few, so
+  // whether the add failed depended on how much the page had written before
+  // the fill. Close the slack with one-character keys until nothing fits.
+  let tail = 0;
+  for (; tail < 5000; tail++) { try { localStorage.setItem(String.fromCharCode(0x4e00 + tail), ''); } catch (e) { break; } }
+  // Probe with a write the size of the stored charting library (~1.6 KB), and
+  // with the smallest write there is.
   let probe = 'ok'; try { localStorage.setItem('p', 'x'.repeat(1600)); localStorage.removeItem('p'); } catch (e) { probe = e.name; }
-  return { full: last, probe, fillKeys: n };
+  let tiny = 'ok'; try { localStorage.setItem('q', 'x'); localStorage.removeItem('q'); } catch (e) { tiny = e.name; }
+  return { full: last, probe, tiny, fillKeys: n, tailKeys: tail };
 }, scope);
-ok(seeded.full === 'QuotaExceededError' && seeded.probe === 'QuotaExceededError', 'localStorage is full of version history: a library-sized write fails', JSON.stringify(seeded));
+ok(seeded.full === 'QuotaExceededError' && seeded.probe === 'QuotaExceededError' && seeded.tiny === 'QuotaExceededError', 'localStorage is full of version history: a library-sized write fails, and so does a one-character one', JSON.stringify(seeded));
 const failed = await page.evaluate(() => window.app.settingsScreen.addTagChoice('front', 'Rhino'));
 ok(failed.ok === false && /settings storage is full/.test(failed.message),
   'adding a front on a full store fails with a message naming the real cause, not "available app storage"', JSON.stringify(failed.message));
