@@ -76,6 +76,8 @@ titles are now 17px, recorded in their harnesses. Overview is untouched: its
 approved broadcast composition is a separate coach decision. Evidence:
 `tools/e2e-reports-module-system.mjs` (34) and captures in
 `artifacts/reports-{players,selfscout,matchup,season}-module-system/`.
+Full gate at `5f208e1` (the whole S97-1 module-system pass): 126 harnesses,
+126 green, zero skipped, zero failed.
 
 ## Coach Reports smoke findings (2026-09-23)
 
