@@ -40,6 +40,16 @@ text and date input in the app, so change-committed fields (charting yardage,
 the Special Teams and penalty editors, Study date ranges and Plan fields)
 committed per keystroke. Repaired in `87371cd` with a core-Preact portal. The
 never-smoked `1.12.0-96` installer carries the defect and is superseded.
+**Breakdown update — IMPLEMENTED IN SOURCE (2026-09-24), NOT PACKAGED, NOT
+SMOKE-APPROVED:** the installed Could not save that choice was a full WebView2
+localStorage (version history filled Chromium's 5 MB quota); version history now
+lives in the catalog ersions table on disk (IndexedDB in a browser) with a
+verified once-only migration, and TagLibrary reports its write errors. Film
+Room is video first (table below by default, Beside, resizable, Reset,
+persisted); the chart deck is tighter with independent Play Call / Play Type
+folds. Record and installed checks: docs/OPEN-DEFECTS.md > Breakdown.
+**Version history never goes back into localStorage** — it is what starved
+every settings write; VersionManager stores only through the storage backend.
 **Main-checkout version:** `1.12.0-98` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is

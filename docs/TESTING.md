@@ -221,7 +221,7 @@ The smallest existing harness for the route or domain you touched.
 | Team Hub / registry | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-v2b-control-center` |
 | Break Down — theater/film | `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle` |
 | Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
-| Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization` |
+| Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout` (37: docks, split limits, reset, persistence, table behavior beside the film) |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-reports-global-strip`, `e2e-explosive-labels`, `e2e-copy-standard`, `e2e-native-reports`, `e2e-reports-export-realdata`, `e2e-reports-overview`, `e2e-reports-overview-realdata`, `e2e-reports-offense`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-typefloor-realdata`, `e2e-reports-view-parity`, `e2e-season-tab`, `e2e-self-scout` |
 
@@ -405,7 +405,7 @@ and an ordinary return still following its unit — the
 scoreboard owner's own totals, the report's one punt blocked / one punt-return
 touchdown / exact composite reference, a save-reopen-normalize round trip of the
 whole authored state, and the try cohort owning the legacy-compatible
-`fieldGoal + extraPoint` shape. `e2e-native-tagging` (75) authors that state
+`fieldGoal + extraPoint` shape. `e2e-native-tagging` (84) authors that state
 through the real deck and asserts the stored shape, the report and the
 scoreboard. `e2e-reports-special-teams` (57) adds the mixed-cohort
 reconciliation — only snaps NO module claims are unassigned — the named try
@@ -510,7 +510,7 @@ defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
 
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
-| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library` |
+| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library-storage` (23: full-store failure, version-history migration, six library groups) |
 | Overlays | `e2e-native-overlay` |
 | Quick Chart | `e2e-native-quick-chart` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-play-call-charting`, `e2e-core` |

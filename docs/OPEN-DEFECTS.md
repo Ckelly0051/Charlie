@@ -1634,37 +1634,109 @@ edge-to-edge by design; the top bar's 18px inset is not.
 
 ## Breakdown
 
-**OPEN 2026-09-23 — charting-library editing fails in the installed app.** In
-Breakdown > Edit library > Fronts, adding the new choice `Rhino` leaves the
-choice unsaved and displays "Could not save that choice. Check available app
-storage." The screenshot establishes this failure for Fronts; the other five
-library groups have not yet been checked. Earlier source/browser tests and the
-`1.12.0-93` repair record below do not override this installed finding. The
-message is the generic failure returned by `SettingsScreen.addTagChoice()`
-after `TagLibrary.add()` fails its storage readback; it does not establish that
-storage capacity is the cause. Include this repair in the same Breakdown update
-as the Film Room layout work; working library editing is an acceptance blocker
-for that update. Reproduce in
-the installed app, identify the actual write/readback failure, and verify that
-a new front appears immediately in the Defense deck and remains available
-after closing and reopening the app. Check all library groups, program/team
-scoping, and failure feedback; do not change existing play tags to repair the
-choice library.
+**REPAIRED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — charting-library
+editing failed in the installed app (`Rhino` under Fronts).** Root cause,
+reproduced on a copy of the installed WebView2 profile, not assumed: the
+origin's localStorage was full — 5,242,879 of Chromium's 5,242,880 characters —
+and 99% of it was version history (`ffa_versions_<season>::<game>`, whole-game
+snapshots, up to 20 a game). Every small settings write in the app was failing;
+`TagLibrary._write` swallowed the `QuotaExceededError`, so the readback failed
+and the coach saw a generic message. Storage was the cause, but the library was
+never the consumer.
 
-**OPEN 2026-09-23 — desktop charting deck wastes vertical space.** Chip height
-and the gaps between chips, fields, and sections force avoidable scrolling in
-the desktop Breakdown deck. Keep the existing chip font size and weight: the
-text is the button, so reclaim space from vertical padding and gaps, not type.
-Tighten spacing across all charting units at desktop widths while preserving
-clear active/focus states and the larger coarse-pointer treatment. In
-particular, custom Play
-Calls such as `26 Blast` and built-in Play Types such as `Run Inside` need
-independent disclosure controls: the coach must be able to collapse either
-choice set without hiding the other or unrelated formation/result fields.
-Show any selected value in a collapsed set's header so charted state remains
-visible. Verify populated offense and defense decks at 1920, 1440, and 1280;
-the target is more visible choices with less scrolling, never smaller text.
-Include this in the pending Breakdown layout update; no UI repair is claimed.
+- **Version history left localStorage** (coach direction, 2026-09-24:
+  "I've been trying to get away from the legacy structure"). `VersionManager`
+  now stores through the storage backend: the desktop catalog's `versions`
+  table on disk (`CatalogPersistence.saveVersion`/`importVersions`, each a
+  durable write that rolls the in-memory catalog back when the db write fails)
+  and IndexedDB `ffa_fs` v3 `versions` in a browser. Capped at 20 a game,
+  automatic saves evicted first, as before.
+- **Migration is all-or-nothing per game.** `VersionManager.migrateLegacy()`
+  imports each scoped key, verifies every version reads back identical, and only
+  then removes the key; a failed import leaves the key untouched for the next
+  launch. Unscoped pre-2026 keys (`ffa_versions_default`) carry no game identity
+  and are left in place, unread. On the copied installed profile: 8 keys / 90
+  versions moved, 0 failed, localStorage 5.24 MB → 0.75 MB, `Rhino` saved.
+- **Write failures are diagnosable.** `TagLibrary` returns `false` from a failed
+  write, records `lastError` (`name`, `message`, `key`) and logs it; the coach
+  sees `Could not save that choice: the app settings storage is full.` for a
+  quota failure and the error name otherwise. A legacy library key is removed
+  only after its migrated copy is written.
+- The dead `#versionList` renderer inside `VersionManager` is deleted; Settings >
+  Recovery is the only presentation owner, and its save/restore now await the
+  backend.
+
+Evidence: `e2e-tag-library-storage` (23: a genuinely full store, the named
+failure, migration including a failed-then-retried import, all six library
+groups in the live deck, persistence across reload, team scoping, charted
+values untouched, new snapshots off localStorage; mutation-verified),
+`e2e-catalog-versions` (13: rollback and all-or-nothing import after reopen),
+`e2e-integrity`, `e2e-native-recovery`. **Browser tests cannot certify the
+installed catalog write or the WebView2 migration** — see the installed checks
+below.
+
+**REPAIRED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — desktop charting
+deck wasted vertical space.** Group body 8/12 → 6/10 px, field gap 4 → 3, chip
+gap 4 → 3, chip side padding 8 → 6, group header 38 → 34. Chip text, weight
+and the 30px chip floor are unchanged; coarse pointers keep 44px. Measured on
+the canonical 2025 JV OL Lakes game with the default groups open: offense deck
+1843 → 1750 px at 1920 and 1911 → 1816 at 1440/1280; defense 1510 → 1364 and
+1544 → 1463. **Play Call and Play Type fold independently**: each label is a
+disclosure button (`aria-expanded`/`aria-controls`), folded it states the
+selection (`26 Blast`, `Run Inside + RPO`, or `None`) and keeps Edit library,
+and the choice persists as a view preference (`ffa_chart_collapsed_fields`).
+**Every Edit library now sits beside its label**, the play call's included;
+that one had been left at the module edge. **Deck width was not reclaimed**:
+narrowing it 20px buys the 1920 picture ~1.7% width and costs 34–66px of deck
+scroll, and at 1440 the picture is height-bound so it gains nothing.
+Evidence: `e2e-native-tagging` (84, fold section mutation-verified),
+`e2e-home-breakdown-visual-repair` (147), `e2e-breakdown-viewport` (167).
+
+**REPAIRED IN SOURCE 2026-09-24, INSTALLED SMOKE PENDING — Film Room is video
+first.** The editable table docks below the film by default (film 62% of the
+height, limits 40–75%); `Beside` puts it right of the film (film 45% of the
+width, limits 30–65%). A focusable separator resizes by pointer or keyboard
+(arrows 2%, Page Up/Down 10%, Home/End to the limits, double-click resets the
+split), each dock keeps its own split, `Reset` restores the default and clears
+the stored layout (`ffa_film_room_layout`), and an unreadable or out-of-range
+stored value falls back or clamps. Below 1001px the existing stacked mobile
+layout is unchanged and carries no splitter. The table's row windowing
+re-measures when the split moves. The toolbar's `Table` caption hides below
+1366px because the extra group left Film focus 32px short at 1280; the table's
+filter chips now wrap instead of scrolling sideways. Evidence:
+`e2e-film-room-layout` (37: both docks, drag and keyboard limits, persistence
+across reload, reset, a failed layout write, selection, inline edit and scroll
+to play 300 beside the film, Film focus, 1280/1920/900; mutation-verified), and
+`e2e-breakdown-lifecycle` section 6 repointed from the superseded side-by-side
+default to both docks.
+
+**Legacy Breakdown code removed 2026-09-24.** Deleted, each with no producer in
+production: `PlayTagger`'s lookups of `#tagChips`, `#customTagInput`,
+`#btnNewDrive`, `#tagResultRare` and `#tagResultMore` with every branch that read
+them, and `_renderCustomTags` (the native deck renders custom tags; the XSS
+harness now checks that sink); the `.tag-chip` / `.chip-remove` and
+`.version-*` rules in `styles.css`; `.ws-classic-outlet` in
+`workspace-shell.css`; `.gi-diagram-actions` and `.gi-penalty-situation` in
+`native-tagging.css`. The Break Down route target is `breakdown-workspace`, not
+`classic-workspace`. **Retained, and why:** `PlayTagger.tagForm` (always null),
+`_updateFormEnabled`, `applyUnitMode`'s DOM body, `_disabledHintText`, and App's
+`_bindScoutMode` / `_bindTagNav` lookups are the same kind of dead bridge but
+have ~40 source and harness call sites; they are a separate cleanup, not kept
+on purpose. `#videoContainer` and the media-foundation rules are the live media
+owner. `SeasonStore.adoptLegacyRoster`, `tag-projection.js`, legacy `stType`
+reads and `ffa_versions_default` are saved-data compatibility and stay.
+`workspace-shell.css` holds 73 dead non-Breakdown branches (retired Home/Team
+Hub layout) found by the same ownership model; also a separate cleanup.
+
+**Installed checks still required (not certifiable in Chromium):** on the
+installed build, first launch migrates version history into the catalog (the
+`versions` table holds the games' save points; Settings > Recovery lists them;
+restoring one works) and localStorage drops well below its quota; Edit library
+adds `Rhino` to Fronts and a value to each of the other five groups, each
+appears in the live deck at once and after closing and reopening the app;
+Film Room opens with the table below, `Beside`, drag, `Reset` and a chosen
+layout survive a restart; the deck folds survive a restart; playback and inline
+editing work in both docks with real film.
 
 1. **Delete play - REPAIRED 2026-09-10.** `PlayTagger.deleteCurrentPlay()` read
    `id` before assigning it. It now captures `currentPlayId` before any delete

@@ -81,11 +81,16 @@ findings open in `docs/OPEN-DEFECTS.md` until verified.
    state. Add optional run-gap hit and motion start/end direction as first-
    class charting fields, without inferring values for old plays; carry their
    semantics through reporting and export where applicable.
+   **Status 2026-09-24:** library save, spacing and the two folds are repaired
+   in source (installed smoke pending); run-gap and motion fields are not built.
 3. **Film Room.** Review a video-first comp with the editable breakdown table
    docked beneath the video by default, plus movable/resizable video and table
    arrangements and a usable reset. Keep playback, selection, table editing,
    and narrow-screen behavior intact. Treat this as a separate higher-risk
    checkpoint from the charting-form changes.
+   **Status 2026-09-24:** built in source to the agreed direction without a
+   separate comp (table below by default, Beside, resize, Reset, persisted);
+   not packaged, installed smoke pending.
 
 Use focused tests and canonical 2025 JV data checks for each checkpoint, then
 one integrated full gate and installed smoke covering all three packages on a
@@ -221,7 +226,9 @@ The reviewed `design-comps/breakdown-workspace-2026-08/breakdown.html` has now b
 
 Build and focused behavioral checks passed; populated production screenshots and open/empty states are recorded in `artifacts/breakdown-comp-live/`. Charlie approved the installed **1.12.0-68 Beta** presentation on 2026-08-31, including the wide-screen vertical play rail. Slightly tighter vertical tagging padding is a deferred next-pass nit, not a blocker or authorization to reopen this layout now. This is presentation acceptance, not a claim that every installed workflow has been tested or that the whole app's design is finished. See the current `CLAUDE.md` handoff for test changes, discovered defects, and exact scope.
 
-**New Breakdown direction, 2026-09-23; not implemented.** The next Film Room
+**New Breakdown direction, 2026-09-23; IMPLEMENTED IN SOURCE 2026-09-24, not
+packaged, installed smoke pending** (record: docs/OPEN-DEFECTS.md > Breakdown;
+run-gap and motion-direction fields remain unbuilt). The next Film Room
 composition should give video priority and dock its editable breakdown table
 below the video by default. Let the coach move the table between bottom and
 side positions, resize the video/table split, restore a default layout, and
@@ -236,7 +243,7 @@ run-gap hit charting, motion-direction charting, and a down-and-distance chart,
 as detailed in the future-review shortlist below. Design approval,
 implementation, and installed smoke are still pending.
 
-**Deferred Breakdown width repair (coach screenshot, 2026-08-31):** Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
+**Deferred Breakdown width repair (coach screenshot, 2026-08-31) — RESOLVED 2026-09-24:** every Edit library now sits beside its label; the deck width was measured and deliberately kept (a 20px narrowing buys ~1.7% picture width at 1920, nothing at the height-bound 1440, and costs 34–66px of deck scroll). Original note: Edit Library sits beyond the rightmost option chip, leaving unused horizontal space in the tagging deck. In the next Breakdown pass, align the action with the option group's right edge and evaluate narrowing the deck to return space to the left-side workspace, especially video. Coach estimates roughly 0.25-0.5 inches; this is an unmeasured opportunity, not a promised gain. Moving the button alone will not resize the layout: check the column constraints and other widest controls, preserve readable sizing and all options, and inspect populated Offense/Defense/Special Teams before accepting the reclaimed width. Reference: `codex-clipboard-53e3411d-c4aa-4da0-b4ab-492c6bb3406b.png`. Explicit instruction: note only, do not fix yet. Home is accepted; this remains a future Breakdown pass.
 
 **Neutral palette completed (coach direction, 2026-09-11).** The app still read blue after the pass meant to neutralise it, because the pass was half done: `--gi-2` through `--gi-8` and `--gi-11` moved to graphite while the app background, the film surface and the entire broadcast surface family — the one every Reports board paints with — kept their cool values, as high as +27 blue. All twenty-one near-neutral surface and ink steps are true grey now, each computed to hold its predecessor's relative luminance so no contrast ratio moved. Semantic hues are untouched. Rule, now binding: neutralise the whole ladder or none of it.
 
