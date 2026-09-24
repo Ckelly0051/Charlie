@@ -69,6 +69,20 @@ export class StorageBackend {
   async createBackup(_seasonId, _data, _label) { return null; }
   async deleteBackup(_seasonId, _backupId) {}
 
+  // ---- per-game version history (explicit seasonId + gameId) ----
+  // Named and automatic save points for ONE game. They used to live in
+  // localStorage (`ffa_versions_<season>::<game>`), where whole-game snapshots
+  // filled the WebView's ~5 MB origin quota and made every small settings write
+  // in the app fail (the installed `Could not save that choice` finding,
+  // 2026-09-24). Each backend now keeps them in real storage with no such cap.
+  // `v` is { id, label, time, manual, playCount, data }. Ids are strings.
+  // saveVersion/importVersions return success only when the write is durable.
+  async saveVersion(_seasonId, _gameId, _v) { return null; }        // id | null
+  async listVersions(_seasonId, _gameId) { return []; }              // [{id,label,time,manual,playCount}] oldest first
+  async getVersion(_seasonId, _gameId, _id) { return null; }         // snapshot data | null
+  async deleteVersion(_seasonId, _gameId, _id) { return false; }
+  async importVersions(_seasonId, _gameId, _list) { return false; }  // all-or-nothing, no pruning
+
   // ---- durable disk (optional) ----
   supportsDisk() { return false; }
   diskStatus() { return { supported: false, bound: false, name: '', lastWrite: 0 }; }
@@ -284,11 +298,13 @@ export class BrowserBackend extends StorageBackend {
     // if the cached connection errored or was closed.
     if (this._idbPromise) return this._idbPromise;
     this._idbPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open('ffa_fs', 2);
+      // v3 adds `versions` (per-game version history, moved off localStorage).
+      const req = indexedDB.open('ffa_fs', 3);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
         if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups');
+        if (!db.objectStoreNames.contains('versions')) db.createObjectStore('versions');
       };
       req.onsuccess = () => {
         const db = req.result;
@@ -360,6 +376,70 @@ export class BrowserBackend extends StorageBackend {
     const metas = await this.listBackups(seasonId);       // newest first, this season
     const extra = metas.slice(this.RETENTION);
     for (const m of extra) await this.deleteBackup(seasonId, m.id);
+  }
+
+  // ---- per-game version history (IndexedDB, keyed "season::game::id") ----
+  _versionKey(seasonId, gameId, id) { return `${seasonId}::${gameId}::${id}`; }
+  _versionRecord(seasonId, gameId, v) {
+    return { id: String(v.id), seasonId, gameId, time: v.time || new Date().toISOString(),
+      label: v.label || '', manual: !!v.manual, playCount: Number(v.playCount) || 0, data: v.data };
+  }
+  async _versionRecords(seasonId, gameId) {
+    const all = await this._tx('versions', 'readonly', os => os.getAll());
+    return (all || []).filter(r => r && r.seasonId === seasonId && r.gameId === gameId)
+      .sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  }
+  async saveVersion(seasonId, gameId, v) {
+    if (!seasonId || !gameId || !v || v.id == null) return null;
+    const rec = this._versionRecord(seasonId, gameId, v);
+    try {
+      await this._tx('versions', 'readwrite', os => os.put(rec, this._versionKey(seasonId, gameId, rec.id)));
+      await this._pruneVersions(seasonId, gameId);
+      return rec.id;
+    } catch (e) { console.error('Version save failed', e); return null; }
+  }
+  async listVersions(seasonId, gameId) {
+    if (!seasonId || !gameId) return [];
+    try { return (await this._versionRecords(seasonId, gameId)).map(({ data, seasonId: s, gameId: g, ...meta }) => meta); }
+    catch (e) { return []; }
+  }
+  async getVersion(seasonId, gameId, id) {
+    if (!seasonId || !gameId || id == null) return null;
+    const rec = await this._tx('versions', 'readonly', os => os.get(this._versionKey(seasonId, gameId, String(id))));
+    return rec == null ? null : rec.data;
+  }
+  async deleteVersion(seasonId, gameId, id) {
+    if (!seasonId || !gameId || id == null) return false;
+    const key = this._versionKey(seasonId, gameId, String(id));
+    const rec = await this._tx('versions', 'readonly', os => os.get(key));
+    if (rec == null) return false;
+    await this._tx('versions', 'readwrite', os => os.delete(key));
+    return true;
+  }
+  /** Same eviction rule as the catalog and the old VersionManager: at most 20
+   *  per game, automatic saves before named ones, oldest first. */
+  async _pruneVersions(seasonId, gameId) {
+    const recs = await this._versionRecords(seasonId, gameId);
+    let over = recs.length - 20;
+    if (over <= 0) return;
+    const del = [];
+    for (const r of recs) { if (over <= 0) break; if (!r.manual) { del.push(r.id); over--; } }
+    for (const r of recs) { if (over <= 0) break; if (r.manual && !del.includes(r.id)) { del.push(r.id); over--; } }
+    for (const id of del) await this._tx('versions', 'readwrite', os => os.delete(this._versionKey(seasonId, gameId, id)));
+  }
+  /** One transaction for the whole list; success only when every record reads
+   *  back identical. Never prunes: a migration must not lose a version. */
+  async importVersions(seasonId, gameId, list) {
+    if (!seasonId || !gameId || !Array.isArray(list)) return false;
+    const recs = list.filter(v => v && v.id != null).map(v => this._versionRecord(seasonId, gameId, v));
+    try {
+      await this._tx('versions', 'readwrite', os => { for (const r of recs) os.put(r, this._versionKey(seasonId, gameId, r.id)); });
+      for (const r of recs) {
+        const back = await this.getVersion(seasonId, gameId, r.id);
+        if (JSON.stringify(back) !== JSON.stringify(r.data)) return false;
+      }
+      return true;
+    } catch (e) { console.error('Version import failed', e); return false; }
   }
 
   // ---- disk (File System Access API) ----
@@ -1015,6 +1095,37 @@ export class TauriBackend extends StorageBackend {
       return;
     }
     try { await this.fs.remove(`${this._backupsDir(seasonId)}/${id}`, { baseDir: this.baseDir }); } catch (e) {}
+  }
+
+  // ---- per-game version history: rows in the canonical SQLite catalog ----
+  // Fail-closed like createBackup: no catalog, no write, and a write that does
+  // not reach disk is rolled back and reported as a failure.
+  async saveVersion(seasonId, gameId, v) {
+    if (!this._ok() || !seasonId || !gameId || !v || v.id == null) return null;
+    const cp = await this._ensureCatalog();
+    if (!cp) { console.error('Blocked version save: the catalog could not be opened.'); return null; }
+    return cp.saveVersion(seasonId, gameId, { ...v, id: String(v.id) });
+  }
+  async listVersions(seasonId, gameId) {
+    if (!this._ok() || !seasonId || !gameId) return [];
+    const cp = await this._ensureCatalog();
+    return cp ? cp.listVersions(seasonId, gameId) : [];
+  }
+  async getVersion(seasonId, gameId, id) {
+    if (!this._ok() || !seasonId || !gameId || id == null) return null;
+    const cp = await this._ensureCatalog();
+    return cp ? cp.getVersionScoped(seasonId, gameId, String(id)) : null;
+  }
+  async deleteVersion(seasonId, gameId, id) {
+    if (!this._ok() || !seasonId || !gameId || id == null) return false;
+    const cp = await this._ensureCatalog();
+    return cp ? cp.deleteVersionScoped(seasonId, gameId, String(id)) : false;
+  }
+  async importVersions(seasonId, gameId, list) {
+    if (!this._ok() || !seasonId || !gameId || !Array.isArray(list)) return false;
+    const cp = await this._ensureCatalog();
+    if (!cp) { console.error('Blocked version import: the catalog could not be opened.'); return false; }
+    return cp.importVersions(seasonId, gameId, list.map(v => ({ ...v, id: String(v.id) })));
   }
   async _prune(seasonId) {
     if (!seasonId) return;

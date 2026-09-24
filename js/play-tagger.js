@@ -272,23 +272,7 @@ export class PlayTagger {
     this.carryScheme = (typeof localStorage !== 'undefined')
       && localStorage.getItem('ffa_carry_scheme') === '1';
 
-    this.tagChips = document.getElementById('tagChips');
-    this.customTagInput = document.getElementById('customTagInput');
-
-    this.btnNewDrive = document.getElementById('btnNewDrive');
     this.currentDrive = 1;
-
-    // Result chips: the six rare outcomes (FG/Good/No Good/Kneel/Spike/Safety)
-    // hide behind a "More" expander so the common row stays scannable.
-    this.resultRareWrap = document.getElementById('tagResultRare');
-    this.btnResultMore = document.getElementById('tagResultMore');
-    if (this.btnResultMore && this.resultRareWrap) {
-      this.btnResultMore.addEventListener('click', () => {
-        const show = this.resultRareWrap.classList.toggle('show');
-        this.btnResultMore.classList.toggle('open', show);
-        this.btnResultMore.textContent = show ? 'Less ▴' : 'More ▾';
-      });
-    }
 
     // Optional toast hook (App wires this to the shared toast) for inline
     // feedback like "Mark the start first".
@@ -387,19 +371,6 @@ export class PlayTagger {
           head.parentElement.classList.toggle('collapsed');
         });
       });
-    }
-
-    // New Drive button — only Drive Number actually changes here, so only
-    // Drive Number is written (E4 review fix: the old bulk _saveCurrentTags()
-    // re-wrote EVERY displayed field from its current chip value, including
-    // Formation/Coverage's now-PROJECTED display, on a click that only meant
-    // to bump the drive counter — a field-level-merge contract violation, not
-    // just an unrelated-field one, since the coach never touched those chips).
-    // driveNumber is a plain input, so setting .value alone fires no 'change'
-    // event; _saveField('driveNumber') is the same single-field commit every
-    // other field's own change listener already uses.
-    if (this.btnNewDrive) {
-      this.btnNewDrive.addEventListener('click', () => this.newDrive());
     }
   }
 
@@ -1146,18 +1117,6 @@ export class PlayTagger {
     this.tagFields.coverageFamily.value = projected.coverageFamily || '';
     this.tagFields.blitz.value = play.tags.blitz;
     this.tagFields.result.value = play.tags.result;
-    // If this play carries a rare result (FG/Good/Kneel/…) keep the "More"
-    // section open so the active chip is visible.
-    if (this.resultRareWrap) {
-      const hasRare = !!this.resultRareWrap.querySelector('.pick.active');
-      if (hasRare && !this.resultRareWrap.classList.contains('show')) {
-        this.resultRareWrap.classList.add('show');
-        if (this.btnResultMore) {
-          this.btnResultMore.classList.add('open');
-          this.btnResultMore.textContent = 'Less ▴';
-        }
-      }
-    }
     // Yardage is stored signed but shown as a magnitude (sign comes from Result).
     this.tagFields.yardage.value = (play.tags.yardage === '' || play.tags.yardage == null)
       ? '' : String(Math.abs(parseInt(play.tags.yardage, 10) || 0));
@@ -1198,7 +1157,6 @@ export class PlayTagger {
     const unit = play.tags.unit || this.defaultUnit || 'offense';
     if (this.unitField) this.unitField.value = unit;
     this.applyUnitMode(unit);
-    this._renderCustomTags(play.tags.custom);
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
     this._updateDdReadout();
@@ -1315,22 +1273,12 @@ export class PlayTagger {
       groups.defense && groups.defense.classList.add('is-hidden');
     }
 
-    // Special teams: the results that matter (Good / No Good / Field Goal)
-    // live in the "More" expander — open it so charting the kicking game
-    // doesn't cost an extra tap on every play.
-    if (this.resultRareWrap && this.btnResultMore) {
-      const showRare = unit === 'special' || !!this.resultRareWrap.querySelector('.pick.active');
-      this.resultRareWrap.classList.toggle('show', showRare);
-      this.btnResultMore.classList.toggle('open', showRare);
-      this.btnResultMore.textContent = showRare ? 'Less ▴' : 'More ▾';
-    }
   }
 
   _clearTagForm() {
     for (const el of Object.values(this.tagFields)) el.value = '';
     for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
     for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
-    if (this.tagChips) this.tagChips.innerHTML = '';
     this._updateFormEnabled();
   }
 
@@ -1629,42 +1577,7 @@ export class PlayTagger {
     this._emit('play-updated', next);
   }
 
-  _renderCustomTags(tags) {
-    // Legacy .tag-section chip display — native-tagging.jsx renders custom
-    // tags itself (state.customTags, straight off play.tags.custom), so this
-    // is a pure no-op on the coach-visible path. Still called from
-    // _loadTagForm on every play selection, so it must not crash once the
-    // legacy display node is gone.
-    if (!this.tagChips) return;
-    this.tagChips.innerHTML = '';
-    // Every in-app creation site sets `custom: []`, but SeasonStore._normalize
-    // does NOT backfill it, so a play from an imported or pre-field season file
-    // arrives without it. Unguarded, that threw inside _loadTagForm →
-    // selectPlay, taking out the whole tag form for that play — a crash, not a
-    // missing chip. Not reproduced from any in-app path; import is the vector.
-    if (!Array.isArray(tags)) return;
-    tags.forEach((tag, i) => {
-      const chip = document.createElement('span');
-      chip.className = 'tag-chip';
-      // Custom tags are coach freeform text AND arrive via season/CSV import, so
-      // they can carry markup — set the label as TEXT (never innerHTML) so a tag
-      // like <img onerror=…> can't execute (stored-XSS, same class as lesson #18).
-      chip.textContent = tag + ' ';
-      const rm = document.createElement('span');
-      rm.className = 'chip-remove';
-      rm.dataset.index = i;
-      rm.innerHTML = '&times;';
-      chip.appendChild(rm);
-      chip.querySelector('.chip-remove').addEventListener('click', () => {
-        tags.splice(i, 1);
-        this._renderCustomTags(tags);
-        this._emit('play-updated', this.getCurrentPlay());
-      });
-      this.tagChips.appendChild(chip);
-    });
-  }
-
-_fmt(sec) {
+  _fmt(sec) {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60).toString().padStart(2, '0');
     return `${m}:${s}`;

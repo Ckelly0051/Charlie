@@ -409,9 +409,18 @@ export class SettingsScreen {
     const current = this.chartingSnapshot(group);
     if (!clean) return { ok:false, message:'Enter a name first.' };
     if (current.values.some(item => item.toLowerCase() === clean.toLowerCase())) return { ok:false, message:'That choice already exists.' };
-    const ok = this.app.customChips.library.add(group, clean);
+    const library = this.app.customChips.library;
+    const ok = library.add(group, clean);
     if (ok) this.app.customChips.reload();
-    return { ok, message:ok ? '' : 'Could not save that choice. Check available app storage.', group:this.chartingSnapshot(group) };
+    return { ok, message:ok ? '' : this._libraryWriteMessage(library.lastError), group:this.chartingSnapshot(group) };
+  }
+  /** Names the actual failure. The old text blamed "available app storage" for
+   *  every failure, which pointed at the disk; the real limit was the WebView's
+   *  settings storage (2026-09-24). */
+  _libraryWriteMessage(error) {
+    if (error?.name === 'QuotaExceededError') return 'Could not save that choice: the app settings storage is full.';
+    if (error?.name === 'NoStorage') return 'Could not save that choice: settings storage is unavailable.';
+    return `Could not save that choice${error?.name ? ` (${error.name})` : ''}.`;
   }
   async removeTagChoice(group, value) {
     const choice = await this.overlays.dialog({ title:'Remove "' + value + '"?', message:'It disappears from charting choices. Existing tagged plays and analytics stay unchanged.', actions:[{key:'cancel',label:'Keep it',default:true},{key:'remove',label:'Remove choice',tone:'destructive'}] }).result;
@@ -441,7 +450,7 @@ export class SettingsScreen {
   async recoverySnapshot() {
     const store=this._store();
     let seasonPoints=[]; try{seasonPoints=store?.hasCurrent?.()?await store.listBackups():[];}catch{}
-    const versions=(this.app.versions?.list?.() || []).slice().reverse();
+    const versions=((await this.app.versions?.list?.()) || []).slice().reverse();
     return { hasSeason:!!store?.hasCurrent?.(), seasonName:store?.data?.seasonName || '', seasonPoints, versions, disk:store?.diskStatus?.() || {} };
   }
   async createRestorePoint(label='Manual restore point') {
@@ -461,7 +470,11 @@ export class SettingsScreen {
     this._toast('Season restored. A copy of the prior state was saved.');
     this.app.workspaceShell?._syncChrome?.(); return true;
   }
-  saveGameVersion(label) { return this.app.versions?.snapshot?.(String(label||'Manual save').trim()||'Manual save',true); }
+  async saveGameVersion(label) {
+    const id=await this.app.versions?.snapshot?.(String(label||'Manual save').trim()||'Manual save',true);
+    if(!id)this._toast('The game version could not be saved.', 'error');
+    return !!id;
+  }
   async restoreGameVersion(id) { return await this.app.versions?.restore?.(id) === true; }
   async deleteGameVersion(id) { await this.app.versions?.delete?.(id); return true; }
   async openDataFolder() { return this._store()?.openDataDir?.(); }

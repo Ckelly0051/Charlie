@@ -79,5 +79,34 @@ function makeFs() {
   ok(list2.length === 20 && (await cp.getVersion(manualIds[0])) === null, 'when only manual points remain, the OLDEST manual is evicted', JSON.stringify({ n: list2.length }));
 }
 
+// ---- 4. Durability (wired into VersionManager, 2026-09-24) -----------------
+// A save point that never reaches disk is not one: a failed db write rolls the
+// in-memory catalog back and reports failure, for single saves and imports.
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  await cp.saveVersion('s1', 'g1', snap('Kept', true, 2));
+  fs.writeDb = async () => { throw new Error('disk down'); };
+  const lost = await cp.saveVersion('s1', 'g1', snap('Never written', true, 2));
+  const listed = await cp.listVersions('s1', 'g1');
+  ok(lost === null && listed.length === 1 && listed[0].label === 'Kept',
+    'a version whose db write fails returns null and is rolled back out of memory', JSON.stringify({ lost, listed }));
+  const imported = await cp.importVersions('s1', 'g2', [snap('I1', true, 1), snap('I2', false, 1)]);
+  ok(imported === false && (await cp.listVersions('s1', 'g2')).length === 0,
+    'an import whose db write fails reports failure and leaves nothing behind');
+}
+{
+  const fs = makeFs();
+  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const many = Array.from({ length: 22 }, (_, i) => snap(`L${i}`, i % 3 === 0, 1));
+  const imported = await cp.importVersions('s1', 'g3', many);
+  const reopened = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
+  const back = await reopened.listVersions('s1', 'g3');
+  const body = await reopened.getVersionScoped('s1', 'g3', many[5].id);
+  ok(imported === true && back.length === 22 && JSON.stringify(body) === JSON.stringify(many[5].data),
+    'an import is all-or-nothing, never pruned, and reads back identical after reopening from disk',
+    JSON.stringify({ imported, n: back.length }));
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

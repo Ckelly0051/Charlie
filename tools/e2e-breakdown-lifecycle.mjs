@@ -195,11 +195,12 @@ ok(!state.open && state.expanded === 'false' && state.visibleCommands === 0 && s
   'Escape closes Mobile More tools and restores focus to its launcher', JSON.stringify(state));
 
 console.log('\n== 6. Film Room owns a usable data workspace ==');
-// The approved workspace comp gives Film Room a 64% table beside the film
-// at every desktop width; the old stacked-at-1440 layout is superseded.
-for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1440,900,false,300],[1280,720,false,200]]) {
+// Coach direction 2026-09-23 supersedes the comp's 64% table beside the film:
+// video first, the table docked BELOW by default, and BESIDE on request
+// (e2e-film-room-layout owns resizing, reset and persistence).
+for (const [width, height, dock, minVisibleFilm] of [[1920,1080,'bottom',180],[1440,900,'bottom',180],[1280,720,'bottom',180],[1920,1080,'side',500],[1440,900,'side',300],[1280,720,'side',200]]) {
   await page.setViewport({ width, height });
-  await page.evaluate(() => window.app.breakdownWorkspace._setView('film-room'));
+  await page.evaluate(d => { window.app.breakdownWorkspace._setView('film-room'); window.app.breakdownWorkspace.setFilmLayout({ dock: d }, { persist: false }); }, dock);
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const layout = await page.evaluate(() => {
     const route = document.querySelector('[data-native-breakdown-route]').getBoundingClientRect();
@@ -217,18 +218,21 @@ for (const [width, height, stacked, minVisibleFilm] of [[1920,1080,false,500],[1
       deck: { left: deck.left, right: deck.right, top: deck.top, bottom: deck.bottom, width: deck.width },
       film: { top: film.top, bottom: film.bottom, width: film.width, height: film.height, visibleHeight: visibleFilmHeight, visibleRows },
       sideBySide: Math.abs(theater.top - deck.top) <= 1 && deck.left >= theater.right - 1,
-      stacked: deck.top >= theater.bottom - 1 && Math.abs(deck.width - route.width) <= 2,
+      // 6px route gutter on each side.
+      stacked: deck.top >= theater.bottom - 1 && Math.abs(deck.width - route.width) <= 14,
       tableVisible: !!document.querySelector('[data-native-film-room]')?.getClientRects().length,
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     };
   });
-  if (stacked) ok(layout.stacked && layout.film.width >= layout.route.width - 2 && layout.film.height >= 500 && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1,
-    width + 'x' + height + ' gives Film Room a full-width table with data rows in the viewport', JSON.stringify(layout));
-  else ok(layout.sideBySide && layout.film.width >= layout.route.width * .63 && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1,
-    width + 'x' + height + ' gives Film Room a wide side-by-side data deck', JSON.stringify(layout));
+  if (dock === 'bottom') ok(layout.stacked && layout.film.width >= layout.route.width - 14 && layout.theater.bottom - layout.theater.top > layout.film.height && layout.film.visibleRows >= 1,
+    width + 'x' + height + ' docks a full-width table below a larger film', JSON.stringify(layout));
+  else ok(layout.sideBySide && layout.film.width >= layout.route.width * .5 && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1,
+    width + 'x' + height + ' puts the table beside the film on request', JSON.stringify(layout));
   ok(layout.tableVisible && layout.film.visibleHeight >= minVisibleFilm && layout.film.visibleRows >= 1 && !layout.pageOverflow,
     width + 'x' + height + ' keeps Film Room data visible with overflow contained internally', JSON.stringify(layout));
 }
+
+await page.evaluate(() => window.app.breakdownWorkspace.setFilmLayout({ dock: 'bottom' }, { persist: false }));
 
 console.log('\n== 7. Narrowed Break Down header keeps its context reachable ==');
 // Measured on the coach's real names ("Mavericks / 2025 St. Joseph Mavericks -

@@ -35,7 +35,20 @@ export class TagLibrary {
     return { version: TagLibrary.VERSION, groups, presets: [] };
   }
   _read(key) { try { return JSON.parse(this.storage?.getItem(key) || 'null'); } catch { return null; } }
-  _write(state) { try { this.storage?.setItem(this.key(), JSON.stringify(state)); } catch {} return state; }
+  /** Writes and records why a write failed. It used to swallow every error, so
+   *  a full localStorage (QuotaExceededError) surfaced only as a failed readback
+   *  and a generic message (installed finding, 2026-09-24). lastError names the
+   *  real cause for the caller and the console. */
+  _write(state) {
+    this.lastError = null;
+    if (!this.storage) { this.lastError = { name: 'NoStorage', message: 'No settings storage is available.' }; return false; }
+    try { this.storage.setItem(this.key(), JSON.stringify(state)); return true; }
+    catch (e) {
+      this.lastError = { name: e?.name || 'Error', message: e?.message || String(e), key: this.key() };
+      console.error('Charting library write failed', this.lastError);
+      return false;
+    }
+  }
   _remove(key) { try { this.storage?.removeItem(key); } catch {} }
   _normalize(raw) {
     const next = this._blank();
@@ -89,8 +102,9 @@ export class TagLibrary {
       migrated.groups[key].enabled.push(...migrated.groups[key].custom);
       migrated.groups[key].order.push(...migrated.groups[key].custom);
     }
-    const state = this._write(this._normalize(migrated));
-    this._remove(this.legacyKey());
+    const state = this._normalize(migrated);
+    // Only drop the legacy key once the migrated library is actually stored.
+    if (this._write(state)) this._remove(this.legacyKey());
     return state;
   }
   group(key) {
@@ -101,8 +115,10 @@ export class TagLibrary {
     const state = this.load(), group = state.groups[key], defaults = TagLibrary.DEFINITIONS[key], v = String(value || '').trim();
     if (!group || !defaults || !v || defaults.includes(v) || group.custom.includes(v)) return false;
     group.custom.push(v); group.enabled.push(v); group.order.push(v);
-    this._write(state);
-    return this._read(this.key())?.groups?.[key]?.custom?.includes(v) === true;
+    if (!this._write(state)) return false;
+    const stored = this._read(this.key())?.groups?.[key]?.custom?.includes(v) === true;
+    if (!stored) this.lastError = { name: 'ReadbackMismatch', message: `The saved library does not contain "${v}".`, key: this.key() };
+    return stored;
   }
   remove(key, value) {
     const state = this.load(), group = state.groups[key];
@@ -110,7 +126,7 @@ export class TagLibrary {
     group.custom = group.custom.filter(item => item !== value);
     group.enabled = group.enabled.filter(item => item !== value);
     group.order = group.order.filter(item => item !== value);
-    this._write(state); return true;
+    return this._write(state);
   }
   setEnabled(key, value, enabled) {
     const state = this.load(), group = state.groups[key];
@@ -118,7 +134,7 @@ export class TagLibrary {
     const has = group.enabled.includes(value);
     if (!!enabled === has) return false;
     group.enabled = enabled ? [...group.enabled, value] : group.enabled.filter(item => item !== value);
-    this._write(state); return true;
+    return this._write(state);
   }
   move(key, value, delta) {
     const state = this.load(), group = state.groups[key], step = Number(delta) < 0 ? -1 : 1;
@@ -126,7 +142,7 @@ export class TagLibrary {
     const from = group.order.indexOf(value), to = from + step;
     if (from < 0 || to < 0 || to >= group.order.length) return false;
     [group.order[from], group.order[to]] = [group.order[to], group.order[from]];
-    this._write(state); return true;
+    return this._write(state);
   }
   replaceCustom(data = {}) {
     const state = this.load();
@@ -137,7 +153,8 @@ export class TagLibrary {
       prior.enabled = [...new Set([...prior.enabled.filter(value => defaults.includes(value)), ...custom])];
       prior.order = [...new Set([...prior.order.filter(value => defaults.includes(value) || custom.includes(value)), ...defaults, ...custom])];
     }
-    return this._write(state);
+    this._write(state);
+    return state;
   }
   presets() { return this.load().presets.map(preset => JSON.parse(JSON.stringify(preset))); }
   savePreset({ name, unit = 'offense', mode = 'program', role = 'All staff' } = {}) {
@@ -152,7 +169,8 @@ export class TagLibrary {
       role: String(role || 'All staff').trim() || 'All staff',
       enabled: Object.fromEntries(Object.entries(state.groups).map(([key, group]) => [key, group.enabled.slice()])),
     };
-    state.presets.push(preset); this._write(state); return JSON.parse(JSON.stringify(preset));
+    state.presets.push(preset);
+    return this._write(state) ? JSON.parse(JSON.stringify(preset)) : null;
   }
   applyPreset(id) {
     const state = this.load(), preset = state.presets.find(item => item.id === id);
@@ -160,17 +178,18 @@ export class TagLibrary {
     for (const [key, group] of Object.entries(state.groups)) {
       group.enabled = [...new Set((preset.enabled[key] || []).filter(value => group.order.includes(value)))];
     }
-    this._write(state); return JSON.parse(JSON.stringify(preset));
+    return this._write(state) ? JSON.parse(JSON.stringify(preset)) : null;
   }
   deletePreset(id) {
     const state = this.load(), before = state.presets.length;
     state.presets = state.presets.filter(item => item.id !== id);
     if (state.presets.length === before) return false;
-    this._write(state); return true;
+    return this._write(state);
   }
   restore() {
     const state = this._blank();
     state.presets = this.presets();
-    return this._write(state);
+    this._write(state);
+    return state;
   }
 }

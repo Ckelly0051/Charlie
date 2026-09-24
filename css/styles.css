@@ -169,28 +169,6 @@ body {
   font-size: 10px;
 }
 
-.tag-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  background: var(--accent);
-  border-radius: 10px;
-  font-size: 10px;
-  color: var(--text);
-}
-
-.tag-chip .chip-remove {
-  cursor: pointer;
-  font-weight: bold;
-  opacity: 0.7;
-}
-
-.tag-chip .chip-remove:hover {
-  opacity: 1;
-  color: var(--danger);
-}
-
 /* ===== Playlist ===== */
 
 .playlist-item {
@@ -482,53 +460,6 @@ body {
     color: #111;
   }
 }
-
-
-/* ===== Version History & Undo Toast ===== */
-.version-empty {
-  color: #888;
-  font-size: 12px;
-  text-align: center;
-  padding: 12px;
-}
-.version-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  background: #232830;
-  border-radius: 3px;
-  border-left: 3px solid #2d3454;
-}
-.version-row.manual {
-  border-left-color: #06b6d4;
-}
-.version-info {
-  flex: 1;
-  min-width: 0;
-}
-.version-label {
-  font-size: 12px;
-  color: #e0e0e0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.version-meta {
-  font-size: 10px;
-  color: #888;
-  margin-top: 2px;
-}
-.version-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.version-actions .btn:not(.ws-shell *) {
-  padding: 2px 6px;
-  font-size: 10px;
-}
-
 
 
 /* ===== Scoreboard OCR & Suggestions ===== */
@@ -1184,7 +1115,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 .pick kbd { color: var(--text-dim); border-color: var(--border-bright); }
 .pick.active kbd { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.4); }
-.tag-chip { background: var(--accent); color: #fff; }
 
 /* --- Playback controls: light bar under the (dark) video --- */
 

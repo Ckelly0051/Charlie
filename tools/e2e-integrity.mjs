@@ -129,10 +129,10 @@ const campaign = async (fixture, seed, nOps) => {
       // (shared 'ffa_versions_default' key + restore bypassing the commit
       // guard) and the fuzzer never exercised it. Now it does: snapshots and
       // restores must only ever touch the ACTIVE game.
-      async vmSnapshot() { const vm = window.app.versions; if (!vm) return { skip: 1 }; vm.snapshot('fuzz', rnd() < 0.5); return { affected: [] }; },
+      async vmSnapshot() { const vm = window.app.versions; if (!vm) return { skip: 1 }; await vm.snapshot('fuzz', rnd() < 0.5); return { affected: [] }; },
       async vmRestore() {
         const vm = window.app.versions; if (!vm) return { skip: 1 };
-        const list = vm._list(); if (!list.length) return { skip: 1 };
+        const list = await vm.list(); if (!list.length) return { skip: 1 };
         tagger._confirmDialog = async () => true;
         window.confirm = () => true;   // pre-fix builds used native confirm — keep the op runnable there so the fuzzer provably fails on them
         await vm.restore(pick(list).id);

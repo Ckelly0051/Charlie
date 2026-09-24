@@ -594,7 +594,6 @@ export class StorageManager {
     this._loadActiveGame();
     if (app) {
       if (app.history) app.history.init();
-      if (app.versions) app.versions.renderList();
     }
   }
 

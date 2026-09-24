@@ -329,18 +329,43 @@ export class CatalogPersistence {
   }
 
   // ---- version history (named save points, in the shared db) ---------------
-  // The version-history migration off localStorage: named/auto save-points become
-  // rows keyed by (seasonId, gameId) in the shared library db. Same best-effort
-  // durability as the backup ring — a lost version never blocks tagging. NOT yet
-  // wired into VersionManager (dormant groundwork); the UI rewire lands later.
+  // Named/auto save points are rows keyed by (seasonId, gameId) in the shared
+  // library db. Wired into VersionManager on 2026-09-24, when the whole-game
+  // snapshots it kept in localStorage were found filling the WebView's ~5 MB
+  // quota and breaking every small settings write. A save point that never
+  // reaches disk is not one, so both writes below follow createBackup()'s
+  // rollback shape: snapshot the bytes, write, and on failure reopen from the
+  // snapshot and report failure.
+  async _durably(mutate) {
+    await this._ensureLoaded();
+    let snapshot = null;
+    try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
+    if (!snapshot || !snapshot.length) return { ok: false };
+    let value;
+    try { value = mutate(); } catch (e) { console.error('Catalog version write failed', e); return { ok: false }; }
+    try {
+      await this.fs.writeDb(this.catalog.toBytes());
+      return { ok: true, value };
+    } catch (e) {
+      console.error('Catalog version write did not reach disk', e);
+      try { this.catalog.close(); await this.catalog.open(snapshot); this._loaded = true; }
+      catch (e2) { this._loaded = false; try { await this._ensureLoaded(); } catch (e3) {} }
+      return { ok: false };
+    }
+  }
   async saveVersion(seasonId, gameId, v) {
     if (!seasonId || !gameId || !v) return null;
-    await this._ensureLoaded();
-    let id = null;
-    try { id = this.catalog.saveVersion(seasonId, gameId, v); }
-    catch (e) { return null; }
-    try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
-    return id;
+    const r = await this._durably(() => this.catalog.saveVersion(seasonId, gameId, v));
+    return r.ok ? r.value : null;
+  }
+  /** All-or-nothing, no pruning: a migration must not lose a version. True only
+   *  when the db reached disk and every row reads back identical. */
+  async importVersions(seasonId, gameId, list) {
+    if (!seasonId || !gameId || !Array.isArray(list)) return false;
+    const rows = list.filter(v => v && v.id != null);
+    const r = await this._durably(() => { for (const v of rows) this.catalog.saveVersion(seasonId, gameId, v, { prune: false }); });
+    if (!r.ok) return false;
+    return rows.every(v => JSON.stringify(this.catalog.getVersionScoped(seasonId, gameId, String(v.id))) === JSON.stringify(v.data));
   }
   async listVersions(seasonId, gameId) {
     if (!seasonId || !gameId) return [];

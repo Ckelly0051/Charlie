@@ -68,8 +68,45 @@
 .ws-breakdown ::-webkit-scrollbar-thumb{background:var(--gi-6);border:2px solid var(--gi-2)}
 .ws-breakdown ::-webkit-scrollbar-thumb:hover{background:var(--gi-7)}
 .gi-breakdown-tagging-host[hidden],.gi-breakdown-film-room-host[hidden]{display:none}
-.ws-breakdown.is-film-room .gi-breakdown-composition{grid-template-columns:minmax(0,36%) minmax(0,1fr);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater deck'}
+/* FILM ROOM: VIDEO FIRST (coach direction, 2026-09-23). The table docks BELOW
+   the film by default, or BESIDE it; `--fr-video` is the film's share of the
+   split axis, set and clamped by BreakdownWorkspace.setFilmLayout(). Pixel
+   floors keep both panes usable at the smallest desktop height/width. The old
+   side-by-side 36% / 64% grid is gone. Below 1001px the stacked phone layout
+   further down owns Film Room, and the layout controls and splitter hide. */
 .ws-breakdown.is-film-room .gi-breakdown-rail-host{display:none}
+.gi-breakdown-splitter{display:none}
+.gi-breakdown-layout{display:none;flex:0 0 auto;gap:0;border:1px solid var(--gi-7)}
+.gi-breakdown-layout>button{border:0;min-height:32px;background:transparent}
+.gi-breakdown-layout>button+button{border-left:1px solid var(--gi-7)}
+.gi-breakdown-layout-label{display:flex;align-items:center;padding:0 8px;border-right:1px solid var(--gi-7);color:var(--gi-bd-copy);font:var(--gi-text-label)}
+.gi-breakdown-layout>button.active{color:var(--gi-12);background:var(--gi-4);box-shadow:inset 0 -2px var(--gi-bd-gold)}
+@media(min-width:1001px){
+  .ws-breakdown.is-film-room .gi-breakdown-layout{display:flex}
+  .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="bottom"]:not(.is-film-focus) .gi-breakdown-composition{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(240px,var(--fr-video,62%)) 10px minmax(180px,1fr);
+    grid-template-areas:'theater' 'split' 'deck'
+  }
+  .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="side"]:not(.is-film-focus) .gi-breakdown-composition{
+    grid-template-columns:minmax(360px,var(--fr-video,45%)) 10px minmax(420px,1fr);
+    grid-template-rows:minmax(0,1fr);
+    grid-template-areas:'theater split deck'
+  }
+  .ws-breakdown.is-film-room .gi-breakdown-route:not(.is-film-focus) .gi-breakdown-splitter{
+    display:block;grid-area:split;position:relative;background:var(--gi-1);touch-action:none
+  }
+  .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-splitter{cursor:row-resize}
+  .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="side"] .gi-breakdown-splitter{cursor:col-resize}
+  /* The grip: a short bar centered on the separator, drawn from the border
+     colour at rest and gold while hovered, focused or dragged. */
+  .gi-breakdown-splitter::after{content:'';position:absolute;inset:0;margin:auto;background:var(--gi-7)}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-splitter::after{width:56px;height:4px}
+  .gi-breakdown-route[data-fr-dock="side"] .gi-breakdown-splitter::after{width:4px;height:56px}
+  .gi-breakdown-splitter:hover::after,.gi-breakdown-splitter.is-dragging::after{background:var(--gi-bd-gold)}
+  .gi-breakdown-splitter:focus-visible{outline:none;box-shadow:var(--gi-focus)}
+  .gi-breakdown-splitter:focus-visible::after{background:var(--gi-bd-gold)}
+}
 .gi-breakdown-route.is-film-focus .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater'}
 .gi-breakdown-route.is-film-focus .gi-breakdown-deck,.gi-breakdown-route.is-film-focus .gi-breakdown-rail-host{display:none}
 @media(min-width:1350px) and (max-width:1699.98px){.gi-breakdown-composition{grid-template-rows:minmax(0,1fr) 84px}}
@@ -89,6 +126,9 @@
   body.ws-shell-active.ws-route-breakdown #wsCtxGame{flex:0 1 clamp(280px,26vw,440px)}
   body.ws-shell-active.ws-route-breakdown .ws-ctx-label{display:inline;color:var(--gi-bd-copy);font-size:10px}
 }
+/* Below 1366 the Film Room toolbar is 32px short at 1280; the group keeps its
+   accessible name and each button its full label, so the visible caption goes. */
+@media(max-width:1365px){.gi-breakdown-layout-label{display:none}}
 @media(max-width:1100px){
   .gi-breakdown-tools{position:relative;margin-left:auto;padding:0;border:0}
   .gi-breakdown-tools>[data-bd-tools-toggle]{display:block}

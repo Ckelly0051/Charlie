@@ -27,20 +27,33 @@ export const OPTIONS = {
 const MULTI = new Set(['formation','playType','result','defFront','blitz']);
 const selected = (value, option) => String(value || '').split(' + ').includes(option);
 
-function Chips({screen, field, label, options, value, hint, library}) {
+/* A collapsible field's label is its disclosure control. Folded, the field
+   keeps its header and states what is selected, so a coach never has to open a
+   long list to read the current call. */
+function FieldLabel({screen, field, label, hint, collapsible, collapsed, summary, children}) {
+  if (!collapsible) return <div class="gi-tag-field-label"><span>{label}</span>{hint && <small>{hint}</small>}{children}</div>;
+  return <div class="gi-tag-field-label">
+    <button type="button" class="gi-tag-field-toggle" aria-expanded={!collapsed} aria-controls={`giTagField-${field}`}
+      onClick={() => screen.toggleFieldCollapsed(field)}><i aria-hidden="true">▾</i><span>{label}</span></button>
+    {collapsed ? <small class="gi-tag-field-summary" data-field-summary={field}>{summary || 'None'}</small> : hint && <small>{hint}</small>}
+    {children}
+  </div>;
+}
+
+function Chips({screen, field, label, options, value, hint, library, collapsible = false, collapsed = false}) {
   const choices = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
-  return <div class={`gi-tag-field gi-tag-field-${field}`} data-native-field={field} data-library-align={library ? '' : undefined}>
-    <div class="gi-tag-field-label">
-      <span>{label}</span>{hint && <small>{hint}</small>}
-      {library && <button type="button" onClick={() => screen.openLibrary(library)}>Edit library</button>}
-    </div>
-    <div class="gi-tag-chips">{choices.map(option =>
+  const summary = String(value || '').split(' + ').filter(Boolean).map(item => choices.find(option => option.value === item)?.label || item).join(' + ');
+  return <div class={`gi-tag-field gi-tag-field-${field}${collapsed ? ' is-collapsed' : ''}`} data-native-field={field} data-library-align={library ? '' : undefined}>
+    <FieldLabel screen={screen} field={field} label={label} hint={hint} collapsible={collapsible} collapsed={collapsed} summary={summary}>
+      {library && <button type="button" class="gi-tag-library" onClick={() => screen.openLibrary(library)}>Edit library</button>}
+    </FieldLabel>
+    {!collapsed && <div class="gi-tag-chips" id={collapsible ? `giTagField-${field}` : undefined}>{choices.map(option =>
       <button type="button" key={option.value} class={selected(value, option.value) ? 'is-active' : ''}
         aria-pressed={selected(value, option.value)}
         onClick={() => MULTI.has(field) ? screen.toggleField(field, option.value) : screen.setField(field, selected(value, option.value) ? '' : option.value)}>
         {option.label}
       </button>)}
-    </div>
+    </div>}
   </div>;
 }
 
@@ -75,12 +88,14 @@ function PlayCallField({screen, state}) {
   }
   const applied = Object.entries(state.appliedCallDefaults || {});
   const commit = candidate => screen.selectPlayCall(candidate ?? draft);
-  return <section class="gi-play-call" data-native-play-call>
-    <div class="gi-tag-field-label">
-      <span>{state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play'}</span>
-      {state.values.playConcept && <small>Concept: {state.values.playConcept}</small>}
-      <button type="button" class="gi-play-call-library" onClick={() => screen.editPlayCallLibrary()}>Edit Library</button>
-    </div>
+  const collapsed = !!state.collapsed?.playCall;
+  const label = state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play';
+  return <section class={`gi-play-call${collapsed ? ' is-collapsed' : ''}`} data-native-play-call data-library-align="">
+    <FieldLabel screen={screen} field="playCall" label={label} collapsible collapsed={collapsed} summary={value}
+      hint={state.values.playConcept ? `Concept: ${state.values.playConcept}` : ''}>
+      <button type="button" class="gi-tag-library gi-play-call-library" onClick={() => screen.editPlayCallLibrary()}>Edit library</button>
+    </FieldLabel>
+    {!collapsed && <div class="gi-play-call-body" id="giTagField-playCall">
     <div class="gi-play-call-entry">
       <input type="text" list="giPlayCallChoices" value={draft} placeholder="e.g. 26 Blast"
         aria-label={state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play'}
@@ -100,6 +115,7 @@ function PlayCallField({screen, state}) {
     </div>}
     {applied.length > 0 && <div class="gi-play-call-defaults" aria-label="Defaults applied by this call">
       <span>Applied:</span>{applied.map(([key,fieldValue]) => <em key={key}>{CALL_DEFAULT_LABELS[key] || key}: {fieldValue}</em>)}
+    </div>}
     </div>}
   </section>;
 }
@@ -398,7 +414,7 @@ function NativeTagging({screen}) {
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
         const playResult = <Group key="pr" title="Play &amp; Result" open>
-          {chips('runPass','Run / Pass',OPTIONS.runPass)}{chips('playType','Play Type',state.libraries.playType,'','playType')}
+          {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={state.values.playType} library="playType" collapsible collapsed={!!state.collapsed?.playType}/>
           {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} state={state}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
         </Group>;

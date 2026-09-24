@@ -355,11 +355,60 @@ ok(state.libraryLabels.every(row=>row.buttonLeft>=row.precedingRight+4
 // than squeezing seven labels into equal-width tracks.
 ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,
   'Coverage Call keeps all labels readable in compact wrapping rows',JSON.stringify(state));
-ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='8/12',
-  'Every native charting group body owns the approved 8px lead and 12px closing rhythm',JSON.stringify(state));
+// Coach direction 2026-09-23 tightened the deck rhythm (was 8/12): density from
+// spacing, never from chip text, weight or the 30px chip floor.
+ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='6/10',
+  'Every native charting group body owns the one 6px lead and 10px closing rhythm',JSON.stringify(state));
 ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])&&state.descCount===0,
   'Charting group headers keep one title hierarchy with no explanatory prose',JSON.stringify(state));
 ok(state.pageOverflow<=0,'The charting deck introduces no page-level horizontal overflow',JSON.stringify(state));
+
+console.log('\n== 6b. Play Call and Play Type fold independently and state their selection ==');
+await page.evaluate(()=>{localStorage.removeItem('ffa_chart_collapsed_fields');window.app.nativeTagging.collapsedFields.clear();});
+await page.evaluate(()=>window.app.nativeTagging?.setUnit?.('offense'));
+await page.evaluate(()=>{const t=window.app.tagger,p=t.getCurrentPlay();p.tags.playType='Run Inside + RPO';p.tags.playCall='26 Blast';t._emit('play-updated',p);});
+await new Promise(r=>setTimeout(r,200));
+const foldState=()=>page.evaluate(()=>{
+  const root=document.querySelector('[data-native-tagging]');
+  document.querySelectorAll('.gi-tag-group').forEach(g=>{g.open=true;});
+  const read=field=>{
+    const owner=field==='playCall'?root.querySelector('[data-native-play-call]'):root.querySelector(`[data-native-field="${field}"]`);
+    const toggle=owner?.querySelector('.gi-tag-field-toggle');
+    return{expanded:toggle?.getAttribute('aria-expanded'),controls:toggle?.getAttribute('aria-controls'),
+      body:!!document.getElementById(toggle?.getAttribute('aria-controls')||'-'),
+      summary:owner?.querySelector('[data-field-summary]')?.textContent||null,
+      library:!!owner?.querySelector('.gi-tag-library'),chips:owner?.querySelectorAll('.gi-tag-chips button').length||0,
+      input:!!owner?.querySelector('.gi-play-call-entry input')};
+  };
+  return{playCall:read('playCall'),playType:read('playType'),stored:localStorage.getItem('ffa_chart_collapsed_fields')};
+});
+let fold=await foldState();
+ok(fold.playCall.expanded==='true'&&fold.playCall.body&&fold.playCall.input&&fold.playType.expanded==='true'&&fold.playType.body&&fold.playType.chips>5&&fold.stored===null,
+  'Both fields open by default with their controls wired to their bodies',JSON.stringify(fold));
+await page.click('[data-native-field="playType"] .gi-tag-field-toggle');
+await new Promise(r=>setTimeout(r,100));
+fold=await foldState();
+ok(fold.playType.expanded==='false'&&!fold.playType.body&&fold.playType.chips===0&&fold.playType.summary==='Run Inside + RPO'&&fold.playType.library,
+  'Folding Play Type hides its chips, keeps Edit library and states every selected type',JSON.stringify(fold.playType));
+ok(fold.playCall.expanded==='true'&&fold.playCall.input,'Folding Play Type leaves Play Call open',JSON.stringify(fold.playCall));
+await page.focus('[data-native-play-call] .gi-tag-field-toggle');
+await page.keyboard.press('Enter');
+await new Promise(r=>setTimeout(r,100));
+fold=await foldState();
+ok(fold.playCall.expanded==='false'&&!fold.playCall.input&&fold.playCall.summary==='26 Blast'&&fold.playType.expanded==='false',
+  'Play Call folds from the keyboard and states the charted call',JSON.stringify(fold.playCall));
+ok(JSON.stringify(JSON.parse(fold.stored||'[]').sort())==='["playCall","playType"]','Both folds are stored as a view preference',String(fold.stored));
+await page.evaluate(()=>{const t=window.app.tagger,cur=t.currentPlayId,next=t.plays.find(p=>p.id!==cur);next.tags.unit='offense';t.selectPlay(next.id);window.app.nativeTagging.setUnit('offense');});
+await new Promise(r=>setTimeout(r,150));
+fold=await foldState();
+ok(fold.playCall.expanded==='false'&&fold.playType.expanded==='false','Folds persist across play changes',JSON.stringify(fold));
+state=await page.evaluate(()=>{const W=window.app.nativeTagging.constructor;return{junk:[...W.readCollapsed({getItem:()=>'{x'})],other:[...W.readCollapsed({getItem:()=>JSON.stringify(['formation','playType'])})]};});
+ok(state.junk.length===0&&JSON.stringify(state.other)==='["playType"]','An unreadable or foreign stored fold is ignored',JSON.stringify(state));
+await page.click('[data-native-field="playType"] .gi-tag-field-toggle');
+await page.click('[data-native-play-call] .gi-tag-field-toggle');
+await new Promise(r=>setTimeout(r,100));
+fold=await foldState();
+ok(fold.playCall.expanded==='true'&&fold.playType.expanded==='true'&&fold.stored==='[]','Both reopen and the stored preference clears',JSON.stringify(fold));
 
 console.log('\n== 7. S7-a: diagram, OCR and templates on the native surface, across a relaunch ==');
 // These three capability ids used to be claimed by e2e-s5c-preflight.mjs, which

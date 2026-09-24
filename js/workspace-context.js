@@ -2,7 +2,7 @@
  * WorkspaceShell owns the corresponding UI adapters. */
 const WORKSPACE_ROUTES = Object.freeze([
   Object.freeze({ id: 'home', name: 'Home', target: 'team-home', requires: null }),
-  Object.freeze({ id: 'breakdown', name: 'Break Down', target: 'classic-workspace', requires: 'game' }),
+  Object.freeze({ id: 'breakdown', name: 'Break Down', target: 'breakdown-workspace', requires: 'game' }),
   Object.freeze({ id: 'study', name: 'Study', target: 'study-workspace', requires: 'season' }),
   // Reports is a distinct job from Study. Study is "ask a question" (pick a
   // dimension, filter, compare, watch the film). Reports is "show me

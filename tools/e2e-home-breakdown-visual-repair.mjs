@@ -243,14 +243,10 @@ for (const [unit, playId] of units) {
     // rejected Edit Library stranded at the far module edge. Each one now sits
     // beside its own label -- 4-12px after the preceding label element, the
     // same rule e2e-native-tagging pins -- and never crosses its field's edge.
-    // The play-call Edit Library is not a chip field and was not moved: it
-    // keeps its original module-edge alignment.
+    // SUPERSEDED 2026-09-23: the play-call Edit library joins them. It was left
+    // at the module edge, so one deck carried two placements for one action.
     for (const entry of data.editAlign) {
       if (entry.gap == null || entry.spare == null) continue;
-      if (entry.field === 'playCall') {
-        ok(Math.abs(entry.spare) <= 1, `${unit} at ${width}: Edit Library (playCall) aligns to the module edge`, entry);
-        continue;
-      }
       ok(entry.gap >= 4 && entry.gap <= 12 && entry.spare >= -1,
         `${unit} at ${width}: Edit Library (${entry.field}) sits beside its label inside the field`, entry);
     }

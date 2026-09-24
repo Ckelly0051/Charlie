@@ -16,7 +16,7 @@
 .gi-tag-actions{display:flex;align-items:center;gap:4px;min-width:0;padding:5px 8px;border-bottom:1px solid var(--gi-7);background:var(--gi-2)}
 .gi-native-tagging>.gi-tag-actions{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content max-content}
 .gi-native-tagging>.gi-tag-actions select{width:100%;min-width:0}
-.gi-tag-actions button,.gi-tag-actions select,.gi-diagram-actions button{min-height:30px;padding:0 7px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
+.gi-tag-actions button,.gi-tag-actions select{min-height:30px;padding:0 7px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
 .gi-tag-actions select{flex:1 1 140px;min-width:0;width:auto;padding-inline:10px}
 .gi-tag-actions .gi-is-risk{margin-left:auto;color:var(--gi-turnover)}
 /* The group body already supplies the section inset; the action row adding
@@ -29,24 +29,32 @@
    scrollbars — which is installed WebView2, and never headless Chromium. */
 .gi-native-form{display:block;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0}
 .gi-tag-group{min-width:0;margin:0;border:0;border-bottom:1px solid var(--gi-7);border-left:3px solid var(--gi-bd-bone);border-radius:0;background:var(--gi-1)}
-.gi-tag-group>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:38px;padding:0 12px 0 9px;cursor:pointer}
+.gi-tag-group>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-height:34px;padding:0 12px 0 9px;cursor:pointer}
 .gi-tag-group>summary strong{display:inline-flex;align-items:center;min-height:24px;padding:0 22px 0 10px;clip-path:var(--gi-lower-third);background:var(--gi-3);color:var(--gi-12);font:600 12.5px/1 var(--gi-sans);text-transform:uppercase;letter-spacing:0}
 .gi-tag-group[open]>summary strong{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 /* The collapse caret is the row's right-hand item. Left in the flexible
    middle track it floated wherever the section title ended, so the header row
    read as ragged against a flush-right body below it. */
 .gi-tag-group>summary i{justify-self:end;color:var(--gi-bd-copy);font-style:normal}.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
-.gi-tag-group-body{display:grid;gap:8px;padding:8px 12px 12px 9px}
+.gi-tag-group-body{display:grid;gap:6px;padding:6px 12px 10px 9px}
 .gi-tag-group:has([data-native-field="defFront"]),.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
 .gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
-.gi-tag-field{display:grid;gap:4px;min-width:0;max-width:100%}
+.gi-tag-field{display:grid;gap:3px;min-width:0;max-width:100%}
 .gi-tag-field-label{display:flex;align-items:baseline;gap:6px;min-width:0;color:var(--gi-bd-copy);font:600 12px/1.3 var(--gi-sans);text-transform:none}
 .gi-tag-field-label small{color:var(--gi-bd-copy);font:400 12px var(--gi-sans);text-transform:none}
-.gi-tag-field-label button{margin-left:auto;min-height:22px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);white-space:nowrap}
-.gi-tag-field[data-library-align]>.gi-tag-field-label{align-items:center;gap:8px;min-height:22px}
-.gi-tag-field[data-library-align]>.gi-tag-field-label button{margin-left:0}
-.gi-tag-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
-.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,.gi-tag-custom button,.gi-player-quick button{min-height:30px;padding:0 8px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
+.gi-tag-field-label .gi-tag-library{margin-left:auto;min-height:22px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:600 11px var(--gi-sans);white-space:nowrap}
+/* Every Edit library sits beside its own label, the play call's included. */
+:is(.gi-tag-field,.gi-play-call)[data-library-align]>.gi-tag-field-label{align-items:center;gap:8px;min-height:22px}
+:is(.gi-tag-field,.gi-play-call)[data-library-align]>.gi-tag-field-label .gi-tag-library{margin-left:0}
+/* A collapsible field's label is its disclosure; folded, it states the selection. */
+.gi-tag-field-label .gi-tag-field-toggle{display:inline-flex;align-items:center;gap:5px;min-height:24px;margin:-1px 0;padding:0 4px 0 0;border:0;background:transparent;color:var(--gi-bd-copy);font:inherit;white-space:nowrap}
+.gi-tag-field-toggle i{display:inline-block;font-style:normal;transition:transform .12s}
+.is-collapsed>.gi-tag-field-label .gi-tag-field-toggle i{transform:rotate(-90deg)}
+.gi-native-tagging .gi-tag-field-toggle:hover{color:var(--gi-12)}
+.gi-tag-field-label .gi-tag-field-summary{min-width:0;overflow:hidden;color:var(--gi-12);font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.gi-tag-field-toggle i{transition:none}}
+.gi-tag-chips{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,.gi-tag-custom button,.gi-player-quick button{min-height:30px;padding:0 6px;border:1px solid var(--gi-7);border-radius:var(--gi-radius);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans);white-space:nowrap}
 .gi-native-tagging button:hover:not(:disabled){border-color:var(--gi-9);color:var(--gi-12)}
 .gi-tag-chips button.is-active,.gi-player-quick button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-tag-group:has([data-native-field="defFront"]) .gi-tag-chips button.is-active,.gi-tag-group:has([data-native-field="coverage"]) .gi-tag-chips button.is-active{border-color:var(--gi-bd-cyan);background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
@@ -92,15 +100,15 @@
 .gi-player-quick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:3px;max-height:100px;overflow-y:auto;overflow-x:hidden}
 .gi-player-quick button{min-height:24px;padding:0 2px;font:500 12px var(--gi-sans)}
 .gi-penalty-card{display:grid;gap:6px;padding:8px;border-left:3px solid var(--gi-first-down);background:var(--gi-2)}
-.gi-penalty-card header,.gi-penalty-situation header{display:flex;align-items:center;justify-content:space-between}
+.gi-penalty-card header{display:flex;align-items:center;justify-content:space-between}
 .gi-penalty-card .gi-is-risk{min-height:30px;border:1px solid var(--gi-danger-border);background:var(--gi-3);color:var(--gi-turnover)}
-.gi-penalty-situation{display:grid;gap:8px;padding:8px;border-top:1px solid var(--gi-6)}
 .gi-tag-warning{margin:0;padding:8px;border-left:3px solid var(--gi-first-down);background:var(--gi-3);color:var(--gi-bd-copy);font:400 12px/1.4 var(--gi-sans)}.gi-tag-warning p{margin:2px 0}
 .gi-tag-check{display:flex;align-items:center;gap:7px;min-height:32px;color:var(--gi-bd-copy);font:400 12px var(--gi-sans)}.gi-tag-check input{width:18px;height:18px;accent-color:var(--gi-bd-gold)}
 .gi-tag-toggles{display:flex;flex-wrap:wrap;gap:12px;padding:0 4px}
 .gi-tag-custom{display:flex;flex-wrap:wrap;gap:5px}.gi-tag-custom input{min-height:32px;flex:1 1 150px;padding:0 8px}
-.gi-diagram-actions{display:flex;gap:5px}.gi-tag-group img{display:block;width:100%;max-width:320px;aspect-ratio:32/15;object-fit:contain;border:1px solid var(--gi-6);background:var(--gi-film)}
-.gi-play-call{display:grid;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--gi-6)}
+.gi-tag-group img{display:block;width:100%;max-width:320px;aspect-ratio:32/15;object-fit:contain;border:1px solid var(--gi-6);background:var(--gi-film)}
+.gi-play-call{display:grid;gap:3px;padding-bottom:6px;border-bottom:1px solid var(--gi-6)}
+.gi-play-call-body{display:grid;gap:6px;min-width:0}
 .gi-play-call-entry{display:flex;flex-wrap:wrap;gap:4px}
 .gi-play-call-entry input{flex:1 1 160px;width:100%;min-height:34px;padding:6px 8px;font:500 13px var(--gi-sans)}
 .gi-play-call-entry-actions{display:flex;gap:4px}
@@ -127,11 +135,11 @@
   font-size:13px
 }
 .gi-unit-switch button,.gi-tag-actions button,.gi-tag-actions select,
-.gi-diagram-actions button,.gi-tag-group-body>button,.gi-tag-drive-row>button,
+.gi-tag-group-body>button,.gi-tag-drive-row>button,
 .gi-tag-field-label,.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,
 .gi-tag-custom button,.gi-player-quick button,.gi-tag-input,.gi-tag-players strong,
 .gi-player-roster-toggle,.gi-play-call-entry button,.gi-play-call-quick button,
 .gi-tag-nav>button{
   font-size:12.5px;letter-spacing:0
 }
-.gi-tag-field-label button,.gi-tag-nav kbd{font-size:12px}
+.gi-tag-field-label .gi-tag-library,.gi-tag-nav kbd{font-size:12px}

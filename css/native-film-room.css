@@ -9,7 +9,7 @@
 .gi-film-room button.is-primary,.gi-film-cell-editor button.is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-film-room button:disabled{cursor:default;opacity:.55}
 .gi-film-room-actions button{padding:0 10px;white-space:nowrap}
-.gi-film-filters{display:flex;gap:4px;min-width:0;padding:7px 12px;border-bottom:1px solid var(--gi-7);overflow-x:auto}
+.gi-film-filters{display:flex;flex-wrap:wrap;gap:4px;min-width:0;padding:7px 12px;border-bottom:1px solid var(--gi-7)}
 .gi-film-filters button{flex:0 0 auto;min-height:30px;padding:0 9px;background:transparent;color:var(--gi-bd-copy)}
 .gi-film-filters button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-film-table-wrap{position:relative;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}

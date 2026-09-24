@@ -395,7 +395,7 @@ export class SqlCatalog {
   // playCount, data } — its whole-tagger `data` goes to body_json; getVersion
   // returns exactly that snapshot payload. Prune evicts AUTO-saves before manual
   // ones (VersionManager's own eviction rule) so a coach's named points survive.
-  saveVersion(seasonId, gameId, v) {
+  saveVersion(seasonId, gameId, v, { prune = true } = {}) {
     const id = (v && v.id != null) ? String(v.id) : this._newId('ver');
     const body = (v && v.data !== undefined) ? v.data : v;
     this._run(
@@ -403,7 +403,7 @@ export class SqlCatalog {
        ON CONFLICT(id) DO UPDATE SET label=excluded.label,manual=excluded.manual,play_count=excluded.play_count,body_json=excluded.body_json`,
       [id, seasonId, gameId, (v && v.time) || new Date().toISOString(), (v && v.label) || '',
        (v && v.manual) ? 1 : 0, (v && v.playCount != null) ? v.playCount : 0, JSON.stringify(body)]);
-    this._pruneVersions(seasonId, gameId);
+    if (prune) this._pruneVersions(seasonId, gameId);
     return id;
   }
   listVersions(seasonId, gameId) {

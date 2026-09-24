@@ -1,137 +1,113 @@
 /**
- * VersionManager - Snapshot project state to localStorage and restore later.
+ * VersionManager - per-game save points (named and automatic), stored by the
+ * storage backend: the SQLite catalog on the desktop, IndexedDB in a browser.
  *
  * Snapshots are taken:
- *   - manually (Save Version button, with optional label)
+ *   - manually (Settings > Recovery > Save game version, with a label)
  *   - automatically every N play edits (default 10)
  *   - automatically every M minutes if any changes occurred (default 5)
  *
- * Stored under ffa_versions_<videoFileName>. Capped at maxVersions; auto-saves
- * are evicted before manual saves.
+ * Capped at 20 per game by the backend; automatic saves are evicted before
+ * named ones.
+ *
+ * HISTORY (2026-09-24). These snapshots used to live in localStorage under
+ * `ffa_versions_<season>::<game>`. A whole-game snapshot is tens of KB and a
+ * game keeps up to 20, so they filled the WebView's ~5 MB origin quota; after
+ * that EVERY small settings write in the app failed (the installed `Could not
+ * save that choice` finding) while this class dropped its own writes silently.
+ * `migrateLegacy()` moves each scoped key into the backend and removes the
+ * localStorage copy only after every version reads back identical. The
+ * pre-2026 unscoped `ffa_versions_default` / `ffa_versions_<file>` keys carry no
+ * game identity; they are deliberately left untouched (see `_key()`'s history in
+ * git) and never read.
+ *
+ * The old list renderer (#versionList, #btnSaveVersion) is gone: no such DOM
+ * exists, and Settings > Recovery is the only presentation owner.
  */
 export class VersionManager {
+  static LEGACY_PREFIX = 'ffa_versions_';
+
   constructor(storage, tagger) {
     this.storage = storage;
     this.tagger = tagger;
     this.changeCount = 0;
     this.changesPerSnap = 10;
     this.intervalMin = 5;
-    this.maxVersions = 20;
-
-    this.listEl = document.getElementById('versionList');
-    this.btnSaveVersion = document.getElementById('btnSaveVersion');
-    this.versionLabelInput = document.getElementById('versionLabelInput');
-    this.versionCountBadge = document.getElementById('versionCount');
-
     this._bindEvents();
     this._startTimer();
   }
 
   _bindEvents() {
-    if (this.btnSaveVersion) {
-      this.btnSaveVersion.addEventListener('click', () => {
-        const label = (this.versionLabelInput?.value || '').trim() || 'Manual save';
-        this.snapshot(label, true);
-        if (this.versionLabelInput) this.versionLabelInput.value = '';
-      });
-    }
     this.tagger.on('play-created', () => this._maybeAutoSnap());
     this.tagger.on('play-updated', () => this._maybeAutoSnap());
     this.tagger.on('play-deleted', () => this._maybeAutoSnap());
-    // Versions are per-GAME (see _key): when a different game loads, show ITS
-    // list and restart the edit counter so game B doesn't inherit A's tally.
-    this.tagger.on('plays-loaded', () => { this.changeCount = 0; this.renderList(); });
+    // Versions are per GAME: a different game restarts the edit counter so game
+    // B doesn't inherit A's tally.
+    this.tagger.on('plays-loaded', () => { this.changeCount = 0; });
   }
 
-  /**
-   * Versions are scoped to the season + game they were taken in. The old key
-   * ('ffa_versions_' + videoFileName) collided: videoFileName is null on the
-   * web build after a reopen, so EVERY game shared 'ffa_versions_default' and
-   * a restore could stamp another game's plays onto the current one — a third
-   * cross-game corruption path (alongside the commitActive and undo ones).
-   * Old shared-key entries are deliberately orphaned rather than migrated:
-   * they carry no game identity, and guessing is the exact bug being fixed.
-   */
-  _key() {
-    const s = this.storage && this.storage.seasonStore;
-    const sid = (s && s.currentSeasonId) || 'na';
-    const gid = (s && s.data && s.data.activeGameId) || 'na';
-    return `ffa_versions_${sid}::${gid}`;
+  _store() { return this.storage && this.storage.seasonStore; }
+  _backend() { return this._store()?.backend || null; }
+  /** The open season and game, or null when either is missing. */
+  _scope() {
+    const s = this._store();
+    const seasonId = s && s.currentSeasonId;
+    const gameId = s && s.data && s.data.activeGameId;
+    return seasonId && gameId ? { seasonId, gameId } : null;
   }
 
-  _list() {
-    try { return JSON.parse(localStorage.getItem(this._key()) || '[]'); }
-    catch { return []; }
+  /** The open game's versions, newest last, without their snapshot data. */
+  async list() {
+    const scope = this._scope(), backend = this._backend();
+    if (!scope || !backend) return [];
+    try { return await backend.listVersions(scope.seasonId, scope.gameId); } catch (e) { return []; }
   }
 
-  /** DOM-independent list seam used by native Recovery settings. */
-  list() { return this._list().map(version => ({ ...version, data: undefined })); }
-
-  _save(versions) {
-    try { localStorage.setItem(this._key(), JSON.stringify(versions)); }
-    catch (e) { /* quota — silently drop */ }
-  }
-
-  snapshot(label, manual = false) {
+  /** Resolves to the new version id, or null when nothing durable was written. */
+  async snapshot(label, manual = false) {
+    const scope = this._scope(), backend = this._backend();
+    if (!scope || !backend) return null;
     const data = this.storage._serialize();
-    const versions = this._list();
-    const s = this.storage && this.storage.seasonStore;
-    // Monotonic id: two snapshots in the same millisecond (e.g. a restore
-    // immediately followed by its "backup before restore") would share Date.now()
-    // and the second _save would clobber the first in the list — losing a version.
+    // Monotonic id: two snapshots in the same millisecond (a restore and its
+    // "Backup before restore") must not share an id and overwrite each other.
     const id = Math.max(Date.now(), (this._lastVersionId || 0) + 1);
     this._lastVersionId = id;
-    versions.push({
-      id,
+    const saved = await backend.saveVersion(scope.seasonId, scope.gameId, {
+      id: String(id),
       label: label || (manual ? 'Manual save' : 'Auto-save'),
       time: new Date().toISOString(),
       manual,
       playCount: data.plays.length,
-      // Provenance stamp — restore() refuses a version taken in another
-      // season/game even if a future key change reintroduces sharing.
-      seasonId: (s && s.currentSeasonId) || 'na',
-      gameId: (s && s.data && s.data.activeGameId) || 'na',
-      data
+      data,
     });
-
-    // Evict — auto-saves go first
-    while (versions.length > this.maxVersions) {
-      const idx = versions.findIndex(v => !v.manual);
-      if (idx >= 0) versions.splice(idx, 1);
-      else versions.shift();
-    }
-
-    this._save(versions);
-    this.renderList();
-    return id;
+    if (!saved) console.error('Version save failed', { ...scope, label });
+    return saved || null;
   }
 
   async restore(id) {
-    const v = this._list().find(x => x.id === id);
-    if (!v) return false;
-    // Never restore across a season/game boundary: v.data is a whole-tagger
-    // snapshot, and deserializing another game's snapshot here would hand the
-    // next commit that game's plays as THIS game's content.
-    const s = this.storage && this.storage.seasonStore;
-    const sid = (s && s.currentSeasonId) || 'na';
-    const gid = (s && s.data && s.data.activeGameId) || 'na';
-    if ((v.seasonId && v.seasonId !== sid) || (v.gameId && v.gameId !== gid)) {
-      this.tagger.toast?.('That version belongs to a different game — open that game to restore it.');
+    const scope = this._scope(), backend = this._backend();
+    if (!scope || !backend) return false;
+    // Scoped read: a version belongs to exactly one season::game, so another
+    // game's snapshot can never be deserialized over the open one.
+    const meta = (await this.list()).find(v => String(v.id) === String(id));
+    const data = meta ? await backend.getVersion(scope.seasonId, scope.gameId, String(id)) : null;
+    if (!meta || !data) {
+      this.tagger.toast?.('That version is not available for this game.');
       return false;
     }
     const ok = await this.tagger._confirmDialog(
-      `Restore version "${v.label}" (${v.playCount} plays)? A backup of your current state is saved first.`,
+      `Restore version "${meta.label}" (${meta.playCount} plays)? A backup of your current state is saved first.`,
       'Restore Version');
     if (!ok) return false;
     const prior = this.storage._serialize();
-    this.snapshot('Backup before restore', false);
-    this.storage._deserialize(v.data);
+    await this.snapshot('Backup before restore', false);
+    this.storage._deserialize(data);
     // Undo history is per-game state; re-baseline it the same way a game load does.
     if (window.app && window.app.history && window.app.history.reset) window.app.history.reset();
     // Persist the restored state through the normal guarded path so the season
-    // store and disk reflect what's on screen (a crash before the next edit
-    // would otherwise resurrect the pre-restore data).
+    // store and disk reflect what's on screen.
     this.storage.commitActive();
+    const s = this._store();
     const persisted = s ? await s.persist() : true;
     if (persisted === false) {
       this.storage._deserialize(prior);
@@ -144,48 +120,47 @@ export class VersionManager {
   }
 
   async delete(id) {
+    const scope = this._scope(), backend = this._backend();
+    if (!scope || !backend) return false;
     const ok = await this.tagger._confirmDialog('Delete this version?', 'Delete Version');
-    if (!ok) return;
-    const versions = this._list().filter(x => x.id !== id);
-    this._save(versions);
-    this.renderList();
+    if (!ok) return false;
+    return backend.deleteVersion(scope.seasonId, scope.gameId, String(id));
   }
 
-  renderList() {
-    if (!this.listEl) return;
-    const versions = this._list().slice().reverse();
-    if (this.versionCountBadge) {
-      this.versionCountBadge.textContent = `${versions.length}`;
+  /**
+   * One-time move of scoped localStorage versions into the backend. For each
+   * `ffa_versions_<season>::<game>` key: import every version all-or-nothing,
+   * and remove the key only when the import reports every version read back
+   * identical. A key that fails stays exactly as it was and is retried on the
+   * next launch. Unscoped legacy keys are never touched.
+   * Resolves to { moved, versions, kept, failed } for diagnosis.
+   */
+  async migrateLegacy(storage = (typeof localStorage !== 'undefined' ? localStorage : null)) {
+    const report = { moved: [], versions: 0, kept: [], failed: [] };
+    const backend = this._backend();
+    if (!storage || !backend) return report;
+    const keys = [];
+    try { for (let i = 0; i < storage.length; i++) keys.push(storage.key(i)); } catch (e) { return report; }
+    for (const key of keys) {
+      if (!key || !key.startsWith(VersionManager.LEGACY_PREFIX)) continue;
+      const scope = key.slice(VersionManager.LEGACY_PREFIX.length).split('::');
+      if (scope.length !== 2 || !scope[0] || !scope[1] || scope[0] === 'na' || scope[1] === 'na') { report.kept.push(key); continue; }
+      const [seasonId, gameId] = scope;
+      let list = null;
+      try { list = JSON.parse(storage.getItem(key) || 'null'); } catch (e) { list = null; }
+      if (!Array.isArray(list)) { report.failed.push(key); continue; }
+      // A version stamped with another season/game is not this key's to move.
+      const own = list.filter(v => v && v.id != null && v.data
+        && (!v.seasonId || v.seasonId === seasonId) && (!v.gameId || v.gameId === gameId));
+      if (own.length !== list.length) { report.failed.push(key); continue; }
+      const ok = await backend.importVersions(seasonId, gameId, own.map(v => ({ ...v, id: String(v.id) })));
+      if (!ok) { report.failed.push(key); continue; }
+      try { storage.removeItem(key); } catch (e) { report.failed.push(key); continue; }
+      report.moved.push(key);
+      report.versions += own.length;
     }
-    if (!versions.length) {
-      this.listEl.innerHTML = '<div class="version-empty">No saved versions yet.</div>';
-      return;
-    }
-    this.listEl.innerHTML = '';
-    for (const v of versions) {
-      const row = document.createElement('div');
-      row.className = 'version-row' + (v.manual ? ' manual' : '');
-      const dt = new Date(v.time);
-      const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const dateStr = dt.toLocaleDateString();
-      row.innerHTML = `
-        <div class="version-info">
-          <div class="version-label">${this._escape(v.label)}</div>
-          <div class="version-meta">${dateStr} ${timeStr} · ${v.playCount} plays${v.manual ? ' · ★' : ''}</div>
-        </div>
-        <div class="version-actions">
-          <button class="btn btn-sm" data-action="restore">Restore</button>
-          <button class="btn btn-sm btn-danger" data-action="delete">×</button>
-        </div>
-      `;
-      row.querySelector('[data-action="restore"]').addEventListener('click', () => this.restore(v.id));
-      row.querySelector('[data-action="delete"]').addEventListener('click', () => this.delete(v.id));
-      this.listEl.appendChild(row);
-    }
-  }
-
-  _escape(s) {
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    if (report.moved.length || report.failed.length) console.info('Version history migration', report);
+    return report;
   }
 
   _maybeAutoSnap() {
@@ -203,9 +178,5 @@ export class VersionManager {
         this.snapshot(`Timed auto-save (${this.tagger.plays.length} plays)`, false);
       }
     }, this.intervalMin * 60 * 1000);
-  }
-
-  refresh() {
-    this.renderList();
   }
 }

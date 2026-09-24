@@ -4,7 +4,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    stats dashboard/reports and the tag form. They arrive via season/CSV import, so
    a name like <img src=x onerror=…> is stored-XSS if interpolated raw into
    innerHTML. stats-engine tell text + several hand-built table rows, and
-   play-tagger._renderCustomTags, were unescaped. (Same class as lesson #18.)
+   the retired play-tagger._renderCustomTags, were unescaped. (Same class as lesson #18.)
 
    Run after build:  node tools/e2e-xss-names.mjs */
 import puppeteer from 'puppeteer';
@@ -69,8 +69,12 @@ const res = await page.evaluate(async () => {
   const matrixEscaped = matrixHtml.includes('&lt;img') || matrixText.includes('<img');
   call(() => eng.generateDefensiveSelfScout && eng.generateDefensiveSelfScout());
 
-  // Tag form: render the custom-tag play's chips.
-  call(() => { tagger.currentPlayId = id - 1; tagger._renderCustomTags([P]); });
+  // Tag form: the native deck renders the custom-tag play's chips (the legacy
+  // play-tagger._renderCustomTags sink is deleted; its #tagChips host had no producer).
+  await window.app.workspaceShell.show('breakdown');
+  call(() => tagger.selectPlay(id - 2));
+  await new Promise(r => setTimeout(r, 120));
+  const customChip = [...document.querySelectorAll('.gi-tag-custom button')].some(b => b.textContent.includes('<img'));
 
   // Give any onerror a tick to fire.
   await new Promise(r => setTimeout(r, 60));
@@ -78,10 +82,11 @@ const res = await page.evaluate(async () => {
   const html = document.body.innerHTML;
   const liveImgs = [...document.querySelectorAll('img')].filter(im => (im.getAttribute('src') || '') === 'x').length;
   call(() => window.app.workspaceShell.show('breakdown'));
-  return { xss: window.__xss, liveImgs, escapedPresent: html.includes('&lt;img') || html.includes('&amp;lt;img'), matrixRawImg, matrixEscaped };
+  return { xss: window.__xss, customChip, liveImgs, escapedPresent: html.includes('&lt;img') || html.includes('&amp;lt;img'), matrixRawImg, matrixEscaped };
 });
 
 ok(res.xss === 0, 'no payload handler fired across stats dashboard/reports + tag form (formation/front/coverage/blitz/hash/custom)', JSON.stringify(res));
+ok(res.customChip, 'the native deck renders the payload custom tag as literal text', JSON.stringify(res));
 ok(res.liveImgs === 0, 'no live <img src=x> payload element was injected into the DOM', JSON.stringify(res));
 ok(res.escapedPresent, 'the payload text is preserved but escaped (rendered as literal text)', JSON.stringify(res));
 ok(!res.matrixRawImg && res.matrixEscaped, 'Native Offense escapes coach-controlled formation values (no raw <img in the grid)', JSON.stringify(res));

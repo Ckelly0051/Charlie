@@ -29,12 +29,32 @@ export class NativeTaggingScreen {
     this._publishQueued = false;
     this._saveConfirmed = false;
     this._saveTimer = null;
+    // Collapsible fields (coach direction 2026-09-23): the custom Play Call and
+    // the built-in Play Type lists fold independently. A view preference only,
+    // so it lives beside the other Breakdown view settings in localStorage.
+    this.collapsedFields = NativeTaggingScreen.readCollapsed();
     this._bindDomainEvents();
     // Formation/Backfield/Front vocabulary can change (Team & Film Settings)
     // while this form is already mounted and showing it, with no play-data
     // event to ride on -- CustomChips.onChange is the explicit republish
     // seam for exactly that case.
     this.app.customChips?.onChange?.(() => this._queuePublish());
+  }
+
+  static COLLAPSE_KEY = 'ffa_chart_collapsed_fields';
+  static COLLAPSIBLE = Object.freeze(['playCall', 'playType']);
+  static readCollapsed(storage = (typeof localStorage !== 'undefined' ? localStorage : null)) {
+    let raw = null;
+    try { raw = JSON.parse(storage?.getItem(NativeTaggingScreen.COLLAPSE_KEY) || 'null'); } catch (e) { raw = null; }
+    return new Set(Array.isArray(raw) ? raw.filter(field => NativeTaggingScreen.COLLAPSIBLE.includes(field)) : []);
+  }
+  toggleFieldCollapsed(field) {
+    if (!NativeTaggingScreen.COLLAPSIBLE.includes(field)) return false;
+    if (this.collapsedFields.has(field)) this.collapsedFields.delete(field); else this.collapsedFields.add(field);
+    try { localStorage.setItem(NativeTaggingScreen.COLLAPSE_KEY, JSON.stringify([...this.collapsedFields])); }
+    catch (e) { console.error('Chart field collapse could not be saved', e); }
+    this._queuePublish();
+    return this.collapsedFields.has(field);
   }
 
   _bindDomainEvents() {
@@ -145,6 +165,7 @@ export class NativeTaggingScreen {
       canCopyPrevious: index > 0, canPrevious: index > 0,
       autoDD: !!this.tagger?.autoDD, carryScheme: !!this.tagger?.carryScheme, diagram,
       autoOcr: !!this.app.ocr?.autoOnPlayEnd, saveConfirmed: this._saveConfirmed,
+      collapsed: Object.fromEntries(NativeTaggingScreen.COLLAPSIBLE.map(field => [field, this.collapsedFields.has(field)])),
     };
   }
 
