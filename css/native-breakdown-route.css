@@ -108,6 +108,7 @@
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-filters{flex-direction:column;flex-basis:auto;gap:8px}
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-filter-group{flex-wrap:nowrap}
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-filter-group button{flex:1 1 auto;padding:0 6px}
+  .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-summary{display:block}
   .ws-breakdown.is-film-room .gi-breakdown-route:not(.is-film-focus) .gi-breakdown-splitter{
     display:block;grid-area:split;position:relative;background:var(--gi-1);touch-action:none
   }

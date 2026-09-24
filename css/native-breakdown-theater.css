@@ -68,6 +68,16 @@
 .gi-theater-selected-play .gi-selected-call{color:var(--gi-bd-gold)}
 .gi-theater-selected-play p{margin:6px 0;color:var(--gi-bd-copy)}
 .gi-theater-selected-play summary{cursor:pointer;color:var(--gi-bd-copy);font:600 11px var(--gi-sans)}
+/* The play sheet (2026-09-24): groups of label/value rows, labels in copy
+   ink, values in primary ink; an uncharted field reads Not charted, dimmed. */
+.gi-sheet-group{margin-top:12px;padding-top:10px;border-top:1px solid var(--gi-6)}
+.gi-sheet-group h3{margin:0 0 6px;color:var(--gi-12);font:600 12.5px var(--gi-sans)}
+.gi-sheet-group dl{display:grid;gap:3px;margin:0}
+.gi-sheet-group dl>div{display:grid;grid-template-columns:minmax(96px,40%) minmax(0,1fr);gap:8px;align-items:baseline}
+.gi-sheet-group dl>div:has(>dd:only-child){grid-template-columns:minmax(0,1fr)}
+.gi-sheet-group dt{color:var(--gi-bd-copy);font:400 12.5px var(--gi-sans)}
+.gi-sheet-group dd{margin:0;min-width:0;color:var(--gi-12);font:500 13px var(--gi-sans);overflow-wrap:anywhere;white-space:pre-wrap}
+.gi-sheet-group .is-empty dd{color:var(--gi-bd-copy);font-weight:400}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-stage{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:12px;padding:12px;overflow-y:auto}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-media-slot{flex:0 0 auto;width:100%;height:auto;aspect-ratio:16/9}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-selected-play{flex:0 0 auto}

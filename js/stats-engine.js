@@ -5491,6 +5491,66 @@ export class StatsEngine {
    * composite `gameId::playId` refs; a live current-game play without a stamped
    * game takes `fallbackGameId`. An empty cell is `held`: no value is a zero.
    */
+  /**
+   * FILM ROOM: THE PLAYS ON SCREEN, MEASURED (coach direction, 2026-09-24).
+   * A readout under the table's filters for whatever the coach filtered to,
+   * measured by the SAME owners the Reports boards use, so a filter that
+   * selects a whole game reads exactly what its board reads:
+   *   offense  compute() -- the Offense report's cohort (classified snaps),
+   *            its Success Rate, explosive count and yards per play;
+   *   defense  defenseDashboard() -- the Defense board's run/pass cohort, yards
+   *            and yards per play allowed -- and defensiveCohortMetrics()'s
+   *            stop rate (the Self-Scout / Matchup measure).
+   * Touchdowns and turnovers are the canonical predicates (isTouchdownAllowed,
+   * isGiveaway, isTakeaway). A mix of units states its counts and measures
+   * nothing, because an offensive and a defensive yard do not add. A missing
+   * denominator is `null`, never 0.
+   */
+  playSetSummary(plays, { side = 'mixed' } = {}) {
+    const S = StatsEngine;
+    const rows = (plays || []).filter(p => p?.tags);
+    const unitOf = p => (p.tags.unit === 'defense' || p.tags.unit === 'special' ? p.tags.unit : 'offense');
+    const counts = { offense: 0, defense: 0, special: 0 };
+    for (const p of rows) counts[unitOf(p)]++;
+    const out = { side, n: rows.length, counts, measured: null, runs: null, passes: null, ypp: null,
+      rateLabel: null, rate: null, explosives: null, touchdowns: null, turnovers: null };
+    if (side === 'special') {
+      out.touchdowns = rows.filter(p => S.hasResult(p, 'Touchdown')).length;
+      return out;
+    }
+    const own = rows.filter(p => unitOf(p) === side);
+    if (side === 'offense') {
+      const classified = own.filter(p => p.tags.playType || p.tags.runPass);
+      out.measured = classified.length;
+      out.runs = classified.filter(S.isRun).length;
+      out.passes = classified.filter(S.isPass).length;
+      if (classified.length) {
+        const st = this.compute(own);
+        out.ypp = Number(S.yardsPerPlay(st));
+        out.rateLabel = 'success';
+        out.rate = Number(st.efficiency.successRate);
+        out.explosives = st.efficiency.explosivePlays;
+      }
+      out.touchdowns = own.filter(p => S.hasResult(p, 'Touchdown')).length;
+      out.turnovers = own.filter(S.isGiveaway).length;
+      return out;
+    }
+    if (side === 'defense') {
+      const counted = own.filter(S._tryPenaltyResolved);
+      const dash = this.defenseDashboard(counted).summary;
+      out.measured = dash?.measured ?? 0;
+      out.runs = counted.filter(S.isRun).length;
+      out.passes = counted.filter(S.isPass).length;
+      out.ypp = dash?.ypp ?? null;
+      out.explosives = dash?.explosives ?? null;
+      if (counted.length) { out.rateLabel = 'stop'; out.rate = this.defensiveCohortMetrics(counted).stopRate; }
+      out.touchdowns = counted.filter(S.isTouchdownAllowed).length;
+      out.turnovers = counted.filter(S.isTakeaway).length;
+      return out;
+    }
+    return out;
+  }
+
   downDistanceChart(plays, { side = 'offense', fallbackGameId = null } = {}) {
     const S = StatsEngine;
     const source = (plays || []).filter(p => p?.tags && (side !== 'defense'

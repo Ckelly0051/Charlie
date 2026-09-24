@@ -174,13 +174,20 @@ function PlayStrip({ screen, state }) {
 function SelectedPlay({ state }) {
   const c = state.chyron;
   if (!c || state.view !== 'film-room') return null;
-  return <section class="gi-theater-selected-play" aria-label="Selected play">
+  // The play sheet: every chartable field for this play, grouped. A field the
+  // unit charts but nobody filled reads `Not charted`, so gaps are visible.
+  const sheet = state.playSheet;
+  return <section class="gi-theater-selected-play" aria-label="Selected play" data-play-sheet>
     <header><strong>Play {c.playId}</strong><span>{[c.situation, c.ball, c.hash === '—' ? '' : `${c.hash} hash`].filter(Boolean).join(' · ')}</span></header>
     <strong class="gi-selected-call">{c.ourValue}</strong>
-    <p>{c.result}</p>
-    {c.lookLabel && <p>{c.lookLabel}: {c.lookValue}</p>}
-    {state.currentNotes && <p class="gi-selected-notes">{state.currentNotes}</p>}
-    {state.currentDrive && <p>{state.currentDrive}</p>}
+    <p class="gi-selected-result">{c.result}</p>
+    {(sheet?.groups || []).map(group => <section class="gi-sheet-group" key={group.key} data-sheet-group={group.key}>
+      <h3>{group.title}</h3>
+      <dl>{group.rows.map((row, index) => <div key={row.label + index} class={row.value == null ? 'is-empty' : ''}>
+        {row.label && <dt>{row.label}</dt>}
+        <dd>{row.value ?? 'Not charted'}</dd>
+      </div>)}</dl>
+    </section>)}
   </section>;
 }
 

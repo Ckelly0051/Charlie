@@ -126,6 +126,36 @@ function CellEditor({ screen, model, close }) {
   </form>;
 }
 
+/* The plays on screen, measured (StatsEngine.playSetSummary owns every value).
+   One unit at a time; a mix of units states its counts and nothing else. A
+   missing denominator prints `—`, never 0. */
+function PlaySetSummary({ summary }) {
+  if (!summary) return null;
+  const dash = '—';
+  const def = summary.side === 'defense';
+  let sub = `${summary.n} ${summary.n === 1 ? 'play' : 'plays'}`;
+  let rows;
+  if (summary.side === 'offense' || def) {
+    sub += def ? ` · ${summary.measured} run/pass` : ` · ${summary.measured} classified`;
+    rows = [
+      ['Run / pass', summary.runs + summary.passes ? `${summary.runs} / ${summary.passes} · ${Math.round(summary.runs / (summary.runs + summary.passes) * 100)}% run` : dash],
+      [def ? 'Yards / play allowed' : 'Yards / play', summary.ypp == null ? dash : Number(summary.ypp).toFixed(1)],
+      [def ? 'Stop rate' : 'Success rate', summary.rate == null ? dash : `${Number(summary.rate).toFixed(1)}%`],
+      ['Explosive plays', summary.explosives == null ? dash : String(summary.explosives)],
+      [def ? 'Touchdowns allowed' : 'Touchdowns', String(summary.touchdowns)],
+      [def ? 'Takeaways' : 'Turnovers', String(summary.turnovers)],
+    ];
+  } else if (summary.side === 'special') {
+    rows = [['Touchdowns', String(summary.touchdowns)]];
+  } else {
+    rows = [['Offense', String(summary.counts.offense)], ['Defense', String(summary.counts.defense)], ['Special teams', String(summary.counts.special)]];
+  }
+  return <section class="gi-film-summary" data-film-summary={summary.side} aria-label="Shown plays">
+    <header><h3>Shown plays</h3><p>{sub}</p></header>
+    <dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+  </section>;
+}
+
 /**
  * THE TABLE'S CONTROLS ARE THEIR OWN REGION (coach direction, 2026-09-24).
  * Title, count, Columns, Watch, saved filters and the filter chips used to sit
@@ -195,6 +225,7 @@ function FilmRoomControls({ screen }) {
         aria-pressed={filterOn(state.filters, item.group, item.value)}
         onClick={() => screen.toggleFilter(item.group, item.value)}
       >{item.label}</button>)}</div>)}</div>
+    <PlaySetSummary summary={state.summary} />
   </section>;
 }
 

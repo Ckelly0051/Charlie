@@ -79,3 +79,14 @@
 .gi-film-filter-group button+button{border-left-width:0}
 .gi-film-filters button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);box-shadow:var(--gi-press)}
 @media(pointer:coarse){.gi-film-controls button{min-height:44px}}
+/* The plays on screen, measured. It fills the table-below card's spare height;
+   the bar layouts (table beside the film, a phone) have none to fill and would
+   push the table down, so it shows only in the card (native-breakdown-route.css). */
+.gi-film-summary{display:none;min-width:0;padding-top:10px;border-top:1px solid var(--gi-6)}
+.gi-film-summary header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+.gi-film-summary h3{margin:0;color:var(--gi-12);font:600 12.5px var(--gi-sans)}
+.gi-film-summary header p{margin:0;color:var(--gi-bd-copy);font:400 12.5px var(--gi-sans)}
+.gi-film-summary dl{display:grid;gap:3px;margin:0}
+.gi-film-summary dl>div{display:flex;justify-content:space-between;gap:8px}
+.gi-film-summary dt{color:var(--gi-bd-copy);font:400 12.5px var(--gi-sans)}
+.gi-film-summary dd{margin:0;color:var(--gi-12);font:500 13px var(--gi-sans);font-variant-numeric:tabular-nums;text-align:right}

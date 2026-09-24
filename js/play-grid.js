@@ -597,6 +597,10 @@ export class PlayGrid {
       allColumns: PlayGrid.COLUMNS.map(col => ({ key: col.key, label: col.label, unit: col.unit || '' })),
       activeColumns: [...this.cols],
       columnScope: scope,
+      // Which unit the on-screen plays are measured as (the Film Room screen
+      // measures them through StatsEngine); a mix states its counts only.
+      summarySide: scope !== 'all' ? scope
+        : (units => (units.size === 1 ? [...units][0] : 'mixed'))(new Set(rows.map(row => row.unit))),
       columnScopeLabel: PlayGrid.SCOPE_LABEL[scope],
     };
   }

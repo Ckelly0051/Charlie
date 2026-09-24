@@ -42,8 +42,15 @@ export class NativeFilmRoomScreen {
     return true;
   }
 
-  snapshot() { return this.grid.nativeSnapshot(); }
-  subscribe(listener) { return this.grid.subscribeNative(listener); }
+  // Every published snapshot carries the shown-plays summary, measured by the
+  // stats engine this controller can reach; the grid model stays engine-free.
+  _withSummary(snap) {
+    const stats = this.app.stats;
+    snap.summary = stats?.playSetSummary ? stats.playSetSummary(this.grid._visiblePlays(), { side: snap.summarySide }) : null;
+    return snap;
+  }
+  snapshot() { return this._withSummary(this.grid.nativeSnapshot()); }
+  subscribe(listener) { return this.grid.subscribeNative(snap => listener(this._withSummary(snap))); }
   toggleFilter(group, value) { this.grid.nativeToggleFilter(group, value); }
   clearFilters() { this.grid.nativeClearFilters(); }
   setSelected(id, checked) { this.grid.nativeSetSelected(id, checked); }

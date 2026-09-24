@@ -1,6 +1,7 @@
 import { TagProjection } from './tag-projection.js';
 import { StatsEngine } from './stats-engine.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { PenaltyModel } from './penalty-model.js';
 import { groupPlaysByDrive, drivePossessionSide, driveLabel, driveNumberOf } from './football-rules.js';
 import { ST_UNITS, ST_OUTCOMES, TRY_RESULT_LABELS } from './native-tagging.jsx';
 import { mountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
@@ -157,6 +158,7 @@ export class BreakdownTheaterScreen {
         ? driveLabel(drivePossessionSide(current.tags), driveNumberOf(current.tags), this._driveLabelMode())
         : '',
       chyron: this._chyron(current),
+      playSheet: this._playSheet(current),
       // V2-H: the play strip only ever reads this count (its header line),
       // never the array itself -- mapping every play through _playView here
       // was pure duplicate work, since _driveGroups below already builds the
@@ -176,6 +178,69 @@ export class BreakdownTheaterScreen {
         offset: Number(multi?.offset) || 0,
       },
     };
+  }
+
+  /**
+   * THE PLAY SHEET (coach direction, 2026-09-24). Film Room's play card lists
+   * every field the coach can chart for the selected play, grouped, so the
+   * charting can be checked against the film without reading a wide table row.
+   * Values come from the same projection and result wording as the chyron, so
+   * the two cannot disagree. A field the play's unit charts but nobody filled
+   * is `null` and renders `Not charted`; groups with nothing to say (no
+   * penalty, no notes) are left out rather than padded. Nothing is inferred.
+   */
+  _playSheet(play) {
+    if (!play) return null;
+    const tags = { ...(play.tags || {}), ...(StatsEngine.proj ? StatsEngine.proj(play) : {}) };
+    const unit = tags.unit || 'offense';
+    const scout = (this.app.storage?.gameInfo || {}).perspective === 'scout';
+    const chyron = this._chyron(play);
+    const text = value => (value == null || String(value).trim() === '' || value === '—' ? null : String(value));
+    const row = (label, value) => ({ label, value: text(value) });
+    const roster = new Map((this.app.roster?.players || []).map(p => [String(p.num), p.name || '']));
+    const person = num => { const name = roster.get(String(num).trim()); return name ? `#${String(num).trim()} ${name}` : `#${String(num).trim()}`; };
+    const driveNumber = driveNumberOf(tags);
+    const groups = [];
+    groups.push({ key: 'situation', title: 'Situation', rows: [
+      row('Quarter', tags.quarter), row('Down & distance', chyron.situation), row('Field position', chyron.ball),
+      row('Hash', tags.hash), row('Drive', driveNumber ? driveLabel(drivePossessionSide(tags), driveNumber, this._driveLabelMode()) : ''),
+    ] });
+    if (unit === 'special') {
+      const st = SpecialTeamsModel.normalize(play.specialTeams);
+      groups.push({ key: 'special', title: 'Special teams', rows: [
+        row('Unit', chyron.ourValue), row('Result', chyron.result),
+        row('Kick distance', st?.kick?.distance != null ? `${st.kick.distance} yds` : ''),
+        row('Return yards', st?.return?.yards != null ? `${st.return.yards} yds` : ''),
+      ] });
+    } else {
+      const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent offensive look' : 'Our offensive look', rows: [
+        row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation', tags.formation),
+        row('Personnel', tags.personnel), row('QB alignment', tags.qbAlignment), row('Backfield', tags.backfield),
+        row('Strength', tags.strength), row('Motion', tags.motion),
+      ] };
+      const defense = { key: 'defense', title: unit === 'defense' ? (scout ? 'Opponent defensive call' : 'Our defensive call') : 'Defense faced', rows: [
+        row('Front', tags.defFront), row('Coverage', tags.coverage), row('Coverage family', tags.coverageFamily), row('Blitz', tags.blitz),
+      ] };
+      groups.push(...(unit === 'defense' ? [defense, offense] : [offense, defense]));
+      groups.push({ key: 'play', title: 'Play & result', rows: [
+        row('Run / pass', tags.runPass), row('Play type', tags.playType), row('Direction', tags.playDir), row('Result', chyron.result),
+      ] });
+    }
+    const LABELS = { ballCarrier: 'Ball carrier', passer: 'Passer', receiver: 'Receiver', tackler: 'Tackler', takeaway: 'Takeaway', kicker: 'Kicker', returner: 'Returner' };
+    const players = Object.entries(LABELS)
+      .map(([role, label]) => [label, String(tags.players?.[role] ?? '').split(/[,+]/).map(s => s.trim()).filter(Boolean)])
+      .filter(([, nums]) => nums.length)
+      .map(([label, nums]) => ({ label, value: nums.map(person).join(', ') }));
+    groups.push({ key: 'players', title: 'Players', rows: players.length ? players : [row('Players', '')] });
+    const penalties = (play.penalties ? PenaltyModel.normalizeList(play.penalties) : []).filter(p => p.foul || p.yards != null);
+    if (penalties.length) groups.push({ key: 'penalty', title: 'Penalty', rows: penalties.map((p, i) => ({
+      label: penalties.length > 1 ? `Penalty ${i + 1}` : 'Foul',
+      value: [p.foul || 'Foul', p.team === 'subject' ? (scout ? 'Scouted team' : 'Our team') : p.team === 'opponent' ? (scout ? 'Other team' : 'Opponent') : '',
+        p.disposition && p.disposition !== 'unknown' ? p.disposition[0].toUpperCase() + p.disposition.slice(1) : '',
+        p.yards != null ? `${p.yards} yds` : ''].filter(Boolean).join(' · '),
+    })) });
+    if (text(play.notes)) groups.push({ key: 'notes', title: 'Notes', rows: [{ label: '', value: String(play.notes) }] });
+    return { playId: play.id, unit, groups };
   }
 
   /**
