@@ -194,14 +194,31 @@ export class PlayGrid {
       // program starts from the presets instead of another program's choices.
       try { localStorage.setItem(this.columnsKey(), JSON.stringify(stored)); localStorage.removeItem('ffa_film_room_columns_default'); } catch (e) {}
     }
+    // The coach's old single list (`ffa_film_room_cols`) was global. It seeds
+    // All plays for ONE program -- the first to read it, recorded in a claim
+    // marker -- so another program starts from the preset (Codex, c1cce33).
+    // The old key itself is never rewritten.
+    const CLAIM = 'ffa_film_room_cols_claimed_by';
+    let legacyAll = null;
+    if (!stored) {
+      let owner = null;
+      try { owner = localStorage.getItem(CLAIM); } catch (e) {}
+      if (!owner || owner === team) {
+        legacyAll = this._loadCols();
+        try { localStorage.setItem(CLAIM, team); } catch (e) {}
+      }
+    }
     const sets = {};
     for (const scope of PlayGrid.COLUMN_SCOPES) {
       const list = Array.isArray(stored?.[scope]) ? stored[scope].filter(k => known.has(k)) : [];
       sets[scope] = list.length ? list
-        : scope === 'all' ? this._loadCols()
+        : scope === 'all' && legacyAll ? legacyAll
         : PlayGrid.PRESETS[PlayGrid.SCOPE_PRESET[scope]].slice();
     }
-    return (this._colSetsByTeam[team] = sets);
+    this._colSetsByTeam[team] = sets;
+    // A program's first sets are written at once, so the claim and the sets agree.
+    if (!stored) this._saveCols();
+    return sets;
   }
   get cols() { return this._colSets()[this._colScope()]; }
   set cols(list) { this._colSets()[this._colScope()] = Array.isArray(list) ? list.slice() : []; }
@@ -603,15 +620,19 @@ export class PlayGrid {
   }
   nativeSelectPlay(playId) { this.tagger.selectPlay(Number(playId)); }
   nativeWatch() { this._watch(); }
-  nativeApplyPreset(name) {
+  nativeApplyPreset(name, scope) {
     if (!PlayGrid.PRESETS[name]) return false;
+    if (scope && scope !== this._colScope()) return false;
     this.cols = PlayGrid.PRESETS[name].slice();
     this._saveCols();
     this.refresh();
     return true;
   }
-  nativeSetColumn(key, enabled) {
+  nativeSetColumn(key, enabled, scope) {
     if (!PlayGrid.COLUMNS.some(col => col.key === key)) return false;
+    // The Columns sheet passes the set it shows; if the unit filter has moved
+    // since, the write is refused rather than landing in another unit's set.
+    if (scope && scope !== this._colScope()) return false;
     if (enabled) {
       const order = PlayGrid.COLUMNS.map(col => col.key);
       this.cols = order.filter(item => item === key || this.cols.includes(item));

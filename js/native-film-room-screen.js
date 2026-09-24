@@ -50,8 +50,8 @@ export class NativeFilmRoomScreen {
   setAllVisible(checked) { this.grid.nativeSetAllVisible(checked); }
   selectPlay(id) { this.grid.nativeSelectPlay(id); }
   watch() { this.grid.nativeWatch(); }
-  applyPreset(name) { return this.grid.nativeApplyPreset(name); }
-  setColumn(key, enabled) { return this.grid.nativeSetColumn(key, enabled); }
+  applyPreset(name, scope) { return this.grid.nativeApplyPreset(name, scope); }
+  setColumn(key, enabled, scope) { return this.grid.nativeSetColumn(key, enabled, scope); }
   applySavedFilter(index) { return this.grid.nativeApplySavedFilter(index); }
   deleteSavedFilter(index) { return this.grid.nativeDeleteSavedFilter(index); }
   saveFilter(name) { return this.grid.nativeSaveFilter(name); }

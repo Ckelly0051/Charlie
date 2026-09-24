@@ -66,7 +66,7 @@ function ColumnsPanel({ screen, state }) {
   const listed = state.allColumns.map((col, index) => ({ ...col, index }))
     .sort((a, b) => rank(a) - rank(b) || a.index - b.index);
   const toggle = (key, checked) => {
-    if (!screen.setColumn(key, checked)) return;
+    if (!screen.setColumn(key, checked, scope)) return;
     setActive(current => {
       const next = new Set(current);
       if (checked) next.add(key); else next.delete(key);
@@ -75,7 +75,7 @@ function ColumnsPanel({ screen, state }) {
   };
   return <div class="gi-film-columns">
     <div class="gi-film-presets">{state.presets.map(name => <button type="button" key={name} onClick={() => {
-      screen.applyPreset(name);
+      if (!screen.applyPreset(name, scope)) return;
       setActive(new Set(screen.snapshot().activeColumns));
     }}>{name}</button>)}</div>
     <p class="gi-film-columns-scope" data-column-scope={scope}>Columns for {state.columnScopeLabel}</p>
@@ -139,13 +139,21 @@ function CellEditor({ screen, model, close }) {
 function FilmRoomControls({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
-  const openColumns = anchor => screen.overlays.sheet({
+  // The Columns sheet edits one unit's set and is non-modal. When the unit
+  // filter changes the set on screen, the sheet closes rather than keep
+  // showing, and naming, the set it was opened for (Codex, c1cce33).
+  const columnsSheet = useRef(null);
+  useEffect(() => {
+    const open = columnsSheet.current;
+    if (open && open.scope !== state.columnScope) { open.handle?.close?.('scope-changed'); columnsSheet.current = null; }
+  }, [state.columnScope]);
+  const openColumns = anchor => { const handle = screen.overlays.sheet({
     title: state.columnScopeLabel + ' columns',
     modal: false,
     returnFocus: anchor,
     content: <ColumnsPanel screen={screen} state={state} />,
     actions: [{ key: 'done', label: 'Done', tone: 'primary', default: true }],
-  });
+  }); columnsSheet.current = { handle, scope: state.columnScope }; return handle; };
   const openSaved = anchor => screen.overlays.popover({
     title: 'Saved Film Room filters',
     anchor,

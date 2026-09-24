@@ -59,7 +59,7 @@ const filter = async (value) => { await page.click(`[data-film-controls] [data-f
 
 console.log('\n== 1. The unit filter picks the column set ==');
 await seed(); await settle(page);
-const PG = await page.evaluate(() => { const P = window.app.playGrid.constructor; return { offense: P.PRESETS.offense, defense: P.PRESETS.defense, special: P.PRESETS.special }; });
+const PG = await page.evaluate(() => { const P = window.app.playGrid.constructor; return { default: P.PRESETS.default, offense: P.PRESETS.offense, defense: P.PRESETS.defense, special: P.PRESETS.special }; });
 let v = await view();
 ok(v.scope === 'all' && JSON.stringify(v.cols) === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
   'All plays inherits the existing custom column list', JSON.stringify(v));
@@ -98,6 +98,19 @@ const panel = await page.evaluate(() => {
 });
 ok(/Defense columns/.test(panel.title) && panel.scope === 'Columns for Defense', 'the panel names the set it edits', JSON.stringify(panel));
 ok(panel.firstUnits.every(u => u === 'defense') && panel.lastDefense < panel.firstOther, 'defense fields lead the list', JSON.stringify(panel));
+// Codex (c1cce33): the sheet is non-modal. Changing the unit filter behind it
+// closes it, and a write naming the old set is refused.
+// The sheet covers the filter card at this width; the filter can still change
+// underneath it (keyboard, another surface), so drive it through the controller.
+await page.evaluate(() => window.app.nativeFilmRoom.toggleFilter('unit', 'offense')); await settle(page);
+const moved = await page.evaluate(() => {
+  const open = !!document.querySelector('.gi-film-column-list');
+  const refused = window.app.nativeFilmRoom.setColumn('hash', true, 'defense');
+  const grid = window.app.playGrid;
+  return { open, refused, offenseHasHash: grid.cols.includes('hash'), scope: grid._colScope() };
+});
+ok(!moved.open, 'changing the unit filter closes the Columns sheet it was opened for', JSON.stringify(moved));
+ok(moved.refused === false && !moved.offenseHasHash, 'a column write naming another unit\'s set is refused', JSON.stringify(moved));
 await page.evaluate(() => window.app.overlays.dismissTop('done')); await settle(page);
 
 console.log('\n== 4. All plays: a column of another unit is blank and not editable ==');
@@ -129,12 +142,17 @@ ok(v.cols.includes('quarter'), 'the defense set survives a reload', JSON.stringi
 const other = await page.evaluate(() => {
   const real = localStorage.getItem('ffa_active_team_id');
   localStorage.setItem('ffa_active_team_id', 'team-b');
-  const cols = window.app.playGrid.cols.slice(), key = window.app.playGrid.columnsKey();
+  const grid = window.app.playGrid;
+  const cols = grid.cols.slice(), key = grid.columnsKey(), all = grid._colSets().all.slice();
   if (real == null) localStorage.removeItem('ffa_active_team_id'); else localStorage.setItem('ffa_active_team_id', real);
-  return { cols, key };
+  return { cols, key, all, claim: localStorage.getItem('ffa_film_room_cols_claimed_by'), legacy: localStorage.getItem('ffa_film_room_cols') };
 });
 ok(other.key === 'ffa_film_room_columns_team-b' && !other.cols.includes('quarter') && JSON.stringify(other.cols) === JSON.stringify(PG.defense),
   'another program has its own sets', JSON.stringify(other));
+// Codex (c1cce33): the old single list is global and seeds ONE program's All plays.
+ok(JSON.stringify(other.all) === JSON.stringify(PG.default) && other.claim && other.claim !== 'team-b'
+  && other.legacy === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
+  'another program\'s All plays starts from the preset, not the first program\'s old list, which stays untouched', JSON.stringify(other));
 const bad = await page.evaluate(() => {
   const grid = window.app.playGrid, real = localStorage.getItem('ffa_active_team_id');
   localStorage.setItem('ffa_active_team_id', 'team-c');
