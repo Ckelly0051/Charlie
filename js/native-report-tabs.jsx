@@ -1309,16 +1309,25 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         scope={fixedScope ? null : [['game', 'Current game'], ['season', 'Full season'], ['selected', 'Selected games']].map(([id, label]) => ({
           id, label, active: screen.playersScope === id, onSelect: () => screen.setPlayersScope(id), attrs: { 'data-players-scope': id } }))}
         scopeExtra={!fixedScope && screen.playersScope === 'selected' ? <GamePicker screen={screen} /> : null} />
-      {!fixedScope && <div class="gi-players-toolbar">
-        {/* The role count keeps its denominator whenever a role is unattributed:
-            `5 roles` reads as the whole set, `5/6 roles` says one is missing.
-            A full six drops the denominator, because there is nothing absent
-            for it to name. */}
-        <span class="gi-players-sample"><b>{playerCount}</b> players · <b>{
+      {/* The page heading, the Defense board's hierarchy (coach direction,
+          1.12.0-97 smoke S97-1). A player's detail view keeps its own heading. */}
+      {/* The role count keeps its denominator whenever a role is unattributed:
+          `5 roles` reads as the whole set, `5/6 roles` says one is missing.
+          A full six drops the denominator, because there is nothing absent
+          for it to name. The sample line is the heading's cohort statement,
+          so it is said once; with a player open it stays above the detail. */}
+      {(() => {
+        const sample = fixedScope ? null : <span class="gi-players-sample"><b>{playerCount}</b> players · <b>{
           tables.length === PLAYER_ROLES.length ? String(tables.length) : `${tables.length}/${PLAYER_ROLES.length}`
         }</b> roles · <b>{playCount}</b> charted plays{screen.playersScope === 'selected'
-          ? ` · ${screen._playersSelectedLabel()}` : ''}</span>
-      </div>}
+          ? ` · ${screen._playersSelectedLabel()}` : ''}</span>;
+        if (detail) return sample ? <div class="gi-players-toolbar">{sample}</div> : null;
+        const index = PLAYER_SECTIONS.findIndex(([id]) => id === section);
+        return <header class="gi-report-heading">
+          <span>{String(index + 1).padStart(2, '0')}</span><h2>{PLAYER_SECTIONS[index][1]}</h2>
+          <small class="gi-players-toolbar">{sample || `${rolePlayers(sectionKeys(section)).size} players`}</small>
+        </header>;
+      })()}
       {detail ? <PlayerDetail detail={detail} screen={screen} scopeLabel={screen._playersScopeLabel()} /> : null}
       {detail ? null : <div class={`gi-players-sections cols-${columns.length}`} data-players-columns={columns.length}>
         {columns.map((column, index) => <div key={`${section}-col-${index}`} class="gi-players-col">
