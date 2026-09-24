@@ -17,38 +17,42 @@ abbreviated tables are
 placeholders; the full production boards are unchanged below the strip. The
 same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green
-(`e2e-reports-global-strip`). The `1.12.0-95` and `1.12.0-97` installers
+(`e2e-reports-global-strip`). The `1.12.0-95`, `1.12.0-97` and `1.12.0-98` installers
 contain it; neither an installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
 **Reports secondary bar — IMPLEMENTED (`0e84464`, 2026-09-23), PACKAGED IN
-`1.12.0-97`, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
+`1.12.0-97` AND `1.12.0-98`, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
 (implementation record in its RATIONALE). One shared bar under the strip on
 the seven multi-section reports; Offense six pages, Defense four; the game KPI
 rail deleted; a compact Overview score; the Defense board says `Explosive
 Plays`. Coach Reports smoke Findings 1 and 2 are repaired; see
 `docs/OPEN-DEFECTS.md`.
 **Reports down-and-distance chart — IMPLEMENTED (`80941c7`, `cd0fb40`,
-2026-09-23), PACKAGED IN `1.12.0-97`, NOT SMOKE-APPROVED:** item 7 of the same
-comp, first on Offense > Situations and Defense > Situations. Reports approval
-waits on Charlie's installed smoke of `1.12.0-97`, which carries the secondary
-bar and this chart together.
+2026-09-23), PACKAGED IN `1.12.0-97` AND `1.12.0-98`, NOT SMOKE-APPROVED:** item 7
+of the same comp, first on Offense > Situations and Defense > Situations.
+**Reports module system — IMPLEMENTED (2026-09-24), PACKAGED IN `1.12.0-98`, NOT
+SMOKE-APPROVED:** the `1.12.0-97` installed smoke stopped at finding S97-1 (the
+Offense pages carried unrelated treatments); at the coach's direction every
+Reports board except Overview now uses the Defense module system (see the
+Offense section and `docs/OPEN-DEFECTS.md`). Full gate at `5f208e1` 126/126.
 **Never import `preact/compat`.** The secondary bar's first `createPortal`
 came from it, and importing compat rewrites `onChange` to `onInput` on every
 text and date input in the app, so change-committed fields (charting yardage,
 the Special Teams and penalty editors, Study date ranges and Plan fields)
 committed per keystroke. Repaired in `87371cd` with a core-Preact portal. The
 never-smoked `1.12.0-96` installer carries the defect and is superseded.
-**Main-checkout version:** `1.12.0-97` (`js/app.js` `APP_VERSION`,
+**Main-checkout version:** `1.12.0-98` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is
-`1.12.0-97`**, the combined Reports smoke candidate, built from the clean main
-checkout at `2799be5` (the committed four-owner bump on top of `1faa1df`; the
-full gate at the last code commit `87371cd` was 125/125, zero skipped, zero
-failed). Its installed coach smoke is **pending**; see `SMOKE-1.12.0-97.md`.
+`1.12.0-98`**, the Reports smoke candidate, built from the clean main checkout
+at `6821f07` (the committed four-owner bump on top of `b963e66`; the full gate
+at `5f208e1` was 126/126, and the only later code is the test-only
+`b30a9c2`). Its installed coach smoke is **pending**; see `SMOKE-1.12.0-98.md`.
 It is not an installed approval, tag, push or published release.
-**Superseded unsmoked installers:** `1.12.0-96` (`21f5688`; secondary bar
-only, with the `preact/compat` input regression) and `1.12.0-95` (`8b926a6`;
-global strip). Neither received an installed smoke; their checks are carried
-into `SMOKE-1.12.0-97.md`.
+**Earlier Reports installers:** `1.12.0-97` (`2799be5`) was smoked until
+finding S97-1 and is superseded; its remaining checks carry into
+`SMOKE-1.12.0-98.md`. `1.12.0-96` (`21f5688`; secondary bar only, with the
+`preact/compat` input regression) and `1.12.0-95` (`8b926a6`; global strip)
+were never smoked.
 
 **Preceding installer:** `1.12.0-94`, built from `81fe261` in a clean detached
 worktree with a local, uncommitted version bump. Its installed coach smoke was

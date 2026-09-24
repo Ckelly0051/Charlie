@@ -1,10 +1,10 @@
 # GridIron IQ Open Defects
 
-## Installed smoke, 1.12.0-97 (in progress, 2026-09-23)
+## Installed smoke, 1.12.0-97 (stopped at S97-1, 2026-09-23; continues on 1.12.0-98)
 
 **Finding S97-1 — repaired in source 2026-09-24 (`77aea58`) at the coach's
-direction to proceed; not packaged, awaiting the coach's review of the
-captures and an installed smoke. The Offense pages carried several unrelated
+direction to proceed; packaged in `1.12.0-98` (`SMOKE-1.12.0-98.md`), awaiting the
+coach's installed smoke. The Offense pages carried several unrelated
 visual treatments.** Coach, on Identity, Situations and Structure: different header
 styles, headline styles and fonts per page, as though the old long board was
 cut into pages unchanged. Offense gold / Defense blue is correct; the
@@ -49,8 +49,8 @@ sub-floor elements. Captures: `artifacts/reports-offense-module-system/`
 (canonical 2025 JV, St. Peter Lutheran, read-only copy, every page at 1440 and
 1280).
 
-*Extended to Special Teams (`272a62c`, coach direction 2026-09-24; not
-packaged):* the Offense CSS became one shared block for both boards. Special
+*Extended to Special Teams (`272a62c`, coach direction 2026-09-24; packaged in
+`1.12.0-98`):* the Offense CSS became one shared block for both boards. Special
 Teams gets numbered section headings (`01 All units` … `05 Specialists` with
 each section's count), outlined modules on 20px gutters with the 50px title
 bar, and its KPI strip and unit ledger as hairline-divided panels with
@@ -61,7 +61,7 @@ Captures: `artifacts/reports-special-teams-module-system/` (every section at
 1440 and 1280). `e2e-reports-special-teams` §9c pins it (61).
 
 *Extended to Players, Self-Scout, Matchup and Season (coach direction
-2026-09-24; not packaged):* `cba2f4c`, `cc3db88`, `b70b758`, `75673a2`, one
+2026-09-24; packaged in `1.12.0-98`):* `cba2f4c`, `cc3db88`, `b70b758`, `75673a2`, one
 commit per board. Every Reports board except Overview now uses the one
 system: a numbered heading whose cohort statement is the board's former
 sample line, outlined modules on 20px gutters with the 50px title bar,
