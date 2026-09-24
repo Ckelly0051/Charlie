@@ -1775,8 +1775,8 @@ follows a successful save. Evidence: `e2e-film-room-sheet` (27) and
 fails with the defect restored.
 
 **Full gate at `28fb35a`, 2026-09-24: 129/130; the one red is fixed test-only
-in `8c2ea1a` and passes 25/25 on its own rerun (no source changed, so the
-full gate was not repeated). `e2e-tag-library-storage` failed three checks because its
+in `8c2ea1a` (25/25 on its own). **The full gate was then rerun at `c1f6cc1`
+(source identical to `8c2ea1a`): 130/130, 0 skipped, 0 failed.** `e2e-tag-library-storage` failed three checks because its
 full-store fixture left up to a few hundred characters free and adding a
 choice grows the stored library by a few. The per-program column key shifted
 how much the page had written before the fill, the add fit, and nothing
