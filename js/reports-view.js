@@ -1180,7 +1180,7 @@ export function matchupPlayTypeRows(rows, kind) {
   }));
 }
 
-/** Coverage Answers — driven by the coverages the opponent defense charted,
+/** Coverages — driven by the coverages the opponent defense charted,
  *  answered by our own season call inside that exact coverage. */
 export function matchupCoverageRows(rows) {
   return (rows || []).map(row => ({

@@ -92,7 +92,7 @@ const COLUMNS = {
 };
 const PHASE_ROWS = ['Offense', 'Defense', 'Special Teams'];
 const FORBIDDEN_SECTIONS = ['Offensive identity', 'Play calls', 'Formations',
-  'Personnel', 'Situational Calls', 'Coverage Answers', 'Personnel and Formation',
+  'Personnel', 'Situational Calls', 'Coverages', 'Personnel and Formation',
   'Predictability', 'Recommendations', 'Film Room Insights', 'Game Log',
   'Early vs Recent', 'Wins vs Losses', 'Opponent Offense', 'Scheme',
   'Production by Play Type', 'Progression', 'Coaching Recommendations'];

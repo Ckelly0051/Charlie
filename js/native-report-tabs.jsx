@@ -586,7 +586,7 @@ function SparseModule({ title, meta, cls = '', rows, children }) {
 const OFFENSE_PAGES = [
   ['identity', 'Identity', 'Offensive identity'],
   ['calls', 'Calls & tendencies', 'Calls and tendencies'],
-  ['structure', 'Structure', 'Structure and deployment'],
+  ['structure', 'Structure', 'Structure and execution'],
   ['situations', 'Situations', 'Situational analysis'],
   ['field', 'Field & production', 'Field and production'],
   ['advanced', 'Advanced', 'Advanced metrics'],
@@ -819,7 +819,7 @@ export function OffenseTab({ stats, screen }) {
     </div>
     </>}
 
-    {/* ── ZONE 3 — structure and deployment ─────────────────────────── */}
+    {/* ── ZONE 3 — structure and execution ──────────────────────────── */}
     {page === 'structure' && <>
     <div class="gi-overview-band gi-overview-band-3">
       <Module title="Personnel" meta="grouping" cls="is-offense gi-off-narrow-fit" rows={personnel}>
@@ -2186,7 +2186,7 @@ function MuOffenseLane({ lane, names, screen }) {
         <MuPlayTypes title={names.opponent.name} rows={lane.playTypes.opponent} kind="defense" side="opponent" screen={screen} />
       </div>
     </MuSection>
-    <MuSection title="Coverage Answers">
+    <MuSection title="Coverages">
       <MuTable cls="gi-mu-support" cols={['label', 'answer', 'num', 'num', 'num', 'num', 'film']}
         columns={[
           { key: 'coverage', label: 'Coverage', tl: true, cellClass: 'gi-mu-look', render: row => muTrunc(row.coverage) },

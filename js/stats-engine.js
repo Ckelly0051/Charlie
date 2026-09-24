@@ -1074,7 +1074,7 @@ export class StatsEngine {
     return StatsEngine._matchupRank(groups).map(group => ({ label: group.label, ...measure(group.plays) }));
   }
 
-  /** Coverage Answers — driven by the coverages the opponent defense actually
+  /** Coverages — driven by the coverages the opponent defense actually
    *  charted. For each, our season offense against that coverage, our most
    *  frequently charted call inside it, and that exact call-and-coverage
    *  cohort's own result. An uncharted coverage is omitted, never rendered

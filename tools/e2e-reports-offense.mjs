@@ -483,7 +483,7 @@ console.log('\n== 14b. Every page uses the Defense module system (1.12.0-97 smok
    heading, each module its own outlined box on 20px gutters with a 50px title
    bar (a 2px gold rule over a 17px sentence-case title), sentence-case column
    and tile labels, and no uppercase micro-headers or left accent rails. */
-const ZONE_TITLES = { identity: 'Offensive identity', calls: 'Calls and tendencies', structure: 'Structure and deployment',
+const ZONE_TITLES = { identity: 'Offensive identity', calls: 'Calls and tendencies', structure: 'Structure and execution',
   situations: 'Situational analysis', field: 'Field and production', advanced: 'Advanced metrics' };
 const system = [];
 for (const [index, [id]] of PAGES.entries()) {

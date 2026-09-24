@@ -300,8 +300,8 @@ ok(comp.tabs.length === 2 && comp.tabs[0] === 'Our Offense vs Their Defense'
   && comp.tabs[1] === 'Our Defense vs Their Offense',
   'both matchup directions are offered, named exactly as the comp names them', JSON.stringify(comp.tabs));
 ok(comp.panes === 1, 'exactly one direction is on screen at a time', String(comp.panes));
-ok(JSON.stringify(comp.sections) === JSON.stringify([...SECTIONS, 'Coverage Answers']),
-  'the offense-facing tab renders Situational Calls, Production by Play Type and Coverage Answers',
+ok(JSON.stringify(comp.sections) === JSON.stringify([...SECTIONS, 'Coverages']),
+  'the offense-facing tab renders Situational Calls, Production by Play Type and Coverages',
   JSON.stringify(comp.sections));
 ok(comp.units.length === 2 && comp.units[0] === 'Our Offense' && comp.units[1] === 'St. Mary Falcons Defense',
   'the lane names its two independent cohorts', JSON.stringify(comp.units));
@@ -575,13 +575,13 @@ ok(personnelModel.every(row => !row.season
   'the opponent and season reference sets on a personnel row are separate cohorts',
   JSON.stringify(personnelModel.map(r => [r.opponent.refs.length, r.season?.refs.length ?? 0])));
 
-/* ══ 12. Coverage Answers ═════════════════════════════════════════════════ */
-console.log('\n== 12. Coverage Answers ==');
+/* ══ 12. Coverages ══════════════════════════════════════════════════════════ */
+console.log('\n== 12. Coverages ==');
 await setDirection('Our Offense vs Their Defense');
 const coverage = await rows('table.gi-mu-support');
 const coverageModel = (await model()).offense.coverages;
 ok(coverage.map(row => row[0]).join(',') === 'Cover 1,Cover 3,Cover 0,Cover 2,Cover 6',
-  'Coverage Answers is driven by the coverages the opponent defense charted, ranked by frequency',
+  'Coverages is driven by the coverages the opponent defense charted, ranked by frequency',
   JSON.stringify(coverage.map(row => row[0])));
 ok(!coverage.some(row => row[0] === 'Unknown' || row[0] === ''),
   'an uncharted coverage is omitted rather than invented as Unknown', JSON.stringify(coverage.map(r => r[0])));
@@ -596,7 +596,7 @@ ok(coverage[4][0] === 'Cover 6' && coverage[4][1] === 'No matching snaps' && cov
   'a coverage our season never faced renders no values and no enabled film control',
   JSON.stringify(coverage[4]));
 ok(coverageModel.every(row => !row.season || row.season.refs.every(ref => ref.startsWith('g'))),
-  'Coverage Answers preserves exact season film references',
+  'Coverages preserves exact season film references',
   JSON.stringify(coverageModel.map(r => r.season?.refs?.slice(0, 2) ?? null)));
 
 /* ══ 13. The film contract ════════════════════════════════════════════════ */
