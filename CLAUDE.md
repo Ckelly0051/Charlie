@@ -1084,7 +1084,12 @@ no rail or ground; the down-and-distance chart takes the same title bar (gold
 on Offense, cyan on Defense). The block is declared last in
 `css/native-reports.css` and supersedes the band box-shadow rules; the 12-column
 tracks are unchanged. Chart internals keep their own styles. Pinned by
-`e2e-reports-offense` §14b. The Top 5 Tendencies reserved panel is 410px (it
+`e2e-reports-offense` §14b. **Special Teams uses the same shared block**
+(`272a62c`, coach direction 2026-09-24): numbered section headings, outlined
+modules on 20px gutters, the 50px title bar, the KPI strip and unit ledger as
+hairline-divided panels. Its accent is the neutral bone line, because Special
+Teams has no assigned colour and gold or cyan would read as Offense or Defense;
+pinned by `e2e-reports-special-teams` §9c. The Top 5 Tendencies reserved panel is 410px (it
 was 378 before the taller title bar).
 
 **Reports > Defense is REVISION 2 (2026-09-17), and its installed smoke PASSED
@@ -1404,7 +1409,10 @@ for comparison, never merged. Its bands are `align-items:stretch`, which is
 *not* the treatment Offense and Defense rejected — those bands paint their rule
 colour as a background so a stretched short module showed a slab; this band's
 background is transparent and its rules are box-shadows, so stretching paints
-only the module's own panel and the rows keep their rhythm.
+only the module's own panel and the rows keep their rhythm. **Since `272a62c`
+(2026-09-24) the box-shadow rules are gone:** modules are outlined boxes on
+20px gutters in the shared Defense module system (see the Offense section);
+bands still stretch, so paired edges still align.
 
 **One absence label: `No data`.** Everywhere, in every position. An earlier
 pass drew three ("not charted", "not derivable — legacy charting", "not
@@ -2511,7 +2519,7 @@ inventory and order, exact row allocations, held slots, one board height,
 approved Team Profile metrics, a module-height ceiling, no page overflow and
 no clipped cell, walked page by page, 47), `tools/e2e-reports-special-teams.mjs`
 (the Special Teams composition, its absence contract, the two engine
-corrections, legacy punt ownership, scope chrome and the printed export, 57), `tools/e2e-reports-players.mjs`
+corrections, legacy punt ownership, scope chrome, the printed export and the Defense module system on every section, 61), `tools/e2e-reports-players.mjs`
 (the Players composition, its role schemas, its measured column geometry, the
 absence contract, the role-specific composite film cohorts, the Grade repair, the
 one-owner game summary shared with the export, situational sort ORDER over

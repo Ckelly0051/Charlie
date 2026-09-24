@@ -155,6 +155,14 @@ check (skips the page heading), and the Offense type-floor census (115 -> 49
 at 1440, 320 -> 214 at 1280, minimum 10.5px). Captures:
 `artifacts/reports-offense-module-system/`.
 
+Special Teams joined the same system on 2026-09-24 (`272a62c`).
+`e2e-reports-special-teams` (61) §9c walks its five sections and pins the
+numbered heading, the outlined modules with the 50px title bar in the board's
+accent, 20px gutters and no uppercase micro-header. Mutation-verified:
+dropping `.gi-st-board` from the shared block reds the module and uppercase
+checks. The type-floor census for Special Teams stays at zero. Captures:
+`artifacts/reports-special-teams-module-system/`.
+
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
 cannot certify Reports acceptance. Every Reports evidence handoff must include

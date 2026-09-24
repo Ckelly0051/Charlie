@@ -49,6 +49,17 @@ sub-floor elements. Captures: `artifacts/reports-offense-module-system/`
 (canonical 2025 JV, St. Peter Lutheran, read-only copy, every page at 1440 and
 1280).
 
+*Extended to Special Teams (`272a62c`, coach direction 2026-09-24; not
+packaged):* the Offense CSS became one shared block for both boards. Special
+Teams gets numbered section headings (`01 All units` … `05 Specialists` with
+each section's count), outlined modules on 20px gutters with the 50px title
+bar, and its KPI strip and unit ledger as hairline-divided panels with
+sentence-case labels. **Open for the coach:** Special Teams has no assigned
+accent colour, so its title-bar rules use the neutral bone line rather than
+Offense gold or Defense cyan. Sections, modules and data are unchanged.
+Captures: `artifacts/reports-special-teams-module-system/` (every section at
+1440 and 1280). `e2e-reports-special-teams` §9c pins it (61).
+
 ## Coach Reports smoke findings (2026-09-23)
 
 **Intake checkpoint:** The coach has finished listing findings for now and
