@@ -118,7 +118,7 @@ regression guard and say so.
 | Defense | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-17) |
 | Special Teams | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-19) |
 | Players | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-20) |
-| Self-Scout | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
+| Self-Scout | 13px | 0 | 0 | Migrated (canonical review; module system 2026-09-24; smoke pending) |
 | Season | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
 | Matchup | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |

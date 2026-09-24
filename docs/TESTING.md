@@ -163,6 +163,23 @@ dropping `.gi-st-board` from the shared block reds the module and uppercase
 checks. The type-floor census for Special Teams stays at zero. Captures:
 `artifacts/reports-special-teams-module-system/`.
 
+Players, Self-Scout, Matchup and Season joined on 2026-09-24 (`cba2f4c`,
+`cc3db88`, `b70b758`, `75673a2`). `e2e-reports-module-system` (34) walks every
+section of Players, Self-Scout and Matchup, and Season's own Overview and
+Trends, on the canonical 2025 JV season (read-only, hash-checked) at 1440 and
+1280: the numbered heading first on the page, every module outlined with the
+50px title bar and a 17px sentence-case title, no uppercase micro-header and no
+page overflow. It takes a per-board module, title-bar and title selector,
+because Matchup builds its sections from its own components. Mutation-verified
+per board by dropping the board from the shared block (or, for Matchup,
+removing its block). Pins moved with the direction and recorded where they
+live: Self-Scout's and Season's approved 14px module titles are now 17px
+(`e2e-reports-self-scout` 113, `e2e-reports-season` 100) and Self-Scout's
+smallest text is 13px (`e2e-reports-typefloor-realdata`). Players modules take
+an 8px inset so the Tackles identity column still holds the longest canonical
+name at 1440 (`e2e-reports-players` 239). Captures:
+`artifacts/reports-{players,selfscout,matchup,season}-module-system/`.
+
 On the designated review machine, missing canonical Reports data is a failure,
 not a green skip. CI may use `GIQ_REALDATA_OPTIONAL=1`, but an optional CI skip
 cannot certify Reports acceptance. Every Reports evidence handoff must include

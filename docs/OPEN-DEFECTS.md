@@ -60,6 +60,23 @@ Offense gold or Defense cyan. Sections, modules and data are unchanged.
 Captures: `artifacts/reports-special-teams-module-system/` (every section at
 1440 and 1280). `e2e-reports-special-teams` §9c pins it (61).
 
+*Extended to Players, Self-Scout, Matchup and Season (coach direction
+2026-09-24; not packaged):* `cba2f4c`, `cc3db88`, `b70b758`, `75673a2`, one
+commit per board. Every Reports board except Overview now uses the one
+system: a numbered heading whose cohort statement is the board's former
+sample line, outlined modules on 20px gutters with the 50px title bar,
+sentence-case labels and column headers, and no pane frame. Players and
+Self-Scout keep each module's phase as its accent (gold offense, cyan defense);
+Matchup and Season use the neutral line, Matchup because each section holds
+both cohorts (which keep their gold and cyan). Season adds a heading only to
+its own Overview and Trends; the boards it embeds bring their own. To keep the
+Tackles identity column holding the longest canonical name at 1440, Players
+modules take an 8px inset. Self-Scout's and Season's approved 14px module
+titles are now 17px, recorded in their harnesses. Overview is untouched: its
+approved broadcast composition is a separate coach decision. Evidence:
+`tools/e2e-reports-module-system.mjs` (34) and captures in
+`artifacts/reports-{players,selfscout,matchup,season}-module-system/`.
+
 ## Coach Reports smoke findings (2026-09-23)
 
 **Intake checkpoint:** The coach has finished listing findings for now and
