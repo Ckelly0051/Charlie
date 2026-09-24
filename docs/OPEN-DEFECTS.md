@@ -132,10 +132,13 @@ one-height-per-page rule; rows are now fixed. Known and deliberate: a cell whose
 only snap is unmeasurable and has no yardage prints `- · -`; the chart counts
 run/pass snaps, so its per-situation counts can be lower than the Defense Down &
 Distance table's charted Snaps (e.g. season 1st & 7+: 56 run/pass vs 60
-charted), and the header says which cohort it is. **Reports approval waits on
-one new package carrying the secondary bar and this chart, and Charlie's smoke
-of that combined result.** Evidence: `tools/e2e-reports-down-distance.mjs`
-(46) and captures in `artifacts/reports-down-distance/`.
+charted), and the header says which cohort it is. Review finding repaired
+(`cd0fb40`): a selected cell holding only untyped snaps listed `No play type
+charted` beside the counted `No play type N` row; it now shows the counted row
+alone. **The `1.12.0-96` installer predates `80941c7` and must not be smoked as
+the combined result. Reports approval waits on one new package carrying the
+secondary bar and this chart, and Charlie's smoke of that combined result.**
+Evidence: `tools/e2e-reports-down-distance.mjs` (47) and captures in `artifacts/reports-down-distance/`.
 
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 

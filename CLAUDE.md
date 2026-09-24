@@ -2512,7 +2512,7 @@ outer frame at 1920/1440/1280; the Players name column; the secondary bar and th
 `tools/e2e-reports-down-distance.mjs` (the down-and-distance chart: synthetic
 missing/sparse tags, zero denominators, overlapping play types, both success
 rules, exact refs, selection and film, scope and Season embeds, screen/export
-parity, the canonical season's cohort and refs, 1440/1280/768 fit, 46) and
+parity, the canonical season's cohort and refs, 1440/1280/768 fit, 47) and
 `tools/e2e-explosive-labels.mjs` (explosive-play terminology: no bare or
 abbreviated label in source, the approved wording on every rendered tab and export, the Defense board's
 implied Allowed and the export's explicit one, fit without clipping or shrunk type at

@@ -121,7 +121,7 @@ the 768/390 score checks.
 
 ### Reports down-and-distance chart (source `80941c7`, 2026-09-23)
 
-`e2e-reports-down-distance` (46) is the chart's harness. Synthetic engine
+`e2e-reports-down-distance` (47) is the chart's harness. Synthetic engine
 cases: the fixed twelve cells; the run/pass cohort; blank or invalid down and
 distance placed nowhere; missing yardage out of yards/play; a touchdown with no
 yardage still measurable; untyped snaps; multi-select play types credited per
