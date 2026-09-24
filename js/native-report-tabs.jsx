@@ -1492,11 +1492,11 @@ export function OpponentSpecialTeamsTab({ data, screen }) {
    attempts, then rostered players -- and said so nowhere. `counts` is the noun
    the badge belongs to; the section keeps its own label. */
 const ST_SECTIONS = [
-  { id: 'st1', label: 'All units', counts: 'snaps' },
-  { id: 'st2', label: 'Kickoff & Kick Return', counts: 'snaps' },
-  { id: 'st3', label: 'Punt & Punt Return', counts: 'snaps' },
-  { id: 'st4', label: 'Kicking game', counts: 'attempts' },
-  { id: 'st5', label: 'Specialists', counts: 'players' },
+  { id: 'st1', label: 'All units', counts: 'snaps', title: 'All units' },
+  { id: 'st2', label: 'Kickoff & Kick Return', counts: 'snaps', title: 'Kickoff and kick return' },
+  { id: 'st3', label: 'Punt & Punt Return', counts: 'snaps', title: 'Punt and punt return' },
+  { id: 'st4', label: 'Kicking game', counts: 'attempts', title: 'Kicking game' },
+  { id: 'st5', label: 'Specialists', counts: 'players', title: 'Specialists' },
 ];
 
 /** Aligned label/value lines. A null value is the report's one absence label. */
@@ -1646,6 +1646,16 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       sections={ST_SECTIONS.map(s => ({ id: s.id, label: s.label, count: `${sectionCounts[s.id]} ${s.counts}`,
         none: !sectionCounts[s.id], attrs: { 'data-st-section': s.id } }))}
       active={section} onSelect={setSection} scope={scope} exportAction={exportAction} />
+    {/* The page heading, the Defense board's hierarchy (coach direction,
+        1.12.0-97 smoke S97-1): number, the section's name, its count. */}
+    {(() => {
+      const index = ST_SECTIONS.findIndex(s => s.id === section);
+      const current = ST_SECTIONS[index];
+      return <header class="gi-st-heading">
+        <span>{String(index + 1).padStart(2, '0')}</span><h2>{current.title}</h2>
+        <small>{sectionCounts[current.id]} {current.counts}</small>
+      </header>;
+    })()}
     {fixedScope && <div class="gi-st-toolbar">
       <strong class="gi-st-toolbar-label">{title}</strong>
       {toolbarAction}

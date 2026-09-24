@@ -496,6 +496,45 @@ ok(emptyModules && emptyModules.find(m => m.empty)?.gapUnderHeader <= 16,
   'the absence sits directly under its header instead of floating in a tall empty panel',
   JSON.stringify(emptyModules));
 
+/* ══ 9c. The Defense module system (1.12.0-97 smoke S97-1) ════════════════ */
+console.log('\n== 9c. Every section uses the Defense module system ==');
+/* Coach direction, extended from Offense: a numbered section heading, every
+   module an outlined box on 20px gutters with a 50px title bar (2px rule in the
+   board accent over a 17px sentence-case title), no uppercase micro-headers. */
+const ST_TITLES = ['All units', 'Kickoff and kick return', 'Punt and punt return', 'Kicking game', 'Specialists'];
+const stSystem = [];
+for (const [index, id] of ['st1', 'st2', 'st3', 'st4', 'st5'].entries()) {
+  await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-st-section="${s}"]`).click(), id);
+  await sleep(150);
+  stSystem.push(await page.evaluate((number, title) => {
+    const board = document.querySelector('[data-native-report-content] .gi-st-board');
+    const heading = board.querySelector(':scope > .gi-st-heading');
+    const accent = heading ? getComputedStyle(heading.querySelector('span')).color : null;
+    const bad = [];
+    for (const m of board.querySelectorAll('.gi-overview-module')) {
+      const cs = getComputedStyle(m), head = m.querySelector(':scope > header'), hs = getComputedStyle(head);
+      const t = getComputedStyle(head.querySelector('strong')), name = head.querySelector('strong').textContent.trim();
+      if (parseFloat(cs.borderTopWidth) < 1 || parseFloat(cs.borderLeftWidth) < 1) bad.push(`${name}: no outline`);
+      if (Math.round(head.getBoundingClientRect().height) !== 50 || hs.borderTopWidth !== '2px' || hs.borderTopColor !== accent) bad.push(`${name}: title bar`);
+      if (parseFloat(t.fontSize) < 17 || t.textTransform !== 'none') bad.push(`${name}: title type`);
+    }
+    const gaps = [...board.querySelectorAll(':scope > .gi-st-band')].filter(b => b.children.length > 1).map(b => getComputedStyle(b).columnGap);
+    const upper = [...board.querySelectorAll('*')].filter(el => el.getClientRects().length
+      && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
+      && getComputedStyle(el).textTransform === 'uppercase').map(el => el.textContent.trim().slice(0, 20));
+    return { ok: !!heading && heading.querySelector('span').textContent === String(number).padStart(2, '0')
+      && heading.querySelector('h2').textContent === title, bad, gaps, upper };
+  }, index + 1, ST_TITLES[index]));
+}
+await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-st-section="st1"]').click());
+ok(stSystem.every(s => s.ok), 'every Special Teams section opens on its numbered heading and name', JSON.stringify(stSystem.map(s => s.ok)));
+ok(stSystem.every(s => s.bad.length === 0), 'every module is an outlined box with the 50px title bar and a 17px sentence-case title',
+  JSON.stringify(stSystem.flatMap(s => s.bad).slice(0, 8)));
+ok(stSystem.every(s => s.gaps.length && s.gaps.every(g => g === '20px')), 'module bands sit on 20px gutters',
+  JSON.stringify(stSystem.map(s => s.gaps)));
+ok(stSystem.every(s => s.upper.length === 0), 'no Special Teams label renders as an uppercase micro-header',
+  JSON.stringify(stSystem.flatMap(s => s.upper).slice(0, 8)));
+
 /* ══ 10. The empty state ══════════════════════════════════════════════════ */
 console.log('\n== 10. No Special Teams snaps ==');
 await load([{ unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5' }]);
