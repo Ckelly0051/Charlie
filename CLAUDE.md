@@ -58,8 +58,8 @@ no smoke of this batch** — Break Down is about to be rebuilt, so smoking the
 current structure is wasted. The installed checks (settings save on a full
 profile, the once-only version-history move) carry into the rebuild's
 installer.
-**BREAK DOWN REBUILD — STEPS 1-4 IN SOURCE (2026-09-24), FULL GATE PENDING, NOT
-PACKAGED** (coach direction; plan and record `docs/BREAKDOWN-REBUILD-PLAN.md`).
+**BREAK DOWN REBUILD — STEPS 1-4 IN SOURCE (2026-09-24), FULL GATE 130/130 AT
+`b7e2f32`, NOT PACKAGED** (coach direction; plan and record `docs/BREAKDOWN-REBUILD-PLAN.md`).
 The approved layout stays; the structure changed. The route was five Preact
 roots mounted into boxes `breakdown-workspace.js` wrote as an HTML string,
 with the toolbar's state painted by hand. Now **one tree**:

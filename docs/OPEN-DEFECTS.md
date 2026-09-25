@@ -1784,7 +1784,8 @@ failed. No product change: the fixture now closes the slack with
 one-character keys and asserts that a one-character write fails too;
 mutation-verified by swallowing the `QuotaExceededError` in `TagLibrary`.
 
-**Break Down rebuild, steps 1-4 in source (2026-09-24), full gate pending.**
+**Break Down rebuild, steps 1-4 in source (2026-09-24); full gate 130/130 at
+`b7e2f32`; not packaged.**
 One tree replaces the five mounted roots and the HTML string; no visual
 change (20 screenshots byte-identical to `c1f6cc1`). Record:
 `docs/BREAKDOWN-REBUILD-PLAN.md` > Progress.

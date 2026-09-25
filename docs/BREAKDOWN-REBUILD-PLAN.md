@@ -93,7 +93,8 @@ the screen instead, so standalone mounts share it too.)
 | 3. One grid subscription | `cd7912e` | new check pins one grid subscription; mutation-verified |
 | 4. Dead methods | `05560c1` | `_ordinal`, `toggleStrip`, `setPerspective` deleted |
 | Visual | — | 20 screenshots byte-identical to `c1f6cc1` (chart, Film Room below/beside, Film focus, tools menu; 1440/1280/768/390) |
-| 5. Full gate, installer | pending | |
+| 5a. Full gate | `b7e2f32` | 130/130, 0 skipped, 0 failed |
+| 5b. Installer | not built | awaits the coach's call |
 
 **Behavior change, deliberate:** a standalone `mount()` now takes a view over
 from the live route and `restore()` hands it back. Before, restore left the
