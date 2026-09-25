@@ -1,8 +1,8 @@
 # Legacy excision — plan
 
 Coach direction, 2026-09-25: excising legacy code is the next step, done
-properly rather than around. **Status: APPROVED by the coach (2026-09-25), to be
-audited by Codex before work starts.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
+properly rather than around. **Status: APPROVED by the coach (2026-09-25), cut to three passes the same
+day; Codex audit before Pass 1 starts.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
 
 ## Why it keeps biting
 
@@ -61,12 +61,14 @@ impact report and the coach's explicit confirmation (binding data rules).
 5. **Stop rules.** Any parity diff, unintended screenshot diff, or change to
    the canonical season's bytes stops the phase; I report it and do not patch
    around it.
-6. **Review and confirm.** Codex reviews each phase's commits against this
+6. **Review and confirm.** Codex reviews each pass's commits against this
    plan before the gate; the coach confirms before any gate and any installer.
 
-## Phases (smallest risk first; each is independently shippable)
+## Three passes (coach, 2026-09-25: the seven phases are cut to three)
 
-**Phase 0 — Guardrails and inventory (no product change).**
+Pass 0 is done. Passes 1 and 2 are the work that matters; Pass 3 is optional.
+
+**Pass 0 — Guardrails and inventory (no product change). DONE.**
 Build `compare-builds.mjs` and `e2e-legacy-roundtrip`; add
 `tools/audit-legacy.mjs`, a read-only scan that regenerates the table above
 (unreferenced names, inline unit readings, fake-field reads, localStorage keys,
@@ -74,7 +76,7 @@ Build `compare-builds.mjs` and `e2e-legacy-roundtrip`; add
 copy) so progress is measured, not asserted.
 *Done when:* all three run in the gate and the inventory matches this table.
 
-**Phase 0 — BUILT (2026-09-25), awaiting Codex review; full gate not yet run
+**Built 2026-09-25 (`aa27da9`), awaiting Codex review; full gate not yet run
 with the two new harnesses.**
 - `tools/audit-legacy.mjs` — the read-only inventory (`--live` reads a copy
   of the installed catalog and confirms its hash is unchanged). Baseline in
@@ -107,61 +109,46 @@ with the two new harnesses.**
   `node_modules` by a junction that is removed and verified BEFORE the temp
   folder is deleted. On demand, not in the gate (it needs a baseline revision).
 
-**Phase 1 — Dead code (A).** Delete every unreferenced name and file; check
-each for string-built or dynamic use first.
-*Proof:* the build (a missing import fails it), the gate, compare-builds
-identical. *Risk:* lowest.
+**Pass 1 — Cleanup (was Phases 1 and 2). No visible change, no smoke.**
+- Delete dead code: every dead-name candidate in the baseline, after checking
+  each for string-built or dynamic use; `js/report-visual-data.js`;
+  `tools/retired/`; Clear Tags' `#notesArea` lookup.
+- One owner per rule: every inline unit reading to `countedUnit`
+  (`_stripStAlignment` included); the `PROJECTED_PAIRS` alias readers to
+  `TagProjection`; the `_plainCell` / `_plainTendency` pass-throughs' harness
+  repointed; then the copies deleted.
+- *Proof:* the build, `e2e-parity` unchanged, the gate, `compare-builds`
+  64/64 identical, the ratchet lowered in the same commits.
 
-**Phase 2 — One owner per rule (B).** All 34 unit readings to `countedUnit`;
-`PROJECTED_PAIRS` readers to `TagProjection`; the pass-throughs' one harness
-repointed; then delete the copies.
-*Proof:* `e2e-parity` unchanged, gate, compare-builds identical.
+**Pass 2 — The charting fix (was Phases 3 and 5). One installer, one smoke.**
+- Take UI state out of the charting model — the root of S99-2 and CR-1..3.
+  `PlayTagger` gets a plain data API; Chart's deck, the grid, the keyboard
+  shortcuts and the charting service move to it one per commit; the fake
+  fields (`unitField`, `tagFields`, `playerFields`, `gradeFields`) and
+  `PlainField` / `PlainInput` are deleted. Harnesses that poke fake fields are
+  repointed at the same behavior, each named in its commit.
+- The coach retags the 42 plays below by hand; a read-only re-read of the live
+  catalog must show zero left in every list.
+- Then delete the compatibility readers those plays needed (combined-formation
+  projection, legacy `stType` paths, game-node roster promotion — verified
+  unused against the live catalog first). A `1.12.0` installer carries the old
+  readers' removal only after the re-read shows zero.
+- Codex balked at the original Phase 5 (2026-09-25); its objection is to be
+  verified and folded in here.
+- *Proof:* the gate, `e2e-unit-ownership`, the charting harnesses,
+  `e2e-legacy-roundtrip` (every charted value survives), `compare-builds`
+  identical except intended changes, then the installed smoke.
 
-**Phase 3 — Take UI state out of the domain model (C).** This is the root of
-S99-2 and CR-1..3. `PlayTagger` gets a plain data API (read and write a play's
-fields); Chart's deck, the grid, the keyboard shortcuts and the charting
-service move to it one per commit; `unitField` and the other fake fields are
-deleted with `PlainField`. The 10 harnesses that poke fake fields are
-repointed at the same behavior, each named in its commit.
-*Proof:* gate, compare-builds identical, `e2e-unit-ownership` and the charting
-harnesses. *Installer and smoke after this phase* — it touches every charting
-path.
-
-**Phase 4 — Settings out of localStorage (E-1).** Per-team settings move into
-the catalog (the path version history already took), read from localStorage
-one release as a fallback, then that read is removed. Ends the 5 MB failure
-class, lets settings travel with a season, and unblocks the mobile companion.
-*Proof:* a migration harness on a full profile; installer and smoke.
-
-**Phase 5 — Migrate the coach's legacy data, then delete its readers (D).**
-One shape at a time, each its own coach decision:
-1. **Combined formation strings (127 plays)** → split into formation, QB
-   alignment and backfield using the SAME projection that reads them today, so
-   the stored value becomes what the screen already shows.
-2. **Plays with no unit (18)** → stored `offense`, which is what every screen
-   and report already counts them as. *Coach decision:* store it, or leave them
-   and keep `countedUnit`'s default.
-3. **Legacy-only Special Teams (75)** → structured events only where the
-   legacy fields settle kind, outcome and side with certainty; the rest stay
-   legacy and are listed. *Highest care: the legacy punt-block ownership
-   ruling (2026-09-06) applies.*
-4. **Rosters on game nodes** → already governed by the one-owner roster
-   migration; verify it ran on the live catalog, then remove the reader.
-
-Each: dry-run counts on the canonical copy → coach's yes → restore point →
-migrate → readers kept one installed release → readers deleted after that
-smoke passes. *Proof:* `e2e-parity` on the migrated copy equals the unmigrated
-reading, byte-for-byte, except the audited, coach-approved differences.
-
-**Phase 6 — Remaining legacy screens and lookups (E-2).** The 41 raw
-`innerHTML` screens (roster, custom fields, scoreboard reading, auto-detect)
-become Preact components; `window.app` lookups in screens become explicit
-dependencies, screen by screen.
+**Pass 3 — Optional, when the coach wants it (was Phases 4 and 6).**
+- Settings out of localStorage into the catalog (ends the 5 MB failure class,
+  lets settings travel with a season, unblocks the mobile companion).
+- The four remaining old-style screens (roster, custom fields, scoreboard
+  reading, auto-detect) rebuilt in Preact; `window.app` lookups made explicit.
 
 **Coach decisions, not scheduled:** the web target (dropping it allows native
 SQLite and native video) and splitting `stats-engine.js`.
 
-## Phase 5 retag list — measured on the LIVE catalog (2026-09-25)
+## Pass 2 retag list — measured on the LIVE catalog (2026-09-25)
 
 **Supersedes the July-mirror counts in the table above** (127 / 75 / 18 /
 6), which came from a stale Documents copy. Source: a read-only copy of
@@ -197,33 +184,25 @@ Kick Return; 77 Punt, Downed; 84 Kickoff, Fair Catch (it also holds a
 formation, which Special Teams strips); 87 Kickoff, Fair Catch.
 
 **Not legacy — a creation defect (logged in `docs/OPEN-DEFECTS.md`, LG-1):**
-SJM Varsity 2026 has 33 plays whose tags are completely empty — Week 4 vs
-Oakland Christian plays 31-34 and 37-64, and vs Romeo play 1. Nothing was
-charted on them; they get a unit when charted.
+SJM Varsity 2026 has 33 plays whose tags hold only blank fields and no `unit`
+key — Week 4 vs Oakland Christian plays 31-34 and 37-64, and vs Romeo play 1.
+Nothing was charted on them; they get a unit when charted. (First recorded as
+"completely empty"; `audit-legacy --live` shows the tag object exists with
+blank fields, so the defect is a creation path that omits `unit`.)
 
 **Done when:** a re-read of the live catalog shows zero plays in all three
-lists. Phase 5 then reduces to deleting the compatibility readers, with no
-migration code.
+lists. Pass 2 then deletes the compatibility readers, with no migration code.
 
-## Order, sizing and what the coach sees
+## What the coach sees
 
-| Phase | Changes the app? | Coach involvement | Installer |
+| Pass | Changes the app? | Coach involvement | Installer |
 |---|---|---|---|
-| 0 Guardrails | No | None | No |
-| 1 Dead code | No (bytes identical) | None | No |
-| 2 One owner | No (bytes identical) | None | No |
-| 3 UI state out of the model | Internals only | Smoke | Yes |
-| 4 Settings to catalog | Storage only | Smoke on real profile | Yes |
-| 5 Data migration | **The coach's data** | A yes per shape, then smoke | Yes, per shape |
-| 6 Legacy screens | Look of four screens | Smoke | Yes |
-
-Phases 0-2 are safe to run back to back. Phase 3 is the one that stops this
-class of bug. Phase 5 is the one that finally lets the compatibility readers
-go, and it cannot happen without the coach.
+| 0 Guardrails | No | None | No (done) |
+| 1 Cleanup | No (bytes identical) | None | No |
+| 2 Charting fix | Charting internals; old readers removed | Retag 42 plays, then smoke | Yes |
+| 3 Optional | Settings storage; four screens | Smoke | Yes |
 
 ## Open questions for the coach
 
-1. Approve the plan and the order?
-2. Phase 5.2: store `offense` on the 18 plays with no unit, or leave them?
-3. Keep old readers for one installed release after each migration (the
-   safe default), or delete them in the same release?
+1. Pass 2: the coach retags by hand, or I run the unchanged-Done split on the
+   22 formations in one pass behind a restore point (offered, not approved)?

@@ -34,8 +34,8 @@ from the installed one — is a structural finding for the excision plan.
 Plan: `docs/LEGACY-EXCISION-PLAN.md` (approved; Codex audit next). The live
 retag list (42 plays in 2025 JV) is recorded there.
 
-**LG-1 — OPEN. Plays are created with empty tags.** SJM Varsity 2026 holds 33
-plays whose `tags` object is completely empty — no unit, nothing charted
+**LG-1 — OPEN. Plays are created without a unit.** SJM Varsity 2026 holds 33
+plays whose `tags` hold only blank fields and no `unit` key — nothing charted
 (Week 4 vs Oakland Christian plays 31-34 and 37-64; vs Romeo play 1). Every
 creation path in `PlayTagger` seeds `unit`, so another path (film link or
 clip import creating one play per clip, suspected, not confirmed) writes `{}`.
