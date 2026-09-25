@@ -63,3 +63,6 @@ The built executable reports file and product version `1.12.0-99`. Built with
     `Structure and execution`.
 
 Installed smoke pending. Not tagged, pushed or published.
+
+**Coach decision, 2026-09-24:** when this smoke passes, commit the result docs
+and push the branch. No `v1.12.0-99` tag unless the coach asks for a release.
