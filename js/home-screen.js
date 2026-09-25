@@ -1,6 +1,6 @@
 import { mountNativeHome } from './native-home.jsx';
 import { fullIdentity, matchupLabels } from './identity-labels.js';
-import { isPlayTagged } from './football-rules.js';
+import { countedUnit, isPlayTagged } from './football-rules.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
@@ -289,7 +289,7 @@ export class HomeScreen {
     const units = { offense: 0, defense: 0, special: 0 };
     const unitTagged = { offense: 0, defense: 0, special: 0 };
     plays.forEach(play => {
-      const unit = play?.tags?.unit || 'offense';
+      const unit = countedUnit(play);
       if (Object.hasOwn(units, unit)) { units[unit]++; if (isPlayTagged(play)) unitTagged[unit]++; }
     });
     const unitProgress = ['offense', 'defense', 'special'].map(key => ({

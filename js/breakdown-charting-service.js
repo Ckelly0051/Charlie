@@ -1,4 +1,5 @@
 import { PenaltyModel } from './penalty-model.js';
+import { countedUnit } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 
 /**
@@ -11,7 +12,7 @@ export class BreakdownChartingService {
   }
 
   _penaltyPhase(play) {
-    const unit = play?.tags?.unit || 'offense';
+    const unit = countedUnit(play);
     return unit === 'special' ? 'special' : unit === 'defense' ? 'defense' : 'offense';
   }
 

@@ -7,7 +7,7 @@
  */
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
-import { driveLabel, drivePossessionSide, driveNumberOf } from './football-rules.js';
+import { countedUnit, driveLabel, drivePossessionSide, driveNumberOf } from './football-rules.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -62,7 +62,7 @@ export class AnalyticsRegistry {
         const number = driveNumberOf(p?.tags);
         return number ? [driveLabel(drivePossessionSide(p?.tags), number, 'unit')] : [];
       }, 'football-rules.driveLabel(drivePossessionSide, play.tags.driveNumber)'),
-      ready('unit', 'Unit', p => [p?.tags?.unit || 'offense'], 'legacy blank => offense'),
+      ready('unit', 'Unit', p => [countedUnit(p)], 'legacy blank => offense'),
       ready('down', 'Down', tag('down'), 'play.tags.down'),
       ready('distance', 'Distance', tag('distance'), 'play.tags.distance'),
       // Study expansion (2026-08-15): the "no shared bucketing function"
@@ -146,7 +146,7 @@ export class AnalyticsRegistry {
         this._playerRoleValues('receiver', p => SE.countsFootballRoles(p) && SE.isPass(p)),
         'StatsEngine.effectivePlayers.receiver (pass targets, complete or not)', { multi: true }),
       ready('playerTackler', 'Tackler',
-        this._playerRoleValues('tackler', p => (p?.tags?.unit || 'offense') === 'defense'),
+        this._playerRoleValues('tackler', p => countedUnit(p) === 'defense'),
         'StatsEngine.effectivePlayers.tackler (defensive snaps)', { multi: true }),
       // Special Teams player analysis stays deliberately minimal (Study
       // Phase 3 scope): Field Goal only for kicker (a clean make/miss

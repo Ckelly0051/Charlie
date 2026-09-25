@@ -78,12 +78,6 @@ export class PlayGrid {
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
 
-  // E4: PROJECTED_PAIRS moved to TagProjection so the tag form's promote-on-
-  // commit shares the EXACT same descriptor as this grid's — see
-  // tag-projection.js for the full rationale. `PlayGrid.PROJECTED_PAIRS` stays
-  // as an alias so nothing that already reads it (this file, its test harness)
-  // needs to change.
-  static get PROJECTED_PAIRS() { return TagProjection.PROJECTED_PAIRS; }
 
   /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
    *  so their saved list can be UPGRADED to the new one. A customized list is
@@ -469,7 +463,7 @@ export class PlayGrid {
     // Coverage CALL picker must not offer Man/Zone/Match. `col.key` can have
     // more than one registered sibling relationship (Formation has two), so
     // every one of them is excluded, not just the first.
-    for (const pair of PlayGrid.PROJECTED_PAIRS[col.key] || []) {
+    for (const pair of TagProjection.PROJECTED_PAIRS[col.key] || []) {
       all = all.filter(v => !TagProjection[pair.excludeFrom].includes(v));
     }
     return all;
@@ -575,18 +569,16 @@ export class PlayGrid {
     for (const listener of this._nativeListeners) listener(snapshot);
   }
 
-  _plainCell(play, col) { return this._cellText(play, col); }
 
 
 
-  _plainTendency(col, visible) { return this._tendency(col, visible); }
 
   nativeSnapshot() {
     const plays = this.tagger.plays || [];
     const visible = this._visiblePlays();
     const columns = this._visibleCols().map(col => ({
       key: col.key, label: col.label, type: col.type, multi: !!col.multi,
-      tendency: visible.length >= 5 ? this._plainTendency(col, visible) : '',
+      tendency: visible.length >= 5 ? this._tendency(col, visible) : '',
       editable: col.type !== 'st-readonly' && col.type !== 'pen-readonly',
     }));
     const selected = new Set(this.selected);
@@ -603,7 +595,7 @@ export class PlayGrid {
         current: play.id === this.tagger.currentPlayId,
         selected: selected.has(play.id),
         untagged: PlayGrid.isUntagged(play),
-        cells: Object.fromEntries(columns.map(col => [col.key, na.includes(col.key) ? '' : this._plainCell(play, col)])),
+        cells: Object.fromEntries(columns.map(col => [col.key, na.includes(col.key) ? '' : this._cellText(play, col)])),
       };
     });
     return {

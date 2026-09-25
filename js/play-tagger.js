@@ -1240,7 +1240,7 @@ export class PlayTagger {
     // (e.g. our Maverick front showing up as the opponent's), and an offensive
     // formation onto a defensive snap. Special teams uses none of these fields.
     // Same class of bug as the ST "Under Center" leak.
-    const pu = prev.tags.unit || 'offense', nu = next.tags.unit || 'offense';
+    const pu = countedUnit(prev), nu = countedUnit(next);
     if (nu === 'special' || pu !== nu) return;
     let changed = false;
     PlayTagger.CARRY_SCHEME_KEYS.forEach(k => {
@@ -1260,7 +1260,7 @@ export class PlayTagger {
    *  (e.g. a formation carried over from an offense snap). Clear them when a play
    *  is special. Returns true if anything changed. */
   _stripStAlignment(play) {
-    if (!play || (play.tags.unit || 'offense') !== 'special') return false;
+    if (!play || countedUnit(play) !== 'special') return false;
     let changed = false;
     // Single source of truth (GRIDIRON-IQ-TAG-MODEL.md §7): consume SeasonStore's
     // list instead of an inline copy that would silently drift from it.
@@ -1384,7 +1384,7 @@ export class PlayTagger {
     // when we're tagging defense, the opponent's offense has the ball and
     // their gains move it toward OUR goal (abs shrinks). Either way the spot
     // advances — only special teams is left blank (possession flips).
-    const unit = t.unit || 'offense';
+    const unit = countedUnit(prev);
     let fieldSide = null, yardLine = null, distToGoal = null;
     if (unit === 'offense' || unit === 'defense') {
       const abs = this._absYL(t);

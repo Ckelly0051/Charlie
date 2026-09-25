@@ -7,7 +7,7 @@
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { Charts } from './charts.js';
 import { AnalyticsMetrics } from './analytics-metrics.js';
-import { gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './football-rules.js';
+import { countedUnit, gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
@@ -368,7 +368,7 @@ export class StatsEngine {
     // are OUR defense (fronts, coverages, blitzes are ours; the offensive
     // tags on them are the opponent's). Legacy plays without a unit tag
     // default to offense.
-    const offPlays = plays.filter(p => (p.tags.unit || 'offense') === 'offense');
+    const offPlays = plays.filter(p => countedUnit(p) === 'offense');
     const defPlays = plays.filter(p => p.tags.unit === 'defense');
     const individualSource = [...plays];
     const individualSeen = new Set(individualSource);
@@ -457,7 +457,7 @@ export class StatsEngine {
      * drift every golden. The classified cohort keeps its meaning and its
      * name; the charted cohort gets its own. */
     const phaseOf = play => {
-      const unit = play?.tags?.unit || 'offense';
+      const unit = countedUnit(play);
       return unit === 'defense' || unit === 'special' ? unit : 'offense';
     };
     const phaseCounts = { offense: 0, defense: 0, special: 0 };
@@ -475,7 +475,7 @@ export class StatsEngine {
   }
 
   _offensePlays() {
-    return this._currentPlays().filter(p => (p.tags.unit || 'offense') === 'offense');
+    return this._currentPlays().filter(p => countedUnit(p) === 'offense');
   }
 
   _absYardLine(tags) {
@@ -628,7 +628,7 @@ export class StatsEngine {
    *  earlier down the charting does not say what happened, and it stays
    *  unlabelled rather than guessed. */
   static _changeOfPossession(last, next) {
-    const changed = (next.tags.unit || 'offense') !== (last.tags.unit || 'offense');
+    const changed = countedUnit(next) !== countedUnit(last);
     if (!changed) return null;
     if (StatsEngine.hasResult(last, 'Fumble') || StatsEngine.hasResult(last, 'Interception')) return 'Turnover';
     return String(last.tags.down) === '4' ? 'Downs' : null;
@@ -693,8 +693,8 @@ export class StatsEngine {
        a fake that fumbles away is a turnover, not a failed conversion. */
     if (/fake/i.test(kind)) {
       if (!after) return null;
-      const ours = last.tags.unit || 'offense';
-      const changedAfterFake = (after.tags.unit || 'offense') !== ours && after.tags.unit !== 'special';
+      const ours = countedUnit(last);
+      const changedAfterFake = countedUnit(after) !== ours && after.tags.unit !== 'special';
       if (!changedAfterFake) return null;
       return StatsEngine.hasResult(next, 'Fumble') || StatsEngine.hasResult(next, 'Interception')
         ? 'Turnover' : 'Downs';
@@ -795,7 +795,7 @@ export class StatsEngine {
       if (rawOpp) (oppGameMap[key] = oppGameMap[key] || new Set()).add(String(g.id || g.name || games.indexOf(g)));
       (g.plays || []).forEach(p => {
         const t = p.tags || {};
-        const u = t.unit || 'offense';
+        const u = countedUnit(p);
         if (scout) {
           // Opponent film tagged directly: their defense = their defensive snaps,
           // their offense = their offensive snaps. No relabelling needed.
@@ -1254,7 +1254,7 @@ export class StatsEngine {
    * established Success Rate, explosive, negative-play, or YPP definitions.
    */
   _playCallAnalysis(plays) {
-    const source = (plays || []).filter(play => (play.tags.unit || 'offense') === 'offense'
+    const source = (plays || []).filter(play => countedUnit(play) === 'offense'
       && String(play.tags.playCall || '').trim());
     if (!source.length) return { eligible: 0, calls: [], concepts: [], situations: [] };
 
@@ -1355,7 +1355,7 @@ export class StatsEngine {
     const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
     const groups = new Map(StatsEngine.DIR_STRENGTH_BUCKETS.map(name => [name, []]));
     if (extract) {
-      (plays || []).filter(p => (p.tags.unit || 'offense') === 'offense'
+      (plays || []).filter(p => countedUnit(p) === 'offense'
         && (StatsEngine.isRun(p) || StatsEngine.isPass(p))).forEach(p => {
         (extract(p) || []).forEach(key => { if (groups.has(key)) groups.get(key).push(p); });
       });
@@ -3709,7 +3709,7 @@ export class StatsEngine {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     return structured
       ? structured.isFake
-      : (play?.tags?.unit || 'offense') !== 'special' || StatsEngine.isRun(play) || StatsEngine.isPass(play);
+      : countedUnit(play) !== 'special' || StatsEngine.isRun(play) || StatsEngine.isPass(play);
   }
 
   /** Study Phase 3: "this attempt succeeded" -- the concept AnalyticsMetrics'
@@ -4346,7 +4346,7 @@ export class StatsEngine {
   // rollup over data already tagged. The call signature is the EXACT tagged look,
   // so the cut-up plays precisely those snaps.
   _bigTwelveData(plays) {
-    const off = (plays || []).filter(p => p && p.tags && (p.tags.unit || 'offense') === 'offense'
+    const off = (plays || []).filter(p => p && p.tags && countedUnit(p) === 'offense'
       && (StatsEngine.isRun(p) || StatsEngine.isPass(p)));
     const total = off.length;
     const map = {};
@@ -4383,7 +4383,7 @@ export class StatsEngine {
   }
 
     _buildCutFilter(type, val) {
-    const isOff = p => (p.tags.unit || 'offense') === 'offense';
+    const isOff = p => countedUnit(p) === 'offense';
     const isDef = p => p.tags.unit === 'defense';
     const absYL = p => this._absYardLine(p.tags);
     switch (type) {
@@ -4512,7 +4512,7 @@ export class StatsEngine {
     const playsCharted = plays.filter(isPlayTagged).length;
     const units = { offense: 0, defense: 0, special: 0 };
     plays.forEach(p => {
-      const u = p?.tags?.unit || 'offense';
+      const u = countedUnit(p);
       if (Object.hasOwn(units, u)) units[u]++;
     });
     const sb = stats?.scoreboard;
@@ -4740,7 +4740,7 @@ export class StatsEngine {
 
   generateScoutReport(playsOverride = null) {
     const source = playsOverride || this._currentPlays();
-    const plays = source.filter(p => (p.tags?.unit || 'offense') !== 'special');
+    const plays = source.filter(p => countedUnit(p) !== 'special');
     if (plays.length === 0) return null;
     const stats = this.compute(plays);
     const formationDetail = {};
@@ -5111,7 +5111,7 @@ export class StatsEngine {
       const scout = String((g.gameInfo && g.gameInfo.perspective) || '') === 'scout';
       (g.plays || []).forEach(p => {
         const play = { ...p, __gid: g.id };
-        const unit = (p.tags && p.tags.unit) || 'offense';
+        const unit = countedUnit(p);
         // In opponent-film scout games the charted subject IS the opponent, so
         // their Special Teams is unambiguous. A head-to-head self-scout game
         // stores our subject perspective; do not silently flip its ST events.
@@ -6389,7 +6389,7 @@ export class StatsEngine {
   generateSelfScout(playsOverride = null) {
     const all = playsOverride || this._currentPlays();
     // Self-scout is about your own offense's tendencies.
-    const plays = all.filter(p => (p.tags.unit || 'offense') === 'offense');
+    const plays = all.filter(p => countedUnit(p) === 'offense');
     const classifiable = plays.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
     if (classifiable.length === 0) return null;
 

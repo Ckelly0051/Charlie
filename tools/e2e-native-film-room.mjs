@@ -94,7 +94,7 @@ state = await page.evaluate(() => {
   const cell = document.querySelector('[data-cell="1:formation"]');
   return {
     text: cell?.textContent.trim(),
-    expected: window.app.playGrid._plainCell(window.app.tagger.getPlay(1), window.app.playGrid._visibleCols().find(col => col.key === 'formation')),
+    expected: window.app.playGrid._cellText(window.app.tagger.getPlay(1), window.app.playGrid._visibleCols().find(col => col.key === 'formation')),
     tendency: [...document.querySelectorAll('thead th')].find(th => th.querySelector('span')?.textContent === 'Formation')?.querySelector('small')?.textContent || '',
   };
 });

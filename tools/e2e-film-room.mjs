@@ -18,6 +18,10 @@ import { setupTeamAndDemo } from './hub-setup.mjs';
    no native equivalent -- that concept was already retired by the S5d
    ownership flip, well before this milestone, and is not reintroduced here. */
 import puppeteer from 'puppeteer';
+import { TagProjection } from '../js/tag-projection.js';
+// Every projected relationship, read from its owner (it is DOM-free).
+const PROJECTED_RELATIONSHIPS = Object.entries(TagProjection.PROJECTED_PAIRS)
+  .flatMap(([primary, pairs]) => pairs.map(pair => `${primary}->${pair.sibling}`));
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
@@ -960,7 +964,7 @@ console.log('\n== 8g. E3b-P1c: promotion is ONE undoable transaction (real histo
 // HistoryManager was missing and every assertion accepted it -- so it could
 // certify undo behaviour it never exercised. The prerequisites are now explicit
 // assertions that FAIL CLOSED, and BOTH registered pairs are driven. Fully pure.
-r = await page.evaluate(() => {
+r = await page.evaluate((relationshipsFromOwner) => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
   // Codex E4-2 review, item #2: enumerate every DESCRIPTOR RELATIONSHIP
@@ -969,8 +973,7 @@ r = await page.evaluate(() => {
   // alone has TWO registered relationships (-> qbAlignment AND -> backfield),
   // so a primary-keyed enumeration silently lets Formation -> Backfield escape
   // coverage entirely (it did, in the version this review corrected).
-  const relationships = Object.entries(PG.PROJECTED_PAIRS)
-    .flatMap(([primary, pairs]) => pairs.map(pair => `${primary}->${pair.sibling}`));
+  const relationships = relationshipsFromOwner;
   const prereq = { hasHistory: !!(hist && typeof hist.undo === 'function' && Array.isArray(hist.stack)),
                    playCount: tagger.plays.length,
                    relationships };
@@ -1023,7 +1026,7 @@ r = await page.evaluate(() => {
     backfieldQb: runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
     coverageFamily: runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
   };
-});
+}, PROJECTED_RELATIONSHIPS);
 // Prerequisites fail closed -- if these break, the proofs below cannot silently pass.
 ok(r.prereq.hasHistory, 'P1c prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
 ok(r.prereq.playCount > 0, 'P1c prereq: real plays exist to edit', JSON.stringify(r.prereq));

@@ -24,6 +24,7 @@
 import { detectBackend } from './storage-backend.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
+import { countedUnit } from './football-rules.js';
 
 export class SeasonStore {
   /** PC-4: ceiling for the monotonic commit counter. Far beyond any real
@@ -518,7 +519,7 @@ export class SeasonStore {
   static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formation', 'backfield', 'strength',
     'personnel', 'defFront', 'coverage', 'coverageFamily', 'blitz'];
   static stripStAlignment(p) {
-    if (!p || !p.tags || (p.tags.unit || 'offense') !== 'special') return;
+    if (!p || !p.tags || countedUnit(p) !== 'special') return;
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
   }
 
@@ -530,7 +531,7 @@ export class SeasonStore {
   // front: "Maverick + 5-2" → "5-2", "Maverick" → "". Mirrors the chip list.
   static OUR_DEF_ONLY_FRONTS = ['Maverick', 'Eagle', 'Falcon', 'Jumbo Shift'];
   static stripLeakedFronts(p) {
-    if (!p || !p.tags || (p.tags.unit || 'offense') === 'defense') return;
+    if (!p || !p.tags || countedUnit(p) === 'defense') return;
     if (!p.tags.defFront) return;
     p.tags.defFront = String(p.tags.defFront).split('+').map(s => s.trim())
       .filter(x => x && !SeasonStore.OUR_DEF_ONLY_FRONTS.includes(x)).join(' + ');

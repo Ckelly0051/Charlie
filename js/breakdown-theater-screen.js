@@ -2,7 +2,7 @@ import { TagProjection } from './tag-projection.js';
 import { StatsEngine } from './stats-engine.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
-import { groupPlaysByDrive, drivePossessionSide, driveLabel, driveNumberOf } from './football-rules.js';
+import { groupPlaysByDrive, drivePossessionSide, driveLabel, driveNumberOf, countedUnit } from './football-rules.js';
 import { ST_UNITS, ST_OUTCOMES, TRY_RESULT_LABELS } from './native-tagging.jsx';
 import { mountNativeBreakdownTheater, unmountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
 
@@ -230,7 +230,7 @@ export class BreakdownTheaterScreen {
   _playSheet(play) {
     if (!play) return null;
     const tags = { ...(play.tags || {}), ...(StatsEngine.proj ? StatsEngine.proj(play) : {}) };
-    const unit = tags.unit || 'offense';
+    const unit = countedUnit(play);
     const scout = (this.app.storage?.gameInfo || {}).perspective === 'scout';
     const chyron = this._chyron(play);
     const text = value => (value == null || String(value).trim() === '' || value === '—' ? null : String(value));
@@ -328,7 +328,7 @@ export class BreakdownTheaterScreen {
     const raw = play.tags || {};
     const projected = StatsEngine.proj ? StatsEngine.proj(play) : {};
     const tags = { ...raw, ...projected };
-    const unit = tags.unit || 'offense';
+    const unit = countedUnit(play);
     const scout = (this.app.storage?.gameInfo || {}).perspective === 'scout';
 
     const down = String(tags.down || '');

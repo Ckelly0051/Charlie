@@ -1,12 +1,12 @@
 {
-  "recorded": "2026-09-25 (Pass 1 dead code)",
+  "recorded": "2026-09-25 (Pass 1 one owner per rule)",
   "note": "Phase 0 baseline (docs/LEGACY-EXCISION-PLAN.md). Counts may only fall; lower them here in the commit that removes legacy code.",
   "counts": {
     "deadNames": 0,
     "orphanModules": 0,
     "retiredTests": 0,
-    "inlineUnitRules": 31,
-    "projectedPairsAlias": 2,
+    "inlineUnitRules": 1,
+    "projectedPairsAlias": 0,
     "plainFieldRefs": 25,
     "taggerFieldReadsOutsideTagger": 12,
     "localStorageCalls": 92,
