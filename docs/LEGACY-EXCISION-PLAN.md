@@ -1,8 +1,8 @@
 # Legacy excision — plan
 
 Coach direction, 2026-09-25: excising legacy code is the next step, done
-properly rather than around. **Status: PROPOSED, awaiting the coach's
-approval.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
+properly rather than around. **Status: APPROVED by the coach (2026-09-25), to be
+audited by Codex before work starts.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
 
 ## Why it keeps biting
 
@@ -127,6 +127,50 @@ dependencies, screen by screen.
 
 **Coach decisions, not scheduled:** the web target (dropping it allows native
 SQLite and native video) and splitting `stats-engine.js`.
+
+## Phase 5 retag list — measured on the LIVE catalog (2026-09-25)
+
+**Supersedes the July-mirror counts in the table above** (127 / 75 / 18 /
+6), which came from a stale Documents copy. Source: a read-only copy of
+`%APPDATA%\com.gridironiq.app\seasons\library.db` (SHA-256 `2ADB815C…DAA57`,
+unchanged after the read). Coach direction: the coach retags these by hand;
+**Codex audits this list and the plan first, then we attack it.** Nothing has
+been changed.
+
+**2025 St. Joseph Mavericks - JV (catalog id `2026-varsity-demo`, 440 plays):
+42 plays.** SJM JV 2026 (123) has none. SJM Varsity 2026 (195) has only the
+blank placeholders below.
+
+*No unit (3) — set in Film Room's Unit column.* Week 4 play 59; Week 5 plays
+67, 90.
+
+*Combined formation string (22) — open the Formation cell in Film Room and
+press Done unchanged; the grid's commit (`TagProjection.reconcileSiblings`)
+splits it into Formation and QB alignment and the shown formation stays the
+same.* Week 2: 54 `Ace + Shotgun`, 58 `Shotgun + Trips + Unbalanced`, 61 and
+62 `Trips + Unbalanced + Shotgun`, 74 `Shotgun + Trips + Unbalanced`, 77 `Ace +
+Shotgun`, 79 `Shotgun + Trips + Bunch + Unbalanced`. Week 3: 80 `Ace +
+Shotgun`. Week 4: 20 and 22 `Shotgun + Single Wing`, 48 `Flexbone + Under
+Center`, 62-70 `Under Center + Flexbone`. Week 5: 84 `Ace + Under Center`, 90
+`Shotgun + Twins`. *Offered alternative, not approved:* run that same commit
+on all 22 in one pass, behind a restore point, with the coach's yes.
+
+*Legacy-only Special Teams (17) — open in Chart, set Special Teams, then the
+Special Teams unit and outcome (which writes the structured event).* Week 1:
+23 XP. Week 2: 56 Punt; 64 XP, Good; 65 Kick Return. Week 4: 36 XP; 56 XP, No
+Good; 57 Kickoff, Muffed; 71 Kick Return, Fair Catch. Week 5: 21 Punt Return,
+Fair Catch; 38 XP; 39 Kick Return; 53 XP, No Good; 69 Kickoff, Fair Catch; 73
+Kick Return; 77 Punt, Downed; 84 Kickoff, Fair Catch (it also holds a
+formation, which Special Teams strips); 87 Kickoff, Fair Catch.
+
+**Not legacy — a creation defect (logged in `docs/OPEN-DEFECTS.md`, LG-1):**
+SJM Varsity 2026 has 33 plays whose tags are completely empty — Week 4 vs
+Oakland Christian plays 31-34 and 37-64, and vs Romeo play 1. Nothing was
+charted on them; they get a unit when charted.
+
+**Done when:** a re-read of the live catalog shows zero plays in all three
+lists. Phase 5 then reduces to deleting the compatibility readers, with no
+migration code.
 
 ## Order, sizing and what the coach sees
 

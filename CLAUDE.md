@@ -73,6 +73,10 @@ share one grid subscription. Every class, id and data hook is unchanged, and
 20 Break Down screenshots (chart, Film Room below and beside, Film focus, tools
 menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
 `90ff4c6`, `a0f2c2f`, `cd7912e`, `05560c1`.
+**LEGACY EXCISION — NEXT (coach, 2026-09-25):** `docs/LEGACY-EXCISION-PLAN.md`,
+approved, Codex audit before work starts. Its Phase 5 retag list was measured
+on the live catalog: 42 plays in 2025 JV (3 no unit, 22 combined formations,
+17 legacy-only Special Teams) — the July mirror's larger counts are stale.
 **Version history never goes back into localStorage** — it is what starved
 every settings write; `VersionManager` stores only through the storage backend.
 **`CatalogPersistence` has ONE writer at a time.** Every mutation exports the

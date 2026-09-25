@@ -1,5 +1,19 @@
 # GridIron IQ Open Defects
 
+## Legacy excision (2026-09-25)
+
+Plan: `docs/LEGACY-EXCISION-PLAN.md` (approved; Codex audit next). The live
+retag list (42 plays in 2025 JV) is recorded there.
+
+**LG-1 — OPEN. Plays are created with empty tags.** SJM Varsity 2026 holds 33
+plays whose `tags` object is completely empty — no unit, nothing charted
+(Week 4 vs Oakland Christian plays 31-34 and 37-64; vs Romeo play 1). Every
+creation path in `PlayTagger` seeds `unit`, so another path (film link or
+clip import creating one play per clip, suspected, not confirmed) writes `{}`.
+Reading is safe (`countedUnit` counts them as offense) and charting writes a
+unit, but a creation path that skips the tag schema is a defect. Reproduce
+before fixing; find the writer, seed the full tag schema there, test it.
+
 ## Code review, 2026-09-24 (coach-requested; scope: the unit-ownership change)
 
 The coach asked for a full review of the app; the review tool covers a diff, so
