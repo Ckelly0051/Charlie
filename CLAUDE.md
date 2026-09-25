@@ -73,11 +73,15 @@ share one grid subscription. Every class, id and data hook is unchanged, and
 20 Break Down screenshots (chart, Film Room below and beside, Film focus, tools
 menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
 `90ff4c6`, `a0f2c2f`, `cd7912e`, `05560c1`.
-**LEGACY EXCISION — NEXT (coach, 2026-09-25):** `docs/LEGACY-EXCISION-PLAN.md`,
-approved and cut to three passes (Pass 0 guardrails done; Pass 1 cleanup; Pass 2
-the charting fix; Pass 3 optional); Codex audit before Pass 1. Its Pass 2 retag list was measured
-on the live catalog: 42 plays in 2025 JV (3 no unit, 22 combined formations,
-17 legacy-only Special Teams) — the July mirror's larger counts are stale.
+**LEGACY EXCISION (coach, 2026-09-25):** `docs/LEGACY-EXCISION-PLAN.md`, three passes.
+Pass 0 guardrails built; **Pass 1 done in source** (`ecbe8b4`, `2a3adda`,
+`5e3f46d`, plus the Codex-review drive fix: 1,057 dead lines, one blank tag schema,
+one unit rule), full gate pending. Pass 2 is next: UI state out of the charting
+model, then ONE legacy door converting old shapes to new at every entry (the
+authoritative procedure is in the plan). Live legacy measured 2026-09-25: 42
+plays in 2025 JV (3 no unit, 22 combined formations, 17 legacy-only Special Teams)
+— the door converts the first two lists; the coach charts only the Special Teams
+plays it cannot settle. The July mirror's larger counts are stale.
 **Version history never goes back into localStorage** — it is what starved
 every settings write; `VersionManager` stores only through the storage backend.
 **`CatalogPersistence` has ONE writer at a time.** Every mutation exports the

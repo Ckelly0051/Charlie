@@ -141,8 +141,6 @@ names 41 -> 0, orphan modules 1 -> 0, retired tests 1 -> 0, inline unit rules
   fields (`unitField`, `tagFields`, `playerFields`, `gradeFields`) and
   `PlainField` / `PlainInput` are deleted. Harnesses that poke fake fields are
   repointed at the same behavior, each named in its commit.
-- The coach retags the 42 plays below by hand; a read-only re-read of the live
-  catalog must show zero left in every list.
 - **ONE LEGACY DOOR (coach, 2026-09-25: "we are old to new. that's the
   point").** Stored legacy shapes do not end with the live catalog: on
   2026-09-25, 90 of 95 version snapshots and 25 of 75 backups held them (2,016
@@ -168,8 +166,23 @@ names 41 -> 0, orphan modules 1 -> 0, retired tests 1 -> 0, inline unit rules
   copied. Not a coach decision per difference — but **every correction is
   called out to the coach in the handoff** (what the old reading said, what is
   right, why, which plays and numbers move); none is left only in a commit.
-- The coach charts only what the door cannot convert (the ambiguous Special
-  Teams plays); the combined formations and units convert at the door.
+- **THE PROCEDURE (authoritative; Codex review of the plan, 2026-09-25, found
+  the hand retag and the door both still written here):**
+  1. Take UI state out of the charting model (above), one consumer per commit.
+  2. Build the door in one file. It converts, with the logic that reads each
+     shape today: combined formation strings to separate formation / QB
+     alignment / backfield (`TagProjection.reconcileSiblings`); a play with no
+     stored unit to its counted unit; game-node rosters through
+     `adoptLegacyRoster` (unchanged); legacy-only Special Teams to a structured
+     event only where kind, outcome and side are certain. Anything else stays as
+     it is and is flagged.
+  3. Prove the outcome on read-only copies of the canonical season, the live
+     catalog and every backup and version snapshot: `e2e-parity`, exact film
+     references and `compare-builds`; judge and call out every difference.
+  4. Delete the scattered legacy readers the door replaced.
+  5. The coach charts the flagged plays the door could not settle (from the
+     live list below, the ambiguous Special Teams plays).
+  6. Installer and the coach's smoke.
 - **Exit criterion:** a read-only re-read of the live catalog, the backups and
   the version snapshots finds no convertible legacy shape left on CHARTED
   plays (uncharted placeholders are not legacy data; LG-1 fixes their writer),
@@ -195,35 +208,35 @@ app code, 10,579 comment lines, 5,945 of CSS; the passes are expected to remove
 **Coach decisions, not scheduled:** the web target (dropping it allows native
 SQLite and native video) and splitting `stats-engine.js`.
 
-## Pass 2 retag list — measured on the LIVE catalog (2026-09-25)
+## Live legacy on 2026-09-25 — what the door converts, what the coach charts
 
 **Supersedes the July-mirror counts in the table above** (127 / 75 / 18 /
 6), which came from a stale Documents copy. Source: a read-only copy of
 `%APPDATA%\com.gridironiq.app\seasons\library.db` (SHA-256 `2ADB815C…DAA57`,
-unchanged after the read). Coach direction: the coach retags these by hand;
-**Codex audits this list and the plan first, then we attack it.** Nothing has
-been changed.
+unchanged after the read). The coach first offered to retag these by hand;
+the one-door decision superseded that the same day: the door converts the
+first two lists, and the coach charts only the Special Teams plays it cannot
+settle. Nothing has been changed yet.
 
 **2025 St. Joseph Mavericks - JV (catalog id `2026-varsity-demo`, 440 plays):
 42 plays.** SJM JV 2026 (123) has none. SJM Varsity 2026 (195) has only the
 blank placeholders below.
 
-*No unit (3) — set in Film Room's Unit column.* Week 4 play 59; Week 5 plays
+*No unit (3) — the door stores the counted unit.* Week 4 play 59; Week 5 plays
 67, 90.
 
-*Combined formation string (22) — open the Formation cell in Film Room and
-press Done unchanged; the grid's commit (`TagProjection.reconcileSiblings`)
-splits it into Formation and QB alignment and the shown formation stays the
-same.* Week 2: 54 `Ace + Shotgun`, 58 `Shotgun + Trips + Unbalanced`, 61 and
+*Combined formation string (22) — the door splits each into Formation and QB
+alignment with `TagProjection.reconcileSiblings`, the same commit a Film Room
+edit makes; the shown formation stays the same.* Week 2: 54 `Ace + Shotgun`, 58 `Shotgun + Trips + Unbalanced`, 61 and
 62 `Trips + Unbalanced + Shotgun`, 74 `Shotgun + Trips + Unbalanced`, 77 `Ace +
 Shotgun`, 79 `Shotgun + Trips + Bunch + Unbalanced`. Week 3: 80 `Ace +
 Shotgun`. Week 4: 20 and 22 `Shotgun + Single Wing`, 48 `Flexbone + Under
 Center`, 62-70 `Under Center + Flexbone`. Week 5: 84 `Ace + Under Center`, 90
-`Shotgun + Twins`. *Offered alternative, not approved:* run that same commit
-on all 22 in one pass, behind a restore point, with the coach's yes.
+`Shotgun + Twins`.
 
-*Legacy-only Special Teams (17) — open in Chart, set Special Teams, then the
-Special Teams unit and outcome (which writes the structured event).* Week 1:
+*Legacy-only Special Teams (17) — the door converts those whose kind, outcome
+and side are certain; the coach charts the rest in Chart's Special Teams
+editor (which writes the structured event).* Week 1:
 23 XP. Week 2: 56 Punt; 64 XP, Good; 65 Kick Return. Week 4: 36 XP; 56 XP, No
 Good; 57 Kickoff, Muffed; 71 Kick Return, Fair Catch. Week 5: 21 Punt Return,
 Fair Catch; 38 XP; 39 Kick Return; 53 XP, No Good; 69 Kickoff, Fair Catch; 73
@@ -238,7 +251,7 @@ Nothing was charted on them; they get a unit when charted. (First recorded as
 blank fields, so the defect is a creation path that omits `unit`.)
 
 **Done when:** a re-read of the live catalog shows zero plays in all three
-lists. Pass 2 then deletes the compatibility readers, with no migration code.
+lists. That is Pass 2's exit criterion above; the door is the migration.
 
 ## What the coach sees
 
@@ -246,7 +259,7 @@ lists. Pass 2 then deletes the compatibility readers, with no migration code.
 |---|---|---|---|
 | 0 Guardrails | No | None | No (done) |
 | 1 Cleanup | No (bytes identical) | None | No |
-| 2 Charting fix | Charting internals; old readers removed | Retag 42 plays, then smoke | Yes |
+| 2 Charting fix | Charting internals; old shapes converted at one door; old readers removed | Chart the flagged Special Teams plays, then smoke | Yes |
 | 3 Optional | Settings storage; four screens | Smoke | Yes |
 
 ## Decided
