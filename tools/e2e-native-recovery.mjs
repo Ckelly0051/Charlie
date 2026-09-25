@@ -37,13 +37,15 @@ ok(JSON.stringify(r.live)==='["keep-a","keep-b"]'&&JSON.stringify(r.canonical)==
 
 // Quick versions stay scoped to the open game.
 await page.click('[aria-label="Game version label"]');for(const ch of 'Before QB edit'){await page.keyboard.type(ch,{delay:15});}await page.evaluate(()=>document.querySelector('[aria-label="Game version label"]').nextElementSibling.click());await page.waitForFunction(()=>[...document.querySelectorAll('[data-game-version] strong')].some(el=>el.textContent==='Before QB edit'));
+// The row re-renders while a version operation finishes and briefly has no
+// buttons; wait for the button before each click (2026-09-25, gate a634880).
 const versionId=await page.$eval('[data-game-version]',el=>el.dataset.gameVersion);
-await page.evaluate(()=>{window.app.tagger.plays[0].notes='changed-version';window.app.storage.commitActive();});await page.click(`[data-game-version="${versionId}"] button`);await page.waitForFunction(()=>window.app.tagger.plays[0].notes==='keep-a');
+await page.evaluate(()=>{window.app.tagger.plays[0].notes='changed-version';window.app.storage.commitActive();});await page.waitForSelector(`[data-game-version="${versionId}"] button`);await page.click(`[data-game-version="${versionId}"] button`);await page.waitForFunction(()=>window.app.tagger.plays[0].notes==='keep-a');
 r=await page.evaluate(async()=>{const app=window.app,store=app.storage.seasonStore;const a=app.tagger.plays[0].notes,b=store.data.games.find(g=>g.id==='g-b').plays[0].notes;await app.storage.switchToGame('g-b');const other=await app.versions.list();await app.storage.switchToGame('g-a');return{a,b,other};});
 ok(r.a==='keep-a'&&r.b==='keep-b'&&r.other.length===0,'Game version restore changes only the open game and versions remain game-scoped',JSON.stringify(r));
 
 await page.evaluate(async()=>{const app=window.app,store=app.storage.seasonStore;app.tagger.plays[0].notes='keep-version-failure';app.storage.commitActive();await store.persist();window.__versionSave=store.backend.saveSeason.bind(store.backend);store.backend.saveSeason=async()=>false;});
-await page.click(`[data-game-version="${versionId}"] button`);await new Promise(resolve=>setTimeout(resolve,250));
+await page.waitForSelector(`[data-game-version="${versionId}"] button`);await page.click(`[data-game-version="${versionId}"] button`);await new Promise(resolve=>setTimeout(resolve,250));
 r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore;store.backend.saveSeason=window.__versionSave;const canonical=await store.backend.loadSeason(store.currentSeasonId);return{live:window.app.tagger.plays[0].notes,stored:store.data.games.find(g=>g.id==='g-a').plays[0].notes,canonical:canonical.games.find(g=>g.id==='g-a').plays[0].notes};});
 ok(r.live==='keep-version-failure'&&r.stored===r.live&&r.canonical===r.live,'Failed game-version restore keeps the live game and canonical season on the pre-restore state',JSON.stringify(r));
 

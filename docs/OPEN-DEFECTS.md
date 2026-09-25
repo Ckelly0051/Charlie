@@ -56,6 +56,14 @@ navigation log). **Gate rate is higher than the local rate:** it failed the full
 locally on both old and new code; each gate rerun passed. Cause unknown. Next: find the pending page promise; until then a gate red on
 this harness alone is rerun, and the rerun result is reported, never hidden.
 
+**TEST-2 — REPAIRED IN THE HARNESS (`e2e-native-recovery`), 2026-09-25.** The full
+gate at `a634880` failed it for the first time, and it then failed 8 of 8 alone and on
+the older build `b452635` too, so it was not the code. Cause: the second click on a
+game version's Restore button came while the Recovery row was re-rendering after the
+first restore, when the row briefly has no buttons; the button returns within ~2 ms.
+The app is correct. Both clicks now wait for the button first (the rule: assert the
+subject is on screen before interacting); 5/5 runs 10/10.
+
 ## Code review, 2026-09-24 (coach-requested; scope: the unit-ownership change)
 
 The coach asked for a full review of the app; the review tool covers a diff, so
