@@ -360,13 +360,6 @@ export class NativeTaggingScreen {
     return deleted;
   }
 
-  setPerspective(value) {
-    if (!this.app.gameContext?.update({ perspective: value })) return false;
-    this.app._saveGameInfo?.();
-    this._queuePublish();
-    return true;
-  }
-
   setDirection(value) {
     if (!this.app.gameContext?.update({ direction: value })) return false;
     this.app._saveGameInfo?.();

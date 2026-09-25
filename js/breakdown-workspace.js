@@ -209,9 +209,6 @@ export class BreakdownWorkspace {
     this._syncScoutGame();
     this._renderRoute();
   }
-  _ordinal(down) {
-    return ({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[String(down)] || String(down);
-  }
 
   restore() {
     if (!this.host) return false;

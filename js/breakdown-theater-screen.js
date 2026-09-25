@@ -592,7 +592,6 @@ export class BreakdownTheaterScreen {
   _driveLabelMode() { return this.app.storage?.seasonStore?.data?.kind === 'scout' ? 'unit' : 'perspective'; }
 
   selectPlay(id) { this.app.tagger?.selectPlay?.(Number(id)); }
-  toggleStrip() { this.setStripCollapsed(!this.stripCollapsed); }
   setStripCollapsed(value) {
     const next = !!value;
     if (next === this.stripCollapsed) return false;
