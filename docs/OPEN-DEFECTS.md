@@ -7,10 +7,10 @@ says the list is complete (smoke-findings protocol). Coach: "the rest looks
 good." Deferred by the coach, not findings for this pass: Self-Scout and
 Opponent Scout still need their rework, to be taken up later.
 
-**S98-1 — repaired in source (`4c76169`), not packaged.** Matchup's `Coverage Answers` section is renamed
+**S98-1 — repaired in source (`4c76169`), packaged in `1.12.0-99`, installed check pending.** Matchup's `Coverage Answers` section is renamed
 `Coverages`.
 
-**S98-2 — repaired in source (`4c76169`), not packaged.** Offense page 3's heading `Structure and deployment`
+**S98-2 — repaired in source (`4c76169`), packaged in `1.12.0-99`, installed check pending.** Offense page 3's heading `Structure and deployment`
 is renamed `Structure and execution` (coach listed it twice, items 2 and 5;
 one finding). The secondary-bar tab stays `Structure`. The same OffenseTab
 renders inside Season > Offense, so one change covers both.
@@ -1785,15 +1785,17 @@ one-character keys and asserts that a one-character write fails too;
 mutation-verified by swallowing the `QuotaExceededError` in `TagLibrary`.
 
 **Break Down rebuild, steps 1-4 in source (2026-09-24); full gate 130/130 at
-`b7e2f32`; not packaged.**
+`b7e2f32`; packaged in `1.12.0-99` (`SMOKE-1.12.0-99.md`), installed smoke
+pending.**
 One tree replaces the five mounted roots and the HTML string; no visual
 change (20 screenshots byte-identical to `c1f6cc1`). Record:
 `docs/BREAKDOWN-REBUILD-PLAN.md` > Progress.
 
-**No installer or smoke for this batch (coach decision 2026-09-24).** Break
-Down is being rebuilt next, so the Film Room work, the version-history move
-and the library save fix are smoked in the rebuild's installer instead. Until
-then none of it is installed or approved.
+**Packaged with the rebuild in `1.12.0-99`.** The coach first ruled out an
+installer for this batch because Break Down was being rebuilt; the Film Room
+work, the version-history move and the library save fix ship in the rebuild's
+installer instead (`SMOKE-1.12.0-99.md`, checks 1-10). None of it is
+installed or approved until that smoke.
 
 **Codex review of `c1cce33`, both REPAIRED (`5cd5313`).** The old global
 column list now seeds All plays for one program only (claim marker

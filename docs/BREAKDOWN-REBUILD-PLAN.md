@@ -94,7 +94,7 @@ the screen instead, so standalone mounts share it too.)
 | 4. Dead methods | `05560c1` | `_ordinal`, `toggleStrip`, `setPerspective` deleted |
 | Visual | — | 20 screenshots byte-identical to `c1f6cc1` (chart, Film Room below/beside, Film focus, tools menu; 1440/1280/768/390) |
 | 5a. Full gate | `b7e2f32` | 130/130, 0 skipped, 0 failed |
-| 5b. Installer | not built | awaits the coach's call |
+| 5b. Installer | `2d13c31` | `1.12.0-99` built (`SMOKE-1.12.0-99.md`); installed smoke pending |
 
 **Behavior change, deliberate:** a standalone `mount()` now takes a view over
 from the live route and `restore()` hands it back. Before, restore left the

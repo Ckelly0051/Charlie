@@ -40,8 +40,8 @@ text and date input in the app, so change-committed fields (charting yardage,
 the Special Teams and penalty editors, Study date ranges and Plan fields)
 committed per keystroke. Repaired in `87371cd` with a core-Preact portal. The
 never-smoked `1.12.0-96` installer carries the defect and is superseded.
-**Breakdown update — IMPLEMENTED IN SOURCE (2026-09-24), NOT PACKAGED, NOT
-SMOKE-APPROVED:** the installed `Could not save that choice` was a full WebView2
+**Breakdown update — PACKAGED IN `1.12.0-99` (2026-09-24), INSTALLED SMOKE
+PENDING:** the installed `Could not save that choice` was a full WebView2
 localStorage (version history filled Chromium's 5 MB quota); version history now
 lives in the catalog `versions` table on disk (IndexedDB in a browser) with a
 verified once-only migration, and `TagLibrary` reports its write errors. Film
@@ -53,13 +53,12 @@ column sets, the play sheet, the shown-plays summary) ran the full gate at
 `28fb35a`: 129/130, the one red being the `e2e-tag-library-storage` fixture,
 not the product; fixed test-only in `8c2ea1a`. **The full gate then ran at
 `c1f6cc1` (source identical to `8c2ea1a`): 130/130, 0 skipped, 0 failed** —
-the green base the Break Down rebuild starts from. **Coach decision 2026-09-24: no `1.12.0-99` installer and
-no smoke of this batch** — Break Down is about to be rebuilt, so smoking the
-current structure is wasted. The installed checks (settings save on a full
-profile, the once-only version-history move) carry into the rebuild's
-installer.
-**BREAK DOWN REBUILD — STEPS 1-4 IN SOURCE (2026-09-24), FULL GATE 130/130 AT
-`b7e2f32`, NOT PACKAGED** (coach direction; plan and record `docs/BREAKDOWN-REBUILD-PLAN.md`).
+the green base the Break Down rebuild starts from. The coach first ruled out an installer for this batch because Break Down
+was about to be rebuilt; it ships instead in `1.12.0-99` with the rebuild,
+and the installed checks (settings save on a full profile, the once-only
+version-history move) are in `SMOKE-1.12.0-99.md`.
+**BREAK DOWN REBUILD — STEPS 1-4 (2026-09-24), FULL GATE 130/130 AT `b7e2f32`,
+PACKAGED IN `1.12.0-99`, INSTALLED SMOKE PENDING** (coach direction; plan and record `docs/BREAKDOWN-REBUILD-PLAN.md`).
 The approved layout stays; the structure changed. The route was five Preact
 roots mounted into boxes `breakdown-workspace.js` wrote as an HTML string,
 with the toolbar's state painted by hand. Now **one tree**:
@@ -84,10 +83,16 @@ held only the first). `_exclusive()` queues each mutation's snapshot, change,
 disk write and rollback, so a rollback undoes only its own change. **A version
 restore replaces nothing unless its `Backup before restore` save point is
 durable.**
-**Main-checkout version:** `1.12.0-98` (`js/app.js` `APP_VERSION`,
+**Main-checkout version:** `1.12.0-99` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is
-`1.12.0-98`**, the Reports smoke candidate, built from the clean main checkout
+`1.12.0-99`**, the Break Down smoke candidate, built from the clean main
+checkout at `2d13c31` (the four-owner bump on top of `69db940`; full gate at
+`b7e2f32` 130/130, only docs after it). It carries the Break Down rebuild, the
+Film Room work, the settings-storage fix and the S98 label renames. Its
+installed coach smoke is **pending**; see `SMOKE-1.12.0-99.md`. Not an
+installed approval, tag, push or published release.
+**Previous installer:** `1.12.0-98`, the Reports smoke candidate, built from the clean main checkout
 at `6821f07` (the committed four-owner bump on top of `b963e66`; the full gate
 at `5f208e1` was 126/126, and the only later code is the test-only
 `b30a9c2`). **Its installed coach smoke ran on 2026-09-24 and its findings list
@@ -96,7 +101,6 @@ S98-2 are label renames repaired in source (`4c76169`), S98-3 and S98-4 closed
 with no change, and the coach's verdict on the rest was "the rest looks good."
 Self-Scout and Opponent Scout rework is deferred by the coach. The approval
 registry has not moved.
-It is not an installed approval, tag, push or published release.
 **Earlier Reports installers:** `1.12.0-97` (`2799be5`) was smoked until
 finding S97-1 and is superseded; its remaining checks carry into
 `SMOKE-1.12.0-98.md`. `1.12.0-96` (`21f5688`; secondary bar only, with the
@@ -1124,7 +1128,7 @@ missed the KPI band's 66.7% by under a percent and read as a defect rather
 than a design.
 
 **THE OFFENSE PAGES USE THE DEFENSE MODULE SYSTEM (`77aea58`, 2026-09-24;
-coach direction in the `1.12.0-97` smoke, finding S97-1; not packaged).** Cut
+coach direction in the `1.12.0-97` smoke, finding S97-1; packaged and smoked in `1.12.0-98`).** Cut
 into pages, the long board's treatment — modules packed into bands on shared
 1px rules, a left accent rail, 9.5px uppercase condensed micro-headers — read
 as pasted pages with a different style each. Defense Revision 2's hierarchy
