@@ -59,22 +59,34 @@ async function capture(outDir) {
   };
   const route = id => page.evaluate(async v => { await window.app.workspaceShell.show(v); }, id);
   const tab = id => page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`)?.click(), id);
+  // Each state names the screen it must show; a capture whose screen is not
+  // on display FAILS instead of photographing whatever was there before
+  // (Codex review, 2026-09-25: two Reports tab ids were wrong and both builds
+  // captured the previous tab, which compared identical).
+  const onRoute = r => `document.getElementById('workspaceShell')?.dataset.route === '${r}'`;
   const states = [
-    ['home', () => route('home')],
-    ['breakdown-chart', async () => { await route('breakdown'); await page.evaluate(() => { const w = window.app.breakdownWorkspace; w._setFilmFocus(false, { persist: false }); w._setView('chart'); }); }],
-    ['breakdown-tools', () => page.evaluate(() => document.querySelector('[data-bd-tools-toggle]')?.click())],
-    ['breakdown-film-below', () => page.evaluate(() => { const w = window.app.breakdownWorkspace; document.querySelector('[data-bd-tools-toggle][aria-expanded="true"]')?.click(); w._setView('film-room'); w.setFilmLayout({ dock: 'bottom' }, { persist: false }); })],
-    ['breakdown-film-beside', () => page.evaluate(() => window.app.breakdownWorkspace.setFilmLayout({ dock: 'side' }, { persist: false }))],
-    ['breakdown-focus', () => page.evaluate(() => { const w = window.app.breakdownWorkspace; w.setFilmLayout({ dock: 'bottom' }, { persist: false }); w._setView('chart'); w._setFilmFocus(true, { persist: false }); })],
-    ['study', async () => { await page.evaluate(() => window.app.breakdownWorkspace._setFilmFocus(false, { persist: false })); await route('study'); }],
-    ...['overview', 'offense', 'defense', 'specialTeams', 'players', 'selfScout', 'matchup', 'season'].map(t => [`reports-${t}`, async () => { await route('reports'); await tab(t); }]),
-    ['plan', () => route('plan')],
+    ['home', () => route('home'), onRoute('home')],
+    ['breakdown-chart', async () => { await route('breakdown'); await page.evaluate(() => { const w = window.app.breakdownWorkspace; w._setFilmFocus(false, { persist: false }); w._setView('chart'); }); },
+      onRoute('breakdown') + " && !!document.querySelector('[data-bd-view=\"chart\"][aria-pressed=\"true\"]')"],
+    ['breakdown-tools', () => page.evaluate(() => document.querySelector('[data-bd-tools-toggle]')?.click()), "!!document.querySelector('.gi-breakdown-tools.is-open')"],
+    ['breakdown-film-below', () => page.evaluate(() => { const w = window.app.breakdownWorkspace; document.querySelector('[data-bd-tools-toggle][aria-expanded="true"]')?.click(); w._setView('film-room'); w.setFilmLayout({ dock: 'bottom' }, { persist: false }); }),
+      "!!document.querySelector('[data-native-breakdown-route][data-fr-dock=\"bottom\"]') && !!document.querySelector('[data-bd-view=\"film-room\"][aria-pressed=\"true\"]') && !document.querySelector('.gi-breakdown-tools.is-open')"],
+    ['breakdown-film-beside', () => page.evaluate(() => window.app.breakdownWorkspace.setFilmLayout({ dock: 'side' }, { persist: false })), "!!document.querySelector('[data-native-breakdown-route][data-fr-dock=\"side\"]')"],
+    ['breakdown-focus', () => page.evaluate(() => { const w = window.app.breakdownWorkspace; w.setFilmLayout({ dock: 'bottom' }, { persist: false }); w._setView('chart'); w._setFilmFocus(true, { persist: false }); }), "!!document.querySelector('.gi-breakdown-route.is-film-focus')"],
+    ['study', async () => { await page.evaluate(() => window.app.breakdownWorkspace._setFilmFocus(false, { persist: false })); await route('study'); }, onRoute('study')],
+    ...['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'matchup', 'season'].map(t => [`reports-${t}`, async () => { await route('reports'); await tab(t); },
+      onRoute('reports') + ` && !!document.querySelector('[data-report-tab="${t}"].active')`]),
+    ['plan', () => route('plan'), onRoute('plan')],
   ];
   const results = {};
   for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024], [390, 844]]) {
     await page.setViewport({ width: w, height: h });
-    for (const [name, go] of states) {
+    for (const [name, go, shows] of states) {
       await go(); await settle();
+      if (!(await page.evaluate(expr => { try { return !!eval(expr); } catch { return false; } }, shows))) {
+        await browser.close();
+        throw new Error(`${w}-${name}: the screen it names is not showing (${shows})`);
+      }
       const buffer = await page.screenshot();
       const file = `${w}-${name}.png`;
       fs.writeFileSync(path.join(outDir, file), buffer);

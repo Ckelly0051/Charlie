@@ -8,8 +8,9 @@
  *
  *   1. The season survives save and reopen unchanged.
  *   2. A save with no change changes nothing (idempotent).
- *   3. Every play's tags survive exactly as imported, except the transforms the
- *      app documents (listed below). A legacy shape is read through
+ *   3. Every field of every play (tags, specialTeams, penalties, notes,
+ *      players, grades, film identity) matches the ORIGINAL FILE, except the
+ *      transforms the app documents (listed below). A legacy shape is read through
  *      projection and never rewritten by loading or saving.
  * Run:  node tools/e2e-legacy-roundtrip.mjs
  */
@@ -117,12 +118,23 @@ for (const game of source.games) {
       const d = diff(want[k], got[k], k);
       if (d.length) bad.push(...d);
     }
+    // Every other field of the play, against the ORIGINAL file, not only the
+    // post-import state (Codex review, 2026-09-25): specialTeams, penalties,
+    // notes, players, grades, timestamps and film identity must survive import,
+    // save and reopen exactly; a field the play lacked may appear only empty.
+    const savedPlay = saved?.plays.find(p => p.id === play.id) ?? {};
+    for (const k of new Set([...Object.keys(play), ...Object.keys(savedPlay)])) {
+      if (k === 'tags') continue;
+      if (!(k in play)) { if (isEmpty(savedPlay[k])) defaulted.add('play.' + k); else bad.push(`play.${k}: (absent) -> ${JSON.stringify(savedPlay[k])?.slice(0, 60)}`); continue; }
+      const d = diff(play[k], savedPlay[k], 'play.' + k);
+      if (d.length) bad.push(...d);
+    }
     if (bad.length) changed.push(`${game.name} #${play.id}: ${bad.slice(0, 2).join('; ')}`);
   }
 }
 console.log(`        empty schema defaults added: ${[...defaulted].sort().join(', ') || 'none'}`);
 ok(total === 449, `all ${total} canonical plays were compared`, String(total));
-ok(!changed.length, 'every charted value survives; only empty schema defaults and the documented Special Teams strip differ', `${changed.length} changed: ${changed.slice(0, 6).join(' | ')}`);
+ok(!changed.length, 'every field of every play survives import, save and reopen against the original file; only empty schema defaults and the documented Special Teams strip differ', `${changed.length} changed: ${changed.slice(0, 6).join(' | ')}`);
 
 ok(createHash('sha256').update(readFileSync(CANONICAL_SEASON)).digest('hex') === hashBefore, 'the canonical season file is unchanged');
 ok(!errors.length, 'no page errors', errors.slice(0, 3).join(' | '));
