@@ -63,6 +63,18 @@ ok(['added', 'also-added', 'toggled', 'replacement'].every(name => operationFixt
   'classList harvesting counts only operations and arguments that can produce a class',
   JSON.stringify([...operationFixture]));
 
+// Classes passed THROUGH a component are producers too: a `cls` / `cellClass` /
+// `...Class` prop or object key reaches a class attribute inside the component.
+// Missing them made the Reports board read 529 selectors as dead (2026-09-25).
+const propFixture = harvestProducers([`
+  <Module title="Formation" cls="prop-produced also-prop">x</Module>
+  <Module cls={\`tmpl-produced is-\${phase}\`} />
+  const column = { key: 'look', cellClass: 'key-produced', headClass: \`head-produced\` };
+  h(Box, { className: 'h-produced' });
+`]).classes;
+ok(['prop-produced', 'also-prop', 'tmpl-produced', 'key-produced', 'head-produced', 'h-produced'].every(name => propFixture.has(name)),
+  'class strings passed through component props and column keys (cls, cellClass, ...Class, className) count as producers',
+  JSON.stringify([...propFixture]));
 console.log(`producers: ${classes.size} classes, ${ids.size} ids, ${prefixes.size} dynamic prefixes`);
 
 const totals = { branches: 0, live: 0, ambiguous: 0, dead: 0, deadAlts: 0 };

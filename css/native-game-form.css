@@ -62,9 +62,6 @@
 .gi-game-form select:focus-visible,
 .gi-game-form button:focus-visible{outline:0;border-color:var(--gi-bd-bone);box-shadow:var(--gi-focus)}
 
-.gi-game-field{margin:0}
-.gi-game-field>small{color:var(--gi-bd-muted);font-size:12.5px;line-height:1.4}
-
 /* ── Optional final score ─────────────────────────────────────────────────
    The score inputs carry the SAME border, background and height as every
    other input. They previously rendered as unbordered filled bars inside a

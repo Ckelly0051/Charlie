@@ -57,7 +57,17 @@ const CLASSLIST = /\.classList\.(add|toggle|replace|remove)\(([^)]*)\)/g;
  */
 function readClassValues(src) {
   const out = [];
-  const attr = /\bclass(?:Name)?\s*=\s*/g;
+  // A class attribute, and any prop that CARRIES a class into a component
+  // (`cls=`, `cellClass=`, `headClass=`, ...): the component puts it on an
+  // element. Missing these made most of the Reports board read as dead.
+  const attr = /\b(?:class(?:Name)?|cls|[a-z][A-Za-z0-9]*(?:Class|Cls|ClassName))\s*=\s*(?![=>])/g;
+  // The same carriers written as object keys: column definitions, h() props.
+  const key = /[{,]\s*(?:class(?:Name)?|cls|[a-z][A-Za-z0-9]*(?:Class|Cls|ClassName))\s*:\s*/g;
+  for (const k of src.matchAll(key)) {
+    const i = k.index + k[0].length;
+    const v = readBareValue(src, i);
+    if (v) out.push({ expression: v });
+  }
   let m;
   while ((m = attr.exec(src))) {
     let i = m.index + m[0].length;
@@ -84,6 +94,27 @@ function readClassValues(src) {
     out.push({ expression: src.slice(i + 1, j) });
   }
   return out;
+}
+/** An object-key value up to the next top-level `,`, `}` or `)`: a string,
+ *  a template or a small expression whose quoted runs are class text. */
+function readBareValue(src, i) {
+  let depth = 0, j = i, quote = null;
+  for (; j < src.length; j++) {
+    const c = src[j];
+    if (quote) {
+      if (c === '\\') { j++; continue; }
+      if (quote === '`' && c === '$' && src[j + 1] === '{') { depth++; j++; continue; }
+      if (c === quote && depth === 0) quote = null;
+      else if (quote === '`' && c === '}' && depth > 0) depth--;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+    if (c === '(' || c === '[' || c === '{') depth++;
+    else if (c === ')' || c === ']' || c === '}') { if (depth === 0) break; depth--; }
+    else if (c === ',' && depth === 0) break;
+    else if (c === '\n' && depth === 0) break;
+  }
+  return src.slice(i, j).trim();
 }
 const CLASSNAME_ASSIGN = /\.className\s*(?:\+?=)\s*([^;\n]+)/g;
 const SET_ATTR = /setAttribute\(\s*['"]class['"]\s*,\s*([^)]*)\)/g;

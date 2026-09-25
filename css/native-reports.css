@@ -50,7 +50,6 @@
 .gi-reports-segment{display:flex;border:1px solid var(--gi-7)}
 .gi-reports-segment button{min-height:var(--gi-hit);padding:0 var(--gi-3x);border:0;border-right:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-11);font:600 13px/1 var(--gi-sans);cursor:pointer}
 .gi-reports-segment button:last-child{border-right:0}.gi-reports-segment button.is-active{background:var(--gi-los);color:var(--gi-on-solid)}
-.gi-reports-film-note{margin-left:auto!important;color:var(--gi-11);font-size:12px!important;text-transform:none!important}
 /* The strip shares its row with the report title and the command buttons, and
    its right edge is pinned by those buttons. Left free to shrink it lost the
    race to a long game name: `Week 1 vs St. Peter Lutheran Patriots` left it
@@ -73,53 +72,37 @@
 /* Neutralize the legacy overlay shell when specialized report renderers target
    the native content host. The content remains live; only modal geometry dies. */
 .gi-reports .stats-overlay{position:static!important;inset:auto!important;display:block!important;width:auto!important;height:auto!important;padding:0!important;background:transparent!important;backdrop-filter:none!important}
-.gi-reports .stats-container{width:auto!important;max-width:none!important;max-height:none!important;height:auto!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
 .gi-reports .stats-header{position:static;display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x);padding:0 0 var(--gi-4x);border-bottom:1px solid var(--gi-7);background:transparent}
 .gi-reports .stats-header h2{margin:0;font-family:var(--gi-cond);font-size:24px;line-height:1.1;letter-spacing:0}
-.gi-reports .stats-header-actions{display:flex;flex-wrap:wrap;gap:var(--gi-2x)}
 .gi-reports .stats-header .btn{min-height:var(--gi-control);border-radius:var(--gi-radius)}
-.gi-reports .stats-body{padding:0;background:transparent}
-.gi-reports .stats-cut-hint{margin:0 0 var(--gi-4x);padding:var(--gi-2x) var(--gi-3x);border-left:3px solid var(--gi-los);background:var(--gi-info-surface);color:var(--gi-11);font-size:12px}
 .gi-reports .stats-section{margin:0;padding:var(--gi-5x) 0;border:0;border-bottom:1px solid var(--gi-6);border-radius:var(--gi-radius);background:transparent;box-shadow:none}
 .gi-reports .stats-section:first-child{padding-top:0}.gi-reports .stats-section:last-child{border-bottom:0}
 .gi-reports .stats-section h3{margin:0 0 var(--gi-3x);color:var(--gi-12);font-family:var(--gi-cond);font-size:17px;line-height:1.2;font-weight:700;letter-spacing:0;text-transform:uppercase}
 .gi-reports .stats-section h4{color:var(--gi-11);font-family:var(--gi-cond);letter-spacing:0}
-.gi-reports .stats-grid,.gi-reports .gi-card-grid,.gi-reports .ss-summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gi-2x)}
-.gi-reports .stat-card,.gi-reports .gi-card,.gi-reports .ss-summary-card{
+.gi-reports .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gi-2x)}
+.gi-reports .stat-card{
   min-width:0;padding:var(--gi-3x) var(--gi-4x);border:1px solid var(--gi-6);border-left:3px solid var(--gi-8);border-radius:var(--gi-radius);background:var(--gi-2);box-shadow:none;
 }
-.gi-reports .stat-card-title,.gi-reports .ss-card-label{color:var(--gi-11);font:600 11.5px/1.2 var(--gi-sans);letter-spacing:0;text-transform:uppercase}
-.gi-reports .stat-card-value,.gi-reports .ss-num,.gi-reports .scoreboard-pts,.gi-reports .kpi-value{color:var(--gi-12);font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat);letter-spacing:0;white-space:nowrap}
+.gi-reports .stat-card-title{color:var(--gi-11);font:600 11.5px/1.2 var(--gi-sans);letter-spacing:0;text-transform:uppercase}
+.gi-reports .stat-card-value{color:var(--gi-12);font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat);letter-spacing:0;white-space:nowrap}
 .gi-reports .stat-card-value{margin-top:var(--gi-2x);font-size:30px;line-height:1}
-.gi-reports .stats-table-scroll,.gi-reports .stats-section{max-width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--gi-8) var(--gi-2)}
+.gi-reports .stats-section{max-width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--gi-8) var(--gi-2)}
 .gi-reports table{width:100%;border-collapse:collapse;background:transparent}
 .gi-reports th,.gi-reports td{height:var(--gi-row);padding:0 var(--gi-3x);border-bottom:1px solid var(--gi-6);font-size:12px;white-space:nowrap;text-align:right}
 .gi-reports th{position:sticky;top:42px;z-index:2;background:var(--gi-2);color:var(--gi-11);font:600 11.5px/1 var(--gi-sans);letter-spacing:0;text-transform:uppercase}
 .gi-reports th:first-child,.gi-reports td:first-child{text-align:left}.gi-reports tbody tr:hover td{background:var(--gi-3)}
-.gi-reports .cut-row,.gi-reports .player-row,.gi-reports .drive-row{cursor:pointer}.gi-reports .cut-row:hover td,.gi-reports .player-row:hover td{color:var(--gi-12);background:var(--gi-info-surface)}
-.gi-reports .cut-row:focus-visible,.gi-reports .player-row:focus-visible{outline:0;box-shadow:inset var(--gi-focus)}
+.gi-reports .cut-row{cursor:pointer}.gi-reports .cut-row:hover td{color:var(--gi-12);background:var(--gi-info-surface)}
+.gi-reports .cut-row:focus-visible{outline:0;box-shadow:inset var(--gi-focus)}
 .gi-reports .stats-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-5x)}
 /* AX-4 (S6-4c): equal team blocks with a centred separator. This was
    `flex / justify-content:flex-start`, which sized each block to its own digits
    — a two-digit score and a one-digit score produced visibly unequal blocks and
    an off-center dash. `1fr auto 1fr` makes the two teams symmetrical by
    construction, whatever the score. */
-.gi-reports .scoreboard-final{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:var(--gi-4x);max-width:520px}
-.gi-reports .scoreboard-team{text-align:center;min-width:0}
-.gi-reports .scoreboard-sep{align-self:center;line-height:1}
 /* The widescreen space beside the scoreboard now carries Game at a Glance
    instead of sitting empty, and the technical scoring rules move behind a
    disclosure — they answer "why is this number what it is", not something a
    coach re-reads every visit. */
-.gi-reports .scoreboard-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.8fr);gap:var(--gi-6x);align-items:start}
-.gi-reports .scoreboard-main{min-width:0}
-.gi-reports .scoreboard-quarters{max-width:520px;width:100%}
-.gi-reports .scoreboard-note{margin-top:var(--gi-3x);color:var(--gi-11);font-size:12px}
-.gi-reports .scoreboard-note summary{cursor:pointer;color:var(--gi-11);text-transform:uppercase;letter-spacing:.045em;font-weight:700;font-size:11.5px}
-.gi-reports .scoreboard-note p{margin:var(--gi-2x) 0 0;line-height:1.5}
-.gi-reports .gi-glance{min-width:0;border-left:1px solid var(--gi-6);padding-left:var(--gi-5x)}
-.gi-reports .gi-glance h4{margin:0 0 var(--gi-3x);font-family:var(--gi-cond);font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--gi-12)}
-.gi-reports .gi-glance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gi-2x)}
 /* Coach: tile text must be centered both horizontally AND vertically, not
    just horizontally (F11 below already centers horizontally) — a tile with
    fewer lines than its neighbours packed its content to the TOP instead of
@@ -136,33 +119,17 @@
    fix `.gi-lens-tiles` two lines below already uses for the same reason:
    floor the column at the container's real width instead of letting content
    size it past that width. */
-.gi-reports .gi-glance-tile{min-width:0;padding:var(--gi-3x);border:1px solid var(--gi-6);background:var(--gi-2);display:grid;grid-template-columns:minmax(0,1fr);gap:2px;align-content:center}
-.gi-reports .gi-glance-tile span{font-size:11.5px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:var(--gi-11)}
-.gi-reports .gi-glance-tile strong{font-family:var(--gi-cond);font-size:26px;line-height:1.05;color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
-.gi-reports .gi-glance-tile small{font-size:11.5px;color:var(--gi-11)}
-.gi-reports .gi-glance-tile.cut-row{cursor:pointer}
-.gi-reports .gi-glance-tile.cut-row:hover,.gi-reports .gi-glance-tile.cut-row:focus-visible{border-color:var(--gi-10);background:var(--gi-3);outline:none}
-.gi-reports .gi-glance-foot{margin:var(--gi-3x) 0 0;font-size:12px;color:var(--gi-11)}
 /* AX-5: title above the ring, legend below, both with stable dimensions so a
    long label wraps instead of clipping the chart. */
-.gi-reports .chart-donut-block{display:grid;justify-items:center;gap:var(--gi-2x);margin:0}
-.gi-reports .chart-donut-block figcaption{font-size:11.5px;font-weight:700;letter-spacing:.045em;text-transform:uppercase;color:var(--gi-11);text-align:center;max-width:150px}
-.gi-reports .chart-donut-block .chart-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;max-width:170px}
-@media(max-width:980px){
-  .gi-reports .scoreboard-layout{grid-template-columns:1fr;gap:var(--gi-4x)}
-  .gi-reports .gi-glance{border-left:0;border-top:1px solid var(--gi-6);padding:var(--gi-4x) 0 0}
-  .gi-reports .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}.gi-reports .scoreboard-name{color:var(--gi-11);font-family:var(--gi-sans);font-size:11.5px;text-transform:uppercase}.gi-reports .scoreboard-pts{font-size:48px}.gi-reports .scoreboard-sep{color:var(--gi-8);font-size:28px}
 .gi-reports-watch-row{display:flex;flex-wrap:wrap;gap:var(--gi-2x)}
-.gi-reports-watch,.gi-reports-unit-head .gi-reports-watch{
+.gi-reports-watch{
   min-height:var(--gi-control);display:inline-flex;align-items:center;gap:var(--gi-3x);
   padding:0 var(--gi-3x);border:1px solid var(--gi-info-border);border-radius:var(--gi-radius);
   background:var(--gi-info-surface);color:var(--gi-12);font:600 12px/1 var(--gi-sans);cursor:pointer;
 }
 .gi-reports-watch:hover{background:var(--gi-info-control);border-color:var(--gi-info-control-border)}
 .gi-reports-watch:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-.gi-reports-watch span{color:var(--gi-info-accent);font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-.gi-reports-unit-head{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-4x)}.gi-reports .viz-caption,.gi-reports .self-scout-intro,.gi-reports p{color:var(--gi-11)}
+.gi-reports-watch span{color:var(--gi-info-accent);font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}.gi-reports .viz-caption,.gi-reports p{color:var(--gi-11)}
 .gi-reports svg text{font-family:var(--gi-sans)}
 .gi-reports .gi-reports-empty{
   max-width:680px;margin:var(--gi-8x) auto;padding:var(--gi-6x);
@@ -176,7 +143,7 @@
 
 @media(max-width:900px){
   .gi-reports-head{align-items:flex-start;padding:var(--gi-4x)}
-  .gi-reports-model{padding:var(--gi-2x) var(--gi-4x)}.gi-reports-film-note{display:none}
+  .gi-reports-model{padding:var(--gi-2x) var(--gi-4x)}
   .gi-reports-tabs{padding:0 var(--gi-4x)}.gi-reports-content{padding:var(--gi-4x) var(--gi-4x) var(--gi-8x)}
   .gi-reports-special-head{padding:var(--gi-3x) var(--gi-4x)}
 }
@@ -188,12 +155,9 @@
   .gi-reports-title-block h1{font-size:24px}.gi-reports-model{align-items:flex-start;flex-direction:column}
   .gi-reports-tabs{padding:0}.gi-reports-tab{min-height:44px;padding:0 var(--gi-3x)}
   .gi-reports-content{padding:var(--gi-4x) var(--gi-3x) var(--gi-8x)}
-  .gi-reports .stats-two-col{grid-template-columns:1fr}.gi-reports .stats-grid,.gi-reports .gi-card-grid,.gi-reports .ss-summary-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .gi-reports th{top:44px}.gi-reports .scoreboard-pts{font-size:40px}
-}.gi-reports .scoreboard-layout.is-single{grid-template-columns:minmax(0,1fr)}
-.gi-reports .scoreboard-layout.is-single .gi-glance{border-left:0;padding-left:0}
-.gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
-@media(max-width:980px){.gi-reports .scoreboard-layout.is-single .gi-glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .gi-reports .stats-two-col{grid-template-columns:1fr}.gi-reports .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gi-reports th{top:44px}
+}
 /* AX-7 (S6-4c): the five-lens board. Each lens is one card carrying its
    question and its own tiles, so a number is read under the question it
    answers rather than in an unlabelled row. Tiles reuse the Game at a Glance
@@ -205,21 +169,9 @@
    background, so it painted as a solid gray-blue rectangle the width and
    height of a card. Flexbox does not reserve a track for a card that doesn't
    exist: the last row's cards grow to fill the row instead. */
-.gi-reports .gi-lens-grid{display:flex;flex-wrap:wrap;gap:var(--gi-3x);margin-top:var(--gi-3x)}
-.gi-reports .gi-lens{min-width:0;flex:1 1 260px;display:flex;flex-direction:column;gap:var(--gi-3x);padding:var(--gi-4x);border:1px solid var(--gi-6);background:var(--gi-2)}
-.gi-reports .gi-lens-head h4{margin:0;font-family:var(--gi-cond);font-size:16px;letter-spacing:.02em;text-transform:uppercase;color:var(--gi-12)}
 /* .gi-lens-head p removed — the coach removed the per-lens caption sentence.
    The header-to-tiles gap is owned by `.gi-lens`'s own flex `gap` above, so
    deleting the paragraph needs no compensating spacing rule. */
-.gi-reports .gi-lens-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x)}
-.gi-reports .gi-lens-tiles .gi-glance-tile{background:var(--gi-1)}
-.gi-reports .gi-lens-more{
-  margin-top:auto;align-self:flex-start;min-height:var(--gi-control);padding:0 var(--gi-3x);
-  border:1px solid var(--gi-6);border-radius:var(--gi-radius);background:transparent;
-  color:var(--gi-11);font:600 12px/1 var(--gi-sans);cursor:pointer;
-}
-.gi-reports .gi-lens-more:hover,.gi-reports .gi-lens-more:focus-visible{color:var(--gi-12);border-color:var(--gi-10);outline:none}
-@media(max-width:560px){.gi-reports .gi-lens-tiles{grid-template-columns:minmax(0,1fr)}}
 
 /* ── S6-5: REPORTS ON THE DESIGN SYSTEM ─────────────────────────────────────
    Recomposition, not restyling. Matches design-system/routes/fpo-reports-
@@ -228,7 +180,7 @@
 
 /* THE SIGNATURE. Every section heading becomes a lower-third plate. This is the
    design system's one diagonal and it had zero uses in the product. */
-.gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4{
+.gi-reports .stats-section>h3{
   display:inline-flex;align-items:center;min-height:26px;
   margin:0 0 var(--gi-3x);padding:0 26px 0 12px;
   background:var(--gi-3);color:var(--gi-12);
@@ -237,8 +189,6 @@
   text-transform:uppercase;border:0;
 }
 /* The lens a coach is reading, and the board's own title, take the accent. */
-.gi-reports .gi-lens-head h4,.gi-reports .gi-lens-board>h3{
-  background:var(--gi-9);color:var(--gi-on-solid)}
 
 /* HAIRLINE JOINS. Sections sat as separate bordered cards with margins between
    them; they now share 1px seams so the page reads as one board. */
@@ -246,7 +196,6 @@
   margin:0;padding:var(--gi-4x) var(--gi-5x)}
 .gi-reports [data-native-main-report]{display:grid;gap:1px;background:var(--gi-6);
   border:1px solid var(--gi-6)}
-.gi-reports .gi-lens-grid{gap:1px;background:var(--gi-6);border:1px solid var(--gi-6)}
 /* Coach: "Top Formation" text read as off-center. Measured, not assumed: at
    1440px five lens cards don't quite fit one row at 220px each, and the base
    rule's `flex:1 1 260px` left shrink ENABLED — flex-shrink distributes the
@@ -257,12 +206,10 @@
    tile the same rounding is invisible. `flex-shrink:0` stops any card from
    being crushed below its basis — a row that cannot fit five at full width
    now wraps instead, and every card keeps an even, predictable width. */
-.gi-reports .gi-lens-grid .gi-lens{flex-basis:220px;flex-shrink:0}
-.gi-reports .gi-lens{border:0;background:var(--gi-2)}
 
 /* FILM BELOW THE APP FLOOR — the scoreboard is game identity, so it reads as
    content rather than chrome. */
-.gi-reports .scoreboard,.gi-reports .gi-scorebug{background:var(--gi-film);
+.gi-reports .scoreboard{background:var(--gi-film);
   border:1px solid var(--gi-6)}
 
 /* Tables lose their card chrome and lean on the seam instead. */
@@ -279,9 +226,7 @@
    distribute its children across that width, or not span it. Half-empty chrome
    reads as broken layout, not as breathing room. Fixed-width tiles left ~45% of
    the Season KPI band empty. */
-.gi-reports .stats-grid,.gi-reports .gi-glance-grid,.gi-reports .ss-summary-row,
-.gi-reports .gi-card-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.gi-reports .eff-side-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--gi-2x)}
+.gi-reports .stats-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 
 /* G8 — the Situational and By Quarter tables sit side by side but started at
    different heights, because only the left one carried a gauge above it. Align
@@ -296,13 +241,11 @@
 .gi-reports .stats-section>h3{border-bottom:0;padding-bottom:0}
 
 /* G10 — the yardage spray was simply too big. It is a shape, not a workspace. */
-.gi-reports .gi-scatter svg,.gi-reports .viz-spray svg{height:118px}
+.gi-reports .gi-scatter svg{height:118px}
 .gi-reports .gi-hist svg{height:132px}
 
 /* G7 — the Predictability Map's per-column summary had no row height of its
    own and drew into the header's line-box, clipping it. */
-.gi-reports .ss-matrix th,.gi-reports .ss-matrix td{vertical-align:top}
-.gi-reports .ss-matrix .ss-matrix-sum{display:block;padding:2px 0;line-height:1.35}
 
 /* G11 — a two-part section needs a break between its parts. STRENGTH sat
    directly against the last BACKFIELD row and read as crowding into it. */
@@ -312,11 +255,6 @@
 /* G13 — the Big 13 is cells now: numeric columns align right, untagged
    dimensions render as a dimmed dash so a blank reads as "not charted" rather
    than as an empty cell someone forgot to fill. */
-.gi-reports .bt-table td.bt-num,.gi-reports .bt-table th.bt-num{text-align:right;
-  font-variant-numeric:var(--gi-num-feat)}
-.gi-reports .bt-table td.bt-blank{color:var(--gi-8)}
-.gi-reports .bt-table th{cursor:pointer;user-select:none;white-space:nowrap}
-.gi-reports .bt-table tr.bt-in90 td:first-child{box-shadow:inset 3px 0 0 var(--gi-los)}
 
 /* F12c — the team profile radar. Capped so it reads as a shape rather than
    taking a screen (the G10 lesson applied up front). */
@@ -328,62 +266,24 @@
    on screen saying so; the INDENT is the explanation. The headline is distinct
    plays with one percentage, the rows are raw counts with none, and the two are
    allowed to disagree because a strip-sack is one play but two events. */
-.gi-reports .gi-np{display:grid;gap:var(--gi-3x);min-width:0}
-.gi-reports .gi-np-headline{display:flex;align-items:baseline;gap:var(--gi-2x);
-  padding-bottom:var(--gi-2x);border-bottom:1px solid var(--gi-6)}
-.gi-reports .gi-np-headline b{font-family:var(--gi-cond);font-weight:700;font-size:34px;
-  line-height:.9;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
-.gi-reports .gi-np-headline span{font-size:12px;color:var(--gi-11)}
 /* Coach: the Turnovers/Plays for Loss/Penalties rows read as "odd looking
    black boxes" — a flat `--gi-1` fill with no edge, sitting directly on the
    lens card's own `--gi-2` background with nothing marking where one row
    ends and the next begins beyond a 1px gap. Given each row its own border,
    matching every other tile on this board; the gap grows slightly so the
    borders read as separate rows rather than doubling into one thick line. */
-.gi-reports .gi-np-rows{display:grid;gap:4px}
-.gi-reports .gi-np-row{display:flex;align-items:center;gap:var(--gi-2x);
-  min-height:var(--gi-row);padding:0 var(--gi-2x);background:var(--gi-1);
-  border:1px solid var(--gi-6)}
-.gi-reports .gi-np-label{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--gi-12)}
-.gi-reports .gi-np-value{flex:0 0 auto;font-family:var(--gi-cond);font-weight:700;
-  font-size:17px;font-variant-numeric:var(--gi-num-feat);color:var(--gi-12)}
-.gi-reports .gi-np-row.cut-row{cursor:pointer}
-.gi-reports .gi-np-row.cut-row:hover,.gi-reports .gi-np-row.cut-row:focus-visible{
-  background:var(--gi-3);outline:none;box-shadow:inset 2px 0 0 var(--gi-los)}
 /* The bracket. Children sit inside their parent's total, so they are indented
    under a rule rather than listed as peers. */
-.gi-reports .gi-np-kids{display:grid;gap:1px;margin-left:var(--gi-3x);
-  padding-left:var(--gi-3x);border-left:1px solid var(--gi-6)}
-.gi-reports .gi-np-row.is-child{min-height:28px;background:transparent}
-.gi-reports .gi-np-row.is-child .gi-np-label{color:var(--gi-11);font-size:12px}
-.gi-reports .gi-np-row.is-child .gi-np-value{font-size:14px;color:var(--gi-11)}
 /* F9/F10/F11 (S6-4e), coach smoke on 1.12.0-19. */
 /* F11 — center the tile contents. */
-.gi-reports .gi-lens-tiles .gi-glance-tile,.gi-reports .gi-glance-tile{justify-items:center;text-align:center}
 /* F9 — the score and its team name share a center line. The block was centered
    and the two children were not, so the numbers sat visibly off. */
-.gi-reports .scoreboard-team{display:grid;justify-items:center;gap:var(--gi-1x)}
-.gi-reports .scoreboard-pts{text-align:center}
 /* A team name is an identity, not a column value — it wraps rather than
    truncating. "St. Peter Lutheran Patriots" must read in full. */
-.gi-reports .scoreboard-name{text-align:center;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25}
-.gi-reports .scoreboard-final{max-width:640px}
 /* F10 — the icon ran into the first letter. */
-.gi-reports .gp-item{display:flex;align-items:baseline;gap:var(--gi-2x)}
-.gi-reports .gp-list{margin:0;padding:0;list-style:none;display:grid;gap:var(--gi-2x)}
 /* F12 (S6-4i): data visualization. A table when you need the exact value, a
    chart when you need the shape. Every mark uses the categorical ramp and the
    broadcast semantics already in the tokens — no chart invents a color. */
-.gi-reports .gi-ramp{display:grid;gap:var(--gi-1x)}
-.gi-reports .gi-ramp-row{display:grid;grid-template-columns:minmax(90px,150px) 1fr 40px 62px;align-items:center;gap:var(--gi-2x);min-height:26px;padding:0 var(--gi-1x)}
-.gi-reports .gi-ramp-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--gi-text-control)}
-.gi-reports .gi-ramp-track{min-width:0;height:14px;background:var(--gi-3)}
-.gi-reports .gi-ramp-track i{display:block;height:100%}
-.gi-reports .gi-ramp-n,.gi-reports .gi-ramp-pct{text-align:right;font-family:var(--gi-sans);font-size:11.5px;font-variant-numeric:var(--gi-num-feat);color:var(--gi-11)}
-.gi-reports .gi-ramp-pct em{font-style:normal;color:var(--gi-warn);font-size:10px}
-.gi-reports .gi-ramp-row.cut-row{cursor:pointer}
-.gi-reports .gi-ramp-row.cut-row:hover,.gi-reports .gi-ramp-row.cut-row:focus-visible{background:var(--gi-3);outline:none}
-.gi-reports .gi-ramp-key{display:flex;flex-wrap:wrap;gap:var(--gi-4x);margin-top:var(--gi-2x);color:var(--gi-11);font-size:11px}
 .gi-reports .gi-hist,.gi-reports .gi-scatter{margin:0;display:grid;gap:var(--gi-1x)}
 .gi-reports .gi-hist svg,.gi-reports .gi-scatter svg{width:100%;height:150px;display:block}
 .gi-reports .gi-hist figcaption{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;color:var(--gi-11);font-size:10.5px;text-align:center}
@@ -419,11 +319,6 @@
 .gi-reports .gi-answer-identity{margin:0 0 var(--gi-2x);color:var(--gi-first-down);font:var(--gi-text-display);text-transform:uppercase}
 .gi-reports .gi-answer-head .gi-answer-identity{margin:var(--gi-1x) 0 0;font:700 12px/1.25 var(--gi-sans);text-transform:none}
 .gi-reports .gi-answer-sample{margin:var(--gi-1x) 0 0;color:var(--gi-11);font:var(--gi-text-caption)}
-.gi-reports .gi-answer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--gi-3x)}
-.gi-reports .gi-answer{min-width:0;padding:var(--gi-4x);border:1px solid var(--gi-6);background:var(--gi-2)}
-.gi-reports .gi-answer h4{margin:0;color:var(--gi-12);font-family:var(--gi-cond);font-size:16px;text-transform:uppercase}
-.gi-reports .gi-answer>p{margin:2px 0 var(--gi-3x);color:var(--gi-11);font-size:11.5px}
-.gi-reports .gi-answer ul{margin:0;padding:0;list-style:none;display:grid;gap:var(--gi-2x)}
 .gi-reports .gi-answer-row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:var(--gi-2x);padding:var(--gi-2x);border:1px solid var(--gi-6);background:var(--gi-1)}
 .gi-reports .gi-answer-row span{min-width:0;overflow-wrap:anywhere;font:var(--gi-text-control)}
 .gi-reports .gi-answer-row strong{font-family:var(--gi-cond);font-size:18px;font-variant-numeric:var(--gi-num-feat);white-space:nowrap}
@@ -439,8 +334,7 @@
 /* H9 - the lower-third marks EVERY heading, not just h3. Half the page had the
    plate and half was plain uppercase text, which reads as an unfinished sweep
    rather than as a hierarchy. Sub-heads take the same shape one step quieter. */
-.gi-reports .stats-section h4,.gi-reports .stats-section h5,
-.gi-reports .viz-section h4,.gi-reports .ss-section h4{
+.gi-reports .stats-section h4,.gi-reports .stats-section h5{
   display:inline-flex;align-items:center;min-height:22px;
   margin:var(--gi-4x) 0 var(--gi-2x);padding:0 20px 0 10px;
   background:var(--gi-2);color:var(--gi-11);
@@ -504,8 +398,7 @@
    carries `overflow-x:auto` and the table rules set `white-space:nowrap`, so a
    caption inherited both. Definitions are longer than the old framing copy, so
    this had to land WITH the rewrite, not after it. */
-.gi-reports .viz-caption,.gi-reports .self-scout-intro,.gi-reports .tm-eligible,
-.gi-reports .stats-cut-hint{
+.gi-reports .viz-caption{
   white-space:normal;overflow-wrap:anywhere;max-width:76ch;
 }
 
@@ -513,20 +406,14 @@
    of number from the cells it sums, so it gets its own rule and weight rather
    than sharing their alignment. Scoped: the base right-align governs every
    table in Reports and must not be edited. */
-.gi-reports .scoreboard-table td:last-child,
-.gi-reports .scoreboard-table th:last-child{
-  text-align:center;border-left:1px solid var(--gi-6);
-  font-family:var(--gi-cond);font-weight:700;font-size:15px;color:var(--gi-12);
-}
-.gi-reports .scoreboard-table th:last-child{color:var(--gi-11);font-size:11px}
 
 /* H14 - three columns were locked to the tallest, leaving ~400px of empty
    column under Efficiency and Big Plays. Each column now sizes to its own
    content. NOTE: this removes the dead space; it does NOT move the buried
    reads (by-down, distribution, field zones) up to fill it. That is the
    composition pass and is still owed. */
-.gi-reports .stats-three-col,.gi-reports .stats-two-col{align-items:start}
-.gi-reports .stats-three-col>*,.gi-reports .stats-two-col>*{align-self:start}
+.gi-reports .stats-two-col{align-items:start}
+.gi-reports .stats-two-col>*{align-self:start}
 /* H14 (real fix) - the container is `.gi-card-grid`, read from
    reports-screen.js:412, not `.stats-three-col` which does not exist. Grid
    items stretch to the row height by default, so Efficiency and Big Plays were
@@ -534,15 +421,9 @@
 
    Fourth wrong selector this session, all the same cause: writing the rule from
    the design intent instead of reading the markup. Read first. */
-.gi-reports .gi-card-grid{align-items:start}
-.gi-reports .gi-card-grid>*{align-self:start}
 /* H14 - Overview's panel row is two columns, not three: Drives in its own,
    the short panels stacked beside it. The stack absorbs whatever height Drives
    has, so there is no empty column left to explain. */
-.gi-reports .gi-overview-row{grid-template-columns:minmax(300px,1fr) minmax(300px,1.15fr)}
-.gi-reports .gi-stack{display:grid;gap:var(--gi-2x);align-content:start;min-width:0}
-.gi-reports .gi-stack>.stats-section{padding-block:var(--gi-4x)}
-@media(max-width:900px){.gi-reports .gi-overview-row{grid-template-columns:minmax(0,1fr)}}
 /* The design pass set `.stats-section{border:0}` for hairline joins, which
    stripped the danger surface off the Reports failure alert - so "Reports
    unavailable" rendered identically to "No charted data yet". That distinction
@@ -559,32 +440,8 @@
    StatsEngine.DEFINITIONS has existed since the last range with nothing
    rendering it. This is the control that surfaces it: hover and keyboard focus
    are CSS, tap and Escape are handled by StatsEngine.bindDefs. */
-.gi-reports .gi-def{
-  position:relative;display:inline-grid;place-items:center;
-  width:15px;height:15px;margin-left:6px;padding:0;vertical-align:middle;
-  border:1px solid var(--gi-7);border-radius:var(--gi-radius);
-  background:transparent;color:var(--gi-11);
-  font:650 10px/1 var(--gi-sans);cursor:help;
-}
-.gi-reports .gi-def:hover,.gi-reports .gi-def:focus-visible{
-  border-color:var(--gi-los);color:var(--gi-12);outline:none}
-.gi-reports .gi-def-pop{
-  position:absolute;left:50%;bottom:calc(100% + 8px);z-index:40;
-  width:max-content;max-width:280px;padding:var(--gi-2x) var(--gi-3x);
-  transform:translateX(-50%);
-  border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-12);
-  box-shadow:var(--gi-shadow-toast);
-  font:var(--gi-text-caption);text-align:left;text-transform:none;letter-spacing:0;
-  white-space:normal;opacity:0;visibility:hidden;pointer-events:none;
-}
-.gi-reports .gi-def:hover .gi-def-pop,
-.gi-reports .gi-def:focus-visible .gi-def-pop,
-.gi-reports .gi-def.is-open .gi-def-pop{opacity:1;visibility:visible}
 /* Near the right edge the centered panel would overflow the route; the section
    is the containing block, so clamp against it rather than the viewport. */
-.gi-reports .gi-np-row:last-child .gi-def-pop,
-.gi-reports .stats-section>h3 .gi-def-pop{left:0;transform:none}
-@media(pointer:coarse){.gi-reports .gi-def{width:24px;height:24px;font-size:12px}}
 
 /* J1 — SCOREBOARD ALIGNMENT (coach). "The two team names should stay entirely
    within the width of the scoreboard cells below and should be centered
@@ -594,11 +451,6 @@
    the name and the columns it labels stopped lining up. A FIXED separator
    column makes the two halves exactly equal by construction and pins the whole
    block to the same 520px the quarter table uses. */
-.gi-reports .scoreboard-final{
-  grid-template-columns:1fr 44px 1fr;max-width:520px;width:100%;gap:0}
-.gi-reports .scoreboard-team{max-width:100%;min-width:0;justify-items:center}
-.gi-reports .scoreboard-name{max-width:100%;text-align:center;overflow-wrap:anywhere}
-.gi-reports .scoreboard-pts{line-height:1.05}
 
 /* J13 — the dead space moved rather than closed. H14 made this two columns
    because three left ~400px empty beside Drives; the stack then ran taller than
@@ -607,11 +459,8 @@
    runs full width, where a table belongs. What is left — Efficiency and By Down
    — is close to the height of Drives, and both columns size to their content
    instead of one stretching to match the other. */
-.gi-reports .gi-overview-row{align-items:start;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
-.gi-reports .gi-overview-row .gi-stack{align-content:start}
 
 /* J12 — the situation beside a big play's number. */
-.gi-reports .bp-sit{margin-left:var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);font-family:var(--gi-sans)}
 /* S6D answer-first pass: native Reports owns the KPI primitive. The shared
    legacy stylesheet still supplied rounded cards and its old surface palette,
    which made the migrated route look like an embedded dashboard. Hairline
@@ -631,12 +480,10 @@
 
 /* Readability floor: report explanations are coaching guidance, not metadata.
    Keep them neutral and readable; blue remains reserved for action/emphasis. */
-.gi-reports .stats-cut-hint,.gi-reports .viz-caption,
-.gi-reports .self-scout-intro,.gi-reports .tm-eligible,
-.gi-reports .gi-answer>p{
+.gi-reports .viz-caption{
   color:var(--gi-11);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
 }
-.gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4{
+.gi-reports .stats-section>h3{
   font:var(--gi-text-label);letter-spacing:0
 }
 
@@ -645,11 +492,6 @@
    section (the retired "Team Summary" block). The chart column is capped so
    two full-height tables next to a small donut don't stretch the donut cell
    to match them. */
-.gi-team-detail{display:grid;grid-template-columns:1fr 1fr auto;gap:var(--gi-5x);align-items:start}
-.gi-team-detail-chart{align-self:center;min-width:150px}
-.gi-team-detail-chart .chart-donut-block{margin:0}
-@media(max-width:820px){.gi-team-detail{grid-template-columns:1fr 1fr}.gi-team-detail-chart{grid-column:1/-1;justify-self:center}}
-@media(max-width:560px){.gi-team-detail{grid-template-columns:1fr}.gi-team-detail-chart{justify-self:stretch}}
 
 /* D — Team Profile: radar + actual-value table share a row on wide screens,
    the radar staying a stable square instead of floating alone in a full-width
@@ -674,46 +516,16 @@
    the separate non-interactive Drives list (their exact duplication, and the
    height mismatch it left under Drives, is why both were removed — see the
    comment on StatsEngine._renderDrives). */
-.gi-timeline{display:grid;gap:2px}
-.gi-tl-quarter{margin-top:var(--gi-3x);padding-bottom:2px;border-bottom:1px solid var(--gi-6);
-  color:var(--gi-11);font:650 10.5px/1.4 var(--gi-sans);letter-spacing:var(--gi-track-label);text-transform:uppercase}
-.gi-timeline>.gi-tl-quarter:first-child{margin-top:0}
-.gi-tl-drive{display:grid;grid-template-columns:44px minmax(60px,1fr) auto minmax(0,1.4fr) 64px;
-  align-items:center;gap:var(--gi-2x);min-height:30px;padding:0 var(--gi-1x);cursor:pointer}
-.gi-tl-drive:hover,.gi-tl-drive:focus-visible{background:var(--gi-3);outline:none}
-.gi-tl-num{color:var(--gi-11);font:var(--gi-text-caption);font-variant-numeric:var(--gi-num-feat)}
-.gi-tl-track{min-width:0;height:12px;background:var(--gi-3)}
-.gi-tl-track i{display:block;height:100%}
-.gi-tl-markers{display:flex;gap:3px;font-size:10px;line-height:1}
-.gi-tl-mark{font-style:normal}
-.gi-tl-score{color:var(--gi-first-down)}
-.gi-tl-turnover{color:var(--gi-turnover)}
-.gi-tl-explosive{color:var(--gi-warn)}
-.gi-tl-meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gi-11);font:var(--gi-text-caption)}
-.gi-tl-outcome{text-align:right;font:650 11px/1 var(--gi-sans);letter-spacing:var(--gi-track-label);text-transform:uppercase}
-.gi-tl-flow{margin:var(--gi-4x) 0 0;padding-top:var(--gi-3x);border-top:1px solid var(--gi-6)}
-.gi-tl-flow figcaption{display:flex;justify-content:space-between;margin-bottom:var(--gi-1x);
-  color:var(--gi-11);font:var(--gi-text-caption)}
-.gi-tl-flow figcaption span{color:var(--gi-12);font-variant-numeric:var(--gi-num-feat)}
-.gi-tl-flow svg{width:100%;height:34px;display:block}
-@media(max-width:640px){
-  .gi-tl-drive{grid-template-columns:36px minmax(40px,1fr) auto 60px;}
-  .gi-tl-meta{display:none}
-}
 
 /* Coach: a tile's definition (i) mark rendered on its own row, below the
    label, because `.gi-glance-tile` is a bare `display:grid` with no explicit
    columns — every direct child becomes its own implicit row. The label text
    and its (i) mark are now ONE child (see StatsEngine._statTile), laid out
    as a single centered inline row so they can never be pulled apart again. */
-.gi-reports .gi-glance-label{display:inline-flex;align-items:center;justify-content:center;gap:4px}
 /* The Situational lens now always renders every spot its caption names,
    including ones with zero charted snaps — those get this state instead of
    silently vanishing. Deliberately not a cut-row: there is no film to watch
    for a situation with no plays in it. */
-.gi-reports .gi-glance-tile.is-empty{border-style:dashed;background:transparent}
-.gi-reports .gi-glance-tile.is-empty strong{color:var(--gi-8)}
-.gi-reports .gi-glance-tile.is-empty small{color:var(--gi-8);font-style:italic}
 
 /* 1.12.0-47 smoke closeout: clearer navigation, denser matrices, performance first. */
 .gi-reports-tabs{background:var(--gi-1);box-shadow:inset 0 -1px 0 var(--gi-7)}
@@ -722,14 +534,6 @@
 .gi-reports .tm-cell .tm-count{font-size:15px;font-weight:750;color:var(--gi-12)}
 .gi-reports .tm-cell .tm-split,.gi-reports .tm-cell .tm-succ{font-size:12px}
 .gi-reports .gi-answer-row span,.gi-reports .gi-answer-row strong{font:650 14px/1.3 var(--gi-sans)}
-.gi-reports .ss-performance-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--gi-6);padding:1px}
-.gi-reports .ss-performance-grid>div{display:grid;place-content:center;min-height:86px;padding:var(--gi-3x);background:var(--gi-2);text-align:center}
-.gi-reports .ss-performance-grid strong{color:var(--gi-12);font-family:var(--gi-cond);font-size:25px;font-variant-numeric:var(--gi-num-feat)}
-.gi-reports .ss-performance-grid span{margin-top:3px;color:var(--gi-11);font:var(--gi-text-label);text-transform:uppercase}
-.gi-reports .ss-predictability,.gi-reports .ss-def-predictability{border-left:3px solid var(--gi-warn)}
-.gi-reports .ss-def-predictability{margin:var(--gi-3x) 0;padding:var(--gi-2x) var(--gi-3x);background:var(--gi-2);color:var(--gi-11)}
-@media(max-width:900px){.gi-reports .ss-performance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:520px){.gi-reports .ss-performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .gi-table-wrap{min-width:0;overflow-x:auto}
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -762,15 +566,12 @@
    now carries the same restrained neutral leading-line, exactly like the
    comp's ".mh b{color:var(--ink-2)}" default. Gold/cyan are applied ONLY to
    sections that are actually offense/defense content, below. */
-.gi-reports .stats-section>h3,.gi-reports .gi-lens-head h4,
-.gi-reports .stats-section h4,.gi-reports .stats-section h5,
-.gi-reports .viz-section h4,.gi-reports .ss-section h4{
+.gi-reports .stats-section>h3,.gi-reports .stats-section h4,.gi-reports .stats-section h5{
   background:var(--gi-bd-lower-third-fill-bone);
 }
 /* The one board title a coach is actively reading (the lens board's own
    heading) keeps a solid gold fill -- this is one of the comp's four
    budgeted gold uses, not a section header in the ordinary sense. */
-.gi-reports .gi-lens-board>h3{background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 
 /* Offense/defense context, earned per tab. Every section header inside the
    Offense tab genuinely IS offensive production data, so the whole pane
@@ -848,24 +649,12 @@
    Same bug in both the offensive Top Tells table and the Defensive
    Tendency Tells table (both render through .ss-tells). Keep green/red on
    the badge and a thin row-edge only, per the review's exact instruction. */
-.gi-reports .ss-tells tr.ss-verdict-dominant,
-.gi-reports .ss-tells tr.ss-verdict-effective,
-.gi-reports .ss-tells tr.ss-verdict-exploitable{background:transparent}
-.gi-reports .ss-tells tr.ss-verdict-dominant td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--gi-ok) 60%,transparent)}
-.gi-reports .ss-tells tr.ss-verdict-effective td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--gi-warn) 60%,transparent)}
-.gi-reports .ss-tells tr.ss-verdict-exploitable td:first-child{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--gi-turnover) 60%,transparent)}
 
 /* Charlie Gate finding #2: Self-Scout must genuinely lead with performance,
    not just move the Predictability number a few rows down while the rest
    of the page stays tendency content. This divider marks where performance
    ends and tendency/predictability detail begins -- visually lighter than
    a .stats-section heading so it reads as a group label, not a module. */
-.gi-reports .ss-tier-divider{
-  margin:var(--gi-6x) 0 0;padding:var(--gi-3x) var(--gi-5x) var(--gi-1x);
-  color:var(--gi-11);font:700 10.5px/1 var(--gi-sans);
-  letter-spacing:var(--gi-track-label);text-transform:uppercase;
-  border-top:1px solid var(--gi-6);
-}
 
 /* Scoreboard reconciliation label -- Codex review of `d567f5c` (2026-08-17):
    the rail's Final Score tile and this section's own tagged-play total could
@@ -874,16 +663,6 @@
    to prefer; the mismatch line only appears when the two actually disagree,
    using the same danger tokens the failure alert already owns for "this
    needs the coach's attention," not a new semantic. */
-.gi-reports .scoreboard-kicker{
-  margin:0 0 var(--gi-2x);color:var(--gi-11);font:var(--gi-text-caption);
-  text-transform:uppercase;letter-spacing:var(--gi-track-label)
-}
-.gi-reports .scoreboard-kicker.is-mismatch{color:var(--gi-danger-border)}
-.gi-reports .scoreboard-mismatch{
-  margin:var(--gi-3x) 0 0;padding:var(--gi-2x) var(--gi-3x);
-  border-left:3px solid var(--gi-danger-border);background:var(--gi-danger-surface);
-  color:var(--gi-12);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
-}
 
 /* The Part 2 first pass compacted [data-native-main-report] into a CSS
    multi-column reflow. Reverted per direct coach verdict -- the reflow was
@@ -900,42 +679,20 @@
    Existing renderers remain the data and film owners. These wrappers only
    establish the broadcast-density reading order and remove duplicate panels. */
 .gi-reports .gi-overview-board{display:grid;gap:1px;margin:0 var(--gi-6x) var(--gi-6x);border:1px solid var(--gi-6);background:var(--gi-6)}
-.gi-reports .gi-overview-board>.gi-overview-score,.gi-reports .gi-overview-board>.gi-overview-production,.gi-reports .gi-overview-board>.gi-overview-metrics,.gi-reports .gi-overview-board>.gi-overview-decisions,.gi-reports .gi-overview-board>.gi-overview-support,.gi-reports .gi-overview-board>.gi-overview-timeline{min-width:0;background:var(--gi-2)}
+.gi-reports .gi-overview-board>.gi-overview-production,.gi-reports .gi-overview-board>.gi-overview-decisions,.gi-reports .gi-overview-board>.gi-overview-support{min-width:0;background:var(--gi-2)}
 .gi-reports .gi-overview-board .stats-section{margin:0;border:0;background:transparent}
-.gi-reports .gi-overview-reconciliation{display:flex;align-items:center;gap:var(--gi-4x);padding:10px var(--gi-5x);border-left:3px solid var(--gi-turnover);background:var(--gi-danger-surface);color:var(--gi-12);font:var(--gi-text-caption)}
-.gi-reports .gi-overview-reconciliation strong{color:var(--gi-turnover);white-space:nowrap}
-.gi-reports .gi-overview-score .stats-section{padding:var(--gi-5x)}
-.gi-reports .gi-overview-score .scoreboard-layout{grid-template-columns:minmax(380px,.95fr) minmax(420px,1.05fr);gap:var(--gi-6x)}
-.gi-reports .gi-overview-score .scoreboard-main{max-width:620px}
-.gi-reports .gi-overview-score .gi-glance-grid{align-self:start}
-.gi-reports .gi-overview-production .gi-team-detail{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1fr) minmax(180px,.55fr);gap:1px;padding:0;background:var(--gi-6)}
-.gi-reports .gi-overview-production .gi-team-detail>div{padding:var(--gi-5x);background:var(--gi-2)}
-.gi-reports .gi-overview-production .gi-team-detail-chart{display:grid;place-items:center;align-content:center}
 .gi-reports .gi-overview-production .stats-table td{padding-block:7px}
-.gi-reports .gi-overview-metrics .gi-lens-board{padding:var(--gi-5x)}
-.gi-reports .gi-overview-metrics .gi-lens-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--gi-6)}
-.gi-reports .gi-overview-metrics .gi-lens{padding:var(--gi-3x);background:var(--gi-2);border:0}
-.gi-reports .gi-overview-metrics .gi-lens-tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gi-2x)}
-.gi-reports .gi-overview-metrics .gi-lens-more{margin-top:var(--gi-3x)}
 .gi-reports .gi-overview-decisions{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);gap:1px;background:var(--gi-6)}
 .gi-reports .gi-overview-decisions>.stats-section{padding:var(--gi-5x)}
-.gi-reports .gi-overview-decisions>.stats-section:first-child .dd-gauges-row,
 .gi-reports .gi-overview-decisions>.stats-section:first-child>table:first-of-type{display:none}
 .gi-reports .gi-overview-decisions>.stats-section:first-child>h4{margin-top:0!important}
 .gi-reports .gi-overview-decisions>.stats-section:first-child>table:last-of-type tbody tr:nth-child(n+7){display:none}
-.gi-reports .gi-overview-decisions .game-plan-section .gp-list li:nth-child(n+4){display:none}
-.gi-reports .gi-overview-decisions .game-plan-section .gp-grid{grid-template-columns:1fr;gap:var(--gi-3x)}
-.gi-reports .gi-overview-decisions .game-plan-section .gp-item{padding-block:7px}
 .gi-reports .gi-overview-support{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(260px,.65fr);align-items:start;gap:1px;background:var(--gi-6)}
 .gi-reports .gi-overview-support>.stats-section{padding:var(--gi-5x)}
-.gi-reports .gi-overview-support .drives-top-row{display:block}
-.gi-reports .gi-overview-support .stats-grid-flex{grid-template-columns:repeat(2,minmax(0,1fr))}
-.gi-reports .gi-overview-support .drives-donut{margin:var(--gi-3x) auto 0}
 .gi-reports .gi-overview-support .gi-hero{grid-template-columns:repeat(2,minmax(0,1fr))}
 .gi-reports .gi-overview-support .gi-kpi{min-height:76px;padding:var(--gi-3x)}
-.gi-reports .gi-overview-timeline>.stats-section{padding:var(--gi-5x)}
-@media(max-width:1100px){.gi-reports .gi-overview-score .scoreboard-layout,.gi-reports .gi-overview-decisions{grid-template-columns:1fr}.gi-reports .gi-overview-production .gi-team-detail{grid-template-columns:1fr 1fr}.gi-reports .gi-overview-production .gi-team-detail-chart{grid-column:1/-1}.gi-reports .gi-overview-metrics .gi-lens-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.gi-reports .gi-overview-support{grid-template-columns:1fr 1fr}.gi-reports .gi-overview-support>.stats-section:last-child{grid-column:1/-1}}
-@media(max-width:700px){.gi-reports .gi-overview-board{margin:0 var(--gi-3x) var(--gi-4x)}.gi-reports .gi-overview-production .gi-team-detail,.gi-reports .gi-overview-metrics .gi-lens-grid,.gi-reports .gi-overview-support{grid-template-columns:1fr}.gi-reports .gi-overview-production .gi-team-detail-chart,.gi-reports .gi-overview-support>.stats-section:last-child{grid-column:auto}}
+@media(max-width:1100px){.gi-reports .gi-overview-decisions{grid-template-columns:1fr}.gi-reports .gi-overview-support{grid-template-columns:1fr 1fr}.gi-reports .gi-overview-support>.stats-section:last-child{grid-column:1/-1}}
+@media(max-width:700px){.gi-reports .gi-overview-board{margin:0 var(--gi-3x) var(--gi-4x)}.gi-reports .gi-overview-support{grid-template-columns:1fr}.gi-reports .gi-overview-support>.stats-section:last-child{grid-column:auto}}
 
 /* CHARLIE GATE — APPROVED BROADCAST-DENSITY COMPOSITION
    This is an explicit four-band report, not a reflow of legacy sections. */
@@ -980,7 +737,6 @@
 .gi-reports .gi-overview-module .cut-row:hover,
 .gi-reports .gi-overview-module [data-overview-play-id]:hover,
 .gi-reports .gi-overview-drive:hover{background:var(--gi-3)}
-.gi-reports .gi-overview-reconciliation{margin:0;border-radius:0}
 .gi-reports .gi-phase-ramp,.gi-reports .gi-yards-split{
   display:flex;height:7px;margin:0 0 var(--gi-3x);overflow:hidden;background:var(--gi-4)
 }
@@ -1022,13 +778,6 @@
 .gi-reports .gi-mini-mix i{flex:var(--n)}
 .gi-reports .gi-mini-mix i:first-child{background:var(--gi-bd-gold)}
 .gi-reports .gi-mini-mix i:last-child{background:var(--gi-bd-cyan)}
-.gi-reports .gi-overview-plan{padding-left:12px;border-left:3px solid var(--gi-first-down)}
-.gi-reports .gi-overview-plan.is-fix{margin-top:var(--gi-3x);border-left-color:var(--gi-turnover)}
-.gi-reports .gi-overview-plan p{
-  margin:0;padding:7px 0;color:var(--gi-11);font:500 12px/1.35 var(--gi-sans);
-  border-bottom:1px solid color-mix(in srgb,var(--gi-6) 72%,transparent)
-}
-.gi-reports .gi-overview-plan p:last-child{border-bottom:0}
 .gi-reports .gi-overview-drives{display:grid;gap:6px}
 .gi-reports .gi-overview-drive{display:grid;grid-template-columns:28px 1fr 60px;align-items:center;gap:8px;font:600 11px/1 var(--gi-sans)}
 .gi-reports .gi-overview-drive>i{height:8px;background:var(--gi-4);overflow:hidden}
@@ -1077,7 +826,6 @@
    the first play type. */
 .gi-reports [data-pane="overview"] .gi-yards-split{margin:6px 0 4px}
 .gi-reports [data-pane="overview"] .gi-yards-legend{margin:0 0 2px}
-.gi-reports [data-pane="overview"] .gi-yards-legend + .stats-table-wrap table{margin-top:0}
 
 /* Every module in a band fills the band, so a short one paints its own panel
    rather than leaving the band's rule colour showing as a slab. The rows keep
@@ -1089,7 +837,6 @@
   display:flex;flex-direction:column}
 .gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-rows,
 .gi-reports [data-pane="overview"] .gi-overview-module>table,
-.gi-reports [data-pane="overview"] .gi-overview-module>.stats-table-wrap,
 .gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-drives,
 .gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-tiles,
 .gi-reports [data-pane="overview"] .gi-overview-module>.gi-overview-lenses{flex:1}
@@ -1395,18 +1142,12 @@
 .gi-reports .gi-overview-lenses strong{display:block;margin-top:5px;color:var(--bd-ink);font:700 21px/1 var(--bd-cond)}
 .gi-reports .gi-yards-legend{display:flex;gap:20px;margin:0 0 6px;color:var(--bd-ink-3);font:600 12.5px/1.2 var(--gi-sans)}
 .gi-reports .gi-mini-mix{width:52px;height:7px;gap:2px;margin-right:7px}
-.gi-reports .gi-overview-plan{display:flex;flex-direction:column;gap:6px;padding:0;border:0}
-.gi-reports .gi-overview-plan.is-fix{margin-top:9px;border:0}
-.gi-reports .gi-overview-plan p{position:relative;margin:0;padding:0 0 0 13px;border:0;color:var(--bd-ink-2);font:400 12.5px/1.4 var(--gi-sans)}
-.gi-reports .gi-overview-plan p::before{content:"";position:absolute;left:0;top:6px;width:6px;height:6px;background:var(--bd-good)}
-.gi-reports .gi-overview-plan.is-fix p::before{background:var(--bd-crit)}
 .gi-reports .gi-overview-drives{display:flex;flex-direction:column;gap:3px}
 .gi-reports .gi-overview-drive{display:grid;grid-template-columns:22px 1fr 52px;align-items:center;gap:9px;padding:2px 0;font:400 12px/1.4 var(--gi-sans)}
 .gi-reports .gi-overview-drive>i{height:8px;background:var(--bd-panel-3)}
 .gi-reports .gi-overview-drive>i>b{background:var(--bd-gold)}
 .gi-reports .gi-overview-drive>small{color:var(--bd-ink-2);font-size:12.5px}
 .gi-reports .gi-overview-production,.gi-reports .gi-overview-support{border:0}
-.gi-reports .gi-overview-reconciliation{margin:0;border-radius:0}
 @media(max-width:1100px){
   .gi-reports .gi-reports-scorebug{grid-template-columns:auto auto auto 1fr}
   .gi-reports .gi-overview-kpis{grid-template-columns:repeat(4,1fr)}
@@ -1435,15 +1176,6 @@
    the broad scanning column, while field-goal detail, specialists and impact
    plays stack in the narrower column. Short modules fill one another's
    vertical space instead of stretching beside the longest table. */
-.gi-reports .gi-st-detail-band{grid-template-columns:1fr;align-items:start}
-.gi-reports .gi-st-detail-band.has-return-game{grid-template-columns:minmax(0,1.55fr) minmax(330px,.75fr)}
-.gi-reports .gi-st-detail-stack{display:grid;gap:1px;min-width:0;align-content:start;background:var(--bd-rule)}
-.gi-reports .gi-st-detail-stack>.gi-overview-module{border:0}
-.gi-reports .gi-st-detail-band:not(.has-return-game)>.gi-st-detail-stack{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-@media(max-width:900px){
-  .gi-reports .gi-st-detail-band.has-return-game{grid-template-columns:1fr}
-  .gi-reports .gi-st-detail-stack{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-}
 
 /* Special Teams' own season/game scope toggle -- structurally identical to
    Defense's `.gi-def-toolbar`/`.gi-def-scope` (same flex/border/button
@@ -2182,14 +1914,13 @@
 
 /* ── OFFENSE BANDS ─────────────────────────────────────────────────────── */
 .gi-reports .gi-off-identity{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}
-.gi-reports .gi-off-even{grid-template-columns:repeat(2,minmax(0,1fr))}
 .gi-reports .gi-off-full{grid-template-columns:minmax(0,1fr)}
 /* At 1280 the three-column structure bands STAY three columns: each module is
    ~423px, which fits its five data columns with no clipping. Dropping to two
    would spread four values across the full width and reproduce the long
    eye-traverse this composition exists to remove. */
 @media(max-width:1180px){
-  .gi-reports .gi-off-identity,.gi-reports .gi-off-even,.gi-reports .gi-off-b2,.gi-reports .gi-off-b2e{grid-template-columns:minmax(0,1fr)}
+  .gi-reports .gi-off-identity,.gi-reports .gi-off-b2,.gi-reports .gi-off-b2e{grid-template-columns:minmax(0,1fr)}
 }
 
 /* Zone 1 identity strip — the tile vocabulary already used by Situational.
@@ -2335,7 +2066,6 @@
 .gi-reports .gi-offense-board .gi-overview-band-2,
 .gi-reports .gi-off-identity{ grid-template-columns:minmax(0,8fr) minmax(0,4fr) }
 .gi-reports .gi-offense-board .gi-overview-band-3{ grid-template-columns:repeat(3,minmax(0,4fr)) }
-.gi-reports .gi-off-even{ grid-template-columns:repeat(2,minmax(0,6fr)) }
 .gi-reports .gi-off-tendency-band{grid-template-rows:auto auto}
 .gi-reports .gi-off-tendency-band .gi-off-formation{grid-column:1;grid-row:1}
 .gi-reports .gi-off-tendency-band .gi-off-play-type{grid-column:2;grid-row:1}
@@ -2494,7 +2224,6 @@
 }
 .gi-reports .gi-offense-board .gi-epa-subhead.is-win{color:var(--gi-bd-gold)}
 .gi-reports .gi-offense-board .gi-epa-subhead.is-loss{color:var(--gi-bd-loss)}
-.gi-reports .gi-offense-board .gi-table-empty-cell{color:var(--gi-bd-muted)}
 
 /* ── OFFENSE BOARD TYPE: ALIGNED TO THE DESIGN-SYSTEM TOKENS ──────────────
    PLAN-V2 §"Operational copy uses one readable UI/body family. Condensed and
@@ -3024,14 +2753,9 @@
   .gi-reports .gi-players-sections.cols-2{ grid-template-columns:minmax(0,1fr) }
   .gi-reports .gi-players-col+.gi-players-col{ box-shadow:none;border-top:1px solid var(--gi-bd-line) }
 }
-.gi-reports .gi-player-band{ display:grid;gap:1px;align-items:start;margin:0;background:transparent }
-.gi-reports .gi-player-band.b-1{ grid-template-columns:minmax(0,1fr) }
-.gi-reports .gi-player-band.b-2{ grid-template-columns:repeat(2,minmax(0,1fr)) }
 /* Content-height modules would show the band's own background as a solid slab
    under a short module, so the column rule is painted into the 1px gap with a
    box-shadow instead. Same fix the Offense and Special Teams boards carry. */
-.gi-reports .gi-player-band>.gi-player-module+.gi-player-module{ box-shadow:-1px 0 var(--gi-bd-line) }
-.gi-reports .gi-player-band+.gi-player-band .gi-player-module{ border-top:1px solid var(--gi-bd-line) }
 
 .gi-reports .gi-player-module{
   min-width:0;padding:10px var(--gi-3x) 12px;border:0;background:var(--gi-bd-panel);position:relative
@@ -3182,30 +2906,10 @@
 }
 .gi-reports .gi-player-module table.gi-player-table .cut-row:hover td.tl::before,
 .gi-reports .gi-player-module table.gi-player-table .cut-row:focus-visible td.tl::before{ opacity:1 }
-
-@media(max-width:1420px){
-  .gi-reports .gi-player-band.b-2.is-wide{ grid-template-columns:minmax(0,1fr) }
-  .gi-reports .gi-player-band.b-2.is-wide>.gi-player-module+.gi-player-module{
-    box-shadow:none;border-top:1px solid var(--gi-bd-line)
-  }
-  /* A stacked band's module is roughly twice as wide, so its measurement
-     columns are roughly twice as wide too. Left at the paired widths the
-     identity column absorbs all ~830px of the extra room, and a row reads as a
-     name at the far left with its first number at the far right of a 38px
-     line. */
-  .gi-reports .gi-player-band.b-2.is-wide{
-    --p-s:88px;--p-c:96px;--p-m:112px;--p-l2:112px;--p-l:112px;--p-pct:124px;
-    --p-ca:136px;--p-g:136px;--p-xl:150px
-  }
-}
 @media(max-width:900px){
   .gi-reports .gi-players-report{ grid-template-columns:minmax(0,1fr) }
   .gi-reports .gi-players-toolbar{ grid-column:1 }
   .gi-reports .gi-players-toolbar{ flex-wrap:wrap;white-space:normal }
-  .gi-reports .gi-player-band.b-2{ grid-template-columns:minmax(0,1fr) }
-  .gi-reports .gi-player-band.b-2>.gi-player-module+.gi-player-module{
-    box-shadow:none;border-top:1px solid var(--gi-bd-line)
-  }
 }
 
 @media(max-width:1360px){
