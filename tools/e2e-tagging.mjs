@@ -117,14 +117,11 @@ r = await page.evaluate(() => {
   const p = t.plays[5];
   t.selectPlay(p.id);
   // blank the result, then enter yardage like a coach would
-  t.tagFields.result.value = '';
-  t._saveField('result');
-  t.tagFields.yardage.value = '7';
-  t._saveField('yardage');
+  t.setTagValue('result', '');
+  t.setTagValue('yardage', '7');
   const afterPositive = { result: p.tags.result, yardage: p.tags.yardage };
   // explicit result still wins: switch to Loss, yardage goes negative
-  t.tagFields.result.value = 'Loss';
-  t._saveField('result');
+  t.setTagValue('result', 'Loss');
   const afterLoss = { result: p.tags.result, yardage: p.tags.yardage };
   return { afterPositive, afterLoss };
 });

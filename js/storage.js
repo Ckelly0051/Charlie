@@ -1269,9 +1269,6 @@ export class StorageManager {
     // ids restart per game, so a stale currentPlayId would silently highlight
     // an unrelated play if the incoming game has no saved selection.
     this.tagger.currentPlayId = null;
-    // Blank the tag form too — otherwise the previous game's chips stay lit
-    // and a coach clicking them edits nothing (currentPlayId is null).
-    try { this.tagger._clearTagForm(); } catch (e) {}
     if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }

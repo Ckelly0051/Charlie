@@ -410,8 +410,6 @@ export class AutoDetectScreen {
     }
     tagger._updatePlaySelect?.();
     tagger._updateTimeline?.();
-    const current = tagger.getCurrentPlay?.();
-    if (current) tagger._loadTagForm(current);
     return stamped;
   }
 

@@ -191,12 +191,8 @@ export class BreakdownWorkspace {
 
   _syncScoutGame() {
     const gameId = this._activeGameId();
-    const changedGame = gameId !== this._contextGameId;
     this._contextGameId = gameId;
     this.scoutMode = this._isScoutFilm() ? 'scout' : 'self';
-    if (!changedGame || this.app.tagger?.getCurrentPlay()) return;
-    const unit = this.app.tagger?.defaultUnit || 'offense';
-    if (this.app.tagger?.unitField) this.app.tagger.unitField.value = unit;
   }
 
   setSaveState(state) {

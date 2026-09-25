@@ -38,8 +38,7 @@ let state=await page.evaluate(()=>{
   const controls=[...root.querySelectorAll('button,select,input,textarea,summary')].filter(n=>n.getClientRects().length);
   const text=root.textContent;
   // Final Engine Independence: there is no legacy .tag-section markup left to
-  // hide/adopt/observe -- PlayTagger's field storage is DOM-free (PlainField/
-  // PlainInput). The stronger, real guarantee is that .tag-section is
+  // hide/adopt/observe -- PlayTagger writes plays from explicit values. The stronger, real guarantee is that .tag-section is
   // genuinely ABSENT from the document, not merely hidden off-screen.
   return{roots:document.querySelectorAll('[data-native-tagging]').length,legacyFormAbsent:!document.querySelector('.tag-section'),
     ids:[...root.querySelectorAll('[id]')].map(n=>n.id),proxy:root.querySelectorAll('[data-native-tag-proxy]').length,fields,controls:controls.length,

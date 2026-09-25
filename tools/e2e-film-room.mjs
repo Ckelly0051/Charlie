@@ -519,12 +519,12 @@ if (resultEditorOpened) {
 r = await page.evaluate((id) => {
   const play = window.app.tagger.getPlay(id);
   const cellText = document.querySelector(`[data-cell="${id}:result"]`)?.textContent || '';
-  const formVal = window.app.tagger.tagFields.result.value;   // play is selected -> form synced
+  const formVal = window.app.nativeTagging.snapshot().values.result;   // play is selected -> Chart shows it
   return { tag: play.tags.result, cellText, formVal, popGone: !document.querySelector('.gi-film-cell-editor') };
 }, resultId);
 ok(resultEditorOpened, 'second click on the same cell opens the editor', String(resultEditorOpened));
 ok(r.tag === 'Touchdown' && /Touchdown/.test(r.cellText), 'multi-enum edit commits to tags + cell', JSON.stringify(r));
-ok(r.formVal === 'Touchdown', 'tag form synced for the selected play', r.formVal);
+ok(r.formVal === 'Touchdown', 'Chart shows the grid edit for the selected play', r.formVal);
 ok(r.popGone, 'editor closes after Done');
 
 // Yardage magnitude + Loss sign rule (mirror of the form). Fully pure.

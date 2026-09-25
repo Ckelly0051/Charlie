@@ -183,7 +183,7 @@ test('16d · (E2-R1) Same-as-Last onto an ST result strips forbidden fields', ()
   const pt = Object.create(PlayTagger.prototype);
   pt.plays = [src, cur];
   pt.getCurrentPlay = () => cur;
-  pt._loadTagForm = () => {}; pt._updateTimeline = () => {}; pt._emit = () => {};
+  pt._updateTimeline = () => {}; pt._emit = () => {};
   pt.copyFromPrevious();
   assert.equal(cur.tags.unit, 'special', 'copy carried the special unit');
   for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(cur.tags[k], '', `${k} leaked via Same-as-Last`);
@@ -197,7 +197,7 @@ test('16e · (E2-R1) template application onto an ST result strips forbidden fie
     unit: 'special', formation: 'Shotgun + Trips', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   } });
-  pt._loadTagForm = () => {}; pt._updateTimeline = () => {}; pt._emit = () => {};
+  pt._updateTimeline = () => {}; pt._emit = () => {};
   pt.applyTemplate('leaky');
   assert.equal(cur.tags.unit, 'special');
   for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(cur.tags[k], '', `${k} leaked via template`);
@@ -209,7 +209,7 @@ test('16f · (E2-R1) an OFFENSE Same-as-Last keeps its look (strip is unit-condi
   const pt = Object.create(PlayTagger.prototype);
   pt.plays = [src, cur];
   pt.getCurrentPlay = () => cur;
-  pt._loadTagForm = () => {}; pt._updateTimeline = () => {}; pt._emit = () => {};
+  pt._updateTimeline = () => {}; pt._emit = () => {};
   pt.copyFromPrevious();
   assert.equal(cur.tags.unit, 'offense', 'copy carried the offense unit');
   assert.equal(cur.tags.formation, 'Trips', 'offense look must survive');
@@ -227,7 +227,7 @@ test('17 · (E1-R6) carry fills the four pre-snap fields on a blank offensive ta
   const prev = legacyPlay(10, { unit: 'offense', qbAlignment: 'Shotgun', backfield: 'Power', strength: 'Right', formation: 'Trips' });
   const next = legacyPlay(11, { unit: 'offense' });
   const pt = Object.create(PlayTagger.prototype);
-  pt._loadTagForm = () => {}; pt._emit = () => {};
+  pt._emit = () => {};
   pt.applyCarryScheme(prev, next);
   assert.equal(next.tags.qbAlignment, 'Shotgun');
   assert.equal(next.tags.backfield, 'Power');
@@ -238,7 +238,7 @@ test('17b · (E1-R6) carry does NOT leak onto a special-teams target', () => {
   const prev = legacyPlay(12, { unit: 'offense', qbAlignment: 'Shotgun', backfield: 'Power' });
   const next = legacyPlay(13, { unit: 'special' });
   const pt = Object.create(PlayTagger.prototype);
-  pt._loadTagForm = () => {}; pt._emit = () => {};
+  pt._emit = () => {};
   pt.applyCarryScheme(prev, next);
   assert.equal(next.tags.qbAlignment || '', '');
   assert.equal(next.tags.backfield || '', '');

@@ -139,7 +139,7 @@ export class TagProjection {
 
   /**
    * THE single promote-then-strip commit mechanic (E4/E4-2) — shared by the
-   * tag form's per-field save (`PlayTagger._saveField`), its whole-play
+   * charting write (`PlayTagger.setTagValue`), its whole-play
    * canonicalization (`PlayTagger.commitProjectedLook`), and Film Room's grid
    * inline editor (`PlayGrid._applyEdit`), so all three call sites use one
    * algorithm instead of drifting copies. Mutates `play.tags` in place for

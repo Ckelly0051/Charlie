@@ -481,7 +481,7 @@ export class PlayGrid {
     } else if (col.type === 'sit') {
       play.tags.down = value.down;
       play.tags.distance = value.distance;
-      // Mirror _saveField: a manual Dn&Dist edit clears the auto-fill flag so
+      // Mirror setTagValue: a manual Dn&Dist edit clears the auto-fill flag so
       // the next Save & Next can't overwrite the correction (applyNextSituation
       // gates on !_autoSit).
       play._autoSit = false;
@@ -491,7 +491,7 @@ export class PlayGrid {
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
       // E3b-P1/E4/E4-2 PROMOTE-THEN-STRIP (structural — see
       // TagProjection.reconcileSiblings, the exact same call the tag form's
-      // _saveField makes). A legacy play stores a sibling dimension inside a
+      // setTagValue makes). A legacy play stores a sibling dimension inside a
       // primary field (alignment inside formation/backfield, 'Empty' inside
       // formation, family inside coverage), and projection derives that
       // sibling FROM the string. Overwriting the primary with the coach's
@@ -503,13 +503,13 @@ export class PlayGrid {
       // the whole commit is a single history entry (undoable as one unit).
       TagProjection.reconcileSiblings(play, col.key);
       play.tags[col.key] = value;
-      // Unambiguous play type auto-fills Run/Pass (mirror of _saveField).
+      // Unambiguous play type auto-fills Run/Pass (mirror of setTagValue).
       if (col.key === 'playType') {
         const auto = PlayTagger.runPassForPlayType(value);
         if (auto && play.tags.runPass !== auto) play.tags.runPass = auto;
       }
     }
-    // Positive yardage with no result yet = a gain (mirror of _saveField), so a
+    // Positive yardage with no result yet = a gain (mirror of setTagValue), so a
     // yardage-only grid edit is classified the same as one typed in the form.
     if (col.key === 'yardage' && !play.tags.result) {
       if ((parseInt(String(play.tags.yardage), 10) || 0) > 0) play.tags.result = 'Gain';
@@ -524,8 +524,6 @@ export class PlayGrid {
         play.tags.yardage = String(res.includes('Loss') || res.includes('Sack') ? -mag : mag);
       }
     }
-    // Keep the tag form in lockstep when the edited play is loaded in it.
-    if (play.id === this.tagger.currentPlayId) this.tagger._loadTagForm(play);
     this.tagger._emit('play-updated', play);
   }
 

@@ -14,8 +14,8 @@ import { PlayDiagram } from './play-diagram.js';
  * view renders model state in Preact-owned markup (native-tagging.jsx) and
  * delegates explicit coach actions to those owners. Final Engine
  * Independence: this controller has no legacy DOM source to adopt/hide/
- * observe any more — PlayTagger's own field objects are DOM-free (see
- * play-tagger.js's PlainField/PlainInput), so a coach action reaches state
+ * observe any more — PlayTagger writes a play from explicit values
+ * (setTagValue / toggleTagValue), so a coach action reaches state
  * directly and this class republishes on the SAME domain events it always
  * subscribed to. There is nothing left to watch a hidden subtree for.
  */

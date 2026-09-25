@@ -148,7 +148,7 @@ let r = await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
   const before = JSON.stringify(t.getPlay(ids.legacyFormation).tags);
   const stackBefore = hist.stack.length;
-  t.selectPlay(ids.legacyFormation);   // real selection path, drives _loadTagForm
+  t.selectPlay(ids.legacyFormation);   // real selection path
   return {
     unchanged: JSON.stringify(t.getPlay(ids.legacyFormation).tags) === before,
     noHistoryEntry: hist.stack.length === stackBefore,
@@ -431,7 +431,7 @@ console.log('\n== 10. "New Drive" writes ONLY Drive Number — a legacy sibling 
 // display) from a click that only meant to bump the drive counter — a
 // field-level-merge violation regardless of the promote guard it also had.
 // The fix: New Drive now commits ONLY driveNumber via the same single-field
-// _saveField path every other field's own change listener uses.
+// setTagValue path every other charting write uses.
 const before10 = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9106;

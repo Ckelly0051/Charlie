@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-09-25 (Pass 1 one owner per rule)",
+  "recorded": "2026-09-25 (Pass 2 step 1: the charting form fields are gone)",
   "note": "Phase 0 baseline (docs/LEGACY-EXCISION-PLAN.md). Counts may only fall; lower them here in the commit that removes legacy code.",
   "counts": {
     "deadNames": 0,
@@ -7,8 +7,8 @@
     "retiredTests": 0,
     "inlineUnitRules": 1,
     "projectedPairsAlias": 0,
-    "plainFieldRefs": 25,
-    "taggerFieldReadsOutsideTagger": 12,
+    "plainFieldRefs": 0,
+    "taggerFieldReadsOutsideTagger": 0,
     "localStorageCalls": 92,
     "windowAppRefs": 73,
     "innerHtmlSinks": 38,

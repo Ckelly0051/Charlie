@@ -57,7 +57,7 @@ const result = await page.evaluate(async () => {
   // are genuinely reachable.
   const frontChips = app.customChips.library.group('front').values;
   const formChips = app.customChips.library.group('formation').values;
-  const frontIsMulti = tagger.tagFields.defFront.multi === true;
+  const frontIsMulti = tagger.constructor.MULTI_TAGS.includes('defFront');
 
   // Native republishing is queued as a microtask (NativeTaggingScreen._queuePublish),
   // so every action below needs an explicit tick before the DOM reflects it.
@@ -78,14 +78,14 @@ const result = await page.evaluate(async () => {
 
   // Multi-select round trip: load play 1 (defense) into the form, check both
   // chips render active in the native form, and PlayTagger's own field value
-  // round-trips the multi string -- both DOM-free (tagFields.defFront.value
-  // is a plain property, no DOM read) and coach-visible.
+  // round-trips the multi string -- both DOM-free (displayTagValue reads the
+  // play) and coach-visible.
   tagger.selectPlay(1);
   await tick();
   app.nativeTagging.setUnit('defense');
   await tick();
   const activeFronts = [...document.querySelectorAll('[data-native-field="defFront"] .gi-tag-chips button.is-active')].map(b => b.textContent.trim());
-  const fieldValue = tagger.tagFields.defFront.value;
+  const fieldValue = tagger.displayTagValue('defFront');
 
   return {
     jumboCount: jumbo?.count, maverickCount: maverick?.count,
@@ -118,7 +118,7 @@ const checks = [
   ['Motion chips Jet/Orbit/Shift/Trade', ['Jet','Orbit','Shift','Trade'].every(m => result.motionChips.includes(m))],
   ['Direction chips L/M/R', ['Left','Middle','Right'].every(d => result.dirChips.includes(d))],
   ['Native form shows both front chips active for multi play', JSON.stringify([...result.activeFronts].sort()) === JSON.stringify(['Jumbo Shift','Maverick'])],
-  ['PlayTagger field value round-trips the multi string', result.fieldValue === 'Maverick + Jumbo Shift'],
+  ['PlayTagger value round-trips the multi string', result.fieldValue === 'Maverick + Jumbo Shift'],
 ];
 
 let pass = 0, fail = 0;

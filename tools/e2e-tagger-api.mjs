@@ -5,8 +5,8 @@
  * (shown and stored units drifting apart).
  *
  * 1. Each rule the write carries, with explicit expected values.
- * 2. While the transitional field path still exists, the old path (field +
- *    _saveField) and the new API give identical plays for the same operations.
+ * 2. (Retired with the field path: the old-path-versus-API agreement check.)
+ * 3. Keyboard shortcuts write through the same API.
  * Run:  node tools/e2e-tagger-api.mjs
  */
 import { APP_URL } from './app-entry.mjs';
@@ -58,32 +58,6 @@ const r = await page.evaluate(async () => {
   t.setTagValue('down', '3'); out.oneEmit = emits;
   t.getPlay(2)._autoSit = true; t.setTagValue('distance', '4'); out.sit = t.getPlay(2)._autoSit;
 
-  // --- 2. Old field path and new API agree, operation by operation ---
-  const ops = [
-    ['toggle', 'formation', 'Trips'], ['toggle', 'formation', 'Unbalanced'], ['toggle', 'formation', 'Trips'],
-    ['toggle', 'qbAlignment', 'Shotgun'], ['toggle', 'playType', 'Run Outside'], ['toggle', 'playType', 'RPO'],
-    ['toggle', 'result', 'Gain'], ['set', 'yardage', '12'], ['toggle', 'result', 'Sack'], ['toggle', 'defFront', '4-3'],
-    ['toggle', 'coverage', 'Cover 3'], ['set', 'down', '2'], ['set', 'distance', '8'], ['toggle', 'hash', 'Right'],
-  ];
-  const starts = [{}, { formation: 'Shotgun + Trips', backfield: '' }, { formation: 'Under Center + Flexbone', backfield: '', coverage: 'Cover 3 Match' }];
-  out.agree = [];
-  for (const start of starts) {
-    const a = mk(10, clone(start)), b = mk(11, clone(start));
-    t.plays = [a, b];
-    // Old path: seed the fields from the play, then field + _saveField.
-    t.selectPlay(10);
-    for (const [kind, key, value] of ops) {
-      if (kind === 'toggle') t.tagFields[key].toggle(value); else t.tagFields[key].value = value;
-      t._saveField(key);
-    }
-    // New path.
-    t.selectPlay(11);
-    for (const [kind, key, value] of ops) (kind === 'toggle' ? t.toggleTagValue(key, value) : t.setTagValue(key, value));
-    const strip = p => { const c = clone(p.tags); return c; };
-    const A = strip(t.getPlay(10)), B = strip(t.getPlay(11));
-    const differ = [...new Set([...Object.keys(A), ...Object.keys(B)])].filter(k => JSON.stringify(A[k]) !== JSON.stringify(B[k])).map(k => `${k}: old ${JSON.stringify(A[k])} api ${JSON.stringify(B[k])}`);
-    out.agree.push({ start, same: !differ.length, differ });
-  }
   return out;
 });
 
@@ -98,9 +72,6 @@ ok(r.singleSet === 'Left' && r.singleClear === '', 'a single-select chip sets, a
 ok(r.people.player === '22' && r.people.grade === 1 && !r.peopleCleared.player && !r.peopleCleared.grade, 'players and grades trim, parse, and clear by removal', JSON.stringify(r));
 ok(r.oneEmit === 1, 'one write is one play-updated emit (one undo step)', String(r.oneEmit));
 ok(r.sit === false, 'a hand-entered down or distance marks the situation as the coach\'s', String(r.sit));
-
-console.log('\n== 2. Old field path and new API agree ==');
-for (const a of r.agree) ok(a.same, `identical plays from ${JSON.stringify(a.start)} through 14 operations`, a.differ.join(' | '));
 
 console.log('\n== 3. Keyboard shortcuts write through the same API ==');
 const kb = await page.evaluate(async () => {

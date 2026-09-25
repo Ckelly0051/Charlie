@@ -151,13 +151,7 @@ export class HistoryManager {
     // duplicate an existing id when ids are non-contiguous after deletes).
     this.tagger.nextId = data.nextId ?? (Math.max(0, ...this.tagger.plays.map(p => Number(p.id) || 0)) + 1);
     const cid = data.currentPlayId;
-    if (cid && this.tagger.getPlay(cid)) {
-      this.tagger.currentPlayId = cid;
-      this.tagger._loadTagForm(this.tagger.getPlay(cid));
-    } else {
-      this.tagger.currentPlayId = null;
-      this.tagger._clearTagForm();
-    }
+    this.tagger.currentPlayId = cid && this.tagger.getPlay(cid) ? cid : null;
     this.lastSnap = snap;
     this.recording = true;
     // Wholesale plays replacement — announce it so subscribers that mirror

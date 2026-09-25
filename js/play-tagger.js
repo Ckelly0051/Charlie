@@ -2,171 +2,8 @@ import { countedUnit, gainedFirstDown, isPlayTagged } from './football-rules.js'
 import { PenaltyModel } from './penalty-model.js';
 import { SeasonStore } from './season-store.js';
 import { TagProjection } from './tag-projection.js';
-// E4: the form must SEED from the projected view (StatsEngine.proj), never raw
-// tags — see the _loadTagForm/formation comment below for why seeding from raw
-// is not just "less honest" but an active data-corruption hazard for ChipField.
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
-
-/**
- * ChipField — lightweight wrapper so a div.pick-group behaves like a
- * <select> for the rest of the tagger: .value get/set, change events.
- */
-class ChipField {
-  constructor(el, opts = {}) {
-    this.el = el;
-    this.multi = !!opts.multi;       // allow multiple chips active at once
-    // Presentational marker so CSS can style multi-select groups (tinted +
-    // border + ✓) distinctly from single-choice groups (solid fill). No logic
-    // change — the design refresh keys off this to make radio-vs-checkbox
-    // groups legible at a glance (§4.1).
-    if (this.multi) el.classList.add('cf-multi');
-    // Groups of mutually exclusive values within a multi field: adding one
-    // removes its rivals (e.g. a play can't be both Gain and Loss, but can be
-    // Fumble + Touchdown). Array of arrays.
-    this.exclusive = opts.exclusive || [];
-    this._value = '';
-    this._values = [];               // selected values when multi
-    this._listeners = {};
-    this.chips = [...el.querySelectorAll('[data-value]')];
-    this.chips.forEach(chip => this._bindChip(chip));
-  }
-  /** Wire a chip's toggle behavior (shared by the constructor + runtime chips). */
-  _bindChip(chip) {
-    chip.addEventListener('click', (e) => {
-      e.preventDefault();
-      const v = chip.dataset.value;
-      if (this.multi) {
-        const i = this._values.indexOf(v);
-        if (i >= 0) this._values.splice(i, 1);
-        else { this._dropRivals(v); this._values.push(v); }
-        this._syncMulti();
-      } else {
-        this.value = this._value === v ? '' : v;
-      }
-      this._fire('change');
-    });
-  }
-  /** Remove values that are mutually exclusive with v (multi mode). */
-  _dropRivals(v) {
-    for (const group of this.exclusive) {
-      if (!group.includes(v)) continue;
-      this._values = this._values.filter(x => x === v || !group.includes(x));
-    }
-  }
-  // For multi fields .value is a " + "-joined string (e.g. "Pistol + Spread")
-  // so the rest of the tagger and all downstream consumers keep treating the
-  // field as a plain string.
-  get value() { return this.multi ? this._values.join(' + ') : this._value; }
-  set value(v) {
-    if (this.multi) {
-      this._values = String(v || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
-      this._syncMulti();
-    } else {
-      this._value = v || '';
-      this.chips.forEach(c => c.classList.toggle('active', c.dataset.value === this._value));
-    }
-  }
-  _syncMulti() {
-    const set = new Set(this._values);
-    this.chips.forEach(c => c.classList.toggle('active', set.has(c.dataset.value)));
-  }
-  /** Toggle a value (membership for multi, on/off for single). */
-  toggle(v) {
-    if (this.multi) {
-      const i = this._values.indexOf(v);
-      if (i >= 0) this._values.splice(i, 1);
-      else { this._dropRivals(v); this._values.push(v); }
-      this._syncMulti();
-    } else {
-      this.value = this._value === v ? '' : v;
-    }
-  }
-  addEventListener(event, fn) {
-    if (!this._listeners[event]) this._listeners[event] = [];
-    this._listeners[event].push(fn);
-  }
-  _fire(event) {
-    (this._listeners[event] || []).forEach(fn => fn());
-  }
-}
-
-/**
- * PlainField — Final Engine Independence: a DOM-free value holder carrying
- * the EXACT same public contract as ChipField above (.value get/set,
- * .toggle(v), .addEventListener('change', fn)), minus the DOM element it
- * used to wrap. PlayTagger's field-consuming logic (_saveField,
- * _loadTagForm, EXCLUSIVE_GROUPS, the multi-value " + " join) is byte-for-
- * byte unchanged whether a field is native-owned (this) or, for any legacy
- * consumer that still constructs one directly, DOM-backed (ChipField) — only
- * the storage backing changes. The coach-visible tag form
- * (native-tagging.jsx) never reads this object at all; it renders its own
- * chip buttons from `state.values[field]` (a plain snapshot of play.tags)
- * and calls PlayTagger's setField/toggleField, which write straight through
- * this holder. There is no hidden DOM this class depends on for correctness.
- */
-class PlainField {
-  constructor(opts = {}) {
-    this.multi = !!opts.multi;
-    this.exclusive = opts.exclusive || [];
-    this._value = '';
-    this._values = [];
-    this._listeners = {};
-  }
-  get value() { return this.multi ? this._values.join(' + ') : this._value; }
-  set value(v) {
-    if (this.multi) this._values = String(v || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
-    else this._value = v || '';
-  }
-  /** Remove values that are mutually exclusive with v (multi mode). Same rule
-   *  as ChipField._dropRivals, kept in sync deliberately (both read the same
-   *  PlayTagger.EXCLUSIVE_GROUPS table passed in at construction). */
-  _dropRivals(v) {
-    for (const group of this.exclusive) {
-      if (!group.includes(v)) continue;
-      this._values = this._values.filter(x => x === v || !group.includes(x));
-    }
-  }
-  toggle(v) {
-    if (this.multi) {
-      const i = this._values.indexOf(v);
-      if (i >= 0) this._values.splice(i, 1);
-      else { this._dropRivals(v); this._values.push(v); }
-    } else {
-      this.value = this._value === v ? '' : v;
-    }
-  }
-  addEventListener(event, fn) {
-    if (!this._listeners[event]) this._listeners[event] = [];
-    this._listeners[event].push(fn);
-  }
-  _fire(event) {
-    (this._listeners[event] || []).forEach(fn => fn());
-  }
-}
-
-/**
- * PlainInput — the same DOM-free contract as PlainField, sized for the plain
- * numeric/text tag fields (yardage, distance, drive number, jersey #, grade)
- * that were never chip groups — the legacy code read/wrote these directly as
- * raw `<input>` elements (`.value`, a `change` event). No toggle/exclusivity
- * semantics; a bare value holder.
- */
-class PlainInput {
-  constructor() {
-    this._value = '';
-    this._listeners = {};
-  }
-  get value() { return this._value; }
-  set value(v) { this._value = v == null ? '' : v; }
-  addEventListener(event, fn) {
-    if (!this._listeners[event]) this._listeners[event] = [];
-    this._listeners[event].push(fn);
-  }
-  _fire(event) {
-    (this._listeners[event] || []).forEach(fn => fn());
-  }
-}
 
 /**
  * PlayTagger - Manages play segmentation, categorization, and timeline display.
@@ -184,64 +21,8 @@ export class PlayTagger {
     // not a detached form control pretending the deleted legacy UI still exists.
     this.selectedTemplate = '';
 
-    // Tag form elements — chip groups wrapped as ChipField, inputs used directly
-    const fieldMap = {
-      down: 'tagDown', distance: 'tagDistance', formation: 'tagFormation',
-      playType: 'tagPlayType', defFront: 'tagDefFront', coverage: 'tagCoverage',
-      blitz: 'tagBlitz', result: 'tagResult', yardage: 'tagYardage',
-      hash: 'tagHash', quarter: 'tagQuarter', yardLine: 'tagYardLine',
-      fieldSide: 'tagFieldSide', personnel: 'tagPersonnel',
-      driveNumber: 'tagDriveNumber', stType: 'tagStType',
-      runPass: 'tagRunPass', motion: 'tagMotion', playDir: 'tagPlayDir',
-      scoreFor: 'tagScoreFor', backfield: 'tagBackfield', strength: 'tagStrength',
-      qbAlignment: 'tagQbAlignment', coverageFamily: 'tagCoverageFamily',
-      kickOutcome: 'tagKickOutcome', kickDistance: 'tagKickDistance',
-      returnYards: 'tagReturnYards', hangTime: 'tagHangTime', kickedTo: 'tagKickedTo',
-    };
-    this.tagFields = {};
-    // Multi-select fields stored as " + "-joined strings. Formation: a QB can
-    // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
-    // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
-    // Def Front: a base front plus a shift package (e.g. "Maverick + Jumbo Shift").
-    const multiFields = new Set(PlayTagger.MULTI_TAGS);
-    // Within multi-select Result, the base outcomes are mutually exclusive —
-    // a play can't be Gain AND Loss. Picking one replaces its rivals, so a
-    // correction tap (or keyboard key) never leaves "Gain + Loss" behind.
-    // Combinable results (Fumble + Touchdown, Interception + Touchdown,
-    // Sack + Fumble, Penalty + anything) are unaffected.
-    // Exclusivity groups live on PlayTagger (static) so the Film Room grid's
-    // inline editor applies the identical rule — see PlayTagger.EXCLUSIVE_GROUPS.
-    // Final Engine Independence: field storage is DOM-free. `inputFields` are
-    // the plain numeric fields (never chip groups, even in the legacy form —
-    // confirmed against index.html's own markup before this conversion);
-    // every other fieldMap key becomes a PlainField (chip-group semantics:
-    // toggle, multi-join, exclusivity). Neither reads or writes any DOM
-    // element — the coach-visible chips live entirely in native-tagging.jsx,
-    // which calls PlayTagger.setField/toggleField (via NativeTaggingScreen),
-    // which write straight into these holders exactly as the legacy
-    // ChipField-over-hidden-DOM path used to, minus the DOM.
-    const inputFields = new Set(['distance', 'yardage', 'yardLine', 'driveNumber', 'kickDistance', 'returnYards', 'hangTime', 'kickedTo']);
-    for (const [key] of Object.entries(fieldMap)) {
-      this.tagFields[key] = inputFields.has(key)
-        ? new PlainInput()
-        : new PlainField({ multi: multiFields.has(key), exclusive: PlayTagger.EXCLUSIVE_GROUPS[key] });
-    }
-
-    // Per-play player attribution (jersey #) by role.
-    this.playerFields = {
-      ballCarrier: new PlainInput(), passer: new PlainInput(), receiver: new PlainInput(),
-      tackler: new PlainInput(), takeaway: new PlainInput(), kicker: new PlainInput(), returner: new PlainInput(),
-    };
-
-    // Per-play player grading (+/- per snap).
-    this.gradeFields = {
-      ballCarrier: new PlainInput(), passer: new PlainInput(), receiver: new PlainInput(),
-      tackler: new PlainInput(), takeaway: new PlainInput(), kicker: new PlainInput(), returner: new PlainInput(),
-    };
-
-    // The charting unit (Offense / Defense / Special Teams). The native deck
-    // renders it; this field is the tagger's own record of it.
-    this.unitField = new PlainField();
+    // The unit a NEW play takes (the last unit the coach chose). A play's own
+    // unit is always its stored unit (countedUnit); nothing mirrors it here.
     this.defaultUnit = 'offense';
 
     // Auto down & distance: when advancing to the next (untagged) play, pre-fill
@@ -261,9 +42,6 @@ export class PlayTagger {
     // feedback like "Mark the start first".
     this.toast = null;
 
-    this._bindEvents();
-
-    if (this.unitField) this.unitField.value = this.defaultUnit;
   }
 
   /**
@@ -298,32 +76,6 @@ export class PlayTagger {
     return `${tagged} / ${total} tagged`;
   }
 
-  _bindEvents() {
-
-    // Tag form changes — save only the changed field, not all fields,
-    // so clicking one chip doesn't overwrite other fields with stale values.
-    for (const [key, el] of Object.entries(this.tagFields)) {
-      el.addEventListener('change', () => this._saveField(key));
-    }
-
-    // Player-role inputs save into play.tags.players.
-    for (const [role, el] of Object.entries(this.playerFields)) {
-      if (!el) continue;
-      el.addEventListener('change', () => this._savePlayer(role));
-    }
-
-    // Grade selects save into play.tags.grades.
-    for (const [role, el] of Object.entries(this.gradeFields)) {
-      if (!el) continue;
-      el.addEventListener('change', () => this._saveGrade(role));
-    }
-
-    // Unit toggle: save the side on the play and re-lay-out the form.
-    if (this.unitField) {
-      this.unitField.addEventListener('change', () => this._onUnitFieldChanged());
-    }
-
-  }
 
   /**
    * Marking start/end is OPTIONAL when film arrives as one clip per play:
@@ -482,7 +234,6 @@ export class PlayTagger {
     if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
-    this._clearTagForm();
     this._emit('play-deleted');
     undoToast();
     if (this.plays.length > 0) {
@@ -519,8 +270,6 @@ export class PlayTagger {
       this._emit('play-updated', play);
     }
 
-    // Always reset the visible form fields, chips, players, grades and notes.
-    this._clearTagForm();
     // Custom-field chips and roster quick-pick chips render outside the core
     // form and only refresh on play-selected — re-announce the (now blank)
     // play so they don't stay lit and read as "the clear didn't work".
@@ -555,7 +304,6 @@ export class PlayTagger {
     // Copying carries `unit` too — if the result is special, the alignment fields
     // it just copied are forbidden and must be stripped (ST invariant, any op).
     this._stripStAlignment(play);
-    this._loadTagForm(play);
     this._emit('play-updated', play);
   }
 
@@ -595,7 +343,6 @@ export class PlayTagger {
     // A template can carry `unit:'special'` + forbidden alignment (saved from a
     // mis-tagged play); strip it when the result is special (ST invariant).
     this._stripStAlignment(play);
-    this._loadTagForm(play);
     this._emit('play-updated', play);
     return true;
   }
@@ -776,7 +523,6 @@ export class PlayTagger {
     this.currentPlayId = id;
     const play = this.getPlay(id);
     if (!play) return;
-    this._loadTagForm(play);
 
     // If this play is tied to a clip, emit event so playlist can switch.
     // Otherwise seek within the current video (single-video mode).
@@ -857,15 +603,6 @@ export class PlayTagger {
     }
     this._emit('play-updated', play);
   }
-  /** Transitional: the fake-field path, now a wrapper over setTagValue. Deleted
-   *  with the fields once every caller passes values (Pass 2, step 1). */
-  _saveField(key) {
-    const play = this.getCurrentPlay();
-    if (!play) return;
-    this.setTagValue(key, this.tagFields[key].value, play);
-    if (this.tagFields.runPass) this.tagFields.runPass.value = play.tags.runPass || '';
-    if (this.tagFields.result) this.tagFields.result.value = play.tags.result || '';
-  }
 
   /** The value Chart shows for a tag: the projected value for the look fields,
    *  the magnitude for yardage, the stored value otherwise. A toggle starts
@@ -934,21 +671,18 @@ export class PlayTagger {
    *  magnitude only; play.tags.yardage holds the signed value. */
   _applyYardageSign(play) {
     // The play is the source: the value just written (a magnitude) or the
-    // stored signed value when only the result changed. A form field is never
-    // read (it once overwrote an API write with its own stale value).
-    const el = this.tagFields.yardage;
+    // stored signed value when only the result changed.
     const raw = String(play.tags.yardage ?? '').trim();
     if (raw === '') { play.tags.yardage = ''; return; }
     const mag = Math.abs(parseInt(raw, 10) || 0);
     const parts = String(play.tags.result || '').split(/\s*\+\s*/);
     const neg = parts.includes('Loss') || parts.includes('Sack');
     play.tags.yardage = String(neg ? -mag : mag);
-    if (el) el.value = String(mag); // keep the field showing the magnitude
   }
 
   // Mutually-exclusive members within a multi-select field: a play can't be
   // both Gain and Loss, or two realized pass looks. Single source of truth for
-  // BOTH the tag-form chips (ChipField.exclusive) and the Film Room grid's
+  // BOTH the charting deck (toggleTagValue) and the Film Room grid's
   // inline editor, so the two can never disagree (they used to: the grid had no
   // exclusivity and could store "Gain + Loss", which then flipped a gain
   // negative in _applyEdit).
@@ -994,9 +728,7 @@ export class PlayTagger {
     return classified.size === 1 ? [...classified][0] : '';
   }
 
-  _savePlayer(role) { this.setPlayerValue(role, this.playerFields[role].value); }
 
-  _saveGrade(role) { this.setGradeValue(role, this.gradeFields[role].value); }
 
   /**
    * D-projform E4 review fix (Codex): Save & Next is this app's "explicit
@@ -1031,7 +763,7 @@ export class PlayTagger {
       // field it was never charted with (`undefined`, not `''`). Comparing
       // those raw would flag a "change" for nearly every ordinary play that
       // simply never carried e.g. `backfield` — normalize both sides through
-      // the same blank-equivalence _saveField already uses elsewhere so only
+      // the same blank-equivalence setTagValue already uses elsewhere so only
       // a REAL legacy token being stripped counts as a change.
       const projectedSelf = StatsEngine.proj(play)[primaryKey];
       if (String(projectedSelf || '') !== String(play.tags[primaryKey] || '')) {
@@ -1043,109 +775,9 @@ export class PlayTagger {
     this._emit('play-updated', play);
   }
 
-  _loadTagForm(play) {
-    // E4: Formation and Coverage seed from the PROJECTED view, never raw tags.
-    // This is not merely "more honest display" — it is a correctness fix.
-    // ChipField.set value() for a MULTI field stores every ' + '-token in
-    // `_values`, including ones with no matching chip button (silently, no
-    // error). If Formation seeded from a legacy `"Shotgun + Trips"` play, the
-    // 'Shotgun' token (no longer a Formation chip — see index.html E4 comment)
-    // would sit in `_values` alongside 'Trips', INVISIBLE (no chip shows
-    // active), but still present. If the coach then toggled ONLY 'Trips' off,
-    // the click handler mutates `_values` by removing just 'Trips' — 'Shotgun'
-    // would remain, and the next `change` event would silently WRITE 'Shotgun'
-    // back to play.tags.formation as the coach's own "explicit" edit, resurrecting
-    // exactly the value E1-E3 worked to remove. Seeding from the projected
-    // structural value (which never contains an alignment token) makes that
-    // scenario structurally impossible — `_values` can never hold a token with
-    // no matching chip in the first place. Coverage (single-select) doesn't have
-    // this specific hazard (a lone `_value` fully replaces on the next pick,
-    // never partially mutates), but is projected too for display consistency —
-    // the coach should see it exactly as every other consumer will read it.
-    const projected = StatsEngine.proj(play);
-    this.tagFields.down.value = play.tags.down;
-    this.tagFields.distance.value = play.tags.distance;
-    this.tagFields.formation.value = projected.formation;
-    this.tagFields.playType.value = play.tags.playType;
-    this.tagFields.runPass.value = play.tags.runPass || '';
-    this.tagFields.defFront.value = play.tags.defFront;
-    this.tagFields.coverage.value = projected.coverage;
-    // Both are explicit-if-present, else DERIVED from a legacy mixed field
-    // (e.g. a play tagged only "Shotgun + Trips" shows QB Alignment=Shotgun
-    // here even though nothing is literally stored under that key yet) — this
-    // IS "the tag form shows the projected view." Nothing is written by this
-    // seed; ChipField's value setter never fires a change event.
-    this.tagFields.qbAlignment.value = projected.qbAlignment || '';
-    this.tagFields.coverageFamily.value = projected.coverageFamily || '';
-    this.tagFields.blitz.value = play.tags.blitz;
-    this.tagFields.result.value = play.tags.result;
-    // Yardage is stored signed but shown as a magnitude (sign comes from Result).
-    this.tagFields.yardage.value = (play.tags.yardage === '' || play.tags.yardage == null)
-      ? '' : String(Math.abs(parseInt(play.tags.yardage, 10) || 0));
-    this.tagFields.hash.value = play.tags.hash;
-    this.tagFields.quarter.value = play.tags.quarter || '';
-    this.tagFields.yardLine.value = play.tags.yardLine || '';
-    this.tagFields.fieldSide.value = play.tags.fieldSide || 'own';
-    this.tagFields.personnel.value = play.tags.personnel || '';
-    this.tagFields.motion.value = play.tags.motion || '';
-    this.tagFields.playDir.value = play.tags.playDir || '';
-    // E4-2: Backfield now has REAL sibling relationships too (it receives
-    // 'Empty' promoted from Formation, and supplies 'Pistol' to QB Alignment)
-    // — seeding it from RAW tags left a legacy "Wing-T + Empty" play showing
-    // Backfield as blank in the FORM while Film Room's grid correctly showed
-    // 'Empty' via projField, a real cross-surface divergence. Seed from the
-    // projected view like every other projected field. Strength has no
-    // sibling relationship (project() passes it through unchanged), but
-    // seeding it the same way keeps all six projected fields on ONE
-    // consistent seeding path instead of a silently-diverging exception.
-    this.tagFields.backfield.value = projected.backfield || '';
-    this.tagFields.strength.value = projected.strength || '';
-    this.tagFields.driveNumber.value = play.tags.driveNumber || '';
-    this.tagFields.stType.value = play.tags.stType || '';
-    this.tagFields.scoreFor.value = play.tags.scoreFor || '';
-    this.tagFields.kickOutcome.value = play.tags.kickOutcome || '';
-    this.tagFields.kickDistance.value = play.tags.kickDistance || '';
-    this.tagFields.returnYards.value = play.tags.returnYards || '';
-    this.tagFields.hangTime.value = play.tags.hangTime || '';
-    this.tagFields.kickedTo.value = play.tags.kickedTo || '';
-    const players = play.tags.players || {};
-    for (const [role, el] of Object.entries(this.playerFields)) {
-      if (el) el.value = players[role] || '';
-    }
-    const grades = play.tags.grades || {};
-    for (const [role, el] of Object.entries(this.gradeFields)) {
-      if (el) el.value = grades[role] != null ? String(grades[role]) : '';
-    }
-    // The play's counted unit, the one every other view shows; the carried
-    // unit only seeds new plays (1.12.0-99 smoke, S99-2).
-    const unit = countedUnit(play);
-    if (this.unitField) this.unitField.value = unit;
-    // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
-    if (this.onLoadForm) this.onLoadForm(play);
-  }
 
 
 
-  /**
-   * S7 demolition: real domain API replacing the native tag form's synthetic
-   * `chip.click()` on the unit toggle. ChipField already has a genuine `.value`
-   * setter — the click was never load-bearing behavior, only a habit — so this
-   * is the SAME logic the DOM change listener runs, callable directly.
-   */
-  _onUnitFieldChanged() {
-    const play = this.getCurrentPlay();
-    // The toggle always keeps a side selected — re-tapping the active side
-    // would otherwise clear it, so fall back to the current value.
-    let unit = this.unitField.value;
-    if (!unit) {
-      unit = play ? countedUnit(play) : (this.defaultUnit || 'offense');
-      this.unitField.value = unit;
-    }
-    if (play) this.setPlayUnit(play, unit);
-    // Make the side "sticky": the user's choice carries forward to the next
-    // untagged play (Save & Next) until they change it again.
-    this.defaultUnit = unit;
-  }
 
   /**
    * THE write of a play's unit, shared by Chart and the Film Room Unit column
@@ -1157,11 +789,7 @@ export class PlayTagger {
   setPlayUnit(play, unit) {
     if (!play || !['offense', 'defense', 'special'].includes(unit)) return false;
     play.tags.unit = unit;
-    const stripped = this._stripStAlignment(play);
-    if (play.id === this.currentPlayId) {
-      if (this.unitField) this.unitField.value = unit;
-      if (stripped) this._loadTagForm(play);
-    }
+    this._stripStAlignment(play);
     this._emit('play-updated', play);
     return true;
   }
@@ -1174,14 +802,13 @@ export class PlayTagger {
    * used to share a name by coincidence, which silently shadowed one of them.
    */
   setChartingUnit(unit) {
-    if (!this.unitField || !['offense', 'defense', 'special'].includes(unit)) return false;
-    // A no-op only when the play already STORES this unit. Comparing the
-    // displayed value let a play with no stored unit keep none when the coach
-    // chose the unit on screen, so Chart and Film Room disagreed (S99-2).
+    if (!['offense', 'defense', 'special'].includes(unit)) return false;
+    // Writes only when the play does not already STORE this unit (a display
+    // mirror once made a play with no stored unit keep none, S99-2).
     const play = this.getCurrentPlay();
-    if (this.unitField.value === unit && (!play || play.tags.unit === unit)) return true;
-    this.unitField.value = unit;
-    this._onUnitFieldChanged();
+    if (play && play.tags.unit !== unit) this.setPlayUnit(play, unit);
+    // Sticky: the coach's choice seeds the next new play (Save & Next).
+    this.defaultUnit = unit;
     return true;
   }
 
@@ -1202,18 +829,10 @@ export class PlayTagger {
    *  button's click handler so native tagging can call it directly. */
   newDrive() {
     this.currentDrive++;
-    if (this.tagFields.driveNumber) {
-      this.tagFields.driveNumber.value = this.currentDrive;
-      this._saveField('driveNumber');
-    }
+    this.setTagValue('driveNumber', String(this.currentDrive));
     return true;
   }
 
-  _clearTagForm() {
-    for (const el of Object.values(this.tagFields)) el.value = '';
-    for (const el of Object.values(this.playerFields)) { if (el) el.value = ''; }
-    for (const el of Object.values(this.gradeFields)) { if (el) el.value = ''; }
-  }
 
   nextPlay() {
     const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
@@ -1299,7 +918,6 @@ export class PlayTagger {
       }
     });
     if (changed) {
-      this._loadTagForm(next);
       this._emit('play-updated', next);
     }
   }
@@ -1322,7 +940,6 @@ export class PlayTagger {
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
   setUnit(unit) {
     unit = unit || 'offense';
-    if (this.unitField) this.unitField.value = unit;
     // The carry-forward write goes through the one unit write (Codex review of
     // 48cbf5d), so it cannot drift from Chart's and Film Room's.
     const play = this.getCurrentPlay();
@@ -1467,7 +1084,7 @@ export class PlayTagger {
    * correcting the previous play's yardage/result and advancing again
    * re-computes them, so a fixed play never strands a stale auto-filled
    * situation downstream. Any manual edit to down/distance/field position
-   * clears the mark and freezes the values (see _saveField).
+   * clears the mark and freezes the values (see setTagValue).
    */
   applyNextSituation(prev, next) {
     // The game clock doesn't reset when the ball changes hands — carry the
@@ -1479,7 +1096,7 @@ export class PlayTagger {
 
     if (next.tags.down && !next._autoSit) {
       // Coach/imported situation — hands off, but still show the carried quarter.
-      if (carriedQuarter) { this._loadTagForm(next); this._emit('play-updated', next); }
+      if (carriedQuarter) this._emit('play-updated', next);
       return;
     }
     const sit = this.computeNextSituation(prev);
@@ -1494,7 +1111,6 @@ export class PlayTagger {
         changed = true;
       }
       if (changed) {
-        this._loadTagForm(next);
         this._emit('play-updated', next);
       }
       return;
@@ -1506,7 +1122,6 @@ export class PlayTagger {
     // Same drive continues unless already set.
     if (!next.tags.driveNumber && prev.tags.driveNumber) next.tags.driveNumber = prev.tags.driveNumber;
     next._autoSit = true;
-    this._loadTagForm(next);
     this._emit('play-updated', next);
   }
 

@@ -108,8 +108,7 @@ await page.evaluate(() => {
 before = await snapshot();
 await page.evaluate(() => {
   const app = window.app;
-  app.tagger.tagFields.formation.value = 'Ace';
-  app.tagger._saveField('formation');
+  app.tagger.setTagValue('formation', 'Ace');
   app.storage.commitActive();
 });
 after = await snapshot();

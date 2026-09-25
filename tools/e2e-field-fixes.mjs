@@ -245,8 +245,7 @@ check('carry-scheme toggle wired + persisted', toggle.exists && toggle.stored ==
 // that field is now permanently null, guarded (`if (!el) continue`),
 // harmlessly dead. The real, coach-reachable mechanism is now entirely
 // independent of RosterManager's DOM: NativeTaggingScreen.setPlayer() writes
-// straight into tagger.playerFields.takeaway (the same PlainInput field this
-// checkpoint's PlayTagger conversion produced). Prove the coach-visible
+// through tagger.setPlayerValue('takeaway', ...). Prove the coach-visible
 // input exists AND that using it end-to-end genuinely tags the play.
 const roleInput = await page.evaluate(() => {
   const nativeInput = !!document.querySelector('input[aria-label="takeaway player number"]');

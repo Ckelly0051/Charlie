@@ -296,7 +296,6 @@ export class ScoreboardOCR {
       if (parsed.down) play.tags.down = parsed.down;
       if (parsed.distance) play.tags.distance = parsed.distance;
       if (parsed.quarter) play.tags.quarter = parsed.quarter;
-      this.tagger._loadTagForm(play);
       this.tagger._emit('play-updated', play);
     }
     if (parsed.scoreUs !== '' && parsed.scoreUs != null && parsed.scoreThem !== '' && parsed.scoreThem != null) {

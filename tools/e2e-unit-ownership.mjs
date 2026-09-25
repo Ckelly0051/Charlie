@@ -116,7 +116,6 @@ ok(r.deck === 'offense' && r.grid === 'offense' && r.stored === undefined,
 r = await page.evaluate(async () => {
   const app = window.app;
   app.tagger.defaultUnit = 'defense';
-  app.tagger.unitField.value = 'defense';
   const done = app.nativeTagging.setUnit('defense');
   await new Promise(res => setTimeout(res, 60));
   return { done, stored: app.tagger.getPlay(4).tags.unit, grid: app.nativeFilmRoom.snapshot().rows.find(x => x.id === 4)?.unit ?? null, deck: app.nativeTagging.snapshot().unit };
@@ -288,13 +287,12 @@ ok(r.current === 95 && r.stored === 'offense', 'CR-3: Save & Next carries the un
 r = await page.evaluate(async play => {
   const app = window.app, t = app.tagger;
   t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'special';
-  t.unitField.value = '';
-  t._onUnitFieldChanged();
-  const out = { stored: t.getPlay(play.id).tags.unit, formation: t.getPlay(play.id).tags.formation };
+  const done = t.setChartingUnit('');
+  const out = { done, stored: t.getPlay(play.id).tags.unit, formation: t.getPlay(play.id).tags.formation, carried: t.defaultUnit };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
 }, noUnit(96));
-ok(r.stored === 'offense' && r.formation === 'Ace', 'an emptied unit field falls back to the unit on screen, never the carried Special Teams', JSON.stringify(r));
+ok(r.done === false && r.stored === undefined && r.formation === 'Ace' && r.carried === 'special', 'a blank unit is refused: nothing is written and the carried unit is unchanged', JSON.stringify(r));
 console.log('\n== 8. Every new play is born with the full blank tag schema and a unit (LG-1) ==');
 r = await page.evaluate(async () => {
   const app = window.app, t = app.tagger;

@@ -79,7 +79,7 @@ let state=await page.evaluate(()=>({
 ok(state.owners===1&&!state.legacy&&state.tabs===6&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting owns all six managed libraries, and no legacy chip markup exists',JSON.stringify(state));
 ok(state.promises.some(text=>/Hiding is not deleting/.test(text)&&/analytics stay unchanged/.test(text)),'Charting states the non-destructive visibility contract');
 
-await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='Wing-T';window.app.tagger._loadTagForm(play);});
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='Wing-T';window.app.tagger._emit('play-updated',play);});
 await page.click('[data-tag-value="Wing-T"] input');
 const wingTChip = await nativeChipHandle('formation', 'Wing-T');
 state = {
@@ -116,7 +116,7 @@ await page.click('[data-overlay-action="done"]');await page.waitForFunction(()=>
 // is multi-select, so clicking a fresh chip would otherwise ADD to it
 // ("Wing-T + Trey Open"), which is correct multi-select behavior but not
 // what this assertion means to check.
-await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='';window.app.tagger._loadTagForm(play);});
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='';window.app.tagger._emit('play-updated',play);});
 await clickNativeChip('formation', 'Trey Open');
 await clickNativeChip('backfield', 'Ace Offset');
 await clickNativeChip('defFront', 'Bear');

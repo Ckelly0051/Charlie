@@ -526,7 +526,6 @@ export class PlaylistManager {
     this.tagger.currentPlayId = playId;
     const play = this.tagger.getPlay(playId);
     if (!play) return false;
-    this.tagger._loadTagForm(play);
     this.tagger._emit('play-selected', play);
     return true;
   }
@@ -600,10 +599,7 @@ export class PlaylistManager {
     const removedPlay = clip.playId !== null;
     if (removedPlay) {
       this.tagger.plays = this.tagger.plays.filter(p => p.id !== clip.playId);
-      if (this.tagger.currentPlayId === clip.playId) {
-        this.tagger.currentPlayId = null;
-        this.tagger._clearTagForm();
-      }
+      if (this.tagger.currentPlayId === clip.playId) this.tagger.currentPlayId = null;
     }
 
     if (removedPlay) {
