@@ -286,11 +286,7 @@ export class PlaylistManager {
         // so a cut-up doesn't instantly skip a play whose end would be 0. The
         // real duration is backfilled by _backfillDurations once it resolves.
         timestamp: { start: 0, end: clip.duration || 999 },
-        tags: {
-          down: '', distance: '', formation: '', qbAlignment: '', playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
-          defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', yardage: '',
-          hash: '', custom: []
-        },
+        tags: this.tagger.newPlayTags(),
         annotations: [],
         notes: '',
         clipName: clip.name,

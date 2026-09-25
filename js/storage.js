@@ -1,4 +1,5 @@
 import { SeasonStore } from './season-store.js';
+import { PlayTagger } from './play-tagger.js';
 import { DemoSeason } from './demo-season.js';
 import { planClipMatch } from './clip-identity.js';
 import { PenaltyModel } from './penalty-model.js';
@@ -2026,16 +2027,7 @@ export class StorageManager {
 
       // `unit` defaults to offense to match a blank play from the tag form. A CSV
       // with no Unit column therefore behaves exactly as it did before.
-      const tags = {
-        unit: 'offense',
-        down: '', distance: '', formation: '', qbAlignment: '', backfield: '', strength: '',
-        playType: '', runPass: '',
-        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '',
-        yardage: '', hash: '', quarter: '', yardLine: '',
-        fieldSide: 'own', personnel: '', motion: '', playDir: '', driveNumber: '',
-        playCall: '', playCallId: '', playConcept: '',
-        players: {}, custom: []
-      };
+      const tags = PlayTagger.blankTags({ unit: 'offense' });
       let notes = '';
       let penalties = [];
       let resultingSituation = null;

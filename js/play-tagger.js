@@ -281,6 +281,28 @@ export class PlayTagger {
     if (this.unitField) this.unitField.value = this.defaultUnit;
   }
 
+  /**
+   * THE BLANK TAG SCHEMA — every new or cleared play starts from this one
+   * object (LG-1, 2026-09-25). Five hand-written copies had drifted: clip
+   * import's omitted `unit` (33 unit-less plays in a live season), players,
+   * grades and eleven more fields; CSV import's omitted grades and stType.
+   * `unit` is always set: a play that did not exist yet takes the carried unit.
+   */
+  static blankTags({ unit = 'offense', driveNumber = '' } = {}) {
+    return {
+      down: '', distance: '', formation: '', qbAlignment: '', backfield: '', strength: '',
+      playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
+      defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '',
+      hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
+      driveNumber: String(driveNumber ?? ''), unit, stType: '',
+      players: {}, grades: {}, custom: [], customFields: {},
+    };
+  }
+  /** Tags for a play created now: the carried unit and the current drive. */
+  newPlayTags() {
+    return PlayTagger.blankTags({ unit: this.defaultUnit || 'offense', driveNumber: this.currentDrive.toString() });
+  }
+
   /** "N / M tagged" — the same computation app.js's legacy _updateTagProgress
    *  wrote into a hidden DOM label; native-tagging-screen.js's snapshot()
    *  calls this directly instead of reading that label's textContent back
@@ -331,15 +353,7 @@ export class PlayTagger {
       id: this.nextId++,
       timestamp: { start: 0, end: duration || 0 },
       autoFull: true,
-      tags: {
-        down: '', distance: '', formation: '', qbAlignment: '', playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
-        defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '',
-        hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '',
-        motion: '', playDir: '',
-        driveNumber: this.currentDrive.toString(),
-        unit: this.defaultUnit || 'offense',
-        stType: '', players: {}, grades: {}, custom: []
-      },
+      tags: this.newPlayTags(),
       annotations: [],
       notes: '',
       clipName: name || ''
@@ -403,37 +417,7 @@ export class PlayTagger {
     const play = {
       id: this.nextId++,
       timestamp: { start: this.pendingStart, end: endTime },
-      tags: {
-        down: '',
-        distance: '',
-        formation: '',
-        qbAlignment: '',
-        playCall: '',
-        playCallId: '',
-        playConcept: '',
-        playType: '',
-        runPass: '',
-        defFront: '',
-        coverage: '',
-        coverageFamily: '',
-        blitz: '',
-        result: '',
-        fumbleRecovery: '',
-        yardage: '',
-        hash: '',
-        quarter: '',
-        yardLine: '',
-        fieldSide: 'own',
-        personnel: '',
-        motion: '',
-        playDir: '',
-        driveNumber: this.currentDrive.toString(),
-        unit: this.defaultUnit || 'offense',
-        stType: '',
-        players: {},
-        grades: {},
-        custom: []
-      },
+      tags: this.newPlayTags(),
       annotations: [],
       notes: ''
     };
@@ -544,15 +528,8 @@ export class PlayTagger {
     if (!ok) return;
 
     if (play) {
-      play.tags = {
-        down: '', distance: '', formation: '', qbAlignment: '', playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '', defFront: '',
-        coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '', hash: '', quarter: '',
-        yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
-        driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
-        // Clearing keeps the unit on screen (code review CR-2).
-        unit: countedUnit(play),
-        stType: '', players: {}, grades: {}, custom: [], customFields: {}
-      };
+      // Clearing keeps the play's drive and the unit on screen (code review CR-2).
+      play.tags = PlayTagger.blankTags({ unit: countedUnit(play), driveNumber: play.tags.driveNumber || this.currentDrive.toString() });
       play.notes = '';
       this._emit('play-updated', play);
     }
