@@ -44,9 +44,11 @@ cleanup (`screen.attachMedia(slot, surface)` / `screen.detachMedia()`), so the
 video node is never re-created: film is never obstructed or reloaded by a
 re-render, view switch, dock change or Film focus.
 
-**One subscription per model.** The theater and the rail share one theater
-subscription; the Film Room controls and table share one Film Room
-subscription, held by a parent and passed down as props.
+**One subscription per model.** The Film Room screen holds one grid
+subscription and fans each snapshot, with its summary built once, out to the
+table and controls. The theater already publishes one snapshot to all its
+views, and the deck has one view. (Planned as a parent passing props; done at
+the screen instead, so standalone mounts share it too.)
 
 ## Contracts that do not move
 
@@ -81,6 +83,21 @@ subscription, held by a parent and passed down as props.
 5. **Full gate**, then the installer the coach smokes, which also carries the
    uninstalled checks from the Film Room batch (settings save on a full
    profile, the once-only version-history move).
+
+## Progress
+
+| Step | Commit | Evidence |
+|---|---|---|
+| 1. Workspace state + `BreakdownRoute` shell | `90ff4c6` | 12 route harnesses green, counts unchanged |
+| 2. Children into the tree | `a0f2c2f` | 21 Break Down harnesses green; `e2e-native-film-room` restore check repointed (see commit), handback check added, both mutation-verified |
+| 3. One grid subscription | `cd7912e` | new check pins one grid subscription; mutation-verified |
+| 4. Dead methods | `05560c1` | `_ordinal`, `toggleStrip`, `setPerspective` deleted |
+| Visual | — | 20 screenshots byte-identical to `c1f6cc1` (chart, Film Room below/beside, Film focus, tools menu; 1440/1280/768/390) |
+| 5. Full gate, installer | pending | |
+
+**Behavior change, deliberate:** a standalone `mount()` now takes a view over
+from the live route and `restore()` hands it back. Before, restore left the
+route without that view until the next remount.
 
 ## Out of scope
 

@@ -58,14 +58,22 @@ no smoke of this batch** — Break Down is about to be rebuilt, so smoking the
 current structure is wasted. The installed checks (settings save on a full
 profile, the once-only version-history move) carry into the rebuild's
 installer.
-**BREAK DOWN REBUILD — NEXT (coach direction 2026-09-24).** The approved
-layout stays; the structure changes. Today the route is five Preact roots (the
-theater, play rail, Film Room controls, charting deck and Film Room grid)
-mounted into boxes that `breakdown-workspace.js` writes as HTML, arranged by
-CSS grid and kept in step through `PlayTagger` events — which is why every
-layout move this week needed a new host and new wiring. The rebuild makes the
-route one owner of its layout and view state, with the existing domain APIs
-unchanged.
+**BREAK DOWN REBUILD — STEPS 1-4 IN SOURCE (2026-09-24), FULL GATE PENDING, NOT
+PACKAGED** (coach direction; plan and record `docs/BREAKDOWN-REBUILD-PLAN.md`).
+The approved layout stays; the structure changed. The route was five Preact
+roots mounted into boxes `breakdown-workspace.js` wrote as an HTML string,
+with the toolbar's state painted by hand. Now **one tree**:
+`BreakdownWorkspace` owns the route state and renders `BreakdownRoute`
+(`js/native-breakdown-route.jsx`) synchronously on every command; the
+theater, rail, deck, Film Room controls and table are components inside it.
+Each view attaches to its controller while mounted; the theater view holds the
+one media node and hands it back on cleanup. **A standalone `mount()` takes a
+view over from the route and `restore()` hands it back** (harnesses mount
+screens alone); one presentation per screen at a time. The Film Room's views
+share one grid subscription. Every class, id and data hook is unchanged, and
+20 Break Down screenshots (chart, Film Room below and beside, Film focus, tools
+menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
+`90ff4c6`, `a0f2c2f`, `cd7912e`, `05560c1`.
 **Version history never goes back into localStorage** — it is what starved
 every settings write; `VersionManager` stores only through the storage backend.
 **`CatalogPersistence` has ONE writer at a time.** Every mutation exports the
@@ -352,7 +360,7 @@ Change behavior at its owner, not at a consumer.
 | Home route | `js/home-screen.js` + `js/native-home.jsx` + `css/native-home.css` |
 | Season operations and dialogs | `js/team-hub-screen.js` + reusable forms in `js/native-team-hub.jsx` |
 | Team + season registry | `js/team-registry.js` |
-| Break Down route | `js/breakdown-workspace.js` |
+| Break Down route | `js/breakdown-workspace.js` (route state) + `js/native-breakdown-route.jsx` (the one tree: toolbar, grid, splitter, child views) |
 | Film theater / transport / play strip | `js/breakdown-theater-screen.js` + `js/native-breakdown-theater.jsx` |
 | Charting deck | `js/native-tagging-screen.js` + `js/native-tagging.jsx` |
 | Film Room grid | `js/native-film-room-screen.js` (model + edit semantics in `js/play-grid.js`) |
