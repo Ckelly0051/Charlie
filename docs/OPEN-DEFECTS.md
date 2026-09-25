@@ -1,5 +1,47 @@
 # GridIron IQ Open Defects
 
+## Code review, 2026-09-24 (coach-requested; scope: the unit-ownership change)
+
+The coach asked for a full review of the app; the review tool covers a diff, so
+it read `48cbf5d` and `125c6f5` and the code they touch. **A whole-app review
+has not been done.** Three defects (verified against source, not yet
+reproduced in a browser) and six legacy items. All three defects are in
+`1.12.0-101`. None is repaired; the coach decides when.
+
+**CR-1 — OPEN. Keyboard unit shortcuts read the carried unit.**
+`js/app.js:1361` computes `curUnit = tags.unit || defaultUnit`. On a play with
+no stored unit, Chart shows Offense (`countedUnit`) but `C` cycles from the
+carried unit — shown Offense, carried Defense, `C` jumps to Special Teams and
+strips the formation and front — and the Special Teams digit shortcuts can
+write a type onto a play shown as Offense.
+
+**CR-2 — OPEN. Clear Tags stores the carried unit.** `js/play-tagger.js:552`
+rebuilds tags with `unit: play.tags.unit || this.defaultUnit`, so clearing a
+play with no stored unit files it under the last unit charted — another Film
+Room filter and report cohort — without the coach choosing it.
+
+**CR-3 — OPEN. Save & Next carries the carried unit, not the shown one.**
+`js/play-tagger.js:1241` takes `prev.tags.unit || this.defaultUnit`; after a
+play with no stored unit it can stamp Special Teams on the next untagged play
+and strip its look fields.
+
+*Fix direction for all three:* read `countedUnit(play)` where a play exists,
+keeping the carried unit only for a play that does not exist yet; each needs a
+failing-first check in `e2e-unit-ownership`.
+
+**Legacy code (load-bearing = something live depends on it today).**
+
+| Item | Kind | Load-bearing |
+|---|---|---|
+| `play-tagger.js:561` Clear Tags' `#notesArea` lookup | Dead: no screen renders that element | No — delete |
+| `play-grid.js:91` `LEGACY_PRESETS`, `PRE_CALL_PRESETS`, `_upgradeCols`, `_loadCols` (read `ffa_film_room_cols`) | Compatibility | **Yes** — seeds the first program's All plays set; removing it loses a coach's saved column list |
+| `play-grid.js:86` `PlayGrid.PROJECTED_PAIRS` | Alias of `TagProjection`'s | **Yes** — the grid's tendency (line 472) and one harness read it; repoint both, then delete |
+| `play-grid.js:578` `_plainCell`, `_plainTendency` | Pass-throughs left from the retired DOM renderer | No — one harness calls `_plainCell`; repoint it |
+| `play-tagger.js:1299` `_stripStAlignment` computes the unit inline | Second copy of the unit rule | **Yes** — every unit change runs it; switch it to `countedUnit` |
+| `tools/retired/*.retired` | Dead tests against the deleted tag form | No — nothing runs them |
+
+The app-wide dead-code list from 2026-09-24 is under Deferred Beta Maintenance.
+
 ## Installed smoke, 1.12.0-99 (stopped by the coach at S99-2 to protect data; list complete, 2026-09-24; re-smoke in 1.12.0-101)
 
 Findings logged as the coach lists them; no repair starts until the coach
