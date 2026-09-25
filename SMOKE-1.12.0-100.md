@@ -53,6 +53,10 @@ the Break Down rebuild and the S98 labels (see `SMOKE-1.12.0-99.md`).
 11. Reports: Matchup's section reads `Coverages`; Offense page 3 is headed
     `Structure and execution`.
 
+**Not in this build:** the Codex-review repair `125c6f5` (a Special Teams column
+in a custom Offense set was editable when filtered to Offense; Save & Next's
+unit carry now uses the one write). Found after this installer was built.
+
 Installed smoke pending. Not tagged, pushed or published.
 
 **Coach decision, 2026-09-24 (carried from `1.12.0-99`):** when this smoke

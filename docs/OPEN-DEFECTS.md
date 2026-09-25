@@ -80,6 +80,17 @@ side); a unit has no Clear; the table's unit buttons sit under a visible
 at the coach's redesign: a filter changes only when the coach clicks it.
 Evidence: `e2e-unit-ownership` (19; six reversions, each red).
 
+**Codex review of `48cbf5d`, both REPAIRED in source (`125c6f5`), NOT in
+`1.12.0-100`.** (P2) The lock ran only on All plays, and a custom Offense
+column set can carry a Special Teams column, so filtering to Offense exposed an
+editable ST Type cell on an offensive play. `PlayGrid.cellLocked` is now the one
+rule, applied in every scope by the snapshot and by the grid's own editor and
+commit. (P3) Save & Next's carry-forward `setUnit()` wrote `play.tags.unit`
+directly; it now goes through `PlayTagger.setPlayUnit`. `e2e-unit-ownership`
+23; three reversions, each red. **Process (coach, 2026-09-24):** confirm with
+the coach before building an installer, and usually before the full gate —
+`1.12.0-100` was gated and built before this review landed.
+
 ## Installed smoke, 1.12.0-98 (findings list complete, 2026-09-24)
 
 Findings logged as the coach lists them; no repair starts until the coach

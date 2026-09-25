@@ -91,7 +91,9 @@ all four must match; `e2e-p0-exit` asserts it). **The latest installer is
 131/131, only docs after it). It carries the S99-1 / S99-2 repair (`48cbf5d`)
 and everything in `1.12.0-99`. Its installed coach smoke is **pending**; see
 `SMOKE-1.12.0-100.md`. Not an installed approval, tag, push or published
-release.
+release. **It does NOT contain the Codex-review repair `125c6f5`** (lock in
+every scope, one unit write for Save & Next); the coach decides whether to
+rebuild before the re-smoke.
 **`1.12.0-99`** (`2d13c31`) was smoked on 2026-09-24 and stopped by the coach
 at finding S99-2 to protect data; superseded.
 **Previous installer:** `1.12.0-98`, the Reports smoke candidate, built from the clean main checkout
@@ -596,10 +598,11 @@ action row adds no inset of its own.
 stored, as every report counts it; Chart, Film Room and the reports never show
 a play as two units. `PlayTagger.setPlayUnit` is the write, shared by Chart's
 unit switch and Film Room's pinned **Unit** column (coach, 2026-09-24, on
-Hudl's ODK: either view, equally weighted, last write wins). Film Room's unit
-buttons are **filters**, labeled `Filter plays`, and never write a play. On
-All plays a cell is blank and locked only where the row's unit cannot hold the
-field: an offensive snap charts the defense it faced and a defensive snap the
+Hudl's ODK: either view, equally weighted, last write wins). Save & Next's carry-forward uses the same write. Film Room's unit
+buttons are **filters**, labeled `Filter plays`, and never write a play. In
+every scope and column set, a cell is blank and locked only where the row's
+unit cannot hold the field (`PlayGrid.cellLocked`, enforced by the grid's own
+editor and commit as well as the view): an offensive snap charts the defense it faced and a defensive snap the
 offense it faced. Chart once showed the carried unit for a play with no stored
 unit and treated choosing it as a no-op, so nothing was stored (1.12.0-99 smoke
 S99-2); Film Room hid and locked faced looks (S99-1).
