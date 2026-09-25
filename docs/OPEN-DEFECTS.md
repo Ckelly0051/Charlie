@@ -1,5 +1,32 @@
 # GridIron IQ Open Defects
 
+## Installed smoke, 1.12.0-99 (in progress, 2026-09-24)
+
+Findings logged as the coach lists them; no repair starts until the coach
+says the list is complete (smoke-findings protocol). Checklist:
+`SMOKE-1.12.0-99.md`.
+
+**S99-1 — OPEN. Film Room table does not show formation data the charting
+deck shows, and does not accept new entries.** Coach: "Charting shows
+formation data but film room does not. I am not able to enter new data into
+film room. Play 26 impacted but there are many." Route: Break Down > Film
+Room, table below, season `2025 St. Joseph Mavericks - JV`, game `Week 1 vs
+St. Peter Lutheran Patriots`, All plays (67).
+
+*Observed in the coach's screenshot (mine, not the coach's words):* play 54 is
+a defensive snap (`D`). The play card lists `Offense faced` > Formation
+`Flexbone`, Personnel `11`, but the table's FORMATION cell for play 54 is
+empty and shows the cell-editor outline with nothing in it. Rows 52-58 (all
+`D` or `S`) have empty FORMATION and QB ALIGN cells; row 59 (`O`) shows `Ace`
+/ `Under Center`. The FORMATION header still reports `Flexbone 41%`, so the
+column's tendency counts data its cells do not display.
+
+*Hazard for fix time:* reproduce on the canonical season before diagnosing;
+separate "cell not displayed" from "edit not accepted"; check whether the
+defensive rows read the offensive formation field or the opponent's, whether
+this predates the rebuild (compare `c1f6cc1` and `1.12.0-98`), and whether
+the per-unit column sets are involved. Do not rewrite coach data.
+
 ## Installed smoke, 1.12.0-98 (findings list complete, 2026-09-24)
 
 Findings logged as the coach lists them; no repair starts until the coach
