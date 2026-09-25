@@ -51,7 +51,9 @@ pre-Pass-1 build `b452635` (1 in 10) — so it predates the legacy excision and
 earlier gates passed by chance. It dies after the step `S4: play2 before try`
 (play 2 carries no Special Teams event there, so `setSpecialUnit`'s confirm
 dialog is not the cause). Diagnostics stay in the harness (step markers and a
-navigation log). Next: find the pending page promise; until then a gate red on
+navigation log). **Gate rate is higher than the local rate:** it failed the full gate at `1a1fb3b`,
+`cd674ab` and `b04a2f3` (3 of 3) after passing 5 gates before them, against ~1 in 10
+locally on both old and new code; each gate rerun passed. Cause unknown. Next: find the pending page promise; until then a gate red on
 this harness alone is rerun, and the rerun result is reported, never hidden.
 
 ## Code review, 2026-09-24 (coach-requested; scope: the unit-ownership change)

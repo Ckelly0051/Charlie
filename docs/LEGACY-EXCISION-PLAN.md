@@ -125,7 +125,7 @@ with the two new harnesses.**
   can orphan its CSS — the Pass 1 gate caught 17 such selectors), the gate,
   `compare-builds` 64/64 identical, the ratchet lowered in the same commits.
 
-**Pass 1 — DONE IN SOURCE (2026-09-25), full gate pending.** `ecbe8b4` LG-1: one
+**Pass 1 — DONE (2026-09-25). Full gate at `b04a2f3`: 132/133; the one red is TEST-1 (`e2e-native-tagging` intermittent crash, pre-existing, `docs/OPEN-DEFECTS.md`), which passed 84/84 on rerun. Also in Pass 1: `f660e09` 318 dead CSS branches (345 lines) with the ownership model taught prop-passed classes, `b04a2f3` strict-only CSS pruning.** `ecbe8b4` LG-1: one
 blank tag schema (`PlayTagger.blankTags`) for every new play, clip import sets a
 unit. `2a3adda` dead code: 42 definitions, `report-visual-data.js` and the
 retired test, 1,057 lines. `5e3f46d` one owner per rule: 30 copies of the unit
