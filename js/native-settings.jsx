@@ -241,7 +241,12 @@ function DrawingSettings({ screen }) {
 
 function RecoverySettings({ screen }) {
   const [model,setModel]=useState(null);const [label,setLabel]=useState('');const [gameLabel,setGameLabel]=useState('');const [notice,setNotice]=useState('');const [busy,setBusy]=useState('');
-  const load=async()=>setModel(await screen.recoverySnapshot());useEffect(()=>{let live=true;screen.recoverySnapshot().then(v=>live&&setModel(v));return()=>{live=false;};},[]);
+  // The panel lists the OPEN game's versions: it reloads whenever a game loads,
+  // and only the newest request may set the model (a slower one describes a
+  // game that is no longer open).
+  const req=useRef(0),mounted=useRef(true);
+  const load=async()=>{const n=++req.current;const v=await screen.recoverySnapshot();if(mounted.current&&n===req.current)setModel(v);};
+  useEffect(()=>{mounted.current=true;load();const off=screen.onGameLoaded(load);return()=>{mounted.current=false;off();};},[]);
   const run=async(key,fn)=>{if(busy)return;setBusy(key);setNotice('');try{const result=await fn();if(result?.message)setNotice(result.message);await load();}catch{setNotice('That action could not be completed. Nothing was changed.');}finally{setBusy('');}};
   if(!model)return <div class="gi-settings-loading" role="status">Loading restore points…</div>;
   return <div data-settings-panel="recovery">{notice&&<div class="gi-settings-callout" role="status">{notice}</div>}

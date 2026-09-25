@@ -49,6 +49,29 @@ await page.waitForSelector(`[data-game-version="${versionId}"] button`);await pa
 r=await page.evaluate(async()=>{const store=window.app.storage.seasonStore;store.backend.saveSeason=window.__versionSave;const canonical=await store.backend.loadSeason(store.currentSeasonId);return{live:window.app.tagger.plays[0].notes,stored:store.data.games.find(g=>g.id==='g-a').plays[0].notes,canonical:canonical.games.find(g=>g.id==='g-a').plays[0].notes};});
 ok(r.live==='keep-version-failure'&&r.stored===r.live&&r.canonical===r.live,'Failed game-version restore keeps the live game and canonical season on the pre-restore state',JSON.stringify(r));
 
+// The panel lists the OPEN game's versions (2026-09-25). It reloaded only after
+// its own actions and read whichever game was open when that list call ran, so
+// a game switch left it showing the other game's versions (the gate flake).
+const rowsNow=()=>page.evaluate(()=>[...document.querySelectorAll('[data-game-version]')].map(el=>el.dataset.gameVersion));
+const settle=async(fn,...args)=>{try{await page.waitForFunction(fn,{timeout:3000},...args);return true;}catch{return false;}};
+await page.evaluate(()=>window.app.storage.switchToGame('g-b'));
+const bEmpty=await settle(()=>!document.querySelector('[data-game-version]')&&/No versions for the open game/.test(document.querySelector('[data-settings-panel="recovery"]')?.textContent||''));
+const onB=await rowsNow();
+await page.evaluate(()=>window.app.storage.switchToGame('g-a'));
+const aBack=await settle(id=>!!document.querySelector(`[data-game-version="${id}"]`),versionId);
+ok(bEmpty&&onB.length===0&&aBack,'Game versions follow the open game: another game shows its own (none), and switching back shows this game\'s',JSON.stringify({onB,aBack}));
+
+// Newest request wins: a slow list for game B that resolves after the switch
+// back to game A must not overwrite A's list.
+await page.evaluate(()=>{const backend=window.app.storage.seasonStore.backend,real=backend.listVersions.bind(backend);window.__realList=real;backend.listVersions=(seasonId,gameId)=>gameId==='g-b'?new Promise(res=>{window.__releaseB=()=>res(real(seasonId,gameId));}):real(seasonId,gameId);});
+await page.evaluate(()=>window.app.storage.switchToGame('g-b'));
+await page.evaluate(()=>window.app.storage.switchToGame('g-a'));
+await settle(id=>!!document.querySelector(`[data-game-version="${id}"]`),versionId);
+await page.evaluate(()=>{window.__releaseB?.();});await new Promise(resolve=>setTimeout(resolve,400));
+const afterRelease=await rowsNow();
+await page.evaluate(()=>{window.app.storage.seasonStore.backend.listVersions=window.__realList;});
+ok(afterRelease.includes(versionId),'A slow version list for another game cannot overwrite the open game\'s list',JSON.stringify(afterRelease));
+
 await page.evaluate(()=>window.app.settingsScreen.close('done'));await page.waitForFunction(()=>document.activeElement?.id==='recovery-invoker');ok(await page.evaluate(()=>document.activeElement?.id==='recovery-invoker'),'Closing Recovery restores its invoking control');
 await page.setViewport({width:390,height:844});
 await page.evaluate(()=>{window.app.settingsScreen.open({initialTab:'recovery',returnFocus:document.getElementById('recovery-invoker')});});

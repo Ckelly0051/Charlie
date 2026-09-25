@@ -1137,6 +1137,11 @@ export class PlayTagger {
     this.listeners[event].push(callback);
   }
 
+  off(event, callback) {
+    const list = this.listeners[event];
+    if (list) this.listeners[event] = list.filter(fn => fn !== callback);
+  }
+
   _emit(event, data) {
     // LIVE barrier for the ST-alignment invariant (E1-R9): every writer — Film Room
     // grid, AI vision stamp, suggestion engine, the tag form, copy/template — mutates

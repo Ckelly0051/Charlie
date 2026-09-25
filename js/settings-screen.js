@@ -53,6 +53,17 @@ export class SettingsScreen {
     return () => this._retargetListeners.delete(fn);
   }
 
+  /** Call fn whenever a game loads (a game switch, a season open, a restore).
+   *  Recovery lists the OPEN game's versions, so it reloads on this. Returns an
+   *  unsubscribe function. */
+  onGameLoaded(fn) {
+    const tagger = this.app.tagger;
+    if (!tagger?.on) return () => {};
+    const handler = () => fn();
+    tagger.on('plays-loaded', handler);
+    return () => tagger.off?.('plays-loaded', handler);
+  }
+
   _resolveTab(required, initialTab) {
     const requested = required ? 'film' : initialTab;
     const tab = requested === 'roster' && !this.canManageRoster() ? 'film' : requested;
@@ -449,8 +460,11 @@ export class SettingsScreen {
 
   async recoverySnapshot() {
     const store=this._store();
+    // Start the version list before the first await: list() reads the open game
+    // when it is called, so it describes the game open when this request began.
+    const versionsPending=Promise.resolve(this.app.versions?.list?.()).catch(()=>[]);
     let seasonPoints=[]; try{seasonPoints=store?.hasCurrent?.()?await store.listBackups():[];}catch{}
-    const versions=((await this.app.versions?.list?.()) || []).slice().reverse();
+    const versions=((await versionsPending) || []).slice().reverse();
     return { hasSeason:!!store?.hasCurrent?.(), seasonName:store?.data?.seasonName || '', seasonPoints, versions, disk:store?.diskStatus?.() || {} };
   }
   async createRestorePoint(label='Manual restore point') {
