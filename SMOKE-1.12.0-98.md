@@ -48,4 +48,8 @@ Season (`75673a2`).
    banner, the Overview score, and the items carried from `1.12.0-95`
    (see `SMOKE-1.12.0-97.md`).
 
-Installed smoke pending. Not tagged, pushed or published.
+**Result, 2026-09-24:** smoke run; findings list complete. S98-1 and S98-2
+(label renames) repaired in source in `4c76169`; S98-3 and S98-4 closed with no
+change. Coach: "the rest looks good." Self-Scout and Opponent Scout rework
+deferred. Detail: `docs/OPEN-DEFECTS.md` > Installed smoke, 1.12.0-98. The
+approval registry has not moved. Not tagged, pushed or published.

@@ -100,7 +100,8 @@ confirmation, toast timing — is `GRIDIRON-IQ-OVERLAY-SPEC.md`.
 **Analytics**
 `stats-engine.js` (all formulas), `analytics-registry.js` (dimensions and
 measures), `analytics-metrics.js`, `study-query.js`, `study-view.js`,
-`study-plan.js`, `advanced-metrics.js` (EPA), `report-visual-data.js`,
+`study-plan.js`, `advanced-metrics.js` (EPA), `report-visual-data.js` (imported by nothing;
+dead, see `docs/OPEN-DEFECTS.md` > Deferred Beta Maintenance),
 `reports-view.js`, `charts.js`, `html-report.js`, `plan-export.js`,
 `call-sheet-builder.js`, `season-manager.js`
 

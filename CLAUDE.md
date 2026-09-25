@@ -8,7 +8,7 @@ plans. Formerly "Football Film Analyzer". The current working branch is
 
 **Live URL:** https://ckelly0051.github.io/Charlie/
 **Reports global strip — IMPLEMENTED (`160533c`), PACKAGED IN `1.12.0-95` AND
-`1.12.0-97`, NOT SMOKE-APPROVED:** `design-comps/reports-global-strip-2026-09-22.html`
+`1.12.0-97` AND `1.12.0-98`, SMOKED ON `1.12.0-98` (2026-09-24, label findings only), REGISTRY NOT MOVED:** `design-comps/reports-global-strip-2026-09-22.html`
 defines one fixed top-level strip on all eight Our Program Reports tabs,
 Season last, with Current game as the default where a scope choice exists and
 the game linescore only on Overview. Its scope and production mapping are in
@@ -18,19 +18,19 @@ placeholders; the full production boards are unchanged below the strip. The
 same commit repairs the `1.12.0-94` outer-frame and Players jersey/name
 findings. Browser evidence on the canonical season is green
 (`e2e-reports-global-strip`). The `1.12.0-95`, `1.12.0-97` and `1.12.0-98` installers
-contain it; neither an installed smoke nor the registry has accepted it. See `docs/OPEN-DEFECTS.md`.
+contain it; the `1.12.0-98` installed smoke passed it and the registry has not moved. See `docs/OPEN-DEFECTS.md`.
 **Reports secondary bar — IMPLEMENTED (`0e84464`, 2026-09-23), PACKAGED IN
-`1.12.0-97` AND `1.12.0-98`, NOT SMOKE-APPROVED:** `design-comps/reports-secondary-nav-2026-09-23`
+`1.12.0-97` AND `1.12.0-98`, SMOKED ON `1.12.0-98` (2026-09-24, label findings only), REGISTRY NOT MOVED:** `design-comps/reports-secondary-nav-2026-09-23`
 (implementation record in its RATIONALE). One shared bar under the strip on
 the seven multi-section reports; Offense six pages, Defense four; the game KPI
 rail deleted; a compact Overview score; the Defense board says `Explosive
 Plays`. Coach Reports smoke Findings 1 and 2 are repaired; see
 `docs/OPEN-DEFECTS.md`.
 **Reports down-and-distance chart — IMPLEMENTED (`80941c7`, `cd0fb40`,
-2026-09-23), PACKAGED IN `1.12.0-97` AND `1.12.0-98`, NOT SMOKE-APPROVED:** item 7
+2026-09-23), PACKAGED IN `1.12.0-97` AND `1.12.0-98`, SMOKED ON `1.12.0-98` (2026-09-24, label findings only), REGISTRY NOT MOVED:** item 7
 of the same comp, first on Offense > Situations and Defense > Situations.
-**Reports module system — IMPLEMENTED (2026-09-24), PACKAGED IN `1.12.0-98`, NOT
-SMOKE-APPROVED:** the `1.12.0-97` installed smoke stopped at finding S97-1 (the
+**Reports module system — IMPLEMENTED (2026-09-24), PACKAGED IN `1.12.0-98`,
+SMOKED ON `1.12.0-98` (2026-09-24, label findings only), REGISTRY NOT MOVED:** the `1.12.0-97` installed smoke stopped at finding S97-1 (the
 Offense pages carried unrelated treatments); at the coach's direction every
 Reports board except Overview now uses the Defense module system (see the
 Offense section and `docs/OPEN-DEFECTS.md`). Full gate at `5f208e1` 126/126.
@@ -90,7 +90,12 @@ all four must match; `e2e-p0-exit` asserts it). **The latest installer is
 `1.12.0-98`**, the Reports smoke candidate, built from the clean main checkout
 at `6821f07` (the committed four-owner bump on top of `b963e66`; the full gate
 at `5f208e1` was 126/126, and the only later code is the test-only
-`b30a9c2`). Its installed coach smoke is **pending**; see `SMOKE-1.12.0-98.md`.
+`b30a9c2`). **Its installed coach smoke ran on 2026-09-24 and its findings list
+is complete** (`docs/OPEN-DEFECTS.md` > Installed smoke, 1.12.0-98): S98-1 and
+S98-2 are label renames repaired in source (`4c76169`), S98-3 and S98-4 closed
+with no change, and the coach's verdict on the rest was "the rest looks good."
+Self-Scout and Opponent Scout rework is deferred by the coach. The approval
+registry has not moved.
 It is not an installed approval, tag, push or published release.
 **Earlier Reports installers:** `1.12.0-97` (`2799be5`) was smoked until
 finding S97-1 and is superseded; its remaining checks carry into
@@ -1107,7 +1112,7 @@ Calls by situation honestly hold their static slots with dashes.
 
 Its composition is six zones — Offensive identity, Calls and tendencies,
 Structure and execution (renamed from `Structure and deployment`, smoke S98-2), Situational analysis, Field and production, Advanced
-metrics — which since 2026-09-23 (`0e84464`, in `1.12.0-97`, installed smoke pending) are six
+metrics — which since 2026-09-23 (`0e84464`, in `1.12.0-97` and `1.12.0-98`, smoked on `1.12.0-98`) are six
 PAGES in the shared secondary bar (`Identity`, `Calls & tendencies`,
 `Structure`, `Situations`, `Field & production`, `Advanced`), one on screen at a
 time; the zone nav and zone rules are retired, every module renders on exactly
@@ -1168,7 +1173,7 @@ owns the geometry. `ReportsScreen` passes the scoped cohort, the full-season
 cohort, opponent labels (`gameInfo.opponent`) and the roster; Season > Defense
 gets the same board from `SeasonManager.reportModel().defenseBoard`.
 
-**Composition (pages since 2026-09-23, `0e84464`, in `1.12.0-97`; installed smoke pending).**
+**Composition (pages since 2026-09-23, `0e84464`, in `1.12.0-97` and `1.12.0-98`; smoked on `1.12.0-98`).**
 Four ordered sections — Defensive performance, Opponent offense, Scheme and
 passing defense, Situational results — are four PAGES in the shared secondary
 bar (`Performance`, `Opponent offense`, `Scheme & passing`, `Situations`), one
@@ -2200,7 +2205,7 @@ Generic `yardage`/`result` on ST plays stay unread by design:
 dedicated ST fields remain authoritative, and that data is recorded as an input
 to a later projection decision.
 
-**THE GLOBAL STRIP (`160533c`, 2026-09-22; in `1.12.0-97`, installed smoke pending).** One
+**THE GLOBAL STRIP (`160533c`, 2026-09-22; in `1.12.0-97` and `1.12.0-98`, smoked on `1.12.0-98`).** One
 route owner, `native-reports.jsx`, renders a fixed 50px report head (title,
 context, opponent picker, Scout opponent) and then ONE 44px strip —
 `Our game` / `Opponent scout`, the eight tabs on equal tracks in the order
@@ -2214,7 +2219,7 @@ self-only tabs instead of hiding them, because hiding one moves every tab
 after it. Defense and Special Teams scope open on Current game, listed first,
 like Players; the choice is controller state and survives re-renders.
 
-**THE SECONDARY BAR (`0e84464`, 2026-09-23; in `1.12.0-97`, installed smoke pending).**
+**THE SECONDARY BAR (`0e84464`, 2026-09-23; in `1.12.0-97` and `1.12.0-98`, smoked on `1.12.0-98`).**
 Built to `design-comps/reports-secondary-nav-2026-09-23` (its RATIONALE records
 the implementation). Directly under the strip sits ONE bar, `SectionBar` in
 `native-report-kit.jsx`, with the same 46px box on all seven multi-section
@@ -2230,7 +2235,7 @@ tightens (Special Teams' five counted sections otherwise lost 59px at 1280);
 below 1100 it stacks pages over scope and export. The proposed
 down-and-distance chart is built separately (below).
 
-**THE DOWN-AND-DISTANCE CHART (`80941c7`, 2026-09-23; in `1.12.0-97`, installed smoke pending).**
+**THE DOWN-AND-DISTANCE CHART (`80941c7`, 2026-09-23; in `1.12.0-97` and `1.12.0-98`, smoked on `1.12.0-98`).**
 First on Offense > Situations (our offense) and Defense > Situations (the
 opponent's offense): 1st-4th by 1-3 / 4-6 / 7+, each cell with snaps, a
 run/pass split, success and yards/play; selecting a cell shows its top play
@@ -2361,7 +2366,11 @@ has accepted these repairs as production state.
 1. **V2-I mobile companion workflow** — the one Plan V2 lane not started.
 2. **Functional Beta Acceptance** — a cold-start Assistant Coach Test on a clean
    Windows profile, no fixture data, no verbal help.
-3. **Current Reports smoke: `1.12.0-97`** (`SMOKE-1.12.0-97.md`) — the global
+3. **Reports smoke: `1.12.0-98` COMPLETE 2026-09-24** (`SMOKE-1.12.0-98.md`;
+   `1.12.0-97` stopped at S97-1 and is superseded). Four findings: two label
+   renames repaired in source (`4c76169`), two closed with no change; "the
+   rest looks good." Self-Scout and Opponent Scout rework is deferred by the
+   coach. What that package carried: the global
    strip and the outer-frame / jersey-slot repairs (`160533c`), the secondary
    bar (`0e84464`), the down-and-distance chart (`80941c7`) and the
    `preact/compat` input repair (`87371cd`) in one package. Offense,

@@ -34,8 +34,8 @@ formation in the tagging deck. **The play-action data is correct; no repair.**
 ## Installed smoke, 1.12.0-97 (stopped at S97-1, 2026-09-23; continues on 1.12.0-98)
 
 **Finding S97-1 — repaired in source 2026-09-24 (`77aea58`) at the coach's
-direction to proceed; packaged in `1.12.0-98` (`SMOKE-1.12.0-98.md`), awaiting the
-coach's installed smoke. The Offense pages carried several unrelated
+direction to proceed; packaged in `1.12.0-98` (`SMOKE-1.12.0-98.md`), whose installed
+smoke ran on 2026-09-24 with label findings only (above). The Offense pages carried several unrelated
 visual treatments.** Coach, on Identity, Situations and Structure: different header
 styles, headline styles and fonts per page, as though the old long board was
 cut into pages unchanged. Offense gold / Defense blue is correct; the
@@ -2152,6 +2152,40 @@ Breakdown film-state defects above.
    recorded in the manifest note and `SMOKE-1.12.0-92.md`; it does not imply
    formal production acceptance. The registry audit can now inspect all nine
    surfaces.
+
+4. **Dead code outside Break Down, inventoried 2026-09-24, not yet removed.**
+   A static scan (names defined and referenced nowhere else in `js/` or
+   `tools/`; each needs a check for dynamic use before deletion): the whole
+   `js/report-visual-data.js` (imported by nothing); `native-report-tabs.jsx`
+   `SparseModule`, `SpecialTeamsPlayerTable`, `OFFENSE_MODULES`,
+   `PLAYER_HALF_1280`, `PLAYER_GAME_CELL`, `PLAYER_SITU_HEAD`;
+   `native-report-kit.jsx` `Gauge`, `DefMark`; `reports-view.js` `gamePlan`,
+   `offenseHero`; `charts.js` `rampBars`, `donutBlock`, `donutWithLegend`,
+   `stackBar`, `trendLine`; `stats-engine.js` `_watchPlayer`, `_meterColor`,
+   `_verdictIcon`, `_verdictLabel`, `topPlaysByYards`, `RUN_COLOR`,
+   `PASS_COLOR`; `video-controller.js` `setLoopA`, `setLoopB`,
+   `setFrameRate`; `canvas-overlay.js` `toCanvas`, `_toCtx`,
+   `clearAnnotationsForTime`; `play-detector.js` `saveROI`; `app._setVal`,
+   `app._applyTrackedScore`, `home-screen.openBreakdown`,
+   `play-filter.clearAll`, `play-tagger.registerChip` / `unregisterChip`,
+   `storage.setSeasonName` / `bindBackupFolder`, `tag-library.replaceCustom`,
+   `workspace-shell.restoreRouteVisibility`, `ui-polish._activeFilmGame`. The
+   three Break Down ones (`_ordinal`, `toggleStrip`, `setPerspective`) were
+   deleted in `05560c1`. Not dead: the legacy data readers (Special Teams
+   `stType`, field-goal-unit extra points, per-game rosters), the old
+   `ffa_film_room_cols` key (coach data), and `polarityOf`, `listMeasures`,
+   `listBlocks`, `matchingRefs`, which harnesses call.
+5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
+   (a) Break Down was five mounted roots kept in step by events — rebuilt
+   (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87
+   call sites): the 5 MB quota already failed once, settings do not travel with
+   a season, and nothing can sync them; this blocks the V2-I mobile companion.
+   (c) The browser target is why film plays through HTML `<video>` and the
+   catalog is sql.js exported whole on every write; dropping it would allow
+   native SQLite and native playback — a coach decision, not made. (d) Screens
+   share live services through `window.app` (54 references) and `PlayTagger`
+   events rather than one state store. (e) `stats-engine.js` is 6,786 lines;
+   splitting it by area is possible with `e2e-parity` proving no change.
 
 ## Release Impact
 
