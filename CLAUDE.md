@@ -91,7 +91,8 @@ all four must match; `e2e-p0-exit` asserts it). **The latest installer is
 131/131, only docs after it). It carries the S99-1 / S99-2 repair (`48cbf5d`)
 and everything in `1.12.0-99`. Its installed coach smoke is **pending**; see
 `SMOKE-1.12.0-100.md`. Not an installed approval, tag, push or published
-release. **It does NOT contain the Codex-review repair `125c6f5`** (lock in
+release. **It does NOT contain the Codex-review repair `125c6f5`** (full gate at `e47701b`
+131/131) (lock in
 every scope, one unit write for Save & Next); the coach decides whether to
 rebuild before the re-smoke.
 **`1.12.0-99`** (`2d13c31`) was smoked on 2026-09-24 and stopped by the coach

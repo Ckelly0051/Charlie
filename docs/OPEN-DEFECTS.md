@@ -87,7 +87,8 @@ editable ST Type cell on an offensive play. `PlayGrid.cellLocked` is now the one
 rule, applied in every scope by the snapshot and by the grid's own editor and
 commit. (P3) Save & Next's carry-forward `setUnit()` wrote `play.tags.unit`
 directly; it now goes through `PlayTagger.setPlayUnit`. `e2e-unit-ownership`
-23; three reversions, each red. **Process (coach, 2026-09-24):** confirm with
+23; three reversions, each red. Full gate at `e47701b`: 131/131, 0 skipped, 0
+failed. **Process (coach, 2026-09-24):** confirm with
 the coach before building an installer, and usually before the full gate —
 `1.12.0-100` was gated and built before this review landed.
 
