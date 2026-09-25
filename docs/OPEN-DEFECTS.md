@@ -64,6 +64,20 @@ first restore, when the row briefly has no buttons; the button returns within ~2
 The app is correct. Both clicks now wait for the button first (the rule: assert the
 subject is on screen before interacting); 5/5 runs 10/10.
 
+**REC-1 — REPAIRED (`e4417b8`), 2026-09-25. Recovery's Game versions could show
+another game's versions.** TEST-2's "the app is correct" was only half right: the
+same harness kept failing intermittently after that repair (full gate after
+`e8aca99`; 7 of 10 alone at `fb4fb15`, before Pass 2 step 1), now timing out
+waiting for game A's version row after a switch to game B and back. The panel
+loaded only on mount and after its own actions, and `recoverySnapshot()` listed
+versions after awaiting the season backups, so the list read whichever game was
+open when that call ran; nothing reloaded it on a game switch. A coach switching
+games with Recovery open saw the other game's versions. Now the panel reloads on
+every game load (`SettingsScreen.onGameLoaded`, over `plays-loaded`), only the
+newest request sets the model, and the list starts before the first await. Two
+failing-first checks in `e2e-native-recovery`, each mutation-verified. **Full
+gate 134/134 at `e4417b8`.**
+
 ## Code review, 2026-09-24 (coach-requested; scope: the unit-ownership change)
 
 The coach asked for a full review of the app; the review tool covers a diff, so

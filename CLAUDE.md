@@ -76,7 +76,7 @@ menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
 **LEGACY EXCISION (coach, 2026-09-25):** `docs/LEGACY-EXCISION-PLAN.md`, three passes.
 Pass 0 guardrails built; **Pass 1 done in source** (`ecbe8b4`, `2a3adda`,
 `5e3f46d`, plus the Codex-review drive fix: 1,057 dead lines, one blank tag schema,
-one unit rule, 318 dead CSS branches), **full gate 133/133 at `ac893b5`**. **Pass 2 step 1 is done in source** (`7aa0184`: `PlayTagger` holds no UI state; no fake form fields; full gate pending). Pass 2: UI state out of the charting
+one unit rule, 318 dead CSS branches), **full gate 133/133 at `ac893b5`**. **Pass 2 step 1 is done in source** (`7aa0184`: `PlayTagger` holds no UI state; no fake form fields; Codex-reviewed; **full gate 134/134 at `e4417b8`**, which also carries the Recovery version-list repair REC-1). Pass 2: UI state out of the charting
 model, then a ONE-TIME conversion of the live seasons only (the current state is what matters), every old-format reader removed, and anything older (backups, versions, snapshots, exports) refused with a plain message (approved after Codex review; the
 authoritative procedure is in the plan). Live legacy measured 2026-09-25: 42
 plays in 2025 JV (3 no unit, 22 combined formations, 17 legacy-only Special Teams)

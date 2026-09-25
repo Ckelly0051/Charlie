@@ -157,7 +157,7 @@ history is needed.
    dead `SuggestionEngine` are deleted (`7aa0184`). The grid already wrote plays
    directly. Ratchet: `plainFieldRefs` 25 -> 0, `taggerFieldReadsOutsideTagger`
    12 -> 0. 26 charting, film, undo and Break Down harnesses green;
-   `compare-builds` 64/64 byte-identical. Full gate pending (coach asked first).
+   `compare-builds` 64/64 byte-identical. Codex review: no code findings (one docs P3, fixed in `3f62c7c`). The gate found one orphaned CSS rule (`e8aca99`) and the pre-existing Recovery race REC-1 (`e4417b8`). **Full gate 134/134 at `e4417b8`.**
 2. **The coach's hand fixes first:** the 3 plays with no unit are set by hand in
    the Unit column (storing `offense` would change their drive labels from
    `Drive N` to `Our Drive N`; Codex P2-7), and the ambiguous legacy Special
