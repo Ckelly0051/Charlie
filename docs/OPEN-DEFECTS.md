@@ -10,7 +10,10 @@ says the list is complete (smoke-findings protocol). Checklist:
 deck shows, and does not accept new entries.** Coach: "Charting shows
 formation data but film room does not. I am not able to enter new data into
 film room. Play 26 impacted but there are many." Clarified: "they don't
-display and the dropdown doesn't open, as if it is not editable." Route: Break Down > Film
+display and the dropdown doesn't open, as if it is not editable." And: "Only
+the columns with a -- or an entry in the image (even if they do have an entry
+in chart view) are editable. Everything you see that's fully blank is not
+editable. Offense and Defense are impacted." Route: Break Down > Film
 Room, table below, season `2025 St. Joseph Mavericks - JV`, game `Week 1 vs
 St. Peter Lutheran Patriots`, All plays (67).
 
@@ -26,7 +29,24 @@ column's tendency counts data its cells do not display.
 separate "cell not displayed" from "edit not accepted"; check whether the
 defensive rows read the offensive formation field or the opponent's, whether
 this predates the rebuild (compare `c1f6cc1` and `1.12.0-98`), and whether
-the per-unit column sets are involved. Do not rewrite coach data.
+the per-unit column sets are involved. A fully blank cell (no `--`) reads as
+a cell the grid treats as not applicable to the row, which would explain
+"not editable"; confirm against the grid's own rule rather than assume. Do
+not rewrite coach data.
+
+**S99-2 — OPEN (coach: new finding, or related to S99-1). The unit chosen in
+Chart does not carry over to Film Room.** Coach: "selecting a unit
+(offense/defense/ST) in Chart does not carry over to Film Room. Seems they
+aren't connecting."
+
+*Hazard for fix time:* establish which "unit" is meant before changing
+anything — the play's charted unit (the deck's Offense / Defense / Special
+Teams control, which writes `tags.unit`) versus the Film Room's unit filter
+(which picks the rows and the per-unit column set). If the charted unit
+changes and the Film Room row keeps its old unit letter, blank cells or column
+set, that is a data-flow defect and likely shares a cause with S99-1; if the
+coach expects the Film Room filter to follow the deck, that is a behavior
+request. Ask the coach only if the report stays ambiguous about what was seen.
 
 ## Installed smoke, 1.12.0-98 (findings list complete, 2026-09-24)
 
