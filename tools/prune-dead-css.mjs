@@ -8,7 +8,7 @@
  *
  *   node tools/prune-dead-css.mjs [--apply] [--strict] [css/file.css ...]
  *
- * --strict (use it): a branch is removed only if the model calls it DEAD *and*
+ * --strict (always on with --apply): a branch is removed only if the model calls it DEAD *and*
  * none of the identifiers it requires appears ANYWHERE in js/ or index.html,
  * as any token. The model has known blind spots (a class inside a ${cond ?
  * ' x' : ''} expression, a class attribute in an HTML string with an
@@ -26,7 +26,9 @@ import { loadProduction, harvestProducers, harvestIds, makeProducible, classifyB
 
 const root = resolve(import.meta.dirname, '..');
 const apply = process.argv.includes('--apply');
-const strict = process.argv.includes('--strict');
+// Writing is ALWAYS strict (Codex review of f660e09): model-dead alone once
+// marked live popover separators and Players column widths as dead.
+const strict = apply || process.argv.includes('--strict');
 const named = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const files = named.length ? named : (await readdir(resolve(root, 'css'))).filter(f => f.endsWith('.css')).map(f => `css/${f}`);
 
