@@ -155,7 +155,9 @@ with the two new harnesses.**
   converted data. Where they differ, the difference is judged against the
   football rules: if today's reading is wrong, the door produces the correct
   answer and the correction is recorded (as an audited parity correction), not
-  copied. Not a coach decision per difference.
+  copied. Not a coach decision per difference — but **every correction is
+  called out to the coach in the handoff** (what the old reading said, what is
+  right, why, which plays and numbers move); none is left only in a commit.
 - The coach charts only what the door cannot convert (the ambiguous Special
   Teams plays); the combined formations and units convert at the door.
 - **Exit criterion:** a read-only re-read of the live catalog, the backups and
