@@ -102,6 +102,23 @@ ok(r.sit === false, 'a hand-entered down or distance marks the situation as the 
 console.log('\n== 2. Old field path and new API agree ==');
 for (const a of r.agree) ok(a.same, `identical plays from ${JSON.stringify(a.start)} through 14 operations`, a.differ.join(' | '));
 
+console.log('\n== 3. Keyboard shortcuts write through the same API ==');
+const kb = await page.evaluate(async () => {
+  const app = window.app, t = app.tagger;
+  t.plays = [{ id: 30, timestamp: { start: 0, end: 4 }, notes: '', annotations: [], tags: t.constructor.blankTags({ unit: 'offense' }) }];
+  t.selectPlay(30);
+  document.activeElement?.blur?.();
+  const key = (code, shift = false) => document.body.dispatchEvent(new KeyboardEvent('keydown', { code, key: code.replace(/^(Key|Digit)/, '').toLowerCase(), shiftKey: shift, bubbles: true, cancelable: true }));
+  key('Digit3', true); const down = t.getPlay(30).tags.down;
+  key('Digit3', true); const downCleared = t.getPlay(30).tags.down;
+  key('KeyR'); key('KeyQ'); const types = t.getPlay(30).tags.playType;
+  key('KeyR'); const typesAfter = t.getPlay(30).tags.playType;
+  key('KeyG'); key('KeyL'); const result = t.getPlay(30).tags.result;
+  return { down, downCleared, types, typesAfter, result };
+});
+ok(kb.down === '3' && kb.downCleared === '', 'Shift+3 sets 3rd down and a second press clears it', JSON.stringify(kb));
+ok(kb.types === 'Run Inside + RPO' && kb.typesAfter === 'RPO', 'R and Q build a multi-select play type; R again removes Run Inside', JSON.stringify(kb));
+ok(kb.result === 'Loss', 'L replaces its rival Gain', JSON.stringify(kb));
 ok(!errors.length, 'no page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

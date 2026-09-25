@@ -1338,12 +1338,7 @@ class App {
 
     if (e.shiftKey && e.code >= 'Digit1' && e.code <= 'Digit4') {
       e.preventDefault();
-      const down = e.code.replace('Digit', '');
-      const tf = this.tagger.tagFields.down;
-      if (tf) {
-        tf.value = tf.value === down ? '' : down;
-        this.tagger._saveField('down');
-      }
+      this.tagger.toggleTagValue('down', e.code.replace('Digit', ''));
       return true;
     }
 
@@ -1379,12 +1374,7 @@ class App {
       const n = parseInt(e.code.replace('Digit', ''), 10);
       if (n >= 1 && n <= stTypes.length) {
         e.preventDefault();
-        const tf = this.tagger.tagFields.stType;
-        const val = stTypes[n - 1];
-        if (tf) {
-          tf.value = tf.value === val ? '' : val;
-          this.tagger._saveField('stType');
-        }
+        this.tagger.toggleTagValue('stType', stTypes[n - 1]);
         return true;
       }
     }
@@ -1393,14 +1383,9 @@ class App {
     if (!mapped) return false;
 
     e.preventDefault();
+    // Multi-select fields (e.g. Play Type) toggle membership; single replace.
     const [field, value] = mapped;
-    const tf = this.tagger.tagFields[field];
-    if (tf) {
-      // Multi-select fields (e.g. Play Type) toggle membership; single replace.
-      if (typeof tf.toggle === 'function') tf.toggle(value);
-      else tf.value = tf.value === value ? '' : value;
-      this.tagger._saveField(field);
-    }
+    this.tagger.toggleTagValue(field, value);
     return true;
   }
 
