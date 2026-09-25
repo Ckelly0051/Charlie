@@ -56,6 +56,11 @@ everything `1.12.0-99` carried (see `SMOKE-1.12.0-99.md`). It supersedes
     `Structure and execution`.
 
 
+**Not in this build:** `d5b5edd` (code review CR-1..3: on a play with no stored
+unit, the `C` / digit shortcuts, Clear Tags and Save & Next used the last unit
+chosen instead of the one shown — Save & Next could stamp Special Teams and
+strip the next play's formation). Found after this installer was built.
+
 Installed smoke pending. Not tagged, pushed or published.
 
 **Coach decision, 2026-09-24 (carried from `1.12.0-99`):** when this smoke

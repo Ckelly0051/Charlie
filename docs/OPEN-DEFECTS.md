@@ -6,21 +6,28 @@ The coach asked for a full review of the app; the review tool covers a diff, so
 it read `48cbf5d` and `125c6f5` and the code they touch. **A whole-app review
 has not been done.** Three defects (verified against source, not yet
 reproduced in a browser) and six legacy items. All three defects are in
-`1.12.0-101`. None is repaired; the coach decides when.
+`1.12.0-101`. **All three REPAIRED in source (`d5b5edd`, coach direction),
+not packaged; `1.12.0-101` still carries them.** Each reproduced red first in
+`e2e-unit-ownership` (real key events): `C` sent a play shown as Offense to
+Special Teams and wiped its formation, a digit wrote `Kickoff`, Clear Tags
+stored Defense, Save & Next stamped Special Teams. The sweep found a fourth
+instance of the pattern, the empty-unit-field fallback in
+`_onUnitFieldChanged`, repaired with them. `e2e-unit-ownership` 28; four
+reversions, each red.
 
-**CR-1 — OPEN. Keyboard unit shortcuts read the carried unit.**
+**CR-1 — REPAIRED IN SOURCE (`d5b5edd`). Keyboard unit shortcuts read the carried unit.**
 `js/app.js:1361` computes `curUnit = tags.unit || defaultUnit`. On a play with
 no stored unit, Chart shows Offense (`countedUnit`) but `C` cycles from the
 carried unit — shown Offense, carried Defense, `C` jumps to Special Teams and
 strips the formation and front — and the Special Teams digit shortcuts can
 write a type onto a play shown as Offense.
 
-**CR-2 — OPEN. Clear Tags stores the carried unit.** `js/play-tagger.js:552`
+**CR-2 — REPAIRED IN SOURCE (`d5b5edd`). Clear Tags stores the carried unit.** `js/play-tagger.js:552`
 rebuilds tags with `unit: play.tags.unit || this.defaultUnit`, so clearing a
 play with no stored unit files it under the last unit charted — another Film
 Room filter and report cohort — without the coach choosing it.
 
-**CR-3 — OPEN. Save & Next carries the carried unit, not the shown one.**
+**CR-3 — REPAIRED IN SOURCE (`d5b5edd`). Save & Next carries the carried unit, not the shown one.**
 `js/play-tagger.js:1241` takes `prev.tags.unit || this.defaultUnit`; after a
 play with no stored unit it can stamp Special Teams on the next untagged play
 and strip its look fields.

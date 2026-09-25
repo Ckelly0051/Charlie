@@ -93,7 +93,8 @@ the Codex-review repair of it (`125c6f5`) and everything in `1.12.0-99`. Its
 installed coach smoke is **pending**; see `SMOKE-1.12.0-101.md`. Not an
 installed approval, tag, push or published release.
 **`1.12.0-100`** (`64994be`) was built before that review and never smoked;
-superseded.
+superseded. **`1.12.0-101` does NOT contain `d5b5edd`** (the carried-unit
+repairs CR-1..3 from the 2026-09-24 code review).
 **`1.12.0-99`** (`2d13c31`) was smoked on 2026-09-24 and stopped by the coach
 at finding S99-2 to protect data; superseded.
 **Previous installer:** `1.12.0-98`, the Reports smoke candidate, built from the clean main checkout
@@ -598,7 +599,11 @@ action row adds no inset of its own.
 stored, as every report counts it; Chart, Film Room and the reports never show
 a play as two units. `PlayTagger.setPlayUnit` is the write, shared by Chart's
 unit switch and Film Room's pinned **Unit** column (coach, 2026-09-24, on
-Hudl's ODK: either view, equally weighted, last write wins). Save & Next's carry-forward uses the same write. Film Room's unit
+Hudl's ODK: either view, equally weighted, last write wins). Save & Next's carry-forward uses the same write. **The carried unit (`defaultUnit`)
+only seeds a play that does not exist yet**: every path that acts on an
+existing play — the `C` and Special Teams digit shortcuts, Clear Tags, Save &
+Next's carry, the unit-field fallback — reads `countedUnit(play)` (code review
+CR-1..3, `d5b5edd`). Film Room's unit
 buttons are **filters**, labeled `Filter plays`, and never write a play. In
 every scope and column set, a cell is blank and locked only where the row's
 unit cannot hold the field (`PlayGrid.cellLocked`, enforced by the grid's own
