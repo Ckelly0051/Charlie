@@ -13,11 +13,6 @@ import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
 import { SeasonStore } from './season-store.js';
 
-// AX-5 (S6-4c): run/pass data ink comes from the design system's CATEGORICAL
-// palette, not from two hand-picked hexes that happened to sit next to the
-// semantic amber and info blue. Chart series are categories, not judgements.
-const RUN_COLOR = 'var(--gi-run)';
-const PASS_COLOR = 'var(--gi-pass)';
 // Shown as a hover tooltip wherever Success Rate appears, so the metric is
 // self-explanatory in-app. Matches _isSuccessfulPlay().
 const SUCCESS_RATE_TIP = 'Share of plays that stay on schedule for the down/distance: 1st down needs 50% of the yards to go, 2nd down 70%, 3rd/4th must convert (plus any TD or made kick). Situation-aware: a 4-yard gain is a success on 1st-and-10 but not on 3rd-and-10.';
@@ -3143,13 +3138,6 @@ export class StatsEngine {
      A BUTTON, not a title attribute: `title` is invisible to touch, is not
      focusable, and cannot be dismissed. This opens on hover, on keyboard focus
      and on tap, and Escape closes it — the same contract every other overlay in
-     the product honors. */
-  static defMark(key) {
-    const text = StatsEngine.DEFINITIONS[key];
-    if (!text) return '';
-    return `<button type="button" class="gi-def" data-def="${Charts._esc(key)}"
-      aria-label="What this measures: ${Charts._esc(text)}">i<span class="gi-def-pop" role="tooltip" aria-hidden="true">${Charts._esc(text)}</span></button>`;
-  }
 
   /* One delegated binding for the whole report. Hover and focus are CSS; this
      owns tap (which has no hover) and Escape. */
@@ -4319,26 +4307,6 @@ export class StatsEngine {
       .sort((a, b) => b.n - a.n || String(a.value).localeCompare(String(b.value), undefined, { numeric: true }));
   }
 
-    /** Render the defensive self-scout section, or its diagnostic empty state.
-   *  Single source for the "sufficient? section : empty" decision so the
-   *  several call sites can't drift. showEmpty=false suppresses the empty
-   *  state where another section already explains the gap (the Defense tab).
-   *  hideKpis=true drops the internal Stop Rate/Yards Allowed/Havoc/Sacks/
-   *  TFL/Takeaways strip -- Charlie Gate finding #6: the Defense tab already
-   *  shows that exact set two sections above (Defensive Performance), so
-   *  repeating it inside Defensive Self-Scout was pure duplication there.
-   *  The Self-Scout tab has no other defensive summary on the page, so it
-   *  keeps the strip (the default). */
-      /** Play every snap this jersey # is involved in, back-to-back (cut-up). */
-  _watchPlayer(num) {
-    if (!num) return;
-    this._watchPlays(p => {
-      const pl = p.tags.players || {};
-      // Player values may hold multiple jersey #s (e.g. shared tackles).
-      return Object.values(pl).some(v => StatsEngine.splitPlayers(v).includes(String(num)));
-    }, `${this._playerLabel(num)} — cut-up`);
-  }
-
   /**
    * Play every snap matching `filter` back-to-back (cut-up). Shared by player
    * rows and every clickable stat row. Only plays with a real video region are
@@ -5210,9 +5178,6 @@ export class StatsEngine {
    *  will identify a tendency. Named so the diagnostic empty state can state
    *  the same number the gate applies. */
   static get _DEF_SELF_SCOUT_MIN_N() { return 6; }
-  static _meterColor(p) { return p >= 70 ? '#ef4444' : p >= 50 ? '#f59e0b' : p >= 30 ? '#f59e0b' : '#22c55e'; }
-  static _verdictIcon(v) { return v === 'dominant' ? '&#9650;' : v === 'effective' ? '&#9644;' : '&#9660;'; }
-  static _verdictLabel(v) { return v === 'dominant' ? 'Dominant' : v === 'effective' ? 'Effective' : 'Exploitable'; }
 
   /** Coordinator distance buckets — coaches game-plan by Short/Medium/Long,
    *  not by exact yards. Bucketing also keeps per-situation samples large
@@ -5301,27 +5266,6 @@ export class StatsEngine {
       .slice(0, limit)
       .map(({ p, side }) => ({
         id: p.id, side,
-        type: p.tags.playType,
-        result: p.tags.result,
-        yards: p.tags.yardage,
-        clipName: p.clipName || `Play ${p.id}`,
-        ref: StatsEngine._compositeRef(p),
-      }));
-  }
-
-  /** The N longest offensive gains, ranked. This is NOT `_bigPlays`, which is
-   *  the canonical explosive cohort — a 20-yard gain or a touchdown, in play
-   *  order — and stays the threshold the Explosives KPI counts. The approved
-   *  Overview composition's Big plays module is a FIXED-length leaderboard, so
-   *  it ranks: its own comp fixture lists five 18-yard gains, below the
-   *  explosive threshold, which the threshold cohort could never produce. */
-  static topPlaysByYards(plays, limit) {
-    return [...(plays || [])]
-      .map((p, order) => ({ p, order, yds: parseInt(p.tags.yardage, 10) || 0 }))
-      .sort((a, b) => b.yds - a.yds || a.order - b.order)
-      .slice(0, limit)
-      .map(({ p }) => ({
-        id: p.id,
         type: p.tags.playType,
         result: p.tags.result,
         yards: p.tags.yardage,

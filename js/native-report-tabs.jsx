@@ -572,12 +572,6 @@ function IdentityStrip({ items, screen }) {
    board then measured 5102..5478px across six real games. Offense modules hold
    their approved rows instead (`fitRows`), so the absence is stated inside the
    schema rather than by replacing it. Kept for the tabs that have not had their
-   static-composition pass. */
-function SparseModule({ title, meta, cls = '', rows, children }) {
-  return <Module title={title} meta={meta} cls={cls}>
-    {rows && rows.length ? children : <p class="gi-table-empty">Insufficient charted data</p>}
-  </Module>;
-}
 
 /* The six approved zones are PAGES (coach-approved comp,
    design-comps/reports-secondary-nav-2026-09-23): one on screen at a time,
@@ -649,22 +643,6 @@ const OFFENSE_EPA_ROWS = {
   'By play type': 6, 'By formation': 5, 'By personnel': 5, 'By down': 4,
   'Top 5': 5, 'Worst 5': 5,
 };
-/** Every module the approved comp renders, in its approved order. The board
- *  shows exactly these, always, whatever the data holds. */
-const OFFENSE_MODULES = [
-  'Identity', 'Run / pass balance',
-  'Play calls', 'Concepts',
-  'Formation', 'Play type', 'Play-action', 'Formation × Play Type',
-  'Core tendencies', 'Direction vs Strength', 'Calls by situation', 'Drive outcomes',
-  'Personnel', 'Backfield', 'Motion',
-  'Play direction', 'Strength', 'Field hash',
-  'Personnel × situation', 'Situational',
-  'Top 5 Tendencies', 'By quarter',
-  'Field heat map',
-  'Yards per play', 'Yards vs distance to go',
-  'Success by field position', 'Run / pass by down',
-  'Team profile', 'Expected points added',
-];
 /** EXACTLY the approved slot count — truncate a long cohort, PAD a short one.
  *
  *  Capping alone was only half the rule and produced only half a static board:
@@ -959,11 +937,6 @@ const PLAYER_COL_SIZE = {
    `Sack` (a wider header). A column is sized from what IT holds, so the wider
    of the two is not imposed on the other. */
 const PLAYER_COL_SIZE_BY_ROLE = { tackles: { sacks: 'l2' } };
-/* A band half is (VW - 32 board padding - 1 gap) / 2 - 24 module padding:
- * 599px at 1280. A band whose widest table needs more than that stacks there;
- * the rest stay paired, so Return Game and Kicking / Punting are not stacked
- * merely because Tackles is wide. */
-const PLAYER_HALF_1280 = 599;
 
 const PLAYER_NO_DATA_CELL = 'No data';
 
@@ -1142,18 +1115,6 @@ const PLAYER_DETAIL_STATS = {
 /* The buckets whose displayed value is a TOTAL rather than a count. */
 const PLAYER_DETAIL_TOTALS = {
   rushing: ['yds'], passing: ['yds'], receiving: ['yds'], returns: ['yds'], kicking: ['puntYds'],
-};
-const PLAYER_GAME_CELL = {
-  rushing: (n, yds) => `${n} att, ${yds} yds`,
-  passing: (n, yds) => `${n} att, ${yds} yds`,
-  receiving: (n, yds) => `${n} rec, ${yds} yds`,
-  tackles: n => `${n} tkl`,
-  returns: (n, yds) => `${n} ret, ${yds} yds`,
-  kicking: (n, yds) => `${n} FG, ${yds} punt yds`,
-};
-const PLAYER_SITU_HEAD = {
-  rushing: ['Att', 'Yds'], passing: ['Att', 'Yds'], receiving: ['Rec', 'Yds'],
-  tackles: ['Tkl', 'Tkl'], returns: ['Ret', 'Yds'], kicking: ['FG att', 'Punt yds'],
 };
 
 /* Revision 2: a compact column menu per role table. Presentation state only —
@@ -1569,28 +1530,6 @@ function UnitLedger({ units, screen }) {
         </span>
       </WatchableRefs>)}
   </div>;
-}
-
-/** Special Teams Presentation Independence -- a real Preact re-derivation of
- *  the structured Special Teams seams, recomposed into
- *  the same dense broadcast-density language Overview and Defense already
- *  established (`.gi-overview-board`/KpiBand/Module/DataTable) instead of
- *  reproducing their old three-card layout. No LegacyWidget, no
- *  `dangerouslySetInnerHTML`, no post-render selector binding -- every film
- *  action is a real onClick/onKeyDown closure. Season-capable like Defense:
- *  `stats`/`summary` arrive already scoped to `screen.specialTeamsScope`
- *  (Full season by default), so a phase/table row's own refs are always the
- *  exact composite `gameId::playId` cohort behind its own count, correct
- *  even when two games in the cohort reuse the same bare play id. */
-function SpecialTeamsPlayerTable({ table, screen }) {
-  return <Module title={table.title}>
-    <DataTable columns={table.columns.map(([key, label, numeric]) => ({ key, label, numeric }))}
-      rows={table.rows.map(row => {
-        const label = `${row.label}'s Special Teams plays`;
-        return { ...row, id: row.num, player: row.label,
-          onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, label) : undefined, label };
-      })} />
-  </Module>;
 }
 
 /** Native Special Teams report: structured data in, Preact presentation and exact-film actions out. */

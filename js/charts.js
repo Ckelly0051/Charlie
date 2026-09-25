@@ -7,52 +7,6 @@ export class Charts {
   static _esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   /**
-   * F12a — FREQUENCY × SUCCESS bars.
-   *
-   * Two variables in one mark: bar LENGTH is how often, bar FILL is how well.
-   * A table gives you both numbers and neither shape; this makes "we run it a
-   * lot and it does not work" visible in one glance, which is the whole reason
-   * to draw a chart instead of printing a column.
-   *
-   * The ramp is intensity of ONE hue, not a red-amber-green scale: success rate
-   * is a continuous quantity, and a semantic traffic light would both collide
-   * with the status colours and imply thresholds we have not agreed. Sample size
-   * rides along as opacity so a two-snap row cannot look like a certainty.
-   *
-   * @param {Array<{label:string, count:number, successPct:number, sub?:string,
-   *   refs?:string[], cut?:{type:string,val:string}}>} rows
-   */
-  static rampBars(rows, opts = {}) {
-    const list = (rows || []).filter(row => row && row.count > 0);
-    if (!list.length) return '';
-    const max = Math.max(...list.map(row => row.count));
-    const minN = opts.minSample ?? 3;
-    return `<div class="gi-ramp">${list.map(row => {
-      const width = Math.max(2, Math.round(row.count / max * 100));
-      const success = Math.max(0, Math.min(100, Number(row.successPct) || 0));
-      // Intensity: 0.30 at 0% success, 1.0 at 100%. Low-sample rows dim further.
-      const intensity = (0.30 + (success / 100) * 0.70) * (row.count < minN ? 0.5 : 1);
-      const attrs = row.refs?.length
-        ? ` class="gi-ramp-row cut-row" data-opponent-refs="${Charts._esc(row.refs.join(','))}" tabindex="0" role="button"`
-        : row.cut
-          ? ` class="gi-ramp-row cut-row" data-cut-type="${Charts._esc(row.cut.type)}" data-cut-val="${Charts._esc(row.cut.val)}" data-cut-label="${Charts._esc(row.label)}" tabindex="0" role="button"`
-          : ' class="gi-ramp-row"';
-      return `<div${attrs}>
-        <span class="gi-ramp-label">${Charts._esc(row.label)}</span>
-        <span class="gi-ramp-track"><i style="width:${width}%;background:var(--gi-los);opacity:${intensity.toFixed(2)}"></i></span>
-        <span class="gi-ramp-n">${row.count}</span>
-        <span class="gi-ramp-pct">${Math.round(success)}%${row.count < minN ? ' <em>low</em>' : ''}</span>
-      </div>`;
-    }).join('')}
-      ${/* H17 — this legend restated the caption above it in looser words, so
-            the same three terms were defined twice, once precisely and once
-            not. The caption owns the definitions; the legend is deleted rather
-            than rewritten. A legend earns its place only where it carries a key
-            the caption cannot — a colour mapping, not a restatement. */''}
-    </div>`;
-  }
-
-  /**
    * F12a — yardage DISTRIBUTION. The shape of an offense in one mark: where the
    * mass sits, how long the tail is, and where the line of scrimmage falls. A
    * table of averages hides all three.
@@ -280,29 +234,6 @@ export class Charts {
   }
 
   /**
-   * A donut with its title above and its legend below — the AX-5 composition.
-   * The caption is a real element with stable dimensions instead of SVG text
-   * squeezed into the ring, so a long label wraps rather than clipping.
-   */
-  static donutBlock(segments, size = 120, centerText = '', title = '', legend = true) {
-    const donut = Charts.donut(segments, size, centerText, title);
-    if (!donut) return '';
-    const items = legend ? segments.filter(seg => seg.value > 0).map(seg =>
-      `<span class="chart-leg-item"><i style="background:${seg.color}"></i>${Charts._esc(seg.label)} <b>${seg.value}</b></span>`
-    ).join('') : '';
-    return `<figure class="chart-donut-block">${title ? `<figcaption>${Charts._esc(title)}</figcaption>` : ''}${donut}${items ? `<div class="chart-legend">${items}</div>` : ''}</figure>`;
-  }
-
-  static donutWithLegend(segments, size = 120, centerText = '', centerSub = '') {
-    const total = segments.reduce((s, seg) => s + seg.value, 0);
-    if (!total) return '';
-    const legend = segments.filter(s => s.value > 0).map(seg =>
-      `<span class="chart-leg-item"><i style="background:${seg.color}"></i>${Charts._esc(seg.label)} <b>${seg.value}</b></span>`
-    ).join('');
-    return `<div class="chart-donut-wrap">${this.donut(segments, size, centerText, centerSub)}<div class="chart-legend">${legend}</div></div>`;
-  }
-
-  /**
    * Horizontal bar chart — leaderboard style with split + metrics.
    * @param {Array<{label:string, value:number, color?:string, sub?:string, extra?:string}>} data
    */
@@ -316,20 +247,6 @@ export class Charts {
       return `<div class="chart-hbar-row"><span class="chart-hbar-label">${Charts._esc(d.label)}</span><div class="chart-hbar-track"><div class="chart-hbar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>${d.sub ? `<span class="chart-hbar-sub">${d.sub}</span>` : ''}</div><span class="chart-hbar-val">${d.extra || d.value}</span></div>`;
     }).join('');
     return `<div class="chart-hbars">${rows}</div>`;
-  }
-
-  /**
-   * Stacked horizontal bar (e.g. run/pass split per formation).
-   * @param {Array<{value:number, color:string, label:string}>} parts
-   */
-  static stackBar(parts, height = 22) {
-    const total = parts.reduce((s, p) => s + p.value, 0);
-    if (!total) return '<div class="chart-stack" style="height:22px"></div>';
-    const segs = parts.filter(p => p.value > 0).map(p => {
-      const pct = (p.value / total) * 100;
-      return `<div class="chart-stack-seg" style="width:${pct.toFixed(1)}%;background:${p.color}" title="${Charts._esc(p.label)}: ${p.value} (${Math.round(pct)}%)">${pct >= 18 ? Math.round(pct) + '%' : ''}</div>`;
-    }).join('');
-    return `<div class="chart-stack" style="height:${height}px">${segs}</div>`;
   }
 
   /**
@@ -378,51 +295,6 @@ export class Charts {
     if (!max) return '';
     const pct = Math.min(100, Math.max(0, (value / max) * 100));
     return `<div class="chart-minibar"><div style="width:${pct.toFixed(1)}%;background:${color}"></div></div>`;
-  }
-
-  /**
-   * Game-by-game trend line — one metric across the season's games, as a clean
-   * line chart with a dot + value at each game. points: [{ label, value }].
-   * Used by the Season tab's trend grid.
-   */
-  static trendLine(points, opts = {}) {
-    if (!points || points.length < 2) return '';
-    // A dense KPI-with-sparkline card: the LATEST value big + a delta vs the
-    // first game (colored by good/bad via opts.goodUp), a compact full-width
-    // line, and the first/last game names. Replaces the old tall card that
-    // wasted ~60% of its height on a thin diagonal line.
-    const W = 300, H = 60;
-    const color = opts.color || '#3D7BFD';
-    const fmt = opts.fmt || ((v) => String(Math.round(v)));
-    const padX = 8, padT = 10, padB = 8;
-    const vals = points.map(p => p.value);
-    const lo = Math.min(...vals), hi = Math.max(...vals);
-    const range = (hi - lo) || 1;
-    const x = (i) => padX + (i / (points.length - 1)) * (W - 2 * padX);
-    const y = (v) => padT + (1 - (v - lo) / range) * (H - padT - padB);
-    const path = 'M' + points.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' L');
-    const base = (H - padB).toFixed(1);
-    const area = `${path} L${x(points.length - 1).toFixed(1)},${base} L${padX.toFixed(1)},${base} Z`;
-    const dots = points.map((p, i) =>
-      `<circle cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="2.6" style="fill:${color}"><title>${Charts._esc(p.label || '')}: ${fmt(p.value)}</title></circle>`
-    ).join('');
-    // current value + delta vs first
-    const first = points[0].value, lastV = points[points.length - 1].value;
-    const delta = lastV - first;
-    const goodUp = opts.goodUp !== false;
-    const dClass = delta === 0 ? 'even' : ((delta > 0) === goodUp ? 'up' : 'down');
-    const deltaStr = delta === 0 ? '—' : `${delta > 0 ? '▲' : '▼'} ${fmt(Math.abs(delta))}`;
-    const nm = (s) => Charts._esc((s || '').replace(/^vs\s+/i, '').slice(0, 16));
-    return `<div class="gi-trend">`
-      + `<div class="gi-trend-title">${Charts._esc(opts.title || '')}</div>`
-      + `<div class="gi-trend-now"><span class="gi-trend-val">${fmt(lastV)}</span>`
-      + `<span class="gi-trend-delta ${dClass}">${deltaStr}</span></div>`
-      + `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" class="gi-trend-svg" role="img" aria-label="${Charts._esc(opts.title || 'trend')}">`
-      + `<path d="${area}" style="fill:${color}" fill-opacity="0.13"/>`
-      + `<path d="${path}" fill="none" style="stroke:${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}`
-      + `</svg>`
-      + `<div class="gi-trend-legend"><span>${nm(points[0].label)}</span><span>${nm(points[points.length - 1].label)}</span></div>`
-      + `</div>`;
   }
 
   /**

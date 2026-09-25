@@ -1400,12 +1400,6 @@ export class StorageManager {
     return true;
   }
 
-  setSeasonName(name) {
-    if (!this.seasonStore.data) return;
-    this.seasonStore.data.seasonName = name || '';
-    this.seasonStore.persist();
-  }
-
   _serialize() {
     // Strip non-serializable File references from plays before saving
     const plays = this.tagger.plays.map(p => {
@@ -1615,12 +1609,6 @@ export class StorageManager {
     if (st.diskStatus().bound) return st.saveNow('Manual save');
     st.downloadFile();                           // Firefox/Safari: file + ring snapshot
     return true;
-  }
-
-  /** Bind (or re-bind) the durable backup folder. */
-  async bindBackupFolder() {
-    const ok = await this.seasonStore.bindDisk();
-    return ok;
   }
 
   /** Restore a previous save; reloads the active game on success. */

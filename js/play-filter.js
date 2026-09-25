@@ -89,8 +89,6 @@ export class PlayFilter {
     return side === 'opp' ? (100 - yl) : yl;
   }
 
-  clearAll() { this.setCriteria({}); }
-
   /** DOM-independent state seam used by native Cut-up settings. */
   snapshot() {
     return {

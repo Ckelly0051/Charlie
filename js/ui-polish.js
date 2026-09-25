@@ -15,10 +15,6 @@ export class UIPolish {
     this._initEmptyStateCTA();
     this._initVideoLoadedHint();
   }
-  _activeFilmGame() {
-    const store = this.app?.storage?.seasonStore;
-    return store?.data ? store.activeGame?.() || null : null;
-  }
 
 
   _filmBackend() { return this.app?.storage?.seasonStore?.backend || null; }

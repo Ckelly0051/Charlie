@@ -135,21 +135,6 @@ export class CanvasOverlay {
     };
   }
 
-  toCanvas(normX, normY) {
-    const rect = this.canvas.getBoundingClientRect();
-    return {
-      x: normX * rect.width,
-      y: normY * rect.height
-    };
-  }
-
-  _toCtx(canvasX, canvasY) {
-    return {
-      x: canvasX * devicePixelRatio,
-      y: canvasY * devicePixelRatio
-    };
-  }
-
   _onStart(e) {
     if (!this.currentTool) return;
     this.isDrawing = true;
@@ -287,18 +272,6 @@ export class CanvasOverlay {
       this.annotations.splice(op.index, 0, op.annotation);
       this.undoStack.push({ action: 'add', index: op.index });
     }
-    this.render();
-    this._emit('annotations-changed');
-  }
-
-  clearAnnotationsForTime(timestamp, tolerance) {
-    const frameDur = 1 / (Number(this.vc.fps) || 30);
-    const tol = tolerance || frameDur / 2;
-    this.annotations = this.annotations.filter(
-      a => Math.abs(a.timestamp - timestamp) > tol
-    );
-    this.undoStack = [];
-    this.redoStack = [];
     this.render();
     this._emit('annotations-changed');
   }

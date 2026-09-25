@@ -144,18 +144,6 @@ export class TagLibrary {
     [group.order[from], group.order[to]] = [group.order[to], group.order[from]];
     return this._write(state);
   }
-  replaceCustom(data = {}) {
-    const state = this.load();
-    for (const key of Object.keys(TagLibrary.DEFINITIONS)) {
-      const defaults = TagLibrary.DEFINITIONS[key], prior = state.groups[key];
-      const custom = [...new Set((data[key] || []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
-      prior.custom = custom;
-      prior.enabled = [...new Set([...prior.enabled.filter(value => defaults.includes(value)), ...custom])];
-      prior.order = [...new Set([...prior.order.filter(value => defaults.includes(value) || custom.includes(value)), ...defaults, ...custom])];
-    }
-    this._write(state);
-    return state;
-  }
   presets() { return this.load().presets.map(preset => JSON.parse(JSON.stringify(preset))); }
   savePreset({ name, unit = 'offense', mode = 'program', role = 'All staff' } = {}) {
     const clean = String(name || '').trim();

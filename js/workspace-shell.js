@@ -132,13 +132,6 @@ export class WorkspaceShell {
     if (routeId==='plan') { this.app.planScreen?.show(); }
     return result;
   }
-  /** Re-apply the CURRENT route's visibility with NO navigation side effects.
-   *  Callers need a non-navigating re-apply: `show()` calls `library.hide()`,
-   *  which calls this, so routing back through `show()` would recurse. */
-  restoreRouteVisibility() {
-    if (!this.root) return;
-    this._setRouteVisibility(this.app.workspace.currentRoute() || 'home');
-  }
   _routeHosts() {
     if (!this.root) return {};
     return {

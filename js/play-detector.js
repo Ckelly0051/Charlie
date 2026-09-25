@@ -56,10 +56,6 @@ export class PlayDetector {
   _loadROI() {
     try { return JSON.parse(localStorage.getItem('ffa_detect_roi')); } catch { return null; }
   }
-  saveROI(roi) {
-    this.roi = roi;
-    localStorage.setItem('ffa_detect_roi', JSON.stringify(roi));
-  }
 
   /**
    * Scan the current loaded video.

@@ -685,9 +685,6 @@ class App {
     this._renderGamesPanel?.();
   }
 
-  /** Set an input/select value by id (no-op when the element is absent). */
-  _setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
-
   // "Expand" toggles the video to full screen so a coach can watch a play
   // bigger; the default size is unchanged. Native Fullscreen API on
   // #videoContainer (video + canvas + playback controls). The Fullscreen target
@@ -1039,12 +1036,6 @@ class App {
   _updateTrackedScore() {
     if (!this.stats) return;
     this._trackedScore = this.stats.computeScoreboard();
-  }
-
-  /** Copy the tagged score into the active game's final score. */
-  _applyTrackedScore() {
-    const sb = this._trackedScore || this.stats.computeScoreboard();
-    this._setGameScore(sb.us, sb.them);
   }
 
   /** Mark the onboarding checklist's "See your stats" step complete once the

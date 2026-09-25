@@ -209,13 +209,6 @@ export function downDistanceRows(stats, statsEngine = null, limit = 0) {
   return limit ? padRows(rows, limit, 'situation') : rows;
 }
 
-export function gamePlan(stats, limit = 3) {
-  const t = stats.takeaways || {};
-  const plainText = value => String(value || '').replace(/<[^>]+>/g, '');
-  const list = items => (items || []).slice(0, limit).map(item => ({ text: plainText(item.text), cut: item.cut || null }));
-  return { working: list(t.working), fix: list(t.fix) };
-}
-
 /** The longest gains on the FIELD, both directions. Our offensive snaps are
  *  ours; our defensive snaps are the opponent's offense, so a long run we gave
  *  up belongs on this list beside a long run we broke. `side` carries which,
@@ -258,33 +251,6 @@ function groupBreakdown(rows, cutType) {
     ypp: row.avg, success: `${row.successPct}%`,
     cutType, cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays`,
   }));
-}
-
-/**
- * The pre-redesign Offense KPI set. The Offense tab no longer uses it —
- * `offenseKpis` below is that tab's owner — but the Season and Matchup tabs
- * still render it, and neither is in the Offense redesign's scope. It stays
- * unchanged until those tabs get their own passes.
- */
-export function offenseHero(stats, engine) {
-  if (!stats || !stats.totalPlays) return [];
-  const ypp = engine.constructor.yardsPerPlay(stats);
-  const e = stats.efficiency || {};
-  const tend = stats.tendencies || {};
-  const num = v => (v == null ? null : parseFloat(v));
-  const tone = (v, good, ok, invert) => {
-    if (v == null || isNaN(v)) return '';
-    return invert ? (v <= good ? 'is-good' : v <= ok ? 'is-warn' : 'is-bad')
-                  : (v >= good ? 'is-good' : v >= ok ? 'is-warn' : 'is-bad');
-  };
-  const succ = num(e.successRate), expl = num(e.explosivePct), neg = num(e.negativePct);
-  const kpis = [];
-  if (succ != null) kpis.push({ label: 'Success rate', value: Math.round(succ) + '%', tone: tone(succ, 45, 33) });
-  if (expl != null) kpis.push({ label: 'Explosive Plays Rate', value: Math.round(expl) + '%', sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
-  if (neg != null) kpis.push({ label: 'Plays for Loss', value: Math.round(neg) + '%', sub: `${e.negativePlays || 0} plays`, tone: tone(neg, 8, 15, true) });
-  kpis.push({ label: 'Yds / play', value: ypp, sub: `${stats.totalPlays} plays` });
-  kpis.push({ label: 'Run rate', value: Math.round(parseFloat(tend.runPct) || 0) + '%', sub: `${tend.runs || 0}R / ${tend.passes || 0}P` });
-  return kpis;
 }
 
 /**

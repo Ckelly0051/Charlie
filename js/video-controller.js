@@ -439,26 +439,6 @@ export class VideoController {
     if (this.video.src && this.video.paused) this.video.play().catch(() => {});
   }
 
-  setLoopA() {
-    this._abA = this.video.currentTime;
-    this.loopMode = null;
-    this.loopRegion = null;
-    this._updateLoopUI();
-  }
-
-  setLoopB() {
-    const b = this.video.currentTime;
-    if (this._abA == null) { this._abA = 0; }
-    const start = Math.min(this._abA, b);
-    const end = Math.max(this._abA, b);
-    if (end - start < 0.1) return;
-    this.loopRegion = { start, end };
-    this.loopMode = 'ab';
-    this._updateLoopUI();
-    this.video.currentTime = start;
-    if (this.video.src && this.video.paused) this.video.play().catch(() => {});
-  }
-
   clearLoop() {
     this.loopRegion = null;
     this.loopMode = null;
@@ -514,12 +494,6 @@ export class VideoController {
     this.video.playbackRate = this.playbackRate;
     this._emit('rate-change', { rate: this.playbackRate });
     return this.playbackRate;
-  }
-
-  setFrameRate(fps) {
-    const next = Number(fps);
-    this.fps = Number.isFinite(next) && next > 0 ? next : 30;
-    return this.fps;
   }
 
   // Simple event system

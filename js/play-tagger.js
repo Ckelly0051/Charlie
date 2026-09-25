@@ -47,21 +47,6 @@ class ChipField {
       this._fire('change');
     });
   }
-  /** Bind + track an externally-created chip button (custom user chips), so it
-   *  behaves exactly like a built-in chip. Re-syncs active state for the case a
-   *  play carrying this value is already loaded. */
-  registerChip(btn) {
-    if (!btn || this.chips.includes(btn)) return;
-    this._bindChip(btn);
-    this.chips.push(btn);
-    if (this.multi) this._syncMulti();
-    else if (this._value === btn.dataset.value) btn.classList.add('active');
-  }
-  /** Stop tracking a chip (removed custom chip). Does not touch stored values. */
-  unregisterChip(btn) {
-    const i = this.chips.indexOf(btn);
-    if (i >= 0) this.chips.splice(i, 1);
-  }
   /** Remove values that are mutually exclusive with v (multi mode). */
   _dropRivals(v) {
     for (const group of this.exclusive) {
@@ -536,8 +521,6 @@ export class PlayTagger {
 
     // Always reset the visible form fields, chips, players, grades and notes.
     this._clearTagForm();
-    const notesEl = document.getElementById('notesArea');
-    if (notesEl) notesEl.value = '';
     // Custom-field chips and roster quick-pick chips render outside the core
     // form and only refresh on play-selected — re-announce the (now blank)
     // play so they don't stay lit and read as "the clear didn't work".

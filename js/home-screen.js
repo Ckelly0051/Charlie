@@ -410,7 +410,6 @@ export class HomeScreen {
     return false;
   }
 
-  async openBreakdown(id) { return id ? this.app.openGame(id, { route: 'breakdown' }) : false; }
   async openStudy(id) { return id ? this.app.openGame(id, { route: 'study' }) : false; }
   async openReportsForGame(id) { return id ? this.app.openGame(id, { route: 'reports' }) : false; }
   async openSeasonReport() { await this.app.workspaceShell.show('reports'); this.app.reportsScreen?.selectTab?.('season'); return true; }
