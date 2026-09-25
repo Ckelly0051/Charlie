@@ -61,7 +61,8 @@ unit, the `C` / digit shortcuts, Clear Tags and Save & Next used the last unit
 chosen instead of the one shown — Save & Next could stamp Special Teams and
 strip the next play's formation). Found after this installer was built.
 
-Installed smoke pending. Not tagged, pushed or published.
+**Superseded, never smoked:** replaced by `1.12.0-102` (`SMOKE-1.12.0-102.md`),
+which adds `d5b5edd`. Not tagged, pushed or published.
 
 **Coach decision, 2026-09-24 (carried from `1.12.0-99`):** when this smoke
 passes, commit the result docs and push the branch. No tag unless the coach
