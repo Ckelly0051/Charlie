@@ -195,13 +195,12 @@ export class NativeTaggingScreen {
 
 
   toggleField(key, value) {
-    const field = this.tagger?.tagFields?.[key];
-    if (!field?.toggle || !this.tagger?.getCurrentPlay?.()) return false;
+    const play = this.tagger?.getCurrentPlay?.();
+    if (!play) return false;
     this._protectCallOverride(key);
-    field.toggle(value);
-    const play = this.tagger.getCurrentPlay();
-    if (key === 'result' && value === 'Fumble' && !field.value.split(' + ').includes('Fumble')) play.tags.fumbleRecovery = '';
-    this.tagger._saveField(key); this._queuePublish(); return true;
+    // Untoggling Fumble clears its recovery owner in the same write.
+    if (key === 'result' && value === 'Fumble' && this.tagger.displayTagValue('result').split(/\s*\+\s*/).includes('Fumble')) play.tags.fumbleRecovery = '';
+    this.tagger.toggleTagValue(key, value); this._queuePublish(); return true;
   }
   setFumbleRecovery(value) {
     const play = this.tagger?.getCurrentPlay?.();
@@ -213,10 +212,9 @@ export class NativeTaggingScreen {
     return true;
   }
   setField(key, value) {
-    const field = this.tagger?.tagFields?.[key];
-    if (!field || !this.tagger?.getCurrentPlay?.()) return false;
+    if (!this.tagger?.getCurrentPlay?.()) return false;
     this._protectCallOverride(key);
-    field.value = value; this.tagger._saveField(key); this._queuePublish(); return true;
+    this.tagger.setTagValue(key, value); this._queuePublish(); return true;
   }
 
   _protectCallOverride(key) {
@@ -228,7 +226,6 @@ export class NativeTaggingScreen {
     if (!play) return false;
     PlayCallModel.apply(play, value, this.app.playbook,
       playType => this.tagger?.constructor?.runPassForPlayType?.(playType));
-    this.tagger._loadTagForm(play);
     this.tagger._emit('play-updated', play);
     this._queuePublish();
     return true;
@@ -238,8 +235,8 @@ export class NativeTaggingScreen {
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.app.settingsScreen?.openPlaybook?.({ name:String(name || '').trim(), returnFocus });
   }
-  setPlayer(role, value) { const field=this.tagger?.playerFields?.[role]; if(!field)return false; field.value=value; this.tagger._savePlayer(role); this.app.breakdownCharting?.syncSpecialist?.(role); this._queuePublish(); return true; }
-  setGrade(role, value) { const field=this.tagger?.gradeFields?.[role]; if(!field)return false; field.value=value; this.tagger._saveGrade(role); this._queuePublish(); return true; }
+  setPlayer(role, value) { if(!this.tagger?.setPlayerValue?.(role, value))return false; this.app.breakdownCharting?.syncSpecialist?.(role); this._queuePublish(); return true; }
+  setGrade(role, value) { if(!this.tagger?.setGradeValue?.(role, value))return false; this._queuePublish(); return true; }
   setNotes(value) { const ok = this.app.notes?.setNotes?.(value); if (ok) this._queuePublish(); return !!ok; }
   addCustomTag(value) { const play=this.tagger?.getCurrentPlay?.(),clean=String(value||'').trim(); if(!play||!clean)return false; if(!Array.isArray(play.tags.custom))play.tags.custom=[]; if(!play.tags.custom.includes(clean))play.tags.custom.push(clean); this.tagger._emit('play-updated',play); return true; }
   removeCustomTag(index) { const play=this.tagger?.getCurrentPlay?.(); if(!play||!Array.isArray(play.tags.custom))return false; play.tags.custom.splice(index,1); this.tagger._emit('play-updated',play); return true; }
