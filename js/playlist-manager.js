@@ -286,7 +286,9 @@ export class PlaylistManager {
         // so a cut-up doesn't instantly skip a play whose end would be 0. The
         // real duration is backfilled by _backfillDurations once it resolves.
         timestamp: { start: 0, end: clip.duration || 999 },
-        tags: this.tagger.newPlayTags(),
+        // The unit being charted seeds the new play; its drive is not charted
+        // yet, so an imported clip gets none (Codex review of ecbe8b4).
+        tags: this.tagger.constructor.blankTags({ unit: this.tagger.defaultUnit || 'offense' }),
         annotations: [],
         notes: '',
         clipName: clip.name,

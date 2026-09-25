@@ -304,12 +304,13 @@ r = await page.evaluate(async () => {
   await new Promise(res => setTimeout(res, 300));
   const made = t.plays.find(p => !before.has(p.id));
   const blank = t.constructor.blankTags ? Object.keys(t.constructor.blankTags()).sort() : null;
-  const out = { made: !!made, unit: made?.tags?.unit, keys: made ? Object.keys(made.tags).sort() : [], blank };
+  const out = { made: !!made, unit: made?.tags?.unit, drive: made?.tags?.driveNumber, keys: made ? Object.keys(made.tags).sort() : [], blank };
   if (made) t.plays = t.plays.filter(p => p.id !== made.id);
   return out;
 });
 ok(r.made && r.unit === 'defense', 'a play created by clip import carries the unit being charted (the carried unit seeds a new play)', JSON.stringify({ made: r.made, unit: r.unit }));
 ok(Array.isArray(r.blank) && JSON.stringify(r.keys) === JSON.stringify(r.blank), 'its tags are exactly the one blank schema (PlayTagger.blankTags)', JSON.stringify({ keys: r.keys, blank: r.blank }));
+ok(r.drive === '', 'a clip import charts no drive: an uncharted clip is not Drive 1 (Codex review of ecbe8b4)', JSON.stringify({ drive: r.drive }));
 ok(!errors.length, 'no page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
