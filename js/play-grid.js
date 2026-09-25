@@ -273,7 +273,7 @@ export class PlayGrid {
   _matches(p) {
     const t = p.tags || {};
     const f = this.f;
-    if (f.unit && (t.unit || 'offense') !== f.unit) return false;
+    if (f.unit && countedUnit(p) !== f.unit) return false;
     if (f.downs.size && !f.downs.has(String(t.down))) return false;
     if (f.rp === 'Run' && !StatsEngine.isRun(p)) return false;
     if (f.rp === 'Pass' && !StatsEngine.isPass(p)) return false;
@@ -318,6 +318,19 @@ export class PlayGrid {
     return [...pinned, ...this.cols.filter(k => !pinned.some(c => c.key === k)).map(k => PlayGrid.COLUMNS.find(c => c.key === k)).filter(Boolean)];
   }
   static UNIT_LABELS = Object.freeze({ offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
+  /**
+   * Whether a play's unit cannot hold a column: the Special Teams columns on an
+   * offensive or defensive snap, and the offense and defense look columns on a
+   * Special Teams snap (which holds none of them). An offensive snap charts the
+   * defense it faced and a defensive snap the offense it faced, so Formation and
+   * Front belong on both (1.12.0-99 smoke, S99-1). The one rule for the
+   * snapshot, the editor and the commit, whatever the scope or column set.
+   */
+  static cellLocked(play, col) {
+    if (!col?.unit) return false;
+    const unit = countedUnit(play);
+    return unit === 'special' ? col.unit !== 'special' : col.unit === 'special';
+  }
 
   // ---------- View data ----------
 
@@ -577,18 +590,14 @@ export class PlayGrid {
       editable: col.type !== 'st-readonly' && col.type !== 'pen-readonly',
     }));
     const selected = new Set(this.selected);
-    // All plays mixes units. A column is blank, and not editable, only on a row
-    // whose unit cannot chart it: the Special Teams columns on an offensive or
-    // defensive snap, and the offense and defense look columns on a Special
-    // Teams snap (which holds none of them). An offensive snap charts the
-    // defense it faced and a defensive snap the offense it faced, so Formation
-    // and Front both belong on both (1.12.0-99 smoke, S99-1).
+    // A cell is blank and locked where the row's unit cannot hold the column
+    // (PlayGrid.cellLocked), in every scope: a custom Offense set can carry a
+    // Special Teams column (Codex review of 48cbf5d).
     const scope = this._colScope();
-    const colUnit = Object.fromEntries(this._visibleCols().map(col => [col.key, col.unit || '']));
+    const visibleCols = this._visibleCols();
     const rows = visible.map(play => {
       const unit = countedUnit(play);
-      const na = scope === 'all' ? columns.filter(col => colUnit[col.key]
-        && (unit === 'special' ? colUnit[col.key] !== 'special' : colUnit[col.key] === 'special')).map(col => col.key) : [];
+      const na = visibleCols.filter(col => PlayGrid.cellLocked(play, col)).map(col => col.key);
       return {
         id: play.id, unit, na,
         current: play.id === this.tagger.currentPlayId,
@@ -689,6 +698,7 @@ export class PlayGrid {
     const play = this.tagger.getPlay(Number(playId));
     const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
     if (!play || !col || col.type === 'st-readonly' || col.type === 'pen-readonly') return null;
+    if (PlayGrid.cellLocked(play, col)) return null;
     if (col.key === 'unit') return {
       playId: play.id, col: { key: col.key, label: col.label, type: col.type, multi: false },
       value: PlayGrid.UNIT_LABELS[countedUnit(play)], options: Object.values(PlayGrid.UNIT_LABELS),
@@ -707,7 +717,7 @@ export class PlayGrid {
   nativeCommitEdit(playId, colKey, value) {
     const play = this.tagger.getPlay(Number(playId));
     const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
-    if (!play || !col) return false;
+    if (!play || !col || PlayGrid.cellLocked(play, col)) return false;
     if (col.key === 'unit') {
       const unit = Object.keys(PlayGrid.UNIT_LABELS).find(key => PlayGrid.UNIT_LABELS[key] === value);
       if (!this.tagger.setPlayUnit(play, unit)) return false;

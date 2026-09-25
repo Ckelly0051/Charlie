@@ -13,6 +13,8 @@
  * 3. Film Room's Unit column (like Hudl's ODK) edits the play's unit in the
  *    row, through the same write as Chart; whichever wrote last shows in both.
  * 4. The unit buttons above the table are labeled filters and never write.
+ * 5. The lock rule holds in every scope, custom column sets included.
+ * 6. Save & Next's carried unit goes through the same write.
  * Run:  node tools/e2e-unit-ownership.mjs
  */
 import { APP_URL } from './app-entry.mjs';
@@ -185,6 +187,51 @@ r = await page.evaluate(async () => {
 });
 ok(r.label === 'Filter plays' && r.visible, 'the table\'s unit buttons sit under a visible Filter plays label', JSON.stringify(r));
 ok(r.filter === 'special' && r.same, 'filtering to Special Teams changes no play\'s unit', JSON.stringify(r));
+
+console.log('\n== 5. The lock rule holds in every scope, custom sets included (Codex review of 48cbf5d) ==');
+r = await page.evaluate(async () => {
+  const app = window.app;
+  app.nativeFilmRoom.clearFilters();
+  app.nativeFilmRoom.toggleFilter('unit', 'offense');
+  const saved = app.playGrid.cols.slice();
+  // A coach's custom Offense set that carries a Special Teams column.
+  app.nativeFilmRoom.setColumn('stType', true, 'offense');
+  app.nativeFilmRoom.setColumn('defFront', true, 'offense');
+  await new Promise(res => setTimeout(res, 120));
+  const snap = app.nativeFilmRoom.snapshot();
+  const row = snap.rows.find(x => x.id === 2);
+  const editor = app.playGrid.nativeEditor(2, 'stType');
+  const cell = document.querySelector('[data-cell="2:stType"]')?.textContent.trim() ?? null;
+  app.playGrid.cols = saved; app.playGrid._saveCols();
+  app.nativeFilmRoom.clearFilters();
+  return { scope: snap.columnScope, na: row?.na, cell, front: row?.cells.defFront, editorCol: editor?.col?.key ?? null };
+});
+ok(r.scope === 'offense' && r.na?.includes('stType') && r.cell === '', 'filtered to Offense, a custom set\'s ST Type cell is blank and locked on an offensive play', JSON.stringify(r));
+ok(r.editorCol === null, 'the grid itself refuses an editor for that locked cell, not only the view', JSON.stringify(r));
+ok(!r.na?.includes('defFront'), 'the same filtered row keeps the front it faced editable', JSON.stringify(r));
+
+console.log('\n== 6. Save & Next carries the unit through the one write ==');
+r = await page.evaluate(async () => {
+  const app = window.app, t = app.tagger;
+  const g = app.storage.seasonStore.activeGame();
+  const blank = { id: 90, timestamp: { start: 450, end: 454 }, notes: '', annotations: [], tags: { unit: 'offense', custom: [], players: {}, grades: {} } };
+  t.plays.push(blank);
+  t.selectPlay(2); t.setChartingUnit('defense');
+  const calls = [];
+  const original = t.setPlayUnit.bind(t);
+  t.setPlayUnit = (play, unit) => { calls.push([play.id, unit]); return original(play, unit); };
+  // Move so the next play is the untagged one.
+  const idx = t.plays.findIndex(p => p.id === 2);
+  t.plays.splice(idx + 1, 0, t.plays.splice(t.plays.indexOf(blank), 1)[0]);
+  t.nextPlayWithSituation();
+  t.setPlayUnit = original;
+  const stored = t.getPlay(90).tags.unit;
+  t.plays = t.plays.filter(p => p.id !== 90);
+  t.selectPlay(2); t.setChartingUnit('offense');
+  return { calls, stored };
+});
+ok(r.stored === 'defense' && r.calls.some(([id, unit]) => id === 90 && unit === 'defense'),
+  'the carried unit lands on the next untagged play through PlayTagger.setPlayUnit', JSON.stringify(r));
 
 ok(!errors.length, 'no page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

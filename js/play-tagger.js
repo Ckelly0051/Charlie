@@ -1310,12 +1310,10 @@ export class PlayTagger {
   setUnit(unit) {
     unit = unit || 'offense';
     if (this.unitField) this.unitField.value = unit;
+    // The carry-forward write goes through the one unit write (Codex review of
+    // 48cbf5d), so it cannot drift from Chart's and Film Room's.
     const play = this.getCurrentPlay();
-    if (play) {
-      play.tags.unit = unit;
-      if (this._stripStAlignment(play)) this._loadTagForm(play);
-      this._emit('play-updated', play);
-    }
+    if (play) this.setPlayUnit(play, unit);
   }
 
   _absYL(tags) {
