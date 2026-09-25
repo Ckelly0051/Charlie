@@ -203,7 +203,7 @@ export class PlayTagger {
     // be Pistol AND Spread. Play Type: an RPO that becomes a run or a pass can
     // carry both "RPO" and the realized look (e.g. "RPO + Short Pass").
     // Def Front: a base front plus a shift package (e.g. "Maverick + Jumbo Shift").
-    const multiFields = new Set(['formation', 'playType', 'result', 'blitz', 'defFront']);
+    const multiFields = new Set(PlayTagger.MULTI_TAGS);
     // Within multi-select Result, the base outcomes are mutually exclusive —
     // a play can't be Gain AND Loss. Picking one replaces its rivals, so a
     // correction tap (or keyboard key) never leaves "Gain + Loss" behind.
@@ -796,9 +796,16 @@ export class PlayTagger {
     return this.getPlay(this.currentPlayId);
   }
 
-  _saveField(key) {
-    const play = this.getCurrentPlay();
-    if (!play) return;
+  /**
+   * THE CHARTING WRITE (legacy excision Pass 2, step 1). Writes one tag of a
+   * play from an explicit value: projection reconcile, the manual-situation
+   * flag, auto Run/Pass, auto Gain and the yardage sign, then one play-updated
+   * emit (one undoable transaction). It reads no form field: Chart, Film Room
+   * and the keyboard all pass the value, so what is shown and what is stored
+   * cannot drift the way a mirrored form field let them (S99-2).
+   */
+  setTagValue(key, value, play = this.getCurrentPlay()) {
+    if (!play) return false;
     // E4/E4-2 D-projform PROMOTE-ON-EXPLICIT-COMMIT — same mechanic + same
     // shared TagProjection descriptor as Film Room's grid editor
     // (play-grid.js _applyEdit, E3b-P1). A legacy play stores a sibling
@@ -814,14 +821,13 @@ export class PlayTagger {
     // play-updated emit below, so HistoryManager records it as ONE undoable
     // transaction, exactly like the grid editor's proof requires.
     TagProjection.reconcileSiblings(play, key);
-    play.tags[key] = this.tagFields[key].value;
+    play.tags[key] = value == null ? '' : value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
     // stops refreshing these values on this play.
     if (play._autoSit && (key === 'down' || key === 'distance' || key === 'fieldSide' || key === 'yardLine')) {
       play._autoSit = false;
     }
-    if (key === 'down' || key === 'distance') this._updateDdReadout();
 
     // Picking an UNAMBIGUOUS play type auto-fills Run/Pass (coach can still
     // override). Ambiguous types — RPO, Play Action, Trick — leave it for the
@@ -830,7 +836,6 @@ export class PlayTagger {
       const auto = PlayTagger.runPassForPlayType(play.tags.playType);
       if (auto && play.tags.runPass !== auto) {
         play.tags.runPass = auto;
-        if (this.tagFields.runPass) this.tagFields.runPass.value = auto;
       }
     }
 
@@ -838,10 +843,9 @@ export class PlayTagger {
     // chip so the coach doesn't tap "Gain" on every routine play. Any explicit
     // result (or a later edit) still wins.
     if (key === 'yardage' && !play.tags.result) {
-      const mag = parseInt(this.tagFields.yardage.value, 10);
+      const mag = parseInt(play.tags.yardage, 10);
       if (mag > 0) {
         play.tags.result = 'Gain';
-        if (this.tagFields.result) this.tagFields.result.value = 'Gain';
       }
     }
 
@@ -853,12 +857,87 @@ export class PlayTagger {
     }
     this._emit('play-updated', play);
   }
+  /** Transitional: the fake-field path, now a wrapper over setTagValue. Deleted
+   *  with the fields once every caller passes values (Pass 2, step 1). */
+  _saveField(key) {
+    const play = this.getCurrentPlay();
+    if (!play) return;
+    this.setTagValue(key, this.tagFields[key].value, play);
+    if (this.tagFields.runPass) this.tagFields.runPass.value = play.tags.runPass || '';
+    if (this.tagFields.result) this.tagFields.result.value = play.tags.result || '';
+  }
+
+  /** The value Chart shows for a tag: the projected value for the look fields,
+   *  the magnitude for yardage, the stored value otherwise. A toggle starts
+   *  from exactly this, as the deck's chips do. */
+  displayTagValue(key, play = this.getCurrentPlay()) {
+    if (!play) return '';
+    if (key === 'yardage') {
+      const y = play.tags.yardage;
+      return y === '' || y == null ? '' : String(Math.abs(parseInt(y, 10) || 0));
+    }
+    if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.projField(play, key) || '';
+    if (key === 'fieldSide') return play.tags.fieldSide || 'own';
+    return play.tags[key] == null ? '' : String(play.tags[key]);
+  }
+
+  /** Tap a chip: a multi-select field adds or removes the value (an added value
+   *  replaces its exclusive rivals); a single-select field sets it, or clears it
+   *  when it is already set. Then the one write. */
+  toggleTagValue(key, value, play = this.getCurrentPlay()) {
+    if (!play) return false;
+    const current = this.displayTagValue(key, play);
+    let next;
+    if (PlayTagger.MULTI_TAGS.includes(key)) {
+      let parts = current.split(/\s*\+\s*/).map(v => v.trim()).filter(Boolean);
+      if (parts.includes(value)) parts = parts.filter(v => v !== value);
+      else {
+        for (const group of PlayTagger.EXCLUSIVE_GROUPS[key] || []) {
+          if (group.includes(value)) parts = parts.filter(v => !group.includes(v));
+        }
+        parts.push(value);
+      }
+      next = parts.join(' + ');
+    } else {
+      next = current === value ? '' : value;
+    }
+    return this.setTagValue(key, next, play);
+  }
+
+  /** Multi-select tags, stored as " + "-joined strings. */
+  static MULTI_TAGS = Object.freeze(['formation', 'playType', 'result', 'blitz', 'defFront']);
+
+  /** Player attribution (jersey #) by role; blank removes it. */
+  setPlayerValue(role, value, play = this.getCurrentPlay()) {
+    if (!play) return false;
+    if (!play.tags.players) play.tags.players = {};
+    const val = String(value ?? '').trim();
+    if (val) play.tags.players[role] = val;
+    else delete play.tags.players[role];
+    this._emit('play-updated', play);
+    return true;
+  }
+
+  /** A player's grade on this snap; blank removes it. */
+  setGradeValue(role, value, play = this.getCurrentPlay()) {
+    if (!play) return false;
+    if (!play.tags.grades) play.tags.grades = {};
+    const val = String(value ?? '').trim();
+    if (val !== '') play.tags.grades[role] = parseInt(val);
+    else delete play.tags.grades[role];
+    this._emit('play-updated', play);
+    return true;
+  }
+
 
   /** Loss/Sack make yardage negative; everything else positive. Input shows the
    *  magnitude only; play.tags.yardage holds the signed value. */
   _applyYardageSign(play) {
+    // The play is the source: the value just written (a magnitude) or the
+    // stored signed value when only the result changed. A form field is never
+    // read (it once overwrote an API write with its own stale value).
     const el = this.tagFields.yardage;
-    const raw = el ? String(el.value).trim() : String(play.tags.yardage ?? '');
+    const raw = String(play.tags.yardage ?? '').trim();
     if (raw === '') { play.tags.yardage = ''; return; }
     const mag = Math.abs(parseInt(raw, 10) || 0);
     const parts = String(play.tags.result || '').split(/\s*\+\s*/);
@@ -915,25 +994,9 @@ export class PlayTagger {
     return classified.size === 1 ? [...classified][0] : '';
   }
 
-  _savePlayer(role) {
-    const play = this.getCurrentPlay();
-    if (!play) return;
-    if (!play.tags.players) play.tags.players = {};
-    const val = (this.playerFields[role].value || '').trim();
-    if (val) play.tags.players[role] = val;
-    else delete play.tags.players[role];
-    this._emit('play-updated', play);
-  }
+  _savePlayer(role) { this.setPlayerValue(role, this.playerFields[role].value); }
 
-  _saveGrade(role) {
-    const play = this.getCurrentPlay();
-    if (!play) return;
-    if (!play.tags.grades) play.tags.grades = {};
-    const val = (this.gradeFields[role].value || '').trim();
-    if (val !== '') play.tags.grades[role] = parseInt(val);
-    else delete play.tags.grades[role];
-    this._emit('play-updated', play);
-  }
+  _saveGrade(role) { this.setGradeValue(role, this.gradeFields[role].value); }
 
   /**
    * D-projform E4 review fix (Codex): Save & Next is this app's "explicit
@@ -1059,23 +1122,9 @@ export class PlayTagger {
     if (this.unitField) this.unitField.value = unit;
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
-    this._updateDdReadout();
   }
 
-  /** Live scorebug readout of the current Down & Distance in the tag form —
-   *  the signature .dd-badge, mirroring how it renders in the play table. */
-  _updateDdReadout() {
-    const el = this.ddReadout !== undefined ? this.ddReadout
-      : (this.ddReadout = document.getElementById('ddReadout'));
-    if (!el) return;
-    const down = this.tagFields.down.value;
-    const dist = this.tagFields.distance.value;
-    if (!down) { el.textContent = ''; el.style.display = 'none'; return; }
-    const ord = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }[down] || down;
-    el.textContent = dist ? `${ord} & ${dist}` : ord;
-    el.classList.toggle('dd-badge--key', down === '3' || down === '4');
-    el.style.display = '';
-  }
+
 
   /**
    * S7 demolition: real domain API replacing the native tag form's synthetic

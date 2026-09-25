@@ -2033,7 +2033,6 @@ body { font-size: 13px; }
    (§4.5–4.7).
    ===================================================================== */
 /* Signature scorebug badge — used in the play table, tagging readout, header. */
-.dd-badge--key { background: var(--accent-soft); color: var(--accent-hover); }  /* 3rd/4th down */
 
 /* Play table (§4.6) — quiet header, crisp row states, colored numeric text. */
 /* Tendency summary row under the header — informative, not shouting. */
