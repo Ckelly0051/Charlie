@@ -549,7 +549,8 @@ export class PlayTagger {
         coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '', hash: '', quarter: '',
         yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
         driveNumber: play.tags.driveNumber || this.currentDrive.toString(),
-        unit: play.tags.unit || this.defaultUnit || 'offense',
+        // Clearing keeps the unit on screen (code review CR-2).
+        unit: countedUnit(play),
         stType: '', players: {}, grades: {}, custom: [], customFields: {}
       };
       play.notes = '';
@@ -1128,7 +1129,7 @@ export class PlayTagger {
     // would otherwise clear it, so fall back to the current value.
     let unit = this.unitField.value;
     if (!unit) {
-      unit = (play && play.tags.unit) || this.defaultUnit || 'offense';
+      unit = play ? countedUnit(play) : (this.defaultUnit || 'offense');
       this.unitField.value = unit;
     }
     if (play) this.setPlayUnit(play, unit);
@@ -1239,7 +1240,10 @@ export class PlayTagger {
    */
   nextPlayWithSituation() {
     const prev = this.getCurrentPlay();
-    const carryUnit = (prev && prev.tags.unit) || this.defaultUnit;
+    // The unit shown on the previous play, never the carried one: after a play
+    // with no stored unit this stamped the carried unit, Special Teams
+    // included, and stripped the next play's look fields (code review CR-3).
+    const carryUnit = prev ? countedUnit(prev) : this.defaultUnit;
     const advanced = this.nextPlay();
     if (advanced) {
       const next = this.getCurrentPlay();

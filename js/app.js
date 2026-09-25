@@ -1,4 +1,4 @@
-import { isPlayTagged } from './football-rules.js';
+import { countedUnit, isPlayTagged } from './football-rules.js';
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
  */
@@ -1359,7 +1359,9 @@ class App {
     if (e.ctrlKey || e.metaKey || e.altKey) return false;
 
     const curPlay = this.tagger.getCurrentPlay();
-    const curUnit = (curPlay && curPlay.tags.unit) || this.tagger.defaultUnit || 'offense';
+    // The unit on screen: a play's counted unit, never the carried one, which
+    // only seeds a play that does not exist yet (code review CR-1).
+    const curUnit = curPlay ? countedUnit(curPlay) : (this.tagger.defaultUnit || 'offense');
 
     // Y jumps to the yardage input (type the number, Enter advances) —
     // closing the only step that still forced a mouse trip every play.

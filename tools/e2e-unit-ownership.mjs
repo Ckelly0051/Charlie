@@ -15,6 +15,8 @@
  * 4. The unit buttons above the table are labeled filters and never write.
  * 5. The lock rule holds in every scope, custom column sets included.
  * 6. Save & Next's carried unit goes through the same write.
+ * 7. The keyboard shortcuts, Clear Tags and Save & Next act on the unit on
+ *    screen, never the carried one (code review CR-1..3).
  * Run:  node tools/e2e-unit-ownership.mjs
  */
 import { APP_URL } from './app-entry.mjs';
@@ -233,6 +235,66 @@ r = await page.evaluate(async () => {
 ok(r.stored === 'defense' && r.calls.some(([id, unit]) => id === 90 && unit === 'defense'),
   'the carried unit lands on the next untagged play through PlayTagger.setPlayUnit', JSON.stringify(r));
 
+console.log('\n== 7. Every path acts on the unit on screen, not the carried one (code review CR-1..3) ==');
+// A play with no stored unit is shown, and counted, as offense; the carried
+// unit (the last one chosen) must never stand in for it.
+const noUnit = id => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [], tags: { formation: 'Ace', defFront: '4-3', custom: [], players: {}, grades: {} } });
+r = await page.evaluate(async play => {
+  const app = window.app, t = app.tagger;
+  t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'defense';
+  await new Promise(res => setTimeout(res, 40));
+  document.activeElement?.blur?.();
+  const handled = document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', key: 'c', bubbles: true, cancelable: true }));
+  await new Promise(res => setTimeout(res, 40));
+  const out = { handled, stored: t.getPlay(play.id).tags.unit, formation: t.getPlay(play.id).tags.formation };
+  t.plays = t.plays.filter(x => x.id !== play.id);
+  return out;
+}, noUnit(91));
+ok(r.stored === 'defense' && r.formation === 'Ace', 'CR-1: C on a play shown as Offense moves it to Defense, not Special Teams, and keeps its formation', JSON.stringify(r));
+r = await page.evaluate(async play => {
+  const app = window.app, t = app.tagger;
+  t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'special';
+  await new Promise(res => setTimeout(res, 40));
+  document.activeElement?.blur?.();
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1', key: '1', bubbles: true, cancelable: true }));
+  await new Promise(res => setTimeout(res, 40));
+  const out = { stType: t.getPlay(play.id).tags.stType || '', unit: t.getPlay(play.id).tags.unit };
+  t.plays = t.plays.filter(x => x.id !== play.id);
+  return out;
+}, noUnit(92));
+ok(r.stType === '' && r.unit === undefined, 'CR-1: a digit on a play shown as Offense writes no Special Teams type', JSON.stringify(r));
+r = await page.evaluate(async play => {
+  const app = window.app, t = app.tagger;
+  t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'defense';
+  const confirm = t._confirmDialog; t._confirmDialog = async () => true;
+  await t.clearCurrentTags();
+  t._confirmDialog = confirm;
+  const out = { stored: t.getPlay(play.id).tags.unit };
+  t.plays = t.plays.filter(x => x.id !== play.id);
+  return out;
+}, noUnit(93));
+ok(r.stored === 'offense', 'CR-2: Clear Tags keeps the unit on screen (Offense), not the carried Defense', JSON.stringify(r));
+r = await page.evaluate(async ([prev, next]) => {
+  const app = window.app, t = app.tagger;
+  next.tags = { unit: 'offense', formation: '', custom: [], players: {}, grades: {} };
+  t.plays.push(prev, next); t.selectPlay(prev.id); t.defaultUnit = 'special';
+  t.nextPlayWithSituation();
+  const out = { current: t.currentPlayId, stored: t.getPlay(next.id).tags.unit };
+  t.plays = t.plays.filter(x => x.id !== prev.id && x.id !== next.id);
+  return out;
+}, [noUnit(94), noUnit(95)]);
+ok(r.current === 95 && r.stored === 'offense', 'CR-3: Save & Next carries the unit shown on the previous play (Offense), never the carried Special Teams', JSON.stringify(r));
+
+r = await page.evaluate(async play => {
+  const app = window.app, t = app.tagger;
+  t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'special';
+  t.unitField.value = '';
+  t._onUnitFieldChanged();
+  const out = { stored: t.getPlay(play.id).tags.unit, formation: t.getPlay(play.id).tags.formation };
+  t.plays = t.plays.filter(x => x.id !== play.id);
+  return out;
+}, noUnit(96));
+ok(r.stored === 'offense' && r.formation === 'Ace', 'an emptied unit field falls back to the unit on screen, never the carried Special Teams', JSON.stringify(r));
 ok(!errors.length, 'no page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
