@@ -486,14 +486,6 @@ body {
   word-break: break-all;
 }
 
-.field-suggested {
-  animation: fieldFlash 1.2s ease;
-  outline: 2px solid #f59e0b !important;
-}
-@keyframes fieldFlash {
-  0% { background-color: #f59e0b; color: #000; }
-  100% { background-color: transparent; }
-}
 
 
 
