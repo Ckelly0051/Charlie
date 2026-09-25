@@ -124,6 +124,16 @@ with the two new harnesses.**
 - *Proof:* the build, `e2e-parity` unchanged, the gate, `compare-builds`
   64/64 identical, the ratchet lowered in the same commits.
 
+**Pass 1 — DONE IN SOURCE (2026-09-25), full gate pending.** `ecbe8b4` LG-1: one
+blank tag schema (`PlayTagger.blankTags`) for every new play, clip import sets a
+unit. `2a3adda` dead code: 42 definitions, `report-visual-data.js` and the
+retired test, 1,057 lines. `5e3f46d` one owner per rule: 30 copies of the unit
+rule to `countedUnit`, the `PROJECTED_PAIRS` alias and the cell pass-throughs.
+Each step: compare-builds 64/64 byte-identical against the step before,
+`e2e-parity` unchanged, the Reports and charting harnesses green. Ratchet: dead
+names 41 -> 0, orphan modules 1 -> 0, retired tests 1 -> 0, inline unit rules
+31 -> 1 (`setUnit`'s parameter default, which reads no play), alias reads 2 -> 0.
+
 **Pass 2 — The charting fix (was Phases 3 and 5). One installer, one smoke.**
 - Take UI state out of the charting model — the root of S99-2 and CR-1..3.
   `PlayTagger` gets a plain data API; Chart's deck, the grid, the keyboard
