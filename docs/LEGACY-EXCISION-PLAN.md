@@ -145,6 +145,14 @@ with the two new harnesses.**
 - The four remaining old-style screens (roster, custom fields, scoreboard
   reading, auto-detect) rebuilt in Preact; `window.app` lookups made explicit.
 
+**After the passes (coach, 2026-09-25): precision and efficiency.** Once the old
+stuff is gone, the next work is making what remains lean: consolidating the four
+storage layers (`storage.js`, `storage-backend.js`, `season-store.js`, the catalog,
+~6k lines) and deduplicating and splitting `stats-engine.js` (6,786 lines), with
+`e2e-parity` proving every number unchanged. Measured 2026-09-25: 32,822 lines of
+app code, 10,579 comment lines, 5,945 of CSS; the passes are expected to remove
+~10-15% of the code, measured as they land.
+
 **Coach decisions, not scheduled:** the web target (dropping it allows native
 SQLite and native video) and splitting `stats-engine.js`.
 
