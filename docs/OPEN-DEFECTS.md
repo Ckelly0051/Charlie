@@ -6,7 +6,7 @@ Findings logged as the coach lists them; no repair starts until the coach
 says the list is complete (smoke-findings protocol). Checklist:
 `SMOKE-1.12.0-99.md`.
 
-**S99-1 — OPEN. Film Room table does not show formation data the charting
+**S99-1 — REPAIRED IN SOURCE (`48cbf5d`), INSTALLED CHECK PENDING. Film Room table did not show formation data the charting
 deck shows, and does not accept new entries.** Coach: "Charting shows
 formation data but film room does not. I am not able to enter new data into
 film room. Play 26 impacted but there are many." Clarified: "they don't
@@ -34,7 +34,18 @@ a cell the grid treats as not applicable to the row, which would explain
 "not editable"; confirm against the grid's own rule rather than assume. Do
 not rewrite coach data.
 
-**S99-2 — OPEN (coach: new finding, or related to S99-1). The unit chosen in
+*Repair (`48cbf5d`), in source, not yet installed.* Root cause: `c1cce33`
+(per-unit column sets) tagged Formation, QB Align, Backfield, Strength,
+Personnel, Motion, Play Call and Concept as offense columns and Front, Cover,
+Cov Family and Blitz as defense columns, and on All plays blanked and locked a
+column on every row of another unit. But an offensive snap charts the defense
+it faced and a defensive snap the offense it faced (Chart's Offense Faced /
+Defense Faced groups), so real values were hidden and uneditable. Now only a
+column a unit cannot hold is locked: the look columns on a Special Teams row
+(which holds none of them, `SeasonStore.ST_ALIGNMENT_KEYS`) and the Special
+Teams columns elsewhere.
+
+**S99-2 — REPAIRED IN SOURCE (`48cbf5d`), INSTALLED CHECK PENDING (coach: new finding, or related to S99-1). The unit chosen in
 Chart does not carry over to Film Room.** Coach: "selecting a unit
 (offense/defense/ST) in Chart does not carry over to Film Room. Seems they
 aren't connecting." Clarified: "same is true in chart - I have a play that's
@@ -50,6 +61,24 @@ changes and the Film Room row keeps its old unit letter, blank cells or column
 set, that is a data-flow defect and likely shares a cause with S99-1; if the
 coach expects the Film Room filter to follow the deck, that is a behavior
 request. Ask the coach only if the report stays ambiguous about what was seen.
+
+*Repair (`48cbf5d`), in source, not yet installed.* Root cause, predating the
+rebuild: for a play with no stored unit (legacy; the July mirror has 3 in
+Week 1 and 8 in Week 2), Chart showed the carried unit (the last one chosen)
+while Film Room and every report count it as offense; and choosing that same
+unit in Chart was a no-op, because `setChartingUnit` compared the DISPLAYED
+value, so nothing was ever stored. Coach direction (2026-09-24, after
+comparing Hudl, whose grid edits the ODK column inline): a play's unit is
+writable from either view, equally weighted, last write wins; filters are
+clearly labeled and never write. Built: `countedUnit()` (`football-rules.js`)
+is the one reading, the stored unit or offense; `setChartingUnit` writes
+whenever the play does not already store the unit; Film Room has a **Unit
+column**, pinned first and edited in the row, and it and Chart's switch share
+`PlayTagger.setPlayUnit` (Special Teams strips the look fields from either
+side); a unit has no Clear; the table's unit buttons sit under a visible
+`Filter plays` label. An automatic filter-follow was built and then removed
+at the coach's redesign: a filter changes only when the coach clicks it.
+Evidence: `e2e-unit-ownership` (19; six reversions, each red).
 
 ## Installed smoke, 1.12.0-98 (findings list complete, 2026-09-24)
 

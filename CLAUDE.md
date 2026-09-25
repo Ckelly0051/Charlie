@@ -589,6 +589,19 @@ either side; the collapse caret is right-aligned. The group's 3px accent border
 is absorbed by the padding rather than pushing content right, and a nested
 action row adds no inset of its own.
 
+**A play's unit has ONE reading and ONE write, from either view.** `countedUnit()`
+(`football-rules.js`) is the reading — the stored unit, offense when none is
+stored, as every report counts it; Chart, Film Room and the reports never show
+a play as two units. `PlayTagger.setPlayUnit` is the write, shared by Chart's
+unit switch and Film Room's pinned **Unit** column (coach, 2026-09-24, on
+Hudl's ODK: either view, equally weighted, last write wins). Film Room's unit
+buttons are **filters**, labeled `Filter plays`, and never write a play. On
+All plays a cell is blank and locked only where the row's unit cannot hold the
+field: an offensive snap charts the defense it faced and a defensive snap the
+offense it faced. Chart once showed the carried unit for a play with no stored
+unit and treated choosing it as a no-op, so nothing was stored (1.12.0-99 smoke
+S99-2); Film Room hid and locked faced looks (S99-1).
+
 **Add Game asks for no analytics perspective.** The selector labeled `Film
 source` is deleted, not renamed. It wrote `perspective`, and its
 `Opponent film · Scout` option made a PROGRAM season produce a scout game —
