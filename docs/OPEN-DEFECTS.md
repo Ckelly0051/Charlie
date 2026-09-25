@@ -43,6 +43,17 @@ Reading is safe (`countedUnit` counts them as offense) and charting writes a
 unit, but a creation path that skips the tag schema is a defect. Reproduce
 before fixing; find the writer, seed the full tag schema there, test it.
 
+**TEST-1 — OPEN (test harness, not a product defect found). `e2e-native-tagging`
+crashes intermittently in section 4 with a Puppeteer `Promise was collected`
+protocol error** (2026-09-25; full gates at `1a1fb3b` and `cd674ab`). Measured: about
+1 run in 6-10, locally as well as in the gate, and the SAME rate on the
+pre-Pass-1 build `b452635` (1 in 10) — so it predates the legacy excision and
+earlier gates passed by chance. It dies after the step `S4: play2 before try`
+(play 2 carries no Special Teams event there, so `setSpecialUnit`'s confirm
+dialog is not the cause). Diagnostics stay in the harness (step markers and a
+navigation log). Next: find the pending page promise; until then a gate red on
+this harness alone is rerun, and the rerun result is reported, never hidden.
+
 ## Code review, 2026-09-24 (coach-requested; scope: the unit-ownership change)
 
 The coach asked for a full review of the app; the review tool covers a diff, so
