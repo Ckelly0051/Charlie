@@ -74,6 +74,39 @@ Build `compare-builds.mjs` and `e2e-legacy-roundtrip`; add
 copy) so progress is measured, not asserted.
 *Done when:* all three run in the gate and the inventory matches this table.
 
+**Phase 0 — BUILT (2026-09-25), awaiting Codex review; full gate not yet run
+with the two new harnesses.**
+- `tools/audit-legacy.mjs` — the read-only inventory (`--live` reads a copy
+  of the installed catalog and confirms its hash is unchanged). Baseline in
+  `tools/legacy-inventory-baseline.json`: 41 dead-name candidates, 1 orphan
+  module, 31 inline unit rules, 2 `PROJECTED_PAIRS` alias reads, 25
+  `PlainField`/`PlainInput` references, 12 fake-field reads outside the
+  tagger, 93 localStorage calls, 73 `window.app` references, 38 `innerHTML`
+  sinks, `stats-engine.js` 6,787 lines. (Counting method differs from the
+  table above, which was a first pass; the baseline is the authority.)
+- `e2e-legacy-inventory` — the ratchet: every count may only fall, and no
+  new dead name or orphan module may appear. Mutation-verified: a new inline
+  unit rule and a new dead name each red it.
+- `e2e-legacy-roundtrip` — the canonical season adopted through the real
+  import path, reopened from storage after a reload, saved unchanged and
+  reopened again: identical both times, and every charted value on all 449
+  plays survives. The first save adds only empty schema defaults for fields a
+  legacy play lacked (`backfield`, `fumbleRecovery`, `playCall`, `playCallId`,
+  `playConcept`, `strength`) — characterized, not a defect; note that
+  `migratePlayFormation` keys on a missing `backfield`, which the first save
+  supplies. Mutation-verified: stripping look fields from every play (the old
+  "Under Center" bug) reds it and names 366 plays.
+- `tools/compare-builds.mjs <rev>` — every route at 1440/1280/768/390 (64
+  captures) from a baseline revision's build and the current build; exits 1 on
+  any difference. Deterministic: animations and transitions off, toasts
+  hidden, focus cleared, pointer parked; a difference is captured again from
+  both builds and reported only if it repeats (one-off rasterization noise is
+  listed separately). Verified: current against itself, 64/64 identical twice;
+  against `2d13c31` (`1.12.0-99`), exactly the 8 Film Room captures that
+  changed. The baseline is exported with `git archive` and linked to
+  `node_modules` by a junction that is removed and verified BEFORE the temp
+  folder is deleted. On demand, not in the gate (it needs a baseline revision).
+
 **Phase 1 — Dead code (A).** Delete every unreferenced name and file; check
 each for string-built or dynamic use first.
 *Proof:* the build (a missing import fails it), the gate, compare-builds
