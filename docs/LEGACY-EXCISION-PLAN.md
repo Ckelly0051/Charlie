@@ -151,6 +151,13 @@ history is needed.
    `playerFields`, `gradeFields`) and `PlainField` / `PlainInput` are
    deleted. Harnesses that poke fake fields are repointed at the same behavior.
    No data changes. (Codex: ready to start.)
+   **DONE IN SOURCE 2026-09-25, not gated:** the data API (`20b7de6`), the deck
+   (`5711690`) and the keyboard (`2ea2f83`) moved to it; the fields, their
+   load/clear methods, every external call, the dead `onLoadForm` hook and the
+   dead `SuggestionEngine` are deleted (`7aa0184`). The grid already wrote plays
+   directly. Ratchet: `plainFieldRefs` 25 -> 0, `taggerFieldReadsOutsideTagger`
+   12 -> 0. 26 charting, film, undo and Break Down harnesses green;
+   `compare-builds` 64/64 byte-identical. Full gate pending (coach asked first).
 2. **The coach's hand fixes first:** the 3 plays with no unit are set by hand in
    the Unit column (storing `offense` would change their drive labels from
    `Drive N` to `Our Drive N`; Codex P2-7), and the ambiguous legacy Special
