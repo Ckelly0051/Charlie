@@ -135,62 +135,56 @@ Each step: compare-builds 64/64 byte-identical against the step before,
 names 41 -> 0, orphan modules 1 -> 0, retired tests 1 -> 0, inline unit rules
 31 -> 1 (`setUnit`'s parameter default, which reads no play), alias reads 2 -> 0.
 
-**Pass 2 — The charting fix (was Phases 3 and 5). One installer, one smoke.**
-- Take UI state out of the charting model — the root of S99-2 and CR-1..3.
-  `PlayTagger` gets a plain data API; Chart's deck, the grid, the keyboard
-  shortcuts and the charting service move to it one per commit; the fake
-  fields (`unitField`, `tagFields`, `playerFields`, `gradeFields`) and
-  `PlainField` / `PlainInput` are deleted. Harnesses that poke fake fields are
-  repointed at the same behavior, each named in its commit.
-- **ONE LEGACY DOOR (coach, 2026-09-25: "we are old to new. that's the
-  point").** Stored legacy shapes do not end with the live catalog: on
-  2026-09-25, 90 of 95 version snapshots and 25 of 75 backups held them (2,016
-  combined formations, 1,150 legacy-only Special Teams plays), and imports and
-  exported files carry them too. So the readers are not deleted after "one more
-  release" (Codex's P1 fix, which cannot end), and not kept scattered either.
-  Every entry — open, import, backup restore, version restore — passes through
-  ONE upgrade step that converts old shapes to the current shape with the same
-  logic that reads them today (the roster boundary, `adoptLegacyRoster`, is the
-  proven pattern). The ~150 scattered legacy reads (combined-formation
-  projection at read time, legacy `stType` paths in the engine and screens)
-  are then deleted; the door is permanent, small, in one file, and tested
-  against the real snapshots. A shape the door cannot convert with certainty (an
-  ambiguous legacy Special Teams play) stays as it is, is flagged for review,
-  and is read by one consolidated reader. The next save stores the new shape.
-- **The outcome must match — where today's reading is accurate (coach,
-  2026-09-25).** Acceptance for the door: `e2e-parity` (every analytics
-  number), exact `gameId::playId` film references and `compare-builds` are
-  identical between the old data read through today's readers and the
-  converted data. Where they differ, the difference is judged against the
-  football rules: if today's reading is wrong, the door produces the correct
-  answer and the correction is recorded (as an audited parity correction), not
-  copied. Not a coach decision per difference — but **every correction is
-  called out to the coach in the handoff** (what the old reading said, what is
-  right, why, which plays and numbers move); none is left only in a commit.
-- **THE PROCEDURE (authoritative; Codex review of the plan, 2026-09-25, found
-  the hand retag and the door both still written here):**
-  1. Take UI state out of the charting model (above), one consumer per commit.
-  2. Build the door in one file. It converts, with the logic that reads each
-     shape today: combined formation strings to separate formation / QB
-     alignment / backfield (`TagProjection.reconcileSiblings`); a play with no
-     stored unit to its counted unit; game-node rosters through
-     `adoptLegacyRoster` (unchanged); legacy-only Special Teams to a structured
-     event only where kind, outcome and side are certain. Anything else stays as
-     it is and is flagged.
-  3. Prove the outcome on read-only copies of the canonical season, the live
-     catalog and every backup and version snapshot: `e2e-parity`, exact film
-     references and `compare-builds`; judge and call out every difference.
-  4. Delete the scattered legacy readers the door replaced.
-  5. The coach charts the flagged plays the door could not settle (from the
-     live list below, the ambiguous Special Teams plays).
-  6. Installer and the coach's smoke.
-- **Exit criterion:** a read-only re-read of the live catalog, the backups and
-  the version snapshots finds no convertible legacy shape left on CHARTED
-  plays (uncharted placeholders are not legacy data; LG-1 fixes their writer),
-  and the ambiguous remainder is listed.
-- *Proof:* the gate, `e2e-unit-ownership`, the charting harnesses,
-  `e2e-legacy-roundtrip` (every charted value survives), `compare-builds`
-  identical except intended changes, then the installed smoke.
+**Pass 2 — The charting fix and a clean break from old formats. PROPOSED
+2026-09-25, pending Codex review. One installer, one smoke.**
+
+*Why this replaced the "one legacy door" (coach, 2026-09-25):* a permanent door
+keeps old formats alive in the code, the tests, the harnesses and these docs
+forever. Old exports do not matter (the coach re-exports), and the ~2,000 old
+formations in restore points are the same few plays saved repeatedly. So old
+formats are converted ONCE and then removed from the product entirely.
+
+1. **UI state out of the charting model.** `PlayTagger` gets a plain data API;
+   Chart's deck, the grid, the keyboard shortcuts and the charting service move
+   to it one consumer per commit; the fake fields (`unitField`, `tagFields`,
+   `playerFields`, `gradeFields`) and `PlainField` / `PlainInput` are
+   deleted. Harnesses that poke fake fields are repointed at the same behavior,
+   each named in its commit. No data changes in this step.
+2. **A one-time conversion tool** (`tools/convert-legacy-once.mjs`, deleted
+   after use). It converts every legacy shape with the logic that reads it
+   today: combined formation strings to formation / QB alignment / backfield
+   (`TagProjection.reconcileSiblings`); a play with no stored unit to its
+   counted unit; legacy-only Special Teams to a structured event only where
+   kind, outcome and side are certain; game-node rosters through the existing
+   roster boundary. Its targets: every season, every backup and every version
+   snapshot in the live catalog (`%APPDATA%\com.gridironiq.app\seasons\library.db`),
+   and the canonical Documents season the tests read. Dry run first with exact
+   counts per target; nothing ambiguous is guessed (it is listed for the coach
+   to chart).
+3. **Prove the outcome before writing.** On read-only copies: `e2e-parity`
+   (every analytics number), exact `gameId::playId` film references and
+   `compare-builds` are identical between the old data read through today's
+   readers and the converted data. A difference is judged against the football
+   rules; a wrong old reading is corrected, not copied, and every correction is
+   called out to the coach in the handoff.
+4. **Run it once** with the coach's yes, immediately before the write, behind a
+   restore point; re-read and confirm zero convertible legacy shapes remain on
+   charted plays in every target. The coach charts the listed ambiguous plays.
+5. **Delete every old-format reader:** read-time combined-formation projection,
+   legacy `stType` / `kickOutcome` paths in the engine and screens, legacy
+   roster promotion, and every test, fixture, harness section and doc passage
+   that exists only to exercise old shapes. The ratchet and `audit-legacy`
+   gain counts for these and must reach zero.
+6. **Old files fail cleanly.** Importing or restoring a file in an old format
+   gives a plain message (the file uses an old format; export it again from the
+   current app) and changes nothing. No silent half-reading.
+7. **Installer and the coach's smoke.**
+
+*Order matters:* step 5 deletes the readers step 3 compares against, so steps
+2-4 must finish, and the conversion be verified, before step 5 starts.
+*Exit criterion:* zero legacy readers in source (ratchet), zero legacy shapes on
+charted plays in the live catalog and the canonical season, old-format imports
+rejected with the message, gate green, installed smoke passed.
 
 **Pass 3 — Optional, when the coach wants it (was Phases 4 and 6).**
 - Settings out of localStorage into the catalog (ends the 5 MB failure class,
@@ -209,13 +203,13 @@ app code, 10,579 comment lines, 5,945 of CSS; the passes are expected to remove
 **Coach decisions, not scheduled:** the web target (dropping it allows native
 SQLite and native video) and splitting `stats-engine.js`.
 
-## Live legacy on 2026-09-25 — what the door converts, what the coach charts
+## Live legacy on 2026-09-25 (input to the Pass 2 conversion)
 
 **Supersedes the July-mirror counts in the table above** (127 / 75 / 18 /
 6), which came from a stale Documents copy. Source: a read-only copy of
 `%APPDATA%\com.gridironiq.app\seasons\library.db` (SHA-256 `2ADB815C…DAA57`,
 unchanged after the read). The coach first offered to retag these by hand;
-the one-door decision superseded that the same day: the door converts the
+the Pass 2 decision superseded that the same day: the one-time conversion converts the
 first two lists, and the coach charts only the Special Teams plays it cannot
 settle. Nothing has been changed yet.
 
@@ -223,10 +217,10 @@ settle. Nothing has been changed yet.
 42 plays.** SJM JV 2026 (123) has none. SJM Varsity 2026 (195) has only the
 blank placeholders below.
 
-*No unit (3) — the door stores the counted unit.* Week 4 play 59; Week 5 plays
+*No unit (3) — the conversion stores the counted unit.* Week 4 play 59; Week 5 plays
 67, 90.
 
-*Combined formation string (22) — the door splits each into Formation and QB
+*Combined formation string (22) — the conversion splits each into Formation and QB
 alignment with `TagProjection.reconcileSiblings`, the same commit a Film Room
 edit makes; the shown formation stays the same.* Week 2: 54 `Ace + Shotgun`, 58 `Shotgun + Trips + Unbalanced`, 61 and
 62 `Trips + Unbalanced + Shotgun`, 74 `Shotgun + Trips + Unbalanced`, 77 `Ace +
@@ -235,7 +229,7 @@ Shotgun`. Week 4: 20 and 22 `Shotgun + Single Wing`, 48 `Flexbone + Under
 Center`, 62-70 `Under Center + Flexbone`. Week 5: 84 `Ace + Under Center`, 90
 `Shotgun + Twins`.
 
-*Legacy-only Special Teams (17) — the door converts those whose kind, outcome
+*Legacy-only Special Teams (17) — the conversion converts those whose kind, outcome
 and side are certain; the coach charts the rest in Chart's Special Teams
 editor (which writes the structured event).* Week 1:
 23 XP. Week 2: 56 Punt; 64 XP, Good; 65 Kick Return. Week 4: 36 XP; 56 XP, No
@@ -252,7 +246,7 @@ Nothing was charted on them; they get a unit when charted. (First recorded as
 blank fields, so the defect is a creation path that omits `unit`.)
 
 **Done when:** a re-read of the live catalog shows zero plays in all three
-lists. That is Pass 2's exit criterion above; the door is the migration.
+lists. That is part of Pass 2's exit criterion above; the one-time tool is the migration.
 
 ## What the coach sees
 
@@ -260,12 +254,12 @@ lists. That is Pass 2's exit criterion above; the door is the migration.
 |---|---|---|---|
 | 0 Guardrails | No | None | No (done) |
 | 1 Cleanup | No (bytes identical) | None | No |
-| 2 Charting fix | Charting internals; old shapes converted at one door; old readers removed | Chart the flagged Special Teams plays, then smoke | Yes |
+| 2 Charting fix + clean break | Charting internals; old formats converted once, then removed | A yes before the one-time write; chart the listed ambiguous plays; smoke | Yes |
 | 3 Optional | Settings storage; four screens | Smoke | Yes |
 
 ## Decided
 
-- Old to new at one door; the next save stores the new shape (coach,
-  2026-09-25). The manual 22-formation retag is superseded by the door.
+- Old to new, converted ONCE by a throwaway tool, then every old-format reader
+  removed; no permanent door (coach, 2026-09-25). Old exports need not load.
 - Outcomes match where today's reading is accurate; a wrong reading is
   corrected, recorded, not copied (coach, 2026-09-25).

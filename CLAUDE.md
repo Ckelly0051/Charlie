@@ -77,10 +77,10 @@ menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
 Pass 0 guardrails built; **Pass 1 done in source** (`ecbe8b4`, `2a3adda`,
 `5e3f46d`, plus the Codex-review drive fix: 1,057 dead lines, one blank tag schema,
 one unit rule, 318 dead CSS branches), **full gate 133/133 at `ac893b5`**. Pass 2 is next: UI state out of the charting
-model, then ONE legacy door converting old shapes to new at every entry (the
+model, then a ONE-TIME conversion of every old shape (seasons, backups, version snapshots, the canonical test season) followed by removing every old-format reader; old-format imports are then rejected with a plain message (proposed, pending Codex review; the
 authoritative procedure is in the plan). Live legacy measured 2026-09-25: 42
 plays in 2025 JV (3 no unit, 22 combined formations, 17 legacy-only Special Teams)
-— the door converts the first two lists; the coach charts only the Special Teams
+— the conversion covers the first two lists; the coach charts only the Special Teams
 plays it cannot settle. The July mirror's larger counts are stale.
 **Version history never goes back into localStorage** — it is what starved
 every settings write; `VersionManager` stores only through the storage backend.
@@ -422,10 +422,10 @@ These are invariants, not preferences. Every one is enforced in current source.
   confirmation.
 - Legacy data is read through compatibility projection, not rewritten.
   `tag-projection.js` is read-time only and never mutates. **Superseded by
-  decision (coach, 2026-09-25) once the legacy door lands** (`docs/LEGACY-
+  decision (coach, 2026-09-25) once the Pass 2 one-time conversion lands** (`docs/LEGACY-
   EXCISION-PLAN.md` Pass 2): old shapes convert to new at ONE entry boundary
   and the next save stores the new shape; an ambiguous shape stays as it is and
-  is flagged. Until the door ships, this rule stands.
+  is flagged; afterwards no old-format reader remains. Until then, this rule stands.
 
 **Roster ownership**
 - A roster belongs to ONE season. That season's games share it. Different teams,
