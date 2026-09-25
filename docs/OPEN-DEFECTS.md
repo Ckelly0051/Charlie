@@ -1,6 +1,6 @@
 # GridIron IQ Open Defects
 
-## Installed smoke, 1.12.0-99 (in progress, 2026-09-24)
+## Installed smoke, 1.12.0-99 (stopped by the coach at S99-2 to protect data; list complete, 2026-09-24)
 
 Findings logged as the coach lists them; no repair starts until the coach
 says the list is complete (smoke-findings protocol). Checklist:
@@ -37,7 +37,10 @@ not rewrite coach data.
 **S99-2 — OPEN (coach: new finding, or related to S99-1). The unit chosen in
 Chart does not carry over to Film Room.** Coach: "selecting a unit
 (offense/defense/ST) in Chart does not carry over to Film Room. Seems they
-aren't connecting."
+aren't connecting." Clarified: "same is true in chart - I have a play that's
+tagged defense in one and offense in the other." **The coach stopped the smoke
+here to protect the season's data; findings list complete at S99-1 and S99-2
+(2026-09-24). Repair, then re-smoke.**
 
 *Hazard for fix time:* establish which "unit" is meant before changing
 anything — the play's charted unit (the deck's Offense / Defense / Special
