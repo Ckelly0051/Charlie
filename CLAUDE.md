@@ -77,7 +77,7 @@ menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
 Pass 0 guardrails built; **Pass 1 done in source** (`ecbe8b4`, `2a3adda`,
 `5e3f46d`, plus the Codex-review drive fix: 1,057 dead lines, one blank tag schema,
 one unit rule, 318 dead CSS branches), **full gate 133/133 at `ac893b5`**. Pass 2 is next: UI state out of the charting
-model, then a ONE-TIME conversion of every old shape (seasons, backups, version snapshots, the canonical test season) followed by removing every old-format reader; old-format imports are then rejected with a plain message (proposed, pending Codex review; the
+model, then a ONE-TIME conversion of the live seasons only (the current state is what matters), every old-format reader removed, and anything older (backups, versions, snapshots, exports) refused with a plain message (approved after Codex review; the
 authoritative procedure is in the plan). Live legacy measured 2026-09-25: 42
 plays in 2025 JV (3 no unit, 22 combined formations, 17 legacy-only Special Teams)
 — the conversion covers the first two lists; the coach charts only the Special Teams

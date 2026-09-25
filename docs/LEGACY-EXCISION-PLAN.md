@@ -135,56 +135,73 @@ Each step: compare-builds 64/64 byte-identical against the step before,
 names 41 -> 0, orphan modules 1 -> 0, retired tests 1 -> 0, inline unit rules
 31 -> 1 (`setUnit`'s parameter default, which reads no play), alias reads 2 -> 0.
 
-**Pass 2 — The charting fix and a clean break from old formats. PROPOSED
-2026-09-25, pending Codex review. One installer, one smoke.**
+**Pass 2 — The charting fix and a clean break from old formats. APPROVED
+2026-09-25 after Codex review (8 findings, all folded in below). Step 1 may start;
+steps 2-6 follow in order. One installer, one smoke.**
 
-*Why this replaced the "one legacy door" (coach, 2026-09-25):* a permanent door
-keeps old formats alive in the code, the tests, the harnesses and these docs
-forever. Old exports do not matter (the coach re-exports), and the ~2,000 old
-formations in restore points are the same few plays saved repeatedly. So old
-formats are converted ONCE and then removed from the product entirely.
+*Why no permanent compatibility layer (coach, 2026-09-25):* it keeps old
+formats alive in the code, tests, harnesses and docs forever. **Only the current
+state matters.** Old exports do not matter (the coach re-exports); the many
+backups exist because of the Chromium-era storage workaround, not because the
+history is needed.
 
 1. **UI state out of the charting model.** `PlayTagger` gets a plain data API;
    Chart's deck, the grid, the keyboard shortcuts and the charting service move
    to it one consumer per commit; the fake fields (`unitField`, `tagFields`,
    `playerFields`, `gradeFields`) and `PlainField` / `PlainInput` are
-   deleted. Harnesses that poke fake fields are repointed at the same behavior,
-   each named in its commit. No data changes in this step.
-2. **A one-time conversion tool** (`tools/convert-legacy-once.mjs`, deleted
-   after use). It converts every legacy shape with the logic that reads it
-   today: combined formation strings to formation / QB alignment / backfield
-   (`TagProjection.reconcileSiblings`); a play with no stored unit to its
-   counted unit; legacy-only Special Teams to a structured event only where
-   kind, outcome and side are certain; game-node rosters through the existing
-   roster boundary. Its targets: every season, every backup and every version
-   snapshot in the live catalog (`%APPDATA%\com.gridironiq.app\seasons\library.db`),
-   and the canonical Documents season the tests read. Dry run first with exact
-   counts per target; nothing ambiguous is guessed (it is listed for the coach
-   to chart).
-3. **Prove the outcome before writing.** On read-only copies: `e2e-parity`
-   (every analytics number), exact `gameId::playId` film references and
-   `compare-builds` are identical between the old data read through today's
-   readers and the converted data. A difference is judged against the football
-   rules; a wrong old reading is corrected, not copied, and every correction is
-   called out to the coach in the handoff.
-4. **Run it once** with the coach's yes, immediately before the write, behind a
-   restore point; re-read and confirm zero convertible legacy shapes remain on
-   charted plays in every target. The coach charts the listed ambiguous plays.
-5. **Delete every old-format reader:** read-time combined-formation projection,
-   legacy `stType` / `kickOutcome` paths in the engine and screens, legacy
-   roster promotion, and every test, fixture, harness section and doc passage
-   that exists only to exercise old shapes. The ratchet and `audit-legacy`
-   gain counts for these and must reach zero.
-6. **Old files fail cleanly.** Importing or restoring a file in an old format
-   gives a plain message (the file uses an old format; export it again from the
-   current app) and changes nothing. No silent half-reading.
-7. **Installer and the coach's smoke.**
+   deleted. Harnesses that poke fake fields are repointed at the same behavior.
+   No data changes. (Codex: ready to start.)
+2. **The coach's hand fixes first:** the 3 plays with no unit are set by hand in
+   the Unit column (storing `offense` would change their drive labels from
+   `Drive N` to `Our Drive N`; Codex P2-7), and the ambiguous legacy Special
+   Teams plays are charted by hand. Field position is never used to guess.
+3. **A one-time conversion tool, current state only** (`tools/convert-legacy-once.mjs`,
+   deleted after use). Target: the live seasons in the catalog. Conversions, each
+   exact: every projected pair (alignment in formation and in backfield, `Empty`
+   in formation, family in coverage) through the FULL commit a Film Room edit
+   makes — `reconcileSiblings` AND writing the projected primary, since
+   `reconcileSiblings` alone leaves `"Under Center + Flexbone"` in place (Codex
+   P1-2); extra points recorded on the field-goal unit to the Try unit (the side
+   is certain); legacy-only Special Teams only where kind, outcome and side are
+   certain (the 2026-09-06 punt-block ruling applies). Anything it cannot settle
+   stops the run and is listed; nothing is guessed.
+4. **An immutable restore point before any write** (Codex P1-4): a byte-for-byte
+   copy of `library.db` and the Documents season folders to a dated folder
+   outside everything the tool rewrites, hash-verified, kept.
+5. **Prove the outcome on the real data** (Codex P2-5): read-only copies of the
+   live seasons, before and after conversion, compared play by play — identity,
+   film and clip references, every field, with an explicit whitelist of the
+   fields allowed to change — and every analytics result per season and game.
+   A difference is judged against the football rules; a wrong old reading is
+   corrected and called out to the coach. Then the coach's yes, with exact
+   counts, immediately before the write; then re-read and confirm zero legacy
+   shapes on charted plays.
+6. **Refuse old files before any mutation** (Codex P2-8): a post-conversion format
+   marker written by every save, plus structural validation, checked ahead of
+   every import, restore, version restore and recovery path — before a scaffold
+   season or the active game is touched. Everything not converted (older
+   catalog backups and versions, file backups, Documents mirror snapshots,
+   browser storage, old exports) stays on disk untouched and is refused with a
+   plain message: the file uses an old format; export it again from the current
+   app. Tests: old files rejected with no write; current files accepted.
+7. **Delete the old-format branches, keep the current contracts** (Codex P2-6).
+   An inventory, not examples: every legacy branch in `TagProjection`,
+   `StatsEngine.proj`/`projField`, `migratePlayFormation`, the analytics
+   registry, roster role selection, the theater, CSV import, the Special Teams
+   keyboard writer, `adoptLegacyRoster`, legacy `stType`/`kickOutcome` and
+   field-goal-unit extra points — while current look editing and dynamic fields
+   keep working. Fixtures are converted and assertions rebaselined, not deleted;
+   `e2e-legacy-roundtrip` is rewritten for the new format; the ratchet gains
+   counts for these readers and they must reach zero; the docs (including
+   `CLAUDE.md`'s projection rule) are rewritten.
+8. **Installer and the coach's smoke.**
 
-*Order matters:* step 5 deletes the readers step 3 compares against, so steps
-2-4 must finish, and the conversion be verified, before step 5 starts.
-*Exit criterion:* zero legacy readers in source (ratchet), zero legacy shapes on
-charted plays in the live catalog and the canonical season, old-format imports
-rejected with the message, gate green, installed smoke passed.
+*Order:* 2 and 3-5 before 7, because 7 deletes the readers step 5 compares
+against. *Exit:* zero legacy readers (ratchet), zero legacy shapes on charted
+plays in the live seasons, old files refused with no write, gate green, smoke
+passed. *Later (efficiency stage):* backup retention reviewed — the current
+state is what matters; pruning existing backups needs the coach's explicit
+approval with exact counts.
 
 **Pass 3 — Optional, when the coach wants it (was Phases 4 and 6).**
 - Settings out of localStorage into the catalog (ends the 5 MB failure class,
