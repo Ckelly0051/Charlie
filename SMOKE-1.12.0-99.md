@@ -62,7 +62,11 @@ The built executable reports file and product version `1.12.0-99`. Built with
 10. Matchup's section reads `Coverages`; Offense page 3 is headed
     `Structure and execution`.
 
-Installed smoke pending. Not tagged, pushed or published.
+**Result, 2026-09-24:** smoke STOPPED by the coach at finding S99-2 to protect
+the season's data; findings list complete (S99-1, S99-2; `docs/OPEN-DEFECTS.md`
+> Installed smoke, 1.12.0-99). Both repaired in `48cbf5d`. Superseded by
+`1.12.0-100` (`SMOKE-1.12.0-100.md`), which carries every unrun check above.
+Not tagged, pushed or published.
 
 **Coach decision, 2026-09-24:** when this smoke passes, commit the result docs
 and push the branch. No `v1.12.0-99` tag unless the coach asks for a release.
