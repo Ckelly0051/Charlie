@@ -43,7 +43,7 @@ Reading is safe (`countedUnit` counts them as offense) and charting writes a
 unit, but a creation path that skips the tag schema is a defect. Reproduce
 before fixing; find the writer, seed the full tag schema there, test it.
 
-**TEST-1 — REPAIRED IN THE HARNESS (`e2e-native-tagging`), gate confirmation pending. Cause found: the page reached the section's last line (a marker there always printed) and computed every value, but the protocol intermittently reported its returned promise "collected" — a test-harness hand-off failure, not an app defect. The result is now stored on the page and read back with a plain evaluate; 0 crashes in 20 runs (was ~1 in 6-10). Original record: `e2e-native-tagging`
+**TEST-1 — OPEN. The `052e6f7` harness change DID NOT FIX IT: the full gate at `052e6f7` crashed it again (132/133, same section, same error), so the diagnosis below is incomplete. What that change was based on: the page reached the section's last line (a marker there always printed) and computed every value, but the protocol intermittently reported its returned promise "collected" — a test-harness hand-off failure, not an app defect. The result is now stored on the page and read back with a plain evaluate; 0 crashes in 20 runs (was ~1 in 6-10). Original record: `e2e-native-tagging`
 crashes intermittently in section 4 with a Puppeteer `Promise was collected`
 protocol error** (2026-09-25; full gates at `1a1fb3b` and `cd674ab`). Measured: about
 1 run in 6-10, locally as well as in the gate, and the SAME rate on the
