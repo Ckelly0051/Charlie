@@ -51,7 +51,7 @@ const mounted = await page.evaluate(async () => {
   const priorClassicApiAbsent = !('section' in app.playGrid) && typeof app.playGrid._render === 'undefined';
   // What the Break Down route's own Film Room holds, if the route is showing:
   // a standalone mount takes the view over and restore hands it back.
-  window.__s5bRouteSubscribers = app.playGrid._nativeListeners.size;
+  window.__s5bRouteSubscribers = app.nativeFilmRoom._listeners.size;
   const host = document.createElement('div');
   host.id = 's5bTestHost';
   host.style.cssText = 'position:fixed;inset:160px 0 0 0;z-index:99999;background:var(--gi-1)';
@@ -73,7 +73,8 @@ const mounted = await page.evaluate(async () => {
     after: JSON.stringify(app.storage.seasonStore.data),
     expected,
     actual: [...document.querySelectorAll('.gi-film-table-wrap tbody tr')].map(row => Number(row.querySelector('.is-play button').textContent.trim().replace(/^[ODS]/, ''))),
-    subscribers: app.playGrid._nativeListeners.size,
+    subscribers: app.nativeFilmRoom._listeners.size,
+    gridSubscribers: app.playGrid._nativeListeners.size,
   };
 });
 ok(mounted.didMount && mounted.native === 1 && mounted.priorClassicApiAbsent && mounted.classicApiAbsent,
@@ -86,6 +87,7 @@ ok(JSON.stringify(state) === JSON.stringify(['1:sit']), 'Keyboard users receive 
 await page.focus('[data-cell="1:sit"]');
 // Two roots since 2026-09-24: the table and its controls region, one each.
 ok(mounted.subscribers === 2, 'Native subscriptions are scoped to the mounted table and its controls', String(mounted.subscribers));
+ok(mounted.gridSubscribers === 1, 'The table and its controls share ONE grid subscription, so the shown-plays summary is built once per update', String(mounted.gridSubscribers));
 
 state = await page.evaluate(() => {
   const cell = document.querySelector('[data-cell="1:formation"]');
@@ -260,13 +262,14 @@ state = await page.evaluate(async () => {
     routeLive: !!document.querySelector('[data-native-breakdown-route]'),
     routeHasFilmRoom: !!document.querySelector('[data-breakdown-film-room-host] > [data-native-film-room]') && !!document.querySelector('[data-breakdown-film-controls-host] > [data-film-controls]'),
     classicApiAbsent: !('section' in app.playGrid) && typeof app.playGrid._render === 'undefined',
-    subscribers: app.playGrid._nativeListeners.size,
+    subscribers: app.nativeFilmRoom._listeners.size,
+    gridSubscribers: app.playGrid._nativeListeners.size,
     dataSame: before === JSON.stringify(app.storage.seasonStore.data),
     overlaysBefore,
     overlaysAfter: app.overlays.snapshot().overlays.length,
   };
 });
-ok(state.restored && state.nativeGone && state.subscribers === state.routeSubscribers && state.classicApiAbsent,
+ok(state.restored && state.nativeGone && state.subscribers === state.routeSubscribers && state.gridSubscribers === (state.routeSubscribers ? 1 : 0) && state.classicApiAbsent,
   'Restore unmounts native presentation and its scoped subscription -- and does not resurrect #playGridSection', JSON.stringify(state));
 ok(state.overlaysBefore === 1 && state.overlaysAfter === 0, 'Restore closes Film Room-owned overlays', JSON.stringify(state));
 ok(state.dataSame, 'Restore is a season-data no-op');

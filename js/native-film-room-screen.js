@@ -9,6 +9,12 @@ export class NativeFilmRoomScreen {
     // last: the Break Down route's cells, and any standalone hosts.
     this._attached = { table: [], controls: [] };
     this._ownRoots = [];
+    // ONE grid subscription for every view (rebuild step 3): the table and its
+    // controls used to subscribe separately, so each grid update built the
+    // shown-plays summary once per view. It is built once and fanned out.
+    this._listeners = new Set();
+    this._gridOff = null;
+    this._last = null;
   }
 
   get host() { return this._attached.table[this._attached.table.length - 1] || null; }
@@ -71,7 +77,21 @@ export class NativeFilmRoomScreen {
     return snap;
   }
   snapshot() { return this._withSummary(this.grid.nativeSnapshot()); }
-  subscribe(listener) { return this.grid.subscribeNative(snap => listener(this._withSummary(snap))); }
+  subscribe(listener) {
+    this._listeners.add(listener);
+    if (this._gridOff) listener(this._last);
+    else this._gridOff = this.grid.subscribeNative(snap => {
+      this._last = this._withSummary(snap);
+      for (const fn of this._listeners) fn(this._last);
+    });
+    return () => {
+      this._listeners.delete(listener);
+      if (this._listeners.size || !this._gridOff) return;
+      this._gridOff();
+      this._gridOff = null;
+      this._last = null;
+    };
+  }
   toggleFilter(group, value) { this.grid.nativeToggleFilter(group, value); }
   clearFilters() { this.grid.nativeClearFilters(); }
   setSelected(id, checked) { this.grid.nativeSetSelected(id, checked); }
