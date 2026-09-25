@@ -9,7 +9,8 @@ says the list is complete (smoke-findings protocol). Checklist:
 **S99-1 — OPEN. Film Room table does not show formation data the charting
 deck shows, and does not accept new entries.** Coach: "Charting shows
 formation data but film room does not. I am not able to enter new data into
-film room. Play 26 impacted but there are many." Route: Break Down > Film
+film room. Play 26 impacted but there are many." Clarified: "they don't
+display and the dropdown doesn't open, as if it is not editable." Route: Break Down > Film
 Room, table below, season `2025 St. Joseph Mavericks - JV`, game `Week 1 vs
 St. Peter Lutheran Patriots`, All plays (67).
 
