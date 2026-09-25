@@ -68,7 +68,7 @@ impact report and the coach's explicit confirmation (binding data rules).
 
 Pass 0 is done. Passes 1 and 2 are the work that matters; Pass 3 is optional.
 
-**Pass 0 — Guardrails and inventory (no product change). DONE.**
+**Pass 0 — Guardrails and inventory (no product change). BUILT, pending the full gate.**
 Build `compare-builds.mjs` and `e2e-legacy-roundtrip`; add
 `tools/audit-legacy.mjs`, a read-only scan that regenerates the table above
 (unreferenced names, inline unit readings, fake-field reads, localStorage keys,
@@ -110,6 +110,10 @@ with the two new harnesses.**
   folder is deleted. On demand, not in the gate (it needs a baseline revision).
 
 **Pass 1 — Cleanup (was Phases 1 and 2). No visible change, no smoke.**
+- LG-1 first: clip import (`PlaylistManager`, `js/playlist-manager.js` ~282)
+  creates plays whose tags omit `unit` (and players/grades); seed the full tag
+  schema there, with the carried unit (a play that did not exist yet), and a
+  failing-first test. Found by Codex, 2026-09-25.
 - Delete dead code: every dead-name candidate in the baseline, after checking
   each for string-built or dynamic use; `js/report-visual-data.js`;
   `tools/retired/`; Clear Tags' `#notesArea` lookup.
@@ -129,12 +133,35 @@ with the two new harnesses.**
   repointed at the same behavior, each named in its commit.
 - The coach retags the 42 plays below by hand; a read-only re-read of the live
   catalog must show zero left in every list.
-- Then delete the compatibility readers those plays needed (combined-formation
-  projection, legacy `stType` paths, game-node roster promotion — verified
-  unused against the live catalog first). A `1.12.0` installer carries the old
-  readers' removal only after the re-read shows zero.
-- Codex balked at the original Phase 5 (2026-09-25); its objection is to be
-  verified and folded in here.
+- **ONE LEGACY DOOR (coach, 2026-09-25: "we are old to new. that's the
+  point").** Stored legacy shapes do not end with the live catalog: on
+  2026-09-25, 90 of 95 version snapshots and 25 of 75 backups held them (2,016
+  combined formations, 1,150 legacy-only Special Teams plays), and imports and
+  exported files carry them too. So the readers are not deleted after "one more
+  release" (Codex's P1 fix, which cannot end), and not kept scattered either.
+  Every entry — open, import, backup restore, version restore — passes through
+  ONE upgrade step that converts old shapes to the current shape with the same
+  logic that reads them today (the roster boundary, `adoptLegacyRoster`, is the
+  proven pattern). The ~150 scattered legacy reads (combined-formation
+  projection at read time, legacy `stType` paths in the engine and screens)
+  are then deleted; the door is permanent, small, in one file, and tested
+  against the real snapshots. A shape the door cannot convert with certainty (an
+  ambiguous legacy Special Teams play) stays as it is, is flagged for review,
+  and is read by one consolidated reader. The next save stores the new shape.
+- **The outcome must match — where today's reading is accurate (coach,
+  2026-09-25).** Acceptance for the door: `e2e-parity` (every analytics
+  number), exact `gameId::playId` film references and `compare-builds` are
+  identical between the old data read through today's readers and the
+  converted data. Where they differ, the difference is judged against the
+  football rules: if today's reading is wrong, the door produces the correct
+  answer and the correction is recorded (as an audited parity correction), not
+  copied. Not a coach decision per difference.
+- The coach charts only what the door cannot convert (the ambiguous Special
+  Teams plays); the combined formations and units convert at the door.
+- **Exit criterion:** a read-only re-read of the live catalog, the backups and
+  the version snapshots finds no convertible legacy shape left on CHARTED
+  plays (uncharted placeholders are not legacy data; LG-1 fixes their writer),
+  and the ambiguous remainder is listed.
 - *Proof:* the gate, `e2e-unit-ownership`, the charting harnesses,
   `e2e-legacy-roundtrip` (every charted value survives), `compare-builds`
   identical except intended changes, then the installed smoke.
@@ -210,7 +237,9 @@ lists. Pass 2 then deletes the compatibility readers, with no migration code.
 | 2 Charting fix | Charting internals; old readers removed | Retag 42 plays, then smoke | Yes |
 | 3 Optional | Settings storage; four screens | Smoke | Yes |
 
-## Open questions for the coach
+## Decided
 
-1. Pass 2: the coach retags by hand, or I run the unchanged-Done split on the
-   22 formations in one pass behind a restore point (offered, not approved)?
+- Old to new at one door; the next save stores the new shape (coach,
+  2026-09-25). The manual 22-formation retag is superseded by the door.
+- Outcomes match where today's reading is accurate; a wrong reading is
+  corrected, recorded, not copied (coach, 2026-09-25).

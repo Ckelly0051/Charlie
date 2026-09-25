@@ -417,7 +417,11 @@ These are invariants, not preferences. Every one is enforced in current source.
 - Never delete managed film on the coach's behalf without that same explicit
   confirmation.
 - Legacy data is read through compatibility projection, not rewritten.
-  `tag-projection.js` is read-time only and never mutates.
+  `tag-projection.js` is read-time only and never mutates. **Superseded by
+  decision (coach, 2026-09-25) once the legacy door lands** (`docs/LEGACY-
+  EXCISION-PLAN.md` Pass 2): old shapes convert to new at ONE entry boundary
+  and the next save stores the new shape; an ambiguous shape stays as it is and
+  is flagged. Until the door ships, this rule stands.
 
 **Roster ownership**
 - A roster belongs to ONE season. That season's games share it. Different teams,
