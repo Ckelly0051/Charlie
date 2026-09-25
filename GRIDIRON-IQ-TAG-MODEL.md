@@ -1293,7 +1293,10 @@ E3a wired the stats engine + registry + Study cuts. The rest splits cleanly by
    structural Formation (same labeling rule). *(Named by Codex; missed in rev 1.)*
 
 **RAW BY DESIGN — E3b allowlists these (write/edit/store), each with a reason:**
-- **`play-tagger.js`** (`_loadTagForm` 1054/1058/1083/1084, `_wholeVideoPlaceholder`
+- **`play-tagger.js`** (*updated 2026-09-25, legacy excision Pass 2 step 1,
+  `7aa0184`: the tag form, `_loadTagForm` and `_saveField` are deleted; the
+  charting write is `setTagValue` and the deck's view is `displayTagValue`. The
+  original allowlist entry follows.*) (`_loadTagForm` 1054/1058/1083/1084, `_wholeVideoPlaceholder`
   418, + computed in `copyFromPrevious`/`saveTemplate`/`applyTemplate`/`_saveField`/
   `_saveCurrentTags`/`applyCarryScheme`/`_stripStAlignment`) — the tag FORM edits
   and carries the stored value the coach typed. (The form's own projected view is

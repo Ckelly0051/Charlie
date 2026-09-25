@@ -2067,9 +2067,12 @@ gone with everything that only served it: `_updateFormEnabled()` and its 15
 call sites in the tagger, `HistoryManager`, `PlaylistManager` and
 `StorageManager` plus nine test tools, `_disabledHintText()`, the `.tag-group-head` binding, the
 disabled-form click hint and `applyUnitMode()` — whose whole body was tag-form
-DOM — with its five callers. `unitField`, `defaultUnit` and `_saveField` are the
-live unit state and stay; the native deck derives its disabled state from the
-current play. In `App`, `_bindScoutMode` keeps only its live `defaultUnit`
+DOM — with its five callers. `unitField`, `defaultUnit` and `_saveField` were
+kept then as the live unit state; **superseded 2026-09-25 by legacy excision
+Pass 2 step 1 (`7aa0184`):** `unitField` and `_saveField` are deleted, the
+charting writes go through `PlayTagger.setTagValue` / `toggleTagValue` /
+`setPlayUnit`, and only `defaultUnit` (the unit a new play takes) remains. The
+native deck derives its disabled state from the current play. In `App`, `_bindScoutMode` keeps only its live `defaultUnit`
 update, and `_bindTagNav` is deleted: the tagger's toast hookup is its own
 line, and every element it bound (`#btnTagPrev`, `#btnTagSaveNext`,
 `#btnTagSkip`, `#yardsMinus`, `#yardsPlus`, `#tagYardage`, `#tagDistance`,
@@ -2100,8 +2103,9 @@ five Home harnesses, `e2e-native-team-hub` (20), `e2e-responsive-containment`
 **Retained, and why.** `#videoContainer` and the media-foundation rules are the
 live media owner. `SeasonStore.adoptLegacyRoster`, `tag-projection.js`, legacy
 `stType` reads and `ffa_versions_default` are saved-data compatibility.
-`_loadTagForm` / `_clearTagForm` are live: they load the tagger's field state
-for the current play, which the native deck and every report read.
+`_loadTagForm` / `_clearTagForm` were retained then; **deleted 2026-09-25 in
+legacy excision Pass 2 step 1 (`7aa0184`)** with the field state they loaded.
+The deck, grid and reports read the play itself.
 
 **Installed checks still required (not certifiable in Chromium):** on the
 installed build, first launch migrates version history into the catalog (the
