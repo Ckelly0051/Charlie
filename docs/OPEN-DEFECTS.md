@@ -1,5 +1,34 @@
 # GridIron IQ Open Defects
 
+## Installed smoke, 1.12.0-102 (in progress, 2026-09-25)
+
+Findings logged as the coach lists them; no repair starts until the coach
+says the list is complete. Checklist: `SMOKE-1.12.0-102.md`.
+
+**Coach, overall:** "seems like the bugs are fixed with the latest smoke" —
+the unit repairs (S99-1, S99-2, the Codex review, CR-1..3) read as fixed on
+the installed build. Formal per-item verdicts to be recorded when the list is
+complete.
+
+**S102-1 — OPEN. Break Down spacing is wrong on the installed build.** Coach:
+"the spacing is all fucked up in breakdown. Every time we touch the app this
+happens. I'm starting to think it really is the old code causing it." Which
+view, dock and width, and what is misplaced, not yet stated.
+
+*Hazard for fix time (mine, not the coach's words):* Chromium evidence says
+Break Down did not move — `tools/compare-builds.mjs` renders the rebuild
+byte-identical to the pre-rebuild build, and the Film Room changes since
+(`48cbf5d`: the pinned Unit column and the `Filter plays` label) are the only
+intended differences. So the defect is either in those two additions or in
+what Chromium cannot render: headless Chromium draws OVERLAY scrollbars while
+the installed WebView2 draws classic ones, which is exactly how BD-VP escaped
+every harness before (`1.12.0-87`). Get a screenshot first; then compare the
+installed rendering against `1.12.0-98` (the last installed Break Down the coach
+did not flag) before touching CSS. The recurring pattern the coach names —
+layout spread across five stylesheets whose rules key on classes set on
+elements outside the component tree, verified only in a renderer that differs
+from the installed one — is a structural finding for the excision plan.
+
 ## Legacy excision (2026-09-25)
 
 Plan: `docs/LEGACY-EXCISION-PLAN.md` (approved; Codex audit next). The live
