@@ -205,7 +205,12 @@ ok(state.plays[0].formation.includes('I-Form')&&state.plays[0].backfield==='I'&&
 ok(state.other?.defFront==='4-2-5'&&state.other?.coverage==='Cover 3','Charting session leaves the other game byte-semantically isolated',JSON.stringify(state.other));
 
 console.log('\n== 4. Structured football workflows ==');
-state=await page.evaluate(async fixture=>{
+// TEST-1 (Codex, 2026-09-25): Chrome's Runtime.callFunctionOn with awaitPromise
+// intermittently reported this long async evaluate's promise 'collected' although
+// the page had completed the section (a fresh call read the full state). So the
+// task starts from a SYNCHRONOUS evaluate, the harness polls a completion flag, a
+// page-task error is re-thrown, and the result is read back. Assertions unchanged.
+await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window.__s4State=null;(async fixture=>{
   console.log('S4: switching game');await app.storage.switchToGame(fixture.firstId,{persist:false});console.log('S4: game switched');app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');console.log('S4: breakdown shown');
   const root=()=>document.querySelector('[data-native-tagging]');
   const button=label=>{const found=[...root().querySelectorAll('button')].find(b=>b.textContent.trim()===label);if(!found)throw new Error('Missing native button '+label+' among '+[...root().querySelectorAll('button')].map(b=>b.textContent.trim()).join('|'));return found};
@@ -223,11 +228,11 @@ state=await page.evaluate(async fixture=>{
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
   button('Draw').click();button('Clear').click();button('Set OCR Region').click();button('Read Scoreboard').click();
-  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');window.__s4State={punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};return true;
-},fixture);
-// TEST-1 (2026-09-25): the page reached its last line but its returned
-// promise was intermittently reported 'collected' by the protocol, so the
-// result is stored on the page and read back with a plain evaluate.
+  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');window.__s4State={punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
+})(fixture).then(()=>{window.__s4Done=true},error=>{window.__s4Error=String(error&&error.stack||error);window.__s4Done=true});},fixture);
+await page.waitForFunction(()=>window.__s4Done===true,{timeout:60000});
+const s4Error=await page.evaluate(()=>window.__s4Error);
+if(s4Error)throw new Error('Section 4 page task failed: '+s4Error);
 state=await page.evaluate(()=>window.__s4State);ok(state.punt?.unit==='punt'&&state.punt?.outcome?.status==='returned'&&state.punt?.return?.yards===12&&state.punt?.players?.returner==='22'&&!state.scoredBy,'Native Special Teams stores its structured returner and exposes dedicated kick, return, field-goal, and try units without the legacy Scored-by control',JSON.stringify(state.punt));
 ok(state.penalties?.length===2&&state.penalties[0].foul==='Holding'&&state.penalties[0].playCounts===true&&state.penalties[0].phase==='special'&&state.penalties[1].foul==='Facemask'&&state.penalties[1].disposition==='declined'&&!state.manualBox,'Native penalty editor stores independent rulings without a duplicate next-snap form',JSON.stringify({penalties:state.penalties,manualBox:state.manualBox}));
 ok(state.tryPlay?.unit==='try'&&state.tryPlay?.attemptType==='twoPoint'&&state.tryPlay?.events?.turnover==='interception'&&state.tryPlay?.events?.defensiveReturn&&state.tryPlay?.outcome?.returnAward==='opponent','Native try editor preserves compound events and official return ruling',JSON.stringify(state.tryPlay));
