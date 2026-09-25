@@ -159,37 +159,6 @@
   .gi-reports .gi-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* ---- Season tab: game-by-game trend line charts ---- */
-.gi-reports .gi-trend {
-  background: var(--gi-card-2);
-  border: 1px solid var(--gi-line);
-  border-radius: 10px;
-  padding: 11px 13px 9px;
-}
-.gi-reports .gi-trend-title {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--gi-faint);
-  margin-bottom: 2px;
-}
-/* current value + delta row */
-.gi-reports .gi-trend-now { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
-.gi-reports .gi-trend-val {
-  font-family: var(--gi-display); font-weight: 700; font-size: 26px; line-height: 1;
-  color: var(--gi-text); font-variant-numeric: tabular-nums;
-}
-.gi-reports .gi-trend-delta {
-  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gi-dim);
-}
-.gi-reports .gi-trend-svg { width: 100%; height: 46px; display: block; }
-.gi-reports .gi-trend-legend {
-  display: flex; justify-content: space-between; gap: 8px;
-  font-size: 9.5px; color: var(--gi-dim); margin-top: 1px;
-}
-.gi-reports .gi-trend-legend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48%; }
-.gi-reports .gi-trend-legend span:last-child { text-align: right; }
 /* --- Exact play-call analysis: dense tables, no decorative empty panels ---
    `.gi-call-grid` is retired: the Offense composition places Play calls and
    Concepts as peer modules in a band, so the band owns those two columns and

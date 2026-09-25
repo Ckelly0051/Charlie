@@ -121,8 +121,9 @@ with the two new harnesses.**
   (`_stripStAlignment` included); the `PROJECTED_PAIRS` alias readers to
   `TagProjection`; the `_plainCell` / `_plainTendency` pass-throughs' harness
   repointed; then the copies deleted.
-- *Proof:* the build, `e2e-parity` unchanged, the gate, `compare-builds`
-  64/64 identical, the ratchet lowered in the same commits.
+- *Proof:* the build, `e2e-parity` unchanged, `e2e-css-ownership` (deleting code
+  can orphan its CSS — the Pass 1 gate caught 17 such selectors), the gate,
+  `compare-builds` 64/64 identical, the ratchet lowered in the same commits.
 
 **Pass 1 — DONE IN SOURCE (2026-09-25), full gate pending.** `ecbe8b4` LG-1: one
 blank tag schema (`PlayTagger.blankTags`) for every new play, clip import sets a
