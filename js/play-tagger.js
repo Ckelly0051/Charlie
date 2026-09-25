@@ -1,4 +1,4 @@
-import { gainedFirstDown, isPlayTagged } from './football-rules.js';
+import { countedUnit, gainedFirstDown, isPlayTagged } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SeasonStore } from './season-store.js';
 import { TagProjection } from './tag-projection.js';
@@ -1092,7 +1092,9 @@ export class PlayTagger {
     for (const [role, el] of Object.entries(this.gradeFields)) {
       if (el) el.value = grades[role] != null ? String(grades[role]) : '';
     }
-    const unit = play.tags.unit || this.defaultUnit || 'offense';
+    // The play's counted unit, the one every other view shows; the carried
+    // unit only seeds new plays (1.12.0-99 smoke, S99-2).
+    const unit = countedUnit(play);
     if (this.unitField) this.unitField.value = unit;
     // Let add-ons (e.g. custom fields) re-render whenever a play is shown.
     if (this.onLoadForm) this.onLoadForm(play);
@@ -1129,14 +1131,29 @@ export class PlayTagger {
       unit = (play && play.tags.unit) || this.defaultUnit || 'offense';
       this.unitField.value = unit;
     }
-    if (play) {
-      play.tags.unit = unit;
-      if (this._stripStAlignment(play)) this._loadTagForm(play);
-      this._emit('play-updated', play);
-    }
+    if (play) this.setPlayUnit(play, unit);
     // Make the side "sticky": the user's choice carries forward to the next
     // untagged play (Save & Next) until they change it again.
     this.defaultUnit = unit;
+  }
+
+  /**
+   * THE write of a play's unit, shared by Chart and the Film Room Unit column
+   * (coach, 2026-09-24: either view, equally weighted, last write wins). Stores
+   * the unit, strips the look fields a Special Teams play may not hold, keeps
+   * Chart's form in step when this is the play it shows, and emits the one
+   * update every view and the save path already follow.
+   */
+  setPlayUnit(play, unit) {
+    if (!play || !['offense', 'defense', 'special'].includes(unit)) return false;
+    play.tags.unit = unit;
+    const stripped = this._stripStAlignment(play);
+    if (play.id === this.currentPlayId) {
+      if (this.unitField) this.unitField.value = unit;
+      if (stripped) this._loadTagForm(play);
+    }
+    this._emit('play-updated', play);
+    return true;
   }
 
   /**
@@ -1148,7 +1165,11 @@ export class PlayTagger {
    */
   setChartingUnit(unit) {
     if (!this.unitField || !['offense', 'defense', 'special'].includes(unit)) return false;
-    if (this.unitField.value === unit) return true;
+    // A no-op only when the play already STORES this unit. Comparing the
+    // displayed value let a play with no stored unit keep none when the coach
+    // chose the unit on screen, so Chart and Film Room disagreed (S99-2).
+    const play = this.getCurrentPlay();
+    if (this.unitField.value === unit && (!play || play.tags.unit === unit)) return true;
     this.unitField.value = unit;
     this._onUnitFieldChanged();
     return true;

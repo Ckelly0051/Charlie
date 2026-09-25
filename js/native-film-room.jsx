@@ -106,7 +106,7 @@ function CellEditor({ screen, model, close }) {
     return <div class="gi-film-cell-editor">
       <strong>{model.col.label}</strong>
       <div class="gi-film-option-chips">{model.options.map(option => <button type="button" key={option} class={value === option ? 'is-active' : ''} onClick={() => commit(option)}>{option}</button>)}</div>
-      <footer><button type="button" onClick={() => commit('')}>Clear</button></footer>
+      {model.col.key !== 'unit' && <footer><button type="button" onClick={() => commit('')}>Clear</button></footer>}
     </div>;
   }
   if (model.col.type === 'sit') {
@@ -229,7 +229,9 @@ export function FilmRoomControls({ screen }) {
       {state.filterActive && <button type="button" onClick={event => saveFilter(event.currentTarget)}>Save filter</button>}
       {state.savedFilters.length > 0 && <button type="button" onClick={event => openSaved(event.currentTarget)}>Saved filters</button>}
     </div>
-    <div class="gi-film-filters" role="group" aria-label="Film Room filters">{groups.map(group =>
+    {/* FILTER PLAYS: which plays the table shows. A filter never writes a
+        play; a play's unit is set in the table's Unit column or in Chart. */}
+    <div class="gi-film-filters" role="group" aria-labelledby="giFilmFilterLabel"><span class="gi-film-filters-label" id="giFilmFilterLabel">Filter plays</span>{groups.map(group =>
       <div class="gi-film-filter-group" key={group} data-filter-group={group}>{FILTERS.filter(item => item.group === group).map(item => <button
         type="button" key={item.group + item.value}
         data-filter={item.group + ':' + item.value}

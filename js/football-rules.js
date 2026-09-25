@@ -39,6 +39,18 @@ export const DRIVE_ENDERS = new Set([
  * `stType` carries no perspective (SPECIAL-TEAMS-MODEL §3) and field position
  * carries no proven owner, so possession is never inferred there.
  */
+/**
+ * The unit a play COUNTS as: its stored unit, and offense when none is stored,
+ * which is how every report already counts a legacy play. Chart, the play card
+ * and Film Room all read this one rule, so a play can never show one unit in
+ * one view and another elsewhere (1.12.0-99 smoke, S99-2). Reading never
+ * writes; a unit is stored only when the coach chooses one.
+ */
+export function countedUnit(play) {
+  const unit = play?.tags?.unit;
+  return unit === 'defense' || unit === 'special' ? unit : 'offense';
+}
+
 export function drivePossessionSide(tags) {
   const unit = String(tags?.unit || '').toLowerCase();
   if (unit === 'offense') return 'subject';

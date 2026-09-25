@@ -10,6 +10,10 @@ import '../css/native-tagging.css';
 // deleted. OPTIONS is exported so it stays the single source of a fixed
 // vocabulary field's values, consumed by both the tag form and the grid
 // editor, instead of two copies drifting apart.
+/** The three charting units and their labels: Chart's switch and the Film Room
+ *  play card's selector render this one list. */
+export const UNIT_CHOICES = [['offense', 'Offense'], ['defense', 'Defense'], ['special', 'Special Teams']];
+
 export const OPTIONS = {
   down:['1','2','3','4'], qbAlignment:['Under Center','Pistol','Shotgun'],
   strength:['Right','Left','Balanced'], personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
@@ -376,7 +380,7 @@ export function NativeTagging({screen}) {
           is), and F2b's direction control moved to the bottom of the form,
           because it only serves play recognition. */}
       <div class="gi-unit-switch" role="group" aria-label="Charting unit" data-native-context="unit">
-        {[['offense', 'Offense'], ['defense', 'Defense'], ['special', 'Special Teams']].map(([value, label]) =>
+        {UNIT_CHOICES.map(([value, label]) =>
           <button key={value} type="button" data-unit={value} class={state.unit === value ? 'is-active' : ''}
             aria-pressed={state.unit === value} onClick={() => screen.setUnit(value)}>{label}</button>)}
       </div>

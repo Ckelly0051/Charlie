@@ -74,6 +74,7 @@
 .gi-film-controls button:disabled{cursor:default;opacity:.55}
 .gi-film-controls button.is-primary{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-film-filters{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;min-width:0}
+.gi-film-filters-label{flex:none;width:100%;color:var(--gi-bd-copy);font:var(--gi-text-label)}
 .gi-film-filter-group{display:flex;flex-wrap:wrap}
 .gi-film-filters button{min-height:30px;padding:0 9px;background:transparent;color:var(--gi-bd-copy)}
 .gi-film-filter-group button+button{border-left-width:0}

@@ -9,7 +9,7 @@
 import { TagProjection } from './tag-projection.js';
 import { PlayTagger } from './play-tagger.js';
 
-import { isPlayTagged } from './football-rules.js';
+import { countedUnit, isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { PlayCallModel } from './play-call-model.js';
@@ -23,6 +23,10 @@ export class PlayGrid {
    * `notes` edits play.notes (the call), not a tag.
    */
   static COLUMNS = [
+    // UNIT, like Hudl's ODK: always shown first and edited in the row, so a
+    // play's unit is charted where the coach is charting. Pinned: not in the
+    // Columns list and not part of any stored set (1.12.0-99 smoke, S99-2).
+    { key: 'unit',      label: 'Unit',      type: 'enum', pinned: true },
     { key: 'sit',       label: 'Dn & Dist', type: 'sit' },
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
@@ -310,8 +314,10 @@ export class PlayGrid {
   // ---------- Columns ----------
 
   _visibleCols() {
-    return this.cols.map(k => PlayGrid.COLUMNS.find(c => c.key === k)).filter(Boolean);
+    const pinned = PlayGrid.COLUMNS.filter(c => c.pinned);
+    return [...pinned, ...this.cols.filter(k => !pinned.some(c => c.key === k)).map(k => PlayGrid.COLUMNS.find(c => c.key === k)).filter(Boolean)];
   }
+  static UNIT_LABELS = Object.freeze({ offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
 
   // ---------- View data ----------
 
@@ -332,7 +338,7 @@ export class PlayGrid {
     // Room screen fills from StatsEngine.playSetSummary -- the boards' own
     // cohort. Averaging only the plays with charted yardage printed avg 4.4
     // beside a board and a summary reading 3.4 (review, 97b2f37).
-    if (col.type === 'yds') return '';
+    if (col.type === 'yds' || col.key === 'unit') return '';
     if (col.key === 'runPass') {
       const rp = visible.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
       if (rp.length < 3) return '';
@@ -407,6 +413,7 @@ export class PlayGrid {
       return yards > 0 ? `+${yards}` : yards < 0 ? `−${Math.abs(yards)}` : '0';
     }
     if (col.key === 'notes') return String(play.notes || '');
+    if (col.key === 'unit') return PlayGrid.UNIT_LABELS[countedUnit(play)];
     if (StatsEngine.PROJECTED_FIELDS.includes(col.key)) {
       const value = StatsEngine.projField(play, col.key);
       if (value) return String(value);
@@ -557,6 +564,8 @@ export class PlayGrid {
 
   _plainCell(play, col) { return this._cellText(play, col); }
 
+
+
   _plainTendency(col, visible) { return this._tendency(col, visible); }
 
   nativeSnapshot() {
@@ -568,13 +577,18 @@ export class PlayGrid {
       editable: col.type !== 'st-readonly' && col.type !== 'pen-readonly',
     }));
     const selected = new Set(this.selected);
-    // All plays mixes units: a unit-specific column is blank, and not editable,
-    // on a row of another unit (Front on an offensive snap), never a dash.
+    // All plays mixes units. A column is blank, and not editable, only on a row
+    // whose unit cannot chart it: the Special Teams columns on an offensive or
+    // defensive snap, and the offense and defense look columns on a Special
+    // Teams snap (which holds none of them). An offensive snap charts the
+    // defense it faced and a defensive snap the offense it faced, so Formation
+    // and Front both belong on both (1.12.0-99 smoke, S99-1).
     const scope = this._colScope();
     const colUnit = Object.fromEntries(this._visibleCols().map(col => [col.key, col.unit || '']));
     const rows = visible.map(play => {
-      const unit = play.tags?.unit === 'defense' || play.tags?.unit === 'special' ? play.tags.unit : 'offense';
-      const na = scope === 'all' ? columns.filter(col => colUnit[col.key] && colUnit[col.key] !== unit).map(col => col.key) : [];
+      const unit = countedUnit(play);
+      const na = scope === 'all' ? columns.filter(col => colUnit[col.key]
+        && (unit === 'special' ? colUnit[col.key] !== 'special' : colUnit[col.key] === 'special')).map(col => col.key) : [];
       return {
         id: play.id, unit, na,
         current: play.id === this.tagger.currentPlayId,
@@ -595,7 +609,7 @@ export class PlayGrid {
       savedFilters: this.savedFilters.map((item, index) => ({ index, name: item.name })),
       watchCount: this._watchPool(visible).length,
       presets: Object.keys(PlayGrid.PRESETS),
-      allColumns: PlayGrid.COLUMNS.map(col => ({ key: col.key, label: col.label, unit: col.unit || '' })),
+      allColumns: PlayGrid.COLUMNS.filter(col => !col.pinned).map(col => ({ key: col.key, label: col.label, unit: col.unit || '' })),
       activeColumns: [...this.cols],
       columnScope: scope,
       // Which unit the on-screen plays are measured as (the Film Room screen
@@ -675,6 +689,10 @@ export class PlayGrid {
     const play = this.tagger.getPlay(Number(playId));
     const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
     if (!play || !col || col.type === 'st-readonly' || col.type === 'pen-readonly') return null;
+    if (col.key === 'unit') return {
+      playId: play.id, col: { key: col.key, label: col.label, type: col.type, multi: false },
+      value: PlayGrid.UNIT_LABELS[countedUnit(play)], options: Object.values(PlayGrid.UNIT_LABELS),
+    };
     const projected = StatsEngine.projField(play, col.key);
     const value = col.type === 'sit'
       ? { down: play.tags.down || '', distance: play.tags.distance || '' }
@@ -690,6 +708,12 @@ export class PlayGrid {
     const play = this.tagger.getPlay(Number(playId));
     const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
     if (!play || !col) return false;
+    if (col.key === 'unit') {
+      const unit = Object.keys(PlayGrid.UNIT_LABELS).find(key => PlayGrid.UNIT_LABELS[key] === value);
+      if (!this.tagger.setPlayUnit(play, unit)) return false;
+      this.refresh();
+      return true;
+    }
     this._applyEdit(play, col, value);
     this.refresh();
     return true;

@@ -1,5 +1,6 @@
 import { mountNativeTagging, unmountNativeTagging } from './native-tagging.jsx';
 import { StatsEngine } from './stats-engine.js';
+import { countedUnit } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PlayCallModel } from './play-call-model.js';
@@ -164,7 +165,7 @@ export class NativeTaggingScreen {
     }
     return {
       enabled: !!play, currentPlayId: play?.id ?? null,
-      unit: raw.unit || this.tagger?.defaultUnit || 'offense',
+      unit: play ? countedUnit(play) : (this.tagger?.defaultUnit || 'offense'),
       perspective: gameInfo.perspective || 'offense', direction: gameInfo.direction || '',
       progress: this.tagger?.progressText?.() || '0 / 0 tagged',
       values: { ...raw, ...projected, yardage: raw.yardage === '' || raw.yardage == null ? '' : String(Math.abs(Number(raw.yardage) || 0)) },
@@ -294,6 +295,9 @@ export class NativeTaggingScreen {
     } else this.setPlayer(role,String(number));
   }
 
+  /** Chart's unit switch. The play's unit is written by PlayTagger.setPlayUnit,
+   *  the same write the Film Room Unit column makes (coach, 2026-09-24: either
+   *  view, equally weighted, last write wins). */
   setUnit(value) {
     if (!this.tagger?.setChartingUnit?.(value)) return false;
     this.activeRole = this.app.roster?.activeRole || this.activeRole;

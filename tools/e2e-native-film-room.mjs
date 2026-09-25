@@ -83,7 +83,8 @@ ok(mounted.before === mounted.after, 'Mounting native Film Room is a season-data
 ok(JSON.stringify(mounted.actual) === JSON.stringify(mounted.expected), 'Rendered play IDs exactly equal the canonical visible pool', JSON.stringify(mounted));
 if (shotDir) await (await page.$('[data-native-film-room]')).screenshot({ path: path.join(shotDir, 'film-room-1440.png') });
 let state = await page.evaluate(() => [...document.querySelectorAll('[data-cell][tabindex="0"]')].map(cell => cell.dataset.cell));
-ok(JSON.stringify(state) === JSON.stringify(['1:sit']), 'Keyboard users receive one initial grid entry point', JSON.stringify(state));
+// The first cell of the first row; Unit is pinned first (1.12.0-99 smoke, S99-2).
+ok(JSON.stringify(state) === JSON.stringify(['1:unit']), 'Keyboard users receive one initial grid entry point, the first cell', JSON.stringify(state));
 await page.focus('[data-cell="1:sit"]');
 // Two roots since 2026-09-24: the table and its controls region, one each.
 ok(mounted.subscribers === 2, 'Native subscriptions are scoped to the mounted table and its controls', String(mounted.subscribers));

@@ -113,25 +113,35 @@ ok(!moved.open, 'changing the unit filter closes the Columns sheet it was opened
 ok(moved.refused === false && !moved.offenseHasHash, 'a column write naming another unit\'s set is refused', JSON.stringify(moved));
 await page.evaluate(() => window.app.overlays.dismissTop('done')); await settle(page);
 
-console.log('\n== 4. All plays: a column of another unit is blank and not editable ==');
+console.log('\n== 4. All plays: only a column a unit cannot chart is blank and locked ==');
+/* 1.12.0-99 smoke, S99-1: an offensive snap charts the defense it faced and a
+   defensive snap the offense it faced, so Front and Formation show and edit on
+   both. Only a Special Teams snap, which holds no look fields, blanks them. */
 await page.evaluate(() => window.app.nativeFilmRoom.clearFilters()); await settle(page);
 const mixed = await page.evaluate(() => {
   const cell = (id, k) => document.querySelector(`[data-cell="${id}:${k}"]`);
   return { frontOnOffense: cell(1, 'defFront')?.textContent.trim(), frontOnDefense: cell(2, 'defFront')?.textContent.trim(),
-    formationOnDefense: cell(2, 'formation')?.textContent.trim(), formationOnOffense: cell(1, 'formation')?.textContent.trim() };
+    formationOnDefense: cell(2, 'formation')?.textContent.trim(), formationOnOffense: cell(1, 'formation')?.textContent.trim(),
+    frontOnSpecial: cell(3, 'defFront')?.textContent.trim(), formationOnSpecial: cell(3, 'formation')?.textContent.trim() };
 });
-ok(mixed.frontOnOffense === '' && mixed.formationOnDefense === '' && mixed.frontOnDefense === '4-3' && mixed.formationOnOffense === 'Ace',
-  'unit-specific cells are blank on other units and filled on their own', JSON.stringify(mixed));
-await page.click('[data-cell="1:defFront"]'); await settle(page);
-await page.click('[data-cell="1:defFront"]'); await settle(page);
+ok(mixed.frontOnOffense === '--' && mixed.formationOnDefense === 'Not charted' && mixed.frontOnDefense === '4-3' && mixed.formationOnOffense === 'Ace'
+  && mixed.frontOnSpecial === '' && mixed.formationOnSpecial === '',
+  'look cells show on offense and defense rows (faced looks included) and are blank only on Special Teams rows', JSON.stringify(mixed));
+const opens = async id => {
+  await page.click(`[data-cell="${id}:defFront"]`); await settle(page);
+  await page.click(`[data-cell="${id}:defFront"]`); await settle(page);
+  const open = await page.evaluate(() => !!document.querySelector('.gi-film-cell-editor'));
+  await page.evaluate(() => window.app.overlays.dismissTop('cancel')); await settle(page);
+  return open;
+};
+const offenseOpen = await opens(1), defenseOpen = await opens(2);
+await page.click('[data-cell="3:defFront"]'); await settle(page);
+await page.click('[data-cell="3:defFront"]'); await settle(page);
 const naOpen = await page.evaluate(() => !!document.querySelector('.gi-film-cell-editor'));
 await page.keyboard.press('Enter'); await settle(page);
 const naEnter = await page.evaluate(() => !!document.querySelector('.gi-film-cell-editor'));
-await page.click('[data-cell="2:defFront"]'); await settle(page);
-await page.click('[data-cell="2:defFront"]'); await settle(page);
-const ownOpen = await page.evaluate(() => !!document.querySelector('.gi-film-cell-editor'));
 await page.evaluate(() => window.app.overlays.dismissTop('cancel')); await settle(page);
-ok(!naOpen && !naEnter && ownOpen, 'a blank other-unit cell opens no editor by click or Enter; its own unit\'s cell does', JSON.stringify({ naOpen, naEnter, ownOpen }));
+ok(offenseOpen && defenseOpen && !naOpen && !naEnter, 'Front edits on offense and defense rows; a Special Teams row\'s Front opens no editor by click or Enter', JSON.stringify({ offenseOpen, defenseOpen, naOpen, naEnter }));
 
 console.log('\n== 5. Persistence and program scoping ==');
 await page.reload({ waitUntil: 'networkidle0' });
