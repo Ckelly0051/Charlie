@@ -1,5 +1,4 @@
 import { TagLibrary } from './tag-library.js';
-import { TeamRegistry } from './team-registry.js';
 
 /**
  * THE ONE-TIME CONVERSION OF OLD APP-SETTINGS KEYS (legacy excision Pass 2b;
@@ -14,10 +13,10 @@ import { TeamRegistry } from './team-registry.js';
  *                  (I-Form, Split Back; Option) made visible
  *   filmRoomColumns the old global list `ffa_film_room_cols` (stock presets
  *                  upgraded, a custom list kept) -> the active program's sets
+ *                  (`default` when none is active yet; PlayGrid hands that key
+ *                  to the first program)
  *   studyViews     saved Study views naming a renamed measure get its new id
  *   homeParent     `giq_home_workspace` (mode only) -> `giq_home_parent`
- *   teamRegistry   a pre-registry install (a profile, no `ffa_teams`) becomes
- *                  the first registry team
  *   betaDefaults   one `ffa_beta_defaults_<version>` marker per version -> one
  *                  `ffa_beta_defaults` key holding the version
  *   deadKeys       UI state nothing reads any more is removed
@@ -63,8 +62,6 @@ export class SettingsFormat {
 
     const s = new SettingsFormat.Ops(storage);
     const steps = [
-      // The registry first: the column conversion needs the active program.
-      ['teamRegistry', () => SettingsFormat._teamRegistry(s)],
       ['tagLibraries', () => SettingsFormat._tagLibraries(s)],
       ['filmRoomColumns', () => SettingsFormat._filmRoomColumns(s, gridColumns, gridPresets)],
       ['studyViews', () => SettingsFormat._studyViews(s)],
@@ -197,17 +194,6 @@ export class SettingsFormat {
     s.remove('giq_home_workspace');
     done.push('giq_home_workspace removed');
     return { status: 'converted', detail: done };
-  }
-
-  static _teamRegistry(s) {
-    const teams = s.json('ffa_teams');
-    const profile = s.json('ffa_team_profile') || {};
-    if ((Array.isArray(teams) && teams.length) || !profile.teamName) return { status: 'none', detail: [] };
-    const team = { id: new TeamRegistry().newTeamId(profile.teamName, []), teamName: profile.teamName,
-      school: profile.school || '', nickname: profile.nickname || '', jerseyColor: profile.jerseyColor || '' };
-    s.set('ffa_teams', JSON.stringify([team]));
-    s.set('ffa_active_team_id', team.id);
-    return { status: 'converted', detail: [`ffa_team_profile -> ffa_teams (${team.id})`] };
   }
 
   static _betaDefaults(s, version) {

@@ -190,8 +190,10 @@ export class TeamRegistry {
   // ------------------------------------------------------------- lifecycle --
 
   /**
-   * Reconcile. Run before reading the registry. (A pre-registry install is
-   *   converted once at boot, settings-format.js.)
+   * Reconcile. Run before reading the registry.
+   * - A profile with no registry becomes the first registry team. This is how
+   *   a first team is created: saveTeamIdentity() with no active team writes
+   *   only the profile.
    * - A registry with no active profile (partial clear / old bug) re-adopts a
    *   team, so pills and profile never disagree.
    * - Game Info edits write ffa_team_profile directly, so mirror those back
@@ -200,6 +202,13 @@ export class TeamRegistry {
   ensureRegistry() {
     let teams = this.teams();
     const profile = this.teamProfile();
+    if (!teams.length && profile.teamName) {
+      const t = { id: this.newTeamId(profile.teamName, []), teamName: profile.teamName, school: profile.school || '', nickname: profile.nickname || '', jerseyColor: profile.jerseyColor || '' };
+      teams = [t];
+      this.saveTeams(teams);
+      this.setActiveTeamId(t.id);
+      return;
+    }
     if (teams.length && !profile.teamName) {
       const first = teams.find(t => t.id === this.activeTeamId()) || teams[0];
       this.setActiveTeamId(first.id);
