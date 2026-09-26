@@ -99,6 +99,12 @@ export function inventory() {
     // tag; js/season-format.js names them only to refuse them.
     legacyStReads: count(Object.entries(src).filter(([f]) => f !== 'js/season-format.js').map(([, t]) => t).join('\n'),
       /(?:tags|\bt|raw|p\.tags|play\.tags)\??\.(stType|kickOutcome|scoreFor|kickDistance|returnYards|hangTime|kickedTo)\b/g),
+    // The combined-look projection and the formation-to-backfield migration.
+    legacyLookReaders: count(js, /\b(PROJECTED_PAIRS|reconcileSiblings|stripSiblingToken|commitLook|commitProjectedLook|primariesForSibling|migratePlayFormation|BACKFIELD_FROM_FORMATION)\b/g),
+    // Game-node rosters: the promotion boundary, the migration record and any
+    // read of a game's own roster (season-format.js names it only to refuse it).
+    legacyRosterReaders: count(Object.entries(src).filter(([f]) => f !== 'js/season-format.js').map(([, t]) => t).join('\n'),
+      /\b(adoptLegacyRoster|rosterIdentity|gameFromLegacy|addGameFromData|rosterMigration)\b|\b(?:game|g|prev|node)\??\.roster\b/g),
     // E: platform choices.
     localStorageCalls: count(js, /localStorage\.(getItem|setItem|removeItem)\(/g),
     windowAppRefs: count(js, /\bwindow\.app\b/g),

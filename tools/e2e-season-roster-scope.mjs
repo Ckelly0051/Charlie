@@ -54,48 +54,22 @@ ok(ids.varsityStartsEmpty, 'a newly-created season starts with an empty roster')
 ok(ids.rosterAfterGameSwitch.join('|') === 'Varsity Quarterback', 'switching games leaves the season roster unchanged', JSON.stringify(ids));
 ok(ids.restored && ids.rosterAfterRestore.join('|') === 'Varsity Quarterback', 'restoring a season backup hydrates its restored roster', JSON.stringify(ids));
 
-/* REPOINTED 2026-09-13, not weakened. Legacy game-node recovery used to run
-   inside `_normalize`, i.e. on every load, restore and import — so ownership
-   was re-inferred forever and a deliberately emptied season re-acquired its old
-   players. The coach's ruling moved recovery to ONE explicit compatibility
-   boundary, `SeasonStore.adoptLegacyRoster`, marked so it cannot run twice.
-   The same four cases are still proven; they are now asserted against the
-   boundary, and ordinary loading is proven NOT to recover. */
-const legacyBoundaries = await page.evaluate(() => {
+/* Game-node rosters are the retired format (legacy excision step 7): the
+   recovery boundary that promoted one is deleted. Ordinary normalizing never
+   reads a game roster, and a file carrying one is refused, not converted. */
+const legacyBoundaries = await page.evaluate(async () => {
   const store = window.app.storage.seasonStore;
-  const SeasonStore = store.constructor;
   const game = { id:'legacy-game', roster:[{ num:'8', name:'Legacy Player' }], plays:[] };
-  // The boundary returns a RESULT ({data, status, conflict, ...}) so a caller can
-  // surface a migration conflict instead of guessing which copy wins.
-  const viaBoundary = payload => store._normalize(SeasonStore.adoptLegacyRoster(structuredClone(payload)).data).roster.map(player => player.name);
-  const viaLoad = payload => store._normalize(structuredClone(payload)).roster.map(player => player.name);
+  const refused = await store.adopt({ type:'season', seasonName:'Legacy Import', games:[structuredClone(game)] });
   return {
-    absent: viaBoundary({ id:'legacy-absent', games:[game] }),
-    explicitEmpty: viaBoundary({ id:'legacy-empty', roster:[], games:[game] }),
-    explicitNull: viaBoundary({ id:'legacy-null', roster:null, games:[game] }),
-    nowhere: viaBoundary({ id:'legacy-nowhere', games:[{ id:'empty-game', plays:[] }] }),
-    loadAbsent: viaLoad({ id:'load-absent', games:[game] }),
-    twice: (() => {
-      // Conversion also REMOVES the game-level copy, so a second run has
-      // nothing to find even before the marker refuses it -- both guards are
-      // asserted separately in e2e-roster-ownership.
-      const once = SeasonStore.adoptLegacyRoster({ id:'twice', games:[structuredClone(game)] }).data;
-      once.rosterOwnership = SeasonStore.ROSTER_OWNERSHIP;
-      once.roster = [];
-      return SeasonStore.adoptLegacyRoster(once).data.roster.map(player => player.name);
-    })(),
+    loadAbsent: store._normalize({ id:'load-absent', games:[structuredClone(game)] }).roster.map(player => player.name),
+    refused: { ok: refused.ok, oldFormat: refused.oldFormat === true },
   };
 });
-ok(legacyBoundaries.absent.join('|') === 'Legacy Player'
-  && legacyBoundaries.explicitEmpty.length === 0
-  && legacyBoundaries.explicitNull.length === 0
-  && legacyBoundaries.nowhere.length === 0,
-  'the legacy boundary recovers a game roster only when the season field is genuinely absent', JSON.stringify(legacyBoundaries));
 ok(legacyBoundaries.loadAbsent.length === 0,
   'ordinary season loading never recovers a roster from a game node', JSON.stringify(legacyBoundaries.loadAbsent));
-ok(legacyBoundaries.twice.length === 0,
-  'the legacy boundary cannot convert the same season twice', JSON.stringify(legacyBoundaries.twice));
-
+ok(legacyBoundaries.refused.ok === false && legacyBoundaries.refused.oldFormat,
+  'a season file whose game carries a roster is refused as an old format', JSON.stringify(legacyBoundaries.refused));
 let result = await page.evaluate(async ({ jv, varsity }) => {
   const app = window.app;
   const store = app.storage.seasonStore;

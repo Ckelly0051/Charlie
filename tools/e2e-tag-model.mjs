@@ -337,23 +337,18 @@ test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapsho
   }
 });
 
-/* ---- §4 existing migration guard must not break ---- */
+/* ---- §4 the formation is read as charted (the v1.9.15 backfield migration is deleted) ---- */
 
-test('19 · Power-I on a modern play (has backfield) is never migrated', () => {
-  const p = legacyPlay(30, { unit: 'offense', formation: 'Power-I', backfield: '' });
-  SeasonStore.migratePlayFormation(p);
-  assert.equal(p.tags.formation, 'Power-I', 'modern Power-I must survive');
-  assert.equal(p.tags.backfield, '');
+test('19 · a formation is never rewritten into Backfield, with or without a backfield key', () => {
+  for (const tags of [{ unit: 'offense', formation: 'Power-I', backfield: '' }, { unit: 'offense', formation: 'Power-I + Trips' }]) {
+    const p = { id: 30, timestamp: { start: 0, end: 1 }, tags: { ...tags } };
+    SeasonStore.coerceLookFields(p);
+    assert.equal(p.tags.formation, tags.formation, 'formation kept as charted');
+    assert.equal(p.tags.backfield, '', 'a missing backfield is a blank string, never inferred');
+    assert.equal(p.tags.strength, '');
+  }
+  assert.equal(typeof SeasonStore.migratePlayFormation, 'undefined', 'the migration is deleted');
 });
-
-test('20 · a truly legacy play (no backfield property) still migrates as before', () => {
-  const p = { id: 31, timestamp: { start: 0, end: 1 }, tags: { unit: 'offense', formation: 'Power-I' } };
-  assert.ok(!('backfield' in p.tags));
-  SeasonStore.migratePlayFormation(p);
-  assert.equal(p.tags.backfield, 'Power', 'legacy Power-I -> backfield Power');
-  assert.equal(p.tags.formation, '');
-});
-
 /* ---- §20 E3b: lookLabel — the deliberate presentation composition ---- */
 
 test('26 · lookLabel joins alignment + structure for a MODERN split play', () => {
