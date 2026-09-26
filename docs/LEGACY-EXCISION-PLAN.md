@@ -292,6 +292,10 @@ lists. That is part of Pass 2's exit criterion above; the one-time tool is the m
 
 ## Decided
 
+- After the agreed excision is complete, audit instruction bloat using
+  `docs/POST-LEGACY-INSTRUCTION-AUDIT.md`. Read-only first; cleanup requires
+  separate approval and must preserve coach-data and regression safeguards.
+
 - Old to new, converted ONCE by a throwaway tool, then every old-format reader
   removed; no permanent door (coach, 2026-09-25). Old exports need not load.
 - Outcomes match where today's reading is accurate; a wrong reading is
