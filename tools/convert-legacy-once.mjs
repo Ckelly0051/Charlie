@@ -33,7 +33,7 @@
  * Live (--apply): see apply() below; only after the coach's yes.
  *
  *   node tools/convert-legacy-once.mjs --out <dir> [--catalog <library.db>]
- *   node tools/convert-legacy-once.mjs --apply --backup <new dir>   (GridIron IQ closed)
+ *   node tools/convert-legacy-once.mjs --apply --backup <new dir> --approved <impact.json>   (GridIron IQ closed)
  */
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
@@ -224,82 +224,152 @@ export async function run({ catalogPath = LIVE_CATALOG, outDir }) {
   return report;
 }
 
+/** Every legacy shape this conversion exists to remove, counted over a whole catalog. */
+export function legacyRemaining(cat) {
+  const out = {};
+  for (const m of cat.listSeasons()) {
+    const season = cat.loadSeason(m.id);
+    const shapes = dataShapes(season);
+    let staleKeys = 0, fgUnitXp = 0;
+    for (const g of season.games || []) for (const p of g.plays || []) {
+      if (LEGACY_ST_KEYS.some(k => p.tags && Object.prototype.hasOwnProperty.call(p.tags, k))) staleKeys++;
+      const st = p.specialTeams;
+      if (st && (st.unit === 'fieldGoal' || st.unit === 'fieldGoalBlock') && st.attemptType === 'extraPoint') fgUnitXp++;
+    }
+    const total = shapes.noUnit + shapes.emptyTags + shapes.combinedFormation + shapes.legacyStOnly + shapes.gameNodeRosters + staleKeys + fgUnitXp;
+    out[m.name] = { ...shapes, staleKeys, fgUnitXp, total };
+  }
+  return out;
+}
+const isClean = remaining => Object.values(remaining).every(s => s.total === 0);
+
+async function openCatalog(bytes) {
+  const SQL = await (await import('sql.js')).default();
+  const cat = new SqlCatalog(SQL);
+  await cat.open(bytes);
+  return cat;
+}
+
+/** What the coach approves: the source it was computed from and its exact effect. */
+export function impactOf(report) {
+  return {
+    sourceHash: report.sourceHash,
+    counts: Object.fromEntries(report.seasons.map(s => [s.name, s.counts])),
+    recharts: report.recharts.map(r => `${r.season}|${r.game}|${r.play}|${r.action}`),
+  };
+}
+
+const appRunning = () => execSync('tasklist /fo csv /nh', { encoding: 'utf8' }).split('\n').filter(l => /gridiron/i.test(l));
+
 /**
- * THE LIVE WRITE (coach-approved, run once). Refuses while GridIron IQ is
- * running; backs up the catalog folder (film excluded: never touched) and the
- * Documents mirror byte for byte, hash-verified; converts; refuses to write if
- * anything stopped or the live file changed since the backup; swaps the
- * converted catalog in through a staged file in the same folder; re-reads it
- * and confirms zero legacy shapes.
+ * THE LIVE WRITE (coach-approved, run once), bound to an approved impact:
+ * `approvedPath` is the impact.json of the dry run the coach said yes to. If the
+ * live catalog's hash or the recomputed effect differs from it, nothing is
+ * written and a new review is needed.
+ *
+ * Refuses while GridIron IQ runs. Backs up the catalog folder (film excluded:
+ * never written), library.json and the Documents mirror, every copy
+ * hash-verified. Converts, validates the converted catalog (zero legacy shapes)
+ * BEFORE any replacement, re-checks immediately before the swap that the app is
+ * still closed and library.db still has the backed-up bytes, swaps in a staged
+ * file from the same folder, then re-reads and asserts the same.
+ *
+ * There is no lock the installed app honors, so the last re-check narrows the
+ * window to the instant between it and the rename; it cannot close it. The coach
+ * keeps the app closed until this reports done.
  */
-export async function apply({ backupDir, catalogPath = LIVE_CATALOG, mirror = path.join(os.homedir(), 'OneDrive', 'Documents', 'GridIron IQ'), rehearsal = false }) {
+export async function apply({ backupDir, approvedPath, catalogPath = LIVE_CATALOG, mirror = path.join(os.homedir(), 'OneDrive', 'Documents', 'GridIron IQ'), rehearsal = false, onBeforeSwap = null }) {
   if (!backupDir) throw new Error('--backup <dir> is required');
-  const running = execSync('tasklist /fo csv /nh', { encoding: 'utf8' }).split('\n').filter(l => /gridiron/i.test(l));
-  if (running.length && !rehearsal) throw new Error(`GridIron IQ is running; close it first (${running[0].trim()})`);
+  if (!approvedPath || !existsSync(approvedPath)) throw new Error('--approved <impact.json> from the reviewed dry run is required');
+  const approved = JSON.parse(readFileSync(approvedPath, 'utf8'));
+  const checkClosed = () => { const r = appRunning(); if (r.length && !rehearsal) throw new Error(`GridIron IQ is running; close it first (${r[0].trim()}). Nothing written.`); };
+  checkClosed();
   if (existsSync(backupDir)) throw new Error(`backup folder already exists: ${backupDir}`);
+  if (sha(readFileSync(catalogPath)) !== approved.sourceHash) throw new Error('library.db is not the catalog that was reviewed (it changed since the dry run). Run a new dry run and review it. Nothing written.');
 
   const appSeasons = path.dirname(catalogPath);
   const appRoot = path.dirname(appSeasons);
   const manifest = [];
+  const copyVerified = (s, d) => {
+    copyFileSync(s, d);
+    const h = sha(readFileSync(s));
+    if (sha(readFileSync(d)) !== h) throw new Error(`backup copy differs: ${s}`);
+    manifest.push({ source: s, backup: d, sha256: h });
+  };
   const copyTree = (from, to) => {
     for (const e of readdirSync(from, { withFileTypes: true })) {
       if (e.isDirectory() && e.name === 'films') continue;         // film is never written
       const s = path.join(from, e.name), d = path.join(to, e.name);
       if (e.isDirectory()) { mkdirSync(d, { recursive: true }); copyTree(s, d); continue; }
-      copyFileSync(s, d);
-      const h = sha(readFileSync(s));
-      if (sha(readFileSync(d)) !== h) throw new Error(`backup copy differs: ${s}`);
-      manifest.push({ source: s, backup: d, sha256: h });
+      copyVerified(s, d);
     }
   };
   mkdirSync(path.join(backupDir, 'appdata-seasons'), { recursive: true });
   copyTree(appSeasons, path.join(backupDir, 'appdata-seasons'));
   if (existsSync(path.join(appRoot, 'library.json'))) {
     mkdirSync(path.join(backupDir, 'appdata-root'), { recursive: true });
-    copyFileSync(path.join(appRoot, 'library.json'), path.join(backupDir, 'appdata-root', 'library.json'));
-    manifest.push({ source: path.join(appRoot, 'library.json'), backup: path.join(backupDir, 'appdata-root', 'library.json'), sha256: sha(readFileSync(path.join(appRoot, 'library.json'))) });
+    copyVerified(path.join(appRoot, 'library.json'), path.join(backupDir, 'appdata-root', 'library.json'));
   }
   if (existsSync(mirror)) { mkdirSync(path.join(backupDir, 'documents-mirror'), { recursive: true }); copyTree(mirror, path.join(backupDir, 'documents-mirror')); }
   writeFileSync(path.join(backupDir, 'manifest.json'), JSON.stringify(manifest, null, 1));
   const backedUpHash = manifest.find(m => m.source === catalogPath)?.sha256;
-  if (!backedUpHash) throw new Error('library.db is not in the backup');
+  if (backedUpHash !== approved.sourceHash) throw new Error('backed-up library.db is not the reviewed catalog. Nothing written.');
 
   const report = await run({ catalogPath, outDir: path.join(backupDir, 'run') });
   if (report.stops.length) throw new Error(`conversion stopped, nothing written: ${report.stops.join(' | ')}`);
-  if (sha(readFileSync(catalogPath)) !== backedUpHash) throw new Error('library.db changed after the backup; nothing written');
+  if (JSON.stringify(impactOf(report)) !== JSON.stringify(approved)) {
+    writeFileSync(path.join(backupDir, 'run', 'impact.json'), JSON.stringify(impactOf(report), null, 1));
+    throw new Error('the effect differs from the approved impact. Nothing written.');
+  }
 
+  // Validate the converted catalog BEFORE anything is replaced.
   const bytes = readFileSync(path.join(backupDir, 'run', 'converted.db'));
+  if (sha(bytes) !== report.convertedHash) throw new Error('converted catalog does not match its report. Nothing written.');
+  const before = legacyRemaining(await openCatalog(bytes));
+  if (!isClean(before)) throw new Error(`converted catalog still holds legacy shapes: ${JSON.stringify(before)}. Nothing written.`);
+
   const staged = path.join(appSeasons, `library.db.pending-${randomUUID()}`);
   writeFileSync(staged, bytes);
-  if (sha(readFileSync(staged)) !== report.convertedHash) { rmSync(staged, { force: true }); throw new Error('staged catalog does not match; nothing written'); }
+  if (sha(readFileSync(staged)) !== report.convertedHash) { rmSync(staged, { force: true }); throw new Error('staged catalog does not match. Nothing written.'); }
+  // The last re-check, as close to the swap as possible. (onBeforeSwap is a
+  // rehearsal hook that simulates the app writing in this window.)
+  if (rehearsal && onBeforeSwap) onBeforeSwap();
+  try {
+    checkClosed();
+    if (sha(readFileSync(catalogPath)) !== backedUpHash) throw new Error('library.db changed after the backup. Nothing written.');
+  } catch (e) { rmSync(staged, { force: true }); throw e; }
   renameSync(staged, catalogPath);
 
-  const SQL = await (await import('sql.js')).default();
-  const cat = new SqlCatalog(SQL); await cat.open(readFileSync(catalogPath));
-  const after = cat.listSeasons().map(m => { const s = cat.loadSeason(m.id); return { name: m.name, shapes: dataShapes(s) }; });
   const liveHash = sha(readFileSync(catalogPath));
-  return { report, after, liveMatchesConverted: liveHash === report.convertedHash, backupFiles: manifest.length };
+  const after = legacyRemaining(await openCatalog(readFileSync(catalogPath)));
+  const ok = liveHash === report.convertedHash && isClean(after);
+  return { ok, report, after, liveHash, backupFiles: manifest.length, backupDir };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))) {
   const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
   if (process.argv.includes('--apply')) {
-    const r = await apply({ backupDir: arg('--backup') });
-    console.log(`backup: ${r.backupFiles} files, hash-verified`);
-    console.log(`live catalog equals the converted copy: ${r.liveMatchesConverted}`);
-    for (const s of r.after) console.log(`  ${s.name}: ${JSON.stringify(s.shapes)}`);
+    const r = await apply({ backupDir: arg('--backup'), approvedPath: arg('--approved') });
+    console.log(`backup: ${r.backupFiles} files, each hash-verified against its source -> ${r.backupDir}`);
+    console.log(`live catalog equals the converted copy: ${r.liveHash === r.report.convertedHash}`);
+    for (const [name, s] of Object.entries(r.after)) console.log(`  ${name}: legacy remaining ${s.total} ${JSON.stringify(s)}`);
     console.log(`re-chart / check list: ${r.report.recharts.length} plays`);
-    process.exit(r.liveMatchesConverted ? 0 : 1);
+    if (!r.ok) console.log(`FAILED VERIFICATION after the swap. Restore library.db from ${path.join(r.backupDir, 'appdata-seasons', 'library.db')}.`);
+    process.exit(r.ok ? 0 : 1);
   }
-  const report = await run({ catalogPath: arg('--catalog') || LIVE_CATALOG, outDir: arg('--out') });
+  const outDir = arg('--out');
+  const report = await run({ catalogPath: arg('--catalog') || LIVE_CATALOG, outDir });
+  const converted = legacyRemaining(await openCatalog(readFileSync(path.join(outDir, 'converted.db'))));
+  writeFileSync(path.join(outDir, 'impact.json'), JSON.stringify(impactOf(report), null, 1));
   for (const s of report.seasons) {
     console.log(`\n${s.name}`);
     console.log('  ' + JSON.stringify(s.counts));
-    console.log('  shapes before ' + JSON.stringify(s.shapesBefore));
-    console.log('  shapes after  ' + JSON.stringify(s.shapesReread));
+    console.log('  legacy remaining in the converted catalog ' + JSON.stringify(converted[s.name]));
     for (const a of s.analytics) if (a.differences) console.log(`  analytics differ: ${a.game} (${a.differences} values)`);
   }
   console.log(`\nre-chart / check list: ${report.recharts.length} plays`);
-  console.log(`stops: ${report.stops.length ? report.stops.join(' | ') : 'none'}`);
-  process.exit(report.stops.length ? 1 : 0);
+  console.log(`impact to approve: ${path.join(outDir, 'impact.json')} (source ${report.sourceHash.slice(0, 12)})`);
+  const clean = isClean(converted);
+  console.log(`stops: ${report.stops.length ? report.stops.join(' | ') : 'none'}; converted catalog clean: ${clean}`);
+  process.exit(report.stops.length || !clean ? 1 : 0);
 }
