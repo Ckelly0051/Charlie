@@ -75,7 +75,10 @@ export class SeasonStore {
     const priorData = this.data;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) {}
-    if (parsed && Array.isArray(parsed.games)) {
+    // Every stored payload is validated -- a single-game save or any other old
+    // shape is refused, never opened as an empty season. Only NO stored payload
+    // (nothing saved yet) starts empty.
+    if (parsed != null) {
       const hydrated = await this._hydrate(this.currentSeasonId, parsed);
       // Refused (old format): keep the live season exactly as it was.
       if (!hydrated) return priorData;
@@ -569,8 +572,9 @@ export class SeasonStore {
     this.currentSeasonId = id;
     let parsed = null;
     try { parsed = await this.backend.loadSeason(id); } catch (e) {}
-    if (parsed && Array.isArray(parsed.games)) {
-      parsed.id = id;   // this library slot, not the payload's own id
+    // Every stored payload is validated (see load()); only none starts empty.
+    if (parsed != null) {
+      if (typeof parsed === 'object') parsed.id = id;   // this library slot, not the payload's own id
       const hydrated = await this._hydrate(id, parsed);
       if (!hydrated) {
         this.currentSeasonId = priorSeasonId;
