@@ -11,12 +11,18 @@ export class TagLibrary {
     backfield: { values: TagProjection.PICKER_EXCLUDE.backfield, owner: () => 'QB Alignment' },
     coverage: { values: TagProjection.PICKER_EXCLUDE.coverage, owner: () => 'Coverage Family' },
   });
-  /** The field a reserved value belongs to, or null when `value` is allowed in `key`. */
+  /** The field a reserved value belongs to, or null when `value` is allowed in
+   *  `key`. Checked per "+"-joined token, because a compound label ("Shotgun +
+   *  Trips") charts exactly the combined shape a lone "Shotgun" would; a label
+   *  that only contains the word ("Shotgun Special") is its own value. */
   static reservedOwner(key, value) {
     const rule = TagLibrary.RESERVED[key];
-    const v = String(value || '').trim().toLowerCase();
-    const match = rule && rule.values.find(item => item.toLowerCase() === v);
-    return match ? rule.owner(match) : null;
+    if (!rule) return null;
+    for (const token of String(value || '').split('+').map(part => part.trim().toLowerCase()).filter(Boolean)) {
+      const match = rule.values.find(item => item.toLowerCase() === token);
+      if (match) return rule.owner(match);
+    }
+    return null;
   }
   static VERSION = 4;
   static DEFINITIONS = {
