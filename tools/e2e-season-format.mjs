@@ -42,6 +42,19 @@ ok(kinds(season('a', [play(1, { unit: 'special' }, { specialTeams: { unit: 'fiel
 ok(kinds(season('a', [play(1, {})], { roster: [] })).includes('game roster'), 'a game node carrying a roster');
 ok(kinds({ plays: [play(1, {})] }).includes('single-game save'), 'a single-game save');
 ok(SeasonFormat.isCurrentSeason(DemoSeason.build()), 'the generated sample season is current', JSON.stringify(kinds(DemoSeason.build()).slice(0, 3)));
+// Codex review of 448c95a: structure is validated, not assumed.
+ok(kinds(season('a', [play(1, { unit: null, playType: 'Run Inside' })])).includes('no unit'), 'a charted play whose unit is null');
+ok(kinds(season('a', [play(1, { unit: 'kickoff' })])).includes('no unit'), 'a play whose unit is not one of the three');
+ok(kinds(season('a', [{ id: 1, timestamp: { start: 0, end: 1 }, tags: {} }])).includes('no unit'), 'a play with empty tags');
+{
+  const k = kinds(season('a', [{ id: 1, specialTeams: { unit: 'fieldGoal', attemptType: 'extraPoint' } }]));
+  ok(k.includes('missing tags') && k.includes('extra point on a Field Goal unit'), 'a play with no tags is refused AND its Special Teams event is still checked', JSON.stringify(k));
+}
+ok(kinds({ games: [{}] }).includes('no plays list') && kinds({ games: [null] }).includes('malformed game') && kinds({}).includes('not a GridIron IQ season'),
+  'a season whose game has no plays list, a null game, or no games array', JSON.stringify([kinds({ games: [{}] }), kinds({ games: [null] }), kinds({})]));
+ok(SeasonFormat.isCurrentSeason(season('empty', [])), 'a season whose game has an empty plays list is current');
+ok(!SeasonFormat.isCurrentGame({}) && SeasonFormat.gameProblems({})[0]?.problem === 'no plays list', 'a game version {} is refused (restoring it would empty the game)', JSON.stringify(SeasonFormat.gameProblems({})));
+ok(SeasonFormat.isCurrentGame({ plays: [] }) && SeasonFormat.isCurrentGame({ plays: [play(1, { formation: 'Trips' })] }), 'a game version with plays (or an empty list) is current');
 
 console.log('\n== 2. Mirror recovery and first-run import refuse old seasons ==');
 {
@@ -69,6 +82,11 @@ console.log('\n== 2. Mirror recovery and first-run import refuse old seasons =='
   } });
   const migrated = await cp.migrateJsonSeasons(['old', 'fresh']);
   ok(migrated === 1 && !cat.loadSeason('old') && !!cat.loadSeason('fresh'), 'first-run JSON import skips an old season and imports a current one', JSON.stringify({ migrated, writes }));
+  ok(JSON.stringify(cp.oldFormatRefusals) === JSON.stringify([{ id: 'old', name: 'old' }]), 'the refused season is named, not silently dropped', JSON.stringify(cp.oldFormatRefusals));
+  const backendThis = { _oldFormatSeasons: cp.oldFormatRefusals };
+  const handed = TauriBackend.prototype.takeOldFormatRefusals.call(backendThis);
+  const again = TauriBackend.prototype.takeOldFormatRefusals.call(backendThis);
+  ok(handed.length === 1 && again.length === 0, 'the backend hands the refusals over once', JSON.stringify({ handed, again }));
 }
 
 console.log('\n== 3. In the app: refused with nothing written ==');
@@ -120,11 +138,28 @@ const r = await page.evaluate(async ({ CURRENT, MESSAGE, RESTORE }) => {
   const playsBefore = JSON.stringify(app.tagger.plays);
   const vr = await app.versions.restore('v-old');
   out.version = { vr, confirmAsked, versionsAfter: (await app.versions.list()).length, versionsBefore, unchanged: JSON.stringify(app.tagger.plays) === playsBefore, toast: toasts.at(-1) };
+  // A malformed version ({}): refused before the confirmation; the game keeps its plays.
+  await store.backend.saveVersion(scope.seasonId, scope.gameId, { id: 'v-empty', t: Date.now(), label: 'Empty', manual: true, playCount: 0, data: {} });
+  confirmAsked = false;
+  const playsBefore2 = JSON.stringify(app.tagger.plays);
+  const ve = await app.versions.restore('v-empty');
+  out.emptyVersion = { ve, confirmAsked, unchanged: JSON.stringify(app.tagger.plays) === playsBefore2, plays: app.tagger.plays.length };
   app.tagger._confirmDialog = origConfirm;
+
+  // First-run refusals reach the coach once, through the library listing.
+  const origTake = store.backend.takeOldFormatRefusals;
+  let pending = [{ id: 'x', name: 'Old Season' }];
+  store.backend.takeOldFormatRefusals = () => { const l = pending; pending = []; return l; };
+  const t0 = toasts.length; await sm.listSeasons(); const firstToasts = toasts.slice(t0);
+  const t1 = toasts.length; await sm.listSeasons(); const secondToasts = toasts.slice(t1);
+  store.backend.takeOldFormatRefusals = origTake;
+  out.firstRun = { firstToasts, secondToasts };
 
   // A template saved before the conversion applies no retired value.
   const store2 = app.tagger._templateStore(); store2['Old tpl'] = { stType: 'Punt', kickOutcome: 'Downed', formation: 'Shotgun + Trips', playType: 'Short Pass' };
   app.tagger._saveTemplateStore(store2);
+  // If a regression above emptied the game, keep this check running (and named).
+  if (!app.tagger.plays.length) app.tagger.plays.push({ id: 900, timestamp: { start: 0, end: 1 }, notes: '', annotations: [], tags: app.tagger.constructor.blankTags({ unit: 'offense' }) });
   app.tagger.selectPlay(app.tagger.plays[0].id);
   app.tagger.applyTemplate('Old tpl');
   const t = app.tagger.getCurrentPlay().tags;
@@ -142,6 +177,10 @@ ok(r.restorePoint.restored === false && r.restorePoint.unchanged && r.restorePoi
   'an old season restore point is refused: no safety snapshot, season unchanged, plain message', JSON.stringify(r.restorePoint));
 ok(r.version.vr === false && !r.version.confirmAsked && r.version.unchanged && r.version.versionsAfter === r.version.versionsBefore && r.version.toast === SeasonFormat.RESTORE_MESSAGE,
   'an old game version is refused before the confirmation: no backup version, game unchanged', JSON.stringify(r.version));
+ok(r.emptyVersion.ve === false && !r.emptyVersion.confirmAsked && r.emptyVersion.unchanged && r.emptyVersion.plays > 0,
+  'a malformed game version ({}) is refused before the confirmation; the game keeps its plays', JSON.stringify(r.emptyVersion));
+ok(r.firstRun.firstToasts.length === 1 && /1 season file uses an old GridIron IQ format and was not opened: Old Season\. Export it again/.test(r.firstRun.firstToasts[0]) && r.firstRun.secondToasts.length === 0,
+  'a season the first-run import refused is named to the coach once', JSON.stringify(r.firstRun));
 ok(!r.template.stType && !r.template.kickOutcome && r.template.formation === 'Trips' && r.template.qb === 'Shotgun' && r.template.playType === 'Short Pass',
   'an old template applies its current values only, with the combined look split', JSON.stringify(r.template));
 ok(!errors.length, 'no page errors', errors.join(' | '));

@@ -1001,12 +1001,15 @@ export class TauriBackend extends StorageBackend {
         // First flag-on: import existing per-season season.json into the shared db.
         const lib = await this._readLib();
         await cp.migrateJsonSeasons(lib.map(s => s.id));
+        this._oldFormatSeasons = cp.oldFormatRefusals || [];
         this._catalog = cp;
         return cp;
       } catch (e) { console.warn('Catalog init failed; no fallback store will be used', e); return null; }
     })();
     return this._catalogInit;
   }
+  /** Seasons the first-run import refused as old format, handed over once. */
+  takeOldFormatRefusals() { const list = this._oldFormatSeasons || []; this._oldFormatSeasons = []; return list; }
   async _touchMeta(seasonId, data) {
     if (!data || (data.id && String(data.id) !== String(seasonId))) return false;
     const lib = await this._readLib();

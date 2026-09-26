@@ -382,7 +382,17 @@ export class StorageManager {
     const seasons = await this.seasonStore.listSeasons();
     this._lastSeasonMetas = seasons || [];
     this._reconcileDemoPointer(this._lastSeasonMetas);
+    this._reportOldFormatSeasons();
     return seasons;
+  }
+
+  /** Seasons the first-run import refused as old format are named once, so a
+   *  season never vanishes from the library without a word (step 6). */
+  _reportOldFormatSeasons() {
+    const refused = this.seasonStore?.backend?.takeOldFormatRefusals?.() || [];
+    if (!refused.length) return;
+    const names = refused.map(s => s.name).join(', ');
+    this.tagger?.toast?.(`${refused.length} season file${refused.length === 1 ? ' uses' : 's use'} an old GridIron IQ format and ${refused.length === 1 ? 'was' : 'were'} not opened: ${names}. Export ${refused.length === 1 ? 'it' : 'them'} again from the current app.`, 10000);
   }
 
   /** Whether this backend supports the PC-3 recovery flow (desktop only). */

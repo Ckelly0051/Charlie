@@ -449,6 +449,9 @@ export class CatalogPersistence {
       const snapshot = this.catalog.toBytes();
       if (!snapshot || !snapshot.length) throw new Error('Could not snapshot catalog before migration');
       let migrated = 0;
+      // Old-format seasons are not imported; they are named here so startup can
+      // tell the coach (legacy excision step 6), never silently dropped.
+      this.oldFormatRefusals = [];
       for (const id of ids) {
         let inDb = false;
         try { inDb = !!this.catalog.loadSeason(id); } catch (e) { inDb = false; }
@@ -456,7 +459,11 @@ export class CatalogPersistence {
         let json = null;
         try { json = await this.fs.readJson(id); } catch (e) { json = null; }
         // An old-format per-season file is left on disk and not imported (step 6).
-        if (json && Array.isArray(json.games) && SeasonFormat.isCurrentSeason(json)) {
+        if (json && Array.isArray(json.games) && !SeasonFormat.isCurrentSeason(json)) {
+          this.oldFormatRefusals.push({ id, name: json.seasonName || id });
+          continue;
+        }
+        if (json && Array.isArray(json.games)) {
           json.id = json.id || id;
           this.catalog.setCurrentSeason(id);
           try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}

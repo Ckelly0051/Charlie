@@ -27,50 +27,72 @@ export class SeasonFormat {
   static MESSAGE = 'This file uses an old GridIron IQ format and was not opened. Export it again from the current app.';
   static RESTORE_MESSAGE = 'This restore point was saved in an old format and cannot be restored. Nothing was changed.';
 
-  /** The reasons one play is in the old format; empty when it is current. */
+  static UNITS = Object.freeze(['offense', 'defense', 'special']);
+
+  static _isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+
+  /**
+   * The reasons one play is not current; empty when it is. Every current play
+   * carries a tags object with one of the three units (PlayTagger.blankTags is
+   * the only way a play is born); anything else is refused, not waved through.
+   */
   static playProblems(play) {
+    if (!this._isObject(play)) return ['malformed play'];
     const out = [];
-    const tags = play && play.tags;
-    if (!tags || typeof tags !== 'object') return out;
-    if (Object.keys(tags).length && (tags.unit === undefined || tags.unit === '')) out.push('no unit');
-    const probe = { tags: JSON.parse(JSON.stringify(tags)) };
-    if (TagProjection.commitLook(probe)) out.push('combined look');
-    if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
+    const tags = play.tags;
+    if (!this._isObject(tags)) out.push('missing tags');
+    else {
+      if (!this.UNITS.includes(tags.unit)) out.push('no unit');
+      const probe = { tags: JSON.parse(JSON.stringify(tags)) };
+      if (TagProjection.commitLook(probe)) out.push('combined look');
+      if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
+    }
+    // Checked whether or not the tags are usable.
     const st = play.specialTeams;
-    if (st && (st.unit === 'fieldGoal' || st.unit === 'fieldGoalBlock') && st.attemptType === 'extraPoint') out.push('extra point on a Field Goal unit');
+    if (this._isObject(st) && (st.unit === 'fieldGoal' || st.unit === 'fieldGoalBlock') && st.attemptType === 'extraPoint') out.push('extra point on a Field Goal unit');
+    return out;
+  }
+
+  static _playsProblems(list, label, out) {
+    if (!Array.isArray(list)) { out.push({ where: label, problem: 'no plays list' }); return; }
+    list.forEach((p, i) => this.playProblems(p).forEach(problem => out.push({ where: `${label} play ${p && p.id != null ? p.id : `#${i + 1}`}`, problem })));
+  }
+
+  /**
+   * A SEASON body: a games array whose every game is an object carrying a plays
+   * array (an empty one is fine). A single-game save is the retired format.
+   * Returns [{ where, problem }]; empty means current.
+   */
+  static seasonProblems(data) {
+    if (!this._isObject(data)) return [{ where: '', problem: 'not a GridIron IQ file' }];
+    if (!Array.isArray(data.games)) {
+      return [{ where: '', problem: Array.isArray(data.plays) ? 'single-game save' : 'not a GridIron IQ season' }];
+    }
+    const out = [];
+    data.games.forEach((g, gi) => {
+      const label = (this._isObject(g) && g.name) || `game ${gi + 1}`;
+      if (!this._isObject(g)) { out.push({ where: label, problem: 'malformed game' }); return; }
+      if (Object.prototype.hasOwnProperty.call(g, 'roster')) out.push({ where: label, problem: 'game roster' });
+      this._playsProblems(g.plays, label, out);
+    });
     return out;
   }
 
   /**
-   * Every problem in a season body, a game, or a game snapshot ({ plays }).
-   * Returns [{ where, problem }]; empty means current.
+   * A GAME snapshot (a game version, StorageManager._serialize): an object
+   * carrying a plays array. `{}` is not a game and is refused: restoring it
+   * would replace the open game's plays with nothing.
    */
-  static problems(data) {
+  static gameProblems(data) {
+    if (!this._isObject(data)) return [{ where: '', problem: 'not a GridIron IQ game' }];
     const out = [];
-    if (!data || typeof data !== 'object') return [{ where: '', problem: 'not a GridIron IQ file' }];
-    const plays = (list, label) => (list || []).forEach(p =>
-      this.playProblems(p).forEach(problem => out.push({ where: `${label} play ${p.id}`, problem })));
-    if (Array.isArray(data.games)) {
-      data.games.forEach((g, gi) => {
-        const label = g.name || `game ${gi + 1}`;
-        if (Object.prototype.hasOwnProperty.call(g, 'roster')) out.push({ where: label, problem: 'game roster' });
-        plays(g.plays, label);
-      });
-    } else if (Array.isArray(data.plays)) {
-      // A game snapshot (a game version) is its plays.
-      plays(data.plays, data.name || 'game');
-    }
+    if (Object.prototype.hasOwnProperty.call(data, 'roster')) out.push({ where: 'game', problem: 'game roster' });
+    this._playsProblems(data.plays, data.name || 'game', out);
     return out;
   }
 
-  /** A season body must carry a games array; a single-game save is retired. */
-  static seasonProblems(data) {
-    if (data && !Array.isArray(data.games) && Array.isArray(data.plays)) return [{ where: '', problem: 'single-game save' }];
-    return this.problems(data);
-  }
-
-  static isCurrent(data) { return this.problems(data).length === 0; }
   static isCurrentSeason(data) { return this.seasonProblems(data).length === 0; }
+  static isCurrentGame(data) { return this.gameProblems(data).length === 0; }
 
   /** Template values minus anything retired, so applying one writes no old shape. */
   static currentTagValues(values) {

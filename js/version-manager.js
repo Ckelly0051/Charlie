@@ -98,7 +98,7 @@ export class VersionManager {
     }
     // A version saved before the 2026-09-26 conversion is in the old format:
     // refused before the confirmation, so nothing is backed up or replaced (step 6).
-    if (!SeasonFormat.isCurrent(data)) {
+    if (!SeasonFormat.isCurrentGame(data)) {
       this.tagger.toast?.(SeasonFormat.RESTORE_MESSAGE);
       return false;
     }
