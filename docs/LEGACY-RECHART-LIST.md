@@ -5,8 +5,11 @@ blanks the rest. These plays lost their old Special Teams values and need charti
 again. All are in **2025 St. Joseph Mavericks - JV**. "Play" is the number the Break
 Down strip shows. "Old values" are what was stored before, so nothing is lost.
 
-Source: the dry run of `tools/convert-legacy-once.mjs` on a copy of the live catalog
-(`b81e955`). The live run regenerates this list; if it differs, the live list wins.
+**Converted live on 2026-09-26** (`tools/convert-legacy-once.mjs` at `71761f5`, approved
+impact, source fingerprint `0f9434c3d68b`). The live run's list is identical to this one.
+The original catalog and Documents mirror are backed up, hash-verified, at
+`C:\Users\charl\GridIronIQ-Backups\legacy-conversion-2026-09-26` (`manifest.json`, and
+`run/report.json` with every old value).
 
 ## Re-chart Special Teams (17)
 

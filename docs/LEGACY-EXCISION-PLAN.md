@@ -173,6 +173,14 @@ history is needed.
    uncharted SJM Varsity 2026 plays with no unit (clip-import LG-1; they take Offense
    like any new play). Coach decision pending: whether general yards on legacy
    return plays become return yards.
+**Steps 2-5 DONE 2026-09-26.** The coach replaced the hand fixes with one rule: convert what
+   maps exactly, blank the rest and log it (`docs/LEGACY-RECHART-LIST.md`, 20 plays). The
+   live catalog was converted by `tools/convert-legacy-once.mjs` (`71761f5`, three Codex
+   reviews), bound to the approved impact (source `0f9434c3d68b`), after a hash-verified
+   backup to `C:\Users\charl\GridIronIQ-Backups\legacy-conversion-2026-09-26`; the re-read
+   shows zero legacy shapes in all three seasons (440 / 195 / 123 plays, unchanged). The
+   Documents mirror and older backups and versions keep the old format until step 6
+   refuses them.
 3. **A one-time conversion tool, current state only** (`tools/convert-legacy-once.mjs`,
    deleted after use). Target: the live seasons in the catalog. Conversions, each
    exact: every projected pair (alignment in formation and in backfield, `Empty`
