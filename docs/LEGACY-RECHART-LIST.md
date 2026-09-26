@@ -57,5 +57,5 @@ Corrections the conversion makes at the same time (not losses):
 
 - The 14 extra points stored on the Field Goal unit move to the Try unit, every point kept.
 - Two punt returns' yards (7 and 5) now count in the team's punt-return numbers; Players already counted them.
-- 22 combined formations are split into QB alignment and formation, as the reports already read them.
+- 25 plays have a combined look split into its own fields, as the reports already read them: 22 of them are formations carrying a QB alignment ("Under Center + Flexbone"); the other 3 are other combined look values.
 - 33 blank, uncharted SJM Varsity 2026 plays take Offense.
