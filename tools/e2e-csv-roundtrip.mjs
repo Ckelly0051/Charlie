@@ -71,6 +71,20 @@ ok(JSON.stringify(res.callFields) === JSON.stringify(['26 Blast', 'call_26_blast
 ok(JSON.stringify(res.blankCallFields) === JSON.stringify(['', '', '']),
   'CSV-imported plays without call data retain backward-compatible blank fields');
 
+// A CSV from an older export can carry a combined look in Formation. Import
+// stores it in its own fields (no old-format play is created), and the export
+// no longer carries the retired ST Type column.
+const look = await page.evaluate(() => {
+  const sm = window.app.storage;
+  const csv = 'Unit,Formation,Play Type,Result\noffense,Shotgun + Trips,Short Pass,Gain\n';
+  sm.tagger.plays = []; sm.tagger.nextId = 1;
+  sm.applyPlayImport(sm.importPlaysFromText(csv));
+  const t = sm.tagger.plays[0]?.tags || {};
+  return { formation: t.formation, qb: t.qbAlignment };
+});
+ok(look.formation === 'Trips' && look.qb === 'Shotgun', 'CSV import stores a combined look in its own fields (formation Trips, QB alignment Shotgun)', JSON.stringify(look));
+ok(!res.csv.split('\n')[0].includes('ST Type'), 'CSV export carries no retired ST Type column', res.csv.split('\n')[0]);
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 process.exit(fail ? 1 : 0);

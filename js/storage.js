@@ -3,6 +3,7 @@ import { PlayTagger } from './play-tagger.js';
 import { DemoSeason } from './demo-season.js';
 import { planClipMatch } from './clip-identity.js';
 import { PenaltyModel } from './penalty-model.js';
+import { TagProjection } from './tag-projection.js';
 // E3b: exportCsv reads the pre-snap look through the projection seam. No cycle —
 // stats-engine.js imports charts/heat-maps/metrics, never storage.js.
 import { StatsEngine } from './stats-engine.js';
@@ -1805,7 +1806,7 @@ export class StorageManager {
       // optional exports blank — "Unknown" would read as a real analytics category.
       'Formation', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
       'Play Call', 'Play Call ID', 'Play Concept',
-      'Run/Pass', 'Play Type', 'Play Dir', 'ST Type', 'Def Front',
+      'Run/Pass', 'Play Type', 'Play Dir', 'Def Front',
       'Coverage Call', 'Coverage Family', 'Blitz', 'Result', 'Fumble Recovery',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Takeaway', 'Kicker', 'Returner',
@@ -1841,7 +1842,6 @@ export class StorageManager {
       p.tags.runPass || '',
       p.tags.playType,
       p.tags.playDir || '',
-      p.tags.stType || '',
       p.tags.defFront,
       look.coverage ?? '',
       look.coverageFamily ?? '',
@@ -2071,6 +2071,9 @@ export class StorageManager {
         ...(penalties.length ? { penalties } : {}),
         ...(resultingSituation ? { resultingSituation } : {})
       };
+      // A combined look ("Shotgun + Trips") is stored in its own fields, through
+      // the one look commit every charting write uses.
+      TagProjection.commitLook(play);
       this.tagger.plays.push(play);
       count++;
     }
