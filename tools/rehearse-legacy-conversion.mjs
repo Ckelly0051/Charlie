@@ -6,7 +6,8 @@ import { cpSync, rmSync, readFileSync, writeFileSync, appendFileSync, readdirSyn
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { LIVE_CATALOG } from './audit-legacy.mjs';
-import { apply } from './convert-legacy-once.mjs';
+import { apply, legacyRemaining } from './convert-legacy-once.mjs';
+import { SqlCatalog } from '../js/sql-catalog.js';
 const root = process.argv[2], approvedPath = process.argv[3];
 const sha = p => createHash('sha256').update(readFileSync(p)).digest('hex');
 const liveBefore = sha(LIVE_CATALOG);
@@ -62,6 +63,18 @@ await refuses('a write landing just before the swap is caught by the last re-che
 f = fresh('dup');
 await apply({ backupDir: f.backup, approvedPath, catalogPath: f.catalog, mirror: f.mirror, rehearsal: true });
 await refuses('a second run into the same backup folder is refused', { backupDir: f.backup, approvedPath, catalogPath: f.catalog, mirror: f.mirror }, /already exists/);
+
+// 6. Two seasons with the same name: a dirty one must not hide behind a clean one.
+{
+  const SQL = await (await import('sql.js')).default();
+  const cat = new SqlCatalog(SQL); await cat.open();
+  const season = (id, tags) => ({ id, seasonName: 'Same', games: [{ id: `${id}-g`, name: 'G', plays: [{ id: 1, timestamp: { start: 0, end: 1 }, tags }] }] });
+  cat.saveSeason(season('dirty', { formation: 'Under Center + Flexbone', playType: 'Run Inside' }));
+  cat.saveSeason(season('clean', { unit: 'offense', formation: 'Flexbone', qbAlignment: 'Under Center', backfield: '', playType: 'Run Inside' }));
+  const rem = legacyRemaining(cat);
+  ok(Object.keys(rem).length === 2 && rem.dirty?.total > 0 && rem.clean?.total === 0 && rem.dirty.name === 'Same',
+    'duplicate season names: each season is checked under its own ID and the dirty one is not hidden', JSON.stringify(rem));
+}
 
 ok(sha(LIVE_CATALOG) === liveBefore, 'the real live catalog was never touched');
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

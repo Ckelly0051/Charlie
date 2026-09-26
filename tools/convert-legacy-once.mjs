@@ -181,7 +181,7 @@ export async function run({ catalogPath = LIVE_CATALOG, outDir }) {
         if (r.recharts || r.unit === 'charted') {
           c.recharts += r.recharts ? 1 : 0;
           report.recharts.push({
-            season: season.name, game: g.name || '', date: (g.gameInfo && g.gameInfo.date) || '', play: p.id,
+            seasonId: season.id, gameId: g.id, season: season.name, game: g.name || '', date: (g.gameInfo && g.gameInfo.date) || '', play: p.id,
             action: r.recharts ? 'Re-chart Special Teams' : 'Check unit (set to Offense)',
             old: r.recharts ? { ...r.cleared, ...(r.fgExtraPoint === 'blank' ? { specialTeams: oldSt } : {}) } : {},
             context: { unit: oldTags.unit ?? '', quarter: oldTags.quarter || '', down: oldTags.down || '', distance: oldTags.distance || '',
@@ -237,7 +237,8 @@ export function legacyRemaining(cat) {
       if (st && (st.unit === 'fieldGoal' || st.unit === 'fieldGoalBlock') && st.attemptType === 'extraPoint') fgUnitXp++;
     }
     const total = shapes.noUnit + shapes.emptyTags + shapes.combinedFormation + shapes.legacyStOnly + shapes.gameNodeRosters + staleKeys + fgUnitXp;
-    out[m.name] = { ...shapes, staleKeys, fgUnitXp, total };
+    // Keyed by season ID: names are labels and may repeat.
+    out[m.id] = { name: m.name, ...shapes, staleKeys, fgUnitXp, total };
   }
   return out;
 }
@@ -254,8 +255,8 @@ async function openCatalog(bytes) {
 export function impactOf(report) {
   return {
     sourceHash: report.sourceHash,
-    counts: Object.fromEntries(report.seasons.map(s => [s.name, s.counts])),
-    recharts: report.recharts.map(r => `${r.season}|${r.game}|${r.play}|${r.action}`),
+    counts: Object.fromEntries(report.seasons.map(s => [s.id, { name: s.name, ...s.counts }])),
+    recharts: report.recharts.map(r => `${r.seasonId}|${r.gameId}|${r.play}|${r.action}`),
   };
 }
 
@@ -352,7 +353,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     const r = await apply({ backupDir: arg('--backup'), approvedPath: arg('--approved') });
     console.log(`backup: ${r.backupFiles} files, each hash-verified against its source -> ${r.backupDir}`);
     console.log(`live catalog equals the converted copy: ${r.liveHash === r.report.convertedHash}`);
-    for (const [name, s] of Object.entries(r.after)) console.log(`  ${name}: legacy remaining ${s.total} ${JSON.stringify(s)}`);
+    for (const [id, s] of Object.entries(r.after)) console.log(`  ${s.name} (${id}): legacy remaining ${s.total} ${JSON.stringify(s)}`);
     console.log(`re-chart / check list: ${r.report.recharts.length} plays`);
     if (!r.ok) console.log(`FAILED VERIFICATION after the swap. Restore library.db from ${path.join(r.backupDir, 'appdata-seasons', 'library.db')}.`);
     process.exit(r.ok ? 0 : 1);
@@ -364,7 +365,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
   for (const s of report.seasons) {
     console.log(`\n${s.name}`);
     console.log('  ' + JSON.stringify(s.counts));
-    console.log('  legacy remaining in the converted catalog ' + JSON.stringify(converted[s.name]));
+    console.log('  legacy remaining in the converted catalog ' + JSON.stringify(converted[s.id]));
     for (const a of s.analytics) if (a.differences) console.log(`  analytics differ: ${a.game} (${a.differences} values)`);
   }
   console.log(`\nre-chart / check list: ${report.recharts.length} plays`);
