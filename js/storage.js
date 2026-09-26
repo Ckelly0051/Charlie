@@ -427,9 +427,9 @@ export class StorageManager {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();   // a debounced save must never straddle the switch
     const opened = await this.seasonStore.openSeason(id);
-    if (!opened) { this._reportRosterMigration(); return false; }
+    if (!opened) { this._reportOpenRefusal(); return false; }
     // Only a successful switch closes the outgoing season's delete-undo window.
-    // A refused migration open leaves that season current, so purging earlier
+    // A refused open leaves that season current, so purging earlier
     // would delete its pending film while the coach still has a valid Undo.
     this._purgeStaleDeletedFilm();
     this._afterSeasonLoaded();
@@ -600,7 +600,6 @@ export class StorageManager {
     // same owner. A program season is its own parent; a scout adopts the parent
     // it stores.
     app?.workspace?.adoptOpenedSeason?.(this.seasonStore.data || null);
-    this._reportRosterMigration();
     this._clearForNewGame();
     // _loadActiveGame already refreshes the season chip + games panel and resets
     // the finish hint, so only the season-level UI (history/versions) is left.
@@ -611,21 +610,15 @@ export class StorageManager {
   }
 
   /**
-   * Surface the one-time legacy roster migration's outcome, once, for the
-   * season that just opened. A migration conflict (the season's games hold
-   * DIFFERENT rosters, so none may be promoted) and a migration whose durable
-   * write failed both have to reach the coach -- silently opening a season with
-   * an empty roster is how a real roster looks lost. Consumed here so the
-   * record cannot be re-reported when the next season opens.
+   * Tell the coach why a stored season did not open (it is in an old format,
+   * SeasonStore._hydrate). Consumed here so it is reported once. Not gated on
+   * the refused season being current: a refused open deliberately leaves the
+   * PRIOR season current.
    */
-  _reportRosterMigration() {
-    const record = this.seasonStore?.rosterMigration;
-    this.seasonStore.rosterMigration = null;
-    if (!record || record.ok !== false) return;
-    // Not gated on the record's season still being current: a refused open
-    // deliberately leaves the PRIOR season current, so matching the two would
-    // suppress the one message the coach actually needs.
-    this.tagger?.toast?.(record.message);
+  _reportOpenRefusal() {
+    const record = this.seasonStore?.openRefusal;
+    if (this.seasonStore) this.seasonStore.openRefusal = null;
+    if (record && record.message) this.tagger?.toast?.(record.message);
   }
 
   /** Capture the live tagger/canvas/gameInfo state into the active game node. */
@@ -1394,21 +1387,6 @@ export class StorageManager {
     return true;
   }
 
-  /** Add a legacy single-game project object as a game and switch to it. */
-  addGameFromData(parsed) {
-    if (!parsed || !Array.isArray(parsed.plays)) return false;
-    this.commitActive();
-    const node = this.seasonStore.gameFromLegacy(parsed);
-    // Importing into a still-empty game (e.g. the fresh-start blank) fills it
-    // in place instead of leaving a stray empty "Game 1" behind.
-    if (this.seasonStore.isEmptyActive()) this.seasonStore.updateActiveGame(node);
-    else this.seasonStore.addGame(node);
-    this.seasonStore.persist();
-    this._clearForNewGame();
-    this._loadActiveGame();
-    return true;
-  }
-
   _serialize() {
     // Strip non-serializable File references from plays before saving
     const plays = this.tagger.plays.map(p => {
@@ -1632,10 +1610,9 @@ export class StorageManager {
     // id, so the guard's equality check passes and the write proceeds.
     this._cancelPendingSaves();
     const data = await this.seasonStore.restoreBackup(id);
-    // A restore refused because the backup's own legacy game rosters disagree
-    // reports that specific fact; every other failure keeps its existing
-    // caller-owned messaging.
-    if (!data) { this._reportRosterMigration(); return false; }
+    // Every failure keeps its caller-owned messaging (an old-format restore
+    // point sets SeasonStore.lastRestoreRefusal).
+    if (!data) return false;
     this._afterSeasonLoaded();
     return true;
   }
@@ -1652,9 +1629,9 @@ export class StorageManager {
   }
 
   /**
-   * Load a file picked via the fallback <input>. A season file (has `games`)
-   * replaces the season; a legacy single-game file (has `plays`) is appended as
-   * a new game so an old save is folded in rather than wiping the season.
+   * Load a file picked via the fallback <input>. A current season file (has
+   * `games`) replaces the season; an old-format file, a single-game save
+   * included, is refused.
    */
   loadProject(file) {
     const reader = new FileReader();
@@ -1743,13 +1720,7 @@ export class StorageManager {
           if (scaffoldSeasonId) {
             try { await this.seasonStore.deleteSeason(scaffoldSeasonId); } catch (err3) {}
           }
-          // A refused import and a failed write are both `ok:false` but are not
-          // the same fact. A legacy roster migration conflict says nothing could
-          // be saved BECAUSE the file's own game rosters disagree, which
-          // "could not be saved" would misreport as a storage failure.
-          this.tagger?.toast?.(result?.conflict?.message
-            || 'Import failed — the season could not be saved. Nothing on screen changed.', 8000);
-          this.seasonStore.rosterMigration = null;   // reported here; no second toast
+          this.tagger?.toast?.('Import failed — the season could not be saved. Nothing on screen changed.', 8000);
           return;
         }
         if (this.seasonStore.currentSeasonId !== destSeasonId) {
@@ -1761,8 +1732,6 @@ export class StorageManager {
           return;
         }
         this._afterSeasonLoaded();
-      } else if (parsed && Array.isArray(parsed.plays)) {
-        this.addGameFromData(parsed);
       } else {
         alert('Invalid project file.');
         return;

@@ -377,7 +377,7 @@ export class PlayGrid {
     if (col.type === 'pen-readonly') {
       const penalties = PenaltyModel.normalizeList(play.penalties);
       if (!penalties.length) return StatsEngine.hasResult(play, 'Penalty')
-        ? 'Legacy · details uncharted' : '—';
+        ? 'Details uncharted' : '—';
       if (col.key === 'penalty') return penalties.map(penalty =>
         [penalty.foul || 'Unspecified', penalty.disposition === 'unknown' ? '' : penalty.disposition]
           .filter(Boolean).join(' · ')).join(' / ');

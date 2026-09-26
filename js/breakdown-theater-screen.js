@@ -496,14 +496,13 @@ export class BreakdownTheaterScreen {
   _chyronSpecialResult(play) {
     const structured = SpecialTeamsModel.normalize(play.specialTeams);
     if (!structured) {
-      // Legacy compatibility-only path, disclosed elsewhere in the form as
-      // uncharted — never colour a result the model itself doesn't stand
-      // behind.
+      // A special-teams snap with no charted event yet: show its plain result,
+      // never a colour the model itself doesn't stand behind.
       const tags = play.tags || {};
-      const legacyRaw = tags.result || '';
+      const rawResult = tags.result || '';
       const rawYards = String(tags.yardage ?? '').trim();
       const yards = rawYards ? `${Number(rawYards) > 0 ? '+' : ''}${rawYards}` : '';
-      const text = legacyRaw ? (yards ? `${legacyRaw}: ${yards}` : legacyRaw) : '—';
+      const text = rawResult ? (yards ? `${rawResult}: ${yards}` : rawResult) : '—';
       return { result: text, resultTone: '' };
     }
     const isTry = structured.unit === 'try' || structured.unit === 'tryDefense';
