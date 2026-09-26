@@ -67,6 +67,67 @@ console.log('\n== 1. The owner, on injected targets ==');
   ok(n.report.results[0].status === 'failed' && nd.getItem('k_a') === A && nd.getItem('m4') === null, 'with no SHA-256 available nothing is removed', JSON.stringify(n.report));
 }
 
+console.log('\n== 1b. The receipt survives a partial run and a failed receipt write ==');
+{
+  const A = '["alpha"]', B = '["bravo"]';
+  const T = [{ key: 'ka', sha256: sha(A), archive: 'arch-a' }, { key: 'kb', sha256: sha(B), archive: 'arch-b' }];
+  const record = r => r && { status: r.status, sha256: r.sha256, bytes: r.bytes, archive: r.archive };
+
+  // First key removed, second removal does not land: no marker, the first
+  // removal's receipt is journaled, and the retry keeps it rather than
+  // re-recording the key as absent.
+  const st = new Mem({ ka: A, kb: B }); const realRemove = st.removeItem.bind(st);
+  st.removeItem = k => { if (k !== 'kb') realRemove(k); };
+  const first = await StorageCleanup.run({ storage: st, targets: T, marker: 'p1' });
+  const journal1 = JSON.parse(st.getItem('p1_journal'));
+  ok(st.getItem('p1') === null && first.report.results[0].status === 'removed' && first.report.results[1].status === 'failed'
+     && journal1.ka.status === 'removed' && journal1.ka.sha256 === sha(A) && journal1.ka.bytes === 9 && journal1.ka.archive === 'arch-a',
+    'a partial run writes no marker but journals the completed removal with its hash, size and archive', JSON.stringify({ first: first.report, journal1 }));
+  st.removeItem = realRemove;
+  const second = await StorageCleanup.run({ storage: st, targets: T, marker: 'p1' });
+  const final = JSON.parse(st.getItem('p1'));
+  ok(JSON.stringify(final.results.map(record)) === JSON.stringify([{ status: 'removed', sha256: sha(A), bytes: 9, archive: 'arch-a' }, { status: 'removed', sha256: sha(B), bytes: 9, archive: 'arch-b' }])
+     && st.getItem('kb') === null && second.receipt === 'written',
+    'the retry completes the second key and the final receipt keeps the first removal, not "absent"', JSON.stringify(final));
+
+  // Removed, but the finalizing journal write fails: the write-ahead entry holds
+  // the record, the failure is reported, and the next run completes it.
+  const st2 = new Mem({ ka: A }); const set2 = st2.setItem.bind(st2); let journalWrites = 0;
+  st2.setItem = (k, v) => { if (k === 'p2_journal' && ++journalWrites === 2) throw new Error('quota'); set2(k, v); };
+  const r2 = await StorageCleanup.run({ storage: st2, targets: [T[0]], marker: 'p2' });
+  ok(r2.receipt === 'failed' && r2.report.receiptErrors?.includes('ka') && st2.getItem('p2') === null && st2.getItem('ka') === null
+     && JSON.parse(st2.getItem('p2_journal')).ka.status === 'removing',
+    'a receipt write that fails after the removal is reported, and the write-ahead entry still holds the record', JSON.stringify({ r2, journal: st2.getItem('p2_journal') }));
+  st2.setItem = set2;
+  await StorageCleanup.run({ storage: st2, targets: [T[0]], marker: 'p2' });
+  ok(JSON.stringify(record(JSON.parse(st2.getItem('p2')).results[0])) === JSON.stringify({ status: 'removed', sha256: sha(A), bytes: 9, archive: 'arch-a' }),
+    'the next run completes that interrupted removal from its journal entry', st2.getItem('p2'));
+
+  // The final marker write throws after every removal: reported, and the next
+  // run writes the receipt from the journal.
+  const st3 = new Mem({ ka: A, kb: B }); const set3 = st3.setItem.bind(st3);
+  st3.setItem = (k, v) => { if (k === 'p3') throw new Error('quota'); set3(k, v); };
+  const r3 = await StorageCleanup.run({ storage: st3, targets: T, marker: 'p3' });
+  ok(r3.receipt === 'failed' && r3.report.receiptErrors?.includes('p3') && st3.getItem('p3') === null,
+    'a marker write that throws after the removals is reported, not ignored', JSON.stringify(r3));
+  st3.setItem = set3;
+  const r3b = await StorageCleanup.run({ storage: st3, targets: T, marker: 'p3' });
+  ok(r3b.receipt === 'written' && JSON.parse(st3.getItem('p3')).results.every(r => r.status === 'removed' && r.sha256 && r.bytes === 9 && r.archive),
+    'the next run writes the receipt with both removals intact', st3.getItem('p3'));
+
+  // No receipt can be written at all: nothing is removed.
+  const st4 = new Mem({ ka: A }); st4.setItem = () => { throw new Error('quota'); };
+  const r4 = await StorageCleanup.run({ storage: st4, targets: [T[0]], marker: 'p4' });
+  ok(st4.getItem('ka') === A && r4.receipt === 'failed' && /not removed/.test(r4.report.results[0].reason),
+    'when the receipt cannot be written, the key is not removed', JSON.stringify(r4));
+
+  // An unreadable journal may hold completed removals: nothing is touched.
+  const st5 = new Mem({ ka: A, p5_journal: '{not json' });
+  const r5 = await StorageCleanup.run({ storage: st5, targets: [T[0]], marker: 'p5' });
+  ok(st5.getItem('ka') === A && st5.getItem('p5_journal') === '{not json' && r5.receipt === 'failed',
+    'an unreadable journal removes nothing and is left as it is', JSON.stringify(r5));
+}
+
 console.log('\n== 2. The production targets are the archived keys and hashes ==');
 const PINNED = {
   ffa_versions_default: '94cf7f7e0cf3c96770557ba877250eb85c280d73b49d803635ca8fba33c7a9a6',
