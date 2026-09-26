@@ -43,6 +43,7 @@ import { BreakdownTheaterScreen } from './breakdown-theater-screen.js';
 import { BreakdownWorkspace } from './breakdown-workspace.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
+import { StorageCleanup } from './storage-cleanup.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
 import { CutupExporter } from './cutup-exporter.js';
 import { CutupPlayer } from './cutup-player.js';
@@ -277,6 +278,9 @@ class App {
       // broke every settings write). Not awaited: startup never waits on it, and
       // a key that fails stays put and is retried next launch.
       this.versionMigration = this.versions.migrateLegacy();
+      // One-time, hash-guarded removal of retired keys already archived outside
+      // the app (storage-cleanup.js). After the version move, never awaited.
+      this.storageCleanup = Promise.resolve(this.versionMigration).catch(() => null).then(() => StorageCleanup.run()).catch(() => null);
       this._bindGamesPanel();
       await this.workspaceShell.init();
       await this.workspaceShell.show('home');
