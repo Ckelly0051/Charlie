@@ -532,6 +532,7 @@ mutations red in the canonical one.
 | Film identity / relink | `e2e-clip-identity`, `e2e-clip-match`, `e2e-relink-legacy`, `e2e-relink-linked`, `e2e-film-index`, `e2e-film-persist`, `e2e-linked-film` |
 | Persistence / catalog | `e2e-sql-catalog`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions` (17: includes four reordered-completion write races), `e2e-revision-fence`, `e2e-snapshot-envelope` |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
+| Storage cleanup | `e2e-storage-cleanup` (20: the one-time hash-guarded removal of the three archived keys — refusal of any other value, read-back, once-only marker, retry after a failed removal, the archived hashes cross-checked against the archives when present, and the real app at boot) |
 | Import / export | `e2e-csv-roundtrip` (a CSV with a combined look is refused whole), `e2e-csv-projection` (21: each look field its own column, field-for-field round trip) |
 | Cross-cutting guards | `audit-design-approvals`, `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
 

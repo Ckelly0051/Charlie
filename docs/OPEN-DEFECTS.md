@@ -108,6 +108,8 @@ the season-file layouts keep the coach-data rules. A step 7 leftover found by th
 inventory: the `tags.custom` coercion in `_normalize` (row 12). The
 tag-form write and the Film Room grid commit have no write-level refusal of a
 reserved look value; nothing in the app offers one to them.
+**STORAGE CLEANUP CHECKPOINT — IN SOURCE 2026-09-26 (`a70c52e`), installed check pending (step 8).** Three retired keys (`ffa_versions_default`: 20 unscoped game snapshots; `ffa_roster`: a copy of the 2025 JV roster; `ffa_roster_mavericks`: `[]`) are archived and verified in `C:\Users\charl\GridIronIQ-Backups` and removed once at boot only when each still matches its archived hash. After the step 8 install's first launch, re-read a copy of the profile: the three keys gone, `giq_storage_cleanup_2026_09_26` listing three `removed`. Record in `docs/LEGACY-EXCISION-PLAN.md` Pass 2b.
+
 **ST-GAPS — OPEN, deferred until after the legacy migration (coach, 2026-09-25).** Special
 Teams charting is missing options the coach needs; the list grows as the coach finds them
 and nothing is built until the migration lands (one data format to extend).
