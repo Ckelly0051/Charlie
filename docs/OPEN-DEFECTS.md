@@ -101,10 +101,11 @@ data format to extend. What changed for the coach, to check in the step 8 smoke:
   Film Room (was `Legacy · details uncharted`).
 Earlier entries in this file that describe `adoptLegacyRoster`, the roster
 migration, `migratePlayFormation`, the look projection or legacy Special Teams
-branches are history; those readers no longer exist. **Still open by scope:** the
-settings and storage-layout migrations (tag-library chips key, saved Film Room
-columns, Study measure names, version history, pre-per-season storage keys) read
-app settings, not season data, and stay until the coach decides otherwise. The
+branches are history; those readers no longer exist. **Next, Pass 2b (coach,
+2026-09-26):** old app-settings keys are removed as a separate bounded cleanup
+(12-row inventory in `docs/LEGACY-EXCISION-PLAN.md` Pass 2b); version history and
+the season-file layouts keep the coach-data rules. A step 7 leftover found by that
+inventory: the `tags.custom` coercion in `_normalize` (row 12). The
 tag-form write and the Film Room grid commit have no write-level refusal of a
 reserved look value; nothing in the app offers one to them.
 **ST-GAPS — OPEN, deferred until after the legacy migration (coach, 2026-09-25).** Special

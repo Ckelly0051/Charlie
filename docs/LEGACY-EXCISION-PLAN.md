@@ -254,10 +254,7 @@ history is needed.
    - Ratchet: `legacyStReads`, `legacyLookReaders`, `legacyRosterReaders` at 0.
    - `e2e-legacy-roundtrip` runs on the current format (10/10);
      `e2e-legacy-film-fields` retired with `gameFromLegacy`.
-   - Outside this pass by scope: settings and storage-layout migrations
-     (tag-library chips key, saved Film Room columns, Study measures, version
-     history, pre-per-season storage keys). They read app settings, not season
-     data; removing them is a coach decision.
+   - Settings and storage-layout migrations: Pass 2b below (coach, 2026-09-26).
 8. **Installer and the coach's smoke.**
 
 *Order:* 2 and 3-5 before 7, because 7 deletes the readers step 5 compares
@@ -266,6 +263,50 @@ plays in the live seasons, old files refused with no write, gate green, smoke
 passed. *Later (efficiency stage):* backup retention reviewed — the current
 state is what matters; pruning existing backups needs the coach's explicit
 approval with exact counts.
+
+**Pass 2b — Old app-settings keys and storage-layout migrations (coach, 2026-09-26).**
+Bounded, separate from step 7. Saved app settings do not keep old readers
+indefinitely: every old key is inventoried, a preference still in use is
+carried forward by ONE one-time conversion, and then the per-feature readers
+are deleted. **Version history and the season-file layouts hold game data, not
+preferences, and keep the coach-data rules** (impact report with exact counts,
+confirmation immediately before any write or removal, nothing deleted with the
+preference code).
+
+*Inventory, 2026-09-26.* Source: every `ffa_*` / `giq_*` key in current `js/`
+(44) and every key in `js/` history that current code no longer names (11).
+The installed profile was read from a COPY of
+`%LOCALAPPDATA%\com.gridironiq.app\EBWebView\Default\Local Storage\leveldb`
+(source hashes unchanged after the read). A LevelDB scan also finds deleted
+records, so "seen in profile" means the key was written at some point, not that
+it is live; live counts come from the app itself before any write.
+
+| # | Key(s) | Reader today | Seen in profile | Class | Action |
+|---|---|---|---|---|---|
+| 1 | `ffa_custom_chips_<team>` → `ffa_tag_libraries_<team>` | `TagLibrary.load()` legacy branch; `_normalize`'s version < 2 / < 4 enabled additions | current key only | Preference | Convert once, then delete the branch and the version additions |
+| 2 | `ffa_film_room_cols` (global list, `LEGACY_PRESETS` / `PRE_CALL_PRESETS` upgrade), `ffa_film_room_columns_default`, `ffa_film_room_cols_claimed_by` → `ffa_film_room_columns_<team>` | `PlayGrid._loadCols`, `_upgradeCols`, the claim in `_loadColSets` | claim marker + current key | Preference | Convert once; delete the presets, upgrade rule, claim and both old keys |
+| 3 | `ffa_study_views_v1` saved measure ids (`successRate` → `success`, …) | `StudyScreen.LEGACY_MEASURE_UPGRADE` at open | not seen | Preference | Rewrite saved ids once; delete the upgrade map |
+| 4 | `giq_home_workspace` → `giq_home_parent` | `WorkspaceContext` constructor fallback; **`team-hub-screen.js:753` still WRITES it** | both | Preference | Convert once; delete the fallback and the write |
+| 5 | `ffa_team_profile` without `ffa_teams` (pre-registry install) | `TeamRegistry.ensureRegistry()` first branch | profile (current mirror) | Preference | Convert once; delete only the pre-registry branch. The key itself stays: it is the live active-team mirror |
+| 6 | `ffa_beta_defaults_<version>` — one marker per version, never removed | `configureBetaDefaults` (`js/beta-config.js`) | 60+ markers | Preference | One marker key holding the version; convert once, remove the per-version keys |
+| 7 | No reader at all: `ffa_video_controls_y`, `ffa_wizard_dismissed`, `ffa_wizard_v2`, `ffa_workspace_shell_v2`, `ffa_breakdown_form_v2`, `ffa_film_room_collapsed`, `ffa_film_room_hint_dismissed`, `ffa_tour_done`, `ffa_season_games` | none | first four | Dead UI state | Remove once |
+| 8 | `ffa_roster`, `ffa_roster_<…>` | none | not seen | **Possibly coach data** (a pre-season-model roster) | Report the count; never remove without the coach's confirmation |
+| 9 | `ffa_versions_<season>::<game>` → catalog `versions` table | `VersionManager.migrateLegacy` (verified read-back, key removed only after) | 8 scoped keys | **Coach data (game snapshots)** | Keep the migrator until the installed smoke proves every scoped key moved (its `{moved, kept, failed}` report); then delete it with the coach's confirmation |
+| 10 | `ffa_versions_default`, unscoped `ffa_versions_<file>` | none — the migrator deliberately never touches them | `ffa_versions_default` | **Coach data (game snapshots)** | Measure count and size; export to a file; remove only on the coach's confirmation with those counts |
+| 11 | `ffa_season` (browser), `season.json` (desktop) → per-season layout; first-run JSON → catalog (`migrateJsonSeasons`); unenveloped backups (`legacy-unenveloped`) | `StorageBackend._migrateLegacy`, `CatalogPersistence.migrateJsonSeasons`, `SnapshotEnvelope` | no `season.json` on this machine | **Coach data (season files, backups)** | Measure; convert or refuse under the coach-data rules; never delete with the preference code |
+| 12 | `tags.custom` not an array → `[value]` in `SeasonStore._normalize` | season data | — | **Step 7 leftover (season data)** | Measure on the live seasons; if zero, make it a `SeasonFormat` refusal and delete the coercion |
+
+*Procedure.* (a) One owner, `js/settings-format.js`, runs ONCE per profile
+at boot behind a stored settings-format marker: rows 1-7 are converted into the
+current keys, each old key removed only after the current key reads back, and
+the per-feature readers (rows 1-5) are deleted in the same change. (b) Rows 8-12
+are not touched by that owner: each gets an impact report from the live
+profile and the coach's confirmation before any write. (c) The one-time
+converter and the version migrator are deleted in a later release, after the
+coach's installed profile has run them and the smoke confirms the counts. (d)
+Harnesses: each conversion from a seeded old profile, each old key removed only
+after a verified write, a failed write leaving the old key intact, no reader
+left (ratchet count `legacySettingsReaders` to 0).
 
 **Pass 3 — Optional, when the coach wants it (was Phases 4 and 6).**
 - Settings out of localStorage into the catalog (ends the 5 MB failure class,
