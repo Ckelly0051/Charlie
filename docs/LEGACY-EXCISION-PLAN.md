@@ -162,10 +162,12 @@ history is needed.
    the Unit column (storing `offense` would change their drive labels from
    `Drive N` to `Our Drive N`; Codex P2-7), and the ambiguous legacy Special
    Teams plays are charted by hand. Field position is never used to guess.
-   **Worklist (live catalog, read-only, 2026-09-25), all in 2025 JV; # is the play's
-   position in the game.** Chart in Break Down (side or kind uncertain): Wk 1 #21;
-   Wk 4 #33, #52, #53; Wk 5 #37, #52, #65, #72, #79, #81. Optional unit check (would
-   convert to Offense): Wk 4 #54; Wk 5 #63, #82 (passer and carrier both 81).
+   **Worklist (live catalog, read-only, 2026-09-25), all in 2025 JV; numbers are the
+   play numbers the Break Down strip shows (play id), corrected from a first draft that
+   listed positions.** Chart in Break Down (side or kind uncertain): Wk 1 23;
+   Wk 4 36, 56, 57; Wk 5 38, 53, 69, 77, 84, 87. Unit check (would convert to
+   Offense): Wk 4 59 (strip shows a 5-2 front, possibly a defensive snap; 61 looks
+   similar); Wk 5 67, 90 (passer and carrier both 81).
    Converted automatically, no hand work: the 7 certain legacy Special Teams plays,
    22 combined formations, 14 extra points on the Field Goal unit, and 33 blank
    uncharted SJM Varsity 2026 plays with no unit (clip-import LG-1; they take Offense
