@@ -344,9 +344,10 @@ const result = await (async () => {
   //    recoverSeasonFromMirror() implementations, not a UI stub.
   {
     const mirrorRoot = 'GridIron IQ/seasons';
-    const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', plays: [{}] }] };
+    // A current-format season (legacy excision step 6: recovery refuses old or malformed plays).
+const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }] }] };
     const envelopeForA = SnapshotEnvelope.wrap('s-A', seasonAData); // internally valid: seasonId==='s-A', data.id==='s-A'
-    const seasonCData = { id: 's-C', seasonName: 'Season C', games: [{ id: 'g1', plays: [{}, {}] }] };
+    const seasonCData = { id: 's-C', seasonName: 'Season C', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }, { id: 2, tags: { unit: 'defense' } }] }] };
     const envelopeForC = SnapshotEnvelope.wrap('s-C', seasonCData); // genuinely matches its own folder
 
     const files = new Map([
@@ -391,7 +392,7 @@ const result = await (async () => {
   //    to save, bypassing the required overwrite confirmation.
   {
     const mirrorRoot = 'GridIron IQ/seasons';
-    const seasonDData = { id: 's-D', seasonName: 'Season D', games: [{ id: 'g1', plays: [{}] }] };
+    const seasonDData = { id: 's-D', seasonName: 'Season D', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }] }] };
     const envelopeForD = SnapshotEnvelope.wrap('s-D', seasonDData);
     const files = new Map([[`${mirrorRoot}/s-D/season.json`, JSON.stringify(envelopeForD)]]);
     const be = new TauriBackend();
@@ -423,7 +424,7 @@ const result = await (async () => {
     // A bare pre-PC-3 season.json: no envelopeVersion, no checksum, no
     // validated identity at all -- exactly what unwrap() classifies as
     // 'legacy-unenveloped'.
-    const bareLegacySeason = { id: 's-E', seasonName: 'Old Format Season', games: [{ id: 'g1', plays: [{}, {}] }] };
+    const bareLegacySeason = { id: 's-E', seasonName: 'Old Format Season', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }, { id: 2, tags: { unit: 'defense' } }] }] };
     const files = new Map([[`${mirrorRoot}/s-E/season.json`, JSON.stringify(bareLegacySeason)]]);
     const be = new TauriBackend();
     be.fs = {
