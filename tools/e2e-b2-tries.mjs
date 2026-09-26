@@ -63,12 +63,16 @@ test('only an officially resolved try counts as charted progress', () => {
   assert.equal(isPlayTagged(play(6, special(), {}, { penalties: [{ disposition: 'accepted', playCounts: false }] })), false);
   assert.equal(isPlayTagged(play(7, special({ result: 'noPlay', outcome: { score: null } }), {}, { penalties: [{ disposition: 'accepted', playCounts: false }] })), true);
 });
-test('field goals stay field goals and legacy structured XP remains readable', () => {
+// The Field Goal unit attempts a field goal and nothing else: the old
+// "extra point on the Field Goal unit" shape was converted once (2026-09-26) and
+// is refused at import, so the model no longer reads it.
+test('field goals stay field goals; the Field Goal unit carries no extra point', () => {
   const fg = SpecialTeamsModel.normalize(special({ unit: 'fieldGoal', attemptType: 'fieldGoal', result: undefined, events: undefined, outcome: { status: 'good', score: 'fieldGoal' } }));
   const xp = SpecialTeamsModel.normalize(special({ unit: 'fieldGoal', attemptType: 'extraPoint', result: undefined, events: undefined, outcome: { status: 'good', score: 'extraPoint' } }));
   assert.equal(fg.attemptType, 'fieldGoal');
-  assert.equal(xp.attemptType, 'extraPoint');
-  assert.equal(SpecialTeamsModel.points(xp), 1);
+  assert.equal(SpecialTeamsModel.points(fg), 3);
+  assert.equal(xp.attemptType, null);
+  assert.equal(SpecialTeamsModel.points(xp), 0);
 });
 
 test('converted, failed, and no-play results govern try points', () => {
@@ -214,17 +218,18 @@ test('compute includes untyped ST specialists without admitting untyped ST tackl
     unit: 'punt', result: undefined, events: undefined, attemptType: null,
     kick: { distance: 42 }, players: { punter: '' },
     outcome: { status: 'downed', score: null }, isFake: false,
-  })), { stType: 'Punt', players: { kicker: '9' } });
-  const legacyReturn = play(3, null, {
-    stType: 'Kick Return', yardage: '11', players: { returner: '3', tackler: '44' },
+  })), { players: { kicker: '9' } });
+  // A Special Teams snap with no unit charted credits nobody.
+  const uncharted = play(3, null, {
+    yardage: '11', players: { returner: '3', tackler: '44' },
   });
-  delete legacyReturn.specialTeams;
+  delete uncharted.specialTeams;
   const engine = Object.create(StatsEngine.prototype);
-  engine.tagger = { plays: [kickReturn, punt, legacyReturn] };
+  engine.tagger = { plays: [kickReturn, punt, uncharted] };
   engine.filter = null;
   engine.advanced = { summarize: () => ({}) };
   const stats = engine.compute();
-  assert.deepEqual(stats.individuals.returners.map(row => row.num).sort(), ['3', '7']);
+  assert.deepEqual(stats.individuals.returners.map(row => row.num).sort(), ['7']);
   assert.equal(stats.individuals.returners.find(row => row.num === '7').yards, 19);
   assert.deepEqual(stats.individuals.kickers.map(row => row.num), ['9']);
   assert.equal(stats.individuals.kickers[0].punts, 1);

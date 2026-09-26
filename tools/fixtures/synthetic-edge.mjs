@@ -4,11 +4,18 @@
    (season scope needs composite gameId::playId), the games lean opposite ways,
    game 2 carries dimension values absent from game 1 (Flexbone, Cover 2), and
    the season totals equal neither game — a broken aggregation or bare-id
-   collision fails the diff. */
+   collision fails the diff.
+
+   Current format (legacy excision step 7, 2026-09-26): every play goes through
+   the app's one look commit ("Shotgun + Trips" is stored as formation Trips and
+   alignment Shotgun), and Special Teams plays carry structured events. */
+import { TagProjection } from '../../js/tag-projection.js';
+
 export function syntheticEdge() {
   const mkGame = (gid, opp, specs) => {
     let pid = 0;
-    const plays = specs.map(t => ({ id: ++pid, timestamp: { start: 0, end: 6 }, notes: '', annotations: [], clipName: `${gid}_${pid}`, tags: Object.assign({ unit: 'offense', custom: [], players: {}, grades: {} }, t) }));
+    const plays = specs.map(({ __st, ...t }) => ({ id: ++pid, timestamp: { start: 0, end: 6 }, notes: '', annotations: [], clipName: `${gid}_${pid}`, tags: Object.assign({ unit: 'offense', custom: [], players: {}, grades: {} }, t), ...(__st ? { specialTeams: __st } : {}) }));
+    plays.forEach(p => TagProjection.commitLook(p));
     return { id: gid, name: opp, gameInfo: { opponent: opp, date: `2025-09-0${gid.slice(-1)}` }, status: 'final', plays, annotations: [], nextId: pid + 1, currentPlayId: null, videoFileName: '', clipNames: plays.map(p => p.clipName), isMultiClip: true };
   };
   const g1 = mkGame('g1', 'Edgecases', [
@@ -21,8 +28,8 @@ export function syntheticEdge() {
     // cross-tab + the coverageFamily dimension non-vacuous (0 family values was a
     // known fixture gap), and exercises the omit-blank-family path.
     ...Array.from({ length: 5 }, (_, i) => ({ unit: 'defense', down: '1', distance: '10', defFront: i % 2 ? '4-3 + Jumbo Shift' : '3-4', coverage: 'Cover 3', coverageFamily: i < 2 ? 'Zone' : '', blitz: i % 2 ? 'A-Gap + Edge' : '', playType: 'Short Pass', runPass: 'Pass', result: i === 0 ? 'Sack' : 'No Gain', yardage: i === 0 ? '-6' : '2', players: { tackler: i === 0 ? '55' : '55, 22' } })),
-    { unit: 'special', stType: 'Punt', kickOutcome: 'Downed', kickDistance: '42', hangTime: '4.1', kickedTo: '15', players: { kicker: '19' } },
-    { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '37', result: 'Good', players: { kicker: '19' } },
+    { unit: 'special', players: { kicker: '19' }, __st: { version: 1, unit: 'punt', kick: { distance: 42, hangTime: 4.1 }, outcome: { status: 'downed' }, players: { punter: '19' } } },
+    { unit: 'special', result: 'Good', players: { kicker: '19' }, __st: { version: 1, unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 37 }, outcome: { status: 'good', score: 'fieldGoal' }, players: { kicker: '19' } } },
     {},
   ]);
   const g2 = mkGame('g2', 'Rivals', [

@@ -154,10 +154,10 @@ const direct = await page.evaluate(() => {
     { unit: 'fieldGoal', isFake: true, attemptType: 'fieldGoal', outcome: { status: 'returned', score: null, scoredBy: null } });
   const fakePassResult = run([fakePass], 'playerPasser', ['completions']);
   const fakePasser = groupFor(fakePassResult, '77');
-  // 2b. A legacy field goal with NO structured specialTeams data at all --
-  // tags.result:'Good' is the pre-Special-Teams-model "made" convention
-  // (_conversionStats' own legacy fallback).
-  const legacyFg = stamp(91, { unit: 'special', stType: 'Field Goal', result: 'Good', players: { kicker: '99' } });
+  // 2b. A Special Teams snap with NO structured event is not a field goal
+  // attempt: the old stType convention was retired (legacy excision 2026-09-26),
+  // so it credits the kicker no attempt.
+  const legacyFg = stamp(91, { unit: 'special', result: 'Good', players: { kicker: '99' } });
   const legacyFgResult = run([legacyFg], 'playerKicker', ['completions']);
   const legacyKicker = groupFor(legacyFgResult, '99');
   // 2c. A structured return touchdown with NO redundant legacy tags.result
@@ -181,7 +181,7 @@ const direct = await page.evaluate(() => {
 
   return {
     fakePassMade: fakePasser?.metrics.completions?.value === 1 && JSON.stringify(fakePasser.metrics.completions.refs) === JSON.stringify(['g-players-1::90']),
-    legacyFgMade: legacyKicker?.metrics.completions?.value === 1 && JSON.stringify(legacyKicker.metrics.completions.refs) === JSON.stringify(['g-players-1::91']),
+    legacyFgMade: !!legacyKicker,  // any kicker group at all would be a credit
     structuredReturnHasTd: structReturner?.metrics.touchdowns?.value === 1 && JSON.stringify(structReturner.metrics.touchdowns.refs) === JSON.stringify(['g-players-1::92']),
     // countResult's denominator is the MATCHED count (0, since nothing
     // qualifies as our touchdown), never the raw cohort size -- `eligible`
@@ -238,7 +238,7 @@ ok(direct.zeroSacks.state === 'ok' && direct.zeroSacks.value === 0,
   'A genuine zero sub-count (#44 has zero sacks) reports state:"ok", never "unavailable" -- an honest zero is not the same as no data', JSON.stringify(direct.zeroSacks));
 
 ok(direct.fakePassMade, 'Codex review finding #2a: a completed fake-FG pass counts as a completion (judged by tags.result, not the kick-specific outcome.status)', JSON.stringify(direct.fakePassMade));
-ok(direct.legacyFgMade, 'Codex review finding #2b: a legacy field goal with tags.result:"Good" and no structured data counts as made', JSON.stringify(direct.legacyFgMade));
+ok(!direct.legacyFgMade, 'a Special Teams snap with no structured event credits the kicker no field goal', JSON.stringify(direct.legacyFgMade));
 ok(direct.structuredReturnHasTd, 'Codex review finding #2c: a structured return touchdown counts without a redundant legacy tags.result copy', JSON.stringify(direct.structuredReturnHasTd));
 ok(direct.opponentTdNotCredited, 'Codex re-review finding #2d: a structured return touchdown SCORED BY THE OPPONENT is never credited to our returner, and opens no film under their Watch action (score-owner resolved via SpecialTeamsModel.scoringTeam, not a bare outcome.score check)', JSON.stringify(direct.opponentTdNotCredited));
 

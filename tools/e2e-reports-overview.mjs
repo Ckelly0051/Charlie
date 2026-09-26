@@ -296,7 +296,7 @@ console.log('\n== 0. Drive outcomes are contained to their own game ==');
     play(0, 2, 'offense', { playType: 'Run Inside', down: '2', distance: '6', yardage: '3', result: 'Gain' }),
   ];
   const g2 = [
-    play(1, 3, 'special', { stType: 'Punt', result: 'No Gain' }),
+    Object.assign(play(1, 3, 'special', { result: 'No Gain' }), { specialTeams: { version: 1, unit: 'punt' } }),
     play(1, 4, 'offense', { playType: 'Run Inside', down: '1', distance: '10', yardage: '5', result: 'Gain' }),
   ];
   const all = [...g1, ...g2];
@@ -307,7 +307,7 @@ console.log('\n== 0. Drive outcomes are contained to their own game ==');
     JSON.stringify(seasonDrives.list.map(d => d.outcome)));
   /* And the guard must not be so blunt it stops resolving WITHIN a game. */
   const withinGame = engine._driveStats([g1[0], g1[1]],
-    { all: [...g1, play(0, 3, 'special', { stType: 'Punt', result: 'No Gain' })] });
+    { all: [...g1, Object.assign(play(0, 3, 'special', { result: 'No Gain' }), { specialTeams: { version: 1, unit: 'punt' } })] });
   ok(withinGame.list[0]?.outcome === 'Punt',
     'a punt in the SAME game still resolves the possession it ended',
     JSON.stringify(withinGame.list.map(d => d.outcome)));
@@ -360,10 +360,7 @@ const load = async (rushes, passes, defense, st = 3) => {
       down: String((i % 3) + 1), distance: '8', yardage: String(yardage), result,
       players: { tackler: '51' },
     }));
-    for (let i = 0; i < stCount; i++) push('special', {
-      stType: ['Kickoff', 'Kick Return', 'Punt'][i % 3], kickOutcome: 'Returned',
-      kickDistance: '45', players: { kicker: '3' },
-    });
+    for (let i = 0; i < stCount; i++) push('special', { players: { kicker: '3' } });
     if (plays.length > 3) plays[3].penalties = [{ team: 'defense', foul: 'Holding',
       disposition: 'accepted', yards: 10, playCounts: true }];
     const store = window.app.storage.seasonStore;

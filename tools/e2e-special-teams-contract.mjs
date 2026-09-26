@@ -133,13 +133,16 @@ test('season normalization round-trips structured and legacy data', () => {
   assert.equal(reopened.games[0].plays[1].specialTeams.kick.distance, 43);
 });
 
-test('StatsEngine prefers structured scoring and keeps legacy fallback', () => {
+// The legacy fallback was retired with the old tags (legacy excision, 2026-09-26):
+// structured scoring is the only scoring, and a play carrying only retired tags
+// scores nothing and attributes nothing through them.
+test('StatsEngine scores the structured event; retired tags score nothing', () => {
   const structured = { tags: { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', scoreFor: 'us' }, specialTeams: event({ unit: 'fieldGoalBlock', outcome: { status: 'good', score: 'fieldGoal' } }) };
   const legacy = { tags: { unit: 'special', stType: 'XP', kickOutcome: 'Good', scoreFor: 'them' } };
   assert.equal(StatsEngine.playPoints(structured), 3);
   assert.equal(StatsEngine.scoringSide(structured), 'them');
-  assert.equal(StatsEngine.playPoints(legacy), 1);
-  assert.equal(StatsEngine.scoringSide(legacy), 'them');
+  assert.equal(StatsEngine.playPoints(legacy), 0);
+  assert.notEqual(StatsEngine.scoringSide(legacy), 'them', 'scoreFor no longer attributes');
 });
 
 test('a valid non-scoring structured event suppresses stale legacy scoring', () => {
@@ -155,9 +158,9 @@ test('a fake may score through its football result without reviving stale kick f
   assert.equal(StatsEngine.playPoints(fakeMiss), 0);
 });
 
-test('structured conversion totals and score labels do not depend on legacy tags', () => {
-  const xp = { id: 7, tags: { unit: 'special', quarter: 'Q2' }, specialTeams: event({ unit: 'fieldGoal', attemptType: 'extraPoint', outcome: { status: 'good', score: 'extraPoint' } }) };
-  const missed = { id: 8, tags: { unit: 'special' }, specialTeams: event({ unit: 'fieldGoal', attemptType: 'extraPoint', outcome: { status: 'noGood', score: null } }) };
+test('structured conversion totals and score labels come from the Try unit', () => {
+  const xp = { id: 7, tags: { unit: 'special', quarter: 'Q2' }, specialTeams: event({ unit: 'try', attemptType: 'extraPoint', result: 'converted', outcome: { score: 'extraPoint' } }) };
+  const missed = { id: 8, tags: { unit: 'special' }, specialTeams: event({ unit: 'try', attemptType: 'extraPoint', result: 'failed', outcome: { score: null } }) };
   const engine = Object.create(StatsEngine.prototype);
   assert.equal(engine._scoreType(xp), 'XP');
   // refs is additive (Study expansion Phase 2, Codex review finding #1): the
@@ -368,7 +371,9 @@ await testAsync('the blocked-punt touchdown survives save, reopen and normalizat
 /* ══ The try cohort owns the legacy-compatible XP shape ═══════════════════ */
 console.log('\n== Try cohort ownership ==');
 
-test('an extra point stored on the field-goal unit is a try, not an unassigned snap', () => {
+// The Field Goal unit's extra point was converted to the Try unit once
+// (2026-09-26) and is refused at import; the model no longer reads it.
+test('an extra point stored on the Field Goal unit is neither a field goal nor a try', () => {
   const engine = new StatsEngine(null);
   const xpOnKickUnit = { id: 16, __gid: 'g2', tags: { unit: 'special' },
     specialTeams: { version: 1, unit: 'fieldGoal', attemptType: 'extraPoint',
@@ -378,12 +383,11 @@ test('an extra point stored on the field-goal unit is a try, not an unassigned s
       outcome: { score: 'extraPoint' } } };
   const st = engine._specialTeamsStats([xpOnKickUnit, tryUnit]);
   assert.equal(st.fg.att, 0, 'an extra point is not a field-goal attempt');
-  assert.equal(st.tries.n, 2, 'both the try unit and the field-goal-shaped extra point are tries');
+  assert.equal(st.tries.n, 1, 'only the Try unit charts a try');
   assert.equal(st.tries.tryUnits, 1);
-  assert.equal(st.tries.xpOnKickUnit, 1);
   assert.equal(st.tries.defending, 1);
-  assert.deepEqual(st.tries.refs.all, ['g2::16', 'g2::27']);
-  assert.deepEqual(st.tries.refs.xpOnKickUnit, ['g2::16']);
+  assert.deepEqual(st.tries.refs.all, ['g2::27']);
+  assert.equal(StatsEngine.playPoints(xpOnKickUnit), 0, 'the retired shape scores nothing');
 });
 
 console.log(`\n== RESULT: ${pass} passed ==`);

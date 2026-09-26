@@ -74,18 +74,30 @@ const section = async id => {
   await page.mouse.move(3000, 3000);
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 };
+/* Structured Special Teams fixtures. The old stType / kickOutcome shape was
+   retired (legacy excision, 2026-09-26); every fixture below is its structured
+   equivalent, and a Special Teams snap with no unit charted is a play with no
+   `specialTeams` event at all. */
+const ST = (unit, { status = null, distance = null, returnYards = null, score = null, attemptType = null,
+  result = null, recoveredBy = null, players = {}, tags = {} } = {}) => ({
+  tags: { players, ...tags },
+  specialTeams: { version: 1, unit, attemptType, result,
+    kick: { distance }, return: { attempted: status === 'returned' ? true : null, yards: returnYards, end: {} },
+    outcome: { status, recoveredBy, score, scoredBy: null },
+    players: { kicker: players.kicker || '', punter: players.punter || '', returner: players.returner || '' } },
+});
 const boardText = () => page.evaluate(() =>
   document.querySelector('[data-native-report-content]')?.textContent || '');
 
 /* ══ 1. The approved composition renders ══════════════════════════════════ */
 console.log('\n== 1. The approved composition ==');
 await load([
-  { stType: 'Kickoff', kickOutcome: 'Touchback' },
-  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '18' },
-  { stType: 'Punt', kickOutcome: 'Fair Catch', kickDistance: '40' },
-  { stType: 'Punt Return', kickOutcome: 'Returned', returnYards: '9' },
-  { stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '32' },
-  { stType: 'XP', kickOutcome: 'Good', scoreFor: 'us' },
+  ST('kickoff', { status: 'touchback' }),
+  ST('kickoff', { status: 'returned', returnYards: 18 }),
+  ST('punt', { status: 'fairCatch', distance: 40 }),
+  ST('puntReturn', { status: 'returned', returnYards: 9 }),
+  ST('fieldGoal', { attemptType: 'fieldGoal', status: 'good', score: 'fieldGoal', distance: 32 }),
+  ST('try', { attemptType: 'extraPoint', result: 'converted', score: 'extraPoint' }),
 ]);
 
 const shape = await page.evaluate(() => {
@@ -116,10 +128,10 @@ await load([
   // 4 kickoffs, none a touchback, no distance ever charted: touchback rate is
   // an observed 0%, kick distance is genuinely absent. They must not look the
   // same on the board.
-  { stType: 'Kickoff', kickOutcome: 'Fair Catch' },
-  { stType: 'Kickoff', kickOutcome: 'Fair Catch' },
-  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '20' },
-  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '14' },
+  ST('kickoff', { status: 'fairCatch' }),
+  ST('kickoff', { status: 'fairCatch' }),
+  ST('kickoff', { status: 'returned', returnYards: 20 }),
+  ST('kickoff', { status: 'returned', returnYards: 14 }),
 ]);
 const absence = await page.evaluate(() => {
   const pane = document.querySelector('[data-native-report-content]');
@@ -183,9 +195,9 @@ ok(emptyCards.filter(c => c.none).length === 5 && emptyCards.length === 6,
 /* ══ 4. FIELD GOAL COHORT — the fix, failing-first on the old behavior ════ */
 console.log('\n== 4. An extra point is not a field goal (coach decision) ==');
 await load([
-  { stType: 'XP', kickOutcome: 'Good', scoreFor: 'us', players: { kicker: '19' } },
-  { stType: 'XP', kickOutcome: 'Good', scoreFor: 'us', players: { kicker: '19' } },
-  { stType: 'Punt', kickDistance: '38', kickOutcome: 'Downed', players: { kicker: '35' } },
+  ST('try', { attemptType: 'extraPoint', result: 'converted', score: 'extraPoint', players: { kicker: '19' } }),
+  ST('try', { attemptType: 'extraPoint', result: 'converted', score: 'extraPoint', players: { kicker: '19' } }),
+  ST('punt', { status: 'downed', distance: 38, players: { kicker: '35' } }),
 ]);
 const fgCohort = await page.evaluate(() => {
   const e = window.app.stats, sc = window.app.reportsScreen;
@@ -204,8 +216,8 @@ ok(fgCohort.unitAtt === fgCohort.kickerAtt,
 /* ══ 5. PUNT NET — no invented touchback placement ════════════════════════ */
 console.log('\n== 5. A touchback net is not derivable without a ruleset ==');
 await load([
-  { stType: 'Punt', kickDistance: '40', kickOutcome: 'Downed' },
-  { stType: 'Punt', kickDistance: '50', kickOutcome: 'Touchback' },
+  ST('punt', { status: 'downed', distance: 40 }),
+  ST('punt', { status: 'touchback', distance: 50 }),
 ]);
 const net = await page.evaluate(() => {
   const e = window.app.stats, sc = window.app.reportsScreen;
@@ -224,10 +236,10 @@ ok(net.gross === 45, 'gross still covers both punts -- the touchback leaves only
 /* ══ 6. Snaps reconcile, and a unit-less snap is disclosed ════════════════ */
 console.log('\n== 6. Reconciliation and the unassigned snap ==');
 await load([
-  { stType: 'Kickoff', kickOutcome: 'Touchback' },
-  { stType: 'Punt', kickDistance: '40', kickOutcome: 'Downed' },
-  // 'Fake' belongs to no unit in the current model. It must not vanish.
-  { stType: 'Fake', result: 'Gain', yardage: '13' },
+  ST('kickoff', { status: 'touchback' }),
+  ST('punt', { status: 'downed', distance: 40 }),
+  // A Special Teams snap with no unit charted belongs to no unit. It must not vanish.
+  { result: 'Gain', yardage: '13' },
 ]);
 const recon = await page.evaluate(() => {
   const pane = document.querySelector('[data-native-report-content]');
@@ -245,25 +257,17 @@ ok(recon.line === '1 snap is not assigned to a unit',
   String(recon.line));
 
 await load([
-  { stType: 'Kickoff', kickOutcome: 'Touchback' },
-  { stType: 'Punt', kickDistance: '40', kickOutcome: 'Downed' },
+  ST('kickoff', { status: 'touchback' }),
+  ST('punt', { status: 'downed', distance: 40 }),
 ]);
 const reconClean = await page.evaluate(() =>
   !!document.querySelector('[data-native-report-content] .gi-st-unassigned'));
 ok(!reconClean, 'when every snap reconciles the line does not render at all -- no arithmetic restating the ledger');
 
-/* THE MIXED COHORT, which is the shape the coach's own screen showed: eight
-   special-teams snaps, five carrying a structured unit and three charted only as
-   legacy `stType`. The structured branch wins, so the three legacy snaps join no
-   unit module — correct under SPECIAL-TEAMS-MODEL §8, which forbids inferring a
-   unit from quarantined legacy detail — and the disclosure names them.
-
-   The fifth structured snap is an extra point stored on the field-goal unit
-   (`attemptType:'extraPoint'`, §4b.3, read and never rewritten). `_conversionStats`
-   owns it and `isFieldGoalAttempt` excludes it, so counted only under the try
-   UNITS it belonged to no module at all: the board reported it under Tries and
-   called it unassigned in the same breath. That was the fourth "unassigned" snap
-   on the coach's screen. */
+/* THE MIXED COHORT: eight Special Teams snaps, five carrying a structured unit
+   and three with no unit charted (the shape the coach's season has after the old
+   Special Teams values were blanked, 2026-09-26). The three join no unit module
+   and the disclosure names them; the Try is counted once, as a try. */
 const stEvent = (unit, outcome, extra = {}) => ({ version: 1, unit,
   outcome: { status: null, recoveredBy: null, score: null, ...outcome },
   kick: { distance: 40 }, return: { attempted: null, yards: null, end: {} }, players: {}, ...extra });
@@ -272,11 +276,10 @@ await load([
   { specialTeams: stEvent('kickoffReturn', { status: 'fairCatch' }) },
   { specialTeams: stEvent('puntReturn', { status: 'fairCatch' }) },
   { specialTeams: stEvent('punt', { status: 'downed' }) },
-  // The legacy-compatible extra point: a try, not a field goal, and not unassigned.
-  { specialTeams: stEvent('fieldGoal', { status: 'good', score: 'extraPoint' }, { attemptType: 'extraPoint' }) },
-  { stType: 'Punt', kickOutcome: 'Downed' },
-  { stType: 'XP', result: 'Good' },
-  { stType: 'Kick Return', result: 'Gain', returnYards: '14' },
+  { specialTeams: stEvent('try', { score: 'extraPoint' }, { attemptType: 'extraPoint', result: 'converted' }) },
+  {},
+  { result: 'Good' },
+  { result: 'Gain' },
 ]);
 const mixed = await page.evaluate(() => {
   const pane = document.querySelector('[data-native-report-content]');
@@ -286,18 +289,18 @@ const mixed = await page.evaluate(() => {
   return {
     line: line ? line.textContent.replace(/\s+/g, ' ').trim() : null,
     structured: !!st.structured,
-    tries: { n: st.tries.n, tryUnits: st.tries.tryUnits, xpOnKickUnit: st.tries.xpOnKickUnit },
+    tries: { n: st.tries.n, tryUnits: st.tries.tryUnits },
     fgAtt: st.fg.att,
     xpAtt: model.conversions.xp.att,
     tryRows: [...pane.querySelectorAll('.gi-st-board [data-st-section]')].length,
   };
 });
-ok(mixed.structured && mixed.tries.n === 1 && mixed.tries.tryUnits === 0 && mixed.tries.xpOnKickUnit === 1
-  && mixed.fgAtt === 0 && mixed.xpAtt === 2,
-  'the extra point charted on the field-goal unit is counted once, as a try, and never as a field-goal attempt',
+ok(mixed.structured && mixed.tries.n === 1 && mixed.tries.tryUnits === 1
+  && mixed.fgAtt === 0 && mixed.xpAtt === 1,
+  'the extra point is counted once, as a try, and never as a field-goal attempt',
   JSON.stringify(mixed));
-ok(mixed.line === '2 snaps are not assigned to a unit',
-  'only snaps NO module claims are unassigned: the structured extra point and the legacy XP both appear under Tries',
+ok(mixed.line === '3 snaps are not assigned to a unit',
+  'only snaps NO module claims are unassigned: the three Special Teams snaps with no unit charted',
   String(mixed.line));
 
 /* A charted `Defending a Try` is outside the conversion denominator by
@@ -322,10 +325,10 @@ ok(tryLabels.includes('Tries charted=3') && tryLabels.includes('Opponent tries=2
 /* ══ 7. Outcome distributions are exclusive and open film ═════════════════ */
 console.log('\n== 7. Outcome distribution ==');
 await load([
-  { stType: 'Punt', kickDistance: '40', kickOutcome: 'Fair Catch' },
-  { stType: 'Punt', kickDistance: '38', kickOutcome: 'Fair Catch' },
-  { stType: 'Punt', kickDistance: '44', kickOutcome: 'Blocked' },
-  { stType: 'Punt', kickDistance: '41' },
+  ST('punt', { status: 'fairCatch', distance: 40 }),
+  ST('punt', { status: 'fairCatch', distance: 38 }),
+  ST('punt', { status: 'blocked', distance: 44 }),
+  ST('punt', { distance: 41 }),
 ]);
 await section('st3');
 const dist = await page.evaluate(() => {
@@ -346,16 +349,15 @@ ok(dist.reduce((s, d) => s + Number(d.value.split(' (')[0]), 0) === 4,
   'the outcomes are mutually exclusive and account for every snap of the unit');
 ok(dist.every(d => d.clickable), 'every outcome opens exactly its own film');
 
-/* A legacy Punt can describe either side's kick. The coach's old charting has
-   one ownership signal we can use without field-position inference: a blocked
-   punt with a defensive player role and no kicker/punter is our block unit,
-   not our punt team allowing a block. */
+/* Punt ownership is the unit: our punt team is Punt, and the unit that blocks
+   THEIR punt is Punt Return / Block. (The 2026-09-06 rule that read the side of
+   an old stType Punt from its player roles was retired with the old tags.) */
 await load([
-  { stType: 'Punt', kickDistance: '40', kickOutcome: 'Downed', players: { kicker: '9' } },
-  { stType: 'Punt', kickDistance: '43', kickOutcome: 'Fair Catch', players: { punter: '9' } },
-  { stType: 'Punt', kickOutcome: 'Blocked', result: 'Loss', yardage: '-5', players: { tackler: '82' } },
-  { stType: 'Punt', kickOutcome: 'Blocked', players: { punter: '9' } },
-  { stType: 'Punt', kickOutcome: 'Blocked' },
+  ST('punt', { status: 'downed', distance: 40, players: { kicker: '9' } }),
+  ST('punt', { status: 'fairCatch', distance: 43, players: { punter: '9' } }),
+  ST('puntReturn', { status: 'blocked', recoveredBy: 'subject', players: { tackler: '82' }, tags: { result: 'Loss', yardage: '-5' } }),
+  ST('punt', { status: 'blocked', players: { punter: '9' } }),
+  ST('punt', { status: 'blocked' }),
 ]);
 const puntOwnership = await page.evaluate(() => {
   const app = window.app;
@@ -365,11 +367,11 @@ const puntOwnership = await page.evaluate(() => {
     impact: summary.impact.map(row => ({ label: row.label, n: row.n, refs: row.refs })) };
 });
 ok(puntOwnership.punts.n === 4 && puntOwnership.punts.blocked === 2,
-  'their blocked punt is excluded while our and ambiguous legacy blocks keep their historical punt-team classification',
+  'our punt team counts its own four punts, two of them blocked against us',
   JSON.stringify(puntOwnership.punts));
 ok(puntOwnership.returns.n === 1 && puntOwnership.returns.blocked === 1
   && JSON.stringify(puntOwnership.returns.refs.blocked) === JSON.stringify(['g-st::3']),
-  'their blocked punt belongs to our punt-return/block cohort with exact film',
+  'the punt we blocked belongs to Punt Return / Block with exact film',
   JSON.stringify(puntOwnership.returns));
 ok(puntOwnership.impact.some(row => row.label === 'Punts blocked' && row.n === 1)
   && puntOwnership.impact.some(row => row.label === 'Punts blocked against us' && row.n === 2),
@@ -445,8 +447,8 @@ await page.setViewport({ width: 1440, height: 900 });
 /* ══ 9b. The badge names its unit, and an absence is not a void ════════════ */
 console.log('\n== 9b. Badge counts and empty modules ==');
 await load([
-  { stType: 'Kickoff', kickOutcome: 'Touchback' },
-  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '18' },
+  ST('kickoff', { status: 'touchback' }),
+  ST('kickoff', { status: 'returned', returnYards: 18 }),
 ]);
 const badges = await page.evaluate(() => {
   return [...document.querySelectorAll('[data-reports-secbar] [data-st-section]')].map(item => ({
@@ -562,12 +564,12 @@ ok(empty.title === 'No Special Teams snaps charted', 'the empty state states the
    and label by label. */
 console.log('\n== 11. Export ==');
 await load([
-  { stType: 'Kickoff', kickOutcome: 'Touchback' },
-  { stType: 'Kickoff', kickOutcome: 'Returned', returnYards: '18' },
-  { stType: 'Punt', kickOutcome: 'Fair Catch', kickDistance: '40' },
-  { stType: 'Punt Return', kickOutcome: 'Returned', returnYards: '9' },
-  { stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '32' },
-  { stType: 'XP', kickOutcome: 'Good', scoreFor: 'us' },
+  ST('kickoff', { status: 'touchback' }),
+  ST('kickoff', { status: 'returned', returnYards: 18 }),
+  ST('punt', { status: 'fairCatch', distance: 40 }),
+  ST('puntReturn', { status: 'returned', returnYards: 9 }),
+  ST('fieldGoal', { attemptType: 'fieldGoal', status: 'good', score: 'fieldGoal', distance: 32 }),
+  ST('try', { attemptType: 'extraPoint', result: 'converted', score: 'extraPoint' }),
 ]);
 const exported = await page.evaluate(async () => {
   let blob = null;

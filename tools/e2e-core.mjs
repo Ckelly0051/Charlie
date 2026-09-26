@@ -63,12 +63,12 @@ r = {
   td: SE.playPoints(p({ result: 'Touchdown' })),
   safety: SE.playPoints(p({ result: 'Safety' })),
   gain: SE.playPoints(p({ result: 'Gain' })),
-  madeXp: SE.playPoints(p({ stType: 'XP', kickOutcome: 'Good' })),
+  madeXp: SE.playPoints({ tags: { unit: 'special' }, specialTeams: { unit: 'try', attemptType: 'extraPoint', result: 'converted', outcome: { score: 'extraPoint' } } }),
 };
 ok(r.td === 6, 'a Touchdown is 6 points', JSON.stringify(r));
 ok(r.safety === 2, 'a Safety is 2 points', JSON.stringify(r));
 ok(r.gain === 0, 'a plain Gain scores 0', JSON.stringify(r));
-ok(r.madeXp === 1, 'a made XP (kickOutcome Good) is 1 point', JSON.stringify(r));
+ok(r.madeXp === 1, 'a converted extra point (Try unit) is 1 point', JSON.stringify(r));
 
 console.log('\n== 4. HTML escaping (Charts._esc) — the XSS boundary ==');
 {
@@ -90,7 +90,7 @@ console.log('\n== 5. isPlayTagged — one canonical "is this play tagged?" rule 
   const t = tags => isPlayTagged({ tags });
   r = {
     offense: t({ playType: 'Run Inside', result: 'Gain' }),
-    stKickReturn: t({ unit: 'special', stType: 'Kick Return', result: 'Fumble' }),  // no playType
+    stKickReturn: t({ unit: 'special', result: 'Fumble' }),  // no playType
     defenseScheme: t({ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }),     // no playType
     runPassOnly: t({ runPass: 'Run' }),
     formationOnly: t({ formation: 'Shotgun' }),

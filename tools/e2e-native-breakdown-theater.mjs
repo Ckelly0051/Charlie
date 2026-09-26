@@ -107,6 +107,7 @@ state = await page.evaluate(() => {
     specialTeams: { unit: 'kickoffReturn', outcome: { status: 'returned', score: 'touchdown', scoredBy: 'subject' } } });
   const stTouchdownTheirs = c({ ...base, tags: { unit: 'special' },
     specialTeams: { unit: 'kickoff', outcome: { status: 'returned', score: 'touchdown', scoredBy: 'opponent' } } });
+  // The retired stType is never read (legacy excision, 2026-09-26).
   const stLegacyFallback = c({ ...base, tags: { unit: 'special', stType: 'Punt', result: 'Punt' } });
 
   // Offense/defense football-relative colour: green/red mean genuinely
@@ -185,7 +186,7 @@ ok(state.puntDowned.ourValue === 'Punt' && state.puntDowned.result === 'Downed',
 ok(state.stTouchdownOurs.tone === 'pos' && /Touchdown/.test(state.stTouchdownOurs.result),
   'Structured ST scored by the subject colours positive via SpecialTeamsModel.scoringTeam', JSON.stringify(state.stTouchdownOurs));
 ok(state.stTouchdownTheirs.tone === 'neg', 'Structured ST scored by the opponent colours negative', JSON.stringify(state.stTouchdownTheirs));
-ok(state.stLegacyFallback.ourValue === 'Punt', 'Legacy stType is used only when no structured event exists', JSON.stringify(state.stLegacyFallback));
+ok(state.stLegacyFallback.ourValue === '—', 'A Special Teams snap with no structured unit shows a dash; the retired stType is not read', JSON.stringify(state.stLegacyFallback));
 const railSpecial = await page.evaluate(() => {
   const screen = app.breakdownTheater;
   const view = specialTeams => screen._playView({id:1,tags:{unit:'special'},specialTeams});
@@ -198,7 +199,7 @@ const railSpecial = await page.evaluate(() => {
 });
 ok(railSpecial.selected.call === 'Kick Return' && railSpecial.selected.result === 'No result', 'Play rail recognizes a structured phase without inventing an outcome', JSON.stringify(railSpecial));
 ok(railSpecial.returned.result === 'Returned' && railSpecial.returned.label.includes('Kick Return, Returned'), 'Play rail and accessible label use the structured outcome', JSON.stringify(railSpecial));
-ok(railSpecial.retry.result === 'No Play / Retry' && railSpecial.legacy.call === 'Punt' && railSpecial.legacy.result === 'Downed', 'Play rail preserves try rulings and legacy display compatibility', JSON.stringify(railSpecial));
+ok(railSpecial.retry.result === 'No Play / Retry' && railSpecial.legacy.call !== 'Punt' && railSpecial.legacy.result !== 'Downed', 'Play rail preserves try rulings and shows no retired stType / kickOutcome', JSON.stringify(railSpecial));
 ok(state.offTd === 'pos', 'Offense Touchdown is positive');
 ok(state.offInt === 'neg', 'Offense Interception is negative');
 ok(state.offNoGood === 'neg', '"No Good" is negative, not the inverted green from the original defect');

@@ -53,6 +53,14 @@ await page.evaluate(async () => {
 /* One game exercising every role, a charted grade and an ungraded rep in the
    same table, a negative rushing line, a measured zero, and a jersey with no
    roster name so the label falls back to the bare number. */
+/* Structured Special Teams events (the old stType / kickOutcome / returnYards /
+   kickDistance shape was retired, 2026-09-26). `__st` rides on a fixture row and
+   becomes the play's `specialTeams`. */
+const STE = (unit, { status = null, distance = null, yards = null, score = null } = {}) => ({
+  version: 1, unit, attemptType: unit === 'fieldGoal' ? 'fieldGoal' : null,
+  kick: { distance }, return: { attempted: yards != null ? true : null, yards, end: {} },
+  outcome: { status, score, scoredBy: null, recoveredBy: null },
+});
 const GAME_A = [
   { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '8', players: { ballCarrier: '22' }, grades: { ballCarrier: 2 } },
   { unit: 'offense', playType: 'Run Outside', runPass: 'Run', result: 'Touchdown', yardage: '31', players: { ballCarrier: '22' }, grades: { ballCarrier: 3 } },
@@ -68,11 +76,11 @@ const GAME_A = [
   /* The longest representative roster name in the NINE-column Tackles table --
      the tightest identity column on the board, and the one that truncated. */
   { unit: 'defense', playType: 'Run Outside', runPass: 'Run', result: 'No Gain', yardage: '2', players: { tackler: '22' } },
-  { unit: 'special', stType: 'Kick Return', kickOutcome: 'Returned', returnYards: '24', players: { returner: '7' } },
-  { unit: 'special', stType: 'Punt Return', kickOutcome: 'Returned', returnYards: '0', players: { returner: '16' } },
-  { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', kickDistance: '28', players: { kicker: '3' } },
-  { unit: 'special', stType: 'Field Goal', kickOutcome: 'Miss', kickDistance: '44', players: { kicker: '3' } },
-  { unit: 'special', stType: 'Punt', kickOutcome: 'Fair Catch', kickDistance: '38', yardage: '38', players: { kicker: '3' } },
+  { unit: 'special', players: { returner: '7' }, __st: STE('kickoffReturn', { status: 'returned', yards: 24 }) },
+  { unit: 'special', players: { returner: '16' }, __st: STE('puntReturn', { status: 'returned', yards: 0 }) },
+  { unit: 'special', players: { kicker: '3' }, __st: STE('fieldGoal', { status: 'good', score: 'fieldGoal', distance: 28 }) },
+  { unit: 'special', players: { kicker: '3' }, __st: STE('fieldGoal', { status: 'noGood', distance: 44 }) },
+  { unit: 'special', yardage: '38', players: { kicker: '3' }, __st: STE('punt', { status: 'fairCatch', distance: 38 }) },
 ];
 /* A second game at full-season magnitude: a four-digit passing yardage and a
    three-digit attempt count are what the column steps must actually hold, and
@@ -80,7 +88,7 @@ const GAME_A = [
 const GAME_B = [
   { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '12', players: { ballCarrier: '22' }, grades: { ballCarrier: 1 } },
   { unit: 'defense', playType: 'Run Outside', runPass: 'Run', result: 'Loss', yardage: '-2', players: { tackler: '23' }, grades: { tackler: 2 } },
-  { unit: 'special', stType: 'Kick Return', kickOutcome: 'Returned', returnYards: '44', players: { returner: '7' } },
+  { unit: 'special', players: { returner: '7' }, __st: STE('kickoffReturn', { status: 'returned', yards: 44 }) },
   ...Array.from({ length: 190 }, (_, i) => ({
     unit: 'offense', playType: 'Quick Pass', runPass: 'Pass',
     result: i % 3 === 0 ? 'Incomplete' : 'Gain', yardage: i % 3 === 0 ? '0' : '13',
@@ -98,9 +106,9 @@ const ROSTER = {
 const load = async (games, roster = ROSTER) => {
   await page.evaluate(async (list, names) => {
     const store = window.app.storage.seasonStore;
-    const build = rows => rows.map((row, i) => ({
+    const build = rows => rows.map(({ __st, ...row }, i) => ({
       id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 }, notes: '', annotations: [],
-      tags: { custom: [], players: {}, grades: {}, quarter: 'Q1', ...row },
+      tags: { custom: [], players: {}, grades: {}, quarter: 'Q1', ...row }, ...(__st ? { specialTeams: __st } : {}),
     }));
     store.data.games = list.map((plays, index) => ({
       id: `g-${index}`, name: `Week ${index + 1}`, nextId: plays.length + 1, plays: build(plays),
@@ -796,7 +804,7 @@ await load([[
   { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '11', players: { ballCarrier: '22' } },
   { unit: 'offense', playType: 'Quick Pass', runPass: 'Pass', result: 'Gain', yardage: '9', players: { passer: '12', receiver: '84' } },
   { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'No Gain', yardage: '1', players: { tackler: '51' } },
-  { unit: 'special', stType: 'Kick Return', kickOutcome: 'Returned', returnYards: '20', players: { returner: '7' } },
+  { unit: 'special', players: { returner: '7' }, __st: STE('kickoffReturn', { status: 'returned', yards: 20 }) },
 ]]);
 const fiveSample = await page.evaluate(() =>
   document.querySelector('.gi-players-sample')?.textContent.trim());
@@ -815,10 +823,10 @@ console.log('\n== Special Teams: dedicated fields are authoritative ==');
 await load([[
   // A punt and two returns charted the way this coach's season charts them:
   // a specialist and an outcome, and NO dedicated distance or return yardage.
-  { unit: 'special', stType: 'Punt', result: 'No Gain', yardage: '11', players: { kicker: '27' } },
-  { unit: 'special', stType: 'Punt Return', result: 'Gain', yardage: '18', players: { returner: '42' } },
-  // One return that DOES carry the dedicated field.
-  { unit: 'special', stType: 'Punt Return', result: 'Gain', yardage: '99', returnYards: '5', players: { returner: '42' } },
+  { unit: 'special', result: 'No Gain', yardage: '11', players: { kicker: '27' }, __st: STE('punt') },
+  { unit: 'special', result: 'Gain', yardage: '18', players: { returner: '42' }, __st: STE('puntReturn', { status: 'returned' }) },
+  // One return that DOES carry its own return yards.
+  { unit: 'special', result: 'Gain', yardage: '99', players: { returner: '42' }, __st: STE('puntReturn', { status: 'returned', yards: 5 }) },
 ]]);
 const stRows = await page.evaluate(() => {
   const table = [...document.querySelectorAll('.gi-player-module')].map(m => ({
@@ -829,13 +837,13 @@ const stRows = await page.evaluate(() => {
 });
 const kicking = (stRows['Kicking / Punting'] || [])[0] || [];
 ok(kicking.includes('No data'),
-  'punt average is No data when kickDistance is not charted, never derived from generic yardage',
+  'punt average is No data when the kick distance is not charted, never derived from generic yardage',
   JSON.stringify(kicking));
 ok(!kicking.includes('11.0') && !kicking.includes('2.8'),
   'no punt average is fabricated from tags.yardage', JSON.stringify(kicking));
 const returns = (stRows['Return Game'] || [])[0] || [];
 ok(returns.includes('5') && !returns.includes('23') && !returns.includes('117'),
-  'return yards come from returnYards only — the unmeasured return adds none',
+  'return yards come from the return\'s own yards only — the unmeasured return adds none',
   JSON.stringify(returns));
 /* The two surfaces must agree about the same plays. */
 const crossSurface = await page.evaluate(() => {
@@ -869,7 +877,7 @@ ok(crossSurface.playerReturnYards === crossSurface.teamReturnYards,
   'Players and the team Special Teams report agree on return yardage, because they read one field',
   JSON.stringify(crossSurface));
 ok(crossSurface.playerPuntsMeasured === 0,
-  'a punt with no charted kickDistance contributes no measured distance', JSON.stringify(crossSurface));
+  'a punt with no charted kick distance contributes no measured distance', JSON.stringify(crossSurface));
 
 /* ══ Revision 2 ═══════════════════════════════════════════════════════════
    The leaderboard is the entry point; the analysis lives one click deeper. Every
@@ -899,7 +907,7 @@ const R2_G1 = [
     defFront: 'Bear', coverage: 'Cover 0', players: { tackler: '55' } },
   { unit: 'defense', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '3', distance: '12',
     defFront: '4-2-5', coverage: 'Cover 3', players: { takeaway: '55' } },
-  { unit: 'special', stType: 'Kick Return', result: 'Gain', returnYards: '24', players: { returner: '22' } },
+  { unit: 'special', result: 'Gain', players: { returner: '22' }, __st: STE('kickoffReturn', { status: 'returned', yards: 24 }) },
 ];
 const R2_G2 = [
   { unit: 'offense', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10',
@@ -953,16 +961,16 @@ const exact = await page.evaluate(() => {
         ast: p => (String(p.tags.players?.tackler || '').match(/\d+/g)?.length || 0) > 1 && String(p.tags.players?.tackler || '').includes(num),
         sacks: p => has(p, 'Sack'), tfl: p => !has(p, 'Sack') && yards(p) < 0,
         ints: p => has(p, 'Interception'), fr: p => has(p, 'Fumble') },
-      returns: { ret: p => String(p.tags.returnYards ?? '').trim() !== '',
-        yds: p => String(p.tags.returnYards ?? '').trim() !== '',
-        avg: p => String(p.tags.returnYards ?? '').trim() !== '', tds: p => has(p, 'Touchdown') },
+      returns: { ret: p => Number.isFinite(p.specialTeams?.return?.yards),
+        yds: p => Number.isFinite(p.specialTeams?.return?.yards),
+        avg: p => Number.isFinite(p.specialTeams?.return?.yards), tds: p => p.specialTeams?.outcome?.score === 'touchdown' },
       kicking: { fg: () => true, punts: () => true, puntAvg: () => true },
     }[roleKey]?.[column];
     let expectedPlays = predicate ? cohort.filter(predicate) : null;
     if (column === 'long') {
       // The long is the play (or plays tying it) that produced the value.
       const measure = roleKey === 'returns'
-        ? play => Number(String(play.tags.returnYards ?? '').trim())
+        ? play => (Number.isFinite(play.specialTeams?.return?.yards) ? play.specialTeams.return.yards : NaN)
         : play => yards(play);
       const measured = cohort.filter(play => Number.isFinite(measure(play)));
       const best = measured.length ? Math.max(...measured.map(measure)) : null;
@@ -1517,8 +1525,8 @@ const composition = await page.evaluate(async () => {
     yardage: '9', players: { passer: '12', receiver: '80' } }));
   plays.push(play(id++, { unit: 'defense', runPass: 'Run', playType: 'Run Inside', result: 'Loss',
     yardage: '-2', players: { tackler: '55' } }));
-  plays.push(play(id++, { unit: 'special', stType: 'Kick Return', returnYards: '12', players: { returner: '18' } }));
-  plays.push(play(id++, { unit: 'special', stType: 'Punt', kickDistance: '35', players: { kicker: '19' } }));
+  plays.push(Object.assign(play(id++, { unit: 'special', players: { returner: '18' } }), { specialTeams: { version: 1, unit: 'kickoffReturn', return: { attempted: true, yards: 12 }, outcome: { status: 'returned' } } }));
+  plays.push(Object.assign(play(id++, { unit: 'special', players: { kicker: '19' } }), { specialTeams: { version: 1, unit: 'punt', kick: { distance: 35 }, outcome: {} } }));
   store.data.games = [{ id: 'g-comp', name: 'Week 1', nextId: 99,
     gameInfo: { opponent: 'Composition', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
     plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];

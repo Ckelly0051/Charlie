@@ -56,9 +56,13 @@ function gamePlays({ runs, runYds, passes, passYds, comp, tds, ints, sacks, thir
   for (let i = 0; i < 6; i++) plays.push({ unit: 'defense', runPass: i % 2 ? 'Pass' : 'Run',
     playType: i % 2 ? 'Short Pass' : 'Run Inside', defFront: '4-2-5', coverage: 'Cover 3',
     result: i % 3 === 0 ? 'No Gain' : 'Gain', yardage: i % 3 === 0 ? '1' : '6', down: '1', distance: '10', quarter: 'Q3' });
-  plays.push({ unit: 'special', stType: 'Kickoff', kickOutcome: 'Returned', kickDistance: '55', players: { kicker: '3' }, quarter: 'Q1' });
-  plays.push({ unit: 'special', stType: 'Kick Return', kickOutcome: 'Returned', returnYards: '22', players: { returner: '7' }, quarter: 'Q3' });
-  plays.push({ unit: 'special', stType: 'Punt', kickOutcome: 'Fair Catch', kickDistance: '36', yardage: '36', players: { kicker: '3' }, quarter: 'Q4' });
+  // Structured Special Teams (the old stType shape was retired, 2026-09-26).
+  plays.push({ unit: 'special', players: { kicker: '3' }, quarter: 'Q1',
+    __st: { version: 1, unit: 'kickoff', kick: { distance: 55 }, return: { attempted: true }, outcome: { status: 'returned' }, players: { kicker: '3' } } });
+  plays.push({ unit: 'special', players: { returner: '7' }, quarter: 'Q3',
+    __st: { version: 1, unit: 'kickoffReturn', return: { attempted: true, yards: 22 }, outcome: { status: 'returned' }, players: { returner: '7' } } });
+  plays.push({ unit: 'special', yardage: '36', players: { kicker: '3' }, quarter: 'Q4',
+    __st: { version: 1, unit: 'punt', kick: { distance: 36 }, outcome: { status: 'fairCatch' }, players: { punter: '3' } } });
   return plays;
 }
 const SPEC = [
@@ -139,8 +143,8 @@ const load = async (list, rosters = null) => {
     const planted = (byId && byId.games) || null;
     store.data.games = rows.map(game => ({ id: game.id, name: '', nextId: game.plays.length + 1,
       ...(planted && planted[game.id] ? { roster: planted[game.id] } : {}),
-      plays: game.plays.map((row, i) => ({ id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 },
-        notes: '', annotations: [], tags: { custom: [], players: {}, grades: {}, ...row } })),
+      plays: game.plays.map(({ __st, ...row }, i) => ({ id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 },
+        notes: '', annotations: [], tags: { custom: [], players: {}, grades: {}, ...row }, ...(__st ? { specialTeams: __st } : {}) })),
       gameInfo: game.info, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }));
     store.data.activeGameId = rows[rows.length - 1].id;
     store.data.roster = (byId && byId.season) || [];

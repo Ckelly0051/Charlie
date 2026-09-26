@@ -24,6 +24,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { syntheticEdge } from './fixtures/synthetic-edge.mjs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const UPDATE = process.argv.includes('--update');
 const GOLDEN_DIR = fileURLToPath(new URL('./parity-golden/', import.meta.url));
@@ -33,7 +34,10 @@ let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 
 // ---- fixtures -------------------------------------------------------------
-const REAL = 'C:/Users/charl/Downloads/GridIronIQ-mavericks-2025-RECOVERED.json';
+// The coach's 2025 JV season as the current-format canonical fixture (legacy
+// excision step 7): the Downloads recovery file predates the 2026-09-26
+// conversion and nothing reads old shapes any more.
+const REAL = CANONICAL_SEASON;
 // syntheticEdge() is the shared fixture in tools/fixtures/synthetic-edge.mjs so
 // the Study query test (tools/e2e-study-query.mjs) exercises the IDENTICAL season.
 

@@ -215,7 +215,7 @@ r = await page.evaluate(() => {
     play.tags = {
       ...play.tags,
       unit: 'special',
-      formation: '', playType: '', runPass: '', result: '', stType: '',
+      formation: '', playType: '', runPass: '', result: '',
       defFront: '', coverage: '', blitz: '',
     };
     delete play.specialTeams;
@@ -225,7 +225,7 @@ r = await page.evaluate(() => {
   clearMeaningful(d);
   a.tags.unit = 'offense';
   d.tags.unit = 'special';
-  d.tags.stType = 'Punt'; // genuinely charted: must not be overwritten
+  d.specialTeams = { version: 1, unit: 'punt' }; // genuinely charted: must not be overwritten
   t.autoDD = false;
   t.selectPlay(a.id);
   return { ids: [a.id, b.id, c.id, d.id], originals };
@@ -243,7 +243,7 @@ const unitCarryTwo = await page.evaluate(() => {
 await clickSaveNext();
 const unitCarryCharted = await page.evaluate(() => {
   const play = window.app.tagger.getCurrentPlay();
-  return { id: play.id, stored: play.tags.unit, shown: window.app.nativeTagging.snapshot().unit, stType: play.tags.stType };
+  return { id: play.id, stored: play.tags.unit, shown: window.app.nativeTagging.snapshot().unit, stUnit: play.specialTeams?.unit || '' };
 });
 await page.evaluate(({ ids, originals }) => {
   const t = window.app.tagger;
@@ -260,7 +260,7 @@ ok(unitCarryOne.id === r.ids[1] && unitCarryOne.stored === 'offense' && unitCarr
    && unitCarryTwo.id === r.ids[2] && unitCarryTwo.stored === 'offense' && unitCarryTwo.shown === 'offense',
    'Save & Next keeps the coach-selected unit across untouched plays seeded as Special Teams', JSON.stringify({ unitCarryOne, unitCarryTwo }));
 ok(unitCarryCharted.id === r.ids[3] && unitCarryCharted.stored === 'special'
-   && unitCarryCharted.shown === 'special' && unitCarryCharted.stType === 'Punt',
+   && unitCarryCharted.shown === 'special' && unitCarryCharted.stUnit === 'punt',
    'Save & Next preserves a genuinely charted next play with a different unit', JSON.stringify(unitCarryCharted));
 
 console.log('\n== 8. Penalty replays the down in Auto D&D ==');

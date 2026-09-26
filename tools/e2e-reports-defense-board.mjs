@@ -44,7 +44,9 @@ await page.evaluate(async () => {
     play(6, { ...struct, down: '4', distance: '1', runPass: 'Run', playType: 'Run Outside', yardage: '40', result: 'Touchdown', personnel: '11', players: { tackler: '9' } }),
     play(7, { ...struct, down: '1', distance: '10', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', personnel: '12', players: { takeaway: '22' } }),
     play(8, { ...struct, down: '2', distance: '7', runPass: 'Run', playType: 'Run Inside', yardage: '-2', result: 'Fumble + Touchdown', fumbleRecovery: 'subject', personnel: '12', players: { tackler: '31' } }),
-    play(9, { ...struct, down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '1', result: 'Touchdown', scoreFor: 'us', personnel: '12' }),
+    // Our score with no charted takeaway: a fumble returned for a touchdown whose
+    // recovery was never charted (the retired scoreFor carried this before 2026-09-26).
+    play(9, { ...struct, down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '1', result: 'Fumble + Touchdown', personnel: '12' }),
     // A fourth takeaway with no touchdown, so takeaways (4) and defensive
     // touchdowns (3) can never agree by coincidence.
     play(10, { ...struct, down: '2', distance: '6', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception', personnel: '12', players: { takeaway: '22' } }),
@@ -465,7 +467,7 @@ const drives = await page.evaluate(async () => {
     play(5, { down: '3', distance: '4', runPass: 'Pass', playType: 'Short Pass', yardage: '0', result: 'Interception + Touchdown', yardLine: '25', fieldSide: 'opp', players: { takeaway: '22' } }),
     play(6, { down: '2', distance: '9', runPass: 'Run', playType: 'Run Inside', yardage: '-2', result: 'Fumble + Touchdown', fumbleRecovery: 'subject', yardLine: '6', fieldSide: 'opp', players: { tackler: '31' } }),
     play(7, { down: '2', distance: '8', runPass: 'Run', playType: 'Run Inside', yardage: '-3', result: 'Safety', yardLine: '3', fieldSide: 'opp' }),
-    play(8, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '1', result: 'Touchdown', scoreFor: 'us', yardLine: '8', fieldSide: 'opp' }),
+    play(8, { down: '1', distance: '10', runPass: 'Run', playType: 'Run Inside', yardage: '1', result: 'Fumble + Touchdown', yardLine: '8', fieldSide: 'opp' }),
   ];
   const dashboard = app.stats.defenseDashboard(plays, { z: 'Zoners' });
   const board = app.stats.defenseBoard(plays, { scope: 'game', seasonPlays: plays, labels: { z: 'Zoners' } });

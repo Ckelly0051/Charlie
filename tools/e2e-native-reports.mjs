@@ -46,7 +46,7 @@ await page.evaluate(async () => {
         // nothing at all without an exact call on the play.
         play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
         play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
-        play(3, 'special', { stType: 'Kickoff', kickOutcome: 'Returned', kickDistance: '55', returnYards: '18' }),
+        Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'kickoff', kick: { distance: 55 }, return: { attempted: true, yards: 18 }, outcome: { status: 'returned' } } }),
       ],
     },
     {
@@ -55,7 +55,7 @@ await page.evaluate(async () => {
       plays: [
         play(1, 'offense', { formation: 'Bunch', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
         play(2, 'defense', { defFront: '3-3-5', coverage: 'Cover 1', blitz: 'Edge' }),
-        play(3, 'special', { stType: 'Punt', kickOutcome: 'Returned', kickDistance: '42', returnYards: '6' }),
+        Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'punt', kick: { distance: 42 }, return: { attempted: true, yards: 6 }, outcome: { status: 'returned' } } }),
       ],
     },
   ];
@@ -273,7 +273,7 @@ await page.evaluate(async () => {
         // nothing at all without an exact call on the play.
         play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
         play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
-        play(3, 'special', { stType: 'Kickoff', kickOutcome: 'Returned', kickDistance: '55', returnYards: '18' }),
+        Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'kickoff', kick: { distance: 55 }, return: { attempted: true, yards: 18 }, outcome: { status: 'returned' } } }),
       ],
     },
     {
@@ -282,7 +282,7 @@ await page.evaluate(async () => {
       plays: [
         play(1, 'offense', { formation: 'Bunch', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
         play(2, 'defense', { defFront: '3-3-5', coverage: 'Cover 1', blitz: 'Edge' }),
-        play(3, 'special', { stType: 'Punt', kickOutcome: 'Returned', kickDistance: '42', returnYards: '6' }),
+        Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'punt', kick: { distance: 42 }, return: { attempted: true, yards: 6 }, outcome: { status: 'returned' } } }),
       ],
     },
   ];

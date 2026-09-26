@@ -1291,8 +1291,8 @@
      "retAllowedYards": 0,
      "tdAllowed": 0,
      "onside": {
-      "n": null,
-      "recovered": null
+      "n": 0,
+      "recovered": 0
      },
      "refs": {
       "all": [],
@@ -1379,20 +1379,24 @@
       "outcomes": []
      }
     },
+    "tries": {
+     "n": 0,
+     "tryUnits": 0,
+     "defending": 0,
+     "refs": {
+      "all": [],
+      "tryUnits": []
+     }
+    },
     "blocks": {
-     "n": null,
-     "blocked": null,
+     "n": 0,
+     "blocked": 0,
      "refs": {
       "all": [],
       "blocked": []
      }
     },
-    "tries": {
-     "n": 0,
-     "refs": {
-      "all": []
-     }
-    },
+    "structured": true,
     "hasData": true
    },
    "scoreboard": {
@@ -4414,8 +4418,8 @@
        "retAllowedYards": 0,
        "tdAllowed": 0,
        "onside": {
-        "n": null,
-        "recovered": null
+        "n": 0,
+        "recovered": 0
        },
        "refs": {
         "all": [],
@@ -4479,20 +4483,24 @@
         "outcomes": []
        }
       },
+      "tries": {
+       "n": 0,
+       "tryUnits": 0,
+       "defending": 0,
+       "refs": {
+        "all": [],
+        "tryUnits": []
+       }
+      },
       "blocks": {
-       "n": null,
-       "blocked": null,
+       "n": 0,
+       "blocked": 0,
        "refs": {
         "all": [],
         "blocked": []
        }
       },
-      "tries": {
-       "n": 0,
-       "refs": {
-        "all": []
-       }
-      },
+      "structured": true,
       "hasData": false
      },
      "scoreboard": {
@@ -6173,8 +6181,8 @@
      "retAllowedYards": 0,
      "tdAllowed": 0,
      "onside": {
-      "n": null,
-      "recovered": null
+      "n": 0,
+      "recovered": 0
      },
      "refs": {
       "all": [],
@@ -6261,20 +6269,24 @@
       "outcomes": []
      }
     },
+    "tries": {
+     "n": 0,
+     "tryUnits": 0,
+     "defending": 0,
+     "refs": {
+      "all": [],
+      "tryUnits": []
+     }
+    },
     "blocks": {
-     "n": null,
-     "blocked": null,
+     "n": 0,
+     "blocked": 0,
      "refs": {
       "all": [],
       "blocked": []
      }
     },
-    "tries": {
-     "n": 0,
-     "refs": {
-      "all": []
-     }
-    },
+    "structured": true,
     "hasData": true
    },
    "scoreboard": {
@@ -8607,8 +8619,8 @@
        "retAllowedYards": 0,
        "tdAllowed": 0,
        "onside": {
-        "n": null,
-        "recovered": null
+        "n": 0,
+        "recovered": 0
        },
        "refs": {
         "all": [],
@@ -8672,20 +8684,24 @@
         "outcomes": []
        }
       },
+      "tries": {
+       "n": 0,
+       "tryUnits": 0,
+       "defending": 0,
+       "refs": {
+        "all": [],
+        "tryUnits": []
+       }
+      },
       "blocks": {
-       "n": null,
-       "blocked": null,
+       "n": 0,
+       "blocked": 0,
        "refs": {
         "all": [],
         "blocked": []
        }
       },
-      "tries": {
-       "n": 0,
-       "refs": {
-        "all": []
-       }
-      },
+      "structured": true,
       "hasData": false
      },
      "scoreboard": {
@@ -9837,8 +9853,8 @@
      "retAllowedYards": 0,
      "tdAllowed": 0,
      "onside": {
-      "n": null,
-      "recovered": null
+      "n": 0,
+      "recovered": 0
      },
      "refs": {
       "all": [],
@@ -9902,20 +9918,24 @@
       "outcomes": []
      }
     },
+    "tries": {
+     "n": 0,
+     "tryUnits": 0,
+     "defending": 0,
+     "refs": {
+      "all": [],
+      "tryUnits": []
+     }
+    },
     "blocks": {
-     "n": null,
-     "blocked": null,
+     "n": 0,
+     "blocked": 0,
      "refs": {
       "all": [],
       "blocked": []
      }
     },
-    "tries": {
-     "n": 0,
-     "refs": {
-      "all": []
-     }
-    },
+    "structured": true,
     "hasData": false
    },
    "scoreboard": {
@@ -11473,8 +11493,8 @@
        "retAllowedYards": 0,
        "tdAllowed": 0,
        "onside": {
-        "n": null,
-        "recovered": null
+        "n": 0,
+        "recovered": 0
        },
        "refs": {
         "all": [],
@@ -11538,20 +11558,24 @@
         "outcomes": []
        }
       },
+      "tries": {
+       "n": 0,
+       "tryUnits": 0,
+       "defending": 0,
+       "refs": {
+        "all": [],
+        "tryUnits": []
+       }
+      },
       "blocks": {
-       "n": null,
-       "blocked": null,
+       "n": 0,
+       "blocked": 0,
        "refs": {
         "all": [],
         "blocked": []
        }
       },
-      "tries": {
-       "n": 0,
-       "refs": {
-        "all": []
-       }
-      },
+      "structured": true,
       "hasData": false
      },
      "scoreboard": {
