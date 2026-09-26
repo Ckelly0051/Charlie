@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import { TagProjection } from '../js/tag-projection.js';
 import { SeasonStore } from '../js/season-store.js';
 import { PlayTagger } from '../js/play-tagger.js';
+import { SeasonFormat } from '../js/season-format.js';
 
 let pass = 0, fail = 0;
 const test = (label, fn) => {
@@ -192,32 +193,19 @@ test('17b · (E1-R6) carry does NOT leak onto a special-teams target', () => {
   assert.equal(next.tags.backfield || '', '');
 });
 
-test('17c · _normalize preserves legacy custom tags through save/reopen', async () => {
-  const saved = [];
-  const backend = {
-    saveSeason: (_seasonId, data) => { saved.push(JSON.parse(JSON.stringify(data))); return true; },
-    diskStatus: () => ({ bound: false }),
-  };
-  const store = new SeasonStore(backend);
+test('17c · custom tags are a list: missing becomes [], any other shape is refused as old format', () => {
+  const store = new SeasonStore({ saveSeason: () => true, diskStatus: () => ({ bound: false }) });
   const noCustom = { id: 1, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense' } };
-  const stringCustom = { id: 2, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense', custom: 'Blitz Alert' } };
-  const objectCustom = { id: 3, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense', custom: { label: 'Goal line', color: 'red' } } };
   const realCustom = { id: 4, timestamp: { start: 0, end: 2 }, tags: { unit: 'offense', custom: ['Keep Me'] } };
-  store.data = store._normalize({ id: 's1', activeGameId: 'g1', games: [{ id: 'g1', plays: [noCustom, stringCustom, objectCustom, realCustom] }] });
-
+  store._normalize({ id: 's1', activeGameId: 'g1', games: [{ id: 'g1', plays: [noCustom, realCustom] }] });
   assert.deepEqual(noCustom.tags.custom, [], 'missing custom becomes an empty array');
-  assert.deepEqual(stringCustom.tags.custom, ['Blitz Alert'], 'a scalar legacy tag is preserved');
-  assert.deepEqual(objectCustom.tags.custom, ['{"label":"Goal line","color":"red"}'], 'an object-shaped import is preserved as JSON text');
   assert.deepEqual(realCustom.tags.custom, ['Keep Me'], 'an existing custom array is preserved verbatim');
-
-  assert.equal(await store.persist(), true, 'normalized season persists');
-  const reopened = new SeasonStore(backend);
-  reopened.data = reopened._normalize(JSON.parse(JSON.stringify(saved[0])));
-  assert.deepEqual(reopened.data.games[0].plays.map(play => play.tags.custom), [
-    [], ['Blitz Alert'], ['{"label":"Goal line","color":"red"}'], ['Keep Me'],
-  ], 'custom tags survive the canonical save/reopen boundary');
-});
-/* ---- §7b bounded, coach-approved ST cleanup ---- */
+  for (const custom of ['Blitz Alert', { label: 'Goal line' }, 7]) {
+    const problems = SeasonFormat.playProblems({ id: 9, tags: { unit: 'offense', custom } });
+    assert.ok(problems.includes('custom tags not a list'), `custom ${JSON.stringify(custom)} is refused: ${problems}`);
+  }
+  assert.equal(SeasonFormat.playProblems({ id: 9, tags: { unit: 'offense' } }).length, 0, 'a missing custom key is not a problem');
+});/* ---- §7b bounded, coach-approved ST cleanup ---- */
 
 test('18 · (E1-R7b) _normalize clears backfield/strength on ST plays only, nothing else', () => {
   const stWithBoth = legacyPlay(20, { unit: 'special', backfield: 'Power', strength: 'Right' });

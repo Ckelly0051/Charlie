@@ -424,9 +424,9 @@ for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
 }
 
 console.log('\n== 8d. E3b/E4-2: projected cells + editable projected columns + saved-column upgrade ==');
-// Fully pure -- _cellText/_cell, PG.COLUMNS, PG._upgradeCols and _loadCols
-// never touch the classic .pg-* markup, so this section is unaffected by the
-// #playGridSection deletion.
+// Fully pure -- _cellText/_cell and PG.COLUMNS never touch the classic .pg-*
+// markup. (The saved-column upgrade from old stock lists is converted once at
+// boot and tested in e2e-settings-format.)
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
@@ -444,10 +444,6 @@ r = await page.evaluate(() => {
     // dedicated BEHAVIORAL block below) -- this just confirms the declared type.
     qbType: PG.COLUMNS.find(c => c.key === 'qbAlignment').type,
     famType: PG.COLUMNS.find(c => c.key === 'coverageFamily').type,
-    // P4 upgrade rule
-    upgradeStockDefault: PG._upgradeCols(PG.LEGACY_PRESETS.default.slice()),
-    upgradeStockDefense: PG._upgradeCols(PG.LEGACY_PRESETS.defense.slice()),
-    upgradeCustom: PG._upgradeCols(['sit', 'formation', 'notes']),
     newDefault: PG.PRESETS.default,
     newDefense: PG.PRESETS.defense,
   };
@@ -462,36 +458,8 @@ ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the stored family', J
 ok(r.qbType === 'enum' && r.famType === 'enum',
   'QB Alignment + Coverage Family are declared as genuine editable enum columns (E4-2)', JSON.stringify(r));
 
-// P4 through the REAL persistence path. Calling _upgradeCols() directly proves
-// only the helper -- removing its call from _loadCols() would leave that green. So
-// write localStorage and read back through _loadCols().
-r = await page.evaluate(() => {
-  const grid = window.app.playGrid, PG = grid.constructor;
-  const saved = localStorage.getItem('ffa_film_room_cols');
-  const via = (value) => {
-    if (value === null) localStorage.removeItem('ffa_film_room_cols');
-    else localStorage.setItem('ffa_film_room_cols', JSON.stringify(value));
-    return grid._loadCols();
-  };
-  const out = {
-    none: via(null),
-    legacyDefault: via(PG.LEGACY_PRESETS.default),
-    legacyOffense: via(PG.LEGACY_PRESETS.offense),
-    legacyDefense: via(PG.LEGACY_PRESETS.defense),
-    custom: via(['sit', 'formation', 'notes']),
-    newDefault: PG.PRESETS.default, newOffense: PG.PRESETS.offense, newDefense: PG.PRESETS.defense,
-  };
-  if (saved === null) localStorage.removeItem('ffa_film_room_cols'); else localStorage.setItem('ffa_film_room_cols', saved);
-  return out;
-});
-const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-ok(eqJ(r.none, r.newDefault), 'P4 via _loadCols: NO saved preference -> new defaults', JSON.stringify(r.none));
-ok(eqJ(r.legacyDefault, r.newDefault), 'P4 via _loadCols: saved OLD default preset -> upgraded', JSON.stringify(r.legacyDefault));
-ok(eqJ(r.legacyOffense, r.newOffense), 'P4 via _loadCols: saved OLD offense preset -> upgraded', JSON.stringify(r.legacyOffense));
-ok(eqJ(r.legacyDefense, r.newDefense), 'P4 via _loadCols: saved OLD defense preset -> upgraded', JSON.stringify(r.legacyDefense));
-ok(eqJ(r.custom, ['sit', 'formation', 'notes']), 'P4 via _loadCols: CUSTOM layout preserved untouched', JSON.stringify(r.custom));
 ok(r.newDefault.includes('qbAlignment') && r.newDefense.includes('coverageFamily'),
-  'P4: the upgraded presets actually expose the new columns', JSON.stringify({ d: r.newDefault, f: r.newDefense }));
+  'the presets expose QB Alignment and Coverage Family', JSON.stringify({ d: r.newDefault, f: r.newDefense }));
 
 console.log('\n== Multi-enum inline edit: Result cell (native, real overlay editor) ==');
 r = await page.evaluate(() => {

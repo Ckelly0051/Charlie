@@ -21,13 +21,18 @@ test('first desktop beta launch enables the remaining catalog beta default', () 
   const store = memory();
   assert.equal(configureBetaDefaults(store, true, '1.12.0-2'), true);
   assert.equal(store.getItem('ffa_sql_catalog'), '1');
-  assert.equal(store.getItem('ffa_beta_defaults_1.12.0-2'), '1');
+  assert.equal(store.getItem('ffa_beta_defaults'), '1.12.0-2');
+  assert.equal(store.getItem('ffa_beta_defaults_1.12.0-2'), null, 'no per-version marker is written');
 });
 
 test('one-time marker preserves later coach choices', () => {
-  const store = memory({ 'ffa_beta_defaults_1.12.0-2':'1', 'ffa_sql_catalog':'0' });
+  const store = memory({ 'ffa_beta_defaults':'1.12.0-2', 'ffa_sql_catalog':'0' });
   assert.equal(configureBetaDefaults(store, true, '1.12.0-2'), false);
   assert.equal(store.getItem('ffa_sql_catalog'), '0');
+  // A new beta version applies its defaults once and records itself in the one key.
+  assert.equal(configureBetaDefaults(store, true, '1.12.0-3'), true);
+  assert.equal(store.getItem('ffa_beta_defaults'), '1.12.0-3');
+  assert.equal(store.values.size, 2, 'one marker key, never one per version');
 });
 
 console.log(`\n== RESULT: ${pass} passed, 0 failed ==`);

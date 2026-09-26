@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import { SettingsFormat } from '../js/settings-format.js';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;
@@ -124,8 +125,7 @@ state = await page.evaluate(() => {
   app.tagger.selectPlay(3);
   app.history.stack = []; app.history.index = -1;
   const columns = app.playGrid.nativeSnapshot().allColumns;
-  const upgradedDefault = app.playGrid.constructor._upgradeCols(
-    app.playGrid.constructor.PRE_CALL_PRESETS.default);
+  const presetDefault = app.playGrid.constructor.PRESETS.default;
   app.playGrid.nativeCommitEdit(3, 'playCall', '26 Blast');
   const after = structuredClone(app.tagger.getCurrentPlay().tags);
   const entries = app.history.stack.length;
@@ -133,14 +133,16 @@ state = await page.evaluate(() => {
   const undone = structuredClone(app.tagger.getPlay(3).tags);
   app.history.redo();
   const redone = structuredClone(app.tagger.getPlay(3).tags);
-  return { columns, upgradedDefault, after, entries, undone, redone };
+  return { columns, presetDefault, after, entries, undone, redone };
 });
 ok(state.columns.some(col => col.key === 'playCall' && col.label === 'Play Call')
   && state.columns.some(col => col.key === 'playConcept' && col.label === 'Concept')
   && state.columns.some(col => col.key === 'notes' && col.label === 'Notes'),
   'Film Room exposes distinct Play Call, Concept, and Notes columns', JSON.stringify(state.columns));
-ok(state.upgradedDefault.includes('playCall'),
-  'A saved pre-call stock preset upgrades to reveal Play Call', JSON.stringify(state.upgradedDefault));
+// A saved pre-call stock list is upgraded once at boot (settings-format.js).
+const upgraded = SettingsFormat._upgradeColumns(SettingsFormat.STOCK_COLUMNS.default[1].slice(), { default: state.presetDefault });
+ok(upgraded.includes('playCall') && JSON.stringify(upgraded) === JSON.stringify(state.presetDefault),
+  'A saved pre-call stock preset upgrades to reveal Play Call', JSON.stringify(upgraded));
 ok(state.after.playCall === '26 Blast' && state.after.playCallId === 'call_26_blast'
   && state.after.playConcept === 'Blast' && state.after.formation === 'Power-I',
   'Film Room selects a saved call through the same snapshot/default rules as Chart', JSON.stringify(state.after));

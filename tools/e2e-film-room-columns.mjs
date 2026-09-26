@@ -2,8 +2,9 @@
  * FILM ROOM COLUMN SETS PER UNIT (coach direction, 2026-09-24). The table keeps
  * four column sets -- Offense, Defense, Special Teams and All plays -- and the
  * unit FILTER picks the one on screen. Editing columns while a unit is shown
- * changes only that unit's set. Sets persist per program. The coach's existing
- * single column list seeds All plays and is left untouched. In All plays a
+ * changes only that unit's set. Sets persist per program. The coach's old
+ * single column list is converted once at boot (settings-format.js) and seeds
+ * All plays. In All plays a
  * unit-specific column is blank, and not editable, on a row of another unit.
  * Run:  node tools/e2e-film-room-columns.mjs
  */
@@ -81,8 +82,8 @@ ok(v.cols.includes('quarter') && v.heads.includes('Qtr'), 'Qtr added while viewi
 ok(v.stored && v.stored.defense.includes('quarter') && !v.stored.offense.includes('quarter') && !v.stored.all.includes('quarter') && !v.stored.special.includes('quarter'),
   'only the defense set changed, and it is stored', JSON.stringify(v.stored));
 const team = await page.evaluate(() => localStorage.getItem('ffa_active_team_id') || 'default');
-ok(v.key === `ffa_film_room_columns_${team}` && v.legacy === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
-  'sets are stored per program; the old single list is left untouched', JSON.stringify({ key: v.key, legacy: v.legacy }));
+ok(v.key === `ffa_film_room_columns_${team}` && v.legacy === null,
+  'sets are stored per program; the old single list was converted and removed at boot', JSON.stringify({ key: v.key, legacy: v.legacy }));
 await filter('offense'); v = await view();
 ok(!v.cols.includes('quarter') && !v.heads.includes('Qtr'), 'the offense table is unaffected', JSON.stringify(v.heads));
 
@@ -155,14 +156,12 @@ const other = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const cols = grid.cols.slice(), key = grid.columnsKey(), all = grid._colSets().all.slice();
   if (real == null) localStorage.removeItem('ffa_active_team_id'); else localStorage.setItem('ffa_active_team_id', real);
-  return { cols, key, all, claim: localStorage.getItem('ffa_film_room_cols_claimed_by'), legacy: localStorage.getItem('ffa_film_room_cols') };
+  return { cols, key, all };
 });
 ok(other.key === 'ffa_film_room_columns_team-b' && !other.cols.includes('quarter') && JSON.stringify(other.cols) === JSON.stringify(PG.defense),
   'another program has its own sets', JSON.stringify(other));
-// Codex (c1cce33): the old single list is global and seeds ONE program's All plays.
-ok(JSON.stringify(other.all) === JSON.stringify(PG.default) && other.claim && other.claim !== 'team-b'
-  && other.legacy === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
-  'another program\'s All plays starts from the preset, not the first program\'s old list, which stays untouched', JSON.stringify(other));
+ok(JSON.stringify(other.all) === JSON.stringify(PG.default),
+  'another program\'s All plays starts from the preset, not the first program\'s list', JSON.stringify(other));
 const bad = await page.evaluate(() => {
   const grid = window.app.playGrid, real = localStorage.getItem('ffa_active_team_id');
   localStorage.setItem('ffa_active_team_id', 'team-c');
@@ -173,29 +172,6 @@ const bad = await page.evaluate(() => {
 });
 ok(bad.off.join() === 'sit,formation' && bad.def.join() === PG.defense.join() && bad.all.length > 0,
   'unknown columns are dropped and an unusable set falls back', JSON.stringify(bad));
-
-// Review (5cd5313): the old list is claimed only after the program's sets are
-// durable. A failed write leaves it unclaimed, so the next launch still seeds.
-const durable = await page.evaluate(() => {
-  const grid = window.app.playGrid, CLAIM = 'ffa_film_room_cols_claimed_by';
-  const real = localStorage.getItem('ffa_active_team_id'), owner = localStorage.getItem(CLAIM);
-  localStorage.removeItem(CLAIM);
-  localStorage.setItem('ffa_active_team_id', 'team-d');
-  const set = Storage.prototype.setItem;
-  Storage.prototype.setItem = function (k, v) { if (k === 'ffa_film_room_columns_team-d') throw new DOMException('full', 'QuotaExceededError'); return set.call(this, k, v); };
-  grid._colSets();
-  const afterFail = localStorage.getItem(CLAIM);
-  Storage.prototype.setItem = set;
-  delete grid._colSetsByTeam['team-d'];
-  const all = grid._colSets().all.slice();
-  const afterRetry = localStorage.getItem(CLAIM);
-  localStorage.removeItem('ffa_film_room_columns_team-d');
-  if (owner == null) localStorage.removeItem(CLAIM); else localStorage.setItem(CLAIM, owner);
-  if (real == null) localStorage.removeItem('ffa_active_team_id'); else localStorage.setItem('ffa_active_team_id', real);
-  return { afterFail, afterRetry, all };
-});
-ok(durable.afterFail === null && durable.afterRetry === 'team-d' && JSON.stringify(durable.all) === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
-  'a failed save leaves the old list unclaimed; the next read seeds from it and claims it', JSON.stringify(durable));
 
 ok(errors.length === 0, 'no page errors', errors.slice(0, 3).join(' | '));
 await browser.close();

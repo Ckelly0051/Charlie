@@ -21,6 +21,7 @@
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
 import { TagLibrary } from '../js/tag-library.js';
+import { SettingsFormat } from '../js/settings-format.js';
 import { PlayTagger } from '../js/play-tagger.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -66,11 +67,15 @@ console.log('\n-- PL-2 Option is a built-in, owned once --');
     getItem: k => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, String(v)),
     removeItem: k => store.delete(k),
+    get length() { return store.size; },
+    key: i => [...store.keys()][i] ?? null,
   };
   const legacy = { version: 3, groups: { playType: {
     custom: [], order: types.filter(t => t !== 'Option'), enabled: types.filter(t => t !== 'Option'),
   } }, presets: [] };
   store.set('ffa_tag_libraries_t1', JSON.stringify(legacy));
+  // A library saved before the bump is converted once at boot (settings-format.js).
+  SettingsFormat.convertOnce({ storage: fakeStorage });
   const lib = new TagLibrary({ storage: fakeStorage, teamId: 't1' });
   const group = lib.group('playType');
   ok(group.values.includes('Option') && group.enabled.includes('Option'),
