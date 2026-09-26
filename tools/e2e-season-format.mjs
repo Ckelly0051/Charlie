@@ -186,6 +186,51 @@ ok(r.firstRun.firstToasts.length === 1 && /1 season file uses an old GridIron IQ
 ok(!r.template.stType && !r.template.kickOutcome && r.template.playType === 'Short Pass'
   && r.template.formation === r.template.before.formation && r.template.qb === r.template.before.qb && !String(r.template.formation || '').includes('+'),
   'an old template applies its current values only; its combined look is not applied', JSON.stringify(r.template));
+// A STORED payload that is not a season (a single-game save written into the
+// library slot, or any other shape) is refused on open and on reload, never
+// opened as an empty season a later save would write over. Only no stored
+// payload at all starts empty.
+const stored = await page.evaluate(async () => {
+  const S = app.storage, st = S.seasonStore;
+  const charted = { id: 1, timestamp: { start: 0, end: 1 }, notes: '', annotations: [], tags: { unit: 'offense', playType: 'Run Inside', players: {}, grades: {}, custom: [] } };
+  const toasts = [];
+  const realToast = S.tagger.toast;
+  S.tagger.toast = msg => { toasts.push(String(msg)); };
+  const snap = () => ({ id: st.currentSeasonId, pointer: st.backend.currentSeason(), plays: S.tagger.plays.length, dataId: st.data?.id });
+  const out = { cases: {} };
+  for (const [slot, payload] of [['stored-single-game', { plays: [charted], gameInfo: { opponent: 'Old' } }], ['stored-not-season', ['x']]]) {
+    await st.backend.saveSeason(slot, payload);
+    const bytes = JSON.stringify(await st.backend.loadSeason(slot));
+    const before = snap();
+    const opened = await S.openSeasonById(slot);
+    out.cases[slot] = { stored: bytes !== 'null', opened, before, after: snap(), same: JSON.stringify(await st.backend.loadSeason(slot)) === bytes };
+  }
+  // load(): the OPEN season's own stored bytes replaced by a single-game payload.
+  const liveId = st.currentSeasonId;
+  const livePlays = st.data.games.reduce((n, g) => n + (g.plays || []).length, 0);
+  const liveBytes = JSON.stringify(await st.backend.loadSeason(liveId));
+  await st.backend.saveSeason(liveId, { plays: [charted] });
+  const reloaded = await st.load();
+  out.load = { sameObject: reloaded === st.data, plays: st.data.games.reduce((n, g) => n + (g.plays || []).length, 0), livePlays,
+    refusal: st.openRefusal?.message || '', id: st.currentSeasonId === liveId };
+  st.openRefusal = null;
+  await st.backend.saveSeason(liveId, JSON.parse(liveBytes));
+  // Nothing stored at all still starts an empty season.
+  out.empty = await (async () => { const r = await st.openSeason('never-saved-slot'); return !!r && Array.isArray(r.games); })();
+  S.tagger.toast = realToast;
+  out.toasts = toasts;
+  return out;
+});
+for (const [slot, c] of Object.entries(stored.cases)) {
+  ok(c.stored && c.opened === false && c.after.id === c.before.id && c.after.pointer === c.before.pointer && c.after.plays === c.before.plays && c.after.dataId === c.before.dataId,
+    `${slot}: a stored payload that is not a season does not open; the open season, pointer and plays are untouched`, JSON.stringify(c));
+  ok(c.same, `${slot}: its stored bytes are unchanged`, String(c.same));
+}
+ok(stored.toasts.length === 2 && stored.toasts.every(t => /uses an old GridIron IQ format and was not opened/.test(t)), 'each refusal is surfaced', JSON.stringify(stored.toasts));
+ok(stored.load.sameObject && stored.load.id && stored.load.plays === stored.load.livePlays && /was not opened/.test(stored.load.refusal),
+  'load() refuses a stored single-game payload and keeps the live season as it was', JSON.stringify(stored.load));
+ok(stored.empty, 'a slot with nothing stored still opens as a new empty season');
+
 ok(!errors.length, 'no page errors', errors.join(' | '));
 
 await browser.close();
