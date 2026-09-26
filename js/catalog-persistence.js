@@ -1,3 +1,4 @@
+import { SeasonFormat } from './season-format.js';
 /**
  * CatalogPersistence — the orchestrator that makes the SQLite catalog the
  * ONE canonical season store on desktop (PC-2). It owns ONLY the
@@ -454,7 +455,8 @@ export class CatalogPersistence {
         if (inDb) continue;
         let json = null;
         try { json = await this.fs.readJson(id); } catch (e) { json = null; }
-        if (json && Array.isArray(json.games)) {
+        // An old-format per-season file is left on disk and not imported (step 6).
+        if (json && Array.isArray(json.games) && SeasonFormat.isCurrentSeason(json)) {
           json.id = json.id || id;
           this.catalog.setCurrentSeason(id);
           try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}

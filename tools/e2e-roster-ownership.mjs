@@ -449,14 +449,15 @@ r = await run(async () => {
   });
   const afterBytes = JSON.stringify(await st.backend.loadSeason(dest));
   return {
-    ok: result?.ok, data: result?.data, conflict: result?.conflict ? { variants: result.conflict.variants, games: result.conflict.games } : null,
+    ok: result?.ok, data: result?.data, oldFormat: result?.oldFormat === true,
     before, after: { id: st.currentSeasonId, live: window.__r.nums(), stored: window.__r.stored(), name: st.data.seasonName },
     sameBytes: beforeBytes === afterBytes,
   };
 });
 ok(r.ok === false && r.data === null, 'A conflicting import returns ok:false', JSON.stringify({ ok: r.ok, data: r.data }));
-ok(r.conflict && r.conflict.variants === 2 && r.conflict.games.join(',') === 'Week 1,Week 2',
-  'It returns structured conflict information', JSON.stringify(r.conflict));
+// Game-level rosters are the retired format (legacy excision step 6): the file is
+// refused as old before any roster comparison runs.
+ok(r.oldFormat, 'It is refused as an old-format file', JSON.stringify(r));
 ok(r.after.id === r.before.id && r.after.stored === r.before.stored && r.after.live === r.before.live && r.after.name === 'Import Dest',
   'The destination season, its roster and the live roster are unchanged', JSON.stringify({ before: r.before, after: r.after }));
 ok(r.sameBytes, 'The conflicted import is never persisted', String(r.sameBytes));
@@ -490,10 +491,11 @@ ok(r.after.id === r.before.id && r.after.stored === r.before.stored && r.after.l
 ok(r.sameSeason, 'No canonical season data is replaced', String(r.sameSeason));
 ok(r.sameBackup, 'The conflicting backup keeps its own bytes', String(r.sameBackup));
 
-console.log('\n== 7d. Import and adopt obey the same ownership contract ==');
+console.log('\n== 7d. Legacy roster imports are refused (legacy excision step 6) ==');
 r = await run(async () => {
   const S = window.app.storage, st = S.seasonStore;
-  await S.createSeason({ name: 'Import Target', team: 'IT Team', year: '2026', level: 'Varsity' });
+  await window.__r.make('Import Target', 'IT Team', '2026', 'Varsity', [12]);
+  const before = { id: st.currentSeasonId, stored: window.__r.stored(), bytes: JSON.stringify(await st.backend.loadSeason(st.currentSeasonId)) };
   // A legacy SEASON export whose games carry the roster.
   const imported = await st.adopt({
     type: 'season', seasonName: 'Imported', year: '2023', level: 'JV',
@@ -502,27 +504,21 @@ r = await run(async () => {
       { id: 'ig2', name: 'G2', plays: [], roster: [{ num: '44', name: 'Imported' }] },
     ],
   });
-  const afterImport = {
-    ok: imported.ok, roster: (st.data.roster || []).map(p => String(p.num)).join(','),
-    gameRosters: (st.data.games || []).filter(g => Object.prototype.hasOwnProperty.call(g, 'roster')).length,
-    marker: st.data.rosterOwnership,
-  };
-  const disk = await st.backend.loadSeason(st.currentSeasonId);
+  const afterImport = { ok: imported.ok, oldFormat: imported.oldFormat === true, stored: window.__r.stored() };
   // A legacy SINGLE-GAME save whose roster lives on the payload's game node.
   const single = await st.adopt({ plays: [], gameInfo: { opponent: 'Legacy Opp' }, roster: [{ num: '66', name: 'Single' }] });
   return {
-    afterImport,
-    diskRoster: (disk?.roster || []).map(p => String(p.num)).join(','),
-    diskGameRosters: (disk?.games || []).filter(g => Object.prototype.hasOwnProperty.call(g, 'roster')).length,
-    single: { ok: single.ok, roster: (st.data.roster || []).map(p => String(p.num)).join(','), gameRosters: (st.data.games || []).filter(g => Object.prototype.hasOwnProperty.call(g, 'roster')).length },
+    before, afterImport,
+    single: { ok: single.ok, oldFormat: single.oldFormat === true },
+    same: st.currentSeasonId === before.id && window.__r.stored() === before.stored
+      && JSON.stringify(await st.backend.loadSeason(st.currentSeasonId)) === before.bytes,
   };
 });
-ok(r.afterImport.ok && r.afterImport.roster === '44' && r.afterImport.marker === 'season',
-  'An imported legacy season converts to one season roster', JSON.stringify(r.afterImport));
-ok(r.afterImport.gameRosters === 0 && r.diskGameRosters === 0 && r.diskRoster === '44',
-  'The imported season retains no game-level roster, in memory or on disk', JSON.stringify(r));
-ok(r.single.ok && r.single.roster === '66' && r.single.gameRosters === 0,
-  'A legacy single-game import puts its roster on the season and nowhere else', JSON.stringify(r.single));
+ok(r.afterImport.ok === false && r.afterImport.oldFormat,
+  'A legacy season export with game-level rosters is refused as an old format', JSON.stringify(r.afterImport));
+ok(r.single.ok === false && r.single.oldFormat,
+  'A legacy single-game save is refused as an old format', JSON.stringify(r.single));
+ok(r.same, 'The open season, its roster and its stored bytes are unchanged by both refusals', JSON.stringify(r));
 
 console.log('\n== 8. Backup and restore touch one season only ==');
 r = await run(async () => {
@@ -554,8 +550,8 @@ ok(r.restoreOk, 'A restore point for this season can be taken and read back', JS
 ok(r.changed === '80' && r.restored === '70,71', 'Restore returns the season\'s own roster', JSON.stringify(r));
 ok(r.keep === '60,61', 'The other season is untouched by the restore', r.keep);
 
-/* A backup can predate the season roster model, so restore is a boundary too --
-   and it must land the same structure every other boundary does. */
+/* A backup that predates the season roster model is the retired format (legacy
+   excision step 6): the restore is refused and nothing is written. */
 r = await run(async () => {
   const S = window.app.storage, st = S.seasonStore;
   await window.__r.make('Restore Legacy', 'RL Team', '2025', 'Varsity', [50]);
@@ -565,21 +561,18 @@ r = await run(async () => {
     games: [{ id: 'rg1', name: 'G1', plays: [], roster: [{ num: '31', name: 'FromBackup' }] }],
   }, 'legacy backup');
   const bid = rec && typeof rec === 'object' ? rec.id : rec;
-  const restored = bid != null ? await st.restoreBackup(bid) : null;
-  const disk = await st.backend.loadSeason(id);
+  const beforeBytes = JSON.stringify(await st.backend.loadSeason(id));
+  const pointsBefore = (await st.listBackups()).length;
+  const restored = bid != null ? await st.restoreBackup(bid) : 'no-id';
   return {
-    attempted: bid != null,
-    roster: (restored?.roster || []).map(p => String(p.num)).join(','),
-    gameRosters: (restored?.games || []).filter(g => Object.prototype.hasOwnProperty.call(g, 'roster')).length,
-    marker: restored?.rosterOwnership || '(none)',
-    diskRoster: (disk?.roster || []).map(p => String(p.num)).join(','),
-    diskGameRosters: (disk?.games || []).filter(g => Object.prototype.hasOwnProperty.call(g, 'roster')).length,
+    attempted: bid != null, restored, refusal: st.lastRestoreRefusal || '',
+    same: JSON.stringify(await st.backend.loadSeason(id)) === beforeBytes,
+    pointsSame: (await st.listBackups()).length === pointsBefore,
   };
 });
 ok(r.attempted, 'A legacy-shaped backup could be written and restored', JSON.stringify(r));
-ok(r.roster === '31' && r.marker === 'season', 'Restoring a pre-season-model backup converts its roster', JSON.stringify(r));
-ok(r.gameRosters === 0 && r.diskGameRosters === 0 && r.diskRoster === '31',
-  'A restore retains no game-level roster, in memory or on disk', JSON.stringify(r));
+ok(r.restored === null && /old format/.test(r.refusal), 'Restoring a pre-season-model backup is refused as an old format', JSON.stringify(r));
+ok(r.same && r.pointsSame, 'The refused restore writes nothing: no safety point, the season unchanged', JSON.stringify(r));
 
 console.log('\n== 9. Reports player attribution reads the SELECTED season roster ==');
 /* No fallback. `_mergeRoster` is the one attribution owner Reports > Players and

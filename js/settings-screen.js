@@ -480,7 +480,7 @@ export class SettingsScreen {
     const choice=await this.overlays.dialog({title:'Restore this season?',message:'Every game in the season will return to this restore point. GridIron IQ saves your current state first, so the restore is reversible.',actions:[{key:'cancel',label:'Keep current season',default:true},{key:'restore',label:'Restore season',tone:'destructive'}]}).result;
     if(choice!=='restore')return false;
     const ok=await this.app.storage.restoreBackup(id);
-    if(!ok){this._toast('The restore failed. Your current season was kept.', 'error');return false;}
+    if(!ok){this._toast(this._store()?.lastRestoreRefusal || 'The restore failed. Your current season was kept.', 'error');return false;}
     this._toast('Season restored. A copy of the prior state was saved.');
     this.app.workspaceShell?._syncChrome?.(); return true;
   }

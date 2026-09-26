@@ -4,6 +4,7 @@ import { DemoSeason } from './demo-season.js';
 import { planClipMatch } from './clip-identity.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
+import { SeasonFormat } from './season-format.js';
 // E3b: exportCsv reads the pre-snap look through the projection seam. No cycle —
 // stats-engine.js imports charts/heat-maps/metrics, never storage.js.
 import { StatsEngine } from './stats-engine.js';
@@ -1651,6 +1652,14 @@ export class StorageManager {
       let parsed;
       try { parsed = JSON.parse(e.target.result); }
       catch (err) { alert('Invalid project file.'); return; }
+
+      // An old-format file (a pre-conversion season, or a single-game save) is
+      // refused here, before any scaffold season or the open game is touched;
+      // the file on disk stays exactly as it is (legacy excision step 6).
+      if (parsed && (Array.isArray(parsed.games) || Array.isArray(parsed.plays)) && !SeasonFormat.isCurrentSeason(parsed)) {
+        this.tagger?.toast?.(SeasonFormat.MESSAGE, 8000);
+        return;
+      }
 
       if (parsed && Array.isArray(parsed.games)) {
         // First-run / library-only state (e.g. importing a season saved on

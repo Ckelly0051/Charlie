@@ -1,6 +1,7 @@
 import { SqlCatalog } from './sql-catalog.js';
 import { CatalogPersistence } from './catalog-persistence.js';
 import { SnapshotEnvelope } from './snapshot-envelope.js';
+import { SeasonFormat } from './season-format.js';
 
 /**
  * StorageBackend — the seam between the app and *where bytes live*.
@@ -688,6 +689,12 @@ export class TauriBackend extends StorageBackend {
         out.push({ id, valid: false, reason: 'folder-identity-mismatch', name: id, team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog });
         continue;
       }
+      if (result.ok && !SeasonFormat.isCurrentSeason(result.envelope.data)) {
+        // Saved before the 2026-09-26 conversion: listed so the coach sees it,
+        // never importable (legacy excision step 6).
+        out.push({ id, valid: false, reason: 'old-format', name: result.envelope.data.seasonName || id, team: '', gameCount: result.envelope.gameCount, playCount: result.envelope.playCount, revision: result.envelope.revision, timestamp: result.envelope.timestamp, existsInCatalog });
+        continue;
+      }
       if (result.ok) {
         const envelope = result.envelope;
         out.push({
@@ -758,6 +765,8 @@ export class TauriBackend extends StorageBackend {
     if (!result.ok) return { ok: false, reason: result.reason };
     const data = result.envelope.data;
     if (!data || !Array.isArray(data.games)) return { ok: false, reason: 'malformed' };
+    // Old format: refused before any catalog lookup or write (step 6).
+    if (!SeasonFormat.isCurrentSeason(data)) return { ok: false, reason: 'old-format', message: SeasonFormat.MESSAGE };
     // data.id is already === id here: unwrap() enforces envelope.seasonId
     // === data.id, and the check above enforces envelope.seasonId === id.
     // A validated envelope's identity is never reassigned.

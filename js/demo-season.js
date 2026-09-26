@@ -1,3 +1,5 @@
+import { TagProjection } from './tag-projection.js';
+
 /**
  * DemoSeason — a fully-tagged sample season the coach can explore instantly.
  *
@@ -227,6 +229,10 @@ export class DemoSeason {
         if (down > 4) break;
       }
     }
+
+    // The sample is born in the current format: a generated look like
+    // "Shotgun + Trips" is stored in its own fields, through the one look commit.
+    plays.forEach(p => TagProjection.commitLook(p));
 
     return {
       id: 'g_demo_' + seed, name: `vs ${opponent}`, status: 'final',

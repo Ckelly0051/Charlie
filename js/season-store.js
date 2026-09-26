@@ -25,6 +25,7 @@ import { detectBackend } from './storage-backend.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { countedUnit } from './football-rules.js';
+import { SeasonFormat } from './season-format.js';
 
 export class SeasonStore {
   /** PC-4: ceiling for the monotonic commit counter. Far beyond any real
@@ -1384,7 +1385,11 @@ export class SeasonStore {
    */
   async restoreBackup(id) {
     const data = await this.backend.getBackup(this.currentSeasonId, id);
+    this.lastRestoreRefusal = null;
     if (!data || !Array.isArray(data.games)) return null;
+    // A restore point saved before the 2026-09-26 conversion is in the old
+    // format: refused before the safety snapshot, so nothing is written (step 6).
+    if (!SeasonFormat.isCurrentSeason(data)) { this.lastRestoreRefusal = SeasonFormat.RESTORE_MESSAGE; return null; }
     // A backup can predate the season roster model, so restore is one of the
     // three boundary callers. Validated and once-only, like the import path;
     // the persist below is what makes the conversion durable.
@@ -1541,6 +1546,8 @@ export class SeasonStore {
    * never touched in that case either.
    */
   async adopt(parsed) {
+    // Old-format payloads are refused before anything is staged (step 6).
+    if (parsed && !SeasonFormat.isCurrentSeason(parsed)) return { ok: false, data: null, oldFormat: true };
     const destSeasonId = this.currentSeasonId;
     const prior = this.data;
     let next, adopted;

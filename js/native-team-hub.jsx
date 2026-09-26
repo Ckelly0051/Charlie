@@ -271,6 +271,7 @@ function RecoverCandidate({ candidate, onRecover }) {
   const [error, setError] = useState('');
   const label = candidate.valid ? 'Recoverable'
     : candidate.reason === 'legacy-unenveloped' ? 'Legacy backup (unverified)'
+    : candidate.reason === 'old-format' ? 'Old format'
     : `Not recoverable (${candidate.reason || 'unreadable'})`;
   // PC-2 repair (Codex review 89e34c6, finding 4): a legacy-unenveloped
   // snapshot has NO checksum, NO validated identity, and NO count check at
@@ -284,7 +285,9 @@ function RecoverCandidate({ candidate, onRecover }) {
   const disabled = !candidate.valid;
   const disabledHint = disabled && candidate.reason === 'legacy-unenveloped'
     ? 'This backup predates checksum verification and cannot be recovered automatically yet.'
-    : undefined;
+    : disabled && candidate.reason === 'old-format'
+      ? 'Saved in an old GridIron IQ format. It cannot be recovered.'
+      : undefined;
   const run = async (confirmOverwrite) => {
     setState('busy'); setError('');
     const result = await onRecover(candidate, confirmOverwrite);

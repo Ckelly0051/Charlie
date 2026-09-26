@@ -2,6 +2,7 @@ import { countedUnit, gainedFirstDown, isPlayTagged } from './football-rules.js'
 import { PenaltyModel } from './penalty-model.js';
 import { SeasonStore } from './season-store.js';
 import { TagProjection } from './tag-projection.js';
+import { SeasonFormat } from './season-format.js';
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
 
@@ -339,7 +340,13 @@ export class PlayTagger {
     const tpl = this._templateStore()[name];
     if (!tpl) return false;
     this.selectedTemplate = name;
-    Object.entries(tpl).forEach(([k, v]) => { play.tags[k] = v; });
+    // A template saved before the 2026-09-26 conversion can carry retired values
+    // (not applied) or a combined look: the template's own values are converted
+    // first, so its "Shotgun + Trips" applies as formation Trips AND alignment
+    // Shotgun, exactly as a current template would carry them.
+    const values = { tags: SeasonFormat.currentTagValues(tpl) };
+    TagProjection.commitLook(values);
+    Object.entries(values.tags).forEach(([k, v]) => { play.tags[k] = v; });
     // A template can carry `unit:'special'` + forbidden alignment (saved from a
     // mis-tagged play); strip it when the result is special (ST invariant).
     this._stripStAlignment(play);

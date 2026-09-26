@@ -1,3 +1,4 @@
+import { SeasonFormat } from './season-format.js';
 /**
  * VersionManager - per-game save points (named and automatic), stored by the
  * storage backend: the SQLite catalog on the desktop, IndexedDB in a browser.
@@ -93,6 +94,12 @@ export class VersionManager {
     const data = meta ? await backend.getVersion(scope.seasonId, scope.gameId, String(id)) : null;
     if (!meta || !data) {
       this.tagger.toast?.('That version is not available for this game.');
+      return false;
+    }
+    // A version saved before the 2026-09-26 conversion is in the old format:
+    // refused before the confirmation, so nothing is backed up or replaced (step 6).
+    if (!SeasonFormat.isCurrent(data)) {
+      this.tagger.toast?.(SeasonFormat.RESTORE_MESSAGE);
       return false;
     }
     const ok = await this.tagger._confirmDialog(

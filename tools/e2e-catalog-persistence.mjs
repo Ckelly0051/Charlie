@@ -58,7 +58,7 @@ function makeFs() {
 }
 
 // ---- fixtures (compact multi-game seasons with clips + plays) ----
-const mkPlay = (i, clip) => ({ id: i, timestamp: { start: 0, end: 6 }, clipId: i, clipName: clip, clipPath: `Wk/${clip}`, notes: '', annotations: [], tags: { unit: i % 2 ? 'defense' : 'offense', down: String(1 + (i % 4)), distance: '10', formation: 'Shotgun + Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 7), players: {}, grades: {}, custom: [] } });
+const mkPlay = (i, clip) => ({ id: i, timestamp: { start: 0, end: 6 }, clipId: i, clipName: clip, clipPath: `Wk/${clip}`, notes: '', annotations: [], tags: { unit: i % 2 ? 'defense' : 'offense', down: String(1 + (i % 4)), distance: '10', formation: 'Trips', qbAlignment: 'Shotgun', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 7), players: {}, grades: {}, custom: [] } });
 const mkGame = (gid, n) => ({ id: gid, name: gid, gameInfo: { opponent: gid }, status: 'final', plays: Array.from({ length: n }, (_, i) => mkPlay(i + 1, `${gid}_${i + 1}.mp4`)), annotations: [], nextId: n + 1, currentPlayId: null, videoFileName: '', clipNames: Array.from({ length: n }, (_, i) => `${gid}_${i + 1}.mp4`), isMultiClip: true });
 const season = (id, name, games) => ({ version: 5, type: 'season', id, seasonName: name, activeGameId: games[0].id, teamProfile: { teamName: name }, roster: [], games });
 const seasonA = () => season('s1', 'Alpha', [mkGame('a1', 3), mkGame('a2', 2)]);
