@@ -92,6 +92,12 @@ held only the first). `_exclusive()` queues each mutation's snapshot, change,
 disk write and rollback, so a rollback undoes only its own change. **A version
 restore replaces nothing unless its `Backup before restore` save point is
 durable.**
+**The desktop catalog is replaced from a synced same-directory staged file, never
+overwritten in place.** Version IDs cannot update a different season/game's
+snapshot. A failed version mutation rolls back, a failed deletion reports false,
+and a failed first-run JSON import blocks catalog initialization rather than
+claiming migration succeeded. Source checks are in `e2e-catalog-safety`; installed
+smoke of the new native write remains pending.
 **Main-checkout version:** `1.12.0-102` (`js/app.js` `APP_VERSION`,
 `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json` —
 all four must match; `e2e-p0-exit` asserts it). **The latest installer is

@@ -5,6 +5,17 @@
 Findings logged as the coach lists them; no repair starts until the coach
 says the list is complete. Checklist: `SMOKE-1.12.0-102.md`.
 
+**Catalog integrity review — REPAIRED IN SOURCE 2026-09-25; installed smoke
+pending.** Four paths were fixed: a version ID collision could overwrite
+another game's snapshot even when import returned false; direct writes to
+`library.db` could leave a partial database; a failed version deletion reported
+success and left memory out of step with disk; first-run JSON import counted
+seasons whose catalog write failed. The desktop now stages and natively replaces
+the catalog, scoped version IDs reject collisions with rollback, deletes return
+their durable result, and failed imports stop initialization. `e2e-catalog-safety`
+uses fake data, the Windows Rust replacement test passed, and the full gate is
+135/135. No installed package or coach-data migration has been run for this fix.
+
 **Coach, overall:** "seems like the bugs are fixed with the latest smoke" —
 the unit repairs (S99-1, S99-2, the Codex review, CR-1..3) read as fixed on
 the installed build. Formal per-item verdicts to be recorded when the list is

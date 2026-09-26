@@ -9,6 +9,14 @@ at all (`e2e-core`, `e2e-catalog-backend`, `e2e-analytics-metrics`,
 app merely to reach a pure class is not a supported pattern — there is no global
 bridge to reach it through.
 
+`e2e-catalog-safety` uses only in-memory catalogs and a fake desktop filesystem:
+it covers cross-game version-ID collisions, failed version deletion, failed
+first-run import, and staged catalog writes. The native replacement has a Rust
+unit test (`cargo test --manifest-path src-tauri/Cargo.toml
+replacing_existing_catalog`) that replaces an existing file in an isolated
+temporary directory. These checks do not touch coach data. The full gate passed
+135/135 on 2026-09-25 after the repair; installed WebView2 smoke is still needed.
+
 ```bash
 node tools/<harness>.mjs
 ```
