@@ -963,7 +963,18 @@ export class TauriBackend extends StorageBackend {
         if (!exists) return null;
         return await this.fs.readFile(dbPath, { baseDir: this.baseDir });
       },
-      writeDb: async (bytes) => { try { await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true }); } catch (e) {} await this.fs.writeFile(dbPath, bytes, { baseDir: this.baseDir }); },
+      writeDb: async (bytes) => {
+        await this.fs.mkdir('seasons', { baseDir: this.baseDir, recursive: true });
+        const tempName = `library.db.pending-${crypto.randomUUID()}`;
+        const tempPath = `seasons/${tempName}`;
+        try {
+          await this.fs.writeFile(tempPath, bytes, { baseDir: this.baseDir });
+          await window.__TAURI__.core.invoke('replace_catalog_db', { tempName });
+        } catch (e) {
+          try { await this.fs.remove(tempPath, { baseDir: this.baseDir }); } catch (cleanupError) {}
+          throw e;
+        }
+      },
       readJson: async (id) => this._readJson(this._seasonFile(id)),
       writeMirror: async (id, data) => { await this._mirrorToDocuments(id, data); },
     };
@@ -979,10 +990,11 @@ export class TauriBackend extends StorageBackend {
         if (!SQL) return null;
         const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: this._catalogFs() });
         // First flag-on: import existing per-season season.json into the shared db.
-        try { const lib = await this._readLib(); await cp.migrateJsonSeasons(lib.map(s => s.id)); } catch (e) {}
+        const lib = await this._readLib();
+        await cp.migrateJsonSeasons(lib.map(s => s.id));
         this._catalog = cp;
         return cp;
-      } catch (e) { console.warn('Catalog init failed; staying on JSON', e); return null; }
+      } catch (e) { console.warn('Catalog init failed; no fallback store will be used', e); return null; }
     })();
     return this._catalogInit;
   }

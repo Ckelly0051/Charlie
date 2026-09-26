@@ -397,6 +397,10 @@ export class SqlCatalog {
   // ones (VersionManager's own eviction rule) so a coach's named points survive.
   saveVersion(seasonId, gameId, v, { prune = true } = {}) {
     const id = (v && v.id != null) ? String(v.id) : this._newId('ver');
+    const existing = this._get('SELECT season_id, game_id FROM versions WHERE id = ?', [id]);
+    if (existing && (existing.season_id !== seasonId || existing.game_id !== gameId)) {
+      throw new Error('Version ID belongs to another game');
+    }
     const body = (v && v.data !== undefined) ? v.data : v;
     this._run(
       `INSERT INTO versions (id,season_id,game_id,t,label,manual,play_count,body_json) VALUES (?,?,?,?,?,?,?,?)

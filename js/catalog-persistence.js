@@ -371,15 +371,23 @@ export class CatalogPersistence {
       let snapshot = null;
       try { snapshot = this.catalog.toBytes(); } catch (e) { snapshot = null; }
       if (!snapshot || !snapshot.length) return { ok: false };
+      const rollback = async () => {
+        try { this.catalog.close(); await this.catalog.open(snapshot); this._loaded = true; }
+        catch (e) { this._loaded = false; try { await this._ensureLoaded(); } catch (err) {} }
+      };
       let value;
-      try { value = mutate(); } catch (e) { console.error('Catalog version write failed', e); return { ok: false }; }
+      try { value = mutate(); }
+      catch (e) {
+        console.error('Catalog version write failed', e);
+        await rollback();
+        return { ok: false };
+      }
       try {
         await this.fs.writeDb(this.catalog.toBytes());
         return { ok: true, value };
       } catch (e) {
         console.error('Catalog version write did not reach disk', e);
-        try { this.catalog.close(); await this.catalog.open(snapshot); this._loaded = true; }
-        catch (e2) { this._loaded = false; try { await this._ensureLoaded(); } catch (e3) {} }
+        await rollback();
         return { ok: false };
       }
     });
@@ -409,12 +417,8 @@ export class CatalogPersistence {
     try { return this.catalog.getVersion(id); } catch (e) { return null; }
   }
   async deleteVersion(id) {
-    return this._exclusive(async () => {
-      if (id == null) return;
-      await this._ensureLoaded();
-      try { this.catalog.deleteVersion(id); } catch (e) { return; }
-      try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {}
-    });
+    if (id == null) return false;
+    return (await this._durably(() => this.catalog.deleteVersion(id))).ok;
   }
 
   // PC-1: explicit-identity contract for version ownership (documented in
@@ -426,14 +430,9 @@ export class CatalogPersistence {
     try { return this.catalog.getVersionScoped(seasonId, gameId, id); } catch (e) { return null; }
   }
   async deleteVersionScoped(seasonId, gameId, id) {
-    return this._exclusive(async () => {
-      if (!seasonId || !gameId || id == null) return false;
-      await this._ensureLoaded();
-      let owned = false;
-      try { owned = this.catalog.deleteVersionScoped(seasonId, gameId, id); } catch (e) { return false; }
-      if (owned) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
-      return owned;
-    });
+    if (!seasonId || !gameId || id == null) return false;
+    const r = await this._durably(() => this.catalog.deleteVersionScoped(seasonId, gameId, id));
+    return r.ok && r.value === true;
   }
 
   /**
@@ -446,6 +445,8 @@ export class CatalogPersistence {
     return this._exclusive(async () => {
       if (!Array.isArray(ids) || !ids.length) return 0;
       await this._ensureLoaded();
+      const snapshot = this.catalog.toBytes();
+      if (!snapshot || !snapshot.length) throw new Error('Could not snapshot catalog before migration');
       let migrated = 0;
       for (const id of ids) {
         let inDb = false;
@@ -459,7 +460,16 @@ export class CatalogPersistence {
           try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}
         }
       }
-      if (migrated) { try { await this.fs.writeDb(this.catalog.toBytes()); } catch (e) {} }
+      if (migrated) {
+        try { await this.fs.writeDb(this.catalog.toBytes()); }
+        catch (e) {
+          this.catalog.close();
+          this._loaded = false;
+          await this.catalog.open(snapshot);
+          this._loaded = true;
+          throw new Error('Catalog migration did not reach disk', { cause: e });
+        }
+      }
       return migrated;
     });
   }

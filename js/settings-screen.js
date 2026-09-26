@@ -490,6 +490,10 @@ export class SettingsScreen {
     return !!id;
   }
   async restoreGameVersion(id) { return await this.app.versions?.restore?.(id) === true; }
-  async deleteGameVersion(id) { await this.app.versions?.delete?.(id); return true; }
+  async deleteGameVersion(id) {
+    const deleted = await this.app.versions?.delete?.(id);
+    if (!deleted) this._toast('The game version could not be deleted.', 'error');
+    return deleted === true;
+  }
   async openDataFolder() { return this._store()?.openDataDir?.(); }
 }

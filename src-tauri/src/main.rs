@@ -52,6 +52,60 @@ fn close_after_flush(window: tauri::WebviewWindow) -> Result<(), String> {
     window.destroy().map_err(|e| e.to_string())
 }
 
+/// Replace the catalog only after its staged bytes are complete. The staged
+/// file is in the same directory, so a failed write leaves library.db intact.
+#[tauri::command]
+fn replace_catalog_db(app: tauri::AppHandle, temp_name: String) -> Result<(), String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("seasons");
+    replace_catalog_file(&dir, &temp_name)
+}
+
+fn replace_catalog_file(dir: &std::path::Path, temp_name: &str) -> Result<(), String> {
+    let suffix = temp_name
+        .strip_prefix("library.db.pending-")
+        .ok_or("Invalid catalog staging name")?;
+    if suffix.is_empty() || !suffix.chars().all(|c| c.is_ascii_hexdigit() || c == '-') {
+        return Err("Invalid catalog staging name".into());
+    }
+    let staged = dir.join(temp_name);
+    let target = dir.join("library.db");
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&staged)
+        .map_err(|e| e.to_string())?;
+    if file.metadata().map_err(|e| e.to_string())?.len() == 0 {
+        return Err("Catalog staging file is empty".into());
+    }
+    file.sync_all().map_err(|e| e.to_string())?;
+    drop(file);
+    std::fs::rename(&staged, &target).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::replace_catalog_file;
+
+    #[test]
+    fn replacing_existing_catalog_keeps_the_old_file_until_stage_is_ready() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("giq-catalog-test-{}-{nonce}", std::process::id()));
+        std::fs::create_dir(&dir).unwrap();
+        let target = dir.join("library.db");
+        std::fs::write(&target, b"old").unwrap();
+        assert!(replace_catalog_file(&dir, "library.db.pending-abcd").is_err());
+        assert_eq!(std::fs::read(&target).unwrap(), b"old");
+        std::fs::write(dir.join("library.db.pending-abcd"), b"new").unwrap();
+        replace_catalog_file(&dir, "library.db.pending-abcd").unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+        std::fs::remove_file(target).unwrap();
+        std::fs::remove_dir(dir).unwrap();
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
@@ -62,7 +116,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             allow_library_dir,
             open_library_dir,
-            close_after_flush
+            close_after_flush,
+            replace_catalog_db
         ])
         .run(tauri::generate_context!())
         .expect("error while running GridIron IQ");
