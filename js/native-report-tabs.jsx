@@ -1538,12 +1538,29 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
   const st = stats.specialTeams;
   const conv = stats.conversions;
   const hasIndividuals = (stats.individuals?.returners?.length || 0) > 0 || (stats.individuals?.kickers?.length || 0) > 0;
+  // Hooks and the scope wiring run before any early return: a board that goes
+  // from empty to populated (a scope change) must call the same hooks in order.
+  const [section, setSection] = useState('st1');
+  /* Sections, scope and the report export live in the shared secondary bar
+     (coach-approved comp, 2026-09-23). A fixed-scope board (Season's child,
+     the opponent scout) keeps its titled toolbar and its own export there. */
+  const setScope = scope => { screen.specialTeamsScope = scope; screen._syncHeader(); screen._renderActiveTab(); };
+  const scope = fixedScope ? null : [
+    { id: 'game', label: 'Current game', active: screen.specialTeamsScope === 'game', onSelect: () => setScope('game'), attrs: { 'data-st-scope': 'game' } },
+    { id: 'season', label: 'Full season', active: screen.specialTeamsScope === 'season', onSelect: () => setScope('season'), attrs: { 'data-st-scope': 'season' } },
+  ];
   if (!st?.hasData && !conv?.hasData && !hasIndividuals) {
-    return <EmptyState title="No Special Teams snaps charted" body=""
-      action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />;
+    // Nothing charted in THIS scope: the bar and its scope switch stay, so a
+    // game with no Special Teams snaps can still reach a season that has them.
+    // Nothing to export, so no export.
+    return <div class="gi-overview-board gi-st-board is-empty">
+      <ReportSectionBar screen={screen} label="Special Teams units" navClass="gi-st-sections"
+        sections={[]} active={section} onSelect={setSection} scope={scope} exportAction={null} />
+      <EmptyState title="No Special Teams snaps charted" body=""
+        action={{ label: 'Open Break Down', onSelect: () => screen.openBreakDown?.() }} />
+    </div>;
   }
   const kpis = view.specialTeamsKpis(stats, summary);
-  const [section, setSection] = useState('st1');
   const units = view.specialTeamsUnits(stats);
   const unit = key => units.find(u => u.key === key) || { n: null, refs: [] };
   const rowsFor = key => view.specialTeamsUnitRows(stats, key);
@@ -1578,14 +1595,6 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
   const BUCKETS = ['<30', '30-39', '40-49', '50+'];
   const byDist = new Map((st?.fg?.byDist || []).map(b => [b.label, b]));
 
-  /* Sections, scope and the report export live in the shared secondary bar
-     (coach-approved comp, 2026-09-23). A fixed-scope board (Season's child,
-     the opponent scout) keeps its titled toolbar and its own export there. */
-  const setScope = scope => { screen.specialTeamsScope = scope; screen._syncHeader(); screen._renderActiveTab(); };
-  const scope = fixedScope ? null : [
-    { id: 'game', label: 'Current game', active: screen.specialTeamsScope === 'game', onSelect: () => setScope('game'), attrs: { 'data-st-scope': 'game' } },
-    { id: 'season', label: 'Full season', active: screen.specialTeamsScope === 'season', onSelect: () => setScope('season'), attrs: { 'data-st-scope': 'season' } },
-  ];
   const exportAction = fixedScope ? null : { label: 'Export report', attrs: { class: 'gi-secbar-export gi-st-export', 'data-report-export': 'special' },
     onSelect: () => screen.exportSpecialTeams(stats, summary) };
 

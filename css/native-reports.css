@@ -2040,7 +2040,9 @@
 }
 .gi-reports .gi-reports-empty>div{flex:1 1 320px;min-width:0}
 .gi-reports .gi-reports-empty h3{
-  margin:0 0 4px;color:var(--gi-bd-strong);font:700 11px/1 var(--gi-cond);
+  /* At the 12.5px floor (was 11px; found 2026-09-26 when a canonical board was
+     first empty). */
+  margin:0 0 4px;color:var(--gi-bd-strong);font:700 12.5px/1 var(--gi-cond);
   letter-spacing:.16em;text-transform:uppercase
 }
 .gi-reports .gi-reports-empty p{
@@ -2049,7 +2051,7 @@
 .gi-reports .gi-reports-empty-cta{
   flex:0 0 auto;min-height:32px;padding:8px 16px;border:0;border-radius:0;
   background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);
-  font:700 11.5px/1 var(--gi-sans);cursor:pointer
+  font:700 12.5px/1 var(--gi-sans);cursor:pointer
 }
 .gi-reports .gi-reports-empty-cta:hover{background:var(--gi-first-down)}
 .gi-reports .gi-reports-empty-cta:focus-visible{outline:2px solid var(--gi-bd-strong);outline-offset:2px}
