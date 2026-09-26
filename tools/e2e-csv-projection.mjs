@@ -1,15 +1,11 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* E3b — PROJECTED CSV EXPORT/IMPORT (GRIDIRON-IQ-TAG-MODEL.md §20, coach contract).
-   Exported data must agree with Film Room, Study, and analytics: Formation carries
-   STRUCTURE only, QB Alignment is its own column, Backfield/Strength/Coverage Call
-   are projected, Coverage Family is its own column. There is NO fallback that puts
-   Shotgun/Pistol/Under Center in Formation, and a blank optional stays blank (never
-   "Unknown" — that reads as a real analytics category).
-
-   Failing-first: pre-fix the export has no QB Alignment / Backfield / Strength /
-   Coverage Family column at all and writes raw `p.tags.formation`, so a legacy
-   "Shotgun + Trips" play exports Shotgun UNDER FORMATION — the exact classification
-   mistake E1-E3 corrected.
+/* CSV EXPORT/IMPORT of the look fields (GRIDIRON-IQ-TAG-MODEL.md §20, coach
+   contract). Every look field is its own column: Formation, QB Alignment,
+   Backfield, Strength, Coverage Call, Coverage Family. Export writes the stored
+   field; import stores each column in its own field; a blank optional stays blank
+   (never "Unknown" — that reads as a real analytics category). Plays are current
+   format (legacy excision step 7); a combined look is refused on import, which
+   e2e-csv-roundtrip pins.
 
    Run after build:  node tools/e2e-csv-projection.mjs */
 import puppeteer from 'puppeteer';
@@ -38,17 +34,17 @@ const res = await page.evaluate(async () => {
 
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 5 }, notes: '', annotations: [], tags: { ...blank(), ...tags } });
   sm.tagger.plays = [
-    // 1. LEGACY mixed formation: alignment token lives in `formation`.
-    mk(1, { unit: 'offense', formation: 'Shotgun + Trips', backfield: '', strength: 'Right',
+    // 1. Formation and QB alignment, each in its own field.
+    mk(1, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun', backfield: '', strength: 'Right',
             playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '7', down: '1', distance: '10' }),
-    // 2. LEGACY coverage family charted as the whole coverage value.
-    mk(2, { unit: 'defense', coverage: 'Man', defFront: '4-3',
+    // 2. A coverage family with no coverage call.
+    mk(2, { unit: 'defense', coverage: '', coverageFamily: 'Man', defFront: '4-3',
             playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '4', down: '2', distance: '6' }),
     // 3. A real coverage CALL that merely CONTAINS a family word — must survive whole.
     mk(3, { unit: 'defense', coverage: 'Cover 3 Match', defFront: '3-3-5',
             playType: 'Deep Pass', runPass: 'Pass', result: 'Incomplete', yardage: '0', down: '3', distance: '8' }),
-    // 4. Legacy `Empty` backfield token stored in formation + Pistol in backfield.
-    mk(4, { unit: 'offense', formation: 'Trips + Empty', backfield: 'Pistol', strength: 'Left',
+    // 4. An Empty backfield with a Pistol alignment.
+    mk(4, { unit: 'offense', formation: 'Trips', qbAlignment: 'Pistol', backfield: 'Empty', strength: 'Left',
             playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3', down: '1', distance: '10' }),
     // 5. Modern SPLIT play: explicit fields already correct, nothing to move.
     mk(5, { unit: 'offense', formation: 'Ace', qbAlignment: 'Under Center', backfield: 'I', strength: 'Balanced',
@@ -59,13 +55,16 @@ const res = await page.evaluate(async () => {
     // 7-8. MINIMALLY charted: the coach charted ONLY a look. No playType, result,
     //      yardage, down, or penalty. Charting only the fields you want is an
     //      explicit product rule — these rows must survive a round trip, not vanish.
-    mk(7, { unit: 'offense', formation: 'Shotgun + Trips' }),
-    mk(8, { unit: 'defense', coverage: 'Match', defFront: '3-3-5' }),
+    mk(7, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun' }),
+    mk(8, { unit: 'defense', coverageFamily: 'Match', defFront: '3-3-5' }),
     // 9. Special Teams: unit must survive. StatsEngine reads a unit-less play as
     //    OFFENSE, so a dropped unit silently corrupts every unit-partitioned metric.
-    mk(9, { unit: 'special', stType: 'Punt', result: 'Punt' }),
+    mk(9, { unit: 'special', result: 'Punt' }),
   ];
   const exportedUnits = sm.tagger.plays.map(p => p.tags.unit);
+  const LOOK = ['formation', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
+  const lookOf = p => LOOK.map(k => p.tags[k] || '');
+  const exportedLooks = sm.tagger.plays.map(lookOf);
 
   // Capture the export synchronously. Blob.text() inside page.evaluate is subject
   // to a Chromium "Promise was collected" intermittent that tests the browser's
@@ -95,7 +94,8 @@ const res = await page.evaluate(async () => {
   const COLS = ['Formation', 'QB Alignment', 'Backfield', 'Strength', 'Coverage Call', 'Coverage Family'];
   const KEYS = ['formation', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
 
-  // Per-row projected equality: every exported look cell equals StatsEngine.proj().
+  // Per-row equality: every exported look cell equals the play's own field, as
+  // StatsEngine.proj() (the analytics read) reads it.
   const mismatches = [];
   sm.tagger.plays.forEach((p, r) => {
     const proj = SE.proj(p);
@@ -116,11 +116,7 @@ const res = await page.evaluate(async () => {
   sm.tagger.plays = [];
   sm.tagger.nextId = 1;
   sm.applyPlayImport(parsed);
-  const imported = sm.tagger.plays.map(p => ({
-    raw: { formation: p.tags.formation, qbAlignment: p.tags.qbAlignment, backfield: p.tags.backfield, strength: p.tags.strength, coverage: p.tags.coverage, coverageFamily: p.tags.coverageFamily },
-    proj: (({ formation, qbAlignment, backfield, strength, coverage, coverageFamily }) =>
-      ({ formation, qbAlignment, backfield, strength, coverage, coverageFamily }))(SE.proj(p)),
-  }));
+  const imported = sm.tagger.plays.map(lookOf);
 
   const importedUnits = sm.tagger.plays.map(p => p.tags.unit);
   const importedLooks = sm.tagger.plays.map(p => {
@@ -146,7 +142,7 @@ const res = await page.evaluate(async () => {
   const legacyPlay = sm.tagger.plays[0];
 
   return {
-    headers, mismatches, formationLeak, imported,
+    headers, mismatches, formationLeak, imported, exportedLooks,
     exportedUnits, importedUnits, importedLooks, emptyRowResult,
     row1: { formation: cell(0, 'Formation'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Strength') },
     row2: { call: cell(1, 'Coverage Call'), family: cell(1, 'Coverage Family') },
@@ -164,23 +160,23 @@ for (const col of ['Formation', 'QB Alignment', 'Backfield', 'Strength', 'Covera
 
 // --- Projection, per column semantic ---
 ok(res.row1.formation === 'Trips' && res.row1.qb === 'Shotgun',
-  'legacy "Shotgun + Trips" exports Formation=Trips with QB Alignment=Shotgun (no raw fallback)',
+  'Formation and QB Alignment export in their own columns',
   JSON.stringify(res.row1));
 ok(res.row1.strength === 'Right', 'Strength exports the coach\'s stored value');
 ok(res.row2.call === '' && res.row2.family === 'Man',
-  'legacy coverage "Man" exports Coverage Call blank + Coverage Family=Man', JSON.stringify(res.row2));
+  'a coverage family with no call exports Coverage Call blank + Coverage Family=Man', JSON.stringify(res.row2));
 ok(res.row3.call === 'Cover 3 Match' && res.row3.family === '',
   'a real call containing a family word ("Cover 3 Match") survives whole in Coverage Call',
   JSON.stringify(res.row3));
 ok(res.row4.formation === 'Trips' && res.row4.qb === 'Pistol' && res.row4.backfield === 'Empty',
-  'legacy Empty-in-formation + Pistol-in-backfield split into Backfield=Empty, QB Alignment=Pistol',
+  'Backfield=Empty and QB Alignment=Pistol export in their own columns',
   JSON.stringify(res.row4));
 ok(res.row6.every(v => v === ''),
   'a play with no look charted exports SIX blank cells (never "Unknown"/"None")', JSON.stringify(res.row6));
 
 // --- The whole-export invariants ---
 ok(res.mismatches.length === 0,
-  'EVERY exported look cell equals StatsEngine.proj() for its play (per-row projected equality)',
+  'EVERY exported look cell equals the play\'s own field (per-row equality)',
   JSON.stringify(res.mismatches));
 ok(res.formationLeak.length === 0,
   'NO Formation cell in the export contains an alignment token', JSON.stringify(res.formationLeak));
@@ -192,17 +188,15 @@ ok(JSON.stringify(res.importedUnits) === JSON.stringify(res.exportedUnits),
   'every play\'s UNIT survives the round trip (a lost unit reads as offense and corrupts unit-partitioned analytics)',
   `exported ${JSON.stringify(res.exportedUnits)} -> imported ${JSON.stringify(res.importedUnits)}`);
 ok(res.importedLooks?.[6]?.formation === 'Trips' && res.importedLooks?.[6]?.qbAlignment === 'Shotgun',
-  'a play charted with ONLY a formation survives import and lands split', JSON.stringify(res.importedLooks?.[6]));
+  'a play charted with ONLY a formation and alignment survives import', JSON.stringify(res.importedLooks?.[6]));
 ok(res.importedLooks?.[7]?.coverageFamily === 'Match' && res.importedLooks?.[7]?.coverage === '',
   'a play charted with ONLY a coverage family survives import', JSON.stringify(res.importedLooks?.[7]));
 ok(res.emptyRowResult?.count === 1 && res.emptyRowResult?.formations?.[0] === 'Trips',
   'a row with NOTHING charted is still skipped — the fix does not widen into importing blank lines',
   JSON.stringify(res.emptyRowResult));
-const rt = res.imported.every(p => JSON.stringify(p.raw) === JSON.stringify(p.proj));
-ok(rt, 'imported plays are ALREADY canonical — re-projecting changes nothing (no re-mixing)',
-  JSON.stringify(res.imported.find(p => JSON.stringify(p.raw) !== JSON.stringify(p.proj))));
-ok(res.imported[0]?.raw.formation === 'Trips' && res.imported[0]?.raw.qbAlignment === 'Shotgun',
-  'the legacy mixed play lands in storage SPLIT after a CSV round trip', JSON.stringify(res.imported[0]?.raw));
+ok(JSON.stringify(res.imported) === JSON.stringify(res.exportedLooks),
+  'every play\'s six look fields come back exactly as exported (field-for-field round trip)',
+  JSON.stringify({ exported: res.exportedLooks, imported: res.imported }));
 
 // --- Backward compatibility ---
 ok(res.legacy.coverage === 'Cover 3' && res.legacy.formation === 'Trips',

@@ -161,9 +161,11 @@ const r = await page.evaluate(async ({ CURRENT, MESSAGE, RESTORE }) => {
   // If a regression above emptied the game, keep this check running (and named).
   if (!app.tagger.plays.length) app.tagger.plays.push({ id: 900, timestamp: { start: 0, end: 1 }, notes: '', annotations: [], tags: app.tagger.constructor.blankTags({ unit: 'offense' }) });
   app.tagger.selectPlay(app.tagger.plays[0].id);
+  const tplBefore = app.tagger.getCurrentPlay().tags;
+  const before = { formation: tplBefore.formation, qb: tplBefore.qbAlignment };
   app.tagger.applyTemplate('Old tpl');
   const t = app.tagger.getCurrentPlay().tags;
-  out.template = { stType: 'stType' in t, kickOutcome: 'kickOutcome' in t, formation: t.formation, qb: t.qbAlignment, playType: t.playType };
+  out.template = { stType: 'stType' in t, kickOutcome: 'kickOutcome' in t, formation: t.formation, qb: t.qbAlignment, playType: t.playType, before };
 
   app.tagger.toast = origToast; app.settingsScreen._toast = origSettingsToast;
   return out;
@@ -181,8 +183,9 @@ ok(r.emptyVersion.ve === false && !r.emptyVersion.confirmAsked && r.emptyVersion
   'a malformed game version ({}) is refused before the confirmation; the game keeps its plays', JSON.stringify(r.emptyVersion));
 ok(r.firstRun.firstToasts.length === 1 && /1 season file uses an old GridIron IQ format and was not opened: Old Season\. Export it again/.test(r.firstRun.firstToasts[0]) && r.firstRun.secondToasts.length === 0,
   'a season the first-run import refused is named to the coach once', JSON.stringify(r.firstRun));
-ok(!r.template.stType && !r.template.kickOutcome && r.template.formation === 'Trips' && r.template.qb === 'Shotgun' && r.template.playType === 'Short Pass',
-  'an old template applies its current values only, with the combined look split', JSON.stringify(r.template));
+ok(!r.template.stType && !r.template.kickOutcome && r.template.playType === 'Short Pass'
+  && r.template.formation === r.template.before.formation && r.template.qb === r.template.before.qb && !String(r.template.formation || '').includes('+'),
+  'an old template applies its current values only; its combined look is not applied', JSON.stringify(r.template));
 ok(!errors.length, 'no page errors', errors.join(' | '));
 
 await browser.close();

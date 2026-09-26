@@ -1,8 +1,10 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* E4 (D-projform) — GRIDIRON-IQ-TAG-MODEL.md §18. The tag FORM (not Film
-   Room's grid, covered separately by e2e-film-room.mjs's E3b-P1 proofs) shows
-   the PROJECTED view and writes only on the coach's explicit save. Proves the
+   Room's grid, covered separately by e2e-film-room.mjs) shows each look field as
+   stored and writes only on the coach's explicit edit. Plays are current format
+   (legacy excision step 7): the promote/strip of old combined values is deleted
+   with the old shape, and so are the sections that tested it. Proves the
    five coach-approved safeguards + the "must prove" list from §20:
      1. Opening/selecting a play NEVER writes.
      2. Programmatic form load MUST NOT mark the play dirty.
@@ -123,19 +125,16 @@ await mountNativeForm();
 
 // Only IDs are kept on window — never object references (see the harness note
 // in the file header). Every section re-fetches via t.getPlay(id).
-const IDS = { legacyFormation: 9101, legacyCoverage: 9102, modern: 9103, modernDef: 9104, explicitWins: 9105 };
+const IDS = { lookPlay: 9101, familyPlay: 9102, modern: 9103, modernDef: 9104, explicitWins: 9105 };
 await page.evaluate((ids) => {
   const t = window.app.tagger;
   const mk = (id, tags) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: Object.assign({ unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [] }, tags) });
   t.plays.push(
-    // LEGACY mixed formation: alignment token still inside `formation`, nothing
-    // explicit stored under qbAlignment. Projected view = formation:'Trips',
-    // qbAlignment:'Shotgun' (derived).
-    mk(ids.legacyFormation, { formation: 'Shotgun + Trips' }),
-    // LEGACY mixed coverage: same shape for the defense pair.
-    mk(ids.legacyCoverage, { unit: 'defense', coverage: 'Man' }),
-    // MODERN, fully split — nothing to promote; used for the independent
-    // round-trip + no-sibling-rewrite proofs.
+    // Formation and QB alignment, each in its own field.
+    mk(ids.lookPlay, { formation: 'Trips', qbAlignment: 'Shotgun' }),
+    // A coverage family with no coverage call.
+    mk(ids.familyPlay, { unit: 'defense', coverage: '', coverageFamily: 'Man' }),
+    // Fully charted plays for the independent round-trip proofs.
     mk(ids.modern, { formation: 'Ace', qbAlignment: 'Under Center', backfield: 'I' }),
     mk(ids.modernDef, { unit: 'defense', coverage: 'Cover 2', coverageFamily: 'Zone' }),
     // An EXPLICIT qbAlignment that must survive a Formation edit untouched.
@@ -146,21 +145,21 @@ await page.evaluate((ids) => {
 console.log('\n== 2. View/select NEVER writes (requirement #1 + #2) ==');
 let r = await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
-  const before = JSON.stringify(t.getPlay(ids.legacyFormation).tags);
+  const before = JSON.stringify(t.getPlay(ids.lookPlay).tags);
   const stackBefore = hist.stack.length;
-  t.selectPlay(ids.legacyFormation);   // real selection path
+  t.selectPlay(ids.lookPlay);   // real selection path
   return {
-    unchanged: JSON.stringify(t.getPlay(ids.legacyFormation).tags) === before,
+    unchanged: JSON.stringify(t.getPlay(ids.lookPlay).tags) === before,
     noHistoryEntry: hist.stack.length === stackBefore,
   };
 }, IDS);
-// The projected view IS visible in the form even though nothing was written.
+// The stored look is visible in the form; nothing was written.
 r.formationChip = await activeChips('formation');
 r.qbAlignmentChip = await activeChips('qbAlignment');
-ok(r.unchanged, 'selecting a LEGACY play writes NOTHING to its stored tags', JSON.stringify(r));
+ok(r.unchanged, 'selecting a play writes NOTHING to its stored tags', JSON.stringify(r));
 ok(r.noHistoryEntry, 'selecting a play records NO undo/history entry (view is not an edit)', JSON.stringify(r));
-ok(JSON.stringify(r.formationChip) === JSON.stringify(['Trips']), 'Formation seeds from the PROJECTED structural value — "Shotgun" is not offered and not active', JSON.stringify(r.formationChip));
-ok(JSON.stringify(r.qbAlignmentChip) === JSON.stringify(['Shotgun']), 'QB Alignment seeds from the DERIVED projected value even though nothing is literally stored under that key yet', JSON.stringify(r.qbAlignmentChip));
+ok(JSON.stringify(r.formationChip) === JSON.stringify(['Trips']), 'Formation shows the stored formation — "Shotgun" is not offered and not active', JSON.stringify(r.formationChip));
+ok(JSON.stringify(r.qbAlignmentChip) === JSON.stringify(['Shotgun']), 'QB Alignment shows the stored alignment', JSON.stringify(r.qbAlignmentChip));
 
 console.log('\n== 3. Formation/Coverage chip lists no longer offer the moved values ==');
 r = {
@@ -174,45 +173,45 @@ ok(JSON.stringify(r.qbAlignmentValues) === JSON.stringify(['Under Center', 'Pist
 ok(!r.coverageValues.some(v => ['Man', 'Zone', 'Match'].includes(v)), 'Coverage (the call) offers NO family values', JSON.stringify(r.coverageValues));
 ok(JSON.stringify(r.coverageFamilyValues) === JSON.stringify(['Man', 'Zone', 'Match']), 'Coverage Family offers exactly the three family values');
 
-console.log('\n== 4. Explicit commit PROMOTES the sibling, ONE undoable transaction — Formation (multi-select) ==');
+console.log('\n== 4. A Formation commit writes ONLY the formation, ONE undoable transaction (multi-select) ==');
 await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
-  t.selectPlay(ids.legacyFormation);
+  t.selectPlay(ids.lookPlay);
   hist.reset();
 }, IDS);
-// Formation is MULTI-select. Turning the ONLY active chip ('Trips', seeded
-// from the projected view) off is a genuine, single explicit commit.
+// Formation is MULTI-select. Turning the ONLY active chip ('Trips') off is a
+// genuine, single explicit commit.
 await clickChip('formation', 'Trips');
 r = await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
-  const play = t.getPlay(ids.legacyFormation);
+  const play = t.getPlay(ids.lookPlay);
   const afterCommit = { formation: play.tags.formation, qbAlignment: play.tags.qbAlignment, entries: hist.stack.length };
   hist.undo();
-  const p1 = t.getPlay(ids.legacyFormation);
+  const p1 = t.getPlay(ids.lookPlay);
   const afterUndo = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
   hist.redo();
-  const p2 = t.getPlay(ids.legacyFormation);
+  const p2 = t.getPlay(ids.lookPlay);
   const afterRedo = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
   return { afterCommit, afterUndo, afterRedo };
 }, IDS);
-ok(r.afterCommit.formation === '' && r.afterCommit.qbAlignment === 'Shotgun', 'turning off the only structural chip clears Formation AND promotes the derived QB Alignment', JSON.stringify(r.afterCommit));
-ok(r.afterCommit.entries === 1, 'the promote + write commit is EXACTLY one history entry', JSON.stringify(r.afterCommit));
-ok(r.afterUndo.formation === 'Shotgun + Trips' && (r.afterUndo.qbAlignment || '') === '', 'UNDO restores the raw legacy primary AND removes the promoted sibling TOGETHER', JSON.stringify(r.afterUndo));
-ok(r.afterRedo.formation === '' && r.afterRedo.qbAlignment === 'Shotgun', 'REDO restores the primary AND the promoted sibling TOGETHER', JSON.stringify(r.afterRedo));
+ok((r.afterCommit.formation || '') === '' && r.afterCommit.qbAlignment === 'Shotgun', 'turning off the only formation chip clears Formation; the QB Alignment is untouched', JSON.stringify(r.afterCommit));
+ok(r.afterCommit.entries === 1, 'the commit is EXACTLY one history entry', JSON.stringify(r.afterCommit));
+ok(r.afterUndo.formation === 'Trips' && r.afterUndo.qbAlignment === 'Shotgun', 'UNDO restores the formation', JSON.stringify(r.afterUndo));
+ok((r.afterRedo.formation || '') === '' && r.afterRedo.qbAlignment === 'Shotgun', 'REDO clears it again', JSON.stringify(r.afterRedo));
 
-console.log('\n== 5. The SAME promotion for the Coverage/Coverage Family pair (single-select) ==');
+console.log('\n== 5. A Coverage call commit writes ONLY the call (single-select) ==');
 await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
-  t.selectPlay(ids.legacyCoverage);
+  t.selectPlay(ids.familyPlay);
   hist.reset();
 }, IDS);
 await clickChip('coverage', 'Cover 3');
 r = await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
-  const play = t.getPlay(ids.legacyCoverage);
+  const play = t.getPlay(ids.familyPlay);
   return { coverage: play.tags.coverage, coverageFamily: play.tags.coverageFamily, entries: hist.stack.length };
 }, IDS);
-ok(r.coverage === 'Cover 3' && r.coverageFamily === 'Man' && r.entries === 1, 'explicit Coverage commit promotes the derived Coverage Family in the SAME single transaction', JSON.stringify(r));
+ok(r.coverage === 'Cover 3' && r.coverageFamily === 'Man' && r.entries === 1, 'a Coverage call commit leaves the stored Coverage Family alone, in one transaction', JSON.stringify(r));
 
 console.log('\n== 6. An EXISTING explicit sibling is NEVER overwritten (requirement #4) ==');
 const before6 = await page.evaluate((ids) => {
@@ -241,78 +240,36 @@ r = await page.evaluate((ids) => {
 r.activeChips = (await activeChips('qbAlignment')).length;
 ok((r.qbAlignment || '') === '' && r.activeChips === 0, 're-tapping the active QB Alignment chip clears it — the coach\'s explicit clear is honored, not silently re-derived', JSON.stringify(r));
 
-console.log('\n== 7b. Clearing a LEGACY-DERIVED sibling STRIPS the primary too — the clear actually SURVIVES a re-visit (Codex E4-1 review finding #1) ==');
-// Section 7 only proved clearing a MODERN explicit value. Before this fix,
-// clearing a DERIVED value (nothing explicit stored yet, only projected from
-// the primary field's embedded legacy token) had nothing to override:
-// project()'s precedence falls back to the still-embedded token whenever the
-// sibling is blank, so the clear looked like it worked in the moment, then
-// silently reappeared the next time the play was opened.
-await page.evaluate(() => {
-  const t = window.app.tagger;
-  const id = 9108;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Shotgun + Wing-T' } };
-  t.plays.push(play);
-  t.selectPlay(id);   // seeds QB Alignment 'Shotgun' from the DERIVED projected value (nothing stored yet)
-});
-await clickChip('qbAlignment', 'Shotgun');   // re-tap the derived-active chip = explicit clear
-r = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const id = 9108;
-  const afterCommit = t.getPlay(id);
-  const rawAfterCommit = { formation: afterCommit.tags.formation, qbAlignment: afterCommit.tags.qbAlignment };
-  // Re-visit: select the play again fresh, as if the coach came back to it —
-  // proves the clear survives on the STORED tags, not just the live chip UI.
-  t.selectPlay(id);
-  const revisit = t.getPlay(id);
-  return { rawAfterCommit, revisitQbAlignment: revisit.tags.qbAlignment };
-});
-r.revisitChip = await activeChips('qbAlignment');
-ok((r.rawAfterCommit.qbAlignment || '') === '' && r.rawAfterCommit.formation === 'Wing-T', 'clearing the DERIVED QB Alignment strips the Shotgun token out of Formation\'s raw stored value in the SAME commit', JSON.stringify(r.rawAfterCommit));
-ok((r.revisitQbAlignment || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit — Shotgun does not silently reappear, because the raw legacy token is actually gone, not just hidden this one time', JSON.stringify(r));
-
-console.log('\n== 7c. Coverage Family DERIVED clear strips Coverage too — the DISTINCT single-value branch, with revisit + undo/redo (Codex e0ab568 re-review, item #1) ==');
-// 7b only exercised stripSiblingToken's MULTI-value (formation) branch.
-// Coverage is single-value: the whole raw field IS the family token when it
-// matches, so stripSiblingToken has a genuinely separate code path
-// (`primaryKey === 'coverage'` -> return '' instead of filter-and-rejoin).
-// This also proves the undo/redo pairing Codex asked for on this branch,
-// mirroring section 4's Formation undo/redo but for the reverse (clear) case.
+console.log('\n== 7b. Clearing Coverage Family clears ONLY that field — with revisit + undo/redo ==');
 await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const id = 9113;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'defense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], coverage: 'Man' } };
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'defense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], coverage: 'Cover 1', coverageFamily: 'Man' } };
   t.plays.push(play);
-  t.selectPlay(id);   // seeds Coverage Family 'Man' from the DERIVED value — the whole raw `coverage` IS the family token
+  t.selectPlay(id);
   hist.reset();
 });
-await clickChip('coverageFamily', 'Man');   // re-tap the derived-active chip = explicit clear
+await clickChip('coverageFamily', 'Man');   // re-tap the active chip = explicit clear
 r = await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
   const id = 9113;
   const afterCommit = t.getPlay(id);
   const commitResult = { coverage: afterCommit.tags.coverage, coverageFamily: afterCommit.tags.coverageFamily, entries: hist.stack.length };
-
   hist.undo();
   const p1 = t.getPlay(id);
   const afterUndo = { coverage: p1.tags.coverage, coverageFamily: p1.tags.coverageFamily };
-
   hist.redo();
   const p2 = t.getPlay(id);
   const afterRedo = { coverage: p2.tags.coverage, coverageFamily: p2.tags.coverageFamily };
-
-  // Re-visit AFTER the undo/redo cycle — proves the clear survives on the
-  // STORED tags, not just the live chip UI from the original commit.
   t.selectPlay(id);
   const revisit = t.getPlay(id);
   return { commitResult, afterUndo, afterRedo, revisitCoverageFamily: revisit.tags.coverageFamily };
 });
 r.revisitChip = await activeChips('coverageFamily');
-ok(r.commitResult.coverage === '' && r.commitResult.coverageFamily === '', 'clearing the DERIVED Coverage Family strips the Man token out of Coverage\'s raw stored value (the distinct single-value branch) in the SAME commit', JSON.stringify(r.commitResult));
-ok(r.commitResult.entries === 1, 'the strip + clear commit is EXACTLY one history entry', JSON.stringify(r.commitResult));
-ok(r.afterUndo.coverage === 'Man' && (r.afterUndo.coverageFamily || '') === '', 'UNDO restores the raw legacy Coverage AND removes the cleared Coverage Family TOGETHER', JSON.stringify(r.afterUndo));
-ok((r.afterRedo.coverage || '') === '' && (r.afterRedo.coverageFamily || '') === '', 'REDO restores the stripped Coverage AND the cleared Coverage Family TOGETHER', JSON.stringify(r.afterRedo));
-ok((r.revisitCoverageFamily || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit after the undo/redo cycle — Man does not silently reappear', JSON.stringify(r));
+ok(r.commitResult.coverage === 'Cover 1' && (r.commitResult.coverageFamily || '') === '' && r.commitResult.entries === 1, 'clearing Coverage Family clears only that field, in one history entry', JSON.stringify(r.commitResult));
+ok(r.afterUndo.coverage === 'Cover 1' && r.afterUndo.coverageFamily === 'Man', 'UNDO restores the family', JSON.stringify(r.afterUndo));
+ok(r.afterRedo.coverage === 'Cover 1' && (r.afterRedo.coverageFamily || '') === '', 'REDO clears it again', JSON.stringify(r.afterRedo));
+ok((r.revisitCoverageFamily || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit', JSON.stringify(r));
 
 console.log('\n== 8. Formation / QB Alignment / Coverage Call / Coverage Family round-trip INDEPENDENTLY (requirement #6) ==');
 await page.evaluate((ids) => window.app.tagger.selectPlay(ids.modern), IDS);
@@ -330,102 +287,31 @@ r = await page.evaluate((ids) => {
 ok(r.offAfter.formation === 'Ace' && r.offAfter.qbAlignment === 'Under Center' && r.offAfter.backfield === 'Split', 'Formation and QB Alignment are UNCHANGED by an unrelated Backfield edit', JSON.stringify(r.offAfter));
 ok(r.defAfter.coverage === 'Cover 2' && r.defAfter.coverageFamily === 'Zone' && r.defAfter.blitz === 'Edge', 'Coverage Call and Coverage Family are UNCHANGED by an unrelated Blitz edit', JSON.stringify(r.defAfter));
 
-console.log('\n== 9. Save & Next (the explicit-save gesture) canonicalizes an UNTOUCHED legacy play; a clean play stays a true no-op (Codex E4-1 review finding #2) ==');
-// D-projform rule 3 names "Save & Next, etc." as the explicit save. Before
-// this fix, Save & Next only flushed a focused input and navigated — a play
-// the coach merely REVIEWED (selected, never clicked a Formation/QB Alignment/
-// Coverage/Coverage Family chip) left with its legacy token still embedded and
-// its sibling still un-promoted, so it could never leave the (Lane R) "Legacy
-// tags to review" list, whose exit condition is exactly this explicit save.
+console.log('\n== 9. Save & Next on an untouched play writes NOTHING ==');
 await page.evaluate(() => {
   const t = window.app.tagger, hist = window.app.history;
-  const legacyId = 9109;
-  const legacy = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Ace' } };
-  t.plays.push(legacy);
-  t.selectPlay(legacyId);   // review only — no chip touched
-  // At this point legacyId is the LAST play in t.plays (cleanId is pushed
-  // below, after this action), so nextPlayWithSituation() finds no next play
-  // to advance to — Save & Next's canonicalization is the ONLY thing that can
-  // touch history here, isolating the one-entry assertion from advance-related
-  // carry-forward writes (auto D&D / carry scheme), which only ever fire
-  // inside the `if (advanced)` branch.
-  hist.reset();
-});
-await clickSaveNext();
-r = await page.evaluate(() => {
-  const t = window.app.tagger, hist = window.app.history;
-  const legacyId = 9109;
-  const afterCommit = t.getPlay(legacyId);
-  const commitResult = { formation: afterCommit.tags.formation, qbAlignment: afterCommit.tags.qbAlignment, entries: hist.stack.length };
-
-  hist.undo();
-  const p1 = t.getPlay(legacyId);
-  const afterUndo = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
-
-  hist.redo();
-  const p2 = t.getPlay(legacyId);
-  const afterRedo = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
-  const legacyResult = commitResult;
-
-  // A CLEAN modern play (nothing to canonicalize) must stay a true no-op — Save
-  // & Next must not manufacture a history entry on every ordinary navigation.
+  // The LAST play, so Save & Next has no next play to advance to and cannot
+  // carry anything forward.
   const cleanId = 9110;
   const clean = { id: cleanId, timestamp: { start: cleanId, end: cleanId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace', qbAlignment: 'Under Center' } };
   t.plays.push(clean);
   t.selectPlay(cleanId);
   hist.reset();
+  window.__before9 = JSON.stringify(clean.tags);
   window.__depthBefore9 = hist.stack.length;
-  return { legacyResult, afterUndo, afterRedo };
-});
-await clickSaveNext();
-const r9b = await page.evaluate(() => {
-  const t = window.app.tagger, hist = window.app.history;
-  const cleanId = 9110;
-  const afterClean = t.getPlay(cleanId);
-  return {
-    cleanUnchanged: afterClean.tags.formation === 'Ace' && afterClean.tags.qbAlignment === 'Under Center',
-    noHistoryEntryForClean: hist.stack.length === window.__depthBefore9,
-  };
-});
-Object.assign(r, r9b);
-ok(r.legacyResult.formation === 'Ace' && r.legacyResult.qbAlignment === 'Under Center', 'Save & Next canonicalizes an untouched legacy play\'s projected look — it can now leave the Legacy Tags to Review list', JSON.stringify(r.legacyResult));
-ok(r.legacyResult.entries === 1, 'the canonicalization commit is EXACTLY one history entry, even though it touches BOTH the primary and the sibling', JSON.stringify(r.legacyResult));
-ok(r.afterUndo.formation === 'Under Center + Ace' && (r.afterUndo.qbAlignment || '') === '', 'UNDO restores BOTH raw legacy pairs together (Formation back to its embedded string, QB Alignment back to unset)', JSON.stringify(r.afterUndo));
-ok(r.afterRedo.formation === 'Ace' && r.afterRedo.qbAlignment === 'Under Center', 'REDO restores BOTH canonical pairs together', JSON.stringify(r.afterRedo));
-ok(r.cleanUnchanged, 'a play with nothing to canonicalize is untouched by Save & Next', JSON.stringify(r));
-ok(r.noHistoryEntryForClean, 'Save & Next on an already-clean play creates NO history entry — a true no-op, not busywork on every navigation', JSON.stringify(r));
-
-console.log('\n== 9b. Filtered cut-up navigation does NOT trigger the canonicalization (Codex E4-1 review finding #2, full scope) ==');
-// Codex scoped the commit to NORMAL chronological advance only — not Skip,
-// and not a filtered Study/Film Room cut-up review, where the coach is
-// scanning a curated example set that may not even be in play order.
-// Simulate an active cut-up (stub next() so this stays a pure canonicalization
-// check, no video required) and prove an untouched legacy play is left
-// exactly as it was while a cut-up owns navigation.
-await page.evaluate(() => {
-  const t = window.app.tagger;
-  const id = 9111;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Bunch' } };
-  t.plays.push(play);
-  t.selectPlay(id);
-  const cutup = window.app.cutupPlayer;
-  window.__realNext9b = cutup.next.bind(cutup);
-  cutup.next = () => {};   // stub — no real cut-up queue is needed for this check
-  cutup.active = true;
 });
 await clickSaveNext();
 r = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const id = 9111;
-  const cutup = window.app.cutupPlayer;
-  cutup.active = false;
-  cutup.next = window.__realNext9b;
-  const after = t.getPlay(id);
-  return { formation: after.tags.formation, qbAlignment: after.tags.qbAlignment };
+  const t = window.app.tagger, hist = window.app.history;
+  return {
+    cleanUnchanged: JSON.stringify(t.getPlay(9110).tags) === window.__before9,
+    noHistoryEntryForClean: hist.stack.length === window.__depthBefore9,
+  };
 });
-ok(r.formation === 'Under Center + Bunch' && (r.qbAlignment || '') === '', 'Save & Next during an ACTIVE filtered cut-up leaves the play untouched — canonicalization is scoped to normal chronological advance only', JSON.stringify(r));
+ok(r.cleanUnchanged, 'an untouched play is unchanged by Save & Next', JSON.stringify(r));
+ok(r.noHistoryEntryForClean, 'Save & Next on an untouched play creates NO history entry', JSON.stringify(r));
 
-console.log('\n== 10. "New Drive" writes ONLY Drive Number — a legacy sibling it never touched is left EXACTLY as it was (Codex E4-1 review finding #3) ==');
+console.log('\n== 10. "New Drive" writes ONLY Drive Number — every other field is left EXACTLY as it was (Codex E4-1 review finding #3) ==');
 // Before this fix, New Drive called the bulk _saveCurrentTags() path, which
 // re-wrote EVERY displayed field (including Formation/Coverage's PROJECTED
 // display) from a click that only meant to bump the drive counter — a
@@ -435,7 +321,7 @@ console.log('\n== 10. "New Drive" writes ONLY Drive Number — a legacy sibling 
 const before10 = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9106;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Shotgun + Twins' } };
+  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Twins', qbAlignment: 'Shotgun' } };
   t.plays.push(play);
   t.selectPlay(id);
   return JSON.parse(JSON.stringify(t.getPlay(id).tags));
@@ -455,14 +341,14 @@ r = await page.evaluate((before) => {
     || JSON.stringify(after.tags[k] ?? null) === JSON.stringify(before[k] ?? null));
   return { formation: after.tags.formation, qbAlignment: after.tags.qbAlignment, driveNumber: after.tags.driveNumber, onlyDriveNumberChanged };
 }, before10);
-ok(r.formation === 'Shotgun + Twins' && (r.qbAlignment || '') === '', '"New Drive" leaves an untouched legacy Formation exactly as stored — it does NOT promote or strip anything', JSON.stringify(r));
+ok(r.formation === 'Twins' && r.qbAlignment === 'Shotgun', '"New Drive" leaves the look exactly as stored', JSON.stringify(r));
 ok(!!r.driveNumber, '"New Drive" DOES write the drive number itself', JSON.stringify(r));
 ok(r.onlyDriveNumberChanged, 'no field OTHER than driveNumber changed — a genuine single-field commit, not a bulk rewrite', JSON.stringify(r));
 
 console.log('\n== 11. Cross-surface identical play set — the tag form write agrees with Film Room / the registry ==');
 r = await page.evaluate((ids) => {
   const t = window.app.tagger;
-  const play = t.getPlay(ids.legacyFormation);   // now formation:'', qbAlignment:'Shotgun' from section 4
+  const play = t.getPlay(ids.lookPlay);   // formation:'', qbAlignment:'Shotgun' after section 4
   const SE = window.app.stats.constructor;
   const registry = window.app.analyticsRegistry;
   const proj = SE.proj(play);
@@ -474,7 +360,7 @@ r = await page.evaluate((ids) => {
     registryFindsIt: refs.includes(`${gid}::${play.id}`),
   };
 }, IDS);
-ok(r.storedMatchesProjected, 'the tag form\'s write already IS the projected shape — proj(play) needs to change nothing further', JSON.stringify(r));
+ok(r.storedMatchesProjected, 'the tag form\'s write is what the analytics read (proj) sees', JSON.stringify(r));
 ok(r.registryFindsIt, 'the SAME play the tag form just edited is found by an INDEPENDENT AnalyticsRegistry.matchingRefs lookup for qbAlignment=Shotgun', JSON.stringify(r));
 
 console.log('\n== 12. E4-2: Empty leaves Formation, Pistol leaves Backfield — the vocabulary actually moved ==');
@@ -485,152 +371,6 @@ r = {
 ok(!r.formationValues.includes('Empty'), 'Formation no longer offers Empty (moved to Backfield)', JSON.stringify(r.formationValues));
 ok(r.backfieldValues.includes('Empty'), 'Backfield still offers its own pre-existing Empty chip', JSON.stringify(r.backfieldValues));
 ok(!r.backfieldValues.includes('Pistol'), 'Backfield no longer offers Pistol (moved to QB Alignment)', JSON.stringify(r.backfieldValues));
-
-console.log('\n== 13. E4-2: explicit Formation commit PROMOTES Backfield (Empty), ONE undoable transaction ==');
-// Mirrors section 4 (Formation -> QB Alignment) for the NEW Formation ->
-// Backfield relationship (Empty). A legacy play stores "Ace + Empty" with a
-// blank backfield; turning off Formation's only OTHER structural chip must
-// promote 'Empty' into Backfield in the SAME commit as the Formation write.
-await page.evaluate(() => {
-  const t = window.app.tagger, hist = window.app.history;
-  const id = 9114;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty' } };
-  t.plays.push(play);
-  t.selectPlay(id);   // Formation seeds 'Ace' (Empty stripped from the projected view); Backfield seeds '' explicitly, but the CHIP shows 'Empty' derived
-  hist.reset();
-});
-await clickChip('formation', 'Ace');   // turn off the only active structural chip
-r = await page.evaluate(() => {
-  const t = window.app.tagger, hist = window.app.history;
-  const id = 9114;
-  const afterCommit = t.getPlay(id);
-  const commitResult = { formation: afterCommit.tags.formation, backfield: afterCommit.tags.backfield, entries: hist.stack.length };
-  hist.undo();
-  const p1 = t.getPlay(id);
-  const afterUndo = { formation: p1.tags.formation, backfield: p1.tags.backfield };
-  hist.redo();
-  const p2 = t.getPlay(id);
-  const afterRedo = { formation: p2.tags.formation, backfield: p2.tags.backfield };
-  return { commitResult, afterUndo, afterRedo };
-});
-ok(r.commitResult.formation === '' && r.commitResult.backfield === 'Empty', 'turning off the only structural chip clears Formation AND promotes the derived Backfield (Empty)', JSON.stringify(r.commitResult));
-ok(r.commitResult.entries === 1, 'the promote + write commit is EXACTLY one history entry', JSON.stringify(r.commitResult));
-ok(r.afterUndo.formation === 'Ace + Empty' && (r.afterUndo.backfield || '') === '', 'UNDO restores the raw legacy Formation AND removes the promoted Backfield TOGETHER', JSON.stringify(r.afterUndo));
-ok(r.afterRedo.formation === '' && r.afterRedo.backfield === 'Empty', 'REDO restores Formation AND the promoted Backfield TOGETHER', JSON.stringify(r.afterRedo));
-
-console.log('\n== 14. E4-2: explicit Backfield commit PROMOTES QB Alignment (Pistol) AND strips Formation, ONE undoable transaction ==');
-// Backfield is BOTH a sibling (of Formation, for Empty) and a primary (for
-// QB Alignment, for Pistol) at once. A legacy play stores backfield='Pistol'
-// with a blank qbAlignment; explicitly committing a NEW Backfield value must
-// promote qbAlignment='Pistol' in the SAME commit.
-await page.evaluate(() => {
-  const t = window.app.tagger, hist = window.app.history;
-  const id = 9115;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], backfield: 'Pistol' } };
-  t.plays.push(play);
-  t.selectPlay(id);   // Backfield chip shows blank (Pistol stripped from the projected view); QB Alignment shows 'Pistol' derived
-  hist.reset();
-});
-await clickChip('backfield', 'Diamond');
-r = await page.evaluate(() => {
-  const t = window.app.tagger, hist = window.app.history;
-  const id = 9115;
-  const afterCommit = t.getPlay(id);
-  const commitResult = { backfield: afterCommit.tags.backfield, qbAlignment: afterCommit.tags.qbAlignment, entries: hist.stack.length };
-  hist.undo();
-  const p1 = t.getPlay(id);
-  const afterUndo = { backfield: p1.tags.backfield, qbAlignment: p1.tags.qbAlignment };
-  hist.redo();
-  const p2 = t.getPlay(id);
-  const afterRedo = { backfield: p2.tags.backfield, qbAlignment: p2.tags.qbAlignment };
-  return { commitResult, afterUndo, afterRedo };
-});
-ok(r.commitResult.backfield === 'Diamond' && r.commitResult.qbAlignment === 'Pistol', 'picking a new Backfield value promotes the derived QB Alignment (Pistol) instead of silently dropping it', JSON.stringify(r.commitResult));
-ok(r.commitResult.entries === 1, 'the promote + write commit is EXACTLY one history entry', JSON.stringify(r.commitResult));
-ok(r.afterUndo.backfield === 'Pistol' && (r.afterUndo.qbAlignment || '') === '', 'UNDO restores the raw legacy Backfield AND removes the promoted QB Alignment TOGETHER', JSON.stringify(r.afterUndo));
-ok(r.afterRedo.backfield === 'Diamond' && r.afterRedo.qbAlignment === 'Pistol', 'REDO restores Backfield AND the promoted QB Alignment TOGETHER', JSON.stringify(r.afterRedo));
-
-console.log('\n== 15. E4-2: clearing a DERIVED Backfield (Empty from Formation) strips Formation too — survives a re-visit ==');
-// Mirrors section 7b/7c for the THIRD registered relationship. Backfield
-// shows 'Empty' derived from Formation's embedded token; clearing it directly
-// must strip 'Empty' out of Formation's raw value, or the clear would not
-// stick on the next read.
-await page.evaluate(() => {
-  const t = window.app.tagger;
-  const id = 9116;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Wing-T + Empty' } };
-  t.plays.push(play);
-  t.selectPlay(id);   // Backfield chip shows 'Empty' derived (nothing stored yet)
-});
-await clickChip('backfield', 'Empty');   // re-tap the derived-active chip = explicit clear
-r = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const id = 9116;
-  const afterCommit = t.getPlay(id);
-  const rawAfterCommit = { formation: afterCommit.tags.formation, backfield: afterCommit.tags.backfield };
-  t.selectPlay(id);   // re-visit
-  const revisit = t.getPlay(id);
-  return { rawAfterCommit, revisitBackfield: revisit.tags.backfield };
-});
-r.revisitChip = await activeChips('backfield');
-ok((r.rawAfterCommit.backfield || '') === '' && r.rawAfterCommit.formation === 'Wing-T', 'clearing the DERIVED Backfield strips the Empty token out of Formation\'s raw stored value in the SAME commit', JSON.stringify(r.rawAfterCommit));
-ok((r.revisitBackfield || '') === '' && JSON.stringify(r.revisitChip) === JSON.stringify([]), 'the clear STICKS on a later re-visit — Empty does not silently reappear', JSON.stringify(r));
-
-console.log('\n== 16. E4-2 review fix: "Pistol backfield + Empty formation" survives BOTH an explicit Formation edit and Save & Next ==');
-// Codex E4-2 review, item #1 (High): formation:"Ace + Empty", backfield:"Pistol"
-// correctly PROJECTS as qbAlignment=Pistol / formation=Ace / backfield=Empty —
-// but committing (either an explicit Formation edit or the untouched-play
-// Save & Next canonicalization) used to LOSE the Empty. Root cause: the
-// forward-promote blank-check read RAW backfield ("Pistol", non-empty) and
-// treated it as "already explicit", permanently blocking the Empty
-// promotion — and Formation's own Empty token gets self-cleaned away in the
-// SAME commit regardless, so the information vanished from BOTH fields at
-// once. Fixed via TagProjection._ownStructuralValue, which strips backfield's
-// OWN qbAlignment-relationship token before checking blankness.
-const before16 = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const SE = window.app.stats.constructor;
-  const mk = (id) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } });
-
-  // Path A: an explicit Formation commit (toggle the only active chip off).
-  const idA = 9117;
-  const playA = mk(idA);
-  t.plays.push(playA);
-  const beforeA = SE.proj(playA);
-  t.selectPlay(idA);
-  window.app.history.reset();
-  return { beforeA };
-});
-await clickChip('formation', 'Ace');
-const midA16 = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const afterA = t.getPlay(9117);
-  return { formation: afterA.tags.formation, backfield: afterA.tags.backfield, qbAlignment: afterA.tags.qbAlignment };
-});
-await page.evaluate(() => {
-  const t = window.app.tagger;
-  const SE = window.app.stats.constructor;
-  const mk = (id) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } });
-  // Path B: Save & Next on a wholly untouched play (commitProjectedLook).
-  const idB = 9118;
-  const playB = mk(idB);
-  t.plays.push(playB);
-  window.__beforeB16 = SE.proj(playB);
-  t.selectPlay(idB);
-});
-await clickSaveNext();
-const resultB16 = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const afterB = t.getPlay(9118);
-  return { beforeB: window.__beforeB16, resultB: { formation: afterB.tags.formation, backfield: afterB.tags.backfield, qbAlignment: afterB.tags.qbAlignment } };
-});
-r = { beforeA: before16.beforeA, resultA: midA16, beforeB: resultB16.beforeB, resultB: resultB16.resultB };
-ok(r.beforeA.qbAlignment === 'Pistol' && r.beforeA.formation === 'Ace' && r.beforeA.backfield === 'Empty',
-  'prereq: the fixture genuinely projects as Pistol / Ace / Empty before any commit', JSON.stringify(r.beforeA));
-ok(r.resultA.backfield === 'Empty' && r.resultA.qbAlignment === 'Pistol',
-  'Path A (explicit Formation edit): Backfield stays Empty and QB Alignment stays Pistol — neither is lost', JSON.stringify(r.resultA));
-ok(r.resultB.formation === 'Ace' && r.resultB.backfield === 'Empty' && r.resultB.qbAlignment === 'Pistol',
-  'Path B (Save & Next canonicalization): all three dimensions land correctly — Empty is not lost to the self-clean race', JSON.stringify(r.resultB));
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

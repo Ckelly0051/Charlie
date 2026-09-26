@@ -25,11 +25,9 @@ const result = await page.evaluate(() => {
     { id: 'p1', team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false },
     { id: 'p2', team: 'opponent', phase: 'defense', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true },
   ], tags: {
-    // 'Shotgun' is QB alignment (E1/E2 tag model): TagProjection reads it into
-    // qbAlignment and leaves the structural formations 'Trips + Bunch' behind. The
-    // fixture keeps a genuine MULTI-structure value so the splitter + 2-cell matrix
-    // cross-product stay exercised AND projection is probed on the same play.
-    unit: 'offense', formation: 'Shotgun + Trips + Bunch', playType: 'RPO + Short Pass',
+    // QB alignment is its own field. The formation is a genuine MULTI-structure
+    // value so the splitter + 2-cell matrix cross-product stay exercised.
+    unit: 'offense', formation: 'Trips + Bunch', qbAlignment: 'Shotgun', playType: 'RPO + Short Pass',
     defFront: '4-3 + Jumbo Shift', blitz: 'A-Gap + Edge', result: 'Gain + Touchdown',
     down: '3', distance: '6', quarter: 'Q2', driveNumber: '4', motion: '',
     custom: ['Tempo'], customFields: { wristband: 'Blue' }, players: { passer: '12' },
@@ -41,8 +39,8 @@ const result = await page.evaluate(() => {
   // compute() field rename can't silently break a "ready" measure's path.
   const mixed = [
     play,
-    { id: 8, __gid: 'g2', tags: { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '6', down: '1', distance: '10', formation: 'Under Center' } },
-    { id: 9, __gid: 'g2', tags: { unit: 'offense', playType: 'Run Outside', runPass: 'Run', result: 'Loss', yardage: '-2', down: '2', distance: '9', formation: 'Pistol' } },
+    { id: 8, __gid: 'g2', tags: { unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '6', down: '1', distance: '10', qbAlignment: 'Under Center' } },
+    { id: 9, __gid: 'g2', tags: { unit: 'offense', playType: 'Run Outside', runPass: 'Run', result: 'Loss', yardage: '-2', down: '2', distance: '9', qbAlignment: 'Pistol' } },
     { id: 10, __gid: 'g2', tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 3', blitz: 'A-Gap', playType: 'Short Pass', runPass: 'Pass', result: 'Sack', yardage: '-5', down: '3', distance: '7' } },
     { id: 11, __gid: 'g2', tags: { unit: 'defense', defFront: '3-4', coverage: 'Cover 2', playType: 'Deep Pass', runPass: 'Pass', result: 'Interception', yardage: '0', down: '2', distance: '8' } },
   ];
@@ -125,8 +123,8 @@ if (!result.missing) {
   ok(requiredDims.every(x => result.dimensions.includes(x)), 'Registry covers every minimum dimension', JSON.stringify(result.dimensions));
   ok(requiredMeasures.every(x => result.measures.includes(x)), 'Registry covers every minimum measure contract', JSON.stringify(result.measures));
   ok(requiredBlocks.every(x => result.blocks.includes(x)), 'Registry binds every canonical compute block', JSON.stringify(result.blocks));
-  ok(JSON.stringify(result.formation) === JSON.stringify(['Trips','Bunch']), 'Formation projects QB alignment out, keeps structural splitter');
-  ok(JSON.stringify(result.qbAlignment) === JSON.stringify(['Shotgun']), 'QB alignment dimension reads legacy formation token (projection probe)');
+  ok(JSON.stringify(result.formation) === JSON.stringify(['Trips','Bunch']), 'Formation reads the formation field with the structural splitter');
+  ok(JSON.stringify(result.qbAlignment) === JSON.stringify(['Shotgun']), 'QB alignment dimension reads its own field');
   ok(JSON.stringify(result.playType) === JSON.stringify(['RPO','Short Pass']), 'Play type uses canonical multi-value splitter');
   ok(JSON.stringify(result.fronts) === JSON.stringify(['4-3','Jumbo Shift']) && JSON.stringify(result.blitzes) === JSON.stringify(['A-Gap','Edge']), 'Defense dimensions use canonical splitters');
   ok(JSON.stringify(result.results) === JSON.stringify(['Gain','Touchdown']), 'Result uses canonical splitter');
@@ -157,7 +155,7 @@ if (!result.missing) {
   ok(JSON.stringify(result.cutMatch) === JSON.stringify(['g2::7'])
     && JSON.stringify(result.cutMatchAlign) === JSON.stringify(['g2::7'])
     && JSON.stringify(result.cutMatchRawFormation) === JSON.stringify([]),
-    'Cut binding matches projected structure + qbAlignment, NOT raw alignment token');
+    'Cut binding matches formation and qbAlignment each in its own field; an alignment is never a formation');
   ok(result.deferred === 'requires-context' && result.deferredThrows, 'Unresolved measure semantics are explicit and unreadable');
   ok(result.unknownDimensionThrows, 'Unknown registry IDs fail loudly');
   // H19 added dirVsStrength/dirVsHash as registered dimensions so the two reads

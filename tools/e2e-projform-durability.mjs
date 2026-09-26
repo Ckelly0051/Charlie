@@ -23,20 +23,15 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    unrelated blank schema keys a hand-built synthetic fixture may omit; see
    the `pick()` comment).
 
-   Covers, through this genuine reload boundary:
-     1. A legacy Formation→QB Alignment promotion (multi-value primary).
-     2. A legacy Coverage→Coverage Family promotion (single-value primary).
-     3. The combined Pistol+Empty legacy shape, committed via an explicit
-        Formation edit (the E4-2 review-fix case, commit path #1).
-     4. The SAME combined shape, committed via Save & Next / commitProjectedLook
-        (commit path #2 — the two paths share the fix, both must survive).
-     5. A Film Room grid edit on one of the four newly-editable columns
-        (Backfield).
-     6. A derived-value CLEAR (re-tapping an active derived chip) — the exact
-        thing that used to silently reappear on revisit before the E4-1 fix;
-        this proves it stays gone across an actual reload, not just a
-        same-session reselect.
-     7. A fully modern, no-legacy-token play as a plain sanity baseline.
+   Covers, through this genuine reload boundary (every play is current format;
+   each look field is its own field — legacy excision step 7):
+     1. Clearing the formation chip leaves the QB alignment untouched.
+     2. A coverage call added beside a stored coverage family.
+     3. Pistol + Empty backfield, committed via an explicit Formation edit.
+     4. The same look, committed via Save & Next.
+     5. A Film Room grid edit on Backfield.
+     6. A QB alignment CLEAR (re-tapping the active chip) is stored, not hidden.
+     7. A fully charted play as a plain sanity baseline.
    Plus: history is fresh (no leaked undo stack) after the reopen, play count
    is unchanged, and cross-surface parity (tag-form chip state) matches
    pre-reload for every case.
@@ -119,17 +114,17 @@ const seasonId = await page.evaluate(async () => {
 ok(!!seasonId, 'season created', String(seasonId));
 await sleep(300);
 
-const IDS = { legacyFormation: 9301, legacyCoverage: 9302, pistolEmptyEdit: 9303, pistolEmptySaveNext: 9304, gridBackfield: 9305, derivedClear: 9306, modern: 9307 };
+const IDS = { formationClear: 9301, coverageAdd: 9302, pistolEmptyEdit: 9303, pistolEmptySaveNext: 9304, gridBackfield: 9305, qbClear: 9306, modern: 9307 };
 await page.evaluate((ids) => {
   const t = window.app.tagger;
   const mk = (id, tags) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: Object.assign({ unit: 'offense', down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', players: {}, grades: {}, custom: [] }, tags) });
   t.plays.push(
-    mk(ids.legacyFormation, { formation: 'Shotgun + Trips' }),
-    mk(ids.legacyCoverage, { unit: 'defense', coverage: 'Man', playType: '', runPass: '', result: '' }),
-    mk(ids.pistolEmptyEdit, { formation: 'Ace + Empty', backfield: 'Pistol' }),
-    mk(ids.pistolEmptySaveNext, { formation: 'Ace + Empty', backfield: 'Pistol' }),
+    mk(ids.formationClear, { formation: 'Trips', qbAlignment: 'Shotgun' }),
+    mk(ids.coverageAdd, { unit: 'defense', coverage: '', coverageFamily: 'Man', playType: '', runPass: '', result: '' }),
+    mk(ids.pistolEmptyEdit, { formation: 'Ace', backfield: 'Empty', qbAlignment: 'Pistol' }),
+    mk(ids.pistolEmptySaveNext, { formation: 'Ace', backfield: 'Empty', qbAlignment: 'Pistol' }),
     mk(ids.gridBackfield, { formation: 'Wing-T', backfield: 'Split' }),
-    mk(ids.derivedClear, { formation: 'Shotgun + Wing-T' }),
+    mk(ids.qbClear, { formation: 'Wing-T', qbAlignment: 'Shotgun' }),
     mk(ids.modern, { formation: 'Ace', qbAlignment: 'Under Center', backfield: 'I', coverage: 'Cover 2', coverageFamily: 'Zone' }),
   );
   t.nextId = 9400;
@@ -138,23 +133,23 @@ await page.evaluate((ids) => {
 console.log('\n== 2. Commit real edits through the actual tag-form / Film Room UI ==');
 await mountNativeForm();
 
-// 2a. Legacy Formation -> QB Alignment promotion (turn off the only structural chip).
-await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.legacyFormation);
+// 2a. Turn off the only formation chip; the QB alignment is a separate field.
+await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.formationClear);
 await clickChip('formation', 'Trips');
 await frame();
 
-// 2b. Legacy Coverage -> Coverage Family promotion.
-await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.legacyCoverage);
+// 2b. Add a coverage call beside the stored family.
+await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.coverageAdd);
 await clickChip('coverage', 'Cover 3');
 await frame();
 
-// 2c. Combined Pistol+Empty, committed via an explicit Formation edit (adds a
-// second structural chip so the commit is genuine, not a no-op).
+// 2c. Pistol + Empty, committed via an explicit Formation edit (adds a second
+// formation chip so the commit is genuine, not a no-op).
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptyEdit);
 await clickChip('formation', 'Trips');
 await frame();
 
-// 2d. Combined Pistol+Empty, committed via Save & Next (commitProjectedLook).
+// 2d. Pistol + Empty, committed via Save & Next.
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptySaveNext);
 await clickSaveNext();
 await frame();
@@ -209,14 +204,13 @@ if (gridEdit) {
   await page.evaluate(() => { window.app.nativeFilmRoom.restore(); document.getElementById('projformFilmRoomHost')?.remove(); });
 }
 
-// 2f. Derived-value CLEAR: seed QB Alignment 'Shotgun' from the projected view
-// (nothing stored yet), then re-tap the derived-active chip to clear it.
+// 2f. QB alignment CLEAR: re-tap the active Shotgun chip.
 // The workspaceShell.disable() call above for the Film Room grid section
 // unmounts NativeTaggingScreen along with the rest of the route (it is a
 // singleton, restored regardless of which host it was mounted into) --
 // remount before this and every later chip interaction needs it.
 await mountNativeForm();
-await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.derivedClear);
+await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.qbClear);
 await clickChip('qbAlignment', 'Shotgun');
 await frame();
 
@@ -256,11 +250,11 @@ const before = await page.evaluate(async (ids) => {
   return { plays: out, playCount: t.plays.length };
 }, IDS);
 
-ok((before.plays.legacyFormation.tags.formation || '') === '' && before.plays.legacyFormation.tags.qbAlignment === 'Shotgun', 'pre-reload: legacy Formation promotion committed as expected', JSON.stringify(before.plays.legacyFormation.tags));
-ok(before.plays.legacyCoverage.tags.coverage === 'Cover 3' && before.plays.legacyCoverage.tags.coverageFamily === 'Man', 'pre-reload: legacy Coverage promotion committed as expected', JSON.stringify(before.plays.legacyCoverage.tags));
-ok(before.plays.pistolEmptyEdit.projected.qbAlignment === 'Pistol' && before.plays.pistolEmptyEdit.projected.backfield === 'Empty', 'pre-reload: Pistol+Empty (Formation-edit path) preserves BOTH projected fields', JSON.stringify(before.plays.pistolEmptyEdit.projected));
-ok(before.plays.pistolEmptySaveNext.projected.qbAlignment === 'Pistol' && before.plays.pistolEmptySaveNext.projected.backfield === 'Empty', 'pre-reload: Pistol+Empty (Save & Next path) preserves BOTH projected fields', JSON.stringify(before.plays.pistolEmptySaveNext.projected));
-ok((before.plays.derivedClear.tags.qbAlignment || '') === '' && before.plays.derivedClear.projected.qbAlignment === '', 'pre-reload: derived QB Alignment clear is genuinely stored (not just hidden)', JSON.stringify(before.plays.derivedClear.tags));
+ok((before.plays.formationClear.tags.formation || '') === '' && before.plays.formationClear.tags.qbAlignment === 'Shotgun', 'pre-reload: clearing the formation leaves the QB alignment stored', JSON.stringify(before.plays.formationClear.tags));
+ok(before.plays.coverageAdd.tags.coverage === 'Cover 3' && before.plays.coverageAdd.tags.coverageFamily === 'Man', 'pre-reload: a coverage call is stored beside the coverage family', JSON.stringify(before.plays.coverageAdd.tags));
+ok(before.plays.pistolEmptyEdit.tags.formation === 'Ace + Trips' && before.plays.pistolEmptyEdit.tags.qbAlignment === 'Pistol' && before.plays.pistolEmptyEdit.tags.backfield === 'Empty', 'pre-reload: a Formation edit keeps QB alignment Pistol and backfield Empty', JSON.stringify(before.plays.pistolEmptyEdit.tags));
+ok(before.plays.pistolEmptySaveNext.tags.formation === 'Ace' && before.plays.pistolEmptySaveNext.tags.qbAlignment === 'Pistol' && before.plays.pistolEmptySaveNext.tags.backfield === 'Empty', 'pre-reload: Save & Next keeps QB alignment Pistol and backfield Empty', JSON.stringify(before.plays.pistolEmptySaveNext.tags));
+ok((before.plays.qbClear.tags.qbAlignment || '') === '' && before.plays.qbClear.projected.qbAlignment === '' && before.plays.qbClear.tags.formation === 'Wing-T', 'pre-reload: a QB alignment clear is genuinely stored (not just hidden)', JSON.stringify(before.plays.qbClear.tags));
 
 console.log('\n== 4. Persist through the REAL canonical path, then reload the page from nothing ==');
 await page.evaluate(() => { window.app.storage.commitActive(); return window.app.storage.seasonStore.persist(); });
@@ -322,7 +316,7 @@ for (const key of Object.keys(IDS)) {
   const b = before.plays[key], a = after[key];
   if (!a || a.missing) { ok(false, `[${key}] play survives the reopen`, 'MISSING after reload'); continue; }
   ok(pick(a.tags) === pick(b.tags), `[${key}] raw stored tags are identical (relevant fields) after persist -> reload -> reopen`, JSON.stringify({ before: b.tags, after: a.tags }));
-  ok(pick(a.projected) === pick(b.projected), `[${key}] projected view is identical after reload (no drift / no re-reconciliation on load)`, JSON.stringify({ before: b.projected, after: a.projected }));
+  ok(pick(a.projected) === pick(b.projected), `[${key}] analytics view is identical after reload (no drift on load)`, JSON.stringify({ before: b.projected, after: a.projected }));
   ok(JSON.stringify(a.chips) === JSON.stringify(b.chips), `[${key}] tag-form chip state (cross-surface parity) matches pre-reload after reopening`, JSON.stringify({ before: b.chips, after: a.chips }));
 }
 

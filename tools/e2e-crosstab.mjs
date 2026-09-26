@@ -12,9 +12,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
      - a blank-axis play appears in NO cell,
      - each cell's count equals its expected value, and Σ cells === eligible.
 
-   Also exercises projection: some plays carry the legacy alignment token in
-   `formation` (e.g. "Under Center + Ace") so the qbAlignment axis is populated by
-   TagProjection, not a pre-split field.
+   QB alignment is its own field; the qbAlignment axis reads it directly.
 
    Run: node tools/e2e-crosstab.mjs */
 import puppeteer from 'puppeteer';
@@ -48,10 +46,10 @@ const results = await page.evaluate(() => {
   // ============ COHORT A — qbAlignment × strength (dedicated game) ============
   // P1/P3 carry the alignment token INSIDE formation (projection must read it).
   const gameA = [
-    play(1, { unit: 'offense', formation: 'Under Center + Ace', strength: 'Right' }), // (Under Center, Right)
+    play(1, { unit: 'offense', qbAlignment: 'Under Center', formation: 'Ace', strength: 'Right' }), // (Under Center, Right)
     play(2, { unit: 'offense', qbAlignment: 'Shotgun', formation: 'Ace', strength: 'Left' }), // (Shotgun, Left)
-    play(3, { unit: 'offense', formation: 'Pistol + Trips', strength: 'Right' }), // (Pistol, Right)
-    play(4, { unit: 'offense', formation: 'Shotgun + Trips', strength: '' }), // blank strength → omitted
+    play(3, { unit: 'offense', qbAlignment: 'Pistol', formation: 'Trips', strength: 'Right' }), // (Pistol, Right)
+    play(4, { unit: 'offense', qbAlignment: 'Shotgun', formation: 'Trips', strength: '' }), // blank strength → omitted
     play(5, { unit: 'offense', formation: 'Ace', strength: 'Balanced' }), // blank qbAlignment → omitted
   ];
   const A = eng._computeMatrix(gameA, 'qbAlignment', 'strength');
@@ -62,7 +60,7 @@ const results = await page.evaluate(() => {
   t('A cell (Under Center, Right) = 1', cellCount(A, 'Under Center', 'Right') === 1, cellCount(A, 'Under Center', 'Right'));
   t('A cell (Shotgun, Left) = 1', cellCount(A, 'Shotgun', 'Left') === 1, cellCount(A, 'Shotgun', 'Left'));
   t('A cell (Pistol, Right) = 1', cellCount(A, 'Pistol', 'Right') === 1, cellCount(A, 'Pistol', 'Right'));
-  // blank-strength play (id 4, projected qb Shotgun) must NOT appear under Shotgun row on any strength col
+  // blank-strength play (id 4, qb Shotgun) must NOT appear under Shotgun row on any strength col
   t('A blank-strength play in NO cell (no Shotgun×Balanced etc.)', cellCount(A, 'Shotgun', 'Balanced') === 0 && cellCount(A, 'Shotgun', 'Right') === 0, `ShotgunRight=${cellCount(A, 'Shotgun', 'Right')}`);
   // blank-qbAlignment play (id 5, strength Balanced) must NOT appear in any cell
   t('A blank-qbAlignment play in NO cell (no *×Balanced)', A.colKeys.indexOf('Balanced') === -1 || cellSum(A) === 3, `colKeys=${JSON.stringify(A.colKeys)}`);

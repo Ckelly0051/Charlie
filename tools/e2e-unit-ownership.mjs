@@ -45,7 +45,7 @@ await page.evaluate(async () => {
   g.plays = [
     // The coach's legacy shape: the opponent formation stored combined, with an
     // empty backfield, on a defensive snap.
-    mk(1, { unit: 'defense', formation: 'Under Center + Flexbone', backfield: '', personnel: '11', defFront: 'Maverick', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '4' }),
+    mk(1, { unit: 'defense', formation: 'Flexbone', qbAlignment: 'Under Center', backfield: '', personnel: '11', defFront: 'Maverick', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '4' }),
     mk(2, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun', defFront: '5-2', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '6' }),
     mk(3, { unit: 'special', stType: 'Punt' }),
     // No unit stored at all (legacy); every report counts it as offense.
@@ -78,7 +78,7 @@ let r = await page.evaluate(async () => {
 ok(!r.def.na.includes('formation') && !r.def.na.includes('qbAlignment') && !r.def.na.includes('personnel'),
   'a defensive row does not blank the offense-faced columns', JSON.stringify(r.def));
 ok(r.def.formation === 'Flexbone' && r.def.dom === 'Flexbone' && r.def.personnel === '11',
-  'a defensive row shows the formation it faced, as the play card does (Flexbone from the legacy combined value)', JSON.stringify(r.def));
+  'a defensive row shows the formation it faced, as the play card does', JSON.stringify(r.def));
 ok(!r.off.na.includes('defFront') && !r.off.na.includes('coverage') && r.off.dom === '5-2',
   'an offensive row shows the front it faced', JSON.stringify(r.off));
 ok(r.off.na.includes('stUnit') && r.def.na.includes('stUnit'), 'offense and defense rows blank the Special Teams columns', JSON.stringify([r.off.na, r.def.na]));

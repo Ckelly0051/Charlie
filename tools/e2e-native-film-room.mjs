@@ -29,8 +29,8 @@ const mounted = await page.evaluate(async () => {
     tags: {
       unit: index === 6 ? 'defense' : 'offense',
       down: String(index % 4 + 1), distance: index % 3 === 0 ? '10' : '4',
-      formation: index === 0 ? 'Shotgun + Trips' : index % 2 ? 'Power-I' : 'Ace',
-      qbAlignment: '', personnel: '11', runPass: index % 2 ? 'Run' : 'Pass',
+      formation: index === 0 ? 'Trips' : index % 2 ? 'Power-I' : 'Ace',
+      qbAlignment: index === 0 ? 'Shotgun' : '', personnel: '11', runPass: index % 2 ? 'Run' : 'Pass',
       playType: index % 2 ? 'Run Outside' : 'Short Pass',
       result: index === 5 ? 'Touchdown' : 'Gain', yardage: String(index + 1),
       defFront: index === 6 ? '4-2-5' : '', coverage: index === 6 ? 'Cover 3' : '',
@@ -98,7 +98,7 @@ state = await page.evaluate(() => {
     tendency: [...document.querySelectorAll('thead th')].find(th => th.querySelector('span')?.textContent === 'Formation')?.querySelector('small')?.textContent || '',
   };
 });
-ok(state.text === state.expected && state.text === 'Trips', 'Projected cell text equals the canonical Film Room value', JSON.stringify(state));
+ok(state.text === state.expected && state.text === 'Trips', 'Formation cell text equals the canonical Film Room value', JSON.stringify(state));
 ok(!!state.tendency, 'Native header carries the canonical visible-pool tendency');
 
 console.log('\n== 2. Filters, selection, and exact Watch pool ==');

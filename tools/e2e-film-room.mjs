@@ -18,10 +18,8 @@ import { setupTeamAndDemo } from './hub-setup.mjs';
    no native equivalent -- that concept was already retired by the S5d
    ownership flip, well before this milestone, and is not reintroduced here. */
 import puppeteer from 'puppeteer';
-import { TagProjection } from '../js/tag-projection.js';
-// Every projected relationship, read from its owner (it is DOM-free).
-const PROJECTED_RELATIONSHIPS = Object.entries(TagProjection.PROJECTED_PAIRS)
-  .flatMap(([primary, pairs]) => pairs.map(pair => `${primary}->${pair.sibling}`));
+// Plays are current format (legacy excision step 7): each look field is its
+// own field, and an edit writes only the field edited.
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
@@ -382,15 +380,14 @@ console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across 
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const mkDef = (id, coverage, coverageFamily) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'defense', coverage, coverageFamily } });
-  // 'Man' here is a LEGACY family value raw in `coverage` -- projects to
-  // Coverage Call = '' (ineligible), Coverage Family = 'Man'. _tendency()
-  // requires >= 3 ELIGIBLE plays before it shows anything at all, so three
-  // real Cover 2 calls establish that floor; the fourth (Man) play must NOT
-  // count toward it. If Coverage Call's tendency counted the Man play anyway,
+  // The fourth play charts a family (Man) and no call -- Coverage Call is
+  // blank (ineligible). _tendency() requires >= 3 ELIGIBLE plays before it
+  // shows anything at all, so three real Cover 2 calls establish that floor;
+  // the family-only play must NOT count toward it. If Coverage Call's tendency counted the Man play anyway,
   // eligible=4/Cover2=3 -> "75%" instead of the correct eligible=3/Cover2=3
   // -> "100%" (mirrors the Formation multi-value discriminator above, for a
   // single-value column instead).
-  const covPlays = [mkDef(1, 'Cover 2'), mkDef(2, 'Cover 2'), mkDef(3, 'Cover 2'), mkDef(4, 'Man')];
+  const covPlays = [mkDef(1, 'Cover 2'), mkDef(2, 'Cover 2'), mkDef(3, 'Cover 2'), mkDef(4, '', 'Man')];
   const coverageTend = grid._tendency(grid.constructor.COLUMNS.find(c => c.key === 'coverage'), covPlays);
 
   // Each proj-readonly column gets the SAME three-part proof formation/coverage
@@ -400,9 +397,7 @@ r = await page.evaluate(() => {
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, tags: Object.assign({ unit: 'offense' }, tags) });
   const fixtures = {
     qbAlignment: [mk(1, { qbAlignment: 'Shotgun' }), mk(2, { qbAlignment: 'Shotgun' }), mk(3, { qbAlignment: 'Under Center' }), mk(4, {})],
-    // NOT 'Pistol' -- per TagProjection/E1, Pistol is exclusively QB alignment
-    // terminology now and gets stripped OUT of backfield unconditionally, so
-    // it would project to '' here rather than being a genuine second value.
+    // NOT 'Pistol' -- Pistol is a QB alignment, never a backfield value.
     backfield:   [mk(1, { backfield: 'I' }),         mk(2, { backfield: 'I' }),         mk(3, { backfield: 'Power' }),          mk(4, {})],
     strength:    [mk(1, { strength: 'Right' }),      mk(2, { strength: 'Right' }),      mk(3, { strength: 'Left' }),            mk(4, {})],
     coverageFamily: [mk(1, { coverageFamily: 'Zone' }), mk(2, { coverageFamily: 'Zone' }), mk(3, { coverageFamily: 'Man' }), mk(4, {})],
@@ -419,7 +414,7 @@ r = await page.evaluate(() => {
   }
   return { coverageTend, projReadonly, expectedTop };
 });
-ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses the ELIGIBLE denominator -- the legacy family-mapped play is excluded, not counted as a third eligible play', JSON.stringify(r.coverageTend));
+ok(r.coverageTend === 'Cover 2 100%', 'coverage (Coverage Call) tendency uses the ELIGIBLE denominator -- the family-only play is excluded, not counted as a fourth eligible play', JSON.stringify(r.coverageTend));
 for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
   const c = r.projReadonly[key];
   const expected = `${r.expectedTop[key]} 67%`;
@@ -436,8 +431,8 @@ r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
   const cell = (p, key) => grid._cellText(p, PG.COLUMNS.find(c => c.key === key));
-  const alignOnly = mk(1, { formation: 'Under Center' });      // projects to NO structural formation
-  const structural = mk(2, { formation: 'Shotgun + Trips' });  // projects to Trips
+  const alignOnly = mk(1, { formation: '', qbAlignment: 'Under Center' });   // no formation charted
+  const structural = mk(2, { formation: 'Trips', qbAlignment: 'Shotgun' });
   const defFam = mk(3, { unit: 'defense', coverage: 'Cover 3', coverageFamily: 'Zone' });
   return {
     alignFormation: cell(alignOnly, 'formation'),
@@ -459,11 +454,11 @@ r = await page.evaluate(() => {
 });
 ok(/Not charted/.test(r.alignFormation) && !/Shotgun/.test(r.alignFormation) && !/Unknown/.test(r.alignFormation),
   'alignment-only play: Formation cell reads "Not charted" (never Shotgun/Unknown)', JSON.stringify(r.alignFormation));
-ok(/Under Center/.test(r.alignQb), 'QB Alignment column shows the projected alignment', JSON.stringify(r.alignQb));
+ok(/Under Center/.test(r.alignQb), 'QB Alignment column shows the stored alignment', JSON.stringify(r.alignQb));
 ok(/Trips/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
-  'structural play: Formation cell shows projected structure only', JSON.stringify(r.structFormation));
-ok(/Shotgun/.test(r.structQb), 'QB Alignment column shows alignment split out of a mixed formation', JSON.stringify(r.structQb));
-ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the projected family', JSON.stringify(r.covFamily));
+  'Formation cell shows the formation only', JSON.stringify(r.structFormation));
+ok(/Shotgun/.test(r.structQb), 'QB Alignment column shows its own field beside the formation', JSON.stringify(r.structQb));
+ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the stored family', JSON.stringify(r.covFamily));
 ok(r.qbType === 'enum' && r.famType === 'enum',
   'QB Alignment + Coverage Family are declared as genuine editable enum columns (E4-2)', JSON.stringify(r));
 
@@ -832,7 +827,7 @@ if (r.skip) {
   ok(r.unchanged, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction -- view/cancel never writes', JSON.stringify(r));
 }
 
-console.log('\n== 8e. E3b-P1: Formation editor projected seed + promote-on-commit ==');
+console.log('\n== 8e. Formation editor seed; a Formation commit writes ONLY the formation ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const col = PG.COLUMNS.find(c => c.key === 'formation');
@@ -840,10 +835,7 @@ r = await page.evaluate(() => {
   const out = {};
 
   // (a) SEED -- proven through the REAL native editor() model builder, the
-  // exact non-UI function the JSX calls to construct the popover's initial
-  // state. (An earlier version asserted on its own SE.projField() call, which
-  // tested projField rather than the editor: reverting the seed to raw left it
-  // green. Found by mutation.)
+  // exact non-UI function the JSX calls to construct the popover's initial state.
   const openOn = (formationValue) => {
     const real = grid.tagger.plays[0];
     const saved = real.tags.formation;
@@ -856,192 +848,143 @@ r = await page.evaluate(() => {
     real.tags.formation = saved;
     return res;
   };
-  const legacyOpen = openOn('Under Center');
-  out.legacyOpened = legacyOpen.opened;
-  out.seedLegacyActive = legacyOpen.active;                 // must be EMPTY
-  out.optsHaveAlignment = legacyOpen.offered.some(o => ['Under Center', 'Shotgun', 'Pistol'].includes(o));
-  const mixedOpen = openOn('Shotgun + Trips');
-  out.seedMixedActive = mixedOpen.active;                   // must be ['Trips'] only
+  const blankOpen = openOn('');
+  out.blankOpened = blankOpen.opened;
+  out.seedBlankActive = blankOpen.active;                  // must be EMPTY
+  // A seen alignment value must still not reach the Formation picker.
+  grid._optionCache = {};
+  out.optsHaveAlignment = blankOpen.offered.concat(grid._options(col, ['Shotgun', 'Trips'])).some(o => ['Under Center', 'Shotgun', 'Pistol'].includes(o));
+  out.seedMultiActive = openOn('Trips + Bunch').active;     // both values
 
-  // NOTE (honest scope): for FORMATION the `_options` alignment filter alone
-  // removes the chip, so the PROJECTED SEED is not independently observable through
-  // the offered options alone (verified by mutation). The filter is the enforcing
-  // mechanism and IS discriminating (see the "offers NO QB alignments" assertion
-  // below); the projected seed is defense-in-depth.
-
-  // (b) PROMOTE on explicit commit -- alignment preserved into qbAlignment.
-  const p1 = mk({ formation: 'Under Center' });
+  // (b) a Formation commit leaves the stored QB alignment alone.
+  const p1 = mk({ formation: '', qbAlignment: 'Under Center' });
   grid._applyEdit(p1, col, 'Trips');
-  out.promoted = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
-
-  // (c) an EXISTING explicit qbAlignment WINS (never overwritten).
-  const p2 = mk({ formation: 'Shotgun + Trips', qbAlignment: 'Pistol' });
+  out.kept = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
+  const p2 = mk({ formation: 'Trips', qbAlignment: 'Pistol' });
   grid._applyEdit(p2, col, 'Bunch');
   out.explicitWins = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
-
-  // (d) a play with NO alignment anywhere gains none (no invention).
+  // (c) a play with no alignment gains none (no invention).
   const p3 = mk({ formation: 'Ace' });
   grid._applyEdit(p3, col, 'Trips');
   out.noInvention = { formation: p3.tags.formation, qbAlignment: p3.tags.qbAlignment || '' };
-
-  // (e) editing a DIFFERENT field never promotes (no sibling rewrite).
-  const p4 = mk({ formation: 'Under Center', playType: '' });
+  // (d) editing a DIFFERENT field leaves the look alone.
+  const p4 = mk({ formation: 'Ace', qbAlignment: '', playType: '' });
   grid._applyEdit(p4, PG.COLUMNS.find(c => c.key === 'playType'), 'Run Inside');
   out.otherField = { formation: p4.tags.formation, qbAlignment: p4.tags.qbAlignment || '' };
 
-  // (f) building the direct editor() model writes NOTHING. The real UI
-  // click-then-cancel path (which must ALSO write nothing) is separately and
-  // genuinely proven with real clicks in the BEHAVIORAL block above.
+  // (e) building the direct editor() model writes NOTHING.
   const real = grid.tagger.plays[0];
   if (real) {
     const selBefore = grid.tagger.currentPlayId;
     const before5 = JSON.stringify(real.tags);
     const model = window.app.nativeFilmRoom.editor(real.id, 'formation');
-    out.editorOpened = !!model;   // it IS editable (not a no-op test)
+    out.editorOpened = !!model;
     out.openCancelUnchanged = JSON.stringify(real.tags) === before5;
-    if (selBefore != null) grid.tagger.selectPlay(selBefore);   // restore via the real path
+    if (selBefore != null) grid.tagger.selectPlay(selBefore);
   } else { out.editorOpened = false; out.openCancelUnchanged = true; }
   return out;
 });
-ok(r.legacyOpened, 'P1 seed: the Formation editor model builds (seed assertions are not vacuous)', JSON.stringify(r.legacyOpened));
-ok(Array.isArray(r.seedLegacyActive) && r.seedLegacyActive.length === 0,
-  'P1 seed: an alignment-only play seeds the REAL editor model with NO active value', JSON.stringify(r.seedLegacyActive));
-ok(JSON.stringify(r.seedMixedActive) === JSON.stringify(['Trips']),
-  'P1 seed: a mixed play activates ONLY its structural value in the real editor model', JSON.stringify(r.seedMixedActive));
-ok(!r.optsHaveAlignment, 'P1: the structural Formation picker offers NO QB alignments', JSON.stringify(r.optsHaveAlignment));
-ok(r.promoted.formation === 'Trips' && r.promoted.qbAlignment === 'Under Center',
-  'P1 promote: explicit commit writes the structural choice AND preserves the alignment', JSON.stringify(r.promoted));
+ok(r.blankOpened, 'seed: the Formation editor model builds (seed assertions are not vacuous)', JSON.stringify(r.blankOpened));
+ok(Array.isArray(r.seedBlankActive) && r.seedBlankActive.length === 0,
+  'seed: a play with no formation seeds the REAL editor model with NO active value', JSON.stringify(r.seedBlankActive));
+ok(JSON.stringify(r.seedMultiActive) === JSON.stringify(['Trips', 'Bunch']),
+  'seed: a multi-value formation activates each of its values in the real editor model', JSON.stringify(r.seedMultiActive));
+ok(!r.optsHaveAlignment, 'the Formation picker offers NO QB alignments', JSON.stringify(r.optsHaveAlignment));
+ok(r.kept.formation === 'Trips' && r.kept.qbAlignment === 'Under Center',
+  'a Formation commit writes the formation and leaves the QB alignment as stored', JSON.stringify(r.kept));
 ok(r.explicitWins.formation === 'Bunch' && r.explicitWins.qbAlignment === 'Pistol',
-  'P1: an EXISTING explicit qbAlignment wins (never overwritten)', JSON.stringify(r.explicitWins));
+  'an explicit qbAlignment is never overwritten by a Formation commit', JSON.stringify(r.explicitWins));
 ok(r.noInvention.formation === 'Trips' && r.noInvention.qbAlignment === '',
-  'P1: no alignment is INVENTED when the play never had one', JSON.stringify(r.noInvention));
-ok(r.otherField.formation === 'Under Center' && r.otherField.qbAlignment === '',
-  'P1: editing a DIFFERENT field promotes nothing (no sibling rewrite)', JSON.stringify(r.otherField));
-ok(r.editorOpened, 'P1: the Formation editor model DOES build (so the no-write check is not vacuous)', JSON.stringify(r.editorOpened));
-ok(r.openCancelUnchanged, 'P1: building the editor model writes NOTHING', JSON.stringify(r.openCancelUnchanged));
+  'no alignment is INVENTED when the play never had one', JSON.stringify(r.noInvention));
+ok(r.otherField.formation === 'Ace' && r.otherField.qbAlignment === '',
+  'editing a DIFFERENT field leaves the look alone', JSON.stringify(r.otherField));
+ok(r.editorOpened, 'the Formation editor model DOES build (so the no-write check is not vacuous)', JSON.stringify(r.editorOpened));
+ok(r.openCancelUnchanged, 'building the editor model writes NOTHING', JSON.stringify(r.openCancelUnchanged));
 
-console.log('\n== 8f. E3b-P1b: COVERAGE CALL -- same promote class as Formation ==');
-// Fully pure -- grid._options/_applyEdit never touch classic markup.
+console.log('\n== 8f. COVERAGE CALL: the call picker offers no family; a call commit writes only the call ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const col = PG.COLUMNS.find(c => c.key === 'coverage');
   const mkD = (tags) => ({ id: 9101, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'defense' }, tags) });
   const out = {};
-  // options must not offer the FAMILY values (Man/Zone/Match) in the CALL picker
   grid._optionCache = {};
   out.offered = grid._options(col, ['Man']);
   out.offersFamily = out.offered.some(o => ['Man', 'Zone', 'Match'].includes(o));
-  // promote: legacy coverage:'Man' projects to blank call + family Man
-  const c1 = mkD({ coverage: 'Man' });
+  const c1 = mkD({ coverage: '', coverageFamily: 'Man' });
   grid._applyEdit(c1, col, 'Cover 3');
-  out.promoted = { coverage: c1.tags.coverage, coverageFamily: c1.tags.coverageFamily };
-  // explicit family wins
-  const c2 = mkD({ coverage: 'Man', coverageFamily: 'Zone' });
+  out.kept = { coverage: c1.tags.coverage, coverageFamily: c1.tags.coverageFamily };
+  const c2 = mkD({ coverage: 'Cover 1', coverageFamily: 'Zone' });
   grid._applyEdit(c2, col, 'Cover 2');
   out.explicitWins = { coverage: c2.tags.coverage, coverageFamily: c2.tags.coverageFamily };
-  // no invention when there was never a family
   const c3 = mkD({ coverage: 'Cover 1' });
   grid._applyEdit(c3, col, 'Cover 4');
   out.noInvention = { coverage: c3.tags.coverage, coverageFamily: c3.tags.coverageFamily || '' };
-  // editing a different field promotes nothing
-  const c4 = mkD({ coverage: 'Man' });
+  const c4 = mkD({ coverage: '', coverageFamily: 'Man' });
   grid._applyEdit(c4, PG.COLUMNS.find(c => c.key === 'result'), 'Incomplete');
-  out.otherField = { coverage: c4.tags.coverage, coverageFamily: c4.tags.coverageFamily || '' };
+  out.otherField = { coverage: c4.tags.coverage || '', coverageFamily: c4.tags.coverageFamily || '' };
   return out;
 });
-ok(!r.offersFamily, 'P1b: the Coverage CALL picker offers NO family values (Man/Zone/Match)', JSON.stringify(r.offered));
-ok(r.promoted.coverage === 'Cover 3' && r.promoted.coverageFamily === 'Man',
-  'P1b promote: explicit Coverage commit preserves the family (Man) instead of destroying it', JSON.stringify(r.promoted));
+ok(!r.offersFamily, 'the Coverage CALL picker offers NO family values (Man/Zone/Match)', JSON.stringify(r.offered));
+ok(r.kept.coverage === 'Cover 3' && r.kept.coverageFamily === 'Man',
+  'a Coverage commit writes the call and leaves the stored family', JSON.stringify(r.kept));
 ok(r.explicitWins.coverage === 'Cover 2' && r.explicitWins.coverageFamily === 'Zone',
-  'P1b: an EXISTING explicit coverageFamily wins', JSON.stringify(r.explicitWins));
+  'an explicit coverageFamily is never overwritten by a Coverage commit', JSON.stringify(r.explicitWins));
 ok(r.noInvention.coverage === 'Cover 4' && r.noInvention.coverageFamily === '',
-  'P1b: no family is INVENTED when the play never had one', JSON.stringify(r.noInvention));
-ok(r.otherField.coverage === 'Man' && r.otherField.coverageFamily === '',
-  'P1b: editing a DIFFERENT field promotes nothing', JSON.stringify(r.otherField));
+  'no family is INVENTED when the play never had one', JSON.stringify(r.noInvention));
+ok(r.otherField.coverage === '' && r.otherField.coverageFamily === 'Man',
+  'editing a DIFFERENT field leaves the coverage alone', JSON.stringify(r.otherField));
 
-console.log('\n== 8g. E3b-P1c: promotion is ONE undoable transaction (real history) ==');
-// NO skip path. An earlier version returned {skip:true} when the play or
-// HistoryManager was missing and every assertion accepted it -- so it could
-// certify undo behaviour it never exercised. The prerequisites are now explicit
-// assertions that FAIL CLOSED, and BOTH registered pairs are driven. Fully pure.
-r = await page.evaluate((relationshipsFromOwner) => {
+console.log('\n== 8g. A look edit through the grid is ONE undoable transaction and touches ONLY its field (real history) ==');
+// NO skip path: the prerequisites are explicit assertions that FAIL CLOSED.
+r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
-  // Codex E4-2 review, item #2: enumerate every DESCRIPTOR RELATIONSHIP
-  // (primary -> sibling pair), not just primary KEYS -- Object.keys(PROJECTED_PAIRS)
-  // is ['formation','backfield','coverage'], which is only 3, but Formation
-  // alone has TWO registered relationships (-> qbAlignment AND -> backfield),
-  // so a primary-keyed enumeration silently lets Formation -> Backfield escape
-  // coverage entirely (it did, in the version this review corrected).
-  const relationships = relationshipsFromOwner;
   const prereq = { hasHistory: !!(hist && typeof hist.undo === 'function' && Array.isArray(hist.stack)),
-                   playCount: tagger.plays.length,
-                   relationships };
-  // FAIL CLOSED with a readable reason instead of the old skip (or a bare
-  // TypeError deeper in): the proofs below must never be reported as passing
-  // because the machinery they claim to exercise was absent.
-  if (!prereq.hasHistory) throw new Error('P1c PREREQ FAILED: no real HistoryManager -- undo/redo proofs cannot run');
-  if (!prereq.playCount) throw new Error('P1c PREREQ FAILED: no real plays -- undo/redo proofs cannot run');
-  const runPair = (colKey, sibling, legacyPrimary, pick, unit) => {
+                   playCount: tagger.plays.length };
+  if (!prereq.hasHistory) throw new Error('8g PREREQ FAILED: no real HistoryManager -- undo/redo proofs cannot run');
+  if (!prereq.playCount) throw new Error('8g PREREQ FAILED: no real plays -- undo/redo proofs cannot run');
+  // Edit colKey from oldVal to pick on a real play whose neighbor field holds
+  // otherVal; the neighbor must be untouched through commit, undo and redo.
+  const runField = (colKey, other, oldVal, otherVal, pick, unit) => {
     const play = tagger.plays[0];
-    const saved = { primary: play.tags[colKey], sib: play.tags[sibling], unit: play.tags.unit };
-    // Read-time precedence for qbAlignment is explicit > formation's own
-    // token > backfield's (TagProjection). tagger.plays[0] is a REAL demo
-    // play whose own formation string may already carry an alignment token
-    // (e.g. legacy "Under Center + ..."); left untouched, that token would
-    // outrank the backfield->qbAlignment case under test below and silently
-    // corrupt only that one relationship depending on which play happens to
-    // land at index 0. Neutralize formation for every relationship except
-    // the one that's actually testing it.
-    const touchesFormation = colKey === 'formation' || sibling === 'formation';
-    const savedFormation = play.tags.formation;
-    if (!touchesFormation) play.tags.formation = '';
-    play.tags.unit = unit; play.tags[colKey] = legacyPrimary; play.tags[sibling] = '';
+    const saved = { col: play.tags[colKey], other: play.tags[other], unit: play.tags.unit };
+    play.tags.unit = unit; play.tags[colKey] = oldVal; play.tags[other] = otherVal;
     hist.reset();
     const depth0 = hist.stack.length;
     grid._applyEdit(play, PG.COLUMNS.find(c => c.key === colKey), pick);
     const entries = hist.stack.length - depth0;
-    const now = () => { const p = tagger.getPlay(play.id); return { p: p?.tags[colKey], s: p?.tags[sibling] || '' }; };
+    const now = () => { const q = tagger.getPlay(play.id); return { v: q?.tags[colKey] || '', o: q?.tags[other] || '' }; };
     const after = now();
     hist.undo();
     const undone = now();
     hist.redo();
     const redone = now();
-    const p = tagger.getPlay(play.id);
-    if (p) { p.tags[colKey] = saved.primary; p.tags[sibling] = saved.sib; p.tags.unit = saved.unit; }
-    if (!touchesFormation) play.tags.formation = savedFormation;
+    const q = tagger.getPlay(play.id);
+    if (q) { q.tags[colKey] = saved.col; q.tags[other] = saved.other; q.tags.unit = saved.unit; }
     return { entries, after, undone, redone };
   };
   return {
     prereq,
-    formationQb: runPair('formation', 'qbAlignment', 'Under Center', 'Trips', 'offense'),
-    // E4-2 review fix: this relationship escaped every prior test -- Formation
-    // alone embeds BOTH a QB Alignment token and (now) a Backfield 'Empty'
-    // token, and the two must be driven independently since one primary
-    // commit must protect BOTH siblings in the same transaction.
-    formationBackfield: runPair('formation', 'backfield', 'Ace + Empty', 'Trips', 'offense'),
-    // Backfield is now ALSO a registered primary in its own right (a legacy
-    // 'Pistol' can still be embedded in backfield's raw string, promoted to
-    // qbAlignment).
-    backfieldQb: runPair('backfield', 'qbAlignment', 'Pistol', 'Diamond', 'offense'),
-    coverageFamily: runPair('coverage', 'coverageFamily', 'Man', 'Cover 3', 'defense'),
+    formation: runField('formation', 'qbAlignment', 'Ace', 'Under Center', 'Trips', 'offense'),
+    qbAlignment: runField('qbAlignment', 'formation', 'Shotgun', 'Trips', 'Pistol', 'offense'),
+    backfield: runField('backfield', 'qbAlignment', 'I', 'Pistol', 'Empty', 'offense'),
+    coverage: runField('coverage', 'coverageFamily', 'Cover 1', 'Man', 'Cover 3', 'defense'),
+    coverageFamily: runField('coverageFamily', 'coverage', 'Man', 'Cover 3', 'Zone', 'defense'),
   };
-}, PROJECTED_RELATIONSHIPS);
-// Prerequisites fail closed -- if these break, the proofs below cannot silently pass.
-ok(r.prereq.hasHistory, 'P1c prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
-ok(r.prereq.playCount > 0, 'P1c prereq: real plays exist to edit', JSON.stringify(r.prereq));
-ok(JSON.stringify(r.prereq.relationships) === JSON.stringify(['formation->qbAlignment', 'formation->backfield', 'backfield->qbAlignment', 'coverage->coverageFamily']),
-  'P1c prereq: ALL FOUR registered RELATIONSHIPS are covered by this test -- enumerated by relationship, not by primary key, so Formation->Backfield cannot silently escape again', JSON.stringify(r.prereq.relationships));
-for (const [name, c, primaryLegacy, primaryNew, sibValue] of [
-  ['Formation/QB Alignment', r.formationQb, 'Under Center', 'Trips', 'Under Center'],
-  ['Formation/Backfield', r.formationBackfield, 'Ace + Empty', 'Trips', 'Empty'],
-  ['Backfield/QB Alignment', r.backfieldQb, 'Pistol', 'Diamond', 'Pistol'],
-  ['Coverage/Coverage Family', r.coverageFamily, 'Man', 'Cover 3', 'Man'],
+});
+ok(r.prereq.hasHistory, '8g prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
+ok(r.prereq.playCount > 0, '8g prereq: real plays exist to edit', JSON.stringify(r.prereq));
+for (const [name, c, oldVal, otherVal, pick] of [
+  ['Formation', r.formation, 'Ace', 'Under Center', 'Trips'],
+  ['QB Alignment', r.qbAlignment, 'Shotgun', 'Trips', 'Pistol'],
+  ['Backfield', r.backfield, 'I', 'Pistol', 'Empty'],
+  ['Coverage', r.coverage, 'Cover 1', 'Man', 'Cover 3'],
+  ['Coverage Family', r.coverageFamily, 'Man', 'Cover 3', 'Zone'],
 ]) {
-  ok(c.entries === 1, `P1c ${name}: the promote+write commit records EXACTLY ONE history entry`, JSON.stringify(c));
-  ok(c.after.p === primaryNew && c.after.s === sibValue, `P1c ${name}: commit wrote the primary + promoted sibling`, JSON.stringify(c.after));
-  ok(c.undone.p === primaryLegacy && c.undone.s === '', `P1c ${name}: UNDO restores the raw primary AND blank sibling TOGETHER`, JSON.stringify(c.undone));
-  ok(c.redone.p === primaryNew && c.redone.s === sibValue, `P1c ${name}: REDO restores the primary AND promoted sibling TOGETHER`, JSON.stringify(c.redone));
+  ok(c.entries === 1, name + ': the commit records EXACTLY ONE history entry', JSON.stringify(c));
+  ok(c.after.v === pick && c.after.o === otherVal, name + ': the commit writes its field and leaves the neighbor field as stored', JSON.stringify(c.after));
+  ok(c.undone.v === oldVal && c.undone.o === otherVal, name + ': UNDO restores the field; the neighbor is unchanged', JSON.stringify(c.undone));
+  ok(c.redone.v === pick && c.redone.o === otherVal, name + ': REDO reapplies the field; the neighbor is unchanged', JSON.stringify(c.redone));
 }
 
 console.log('\n== 8h. E4-2: safe Film Room editing for QB Alignment/Backfield/Strength/Coverage Family ==');
@@ -1116,22 +1059,22 @@ await frame();
 r = await page.evaluate(async () => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const tagger = window.app.tagger;
-  const legacyId = 9201;
-  const legacyPlay = { id: legacyId, timestamp: { start: legacyId, end: legacyId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Under Center + Wing-T' } };
-  tagger.plays.push(legacyPlay);
-  grid._applyEdit(legacyPlay, PG.COLUMNS.find(c => c.key === 'formation'), 'Wing-T');
+  const parityId = 9201;
+  const parityPlay = { id: parityId, timestamp: { start: parityId, end: parityId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Wing-T', qbAlignment: '' } };
+  tagger.plays.push(parityPlay);
+  grid._applyEdit(parityPlay, PG.COLUMNS.find(c => c.key === 'qbAlignment'), 'Under Center');
   const realHost = document.querySelector('[data-breakdown-tagging-host]');
   const scratchHost = document.createElement('div');
   document.body.append(scratchHost);
   window.app.nativeTagging.mount(scratchHost);
-  tagger.selectPlay(legacyId);
+  tagger.selectPlay(parityId);
   await new Promise(res => queueMicrotask(res));
   const formChip = [...scratchHost.querySelectorAll('[data-native-field="qbAlignment"] .gi-tag-chips button.is-active')].map(b => b.textContent.trim());
   window.app.nativeTagging.restore();
   scratchHost.remove();
   if (realHost) window.app.nativeTagging.mount(realHost);
-  const parity = { gridQbAlignment: tagger.getPlay(legacyId).tags.qbAlignment, formChip };
-  tagger.plays = tagger.plays.filter(pl => pl.id !== legacyId);
+  const parity = { gridQbAlignment: tagger.getPlay(parityId).tags.qbAlignment, formChip };
+  tagger.plays = tagger.plays.filter(pl => pl.id !== parityId);
   return parity;
 });
 const parity8h = r;
@@ -1155,107 +1098,48 @@ ok(strengthEntries === 1, 'E4-2: an explicit Strength edit (no registered relati
 ok(strengthOnlyChanged, 'E4-2: editing Strength touches NO other field');
 ok(strengthUndone === '', 'E4-2: UNDO reverts the Strength edit', strengthUndone);
 ok(parity8h.gridQbAlignment === 'Under Center' && JSON.stringify(parity8h.formChip) === JSON.stringify(['Under Center']),
-  'E4-2 cross-surface parity: a Formation edit made in the GRID promotes QB Alignment identically to how the TAG FORM displays it -- no divergent write path', JSON.stringify(parity8h));
+  'E4-2 cross-surface parity: a QB Alignment edit made in the GRID is what the TAG FORM displays -- no divergent write path', JSON.stringify(parity8h));
 
-console.log('\n== 8i. E4-2 review fix: DIRECT commit-and-clear of QB Alignment, Backfield, and Coverage Family through the GRID, each with revisit + undo/redo ==');
-// Codex E4-2 review, item #2: 8h only directly committed Strength (no
-// registered relationship) and only VIEWED/CANCELED QB Alignment -- it never
-// directly committed THEN CLEARED a sibling's own grid cell. This drives the
-// SAME derived-clear-survives-a-revisit proof e2e-tag-projform.mjs runs
-// through the tag form, but through the GRID's real _applyEdit path, for all
-// three siblings that can be genuinely derived: qbAlignment (from Formation),
-// backfield (from Formation's Empty), coverageFamily (from Coverage). Fully
-// pure -- synthetic play objects, no DOM at all.
+console.log('\n== 8i. A direct CLEAR of QB Alignment, Backfield and Coverage Family through the GRID clears only that field, with revisit + undo/redo ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
   const tagger = window.app.tagger;
-
-  const runClear = (siblingKey, primaryKey, primaryLegacy, unit, id) => {
-    const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit, down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], [primaryKey]: primaryLegacy } };
+  const runClear = (key, stored, other, otherVal, unit, id) => {
+    const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit, down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], [key]: stored, [other]: otherVal } };
     tagger.plays.push(play);
-    const derivedBefore = grid._cellText(play, PG.COLUMNS.find(c => c.key === siblingKey));
+    const shownBefore = grid._cellText(play, PG.COLUMNS.find(c => c.key === key));
     hist.reset();
     const depth0 = hist.stack.length;
-    // A direct commit of '' on the SIBLING's own column -- exactly what the
-    // grid's "clear" chip choice produces via nativeCommitEdit's commit.
-    grid._applyEdit(play, PG.COLUMNS.find(c => c.key === siblingKey), '');
+    grid._applyEdit(play, PG.COLUMNS.find(c => c.key === key), '');
     const entries = hist.stack.length - depth0;
-    const now = () => { const p = tagger.getPlay(id); return { primary: p?.tags[primaryKey], sibling: p?.tags[siblingKey] || '' }; };
+    const now = () => { const q = tagger.getPlay(id); return { v: q?.tags[key] || '', o: q?.tags[other] || '' }; };
     const afterCommit = now();
     hist.undo();
     const undone = now();
     hist.redo();
     const redone = now();
-    // Revisit: re-read the cell through _cellText from scratch -- proves
-    // the clear is durable in the DATA, not merely a transient DOM state.
-    const revisitCell = grid._cellText(tagger.getPlay(id), PG.COLUMNS.find(c => c.key === siblingKey));
+    const revisitCell = grid._cellText(tagger.getPlay(id), PG.COLUMNS.find(c => c.key === key));
     tagger.plays = tagger.plays.filter(pl => pl.id !== id);
-    return { derivedBefore, entries, afterCommit, undone, redone, revisitCell };
+    return { shownBefore, entries, afterCommit, undone, redone, revisitCell };
   };
-
   return {
-    qbAlignment: runClear('qbAlignment', 'formation', 'Ace + Shotgun', 'offense', 9202),
-    backfield: runClear('backfield', 'formation', 'Wing-T + Empty', 'offense', 9203),
-    coverageFamily: runClear('coverageFamily', 'coverage', 'Man', 'defense', 9204),
+    qbAlignment: runClear('qbAlignment', 'Shotgun', 'formation', 'Ace', 'offense', 9202),
+    backfield: runClear('backfield', 'Empty', 'formation', 'Wing-T', 'offense', 9203),
+    coverageFamily: runClear('coverageFamily', 'Man', 'coverage', 'Cover 1', 'defense', 9204),
   };
 });
-for (const [name, c, derivedText, primaryAfterClear, primaryAfterUndo] of [
-  ['QB Alignment (from Formation)', r.qbAlignment, 'Shotgun', 'Ace', 'Ace + Shotgun'],
-  ['Backfield (from Formation)', r.backfield, 'Empty', 'Wing-T', 'Wing-T + Empty'],
-  ['Coverage Family (from Coverage)', r.coverageFamily, 'Man', '', 'Man'],
+for (const [name, c, stored, otherVal] of [
+  ['QB Alignment', r.qbAlignment, 'Shotgun', 'Ace'],
+  ['Backfield', r.backfield, 'Empty', 'Wing-T'],
+  ['Coverage Family', r.coverageFamily, 'Man', 'Cover 1'],
 ]) {
-  ok(c.derivedBefore.includes(derivedText),
-    `${name}: the DERIVED value is genuinely shown before any commit`, JSON.stringify(c.derivedBefore));
-  ok(c.entries === 1, `${name}: the direct clear is EXACTLY one history entry`, JSON.stringify(c));
-  ok(c.afterCommit.sibling === '' && c.afterCommit.primary === primaryAfterClear,
-    `${name}: clearing the sibling strips the primary's raw token in the SAME commit`, JSON.stringify(c.afterCommit));
-  ok(c.undone.primary === primaryAfterUndo && c.undone.sibling === '',
-    `${name}: UNDO restores the raw legacy primary TOGETHER with the (still-derived, not explicit) sibling`, JSON.stringify(c.undone));
-  ok(c.redone.primary === primaryAfterClear && c.redone.sibling === '',
-    `${name}: REDO restores the stripped primary TOGETHER with the cleared sibling`, JSON.stringify(c.redone));
-  ok(!c.revisitCell.includes(derivedText),
-    `${name}: the clear STICKS after a fresh cell read -- the derived value does not silently reappear`, JSON.stringify(c.revisitCell));
+  ok(c.shownBefore.includes(stored), name + ': the stored value is shown before any commit', JSON.stringify(c.shownBefore));
+  ok(c.entries === 1, name + ': the direct clear is EXACTLY one history entry', JSON.stringify(c));
+  ok(c.afterCommit.v === '' && c.afterCommit.o === otherVal, name + ': the clear empties its field; the neighbor field is unchanged', JSON.stringify(c.afterCommit));
+  ok(c.undone.v === stored && c.undone.o === otherVal, name + ': UNDO restores the value', JSON.stringify(c.undone));
+  ok(c.redone.v === '' && c.redone.o === otherVal, name + ': REDO clears it again', JSON.stringify(c.redone));
+  ok(!c.revisitCell.includes(stored), name + ': the clear STICKS after a fresh cell read', JSON.stringify(c.revisitCell));
 }
-
-console.log('\n== 8j. E4-2 review fix: the combined "Pistol backfield + Empty formation" case, exercised through the GRID ==');
-// Codex named this exact combined shape explicitly ("including the combined
-// Pistol Empty case"). formation:"Ace + Empty", backfield:"Pistol" projects
-// as qbAlignment=Pistol / formation=Ace / backfield=Empty; an explicit
-// Formation commit through the GRID's real _applyEdit path must preserve
-// BOTH promotions (qbAlignment AND backfield) in one transaction, with
-// working undo/redo. tools/e2e-tag-projform.mjs section 16 proves this same
-// shape through the TAG FORM; this is the Film Room grid's own proof, since
-// the review explicitly asked this not be Film-Room-untested. Fully pure.
-r = await page.evaluate(() => {
-  const grid = window.app.playGrid, PG = grid.constructor, hist = window.app.history;
-  const tagger = window.app.tagger;
-  const SE = window.app.stats.constructor;
-  const id = 9205;
-  const play = { id, timestamp: { start: id, end: id + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Ace + Empty', backfield: 'Pistol' } };
-  tagger.plays.push(play);
-  const before = SE.proj(play);
-  hist.reset();
-  const depth0 = hist.stack.length;
-  grid._applyEdit(play, PG.COLUMNS.find(c => c.key === 'formation'), 'Trips');
-  const entries = hist.stack.length - depth0;
-  const now = () => { const p = tagger.getPlay(id); return { formation: p?.tags.formation, backfield: p?.tags.backfield, qbAlignment: p?.tags.qbAlignment }; };
-  const afterCommit = now();
-  hist.undo();
-  const undone = now();
-  hist.redo();
-  const redone = now();
-  tagger.plays = tagger.plays.filter(pl => pl.id !== id);
-  return { before, entries, afterCommit, undone, redone };
-});
-ok(r.before.qbAlignment === 'Pistol' && r.before.formation === 'Ace' && r.before.backfield === 'Empty',
-  'prereq: the fixture genuinely projects as Pistol / Ace / Empty', JSON.stringify(r.before));
-ok(r.entries === 1, 'the Formation commit through the grid is EXACTLY one history entry', JSON.stringify(r));
-ok(r.afterCommit.formation === 'Trips' && r.afterCommit.backfield === 'Empty' && r.afterCommit.qbAlignment === 'Pistol',
-  'a GRID Formation commit preserves BOTH promotions (QB Alignment AND Backfield) -- neither is lost', JSON.stringify(r.afterCommit));
-ok(r.undone.formation === 'Ace + Empty' && r.undone.backfield === 'Pistol' && (r.undone.qbAlignment || '') === '',
-  'UNDO restores the raw legacy Formation and Backfield ("Pistol") together, removing only the PROMOTED QB Alignment', JSON.stringify(r.undone));
-ok(r.redone.formation === 'Trips' && r.redone.backfield === 'Empty' && r.redone.qbAlignment === 'Pistol',
-  'REDO restores the commit and BOTH promoted siblings together', JSON.stringify(r.redone));
 
 console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==');
 // P3's exact contract (TAG-MODEL.md §20): Film Room has NO six-field quick
@@ -1284,13 +1168,13 @@ r = await page.evaluate(async () => {
   const plays = [
     // OFFENSE -- formation (incl. multi-value), qbAlignment, backfield, strength.
     mk(9001, 'offense', { formation: 'Trips',              qbAlignment: 'Shotgun',      strength: 'Right',   playType: 'Short Pass' }),
-    mk(9002, 'offense', { formation: 'Shotgun + Bunch',                                                       playType: 'Deep Pass' }),  // legacy -> projects formation=Bunch, qbAlignment=Shotgun
+    mk(9002, 'offense', { formation: 'Bunch',              qbAlignment: 'Shotgun',                              playType: 'Deep Pass' }),
     mk(9003, 'offense', { formation: 'Ace',                 qbAlignment: 'Under Center', backfield: 'I', strength: 'Balanced', playType: 'Run Inside' }),
     mk(9004, 'offense', { formation: 'Ace',                                                              playType: 'Run Inside' }), // no alignment/backfield/strength charted -> INELIGIBLE for those three
     mk(9009, 'offense', { formation: 'Trips + Bunch',                                     strength: 'Left',   playType: 'Screen' }),      // MULTI-structural: contributes to BOTH Trips and Bunch groups
-    mk(9010, 'offense', { formation: '',                                     backfield: 'Pistol',            playType: 'Screen' }),       // formation "Not charted" but backfield still eligible
+    mk(9010, 'offense', { formation: '',                                     backfield: 'Empty',             playType: 'Screen' }),       // formation "Not charted" but backfield still eligible
     // DEFENSE -- coverage (Coverage Call) + coverageFamily.
-    mk(9005, 'defense', { coverage: 'Man',      defFront: '4-3' }),                                                  // legacy -> projects coverage='' (blank/Coverage Call ineligible), coverageFamily='Man'
+    mk(9005, 'defense', { coverage: '',         coverageFamily: 'Man', defFront: '4-3' }),                           // family only: Coverage Call ineligible
     mk(9006, 'defense', { coverage: 'Cover 2',  coverageFamily: 'Zone', defFront: '4-3' }),
     mk(9007, 'defense', { coverage: 'Cover 3',  coverageFamily: 'Man',  defFront: '3-4' }),
     mk(9008, 'defense', { coverage: 'Cover 4',  defFront: '4-3' }),                                                  // no family charted -> coverageFamily INELIGIBLE
@@ -1404,7 +1288,7 @@ for (const key of ['formation', 'qbAlignment', 'backfield', 'strength', 'coverag
   ok(setEq(c.renderedValues, c.expected), `${key}: rendered group SET is complete -- no value silently dropped`, JSON.stringify({ rendered: c.renderedValues, expected: c.expected }));
 }
 ok(setEq(r.perCol.qbAlignment.rendered['Shotgun'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9002']),
-  'the legacy mixed play (9002) projects into the SAME rendered Shotgun group as the modern play (9001) -- composite refs', JSON.stringify(r.perCol.qbAlignment.rendered['Shotgun']));
+  'both Shotgun plays (9001, 9002) land in the SAME rendered Shotgun group -- composite refs', JSON.stringify(r.perCol.qbAlignment.rendered['Shotgun']));
 ok(setEq(r.perCol.formation.rendered['Trips'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9009']) &&
    setEq(r.perCol.formation.rendered['Bunch'], ['e3b-p3-fixture::9002', 'e3b-p3-fixture::9009']),
   'a MULTI-structural formation play (9009, "Trips + Bunch") lands in BOTH rendered groups, alongside their single-value siblings', JSON.stringify({ trips: r.perCol.formation.rendered['Trips'], bunch: r.perCol.formation.rendered['Bunch'] }));

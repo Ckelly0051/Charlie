@@ -145,15 +145,15 @@ ok(SpecialTeamsModel.scoringTeam(tryEvent('try')) === 'subject' && SpecialTeamsM
 ok(SpecialTeamsModel.scoringTeam(tryEvent('tryDefense')) === 'opponent' && SpecialTeamsModel.points(tryEvent('tryDefense')) === 1,
   'Defending a Try credits the extra point to the other team');
 
-// Read compatibility: a historical field-goal-shaped XP still normalizes with
-// its attempt type and its one point intact. It is never rewritten.
+// The retired field-goal-shaped extra point is not read (legacy excision
+// step 7): an extra point exists only under Try and Defending a Try.
 const historical = SpecialTeamsModel.normalize({
   version: 1, unit: 'fieldGoal', attemptType: 'extraPoint', events: {}, kick: {}, return: {},
   outcome: { status: 'good', score: 'extraPoint' }, players: {},
 });
-ok(historical && historical.attemptType === 'extraPoint' && historical.outcome.score === 'extraPoint',
-  'A historical field-goal-shaped extra point still reads as one', historical);
-ok(SpecialTeamsModel.points(historical) === 1, 'A historical field-goal-shaped extra point still scores one point');
+ok(historical && historical.attemptType === null && historical.outcome.score !== 'extraPoint',
+  'A field-goal-shaped extra point is not read as an extra point', historical);
+ok(SpecialTeamsModel.points(historical) === 0, 'A field-goal-shaped extra point scores nothing');
 
 // ---------------------------------------------------------------------------
 // In-page checks: the season-scoped film lookup, the play strip, the Study
@@ -451,11 +451,10 @@ ok(result.untouchedHasNoDetails,
   ok(/attemptType:SpecialTeamsModel\.defaultAttemptType\(unit\)/.test(chartingSrc),
     'A new special-teams event takes its attempt type from the one owner');
 
-  // Read compatibility is a contract, not a side effect: `normalize` must keep
-  // accepting the historical value even though nothing can author it.
+  // The old shape has no reader left: a non-try unit takes only 'fieldGoal'.
   const modelSrc = source('special-teams.js');
-  ok(/value\.attemptType === 'fieldGoal' \|\| value\.attemptType === 'extraPoint'/.test(modelSrc),
-    'The model still READS a historical field-goal-shaped extra point');
+  ok(!/value\.attemptType === 'extraPoint'/.test(modelSrc),
+    'The model holds no reader for a field-goal-shaped extra point');
   const grid = source('play-grid.js');
   ok(/SpecialTeamsModel\.UNIT_LABELS/.test(grid) && !/Field Goal \/ XP/.test(grid),
     'The Film Room grid names the unit Field Goal');
