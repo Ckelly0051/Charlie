@@ -37,4 +37,13 @@ const applied=library.applyPreset(preset.id);
 ok(applied?.unit==='defense'&&applied.role==='Defensive staff'&&!library.group('coverage').enabled.includes('Cover 6'),'a contextual preset restores its saved library visibility and metadata');
 ok(library.deletePreset(preset.id)&&library.presets().length===0,'charting presets can be removed without touching a vocabulary');
 ok(['coverage','playType','blitz'].every(key=>library.group(key).values.length>0),'coverage, play type, and blitz are first-class managed libraries');
+// Reserved wrong-field values: refused on add, filtered on read, storage untouched.
+const reservedStorage=new MemoryStorage({ffa_tag_libraries_teamR:JSON.stringify({version:4,groups:{formation:{custom:['Shotgun','Trey'],enabled:['Shotgun','Trey'],order:['Shotgun','Trey']}}})});
+const reserved=new TagLibrary({storage:reservedStorage,teamId:'teamR'});
+ok(!reserved.add('formation','Pistol')&&reserved.lastError?.name==='ReservedValue'&&reserved.lastError.owner==='QB Alignment','a QB alignment cannot be added as a formation',JSON.stringify(reserved.lastError));
+ok(!reserved.add('formation','EMPTY')&&reserved.lastError?.owner==='Backfield','Empty cannot be added as a formation, in any case',JSON.stringify(reserved.lastError));
+ok(!reserved.add('backfield','Shotgun')&&!reserved.add('coverage','Zone')&&reserved.lastError?.owner==='Coverage Family','an alignment is not a backfield and a family is not a coverage call');
+ok(reserved.add('coverage','Cover 3 Match')&&reserved.add('front','Man Free'),'a value that merely contains a reserved word is allowed');
+ok(!reserved.group('formation').values.includes('Shotgun')&&!reserved.group('formation').enabled.includes('Shotgun')&&reserved.group('formation').custom.includes('Trey'),'a saved reserved value is never offered; its neighbors are');
+ok(JSON.parse(reservedStorage.getItem('ffa_tag_libraries_teamR')).groups.formation.custom.includes('Shotgun'),'the saved library entry is not rewritten');
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);process.exit(fail?1:0);

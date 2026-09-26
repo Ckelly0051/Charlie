@@ -156,6 +156,31 @@ bearChip = await nativeChipHandle('defFront', 'Bear');
 state={stored: await page.evaluate(()=>window.app.customChips.library.group('front').custom.includes('Bear')), chip: await bearChip.evaluate(el=>!!el)};
 ok(!state.stored&&!state.chip,'Removing a custom choice updates both native Settings and the native charting form',JSON.stringify(state));
 
+// A value that belongs to ANOTHER field is never a library choice: charting it
+// would store the old combined shape the format guard refuses. Adding one is
+// refused with a literal message; one saved before the rule stays in storage
+// untouched and is simply never offered by the deck or Film Room.
+state=await page.evaluate(()=>{
+  const lib=window.app.customChips.library;
+  const add=['formation:Shotgun','formation:empty','backfield:Pistol','coverage:Man'].map(pair=>{const [g,v]=pair.split(':');return window.app.settingsScreen.addTagChoice(g,v);});
+  const raw=JSON.parse(localStorage.getItem(lib.key()));
+  raw.groups.formation.custom.push('Shotgun');raw.groups.formation.enabled.push('Shotgun');raw.groups.formation.order.push('Shotgun');
+  localStorage.setItem(lib.key(),JSON.stringify(raw));
+  window.app.customChips.reload();
+  const play=window.app.tagger.getCurrentPlay();play.tags.unit='offense';window.app.tagger._emit('play-updated',play);
+  return{add:add.map(r=>({ok:r.ok,message:r.message})),group:lib.group('formation').values.includes('Shotgun'),
+    stored:JSON.parse(localStorage.getItem(lib.key())).groups.formation.custom.includes('Shotgun'),
+    gridOffered:window.app.playGrid._options(window.app.playGrid.constructor.COLUMNS.find(c=>c.key==='formation'),[]).includes('Shotgun')};
+});
+await new Promise(r=>setTimeout(r,50));
+state.deckOffered=await page.evaluate(()=>[...document.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button')].some(b=>b.textContent.trim()==='Shotgun'));
+state.deckRendered=await page.evaluate(()=>document.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button').length);
+ok(state.add.every(r=>!r.ok)&&state.add[0].message==='Shotgun is a QB Alignment value. Chart it under QB Alignment.'
+   &&state.add[1].message==='empty is a Backfield value. Chart it under Backfield.'&&/Coverage Family/.test(state.add[3].message),
+  'a library choice reserved for another field is refused with a literal message (case-insensitive)',JSON.stringify(state.add));
+ok(state.stored&&!state.group&&!state.gridOffered&&state.deckRendered>0&&!state.deckOffered,
+  'a reserved choice saved before the rule stays in storage but is offered by neither the deck nor Film Room',JSON.stringify(state));
+
 await page.click('[data-settings-panel="charting"] .gi-settings-section>header button');await page.waitForSelector('[data-overlay-action="restore"]');await page.click('[data-overlay-action="restore"]');
 await page.waitForFunction(()=>window.app.customChips.library.group('formation').enabled.includes('Wing-T'));
 state=await page.evaluate(()=>({wingT:window.app.customChips.library.group('formation').enabled.includes('Wing-T'),custom:Object.values(window.app.customChips.library.load().groups).some(group=>group.custom.length)}));

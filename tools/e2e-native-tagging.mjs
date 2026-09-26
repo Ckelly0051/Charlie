@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import fs from 'fs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass=0, fail=0;
@@ -742,6 +743,51 @@ state=await page.evaluate(async ids=>{
 ok(state.origin.gameId===fixture.firstId&&state.before===state.after&&state.staleApply===0
    &&/expired because the active game changed/.test(state.resultText)&&!state.canApply&&!state.canReview,
   'A pending scan is fenced to its starting season/game and expires without mutating the game opened meanwhile',JSON.stringify(state));
+
+// The optional local server (server/analyzer.py) is a third backend. Whatever
+// any backend returns passes through the one stamping boundary, so a retired
+// key or a wrong-field look value (formation 'Shotgun', backfield 'Pistol',
+// coverage 'Man') is dropped, never stored as an old-format play, while its
+// current values still stamp. No vision key, so the server path runs.
+state=await page.evaluate(async()=>{
+  const saved={key:app.vision.apiKey,avail:app.backend.isAvailable,batch:app.backend.analyzeBatch,file:app.vc.currentFile};
+  app.vision.apiKey='';
+  app.backend.isAvailable=()=>true;
+  app.vc.currentFile=new Blob(['x'],{type:'video/mp4'});
+  window.__adCalls.batch=0;
+  app.backend.analyzeBatch=async(file,windows)=>{window.__adCalls.batch++;return windows.map(()=>({
+    tags:{formation:'Shotgun',backfield:'Pistol',coverage:'Man',stType:'Punt',playType:'Run Inside',hash:'Left'},confidence:{},reasons:{}}));};
+  app.clipAnalyzer.analyzePlays=(plays)=>plays.map(()=>({tags:{},confidence:{},reasons:{}}));
+  app.detector.scan=async()=>{const found=[{start:260,end:265,peak:1,confidence:0.9}];app.detector.detectedPlays=found;
+    app.detector.motionData=[{time:0,motion:0.4},{time:5,motion:0.9}];return found;};
+  Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
+  await app.autoDetectScreen.start();
+  const before=app.tagger.plays.length;
+  app.autoDetectScreen.applyAll();
+  const t=app.tagger.plays[before]?.tags||{};
+  const out={batch:window.__adCalls.batch,added:app.tagger.plays.length-before,formation:t.formation||'',backfield:t.backfield||'',
+    coverage:t.coverage||'',stType:'stType' in t,playType:t.playType||'',hash:t.hash||''};
+  app.vision.apiKey=saved.key;app.backend.isAvailable=saved.avail;app.backend.analyzeBatch=saved.batch;app.vc.currentFile=saved.file;
+  return out;
+});
+ok(state.batch===1&&state.added===1,'prereq: the scan ran through the local-server backend and applied one play',JSON.stringify(state));
+ok(state.formation===''&&state.backfield===''&&state.coverage===''&&!state.stType,
+  'A backend reporting old-format look values (formation Shotgun, backfield Pistol, coverage Man) or a retired key stamps none of them',JSON.stringify(state));
+ok(state.playType==='Run Inside'&&state.hash==='Left','The same backend result still stamps its current-format values',JSON.stringify(state));
+
+// server/analyzer.py writes each look value into its own field. Python is not
+// part of this gate (the server needs OpenCV), so the mapping is pinned in
+// source: the tags, confidence and reasons are keyed by _look_field, which
+// routes every QB alignment and 'Empty' out of formation.
+{
+  const py=fs.readFileSync(new URL('../server/analyzer.py',import.meta.url),'utf8');
+  const look=py.match(/def _look_field[\s\S]*?return "formation"/)?.[0]||'';
+  ok(/QB_ALIGNMENTS = \("Under Center", "Shotgun", "Pistol"\)/.test(py)&&/BACKFIELD_VALUES = \("Empty",\)/.test(py)
+     &&/return "qbAlignment"/.test(look)&&/return "backfield"/.test(look),
+    'analyzer.py routes QB alignments to qbAlignment and Empty to backfield',look);
+  ok((py.match(/look_key: formation_result\["(value|conf|reason)"\]/g)||[]).length===3&&!/"formation": formation_result\[/.test(py),
+    'analyzer.py keys its tags, confidence and reasons by the look field, never a fixed "formation"');
+}
 
 await page.evaluate(()=>{
   const done=[...document.querySelectorAll('[data-overlay-id="auto-detect"] button')].find(b=>b.textContent.trim()==='Done');
