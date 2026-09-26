@@ -1,5 +1,7 @@
 # GridIron IQ — Desktop Persistence Inventory (PC-0)
 
+> **Revision 2026-09-26 (legacy excision step 7):** the legacy roster boundary (`SeasonStore.adoptLegacyRoster`) and the durable roster migration described below are deleted. A game-level roster is the retired format: a file carrying one is refused, and a stored season carrying one does not open (`SeasonStore._hydrate` returns null; nothing is written).
+
 > **Current milestone status (2026-08-22):** PC-0 through PC-5 are accepted.
 > The final PC-4 shutdown-drain repair is `b934f9d`; Codex independently
 > verified 104/104 persistence locks and 33/33 revision-fence assertions.

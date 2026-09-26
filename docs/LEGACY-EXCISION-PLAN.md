@@ -2,7 +2,7 @@
 
 Coach direction, 2026-09-25: excising legacy code is the next step, done
 properly rather than around. **Status: APPROVED by the coach (2026-09-25), cut to three passes the same
-day; Codex audit before Pass 1 starts.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
+day. Pass 1 and Pass 2 steps 1-7 done in source (2026-09-26); next: full gate, then step 8.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
 
 ## Why it keeps biting
 
@@ -236,6 +236,28 @@ history is needed.
    `e2e-legacy-roundtrip` is rewritten for the new format; the ratchet gains
    counts for these readers and they must reach zero; the docs (including
    `CLAUDE.md`'s projection rule) are rewritten.
+   **Done in source 2026-09-26** (`b84e207`..`5c53b44`; Codex re-reviewed through
+   `8c9248e`, no findings; full gate pending):
+   - Canonical Reports season: a converted current-format fixture (coach
+     decision; its old Special Teams values are blank until retagged) — `b84e207`.
+   - Special Teams: every `stType`/`kickOutcome` reader and the field-goal-unit
+     extra point deleted; fixtures structured, parity goldens re-audited —
+     `0c5d393`, `c27761e`.
+   - Look: `TagProjection` is a plain read; promote/strip/commit deleted; CSV
+     import refuses a combined look whole; templates, auto-detect (all three
+     backends, `server/analyzer.py` included) and library choices cannot
+     create one (`TagLibrary.RESERVED`, per `+` token) — `ada73cf`, `0eb71ea`,
+     `2153f62`, `b968df0`, `af9ab28`, `8c9248e`.
+   - Roster and formation: `adoptLegacyRoster`, the durable roster migration,
+     the single-game import and `migratePlayFormation` deleted; a stored season
+     that is not current format is refused on open — `799767b`, `5c53b44`.
+   - Ratchet: `legacyStReads`, `legacyLookReaders`, `legacyRosterReaders` at 0.
+   - `e2e-legacy-roundtrip` runs on the current format (10/10);
+     `e2e-legacy-film-fields` retired with `gameFromLegacy`.
+   - Outside this pass by scope: settings and storage-layout migrations
+     (tag-library chips key, saved Film Room columns, Study measures, version
+     history, pre-per-season storage keys). They read app settings, not season
+     data; removing them is a coach decision.
 8. **Installer and the coach's smoke.**
 
 *Order:* 2 and 3-5 before 7, because 7 deletes the readers step 5 compares

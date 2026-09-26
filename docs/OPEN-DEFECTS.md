@@ -83,6 +83,30 @@ first restore, when the row briefly has no buttons; the button returns within ~2
 The app is correct. Both clicks now wait for the button first (the rule: assert the
 subject is on screen before interacting); 5/5 runs 10/10.
 
+**LEGACY EXCISION STEP 7 — DONE IN SOURCE 2026-09-26; full gate pending.** Every
+old-format season reader is deleted (`b84e207`..`5c53b44`; record in
+`docs/LEGACY-EXCISION-PLAN.md` step 7). ST-GAPS below is now unblocked: there is one
+data format to extend. What changed for the coach, to check in the step 8 smoke:
+- **A stored season in an old format no longer opens.** It used to be converted on
+  open (game rosters) or read through projections; now it is refused by name, the
+  season already open stays open, and nothing is written. The live catalog was
+  converted on 2026-09-26, so no live season should hit this — the smoke should
+  open every season once to confirm.
+- A CSV play import that carries a combined look (`Shotgun + Trips` in Formation)
+  is refused whole with the plain old-format message.
+- A library choice that belongs to another field (`Shotgun` or `Shotgun + Trips` as a
+  Formation, `Pistol` as a Backfield, `Man` as a Coverage call) cannot be added; one
+  saved earlier is no longer offered.
+- A play with a Penalty result and no penalty details reads `Details uncharted` in
+  Film Room (was `Legacy · details uncharted`).
+Earlier entries in this file that describe `adoptLegacyRoster`, the roster
+migration, `migratePlayFormation`, the look projection or legacy Special Teams
+branches are history; those readers no longer exist. **Still open by scope:** the
+settings and storage-layout migrations (tag-library chips key, saved Film Room
+columns, Study measure names, version history, pre-per-season storage keys) read
+app settings, not season data, and stay until the coach decides otherwise. The
+tag-form write and the Film Room grid commit have no write-level refusal of a
+reserved look value; nothing in the app offers one to them.
 **ST-GAPS — OPEN, deferred until after the legacy migration (coach, 2026-09-25).** Special
 Teams charting is missing options the coach needs; the list grows as the coach finds them
 and nothing is built until the migration lands (one data format to extend).

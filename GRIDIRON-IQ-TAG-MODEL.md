@@ -1,5 +1,15 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
+> **Revision 2026-09-26 (legacy excision Pass 2, step 7) — supersedes the
+> read-time projection.** Each look field (formation, QB alignment, backfield,
+> strength, coverage call, coverage family) is stored in its own field and read
+> as stored: `TagProjection.project()` is a plain read, and the promote-on-commit,
+> strip-on-clear, Save & Next canonicalization and `migratePlayFormation` rules in
+> §5, §7, §18 and §20 are deleted with the old shape. The combined shape survives
+> only as `TagProjection.isCombined`, which `js/season-format.js` uses to refuse
+> old files; `TagLibrary.RESERVED` and the auto-detect stamping boundary keep any
+> charting path from creating it. Field meanings, vocabularies, the Special Teams
+> strip and the carry rules are unchanged.
 > **Status: ACCEPTED (Codex final review, 2026-07-17).** Claude's final contract
 > revision is `4813d41`; Codex independently closed E1-R1 through E1-R9 in §17.
 > This is the canonical contract for BETA-005 (QB alignment) and BETA-006

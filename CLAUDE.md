@@ -76,7 +76,7 @@ menu at 1440/1280/768/390) are byte-identical to `c1f6cc1`. Commits
 **LEGACY EXCISION (coach, 2026-09-25):** `docs/LEGACY-EXCISION-PLAN.md`, three passes.
 Pass 0 guardrails built; **Pass 1 done in source** (`ecbe8b4`, `2a3adda`,
 `5e3f46d`, plus the Codex-review drive fix: 1,057 dead lines, one blank tag schema,
-one unit rule, 318 dead CSS branches), **full gate 133/133 at `ac893b5`**. **Pass 2 step 1 is done in source** (`7aa0184`: `PlayTagger` holds no UI state; no fake form fields; Codex-reviewed; **full gate 134/134 at `e4417b8`**, which also carries the Recovery version-list repair REC-1). **Pass 2 steps 2-5 done 2026-09-26: the live catalog is converted** (`71761f5`; zero legacy shapes in every season; backup at `C:\Users\charl\GridIronIQ-Backups\legacy-conversion-2026-09-26`; 20 plays for the coach to re-chart or check, `docs/LEGACY-RECHART-LIST.md`). **Step 6 done in source (`448c95a`): the app writes no old shape and refuses old files (`js/season-format.js`); full gate pending.** Next: step 7 (delete the old-format readers), after the coach decides the Reports canonical real-data source (the Documents-mirror copy is still old format). Pass 2: UI state out of the charting
+one unit rule, 318 dead CSS branches), **full gate 133/133 at `ac893b5`**. **Pass 2 step 1 is done in source** (`7aa0184`: `PlayTagger` holds no UI state; no fake form fields; Codex-reviewed; **full gate 134/134 at `e4417b8`**, which also carries the Recovery version-list repair REC-1). **Pass 2 steps 2-5 done 2026-09-26: the live catalog is converted** (`71761f5`; zero legacy shapes in every season; backup at `C:\Users\charl\GridIronIQ-Backups\legacy-conversion-2026-09-26`; 20 plays for the coach to re-chart or check, `docs/LEGACY-RECHART-LIST.md`). **Step 6 done in source (`448c95a`): the app writes no old shape and refuses old files (`js/season-format.js`).** **Step 7 done in source (2026-09-26; `b84e207`..`5c53b44`, Codex re-reviewed through `8c9248e` with no findings): every old-format reader is deleted** — the Special Teams readers (`0c5d393`), the look projection (`ada73cf`, with the reserved-value guards `2153f62`, `af9ab28`), the game-roster and formation migrations and the single-game import (`799767b`); a stored season that is not current format is refused on open. The ratchet counts `legacyStReads`, `legacyLookReaders` and `legacyRosterReaders` at 0. The canonical Reports season is a converted current-format fixture (coach decision 2026-09-26, `b84e207`). **Full gate not yet run on the step 7 commits.** Next: the full gate, then step 8 (installer and the coach's smoke). Settings and storage-layout migrations (tag-library chips, saved Film Room columns, Study measures, version history, the pre-per-season storage keys) are outside this pass: they read app settings, not season data. Pass 2: UI state out of the charting
 model, then a ONE-TIME conversion of the live seasons only (the current state is what matters), every old-format reader removed, and anything older (backups, versions, snapshots, exports) refused with a plain message (approved after Codex review; the
 authoritative procedure is in the plan). Live legacy measured 2026-09-25: 42
 plays in 2025 JV (3 no unit, 22 combined formations, 17 legacy-only Special Teams)
@@ -406,7 +406,7 @@ Change behavior at its owner, not at a consumer.
 | Playback across routes | `js/film-navigation-service.js` |
 | Analytics formulas | `js/stats-engine.js` |
 | Metric/dimension registry | `js/analytics-registry.js`, `js/analytics-metrics.js`, `js/study-query.js` |
-| Tag projection (read-time) | `js/tag-projection.js` |
+| Look vocabulary; the old-shape predicate | `js/tag-projection.js` (`isCombined`), `js/season-format.js` (every refusal) |
 | Penalties / Special Teams models | `js/penalty-model.js`, `js/special-teams.js` |
 
 Football contracts, each canonical for its area:
@@ -426,84 +426,31 @@ These are invariants, not preferences. Every one is enforced in current source.
   before the write.
 - Never delete managed film on the coach's behalf without that same explicit
   confirmation.
-- Legacy data is read through compatibility projection, not rewritten.
-  `tag-projection.js` is read-time only and never mutates. **Superseded by
-  decision (coach, 2026-09-25) once the Pass 2 one-time conversion lands** (`docs/LEGACY-
-  EXCISION-PLAN.md` Pass 2): old shapes convert to new at ONE entry boundary
-  and the next save stores the new shape; an ambiguous shape stays as it is and
-  is flagged; afterwards no old-format reader remains. Until then, this rule stands.
+- **There is ONE season format and no old-format reader** (coach, 2026-09-25;
+  legacy excision Pass 2, done in source 2026-09-26). The live seasons were
+  converted once; `js/season-format.js` is the only code that knows the retired
+  shapes, and it only detects them. Anything older — an import, a restore
+  point, a game version, the Documents mirror, a first-run JSON import, a CSV
+  with a combined look, or a stored season opened from the library — is
+  REFUSED with a plain message and nothing is written. No path converts an old
+  shape, and no charting path (library choices, templates, auto-detect) can
+  create one: a value reserved for another field is never offered or stamped.
 
 **Roster ownership**
 - A roster belongs to ONE season. That season's games share it. Different teams,
   years, levels and seasons are independent. Modern game records store no roster
   of their own, and nothing in the app writes one.
-- **`_normalize` never infers ownership.** It only coerces `season.roster`.
-  Promotion from a legacy `games[].roster` happens at ONE compatibility
-  boundary — `SeasonStore.adoptLegacyRoster()` — called by the durable read
-  (`_hydrate()`, behind `load()` and `openSeason()`), `adopt()` and
-  `restoreBackup()`. It reads only the season's own game nodes, so no comparison
-  or move can cross a season boundary. Before this, recovery ran inside
-  `_normalize` on every load, restore and import, so a deliberately emptied
-  season re-acquired its old players. The fallback was MOVED, not deleted: old
-  single-game saves and pre-season-model backups still convert.
-- **Opening a legacy season DOES run the boundary, on purpose.** Such a season
-  is opened rather than imported, so without it the roster would simply vanish.
-  What is forbidden is repeated *inference*, not conversion. State it that way;
-  do not write "ordinary loading never infers ownership" as though an open were
-  exempt.
-- **Promotion is VALIDATED, never guessed.** Every non-empty legacy copy in the
-  season is compared through `SeasonStore.rosterIdentity()` — key order,
-  whitespace and row order normalized, no player value rewritten — and a roster
-  is promoted only when all copies agree. Taking the first non-empty copy is the
-  defect this replaced.
-- **A disagreement ABORTS THE OPERATION — the season does not open.** No copy is
-  chosen, no copy is removed, nothing is written, and the season is never exposed
-  as the editable current season. `openSeason()` returns null and restores the
-  prior `currentSeasonId`, the prior `data` and the backend current-season
-  pointer; `openSeasonById()` returns false without running
-  `_afterSeasonLoaded()`, so the season the coach already had open keeps its live
-  roster, active game and undo history. The outgoing season's pending deleted
-  film is purged only after a successful open; a refused open leaves its purge
-  timer and working Undo action intact. `adopt()` returns
-  `{ok:false, data:null, conflict}` before staging or persisting. `restoreBackup()`
-  runs the boundary BEFORE its safety snapshot and returns null, so a refused
-  restore writes nothing and the backup keeps its own bytes. `TeamHubScreen.
-  openSeason()` and the shell's season picker fail closed on the false return
-  rather than navigating. A later open reconsiders the season, so a resolved one
-  still converts.
-- **Exposing a conflicted season was itself destructive**, on a path no single
-  open could show: `_hydrate` returned `_normalize(original)`, which coerced a
-  synthetic `season.roster: []` beside the surviving conflicting copies; the next
-  ordinary save persisted that synthetic roster; and the open after that read it
-  as an EXPLICIT season roster and deleted every conflicting copy. Never make
-  conflict state editable, and never let `_normalize` see a conflicted payload.
-- **The coach-facing message names the season and its games and stops there.**
-  It offers no remediation step, because no current screen can reconcile per-game
-  rosters — an instruction the app cannot honor is worse than none. The import
-  path reports that message rather than "could not be saved", which would
-  misreport disagreeing rosters as a storage failure.
-- **One owner, enforced.** A settled conversion deletes `roster` from EVERY game
-  node — including a season whose own roster already won over stale copies.
-  Modern game records never write the field. `updateActiveGame()` carries a
-  surviving legacy copy forward the way it carries `filmMode`, because
-  `_serialize()` produces none and the first ordinary save after a conflicted
-  open otherwise destroyed the active game's only copy.
-- **The migration is DURABLE and once-only.** `_hydrate()` detects and converts
-  before hydration, writes a `Before roster migration` restore point, persists
-  `season.roster`, `rosterOwnership: 'season'` and the removal through the normal
-  revision-fenced per-season write queue, and only then exposes the season. **A
-  failed write blocks the open exactly like a conflict** — the target's durable
-  bytes are untouched, the prior season stays active, and the failure is reported
-  through the shared persist-failure seam, so the next open retries the whole
-  migration. A season nothing changed on dispatches no write at all, so a settled
-  season neither converts twice nor mints a revision the PC-4 fence reads as a
-  commit.
-- **The marker asserts BOTH halves** — the season owns the roster AND **no game
-  object has its own `roster` property at all**, `roster: []` included. Gating on
-  `roster.length` degraded that to "no non-empty one", and a later writer filling
-  the surviving array would recreate dual ownership under a marker asserting it
-  could not exist. `_normalize` refuses to stamp a season any of whose games still
-  carries the property.
+- **A game-level roster is the retired format.** `_normalize` coerces
+  `season.roster` and stamps `rosterOwnership: 'season'`; nothing reads a game
+  node's roster. A file carrying one is refused (`SeasonFormat`), and a stored
+  season carrying one does not open: `SeasonStore._hydrate` returns null,
+  `openSeason()` restores the prior season, data and backend pointer,
+  `openSeasonById()` returns false without `_afterSeasonLoaded()` (so the open
+  season keeps its roster, active game, undo history and pending film-delete
+  Undo), the stored bytes are untouched, and the refusal is reported once by
+  name (`openRefusal` / `StorageManager._reportOpenRefusal`). The promotion
+  boundary (`adoptLegacyRoster`), its conflict handling and the durable roster
+  migration of 2026-09-13 are deleted (legacy excision step 7).
 - **Attribution reads the selected season's roster.** `SeasonManager.
   _mergeRoster()` takes `season.roster` (plus the live roster, which is that
   same season's as the coach edits it) instead of merging `games[].roster` across
@@ -512,8 +459,7 @@ These are invariants, not preferences. Every one is enforced in current source.
 - The 2026-09-13 coach-authorized data normalization, its identity proof, the
   catalog/mirror divergence and its backup hashes are in
   `docs/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
-  is read-only; `tools/normalize-roster-ownership.mjs` writes only behind
-  `--apply`, only after verifying identity from stable game ids.
+  is read-only; the one-time `normalize-roster-ownership.mjs` is deleted.
 
 **A drive belongs to a possession, not to a number.** Each team runs its own
 drive sequence, so a drive identity is possession SIDE plus drive number.
@@ -542,10 +488,9 @@ DELETED, not narrowed. `unit:'fieldGoal'` is always "the subject attempting"
 us — the try units encode the attempting side and credit subject and opponent
 correctly. A new field-goal event is seeded `fieldGoal` from the one owner,
 `SpecialTeamsModel.defaultAttemptType(unit)`, so nothing has to be chosen and
-the seed is not treated as charted detail by the change-unit warning. **Read
-compatibility is a contract:** `normalize` still accepts
-`unit:'fieldGoal', attemptType:'extraPoint'`, such a record still scores its one
-point through every report, and no historical data is rewritten. The retired
+the seed is not treated as charted detail by the change-unit warning. **An extra
+point on the Field Goal unit is the retired shape:** `normalize` gives it no
+attempt type and no points, and a file carrying one is refused (`SeasonFormat`). The retired
 `Scored by Us/Them` control stays retired.
 
 **ONE owner for the charting vocabulary, and `Option` is a built-in.**
@@ -662,9 +607,12 @@ perspective or initial-unit control.
   (`_stripStAlignmentBeforeSave`). Adding a field to a carry list without adding
   it to the strip list reproduces the bug that once coded every ST play "Under
   Center".
-- `migratePlayFormation` runs only when a play genuinely lacks the `backfield`
-  property. That guard protects a real custom formation value (`Power-I`) from
-  being rewritten.
+- **A formation is never rewritten.** `SeasonStore.coerceLookFields` only
+  makes `backfield` and `strength` strings; the v1.9.15 formation-to-backfield
+  migration is deleted. Each look field (formation, QB alignment, backfield,
+  coverage call, coverage family) is its own field; `TagProjection.project` is a
+  plain read and `TagLibrary.RESERVED` keeps an alignment out of Formation and
+  Backfield, `Empty` out of Formation and a family out of Coverage.
 - Left/Right on `strength`, `playDir`, and `hash` are always read from the
   **offense's** perspective, on every play regardless of unit, so they aggregate
   correctly across units. There is no stored perspective flag and no auto-flip.
@@ -785,7 +733,11 @@ tracked, unique, present, and hash-identical to the approval record.
 **Canonical Reports data authority.** Every Reports production comparison,
 visual capture, Charlie Gate, and release decision uses a read-only copy of the
 registered `2025-st-joseph-mavericks-jv` season (`2025 St. Joseph Mavericks -
-JV`) from the Documents mirror. The per-surface manifest remains composition
+JV`): since 2026-09-26 the current-format fixture
+`C:/Users/charl/GridIronIQ-Fixtures/2025-st-joseph-mavericks-jv/season.json`
+(`tools/canonical-season.mjs`), a converted copy of the Documents-mirror file
+whose old-format Special Teams values are blank until the coach retags them
+(coach decision, `b84e207`). The per-surface manifest remains composition
 authority; this real season is data authority. Existing approved comps captured
 with QA data remain valid for composition, but new production evidence must use
 the real season. Synthetic fixtures may test deterministic formulas, sparse and
@@ -1467,6 +1419,8 @@ The deck offers Possession on those outcomes without requiring it, so a blank is
 an ordinary incomplete state, and it previously fell through to the
 receiving-unit default and awarded us six points (Codex, 2026-09-20). A
 `returned`, `downed` or `fairCatch` kick keeps its unit default.
+
+**SUPERSEDED IN PART 2026-09-26 (legacy excision step 7, `0c5d393`).** Every legacy Special Teams reader the paragraphs below describe is deleted: legacy-only snaps, `stType`/`kickOutcome` tries and punts, the legacy punt net, legacy punt-block ownership and the field-goal-unit extra point. A Special Teams snap is read from its structured event only; one with no event is a snap in no unit, and a file carrying retired Special Teams tags is refused. The paragraphs stay as the record of the rules the structured model keeps (film-reference counting, one measured cohort, absence versus zero).
 
 **The unassigned disclosure is counted from film references, not arithmetic.**
 `specialTeamsUnassigned` summed each module's count and subtracted, which
@@ -2445,7 +2399,7 @@ has accepted these repairs as production state.
    game frame. The behavior is centralized in `_usesCurrentGameContext()` and
    pinned in the Reports, Special Teams and Matchup harnesses.
 
-6. **CLOSED 2026-09-06 — legacy punt-block ownership.**
+6. **CLOSED 2026-09-06 — legacy punt-block ownership** (its legacy branch is deleted, step 7, `0c5d393`; history below).
    Found by the coach at the board, 2026-09-04; repaired after the whole-Reports
    smoke candidate exposed that the known defect was still in its installer.
 

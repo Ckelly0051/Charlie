@@ -233,7 +233,7 @@ The smallest existing harness for the route or domain you touched.
 | Home | `e2e-home-rail`, `e2e-home-deferred-repair`, `e2e-home-review-repair`, `e2e-home-first-launch` |
 | Team Hub / registry | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-v2b-control-center` |
 | Break Down — theater/film | `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle` |
-| Break Down — charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-mark-flow` |
+| Break Down — charting | `e2e-native-tagging` (89: incl. the auto-detect stamping boundary for every backend and `server/analyzer.py`'s field routing), `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model` (26: the plain look read, `isCombined` on every old and current shape, the formation never rewritten), `e2e-tag-projform` (34: one field per edit, one undo entry, clears that stick), `e2e-mark-flow` |
 | Legacy excision | `e2e-legacy-inventory` (the legacy ratchet: counts may only fall, no new dead name or orphan module), `e2e-legacy-roundtrip` (a read-only copy of the converted live 2025 JV season through the real import, reload and re-save: identical, every value of all 440 plays surviving; the pre-conversion mirror copy refused), `e2e-season-format` (step 6: old files refused with nothing written at import, restore point, game version, mirror recovery and first-run import; an old template applies no retired value); on demand: `node tools/compare-builds.mjs <rev>` (64 captures, every route at four widths, byte-identical or named) and `node tools/audit-legacy.mjs [--live]` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout` (47: docks, split limits, reset, persistence, table behavior beside the film, toolbar fit with the pending save label, the approved play and controls cards), `e2e-film-room-columns` (21: column sets per unit, picked by the unit filter; the one-program claim after a failed write; on All plays only a column a unit cannot hold is locked), `e2e-unit-ownership` (28: one stored unit read the same in Chart and Film Room, written from Chart or the pinned Unit column with the last write winning, faced looks shown and edited, Special Teams stripping from either side, labeled filters that never write, the lock in every scope and custom set with the grid refusing a locked editor, Save & Next through the one write, and the C and digit shortcuts, Clear Tags, Save & Next and the unit-field fallback acting on the unit on screen, never the carried one), `e2e-film-room-sheet` (27: the play sheet including grades, custom and Special Teams detail, the shown-plays summary with structured Special Teams touchdowns, the Yds header, and canonical-season parity against the boards) |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
@@ -418,8 +418,8 @@ left blank — on every loose-ball outcome, with the points kept as `unattribute
 and an ordinary return still following its unit — the
 scoreboard owner's own totals, the report's one punt blocked / one punt-return
 touchdown / exact composite reference, a save-reopen-normalize round trip of the
-whole authored state, and the try cohort owning the legacy-compatible
-`fieldGoal + extraPoint` shape. `e2e-native-tagging` (84) authors that state
+whole authored state, and the field-goal-unit extra point read as nothing (the
+retired shape, step 7). `e2e-native-tagging` (89) authors that state
 through the real deck and asserts the stored shape, the report and the
 scoreboard. `e2e-reports-special-teams` (57) adds the mixed-cohort
 reconciliation — only snaps NO module claims are unassigned — the named try
@@ -524,7 +524,7 @@ defects red in the synthetic harness, and clipping, pairing, KPI fit and floor
 mutations red in the canonical one.
 
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
-| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library-storage` (25: full-store failure with no slack left, not even for a one-character write, version-history migration, six library groups, restore with a failed and a durable backup) |
+| Settings | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library` (29: reserved wrong-field choices refused per `+` token, never offered when saved earlier, never rewritten), `e2e-tag-library-storage` (25: full-store failure with no slack left, not even for a one-character write, version-history migration, six library groups, restore with a failed and a durable backup) |
 | Overlays | `e2e-native-overlay` |
 | Quick Chart | `e2e-native-quick-chart` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-play-call-charting`, `e2e-core` |
@@ -532,7 +532,7 @@ mutations red in the canonical one.
 | Film identity / relink | `e2e-clip-identity`, `e2e-clip-match`, `e2e-relink-legacy`, `e2e-relink-linked`, `e2e-film-index`, `e2e-film-persist`, `e2e-linked-film` |
 | Persistence / catalog | `e2e-sql-catalog`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions` (17: includes four reordered-completion write races), `e2e-revision-fence`, `e2e-snapshot-envelope` |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
-| Import / export | `e2e-csv-roundtrip`, `e2e-csv-projection`, `e2e-legacy-film-fields` |
+| Import / export | `e2e-csv-roundtrip` (a CSV with a combined look is refused whole), `e2e-csv-projection` (21: each look field its own column, field-for-field round trip) |
 | Cross-cutting guards | `audit-design-approvals`, `e2e-design-system`, `e2e-css-ownership`, `e2e-copy-standard`, `e2e-xss-names`, `e2e-raw-read-audit` |
 
 `e2e-reports-matchup` also pins scoring ownership through the cross-read: an
@@ -714,29 +714,20 @@ Tier 1 for the route you touched, **plus** the surfaces it shares state with:
   build** — that stays an installed check. Skips honestly when the season body
   or the library root is absent, and a skipped run certifies nothing.
 
-- **Roster ownership:** `e2e-roster-ownership` (71) is the contract harness —
+- **Roster ownership:** `e2e-roster-ownership` (45) is the contract harness —
   cross-team and cross-season isolation, empty-stays-empty across switching and
   reload, same-season sharing with no game-level copies, game creation neither
-  copying nor clearing, `_normalize` never adopting a game roster and never
-  marking a season whose games still carry one (`roster: []` included), VALIDATED
-  promotion, removal of `roster` from every game node once settled, the first
-  legacy open's durable write asserted against DISK, a second open dispatching no
-  migration write, emptying not resurrecting players, import/adopt/restore landing
-  the same structure, backup/restore scoped to one season, and attribution reading
-  the selected season's own roster with no "missing owner" escape hatch.
+  copying nor clearing, `_normalize` never reading a game roster and always
+  stamping the marker, no legacy roster reader left in `SeasonStore`, a stored
+  season with game rosters (agreeing or conflicting) REFUSED on open with the
+  held season, pointer and loaded game untouched and the stored bytes unchanged
+  across a save, a switch and a second attempt, every refusal surfaced once by
+  name, an import and a restore point with game rosters refused, backup/restore
+  scoped to one season, and attribution reading the selected season's own
+  roster. The promotion boundary, conflict and durable-migration sections were
+  retired with that code (legacy excision step 7).
   `tools/audit-roster-ownership.mjs` is the read-only cross-store auditor; it
   prints counts and a roster hash, never player data.
-
-  **A conflict or a failed migration write must be proven across a save and a
-  reopen, not at the open.** A conflicted season refuses to open, and the first
-  attempt at containment — exposing `_normalize(original)` — was destructive two
-  saves later: the synthetic `season.roster: []` it created was persisted by the
-  next ordinary save and read as an explicit roster by the open after that, which
-  deleted every conflicting copy. Sections 7c/7e/7f/7g therefore hold a real
-  season open, refuse the conflicted one, save, switch, refuse again, and assert
-  byte-identical source bytes throughout — plus the same containment for a failed
-  write (failing the backend for one season id only, then retrying), a conflicting
-  import, and a conflicting restore.
 
   `e2e-delete-undo-film` also pins the navigation boundary: a migration-refused
   season open does not count as leaving the current season, so its pending game

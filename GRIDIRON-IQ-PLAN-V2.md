@@ -1,5 +1,7 @@
 # GridIron IQ Plan V2
 
+> **Revision 2026-09-26 (legacy excision step 7):** the legacy roster boundary (`SeasonStore.adoptLegacyRoster`) and the durable roster migration described below are deleted. A game-level roster is the retired format: a file carrying one is refused, and a stored season carrying one does not open (`SeasonStore._hydrate` returns null; nothing is written).
+
 > **Status:** ACTIVE. Plan V2 has been explicitly activated and is in progress.
 > V2-A through V2-H are complete and accepted (see each milestone's own section
 > below and `CLAUDE.md` for the full acceptance record). This document records
