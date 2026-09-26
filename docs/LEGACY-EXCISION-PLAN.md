@@ -202,6 +202,22 @@ history is needed.
    corrected and called out to the coach. Then the coach's yes, with exact
    counts, immediately before the write; then re-read and confirm zero legacy
    shapes on charted plays.
+**Step 6 DONE IN SOURCE 2026-09-26, not gated** (`8ac135b`, `93d6fdb`, `ab0d5ec`, `448c95a`).
+   First the app stopped WRITING old shapes: the Special Teams number keys set the
+   structured unit (1-8 in the model's unit order), Film Room's editable ST Type
+   column and the CSV export's ST Type column are gone, new plays carry no
+   `stType`, and auto-detect stamps, CSV import, templates and the sample season
+   all go through the one look commit. Then `js/season-format.js` (the one owner
+   of the retired shapes; detects, never converts) is asked first by season
+   import, restore points, game versions, Documents-mirror recovery and the
+   first-run JSON import; an old file is refused with a plain message and nothing
+   written. Deviation from the text below: there is no stored format marker. The
+   structural check is the whole test, because the converted catalog carries no
+   marker and stamping one would have been a second write to coach data.
+   `e2e-season-format` (20) pins it.
+   **Open decision before step 7:** the Reports real-data harnesses read the
+   Documents-mirror copy of 2025 JV (`CANONICAL_SEASON`, 449 plays, old format).
+   Once the old readers are deleted they would read it raw.
 6. **Refuse old files before any mutation** (Codex P2-8): a post-conversion format
    marker written by every save, plus structural validation, checked ahead of
    every import, restore, version restore and recovery path — before a scaffold
