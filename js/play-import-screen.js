@@ -36,6 +36,8 @@ export class PlayImportScreen {
     if (count > 0) {
       this.overlays.toast({ message: `Imported ${count} play${count === 1 ? '' : 's'}.`, tone: 'success' });
       this.close('imported');
+    } else if (this.app.storage.lastImportRefusal) {
+      this.overlays.toast({ message: this.app.storage.lastImportRefusal, tone: 'error' });
     }
     return count;
   }

@@ -2023,6 +2023,8 @@ export class StorageManager {
     if (!parsed || !parsed.lines) return 0;
     const { colMap, lines } = parsed;
     let count = 0;
+    this.lastImportRefusal = null;
+    const pending = [];
 
     const playerFields = ['ballCarrier', 'passer', 'receiver', 'tackler'];
 
@@ -2082,7 +2084,7 @@ export class StorageManager {
       if (!charted && !notes && !penalties.length && !resultingSituation) continue;
 
       const play = {
-        id: this.tagger.nextId++,
+        id: null,
         timestamp: { start: 0, end: 0 },
         tags,
         annotations: [],
@@ -2090,9 +2092,18 @@ export class StorageManager {
         ...(penalties.length ? { penalties } : {}),
         ...(resultingSituation ? { resultingSituation } : {})
       };
-      // A combined look ("Shotgun + Trips") is stored in its own fields, through
-      // the one look commit every charting write uses.
-      TagProjection.commitLook(play);
+      pending.push(play);
+    }
+
+    // A row with an old combined look ("Shotgun + Trips" in Formation, a family
+    // in Coverage) means an old export: the whole file is refused and nothing is
+    // added (legacy excision; current exports write each look field on its own).
+    if (pending.some(p => TagProjection.isCombined(p.tags))) {
+      this.lastImportRefusal = SeasonFormat.MESSAGE;
+      return 0;
+    }
+    for (const play of pending) {
+      play.id = this.tagger.nextId++;
       this.tagger.plays.push(play);
       count++;
     }

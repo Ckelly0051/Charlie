@@ -31,18 +31,9 @@ export class PlayGrid {
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
     { key: 'formation', label: 'Formation', type: 'enum', src: 'tagFormation', multi: true,  unit: 'offense' },
-    // E4-2: QB Alignment, Backfield, Strength, and Coverage Family are now
-    // safely EDITABLE inline (E3b shipped them DISPLAY-ONLY/`proj-readonly`
-    // pending the field-level-merge machinery, which E4/E4-2 built). All four
-    // are single-select, so they use the plain `enum` editor like any other
-    // tag-form-backed column; `_applyEdit` routes every one of them through
-    // `TagProjection.reconcileSiblings` (the same promote/strip mechanic the
-    // tag form uses), so committing them here has EXACTLY the tag form's
-    // safety guarantees — view/cancel/navigation never write, and an explicit
-    // clear/change is one undoable transaction. Not in any default PRESET (no
-    // coach decision requested that for Backfield/Strength), but available in
-    // the Columns menu like any other column, since PlayGrid.COLUMNS is its
-    // single source of truth.
+    // QB Alignment, Backfield, Strength and Coverage Family are single-select
+    // look fields, edited inline with the plain `enum` editor. Not in any
+    // default preset, but available in the Columns menu like any other column.
     { key: 'qbAlignment', label: 'QB Align', type: 'enum', src: 'tagQbAlignment',              unit: 'offense' },
     { key: 'backfield', label: 'Backfield', type: 'enum', src: 'tagBackfield',                 unit: 'offense' },
     { key: 'strength',  label: 'Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
@@ -455,17 +446,11 @@ export class PlayGrid {
       if (opts.length) this._optionCache[col.key] = opts;
     }
     let all = [...new Set([...(opts || []), ...current].filter(Boolean))];
-    // E3b-P1/E4-2: a primary picker must not offer values that belong to ANY
-    // of its registered projected SIBLINGS — the structural Formation picker
-    // must not offer QB alignments or the Backfield 'Empty' token, the
-    // Backfield picker must not offer QB alignments ('Pistol'), and the
-    // Coverage CALL picker must not offer Man/Zone/Match. `col.key` can have
-    // more than one registered sibling relationship (Formation has two), so
-    // every one of them is excluded, not just the first.
-    for (const pair of TagProjection.PROJECTED_PAIRS[col.key] || []) {
-      all = all.filter(v => !TagProjection[pair.excludeFrom].includes(v));
-    }
-    return all;
+    // A picker never offers a value that belongs to another field: Formation
+    // offers no QB alignment or 'Empty', Backfield no alignment, the Coverage
+    // call no family.
+    const exclude = TagProjection.PICKER_EXCLUDE[col.key] || [];
+    return all.filter(v => !exclude.includes(v));
   }
 
   /** Apply an inline edit with the SAME semantics as the tag form. */
@@ -488,19 +473,6 @@ export class PlayGrid {
       // Multi-select fields: drop mutually-exclusive rivals exactly like the
       // form (no more "Gain + Loss", which flipped a gain negative below).
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
-      // E3b-P1/E4/E4-2 PROMOTE-THEN-STRIP (structural — see
-      // TagProjection.reconcileSiblings, the exact same call the tag form's
-      // setTagValue makes). A legacy play stores a sibling dimension inside a
-      // primary field (alignment inside formation/backfield, 'Empty' inside
-      // formation, family inside coverage), and projection derives that
-      // sibling FROM the string. Overwriting the primary with the coach's
-      // explicit choice would silently destroy it; committing a sibling
-      // directly (now that QB Alignment/Backfield/Strength/Coverage Family are
-      // editable here too) would leave the primary's embedded token to
-      // silently re-win on the next read. One call protects both directions.
-      // Opening/cancelling never reaches here, so viewing writes nothing, and
-      // the whole commit is a single history entry (undoable as one unit).
-      TagProjection.reconcileSiblings(play, col.key);
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of setTagValue).
       if (col.key === 'playType') {

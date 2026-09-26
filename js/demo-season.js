@@ -1,5 +1,3 @@
-import { TagProjection } from './tag-projection.js';
-
 /**
  * DemoSeason — a fully-tagged sample season the coach can explore instantly.
  *
@@ -24,10 +22,23 @@ import { TagProjection } from './tag-projection.js';
  * consider mirroring it there so the demo and the sample report don't drift.
  */
 
-const FORMATIONS = ['Shotgun', 'Shotgun + Trips', 'Singleback', 'I-Form', 'Pistol + Spread', 'Empty', 'Under Center'];
+// Each look stored in its own fields (the same seven looks, in the same order,
+// so the seeded sample is unchanged).
+const LOOKS = [
+  { qbAlignment: 'Shotgun' },
+  { qbAlignment: 'Shotgun', formation: 'Trips' },
+  { formation: 'Singleback' },
+  { formation: 'I-Form' },
+  { qbAlignment: 'Pistol', formation: 'Spread' },
+  { backfield: 'Empty' },
+  { qbAlignment: 'Under Center' },
+];
 const PERSONNEL = ['11', '12', '21', '10', '22'];
 const FRONTS = ['4-3', '3-4', 'Nickel', '4-2-5', 'Dime', '4-6'];
 const COVERAGES = ['Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 0', 'Man', 'Zone'];
+// Man and Zone are coverage FAMILIES, stored in their own field.
+const coverageFields = value => (value === 'Man' || value === 'Zone')
+  ? { coverage: '', coverageFamily: value } : { coverage: value, coverageFamily: '' };
 const BLITZ_TYPES = ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'];
 const HASHES = ['Left', 'Middle', 'Right'];
 
@@ -154,9 +165,9 @@ export class DemoSeason {
           id: ++pid, timestamp: stamp(), clipId: null,
           tags: {
             down: String(down), distance: String(distance), quarter, fieldSide, yardLine: String(yardLine),
-            formation: pick(FORMATIONS), personnel: pick(PERSONNEL),
+            formation: '', qbAlignment: '', backfield: '', ...pick(LOOKS), personnel: pick(PERSONNEL),
             runPass: isRun ? 'Run' : 'Pass', playType, result, yardage: String(yardage),
-            hash: pick(HASHES), defFront, coverage, blitz,
+            hash: pick(HASHES), defFront, ...coverageFields(coverage), blitz,
             driveNumber: String(drive), unit: 'offense',
             players, grades, custom: gained1st ? ['1st Down'] : [],
           },
@@ -215,7 +226,7 @@ export class DemoSeason {
             down: String(down), distance: String(distance), quarter, fieldSide: 'own', yardLine: String(randInt(20, 45)),
             formation: '', personnel: '',
             runPass: isRun ? 'Run' : 'Pass', playType, result, yardage: String(yardage),
-            hash: pick(HASHES), defFront, coverage, blitz,
+            hash: pick(HASHES), defFront, ...coverageFields(coverage), blitz,
             driveNumber: String(drive), unit: 'defense',
             players, grades, custom: [],
           },
@@ -229,10 +240,6 @@ export class DemoSeason {
         if (down > 4) break;
       }
     }
-
-    // The sample is born in the current format: a generated look like
-    // "Shotgun + Trips" is stored in its own fields, through the one look commit.
-    plays.forEach(p => TagProjection.commitLook(p));
 
     return {
       id: 'g_demo_' + seed, name: `vs ${opponent}`, status: 'final',

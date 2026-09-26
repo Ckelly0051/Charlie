@@ -4,7 +4,7 @@ import { TagProjection } from './tag-projection.js';
  * THE CURRENT SEASON FORMAT, and the one place that knows the retired shapes
  * (legacy excision Pass 2, step 6).
  *
- * The live catalog was converted once on 2026-09-26 (tools/convert-legacy-once.mjs).
+ * The live catalog was converted once on 2026-09-26 (tools/convert-legacy-once.mjs, deleted after use; commit 71761f5).
  * Nothing in the app reads an old shape any more; instead every path that brings
  * data IN from somewhere else -- a season file import, a season restore point, a
  * game version, the Documents mirror, a first-run JSON import -- asks this owner
@@ -43,8 +43,7 @@ export class SeasonFormat {
     if (!this._isObject(tags)) out.push('missing tags');
     else {
       if (!this.UNITS.includes(tags.unit)) out.push('no unit');
-      const probe = { tags: JSON.parse(JSON.stringify(tags)) };
-      if (TagProjection.commitLook(probe)) out.push('combined look');
+      if (TagProjection.isCombined(tags)) out.push('combined look');
       if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
     }
     // Checked whether or not the tags are usable.
@@ -94,10 +93,15 @@ export class SeasonFormat {
   static isCurrentSeason(data) { return this.seasonProblems(data).length === 0; }
   static isCurrentGame(data) { return this.gameProblems(data).length === 0; }
 
-  /** Template values minus anything retired, so applying one writes no old shape. */
+  /** Template values minus anything retired or combined, so applying one
+   *  writes no old shape. */
   static currentTagValues(values) {
     const out = {};
-    for (const [k, v] of Object.entries(values || {})) if (!this.RETIRED_TAG_KEYS.includes(k)) out[k] = v;
+    for (const [k, v] of Object.entries(values || {})) {
+      if (this.RETIRED_TAG_KEYS.includes(k)) continue;
+      if (['formation', 'backfield', 'coverage'].includes(k) && TagProjection.isCombined({ [k]: v })) continue;
+      out[k] = v;
+    }
     return out;
   }
 }

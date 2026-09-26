@@ -341,12 +341,9 @@ export class PlayTagger {
     if (!tpl) return false;
     this.selectedTemplate = name;
     // A template saved before the 2026-09-26 conversion can carry retired values
-    // (not applied) or a combined look: the template's own values are converted
-    // first, so its "Shotgun + Trips" applies as formation Trips AND alignment
-    // Shotgun, exactly as a current template would carry them.
-    const values = { tags: SeasonFormat.currentTagValues(tpl) };
-    TagProjection.commitLook(values);
-    Object.entries(values.tags).forEach(([k, v]) => { play.tags[k] = v; });
+    // or an old combined look; those values are not applied (the coach re-saves
+    // the template). Everything current applies.
+    Object.entries(SeasonFormat.currentTagValues(tpl)).forEach(([k, v]) => { play.tags[k] = v; });
     // A template can carry `unit:'special'` + forbidden alignment (saved from a
     // mis-tagged play); strip it when the result is special (ST invariant).
     this._stripStAlignment(play);
@@ -559,21 +556,6 @@ export class PlayTagger {
    */
   setTagValue(key, value, play = this.getCurrentPlay()) {
     if (!play) return false;
-    // E4/E4-2 D-projform PROMOTE-ON-EXPLICIT-COMMIT — same mechanic + same
-    // shared TagProjection descriptor as Film Room's grid editor
-    // (play-grid.js _applyEdit, E3b-P1). A legacy play stores a sibling
-    // dimension INSIDE a primary field's string (QB alignment inside
-    // formation/backfield, 'Empty' inside formation, coverage family inside
-    // coverage); overwriting the primary with the coach's new explicit pick
-    // would silently destroy that sibling data, and committing a sibling
-    // directly (including clearing it) would leave the primary's embedded
-    // token to silently re-win on the next read. `reconcileSiblings` runs
-    // BOTH directions in one call — see its doc comment for the full
-    // rationale, including why a key like `backfield` can be primary and
-    // sibling at once. The whole thing happens before the single
-    // play-updated emit below, so HistoryManager records it as ONE undoable
-    // transaction, exactly like the grid editor's proof requires.
-    TagProjection.reconcileSiblings(play, key);
     play.tags[key] = value == null ? '' : value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
@@ -737,34 +719,6 @@ export class PlayTagger {
 
 
 
-  /**
-   * D-projform E4 review fix (Codex): Save & Next is this app's "explicit
-   * save" gesture (per-field chip saves are already immediate; Save & Next is
-   * the coach's deliberate "I'm done with this play" moment — see
-   * App._advancePlay). An untouched LEGACY play — reviewed but never given a
-   * Formation/Coverage/QB Alignment/Backfield/Coverage Family chip click this
-   * visit — previously left with its projected siblings still un-promoted and
-   * its primary fields still raw, so it could never leave the (Lane R)
-   * "Legacy tags to review" list, whose exit condition (§18 D-laneR) is
-   * exactly "the coach explicitly saves the projected play." For each
-   * registered PRIMARY (formation, backfield, coverage), this both runs
-   * `reconcileSiblings` (promotes each blank sibling) AND re-commits the
-   * primary to its OWN fully-projected value (`StatsEngine.proj(play)
-   * [primaryKey]`), which strips every registered sibling's token from it at
-   * once — the same self-clean an explicit chip commit on that field already
-   * produces, applied even when the coach never touched the chip. One
-   * field-level-merge commit per primary, never touching any other field
-   * (down, playType, result, players, notes, penalties, ST data, ...). A
-   * genuinely clean play is a true no-op: no mutation, no history entry, no
-   * play-updated emit, so Save & Next stays silent on the overwhelming
-   * majority of plays that need no cleanup.
-   */
-  commitProjectedLook() {
-    const play = this.getCurrentPlay();
-    if (!play) return;
-    if (!TagProjection.commitLook(play)) return;
-    this._emit('play-updated', play);
-  }
 
 
 

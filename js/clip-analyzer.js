@@ -5,7 +5,7 @@
  * {time, motion, cut, audio, cx, cy, spread}), infer as many tag fields
  * as we can with a rule-based approach:
  *
- *   - formation family: shotgun / under-center / empty (pre-snap centroid)
+ *   - QB alignment: shotgun / under-center (pre-snap centroid)
  *   - play type:        run / pass / screen / PA   (trajectory shape)
  *   - direction hash:   left / middle / right      (horizontal centroid travel)
  *   - result bucket:    loss / short / medium / big / TD
@@ -268,22 +268,23 @@ export class ClipAnalyzer {
     else if (duration > this.opts.longTempoMin) tempo = 'long';
 
     // --- 9. Build result object ---------------------------------------
+    // Shotgun / Under Center are QB ALIGNMENTS, reported in their own field.
     const tags = {
-      formation,
+      qbAlignment: formation,
       playType,
       hash,
       result,
       yardage: yards !== 0 ? String(yards) : '',
     };
     const confidence = {
-      formation: formationConf,
+      qbAlignment: formationConf,
       playType: playTypeConf,
       hash: hashConf,
       result: resultConf,
       yardage: yardsConf,
     };
     const reasons = {
-      formation: formationReason,
+      qbAlignment: formationReason,
       playType: playTypeReason,
       hash: `centroid drift ${xDrift.toFixed(2)}`,
       result: `~${yards}yd, duration ${duration.toFixed(1)}s, peak ${peak.toFixed(3)}`,

@@ -190,12 +190,13 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
 
 1. PRE-SNAP READ (earliest frames):
    - Find the offensive line: 5 players in stance at the line of scrimmage, usually the largest players clustered together. The center is the one over the ball.
-   - QB position relative to center: hands under center = "Under Center"; standing 4-5 yards back = "Shotgun"; ~3 yards directly behind center = "Pistol".
+   - QB alignment (its own field, never the formation): hands under center = "Under Center"; standing 4-5 yards back = "Shotgun"; ~3 yards directly behind center = "Pistol".
    - Count running backs (RBs): players in the backfield near or behind the QB, NOT split wide.
    - Count tight ends (TEs): larger players lined up on or just off the line, tight to the offensive tackles.
    - Count wide receivers (WRs): players split wide toward the sidelines.
    - Personnel = (#RBs)(#TEs): 1 RB + 1 TE = "11"; 1 RB + 2 TE = "12"; 2 RB + 1 TE = "21"; etc.
-   - Formation: "Empty" = 0 RBs in backfield; "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Split Back" = 2 RBs side by side behind QB; "Single Wing" = unbalanced line, direct snap to wingback; "Wildcat" = direct snap to non-QB.
+   - Backfield: "Empty" = 0 RBs in the backfield (its own field, never the formation).
+   - Formation: "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Split Back" = 2 RBs side by side behind QB; "Single Wing" = unbalanced line, direct snap to wingback; "Wildcat" = direct snap to non-QB.
 
 2. DEFENSIVE READ (pre-snap and early frames):
    - Count down linemen (DL): players in 3- or 4-point stance at the line. Count standing linebackers (LBs) behind them.
@@ -225,14 +226,17 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
 Return ONLY valid JSON with these fields (use ONLY the listed enum values, or "" if you cannot determine):
 
 {
-  "formation": "Shotgun"|"Under Center"|"Pistol"|"I-Form"|"Singleback"|"Split Back"|"Single Wing"|"Empty"|"Wildcat"|"Goal Line"|"",
+  "qbAlignment": "Under Center"|"Shotgun"|"Pistol"|"",
+  "formation": "I-Form"|"Singleback"|"Split Back"|"Single Wing"|"Wildcat"|"Goal Line"|"",
+  "backfield": "Empty"|"",
   "personnel": "00"|"10"|"11"|"12"|"13"|"20"|"21"|"22"|"23"|"Jumbo"|"Goal Line"|"",
   "playType": ${VisionAnalyzer.ALLOWED.playType.map(v => `"${v}"`).join('|')}|"",
   "result": "Gain"|"Loss"|"No Gain"|"Incomplete"|"Interception"|"Touchdown"|"Sack"|"Fumble"|"Penalty"|"Punt"|"Field Goal"|"Good"|"No Good"|"Kneel"|"Spike"|"",
   "yardage": integer or "",
   "hash": "Left"|"Middle"|"Right"|"",
   "defFront": "4-3"|"3-4"|"4-2-5"|"Nickel"|"Dime"|"Quarter"|"4-6"|"",
-  "coverage": "Cover 0"|"Cover 1"|"Cover 2"|"Cover 3"|"Cover 4"|"Cover 6"|"Man"|"Zone"|"",
+  "coverage": "Cover 0"|"Cover 1"|"Cover 2"|"Cover 3"|"Cover 4"|"Cover 6"|"",
+  "coverageFamily": "Man"|"Zone"|"",
   "blitz": ""|"A-Gap"|"B-Gap"|"Edge"|"DB Blitz"|"Zone Blitz",
   "fieldSide": "own"|"opp"|"",
   "yardLine": 1-50 or "",
@@ -293,7 +297,11 @@ IMPORTANT:
    */
   static get ALLOWED() {
     return {
-      formation: ['Shotgun', 'Under Center', 'Pistol', 'I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Empty', 'Wildcat', 'Goal Line', 'Wing-T', 'Flexbone', 'Double Wing', 'Power-I', 'Bunch', 'Unbalanced'],
+      // Each look field on its own: an alignment is never a formation, 'Empty'
+      // is a backfield, and Man / Zone are coverage families.
+      qbAlignment: ['Under Center', 'Shotgun', 'Pistol'],
+      formation: ['I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Wildcat', 'Goal Line', 'Wing-T', 'Flexbone', 'Double Wing', 'Power-I', 'Bunch', 'Unbalanced'],
+      backfield: ['Empty'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
       // The charting vocabulary has ONE owner. Carrying a copy here meant a new
       // built-in reached the deck, the grid and the reports while a valid vision
@@ -304,7 +312,8 @@ IMPORTANT:
       result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike'],
       hash: ['Left', 'Middle', 'Right'],
       defFront: ['4-3', '3-4', '4-4', '5-2', '3-3-5', '4-2-5', 'Nickel', 'Dime', 'Quarter', '4-6'],
-      coverage: ['Cover 0', 'Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 6', 'Man', 'Zone'],
+      coverage: ['Cover 0', 'Cover 1', 'Cover 2', 'Cover 3', 'Cover 4', 'Cover 6'],
+      coverageFamily: ['Man', 'Zone'],
       blitz: ['A-Gap', 'B-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'],
       fieldSide: ['own', 'opp'],
       down: ['1', '2', '3', '4'],
@@ -333,8 +342,8 @@ IMPORTANT:
 
     const tags = {};
     const tagFields = [
-      'formation', 'personnel', 'playType', 'result', 'yardage',
-      'hash', 'defFront', 'coverage', 'blitz',
+      'qbAlignment', 'formation', 'backfield', 'personnel', 'playType', 'result', 'yardage',
+      'hash', 'defFront', 'coverage', 'coverageFamily', 'blitz',
       'fieldSide', 'yardLine', 'down', 'distance', 'quarter',
     ];
     const dropped = [];
