@@ -159,15 +159,13 @@ export class AnalyticsRegistry {
       ready('playerKicker', 'Kicker (Field Goal)',
         this._playerRoleValues('kicker', p => {
           const event = special(p);
-          if (event) return event.unit === 'fieldGoal' && event.attemptType === 'fieldGoal' && !event.isFake;
-          return p?.tags?.stType === 'Field Goal';
+          return !!event && event.unit === 'fieldGoal' && event.attemptType === 'fieldGoal' && !event.isFake;
         }),
         'StatsEngine.effectivePlayers.kicker (field goal attempts)', { multi: true }),
       ready('playerReturner', 'Returner',
         this._playerRoleValues('returner', p => {
           const event = special(p);
-          if (event) return ['kickoffReturn', 'puntReturn'].includes(event.unit);
-          return (p?.tags?.stType || '').includes('Return');
+          return !!event && ['kickoffReturn', 'puntReturn'].includes(event.unit);
         }),
         'StatsEngine.effectivePlayers.returner (kick/punt returns)', { multi: true }),
       ready('specialTeamsPhase', 'Special Teams Unit', p => this._one(special(p)?.unit), 'SpecialTeamsModel.normalize.unit'),

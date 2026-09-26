@@ -897,8 +897,7 @@ export function specialTeamsUnitRows(stats, key) {
       row('Fair catch rate', `${k.fairCatchPct}%`),
       row('Return yards allowed', k.retAllowedAvg == null ? null : `${k.retAllowedAvg} avg, ${k.retAllowedYards} total`, { sub: true }),
       row('Touchdowns allowed', k.tdAllowed, { cls: k.tdAllowed ? 'is-bad' : '' }),
-      // Legacy charts an onside kick as its own stType, so it is not derivable
-      // from the kickoff cohort at all -- an honest absence, not a zero.
+      // An onside kick with nothing charted is an honest absence, not a zero.
       row('Onside recovery', k.onside?.n == null ? null : `${k.onside.recovered}/${k.onside.n}`),
     ];
   }
@@ -1000,9 +999,9 @@ export function specialTeamsOutcomes(stats, key) {
 /**
  * Snaps this report could not assign to any unit. The full "74 snaps = 21
  * kickoff + ..." reconciliation restated the ledger directly above it and was
- * removed; what survives is the one fact no ledger card can show. A legacy
- * `stType` the current model has no unit for -- `Fake` is the live example --
- * would otherwise vanish from every module while still counting in ST Snaps.
+ * removed; what survives is the one fact no ledger card can show: a Special
+ * Teams snap with no unit charted would otherwise vanish from every module
+ * while still counting in ST Snaps.
  * Returns 0 when everything reconciles, and the caller renders nothing.
  */
 export function specialTeamsUnassigned(stats, summary) {

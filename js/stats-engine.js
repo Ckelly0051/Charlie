@@ -235,14 +235,8 @@ export class StatsEngine {
     }
     if (!p || !p.tags) return 0;
     const res = StatsEngine.splitResults(p.tags.result);
-    const st = p.tags.stType || '';
-    // "Made" via the explicit Kick Outcome (phase-aware ST) or a legacy Good result.
-    const made = p.tags.kickOutcome === 'Good' || res.includes('Good');
     if (res.includes('Touchdown')) return 6;
     if (res.includes('Safety')) return 2;
-    if (st === '2-Pt') return made ? 2 : 0;
-    if (st === 'XP') return made ? 1 : 0;
-    if (st === 'Field Goal') return made ? 3 : 0;
     if (res.includes('Field Goal')) return 3;
     return 0;
   }
@@ -267,11 +261,6 @@ export class StatsEngine {
       return structured.subjectRole === 'kicking' || structured.subjectRole === 'attempting' ? 'us' : 'them';
     }
     if (!p || !p.tags) return 'us';
-    // Explicit "Scored by" wins — the one consistent way to attribute any kick /
-    // special-teams score (XP, FG, 2-Pt, return TD) to us or the opponent, since
-    // there is no "their special teams" unit. Blank falls through to unit logic.
-    if (p.tags.scoreFor === 'them') return 'them';
-    if (p.tags.scoreFor === 'us') return 'us';
     const res = StatsEngine.splitResults(p.tags.result);
     // Matchup projections can relabel an offensive rep as the opponent's
     // defense. Scoring ownership remains anchored to the unit the coach
@@ -328,12 +317,9 @@ export class StatsEngine {
       return { touchdown: 'TD', safety: 'Safety', extraPoint: 'XP', twoPoint: '2-Pt', fieldGoal: 'FG' }[structured.outcome.score] || 'Score';
     }
     const res = StatsEngine.splitResults(p.tags.result);
-    const st = p.tags.stType || '';
     if (res.includes('Touchdown')) return 'TD';
     if (res.includes('Safety')) return 'Safety';
-    if (st === '2-Pt') return '2-Pt';
-    if (st === 'XP') return 'XP';
-    if (st === 'Field Goal' || res.includes('Field Goal')) return 'FG';
+    if (res.includes('Field Goal')) return 'FG';
     return 'Score';
   }
 
@@ -381,10 +367,7 @@ export class StatsEngine {
         && ['kickoffReturn', 'puntReturn', 'fieldGoal', 'punt'].includes(structured.unit)
         && [eventPlayers.kicker, eventPlayers.punter, eventPlayers.returner,
           tagPlayers.kicker, tagPlayers.returner].some(value => String(value || '').trim());
-      const hasLegacySpecialist = !structured
-        && ['Kick Return', 'Punt Return', 'Field Goal', 'XP', 'Punt'].includes(p.tags.stType)
-        && [tagPlayers.kicker, tagPlayers.returner].some(value => String(value || '').trim());
-      if (hasStructuredSpecialist || hasLegacySpecialist) {
+      if (hasStructuredSpecialist) {
         individualSource.push(p);
         individualSeen.add(p);
       }
@@ -672,7 +655,7 @@ export class StatsEngine {
     const tags = next.tags || {};
     if (tags.unit !== 'special') return StatsEngine._changeOfPossession(last, next);
     const structured = SpecialTeamsModel.normalize(next.specialTeams);
-    const kind = structured?.unit || String(tags.stType || '');
+    const kind = structured?.unit || '';
     const results = StatsEngine.splitResults(tags.result);
     if (/punt/i.test(kind)) return 'Punt';
     if (/field ?goal|^FG$/i.test(kind)) {
@@ -686,19 +669,6 @@ export class StatsEngine {
        the drives that genuinely scored; anything still here is a possession the
        charting does not explain, and inventing `Score` for it would be exactly
        the guess this method exists to avoid. */
-    /* A fake is a fourth-down scrimmage play wearing a Special Teams label, so
-       the kick patterns above never match it and the possession it ended went
-       unnamed. What happened next is what settles it: the play AFTER the fake
-       shows who has the ball, and the FAKE's own result says how it ended —
-       a fake that fumbles away is a turnover, not a failed conversion. */
-    if (/fake/i.test(kind)) {
-      if (!after) return null;
-      const ours = countedUnit(last);
-      const changedAfterFake = countedUnit(after) !== ours && after.tags.unit !== 'special';
-      if (!changedAfterFake) return null;
-      return StatsEngine.hasResult(next, 'Fumble') || StatsEngine.hasResult(next, 'Interception')
-        ? 'Turnover' : 'Downs';
-    }
     return null;
   }
 
@@ -2439,20 +2409,15 @@ export class StatsEngine {
   }
 
   /**
-   * PAT / 2-point conversion success. Keyed on stType ('XP' | '2-Pt') and the
-   * explicit Good / No Good (or Touchdown / Field Goal) result, so it works
-   * even on ST plays that carry no offensive playType.
+   * PAT / 2-point conversion success, over the structured tries (Try and
+   * Defending a Try) -- the only way a try is charted.
    */
   _conversionStats(source) {
     const structured = p => SpecialTeamsModel.normalize(p && p.specialTeams);
     const official = p => StatsEngine._tryPenaltyResolved(p);
     const made = (p, wanted) => {
       const event = structured(p);
-      if (event?.unit === 'try' || event?.unit === 'tryDefense') {
-        return official(p) && event.result === 'converted' && event.outcome.score === wanted;
-      }
-      if (event) return event.outcome.status === 'good' || event.outcome.score === wanted;
-      return p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Field Goal');
+      return !!event && official(p) && event.result === 'converted' && event.outcome.score === wanted;
     };
     const tally = (type) => {
       const wanted = type === 'XP' ? 'extraPoint' : 'twoPoint';
@@ -2463,11 +2428,7 @@ export class StatsEngine {
           const officialType = event.result === 'converted' ? event.outcome.score : event.attemptType;
           return officialType === wanted;
         }
-        if (event) {
-          const kind = event.attemptType || event.outcome.score;
-          return kind === wanted && event.subjectRole === 'attempting';
-        }
-        return p.tags.stType === type && StatsEngine.scoringSide(p) === 'us';
+        return false;
       });
       const madePlays = att.filter(p => made(p, wanted));
       // Codex review finding #1 (Study expansion Phase 2): refs for the exact
@@ -2495,10 +2456,7 @@ export class StatsEngine {
    * a kicker credited 0/1 FG beside a unit reporting 0 attempts. An extra
    * point is not a field goal, in football or here.
    *
-   * A structured extra point stored under the legacy-compatible
-   * `unit:'fieldGoal' + attemptType:'extraPoint'` shape (SPECIAL-TEAMS-MODEL
-   * §4b.3) is excluded for the same reason. Tries are counted by
-   * `_conversionStats`, which owns them.
+   * Tries are counted by `_conversionStats`, which owns them.
    *
    * Coach decision, 2026-09-04: "A player cannot receive an FG attempt that
    * the unit does not recognize."
@@ -2506,24 +2464,20 @@ export class StatsEngine {
   static isFieldGoalAttempt(play, structuredEvent) {
     const event = structuredEvent !== undefined
       ? structuredEvent : SpecialTeamsModel.normalize(play && play.specialTeams);
-    if (event) return event.unit === 'fieldGoal' && event.attemptType === 'fieldGoal';
-    return !!(play && play.tags && play.tags.stType === 'Field Goal');
+    return !!event && event.unit === 'fieldGoal' && event.attemptType === 'fieldGoal';
   }
 
   /** Made, over the cohort above. Same test both surfaces use. */
   static isFieldGoalMade(play, structuredEvent) {
     const event = structuredEvent !== undefined
       ? structuredEvent : SpecialTeamsModel.normalize(play && play.specialTeams);
-    if (event) return event.outcome.status === 'good' && event.outcome.score === 'fieldGoal';
-    return (play && play.tags && play.tags.kickOutcome === 'Good') || StatsEngine.hasResult(play, 'Good');
+    return !!event && event.outcome.status === 'good' && event.outcome.score === 'fieldGoal';
   }
 
-  // Phase-aware special teams: punts (gross/net/hang/TB%), kickoffs (avg/TB%/
-  // return allowed), field goals (made-att + by distance), and the return game.
-  // Reads the new ST detail fields (kickDistance/returnYards/hangTime/kickedTo/
-  // kickOutcome); falls back gracefully when they're blank (legacy plays).
+  // Phase-aware special teams over the structured events: punts
+  // (gross/net/hang/TB%), kickoffs (avg/TB%/return allowed), field goals
+  // (made-att + by distance), tries, blocks and the return game.
   _specialTeamsStats(plays) {
-    const num = (v) => { const n = parseFloat(v); return isNaN(n) ? null : n; };
     const structured = (plays || []).map(p => ({ p, st: SpecialTeamsModel.normalize(p?.specialTeams) })).filter(x => x.st);
     // Codex review finding #1: every leaf below carries its own `refs` --
     // the exact composite refs of the ROWS that produced that number, not
@@ -2536,8 +2490,7 @@ export class StatsEngine {
     const getPlay = x => x.p;
     /**
      * The outcome distribution for a unit -- how its snaps actually ended,
-     * counted over the SAME field each branch already uses to compute its
-     * rates (`outcome.status` structured, `kickOutcome` legacy). No new
+     * counted over the SAME field the rates use (`outcome.status`). No new
      * classification: every label below is a value the model or the tag
      * vocabulary already defines, and a snap whose outcome was never charted
      * is its own honest row rather than being dropped or folded into another.
@@ -2568,7 +2521,7 @@ export class StatsEngine {
         refs: StatsEngine._refsOf(group, playOf),
       })).sort((a, b) => (a.key === '__uncharted') - (b.key === '__uncharted') || b.n - a.n);
     };
-    if (structured.length) {
+    {
       const rows = unit => structured.filter(x => x.st.unit === unit);
       // Codex re-review finding #2: `avg()` silently excludes a row missing
       // its own measurement (e.g. a punt with no charted hang time) from the
@@ -2707,208 +2660,27 @@ export class StatsEngine {
       const returns = { kick: ret('kickoffReturn'), punt: ret('puntReturn') };
       const blocks = rows('fieldGoalBlock');
       const blockedRows = blocks.filter(x => x.st.outcome.status === 'blocked');
-      /* THE TRY COHORT INCLUDES THE LEGACY-COMPATIBLE XP SHAPE. An extra point
-         stored as `unit:'fieldGoal' + attemptType:'extraPoint'` (§4b.3, still
-         read and never rewritten) is a TRY here: `_conversionStats` owns it and
-         `isFieldGoalAttempt` deliberately excludes it from field goals. Counted
-         only under `try`/`tryDefense`, such a snap belonged to no module at all,
-         so the board reported it under Tries and simultaneously called it "not
-         assigned to a unit" — the canonical demo screen's fourth unassigned
-         snap. `xpOnKickUnit` is stated separately so the two cohorts stay
-         nameable; the units are disjoint, so nothing is double counted. */
+      // Tries are charted only under Try and Defending a Try.
       const tryRows = [...rows('try'), ...rows('tryDefense')];
-      const xpOnKickUnitRows = [...rows('fieldGoal'), ...rows('fieldGoalBlock')]
-        .filter(x => x.st.attemptType === 'extraPoint');
       const tries = {
-        n: tryRows.length + xpOnKickUnitRows.length,
+        n: tryRows.length,
         tryUnits: tryRows.length,
         // The OPPONENT's tries — `Defending a Try`. `_conversionStats` counts
         // only attempts whose subject role is `attempting`, so these are charted
         // tries that are correctly not ours, which is a different statement from
         // a try with no scoring team tagged.
         defending: rows('tryDefense').length,
-        xpOnKickUnit: xpOnKickUnitRows.length,
         refs: {
-          all: StatsEngine._refsOf([...tryRows, ...xpOnKickUnitRows], getPlay),
+          all: StatsEngine._refsOf(tryRows, getPlay),
           tryUnits: StatsEngine._refsOf(tryRows, getPlay),
-          xpOnKickUnit: StatsEngine._refsOf(xpOnKickUnitRows, getPlay),
         },
       };
       return {
         punts, kickoffs, fg, returns, tries,
         blocks: { n: blocks.length, blocked: blockedRows.length, refs: { all: StatsEngine._refsOf(blocks, getPlay), blocked: StatsEngine._refsOf(blockedRows, getPlay) } },
-        structured: true, hasData: true,
+        structured: true, hasData: structured.length > 0,
       };
     }
-    // Legacy `kickOutcome` already carries the same vocabulary in prose form,
-    // so the distribution reuses it verbatim rather than reinterpreting it. A
-    // blank outcome -- the majority of the coach's legacy special-teams plays
-    // -- becomes the explicit "No data" row, never a silently dropped snap.
-    const legacyStatus = p => {
-      const v = String((p.tags && p.tags.kickOutcome) || '').trim();
-      if (!v) return '';
-      const key = v.replace(/\s+/g, '');
-      return key.charAt(0).toLowerCase() + key.slice(1);
-    };
-    const by = (type) => plays.filter(p => p.tags && p.tags.stType === type);
-    const avg = (arr, get) => { const v = arr.map(get).filter(x => x != null); return v.length ? +(v.reduce((s, x) => s + x, 0) / v.length).toFixed(1) : null; };
-    const made = (p) => p.tags.kickOutcome === 'Good' || StatsEngine.hasResult(p, 'Good');
-    const refsOf = rows => StatsEngine._refsOf(rows);
-    // Codex re-review finding #2, legacy branch: same fix as the structured
-    // branch above -- `avg()` drops a row with no charted measurement from
-    // the calculation, so its refs must drop that row too rather than
-    // pointing at the full, coarser row set.
-    const avgStat = (arr, get) => {
-      const eligible = arr.filter(p => get(p) != null);
-      const value = eligible.length ? +(eligible.reduce((s, p) => s + get(p), 0) / eligible.length).toFixed(1) : null;
-      return { value, refs: refsOf(eligible) };
-    };
-
-    // Legacy has no structured scoring team, so the canonical scoringSide()
-    // decides -- a coverage touchdown is one credited to THEM on our kick.
-    const tdAllowedLegacy = arr => arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')
-      && StatsEngine.scoringSide(p) === 'them');
-    /* Legacy `stType` does not carry perspective. A blocked Punt with a
-       charted defensive player role and no kicking role is the one reliable
-       legacy shape for OUR punt-block unit: the coach charted the defender,
-       not a punter. Keep every ambiguous legacy punt in its historical cohort;
-       only this positive ownership signal moves a play across the phase. */
-    const isOpponentPuntBlocked = p => {
-      if (p?.tags?.stType !== 'Punt' || p.tags.kickOutcome !== 'Blocked') return false;
-      const players = p.tags.players || {};
-      const kickingRole = String(players.kicker || players.punter || '').trim();
-      const defensiveRole = String(players.tackler || players.takeaway || players.blocker || players.recoverer || '').trim();
-      return !kickingRole && !!defensiveRole;
-    };
-    const opponentPuntBlocks = plays.filter(isOpponentPuntBlocked);
-    const pp = by('Punt').filter(p => !isOpponentPuntBlocked(p));
-    const puntReturnedRows = pp.filter(p => p.tags.kickOutcome === 'Returned');
-    const puntGross = avgStat(pp, p => num(p.tags.kickDistance));
-    // Touchback placement is ruleset-dependent (SPECIAL-TEAMS-MODEL §5), and no
-    // season configures a ruleset today. This used to subtract a flat 20 yards,
-    // which published a number the app could not know -- the structured branch
-    // never did, because SpecialTeamsModel.netYards() returns null for a
-    // touchback unless the caller supplies rules.touchbackPenalty. A touchback
-    // is now excluded from the net average instead of being estimated, so the
-    // mean covers only the punts whose net is genuinely derivable and its refs
-    // name exactly those punts. Coach decision, 2026-09-04.
-    const puntNet = avgStat(pp, p => {
-      const d = num(p.tags.kickDistance);
-      if (d == null || p.tags.kickOutcome === 'Touchback') return null;
-      return d - (num(p.tags.returnYards) || 0);
-    });
-    const puntHang = avgStat(pp, p => num(p.tags.hangTime));
-    const puntRetAllowed = avgStat(puntReturnedRows, p => num(p.tags.returnYards));
-    const punts = {
-      n: pp.length,
-      grossAvg: puntGross.value,
-      netAvg: puntNet.value,
-      hangAvg: puntHang.value,
-      tbPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Touchback').length / pp.length * 100) : 0,
-      // Study expansion Phase 2: legacy `kickOutcome` already carries 'Fair
-      // Catch'/'Returned' -- reused, never reinterpreted, matching the same
-      // fields the structured branch now computes.
-      fairCatchPct: pp.length ? Math.round(pp.filter(p => p.tags.kickOutcome === 'Fair Catch').length / pp.length * 100) : 0,
-      blocked: pp.filter(p => p.tags.kickOutcome === 'Blocked').length,
-      retAllowedAvg: puntRetAllowed.value,
-      retAllowedYards: puntReturnedRows.reduce((s, p) => s + (num(p.tags.returnYards) || 0), 0),
-      tdAllowed: tdAllowedLegacy(pp).length,
-      refs: {
-        all: refsOf(pp),
-        blocked: refsOf(pp.filter(p => p.tags.kickOutcome === 'Blocked')),
-        returned: refsOf(puntReturnedRows),
-        grossAvg: puntGross.refs, netAvg: puntNet.refs, hangAvg: puntHang.refs,
-        retAllowedAvg: puntRetAllowed.refs, tdAllowed: refsOf(tdAllowedLegacy(pp)),
-      },
-      outcomes: distribution(pp, legacyStatus),
-    };
-    const ko = by('Kickoff');
-    const koReturnedRows = ko.filter(p => p.tags.kickOutcome === 'Returned');
-    const koAvg = avgStat(ko, p => num(p.tags.kickDistance));
-    const koRetAllowed = avgStat(koReturnedRows, p => num(p.tags.returnYards));
-    const kickoffs = {
-      n: ko.length,
-      avg: koAvg.value,
-      tbPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Touchback').length / ko.length * 100) : 0,
-      fairCatchPct: ko.length ? Math.round(ko.filter(p => p.tags.kickOutcome === 'Fair Catch').length / ko.length * 100) : 0,
-      retAllowedAvg: koRetAllowed.value,
-      retAllowedYards: koReturnedRows.reduce((s, p) => s + (num(p.tags.returnYards) || 0), 0),
-      tdAllowed: tdAllowedLegacy(ko).length,
-      // Legacy charted an onside kick as its OWN stType ('Onside'), never as a
-      // Kickoff modifier -- a structurally different shape than the new model's
-      // isOnside flag, so it is not derivable from `by('Kickoff')` here. Stays
-      // an honest null rather than a guessed zero (see the fair-catch/muffed
-      // reuse above for the contrast: those DO reuse real legacy vocabulary).
-      onside: { n: null, recovered: null },
-      refs: { all: refsOf(ko), returned: refsOf(koReturnedRows), onside: [], onsideRecovered: [],
-        avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs, tdAllowed: refsOf(tdAllowedLegacy(ko)) },
-      outcomes: distribution(ko, legacyStatus),
-    };
-    const fgp = plays.filter(p => StatsEngine.isFieldGoalAttempt(p, null));
-    const fgMade = fgp.filter(p => StatsEngine.isFieldGoalMade(p, null));
-    const fg = {
-      att: fgp.length, made: fgMade.length,
-      pct: fgp.length ? Math.round(fgMade.length / fgp.length * 100) : 0,
-      long: fgMade.reduce((m, p) => Math.max(m, num(p.tags.kickDistance) || 0), 0),
-      byDist: [['<30', 0, 29], ['30-39', 30, 39], ['40-49', 40, 49], ['50+', 50, 99]].map(([label, lo, hi]) => {
-        const att = fgp.filter(p => { const d = num(p.tags.kickDistance); return d != null && d >= lo && d <= hi; });
-        return { label, att: att.length, made: att.filter(made).length, refs: refsOf(att) };
-      }).filter(b => b.att > 0),
-      refs: { all: refsOf(fgp), made: refsOf(fgMade), missed: refsOf(fgp.filter(p => !made(p))) },
-      outcomes: distribution(fgp, legacyStatus),
-    };
-    const ret = (type) => {
-      const arr = type === 'Punt Return' ? [...by(type), ...opponentPuntBlocks] : by(type);
-      const attemptRows = arr.filter(p => num(p.tags.returnYards) != null);
-      const yds = attemptRows.map(p => num(p.tags.returnYards));
-      const tdRows = arr.filter(p => StatsEngine.hasResult(p, 'Touchdown'));
-      const muffedRows = arr.filter(p => p.tags.kickOutcome === 'Muffed');
-      const blockedRows = arr.filter(isOpponentPuntBlocked);
-      return {
-        n: arr.length,
-        avg: yds.length ? +(yds.reduce((s, x) => s + x, 0) / yds.length).toFixed(1) : null,
-        yards: yds.reduce((s, x) => s + x, 0),
-        long: yds.length ? Math.max(...yds) : 0,
-        attempts: yds.length,
-        td: tdRows.length,
-        muffed: muffedRows.length,
-        blocked: blockedRows.length,
-        refs: { all: refsOf(arr), attempts: refsOf(attemptRows), td: refsOf(tdRows),
-          muffed: refsOf(muffedRows), blocked: refsOf(blockedRows) },
-        outcomes: distribution(arr, legacyStatus).map(row =>
-          row.key === 'blocked' && blockedRows.length ? { ...row, tone: '' } : row),
-      };
-    };
-    const returns = { kick: ret('Kick Return'), punt: ret('Punt Return') };
-    // Legacy has no dedicated "field goal block unit" or "try" charting
-    // concept (a blocked FG is just kickOutcome:'Blocked' on the kicking
-    // team's own attempt; a legacy 2-Pt/XP play never distinguished a block
-    // unit). Present as explicit nulls, not omitted keys and not fabricated
-    // zeros, so every registered measure resolves to a real value (a
-    // structural "not derivable here", not a silent "zero of these happened").
-    return {
-      punts, kickoffs, fg, returns,
-      blocks: { n: null, blocked: null, refs: { all: [], blocked: [] } },
-      // Legacy DOES have a try concept -- `stType` 'XP' and '2-Pt' -- so the
-      // charted try count is derivable even though the structured try model is
-      // not. It is the denominator behind the report's "18 classified · 3
-      // unclassified · 21 charted" line: `_conversionStats` counts only tries
-      // carrying a scoring side, and the difference is charted-but-unattributed
-      // rather than missed. Without this the unattributed tries silently became
-      // unit-less snaps instead.
-      // Counted over the SAME population `_specialTeamsSummary` counts snaps
-      // over -- `unit:'special'`. Gating on `stType` alone picked up an extra
-      // try charted outside the special-teams unit, which made the units sum
-      // to exactly the snap count and silently masked the one play that
-      // genuinely belongs to no unit (the legacy `Fake`). A reconciliation
-      // whose terms come from different populations reconciles by accident.
-      tries: (() => {
-        const rows = plays.filter(p => p.tags && p.tags.unit === 'special'
-          && (p.tags.stType === 'XP' || p.tags.stType === '2-Pt'));
-        return { n: rows.length, refs: { all: refsOf(rows) } };
-      })(),
-      hasData: !!(punts.n || kickoffs.n || fg.att || returns.kick.n || returns.punt.n),
-    };
   }
 
   /**
@@ -3738,7 +3510,7 @@ export class StatsEngine {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     if (structured && !structured.isFake) return structured.outcome?.status === 'good';
     return hasResult(play, 'Gain') || hasResult(play, 'Touchdown') || hasResult(play, 'No Gain')
-      || hasResult(play, 'Good') || play?.tags?.kickOutcome === 'Good';
+      || hasResult(play, 'Good');
   }
 
   /** Study Phase 3 (Codex review, 2026-08-15, finding #2): "did WE score a
@@ -3833,19 +3605,12 @@ export class StatsEngine {
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
-      const st = p.tags.stType || '';
-
-      // --- Return game. Dedicated ST fields are authoritative; a return with
+      // --- Return game. The structured return is authoritative; a return with
       // no charted yardage is a return that contributed no measured yards.
       const structuredReturn = structured && ['kickoffReturn', 'puntReturn'].includes(structured.unit);
-      if (players.returner && (structuredReturn || (!structured && st.includes('Return')))) {
-        const raw = String(p.tags.returnYards ?? '').trim();
-        const legacy = raw === '' ? null : (Number.isFinite(Number(raw)) ? Number(raw) : null);
-        const returnYards = structuredReturn && Number.isFinite(structured.return.yards)
-          ? structured.return.yards : legacy;
-        const returnTd = structuredReturn
-          ? structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject'
-          : isTD;
+      if (players.returner && structuredReturn) {
+        const returnYards = Number.isFinite(structured.return.yards) ? structured.return.yards : null;
+        const returnTd = structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject';
         bucket(players.returner, 'returns', 'Return Game', ROLE_COHORT, p);
         bucket(players.returner, 'returns', 'Return Game', 'ret', p);
         if (returnYards != null) bucket(players.returner, 'returns', 'Return Game', 'yds', p, returnYards);
@@ -3866,18 +3631,6 @@ export class StatsEngine {
           if (Number.isFinite(structured.kick.distance)) {
             bucket(specialist, 'kicking', 'Kicking / Punting', 'puntYds', p, structured.kick.distance);
           }
-        }
-      } else if (players.kicker && !structured && st && (isFg || st === 'Punt')) {
-        bucket(players.kicker, 'kicking', 'Kicking / Punting', ROLE_COHORT, p);
-        if (isFg) {
-          bucket(players.kicker, 'kicking', 'Kicking / Punting', 'fgAtt', p);
-          if (StatsEngine.isFieldGoalMade(p, null)) bucket(players.kicker, 'kicking', 'Kicking / Punting', 'fgMade', p);
-        } else {
-          // Punt distance is `kickDistance`, never the generic `tags.yardage`.
-          const rawDist = String(p.tags.kickDistance ?? '').trim();
-          const dist = rawDist === '' ? null : (Number.isFinite(Number(rawDist)) ? Number(rawDist) : null);
-          bucket(players.kicker, 'kicking', 'Kicking / Punting', 'punts', p);
-          if (dist != null) bucket(players.kicker, 'kicking', 'Kicking / Punting', 'puntYds', p, dist);
         }
       }
 
@@ -4241,13 +3994,11 @@ export class StatsEngine {
       case 'blitz': return StatsEngine.splitBlitzes(tags.blitz).filter(Boolean);
       case 'stUnit': {
         const event = SpecialTeamsModel.normalize(play.specialTeams);
-        if (event) return one(SpecialTeamsModel.UNIT_LABELS[event.unit] || event.unit);
-        return one(tags.stType);
+        return event ? one(SpecialTeamsModel.UNIT_LABELS[event.unit] || event.unit) : [];
       }
       case 'stOutcome': {
         const event = SpecialTeamsModel.normalize(play.specialTeams);
-        if (event) return one(event.outcome.status ? StatsEngine.PLAYER_ST_OUTCOME_LABELS[event.outcome.status] : '');
-        return one(tags.kickOutcome);
+        return event ? one(event.outcome.status ? StatsEngine.PLAYER_ST_OUTCOME_LABELS[event.outcome.status] : '') : [];
       }
       default: return [];
     }

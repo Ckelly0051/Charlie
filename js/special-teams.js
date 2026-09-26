@@ -1,6 +1,5 @@
 /**
  * Pure Phase 4E special-teams contract. No DOM, storage, or app dependencies.
- * Legacy fields are intentionally outside this model and are never migrated.
  */
 export class SpecialTeamsModel {
   static VERSION = 1;
@@ -57,9 +56,7 @@ export class SpecialTeamsModel {
    * and nothing can author an extra point through them. Extra points and
    * two-point tries are authored only under `try` / `tryDefense`, which encode
    * the attempting side; `unit:'fieldGoal'` is always "the subject attempting",
-   * so an opponent XP charted there scored for us. Existing records carrying
-   * `attemptType:'extraPoint'` are still READ (see `normalize`) and never
-   * rewritten.
+   * so an opponent XP charted there scored for us.
    */
   static defaultAttemptType(unit) {
     return unit === 'fieldGoal' || unit === 'fieldGoalBlock' ? 'fieldGoal' : null;
@@ -101,12 +98,14 @@ export class SpecialTeamsModel {
     const isTry = value.unit === 'try' || value.unit === 'tryDefense';
     const attemptType = isTry
       ? this._choice(value.attemptType, this.TRY_ATTEMPTS)
-      : (value.attemptType === 'fieldGoal' || value.attemptType === 'extraPoint' ? value.attemptType : null);
+      : (value.attemptType === 'fieldGoal' ? 'fieldGoal' : null);
     const result = isTry ? this._choice(value.result, this.TRY_RESULTS) : null;
     const defensiveReturn = isTry && events.defensiveReturn === true;
     const returnAward = defensiveReturn ? this._choice(outcome.returnAward, this.RETURN_AWARDS) : null;
     let score = this._choice(outcome.score, this.SCORES);
     let scoredBy = this._choice(outcome.scoredBy, this.TEAMS);
+    // Only Try and Defending a Try score an extra point or a two-point try.
+    if (!isTry && (score === 'extraPoint' || score === 'twoPoint')) { score = null; scoredBy = null; }
     if (isTry) {
       if (defensiveReturn && (returnAward === 'subject' || returnAward === 'opponent')) {
         score = 'twoPoint';

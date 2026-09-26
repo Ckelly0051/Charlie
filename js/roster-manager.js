@@ -1,3 +1,4 @@
+import { SpecialTeamsModel } from './special-teams.js';
 /**
  * RosterManager — team roster + player attribution helper.
  *
@@ -133,7 +134,7 @@ export class RosterManager {
     const cur = this.tagger?.getCurrentPlay();
     const turnover = unit === 'defense' && /Interception|Fumble/.test(String(cur?.tags?.result || ''));
     const wanted = unit === 'defense' ? (turnover ? 'takeaway' : 'tackler')
-      : unit === 'special' ? (cur?.tags?.stType || '').includes('Return') ? 'returner' : 'kicker'
+      : unit === 'special' ? (/Return$/.test(SpecialTeamsModel.normalize(cur?.specialTeams)?.unit || '') ? 'returner' : 'kicker')
       : 'ballCarrier';
     if (this.activeRole === wanted) return;
     // Don't fight an input the coach is actively typing in.

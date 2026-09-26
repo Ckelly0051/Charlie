@@ -95,6 +95,10 @@ export function inventory() {
     // C: UI state inside the domain model.
     plainFieldRefs: count(js, /\bPlain(Field|Input)\b/g),
     taggerFieldReadsOutsideTagger: count(outsideTagger, /\.(unitField|tagFields|playerFields|gradeFields)\b/g),
+    // D: old-format readers (Pass 2 step 7). A read of a retired Special Teams
+    // tag; js/season-format.js names them only to refuse them.
+    legacyStReads: count(Object.entries(src).filter(([f]) => f !== 'js/season-format.js').map(([, t]) => t).join('\n'),
+      /(?:tags|\bt|raw|p\.tags|play\.tags)\??\.(stType|kickOutcome|scoreFor|kickDistance|returnYards|hangTime|kickedTo)\b/g),
     // E: platform choices.
     localStorageCalls: count(js, /localStorage\.(getItem|setItem|removeItem)\(/g),
     windowAppRefs: count(js, /\bwindow\.app\b/g),

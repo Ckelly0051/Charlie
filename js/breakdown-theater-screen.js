@@ -367,9 +367,8 @@ export class BreakdownTheaterScreen {
         ourValue = (ST_UNITS.find(([value]) => value === st.unit) || [null, st.unit])[1];
         ourTone = '';
       } else {
-        // No structured event exists for this play — fall back to the
-        // legacy stType only here, never in preference to a real one.
-        ourValue = tags.stType || '—';
+        // A Special Teams snap with no unit charted yet.
+        ourValue = '—';
         ourTone = '';
       }
       lookLabel = '';
@@ -501,7 +500,7 @@ export class BreakdownTheaterScreen {
       // uncharted — never colour a result the model itself doesn't stand
       // behind.
       const tags = play.tags || {};
-      const legacyRaw = tags.result || tags.kickOutcome || '';
+      const legacyRaw = tags.result || '';
       const rawYards = String(tags.yardage ?? '').trim();
       const yards = rawYards ? `${Number(rawYards) > 0 ? '+' : ''}${rawYards}` : '';
       const text = legacyRaw ? (yards ? `${legacyRaw}: ${yards}` : legacyRaw) : '—';
@@ -540,7 +539,7 @@ export class BreakdownTheaterScreen {
   _playView(play) {
     const tags = play.tags || {};
     const { situation, call, result } = this._playViewShallow(play);
-    const lower = `${tags.result || ''} ${tags.kickOutcome || ''}`.toLowerCase();
+    const lower = String(tags.result || '').toLowerCase();
     const kind = lower.includes('touchdown') || lower.includes('good') ? 'score'
       : lower.includes('interception') || lower.includes('fumble') ? 'turnover'
       : tags.runPass === 'Run' ? 'run'
@@ -573,8 +572,8 @@ export class BreakdownTheaterScreen {
       const result = this._chyronSpecialResult(play).result;
       return { situation, call, result: result === '—' ? 'No result' : result };
     }
-    const call = tags.playType || tags.stType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
-    const result = tags.result || tags.kickOutcome || 'No result';
+    const call = tags.playType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
+    const result = tags.result || 'No result';
     const raw = String(tags.yardage ?? '').trim();
     return { situation, call, result: raw ? `${result}: ${Number(raw) > 0 ? '+' : ''}${raw}` : result };
   }

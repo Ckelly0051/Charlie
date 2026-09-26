@@ -291,7 +291,6 @@ function SpecialTeams({screen, state}) {
   const subject = state.perspective === 'scout' ? 'Scouted team' : 'Our team';
   const other = state.perspective === 'scout' ? 'Other team' : 'Opponent';
   return <Group title="Special Teams" open>
-    {state.legacySpecial && <p class="gi-tag-warning">Legacy Special Teams details are uncharted.</p>}
     <Choice label="Unit" value={st?.unit} options={ST_UNITS} choose={value => screen.setSpecialUnit(value)}/>
     {isTry ? <TryEditor screen={screen} state={state} st={st}/> : st && <>
       {/* No Attempt selector. The field-goal units attempt a field goal, and

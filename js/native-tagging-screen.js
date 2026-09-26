@@ -183,7 +183,6 @@ export class NativeTaggingScreen {
       penalties: PenaltyModel.normalizeList(play?.penalties),
       resultingSituation: PenaltyModel.normalizeSituation(play?.resultingSituation),
       special: SpecialTeamsModel.normalize(play?.specialTeams),
-      legacySpecial: !play?.specialTeams && !!(raw.stType || raw.kickOutcome || raw.scoreFor),
       templates: Object.keys(this.tagger?._templateStore?.() || {}).sort(),
       selectedTemplate: this.tagger?.selectedTemplate || '',
       canCopyPrevious: index > 0, canPrevious: index > 0,

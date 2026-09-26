@@ -135,6 +135,6 @@ export function isPlayTagged(play) {
     return !!(special.attemptType && special.result && !unresolvedPenalty && !noPlayMismatch
       && (!special.events.defensiveReturn || special.outcome.returnAward != null));
   }
-  return !!special || !!(t.playType || t.result || t.stType || t.runPass
+  return !!special || !!(t.playType || t.result || t.runPass
     || t.formation || t.defFront || t.coverage || t.blitz);
 }
