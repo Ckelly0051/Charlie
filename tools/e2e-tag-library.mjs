@@ -43,7 +43,30 @@ const reserved=new TagLibrary({storage:reservedStorage,teamId:'teamR'});
 ok(!reserved.add('formation','Pistol')&&reserved.lastError?.name==='ReservedValue'&&reserved.lastError.owner==='QB Alignment','a QB alignment cannot be added as a formation',JSON.stringify(reserved.lastError));
 ok(!reserved.add('formation','EMPTY')&&reserved.lastError?.owner==='Backfield','Empty cannot be added as a formation, in any case',JSON.stringify(reserved.lastError));
 ok(!reserved.add('backfield','Shotgun')&&!reserved.add('coverage','Zone')&&reserved.lastError?.owner==='Coverage Family','an alignment is not a backfield and a family is not a coverage call');
-ok(reserved.add('coverage','Cover 3 Match')&&reserved.add('front','Man Free'),'a value that merely contains a reserved word is allowed');
+ok(reserved.add('coverage','Cover 3 Match')&&reserved.add('front','Man Free')&&reserved.add('formation','Shotgun Special'),'a value that merely contains a reserved word is allowed');
+// A compound label charts the same combined shape as the lone reserved word.
+const compound=[['formation','Shotgun + Trips','QB Alignment'],['formation','Trips + Empty','Backfield'],['formation','Trips+under center','QB Alignment'],['backfield','Pistol + Diamond','QB Alignment'],['coverage','Cover 3 + Man','Coverage Family']]
+  .map(([g,v,owner])=>({v,refused:!reserved.add(g,v),owner:reserved.lastError?.owner,expected:owner}));
+ok(compound.every(c=>c.refused&&c.owner===c.expected),'a compound label carrying a reserved token is refused, whatever the spacing or case',JSON.stringify(compound));
+ok(reserved.add('formation','Trips + Bunch'),'a compound of allowed formations is still a valid choice');
+const compoundStorage=new MemoryStorage({ffa_tag_libraries_teamS:JSON.stringify({version:4,groups:{
+  formation:{custom:['Shotgun + Trips','Trips + Empty','Wing Special'],enabled:['Shotgun + Trips','Trips + Empty','Wing Special'],order:['Shotgun + Trips','Trips + Empty','Wing Special']},
+  backfield:{custom:['Pistol + Diamond'],enabled:['Pistol + Diamond'],order:['Pistol + Diamond']}}})});
+const compoundLib=new TagLibrary({storage:compoundStorage,teamId:'teamS'});
+ok(['Shotgun + Trips','Trips + Empty'].every(v=>!compoundLib.group('formation').values.includes(v)&&!compoundLib.group('formation').enabled.includes(v))
+   &&!compoundLib.group('backfield').values.includes('Pistol + Diamond')&&compoundLib.group('formation').values.includes('Wing Special'),
+  'a saved compound choice carrying a reserved token is never offered; a legitimate custom choice is',JSON.stringify(compoundLib.group('formation').custom));
+const savedCompound=JSON.parse(compoundStorage.getItem('ffa_tag_libraries_teamS')).groups;
+ok(savedCompound.formation.custom.includes('Shotgun + Trips')&&savedCompound.backfield.custom.includes('Pistol + Diamond'),'saved compound entries are not rewritten');
+{
+  const { SeasonFormat } = await import('../js/season-format.js');
+  const leaks=[];
+  for (const key of ['formation','backfield','coverage']) for (const v of new TagLibrary({storage:compoundStorage,teamId:'teamS'}).group(key).enabled) {
+    const field=key;
+    if (SeasonFormat.seasonProblems({version:5,type:'season',games:[{id:'g',plays:[{id:1,tags:{unit:'offense',[field]:v}}]}]}).length) leaks.push(`${key}:${v}`);
+  }
+  ok(leaks.length===0,'no choice the library offers makes SeasonFormat report an old-format play',JSON.stringify(leaks));
+}
 ok(!reserved.group('formation').values.includes('Shotgun')&&!reserved.group('formation').enabled.includes('Shotgun')&&reserved.group('formation').custom.includes('Trey'),'a saved reserved value is never offered; its neighbors are');
 ok(JSON.parse(reservedStorage.getItem('ffa_tag_libraries_teamR')).groups.formation.custom.includes('Shotgun'),'the saved library entry is not rewritten');
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);process.exit(fail?1:0);
