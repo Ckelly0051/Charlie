@@ -755,23 +755,7 @@ export class PlayTagger {
   commitProjectedLook() {
     const play = this.getCurrentPlay();
     if (!play) return;
-    let changed = false;
-    for (const primaryKey of Object.keys(TagProjection.PROJECTED_PAIRS)) {
-      if (TagProjection.reconcileSiblings(play, primaryKey)) changed = true;
-      // project() always returns a STRING for these fields, even when blank;
-      // a legacy/synthetic play's tags object often has no key at all for a
-      // field it was never charted with (`undefined`, not `''`). Comparing
-      // those raw would flag a "change" for nearly every ordinary play that
-      // simply never carried e.g. `backfield` — normalize both sides through
-      // the same blank-equivalence setTagValue already uses elsewhere so only
-      // a REAL legacy token being stripped counts as a change.
-      const projectedSelf = StatsEngine.proj(play)[primaryKey];
-      if (String(projectedSelf || '') !== String(play.tags[primaryKey] || '')) {
-        play.tags[primaryKey] = projectedSelf;
-        changed = true;
-      }
-    }
-    if (!changed) return;
+    if (!TagProjection.commitLook(play)) return;
     this._emit('play-updated', play);
   }
 

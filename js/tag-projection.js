@@ -194,6 +194,31 @@ export class TagProjection {
   }
 
   /**
+   * THE whole-play look commit: for every primary, promote its blank siblings
+   * (`reconcileSiblings`) and re-commit the primary to its own projected value,
+   * which strips every sibling token from it. `"Under Center + Flexbone"`
+   * becomes formation `Flexbone` + QB alignment `Under Center`. Shared by Save &
+   * Next (`PlayTagger.commitProjectedLook`) and the one-time legacy conversion,
+   * so both store exactly what the reports already read. A clean play is a
+   * no-op. Returns true when anything changed.
+   */
+  static commitLook(play) {
+    if (!play || !play.tags) return false;
+    let changed = false;
+    for (const primaryKey of Object.keys(this.PROJECTED_PAIRS)) {
+      if (this.reconcileSiblings(play, primaryKey)) changed = true;
+      // project() returns a string even for a blank field; compare through the
+      // blank-equivalence so a missing key is not read as a change.
+      const projectedSelf = this.project(play.tags)[primaryKey];
+      if (String(projectedSelf || '') !== String(play.tags[primaryKey] || '')) {
+        play.tags[primaryKey] = projectedSelf;
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  /**
    * Return a projected READ-VIEW of `tags`. Input is never mutated. Missing
    * `qbAlignment`/`coverageFamily` properties read as blank (E1-R2: legacy plays
    * lack them entirely — consumers must not assume the key exists).
