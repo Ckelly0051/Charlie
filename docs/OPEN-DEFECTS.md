@@ -91,7 +91,11 @@ and nothing is built until the migration lands (one data format to extend).
    point = 1 and two-point = 2. **Coach decision (2026-09-25): per play, a kicked try
    defaults to 1 point with a chip for 2, the same pattern as the run/pass try options.** No
    season-level rule. Scoreboard, reports and exports read the charted points.
-2. More to come (coach checking later).
+2. **A run/pass try worth 1 point cannot be charted** (youth scoring).. More to come (coach checking later).
+
+**Plays the coach re-charts after these fixes** (charted as close as the current options
+allow; left as they are until then):
+- 2025 JV, Wk 1 St. Peter, play 23: a run-in try for 1 point, charted on Offense as `XP`.
 
 **REC-1 — REPAIRED (`e4417b8`), 2026-09-25. Recovery's Game versions could show
 another game's versions.** TEST-2's "the app is correct" was only half right: the
