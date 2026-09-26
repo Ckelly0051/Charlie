@@ -37,7 +37,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    pre-reload for every case.
 
    A second, optional section repeats the same shape against a COPY of a real
-   season from the coach's Documents mirror, if present on this machine (same
+   season -- the canonical current-format fixture (tools/canonical-season.mjs),
    fail-open convention as e2e-realdata.mjs's GIQ_REALDATA_OPTIONAL — a
    missing mirror is a skip, never a silent false pass, and it is never
    written back to).
@@ -46,6 +46,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
@@ -327,17 +328,17 @@ console.log('\n== RESULT: ' + pass + ' passed, ' + fail + ' failed ==');
 
 // ---------------------------------------------------------------------------
 // Optional section: repeat the shape against a COPY of a real season, if this
-// machine has the Documents mirror (same convention as e2e-realdata.mjs).
-// Never writes back to the mirror; only ever touches the browser's isolated
+// machine has the canonical fixture (same convention as e2e-realdata.mjs). The
+// Never writes back to the fixture; only ever touches the browser's isolated
 // localStorage for a throwaway "Durability Proof (real data)" season.
 // ---------------------------------------------------------------------------
-const MIRROR = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons';
-const realFiles = fs.existsSync(MIRROR)
-  ? fs.readdirSync(MIRROR).map(d => path.join(MIRROR, d, 'season.json')).filter(f => fs.existsSync(f))
+const FIXTURE_DIR = path.dirname(CANONICAL_SEASON);
+const realFiles = fs.existsSync(FIXTURE_DIR)
+  ? [CANONICAL_SEASON].filter(f => fs.existsSync(f))
   : [];
 
 if (!realFiles.length) {
-  console.log('\nSKIP: no real season.json at ' + MIRROR + ' — real-data durability section not run on this machine.');
+  console.log('\nSKIP: no canonical season at ' + FIXTURE_DIR + ' — real-data durability section not run on this machine.');
 } else {
   console.log('\n== 8. Real-data durability: a genuine coach season survives persist -> reload -> reopen ==');
   const real = JSON.parse(fs.readFileSync(realFiles[0], 'utf-8'));
