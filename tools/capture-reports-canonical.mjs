@@ -4,8 +4,9 @@ import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
-const source = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+const source = CANONICAL_SEASON;
 const out = 'artifacts/reports-canonical-review';
 if (!existsSync(source)) throw new Error(`Canonical season missing: ${source}`);
 const raw = readFileSync(source);

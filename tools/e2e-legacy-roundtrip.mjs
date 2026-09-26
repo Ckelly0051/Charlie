@@ -21,7 +21,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
-import { CANONICAL_SEASON, LIVE_CATALOG } from './audit-legacy.mjs';
+import { LIVE_CATALOG } from './audit-legacy.mjs';
+import { CANONICAL_SOURCE_MIRROR } from './canonical-season.mjs';
 import { SqlCatalog } from '../js/sql-catalog.js';
 import { SeasonFormat } from '../js/season-format.js';
 
@@ -78,8 +79,8 @@ const adopted = await page.evaluate(async data => {
 }, source);
 ok(adopted.ok, 'the real season imports through the real adopt path');
 
-if (existsSync(CANONICAL_SEASON)) {
-  const old = JSON.parse(readFileSync(CANONICAL_SEASON, 'utf8'));
+if (existsSync(CANONICAL_SOURCE_MIRROR)) {
+  const old = JSON.parse(readFileSync(CANONICAL_SOURCE_MIRROR, 'utf8'));
   const refused = await page.evaluate(async data => (await window.app.storage.seasonStore.adopt(data)).oldFormat === true, old);
   ok(refused, 'the pre-conversion mirror copy is refused as an old format');
 }

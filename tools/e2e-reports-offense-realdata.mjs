@@ -25,10 +25,11 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SEASON_NAME = '2025 St. Joseph Mavericks - JV';
-const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
+const SOURCE = CANONICAL_SEASON;
 const OUT = 'artifacts/offense-production-realdata';
 const VIEWPORTS = [[1440, 900], [1280, 800]];
 

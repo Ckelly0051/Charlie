@@ -40,7 +40,7 @@ assert.ok(Array.isArray(registry.manifests) && registry.manifests.length, 'regis
 assert.deepEqual(registry.canonicalReportData, {
   seasonId: '2025-st-joseph-mavericks-jv',
   seasonName: '2025 St. Joseph Mavericks - JV',
-  sourcePath: 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json',
+  sourcePath: 'C:/Users/charl/GridIronIQ-Fixtures/2025-st-joseph-mavericks-jv/season.json',
   access: 'read-only-copy',
   appliesTo: 'reports.*',
 }, 'canonical Reports data authority changed or is incomplete');

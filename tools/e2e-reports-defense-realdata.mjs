@@ -23,9 +23,10 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
-const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
+const SOURCE = CANONICAL_SEASON;
 const OUT = `artifacts/defense-production-realdata/run-${process.pid}`;
 const DESKTOP = [[1440, 900], [1280, 900]];
 const KPI_LABELS = ['Total yards allowed', 'Rush yards allowed', 'Pass yards allowed', 'Yards / play', 'Takeaways',
@@ -431,13 +432,17 @@ for (const scope of ['season', 'game']) {
       `${scope} @${width}: the ten KPIs carry the canonical values`, JSON.stringify(seen.kpiValues));
     if (width === 1440 && scope === 'season') {
       const outcomes = seen.modules.find(module => module.title === 'Opponent drive outcomes')?.firstCells;
-      ok(JSON.stringify(outcomes) === JSON.stringify(['Touchdown', 'Punt', 'Turnover', 'Downs', 'Other / unresolved']),
+      /* A drive's end is read from the NEXT play. On the canonical fixture the
+         old-format Special Teams values were blanked (2026-09-26; the coach
+         retags them), so the 9 drives followed by an old "Punt" and the one
+         followed by an old "Fake" read Other / unresolved until then. */
+      ok(JSON.stringify(outcomes) === JSON.stringify(['Touchdown', 'Turnover', 'Downs', 'Other / unresolved']),
         'season drive outcomes list only the outcomes that occurred, with Touchdown spelled out', JSON.stringify(outcomes));
     }
     if (width === 1440 && scope === 'game') {
       const outcomes = seen.modules.find(module => module.title === 'Opponent drive outcomes')?.firstCells;
-      ok(JSON.stringify(outcomes) === JSON.stringify(['Punt', 'Turnover', 'Downs']),
-        'the St. Peter Lutheran game lists its own three drive outcomes and no empty ones', JSON.stringify(outcomes));
+      ok(JSON.stringify(outcomes) === JSON.stringify(['Turnover', 'Other / unresolved']),
+        'the St. Peter Lutheran game lists only the drive outcomes that occurred, and no empty ones', JSON.stringify(outcomes));
       ok(/Current game/.test(seen.headerSub) || !/Full season/.test(seen.headerSub),
         'the scope button resynchronizes the shared header to Current game', seen.headerSub);
     }
@@ -791,7 +796,7 @@ ok(JSON.stringify(exportDrives.situations.find(row => row[0] === 'Red Zone')) ==
   'defensive Red Zone and Goal Line situations and the red-zone touchdown rate measure from our goal line',
   JSON.stringify({ situations: exportDrives.situations, rate: exportDrives.redZoneTdRate }));
 ok(JSON.stringify(exportDrives.outcomes) === JSON.stringify([['Touchdown', 7], ['Field Goal', 0], ['Missed FG', 0],
-  ['Punt', 9], ['Turnover', 6], ['Downs', 7], ['Other / unresolved', 5]]),
+  ['Punt', 0], ['Turnover', 6], ['Downs', 6], ['Other / unresolved', 15]]),  // 9 punts + 1 fake blanked (2026-09-26)
   '2025 JV export drive outcomes: 7 opponent touchdowns, and no drive reclassified on a season with no defensive score',
   JSON.stringify(exportDrives.outcomes));
 ok(exportDrives.possessions.filter(name => name === 'Touchdown').length === 7 && exportDrives.points === 42,

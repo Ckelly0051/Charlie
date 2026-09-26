@@ -20,7 +20,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const CANONICAL_SEASON = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+export { CANONICAL_SEASON } from './canonical-season.mjs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 export const LIVE_CATALOG = path.join(process.env.APPDATA || '', 'com.gridironiq.app', 'seasons', 'library.db');
 
 const jsFiles = () => readdirSync(path.join(ROOT, 'js')).filter(f => /\.(js|jsx|mjs)$/.test(f)).map(f => `js/${f}`);

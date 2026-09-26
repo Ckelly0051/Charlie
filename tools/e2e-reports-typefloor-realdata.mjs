@@ -26,9 +26,10 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
-const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
+const SOURCE = CANONICAL_SEASON;
 const WIDTHS = [[1440, 900], [1280, 800]];
 
 /* THE SHARED FLOOR, measured across every Reports board. No board is described
@@ -234,9 +235,20 @@ for (const [width, height] of WIDTHS) {
 }
 await page.setViewport({ width: 1440, height: 900 });
 
-ok(observed.every(row => !row.missing && !row.empty && row.total > 20),
+/* The canonical fixture holds no Special Teams snaps: its old-format values were
+   blanked on 2026-09-26 and the coach retags them. Until then its Special Teams
+   board is the empty state -- still measured above for the floor, but not real
+   content. The populated board's floor is pinned on a synthetic fixture
+   (e2e-reports-special-teams, ST_TYPE_FLOOR). Regenerating the fixture with
+   Special Teams snaps restores this requirement by itself. */
+const FIXTURE_HAS_ST = season.games.some(g => (g.plays || []).some(p => p.specialTeams));
+const contentRows = observed.filter(row => FIXTURE_HAS_ST || row.tab !== 'special');
+ok(FIXTURE_HAS_ST || observed.filter(row => row.tab === 'special').every(row => !row.missing && row.total > 0),
+  'Special Teams renders its empty state on a fixture with no Special Teams snaps',
+  JSON.stringify(observed.filter(row => row.tab === 'special').map(row => `${row.width}:${row.total}`)));
+ok(contentRows.every(row => !row.missing && !row.empty && row.total > 20),
   'every Reports board rendered real content before its type was measured',
-  JSON.stringify(observed.filter(row => row.missing || row.empty || row.total <= 20)
+  JSON.stringify(contentRows.filter(row => row.missing || row.empty || row.total <= 20)
     .map(row => `${row.label}/${row.width}`)));
 
 console.log('  census:', JSON.stringify(observed.map(row =>
@@ -318,8 +330,8 @@ for (const [tab, expected] of Object.entries(MINIMA)) {
    text, and every board - including a fully migrated one, whose census is
    empty - is measured over a real populated surface, so none of the
    assertions above is passing over an empty set. */
-ok(observed.every(row => Object.keys(EXPECTED[`${row.tab}@${row.width}`] || {}).length === 0 || row.below > 0)
-  && observed.every(row => row.total > 20),
+ok(contentRows.every(row => Object.keys(EXPECTED[`${row.tab}@${row.width}`] || {}).length === 0 || row.below > 0)
+  && contentRows.every(row => row.total > 20),
   'every board really does carry sub-floor text, so the census is not passing over nothing',
   JSON.stringify(observed.map(row => `${row.label}/${row.width}:${row.below}/${row.total}`)));
 

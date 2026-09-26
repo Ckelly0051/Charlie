@@ -34,9 +34,10 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
-const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
+const SOURCE = CANONICAL_SEASON;
 const OUT = 'artifacts/reports-global-strip';
 const TABS = ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'matchup', 'season'];
 const LABELS = ['Overview', 'Offense', 'Defense', 'Special Teams', 'Players', 'Self-Scout', 'Matchup', 'Season'];
@@ -188,8 +189,13 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
   const bug = reference.bug;
   ok(!!bug && bug.box.y >= reference.strip.bottom - 0.5, `${width}: Overview shows the linescore below the strip`, JSON.stringify(bug?.box));
   ok(bug?.totals.join('|') === '41|0', `${width}: the linescore keeps the official 41-0 total`, bug?.totals.join('|'));
-  ok(bug && bug.quarters.every((row, i) => row.reduce((a, b) => a + b, 0) === Number(bug.totals[i])),
-    `${width}: quarters still sum to each team's total`, JSON.stringify(bug?.quarters));
+  /* The quarters come from CHARTED scoring plays, the total from the official
+     score. On the canonical fixture the old-format extra points were blanked
+     (legacy excision, 2026-09-26; the coach retags them), so this game's charted
+     quarters hold 36 of the official 41: the five extra points are the gap. The
+     opponent row has nothing blanked and still sums exactly. */
+  ok(bug && bug.quarters[0].reduce((a, b) => a + b, 0) === 36 && bug.quarters[1].reduce((a, b) => a + b, 0) === Number(bug.totals[1]),
+    `${width}: quarters sum to the charted points (36 of the official 41 until the extra points are retagged; opponent exact)`, JSON.stringify(bug?.quarters));
   for (const tab of TABS.slice(1)) {
     ok(!states[tab].bug, `${width}: ${tab} shows no linescore`);
     ok(!states[tab].finalScoreAnywhere, `${width}: ${tab} shows no Final Score tile`);

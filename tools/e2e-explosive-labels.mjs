@@ -25,8 +25,9 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
-const SOURCE = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+const SOURCE = CANONICAL_SEASON;
 if (!existsSync(SOURCE)) {
   if (process.env.GIQ_REALDATA_OPTIONAL === '1') {
     console.log(`SKIP: canonical season not present at ${SOURCE} (GIQ_REALDATA_OPTIONAL=1)`);
@@ -65,6 +66,8 @@ ok(bare.length === 0, 'no source string names the metric with a bare or abbrevia
 const raw = readFileSync(SOURCE);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+// Old-format Special Teams values were blanked on 2026-09-26; the coach retags them.
+const FIXTURE_HAS_ST = season.games.some(g => (g.plays || []).some(p => p.specialTeams));
 const stPeter = season.games.find(g => /St\. Peter Lutheran/i.test(g.gameInfo?.opponent || ''));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
@@ -244,7 +247,8 @@ const exported = await page.evaluate(async () => {
     return { name, labels: [...new Set(labels)] };
   });
 });
-ok(exported.length >= 5, 'game, season, Defense, Special Teams and Self-Scout exports are produced', JSON.stringify(exported.map(e => e.name)));
+// With no Special Teams snaps the Special Teams board offers no export (nothing to print).
+ok(exported.length >= (FIXTURE_HAS_ST ? 5 : 4), `game, season, Defense${FIXTURE_HAS_ST ? ', Special Teams' : ''} and Self-Scout exports are produced`, JSON.stringify(exported.map(e => e.name)));
 for (const e of exported) {
   const wrong = e.labels.filter(t => !APPROVED.test(t));
   ok(wrong.length === 0, `${e.name}: export labels use the approved wording (${e.labels.length})`, JSON.stringify(wrong));

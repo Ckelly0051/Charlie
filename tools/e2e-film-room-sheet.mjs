@@ -13,6 +13,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
@@ -173,7 +174,7 @@ const below = await page.evaluate(() => !!document.querySelector('[data-film-sum
 ok(below && !side.shown && side.bar <= 160, 'the summary shows in the table-below card and not in the table-beside bar', JSON.stringify({ below, side }));
 
 console.log('\n== 4. Canonical season: a whole game reads what its board reads ==');
-const SOURCE = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+const SOURCE = CANONICAL_SEASON;
 if (!existsSync(SOURCE)) {
   if (process.env.GIQ_REALDATA_OPTIONAL === '1') console.log('  SKIP  canonical season absent (GIQ_REALDATA_OPTIONAL=1)');
   else ok(false, 'canonical season present', SOURCE);

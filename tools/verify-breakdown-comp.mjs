@@ -4,9 +4,10 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 // Isolated browser data only. Neither the source season nor its film is written.
-const seasonPath = process.env.GIQ_COMP_SEASON || 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+const seasonPath = process.env.GIQ_COMP_SEASON || CANONICAL_SEASON;
 const filmPath = process.env.GIQ_COMP_FILM || 'D:/Football/Film/Holy Family/20251011_135753.mp4';
 const season = JSON.parse(fs.readFileSync(seasonPath, 'utf8'));
 const originalHash = createHash('sha256').update(fs.readFileSync(seasonPath)).digest('hex');

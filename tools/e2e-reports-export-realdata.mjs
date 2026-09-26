@@ -4,8 +4,9 @@ import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
-const SOURCE = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+const SOURCE = CANONICAL_SEASON;
 const SCREENSHOTS = process.env.GIQ_REPORTS_EXPORT_REALDATA_SCREENSHOTS || '';
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
@@ -20,6 +21,8 @@ if (!existsSync(SOURCE)) {
 const raw = readFileSync(SOURCE);
 const sourceHash = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+// Old-format Special Teams values were blanked on 2026-09-26; the coach retags them.
+const FIXTURE_HAS_ST = season.games.some(g => (g.plays || []).some(p => p.specialTeams));
 const playCount = (season.games || []).reduce((sum, game) => sum + (game.plays || []).length, 0);
 if (season.id !== '2025-st-joseph-mavericks-jv' || season.games?.length !== 6 || playCount !== 449) {
   throw new Error(`Unexpected canonical cohort: ${season.id}, ${season.games?.length}, ${playCount}`);
@@ -98,7 +101,10 @@ for (const [name, item, charts] of [['game', game, true], ['season', seasonRepor
       && screen.histogram && screen.scatter && screen.zones && screen.downs
       && screen.epaCurve && screen.epaBars > 0,
     `${name} export carries the canonical Offense chart layer`, JSON.stringify(screen));
-  if (name === 'special-teams') {
+  /* The canonical fixture's old-format Special Teams values were blanked on
+     2026-09-26 (the coach retags them), so its Special Teams export has no
+     performance chapter until then; this comes back into force by itself. */
+  if (name === 'special-teams' && FIXTURE_HAS_ST) {
     const structure = await exportPage.evaluate(() => {
       const chapter = [...document.querySelectorAll('.chapter')]
         .find(node => node.querySelector('h1')?.textContent === 'Special Teams Performance');

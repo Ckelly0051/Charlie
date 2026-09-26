@@ -542,9 +542,13 @@ const empty = await page.evaluate(() => {
   const pane = document.querySelector('[data-native-report-content]');
   return { empty: !!pane.querySelector('.gi-reports-empty'),
     title: pane.querySelector('.gi-reports-empty h3')?.textContent.trim() || null,
-    board: !!pane.querySelector('.gi-st-board') };
+    board: !!pane.querySelector('.gi-st-board:not(.is-empty)'),
+    scope: !!document.querySelector('[data-reports-secbar] [data-st-scope="season"]') };
 });
 ok(empty.empty && !empty.board, 'a season with no special-teams snaps shows the empty state, not an all-zero board');
+// The empty board keeps its bar, so a game with no Special Teams snaps can
+// still switch to a full season that has them (2026-09-26).
+ok(empty.scope, 'the empty board keeps its Current game / Full season switch', JSON.stringify(empty));
 ok(empty.title === 'No Special Teams snaps charted', 'the empty state states the absence literally', String(empty.title));
 
 /* ══ 11. The export carries what the board shows ══════════════════════════ */

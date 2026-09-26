@@ -23,9 +23,10 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
-const SOURCE = `C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/${SEASON_ID}/season.json`;
+const SOURCE = CANONICAL_SEASON;
 const OUT = 'artifacts/reports-down-distance';
 
 let pass = 0, fail = 0;

@@ -17,8 +17,9 @@ import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
 
-const SOURCE = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-joseph-mavericks-jv/season.json';
+const SOURCE = CANONICAL_SEASON;
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
   if (condition) { pass++; console.log(`  PASS  ${label}`); }
@@ -52,6 +53,8 @@ if (!existsSync(SOURCE)) {
 const raw = readFileSync(SOURCE);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+// Old-format Special Teams values were blanked on 2026-09-26; the coach retags them.
+const FIXTURE_HAS_ST = season.games.some(g => (g.plays || []).some(p => p.specialTeams));
 const game = season.games.find(g => /St\. Peter Lutheran/i.test(g.gameInfo?.opponent || ''));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
@@ -122,7 +125,9 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
     ok(seen.every(s => !s.missing && s.heading && s.heading.first && s.heading.n === s.heading.expectedN && s.heading.title === s.heading.expectedTitle),
       `${board.tab} @${width}: every section opens on its numbered heading and name`,
       JSON.stringify(seen.map(s => ({ id: s.id, heading: s.heading, missing: s.missing }))));
-    ok(seen.every(s => s.modules > 0 && s.bad.length === 0),
+    // Players' Special Teams roles have no credits while the fixture has no
+    // Special Teams snaps; that section then shows its absence row, not modules.
+    ok(seen.every(s => (s.modules > 0 || (board.tab === 'players' && s.id === 'st' && !FIXTURE_HAS_ST)) && s.bad.length === 0),
       `${board.tab} @${width}: every module is an outlined box with the 50px title bar and a 17px sentence-case title`,
       JSON.stringify(seen.flatMap(s => s.bad).slice(0, 8)));
     ok(seen.every(s => s.upper.length === 0),
