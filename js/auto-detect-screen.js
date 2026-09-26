@@ -1,5 +1,6 @@
 import { h } from 'preact';
 import { AutoDetectContent } from './native-autodetect.jsx';
+import { TagProjection } from './tag-projection.js';
 
 /**
  * Native Auto-Detect operation + state API.
@@ -405,6 +406,10 @@ export class AutoDetectScreen {
           || (k === 'fieldSide' && play.tags[k] === 'own');
         if (v && isDefault) { play.tags[k] = v; stamped++; }
       }
+      // An alignment read as a formation (the vision analyzer's list includes
+      // Shotgun / Under Center / Pistol) is stored as the QB alignment, through
+      // the one look commit every other charting write uses.
+      TagProjection.commitLook(play);
       play.analysis = a;
       tagger._emit('play-updated', play);
     }

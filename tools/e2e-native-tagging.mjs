@@ -605,7 +605,9 @@ let ad=await page.evaluate(()=>{
   const fakePlays=[{start:200,end:205,peak:1,confidence:0.9},{start:210,end:215,peak:1,confidence:0.9}];
   app.detector.scan=async()=>{window.__adCalls.scan++;app.detector.detectedPlays=fakePlays;
     app.detector.motionData=[{time:0,motion:0.4},{time:5,motion:0.9}];return fakePlays;};
-  app.clipAnalyzer.analyzePlays=()=>fakePlays.map(()=>({tags:{formation:'Ace'},confidence:{formation:0.8},reasons:{}}));
+  // The second detection reads a QB alignment as the formation, the way the vision
+// analyzer can (its formation list includes Shotgun / Under Center / Pistol).
+app.clipAnalyzer.analyzePlays=()=>fakePlays.map((_,i)=>({tags:{formation:i===1?'Shotgun':'Ace'},confidence:{formation:0.8},reasons:{}}));
   app.detector.applyDetectedPlays=(plays)=>{window.__adCalls.apply++;
     const list=plays||app.detector.detectedPlays;
     list.forEach((dp,i)=>app.tagger.plays.push({id:900+i,timestamp:{start:dp.start,end:dp.end},notes:'',
@@ -678,11 +680,12 @@ await page.waitForFunction(()=>window.__adCalls.apply===1);
 state=await page.evaluate(before=>{
   const added=window.app.tagger.plays.slice(-2);
   return{calls:window.__adCalls,after:window.app.tagger.plays.length,
-    starts:added.map(p=>p.timestamp.start),stampedFormation:added.map(p=>p.tags.formation)};
+    starts:added.map(p=>p.timestamp.start),stampedFormation:added.map(p=>p.tags.formation),stampedQb:added.map(p=>p.tags.qbAlignment||'')};
 },ad.before);
 ok(state.calls.apply===1&&state.after===ad.before+2&&state.starts[0]===200&&state.starts[1]===210,
   'Apply All reaches the real PlayDetector.applyDetectedPlays exactly once and the plays land in the tagger',JSON.stringify(state));
-ok(state.stampedFormation.every(f=>f==='Ace'),'Applied plays are auto-tagged from the scan analysis through the real stamping path',JSON.stringify(state));
+ok(state.stampedFormation[0]==='Ace'&&state.stampedQb[0]===''&&state.stampedFormation[1]===''&&state.stampedQb[1]==='Shotgun',
+  'Applied plays are auto-tagged through the real stamping path, and an alignment read as a formation is stored as the QB alignment (no old-format combined look)',JSON.stringify(state));
 
 state=await page.evaluate(()=>{
   const before=app.tagger.plays.length;
