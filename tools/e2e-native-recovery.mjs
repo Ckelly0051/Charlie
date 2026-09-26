@@ -72,6 +72,31 @@ const afterRelease=await rowsNow();
 await page.evaluate(()=>{window.app.storage.seasonStore.backend.listVersions=window.__realList;});
 ok(afterRelease.includes(versionId),'A slow version list for another game cannot overwrite the open game\'s list',JSON.stringify(afterRelease));
 
+// Cancellation is not a storage failure; exercise the real manager and Settings owner.
+r=await page.evaluate(async(id)=>{
+ const app=window.app,backend=app.storage.seasonStore.backend;
+ const confirm=app.tagger._confirmDialog,remove=backend.deleteVersion,toast=app.settingsScreen._toast;
+ const messages=[];let writes=0;
+ app.settingsScreen._toast=(...args)=>messages.push(args);
+ backend.deleteVersion=async()=>{writes++;return false;};
+ try {
+  app.tagger._confirmDialog=async()=>false;
+  const cancelled=await app.settingsScreen.deleteGameVersion(id);
+  const cancel={result:cancelled,writes,messages:messages.length,exists:(await app.versions.list()).some(v=>v.id===id)};
+  app.tagger._confirmDialog=async()=>true;
+  const failed=await app.settingsScreen.deleteGameVersion(id);
+  const failure={result:failed,writes,messages:[...messages]};
+  backend.deleteVersion=remove;
+  const deleted=await app.settingsScreen.deleteGameVersion(id);
+  return {cancel,failure,deleted,remaining:(await app.versions.list()).some(v=>v.id===id),messages:messages.length};
+ } finally {
+  app.tagger._confirmDialog=confirm;backend.deleteVersion=remove;app.settingsScreen._toast=toast;
+ }
+},versionId);
+ok(r.cancel.result===false&&r.cancel.writes===0&&r.cancel.messages===0&&r.cancel.exists,'Cancelling version deletion keeps the version, makes no write, and shows no error',JSON.stringify(r));
+ok(r.failure.result===false&&r.failure.writes===1&&r.failure.messages.length===1&&r.failure.messages[0][1]==='error','A real version deletion failure still shows an error',JSON.stringify(r));
+ok(r.deleted===true&&!r.remaining&&r.messages===1,'Confirmed successful deletion removes the version without an error',JSON.stringify(r));
+
 await page.evaluate(()=>window.app.settingsScreen.close('done'));await page.waitForFunction(()=>document.activeElement?.id==='recovery-invoker');ok(await page.evaluate(()=>document.activeElement?.id==='recovery-invoker'),'Closing Recovery restores its invoking control');
 await page.setViewport({width:390,height:844});
 await page.evaluate(()=>{window.app.settingsScreen.open({initialTab:'recovery',returnFocus:document.getElementById('recovery-invoker')});});

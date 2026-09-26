@@ -128,7 +128,7 @@ export class VersionManager {
     const scope = this._scope(), backend = this._backend();
     if (!scope || !backend) return false;
     const ok = await this.tagger._confirmDialog('Delete this version?', 'Delete Version');
-    if (!ok) return false;
+    if (!ok) return null;
     return backend.deleteVersion(scope.seasonId, scope.gameId, String(id));
   }
 

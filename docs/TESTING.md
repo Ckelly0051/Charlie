@@ -17,6 +17,11 @@ replacing_existing_catalog`) that replaces an existing file in an isolated
 temporary directory. These checks do not touch coach data. The full gate passed
 135/135 on 2026-09-25 after the repair; installed WebView2 smoke is still needed.
 
+The version-delete cancellation follow-up passes `e2e-native-recovery` 15/15,
+`e2e-catalog-safety` 4/4, and the build. Recovery verifies that Cancel performs
+no delete and shows no error, a failed delete shows an error, and a successful
+delete removes the version quietly. The full gate was not rerun for this follow-up.
+
 ```bash
 node tools/<harness>.mjs
 ```

@@ -16,6 +16,14 @@ their durable result, and failed imports stop initialization. `e2e-catalog-safet
 uses fake data, the Windows Rust replacement test passed, and the full gate is
 135/135. No installed package or coach-data migration has been run for this fix.
 
+**Version-delete cancellation follow-up — REPAIRED IN SOURCE 2026-09-25.**
+Cancelling the confirmation returned the same result as a failed write and
+incorrectly showed an error. Cancellation now returns `null`; Settings reports
+an error only for a non-cancelled unsuccessful result. Native Recovery passes
+15/15, including cancellation (no write or toast), failure, and success;
+catalog safety passes 4/4 and the build passes. The full gate was not rerun for
+this follow-up; installed smoke remains pending. No coach data was changed.
+
 **Coach, overall:** "seems like the bugs are fixed with the latest smoke" —
 the unit repairs (S99-1, S99-2, the Codex review, CR-1..3) read as fixed on
 the installed build. Formal per-item verdicts to be recorded when the list is
