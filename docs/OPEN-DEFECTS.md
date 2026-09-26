@@ -69,10 +69,9 @@ Teams charting is missing options the coach needs; the list grows as the coach f
 and nothing is built until the migration lands (one data format to extend).
 1. **Try points follow the league's rules.** Youth level: a kicked try is worth 2 and a
    run/pass try 1, the reverse of standard. `SpecialTeamsModel.points()` fixes extra
-   point = 1 and two-point = 2. Proposed: a season-level try-scoring rule (standard / youth)
-   rather than a per-play points selector, so the deck still asks only kick vs run/pass and
-   no single play can be charted at the wrong value; scoreboard, reports and labels read it.
-   Coach to confirm the design.
+   point = 1 and two-point = 2. **Coach decision (2026-09-25): per play, a kicked try
+   defaults to 1 point with a chip for 2, the same pattern as the run/pass try options.** No
+   season-level rule. Scoreboard, reports and exports read the charted points.
 2. More to come (coach checking later).
 
 **REC-1 — REPAIRED (`e4417b8`), 2026-09-25. Recovery's Game versions could show
