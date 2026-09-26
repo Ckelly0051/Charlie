@@ -151,7 +151,7 @@ export class WorkspaceShell {
    *  All three read the SAME canonical `WorkspaceContext.snapshot()` this class
    *  already used for the old single breadcrumb — no new context pointer. */
   /** Read from the ONE owner. This used to prefer `store.data.kind === 'scout'`
-   *  and fall back to a `giq_home_workspace` localStorage read, so the shell,
+   *  and fall back to a mode-only localStorage key, so the shell,
    *  TeamHubScreen and that key were three sources for one fact and could
    *  disagree mid-transition -- which is how a switch could paint a Program
    *  workspace over a scout season, or the reverse. The workspace mode is now a

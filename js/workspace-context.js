@@ -19,9 +19,8 @@ const WORKSPACE_ROUTES = Object.freeze([
  * Study, and Plan, plus an async film-health view model over StorageBackend.
  */
 export class WorkspaceContext {
-  /** The one durable key for the Home parent context. It replaces
-   *  `giq_home_workspace`, which stored only the mode and left ownership to be
-   *  re-guessed from `lastOpened` on every switch. */
+  /** The one durable key for the Home parent context (the mode-only key it
+   *  replaced is converted once at boot, settings-format.js). */
   static PARENT_KEY = 'giq_home_parent';
 
   constructor(app) {
@@ -211,10 +210,7 @@ export class WorkspaceContext {
         return;
       }
     } catch (e) {}
-    // One-time carry from the mode-only key this replaces. The mode is all it
-    // ever held, so no parent can be recovered from it — and none is invented.
-    try { this._workspaceMode = localStorage.getItem('giq_home_workspace') === 'scout' ? 'scout' : 'program'; }
-    catch (e) {}
+    this._workspaceMode = 'program';
   }
 
   /**

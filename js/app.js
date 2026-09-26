@@ -64,6 +64,7 @@ import { PlaybookLibrary } from './playbook-library.js';
 import { PlayGrid } from './play-grid.js';
 import { AutoDetectScreen } from './auto-detect-screen.js';
 import { configureBetaDefaults } from './beta-config.js';
+import { SettingsFormat } from './settings-format.js';
 // LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
 // crosses every route, so it has to win on source order against the per-route
 // stylesheets those modules pull in. Importing it after them puts it last in
@@ -82,6 +83,9 @@ const APP_VERSION = '1.12.0-102';
 
 class App {
   constructor() {
+    // Old settings keys are converted once, before anything reads a setting.
+    this.settingsFormat = SettingsFormat.convertOnce({ storage: localStorage, version: APP_VERSION,
+      gridColumns: PlayGrid.COLUMNS.map(c => c.key), gridPresets: PlayGrid.PRESETS });
     configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
     try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
     catch { this.autoPlayNext = true; }

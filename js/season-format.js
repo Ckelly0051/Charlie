@@ -18,6 +18,7 @@ import { TagProjection } from './tag-projection.js';
  *   - a retired Special Teams tag (stType, kickOutcome, scoreFor, kickDistance,
  *     returnYards, hangTime, kickedTo)
  *   - an extra point stored on a Field Goal unit
+ *   - custom tags stored as anything but a list
  *   - a game node carrying its own roster
  *   - a single-game save (plays with no games array)
  */
@@ -45,6 +46,7 @@ export class SeasonFormat {
       if (!this.UNITS.includes(tags.unit)) out.push('no unit');
       if (TagProjection.isCombined(tags)) out.push('combined look');
       if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
+      if (tags.custom != null && !Array.isArray(tags.custom)) out.push('custom tags not a list');
     }
     // Checked whether or not the tags are usable.
     const st = play.specialTeams;

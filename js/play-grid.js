@@ -69,23 +69,6 @@ export class PlayGrid {
   };
 
 
-  /** E3b-P4: the pre-E3b presets, used to detect a coach still on stock columns
-   *  so their saved list can be UPGRADED to the new one. A customized list is
-   *  preserved untouched (the new columns stay available in the Columns menu). */
-  static LEGACY_PRESETS = {
-    default: ['sit', 'formation', 'playType', 'result', 'yardage', 'penalty'],
-    offense: ['sit', 'formation', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
-    defense: ['sit', 'defFront', 'coverage', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
-    special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
-  };
-
-  // P4: presets saved after E3b but before Play Call existed are also stock,
-  // not coach customizations. Upgrade only exact matches.
-  static PRE_CALL_PRESETS = {
-    default: ['sit', 'formation', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
-    offense: ['sit', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
-  };
-
   constructor(tagger, videoController, cutupPlayer, playbook = null, customChips = null) {
     this.tagger = tagger;
     this.vc = videoController;
@@ -119,44 +102,14 @@ export class PlayGrid {
 
   // ---------- Persistence ----------
 
-  /** E3b-P4 — saved-column upgrade rule. Updating the presets alone would never
-   *  expose QB Alignment / Coverage Family to a coach who already has a saved
-   *  `ffa_film_room_cols`. Rules:
-   *    - saved list EXACTLY matches a pre-E3b preset  -> upgrade to the new preset
-   *    - otherwise (a CUSTOM layout)                  -> preserve it untouched
-   *  (No saved preference at all takes the new defaults via _loadCols' fallback.)
-   *  A preserved custom layout keeps both new columns available in the Columns menu. */
-  static _upgradeCols(cols) {
-    const same = (a, b) => a.length === b.length && a.every((k, i) => k === b[i]);
-    for (const presets of [PlayGrid.LEGACY_PRESETS, PlayGrid.PRE_CALL_PRESETS]) {
-      for (const name of Object.keys(presets)) {
-        if (same(cols, presets[name])) return PlayGrid.PRESETS[name].slice();
-      }
-    }
-    return cols;   // custom layout — untouched
-  }
-
-  _loadCols() {
-    try {
-      const v = JSON.parse(localStorage.getItem('ffa_film_room_cols') || 'null');
-      if (Array.isArray(v) && v.length) {
-        const known = new Set(PlayGrid.COLUMNS.map(c => c.key));
-        const cols = v.filter(k => known.has(k));
-        if (cols.length) return PlayGrid._upgradeCols(cols);
-      }
-    } catch (e) {}
-    return PlayGrid.PRESETS.default.slice();
-  }
   /* COLUMN SETS PER UNIT (coach direction, 2026-09-24). The table keeps four
      column sets -- Offense, Defense, Special Teams, and All plays -- and the
      unit FILTER picks which one is on screen, so turning on Blitz while viewing
      Defense changes only the defense table. `cols` is the active set, so every
      existing reader and writer keeps working. Sets belong to the program: one
-     settings key per team, read lazily so a program switch brings its own.
-     The first time a program has none, All plays inherits the coach's existing
-     single column list (`ffa_film_room_cols`, still read through the E3b
-     upgrade rule) and each unit set starts from its preset. The legacy key is
-     left untouched. */
+     settings key per team, read lazily so a program switch brings its own; a
+     program with none starts from the presets. The old global list is
+     converted once at boot (settings-format.js). */
   static COLUMN_SCOPES = Object.freeze(['all', 'offense', 'defense', 'special']);
   static SCOPE_PRESET = Object.freeze({ all: 'default', offense: 'offense', defense: 'defense', special: 'special' });
   static SCOPE_LABEL = Object.freeze({ all: 'All plays', offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
@@ -172,42 +125,22 @@ export class PlayGrid {
     const team = this._teamId();
     if (this._colSetsByTeam[team]) return this._colSetsByTeam[team];
     const known = new Set(PlayGrid.COLUMNS.map(c => c.key));
-    let stored = null;
-    // A program saved before its id existed (first run) wrote under `default`;
-    // it inherits those sets rather than losing them.
     const read = key => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } };
-    stored = read(this.columnsKey());
+    let stored = read(this.columnsKey());
+    // Sets saved while no program was active are written under `default`; the
+    // first program to read them claims them, so a later program starts from
+    // the presets instead of another program's choices.
     if (!stored && team !== 'default' && (stored = read('ffa_film_room_columns_default'))) {
-      // Claimed once: the first program moves them to its own key, so a later
-      // program starts from the presets instead of another program's choices.
       try { localStorage.setItem(this.columnsKey(), JSON.stringify(stored)); localStorage.removeItem('ffa_film_room_columns_default'); } catch (e) {}
-    }
-    // The coach's old single list (`ffa_film_room_cols`) was global. It seeds
-    // All plays for ONE program -- the first to read it, recorded in a claim
-    // marker -- so another program starts from the preset (Codex, c1cce33).
-    // The old key itself is never rewritten.
-    const CLAIM = 'ffa_film_room_cols_claimed_by';
-    let legacyAll = null;
-    if (!stored) {
-      let owner = null;
-      try { owner = localStorage.getItem(CLAIM); } catch (e) {}
-      if (!owner || owner === team) legacyAll = this._loadCols();
     }
     const sets = {};
     for (const scope of PlayGrid.COLUMN_SCOPES) {
       const list = Array.isArray(stored?.[scope]) ? stored[scope].filter(k => known.has(k)) : [];
-      sets[scope] = list.length ? list
-        : scope === 'all' && legacyAll ? legacyAll
-        : PlayGrid.PRESETS[PlayGrid.SCOPE_PRESET[scope]].slice();
+      sets[scope] = list.length ? list : PlayGrid.PRESETS[PlayGrid.SCOPE_PRESET[scope]].slice();
     }
     this._colSetsByTeam[team] = sets;
-    // A program's first sets are written at once, and the old list is claimed
-    // only after they are durable: claiming first and then failing the write
-    // left the old list claimed by a program that never saved it, so the next
-    // launch fell back to presets (review, 5cd5313).
-    if (!stored && this._saveCols() && legacyAll) {
-      try { localStorage.setItem(CLAIM, team); } catch (e) {}
-    }
+    // A program's first sets are written at once.
+    if (!stored) this._saveCols();
     return sets;
   }
   get cols() { return this._colSets()[this._colScope()]; }

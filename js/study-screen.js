@@ -97,40 +97,15 @@ export class StudyScreen {
    *  silently changed a coach's saved play-mix question into a different one
    *  (Success Rate) on reopen. They belong here, restorable exactly, same as
    *  `epaPerPlay`/`touchdowns`/`turnovers`. */
-  static get LEGACY_SELECTABLE_MEASURES() { return ['runShare', 'passShare', 'epaPerPlay', 'touchdowns', 'turnovers']; }
+  static get ADVANCED_MEASURES() { return ['runShare', 'passShare', 'epaPerPlay', 'touchdowns', 'turnovers']; }
   // Study expansion Phase 2: penalty/Special Teams measures are selectable
   // primary metrics too -- they ride the same picker + lens grouping as the
-  // legacy flat measures above, not a separate control.
+  // flat measures above, not a separate control.
   static get SELECTABLE_METRICS() {
-    return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.LEGACY_SELECTABLE_MEASURES,
+    return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.ADVANCED_MEASURES,
       ...StudyScreen.PENALTY_MEASURE_IDS, ...StudyScreen.SPECIAL_TEAMS_MEASURE_IDS];
   }
   static get DEFAULT_METRIC() { return 'success'; }
-  /**
-   * Review fix (bc0f677 finding #3, narrowed by b8a0ab4): a saved view
-   * created before this checkpoint may store one of the four retired
-   * unit-blind OUTCOME ids (`successRate`/`explosiveRate`/`negativeRate`/
-   * `havocRate`) -- none of those are `<option>` values in `#wsStudyMeasure`
-   * any more, so assigning one directly leaves the select blank. This is an
-   * explicit, disclosed UPGRADE to the equivalent coaching-metric CONCEPT,
-   * never a guess of offense vs defense: the coach's already-saved Unit
-   * value (part of the same view, untouched by this map) still resolves the
-   * exact framing via `_richMetricId`, and an ambiguous/blank saved Unit
-   * still fails closed with the unit prompt exactly as it does for a newly
-   * built query. `runShare`/`passShare` are deliberately NOT in this map --
-   * they measure play-type mix, not success/failure, so "upgrading" one to
-   * Success Rate would answer a different coaching question, not the same
-   * one better. They are real `LEGACY_SELECTABLE_MEASURES` entries instead
-   * (see above) and a saved view referencing either restores EXACTLY.
-   * Applying this map only changes the LIVE control value; it never rewrites
-   * the saved view in storage, so opening an old view is never itself a
-   * mutation.
-   */
-  static get LEGACY_MEASURE_UPGRADE() {
-    return {
-      successRate: 'success', explosiveRate: 'explosive', negativeRate: 'negative', havocRate: 'havoc',
-    };
-  }
   /** Study opens already answering the coach's own offense -- a concrete,
    *  useful default, not a guess made during computation. The coach can
    *  clear it to "All units" at any time; this only affects the INITIAL
@@ -153,7 +128,7 @@ export class StudyScreen {
   static get MEASURE_LENSES() {
     return [
       { name: 'Coaching metrics', ids: StudyScreen.RICH_METRIC_IDS },
-      { name: 'Advanced', ids: StudyScreen.LEGACY_SELECTABLE_MEASURES },
+      { name: 'Advanced', ids: StudyScreen.ADVANCED_MEASURES },
       { name: 'Penalties', ids: StudyScreen.PENALTY_MEASURE_IDS },
       { name: 'Special Teams', ids: StudyScreen.SPECIAL_TEAMS_MEASURE_IDS },
     ];
@@ -718,8 +693,8 @@ export class StudyScreen {
     const view = this._views().find(item => item.id === id);
     if (!view || !this._native) return;
     const savedMeasure = view.state.measure;
-    const measure = StudyScreen.SELECTABLE_METRICS.includes(savedMeasure) ? savedMeasure : (StudyScreen.LEGACY_MEASURE_UPGRADE[savedMeasure] || StudyScreen.DEFAULT_METRIC);
-    if (savedMeasure && measure !== savedMeasure) this.app.tagger.toast?.('Upgraded this saved view metric to ' + (StudyScreen.RICH_METRIC_PAIRS[measure]?.name || measure));
+    // Renamed measures in saved views are converted once at boot (settings-format.js).
+    const measure = StudyScreen.SELECTABLE_METRICS.includes(savedMeasure) ? savedMeasure : StudyScreen.DEFAULT_METRIC;
     const role = view.state.playerRole || '';
     const roleConfig = StudyScreen.PLAYER_ROLES[role];
     this._native.setState(old => ({ ...old, ...view.state, measure, savedView: id,

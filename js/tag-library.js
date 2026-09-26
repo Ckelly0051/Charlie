@@ -36,8 +36,8 @@ export class TagLibrary {
     // ball-carrier decision after the snap, an RPO a pass-or-run read. Both are
     // AMBIGUOUS for run/pass classification (PlayTagger.runPassForPlayType) and
     // neither joins the run/pass-depth exclusive group, so `Option + Run Outside`
-    // is chartable. Added as a default at VERSION 4 — see load()'s migration,
-    // which pushes it into every existing team's enabled list.
+    // is chartable. Added as a default at VERSION 4; settings-format.js made it
+    // visible in every library saved before that.
     playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Option','Trick Play'],
     blitz: ['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   };
@@ -50,7 +50,6 @@ export class TagLibrary {
   }
   _teamId() { return typeof this.teamId === 'function' ? this.teamId() : this.teamId; }
   key() { return `ffa_tag_libraries_${this._teamId()}`; }
-  legacyKey() { return `ffa_custom_chips_${this._teamId()}`; }
   _blank() {
     const groups = {};
     for (const [key, defaults] of Object.entries(TagLibrary.DEFINITIONS)) {
@@ -73,7 +72,6 @@ export class TagLibrary {
       return false;
     }
   }
-  _remove(key) { try { this.storage?.removeItem(key); } catch {} }
   _normalize(raw) {
     const next = this._blank();
     for (const [key, defaults] of Object.entries(TagLibrary.DEFINITIONS)) {
@@ -82,17 +80,6 @@ export class TagLibrary {
       const values = [...defaults, ...custom];
       const enabledSource = Array.isArray(source.enabled) ? source.enabled : values;
       const enabled = [...new Set(enabledSource.map(String).filter(value => values.includes(value)))];
-      const storedVersion = Number(raw?.version) || 1;
-      if (storedVersion < 2 && key === 'formation') {
-        for (const added of ['I-Form','Split Back']) if (!enabled.includes(added)) enabled.push(added);
-      }
-      // A new DEFAULT is filtered out of a saved `enabled` array (it was not a
-      // value when that array was written), so without this every existing team
-      // would get the choice hidden. Same shape as the version-2 formation
-      // migration above; visibility only, never a stored tag.
-      if (storedVersion < 4 && key === 'playType') {
-        for (const added of ['Option']) if (!enabled.includes(added)) enabled.push(added);
-      }
       const savedOrder = Array.isArray(source.order) ? source.order.map(String).filter(value => values.includes(value)) : [];
       const order = [...new Set([...savedOrder, ...values])];
       next.groups[key] = { custom, enabled, order };
@@ -118,18 +105,9 @@ export class TagLibrary {
   load() {
     const current = this._read(this.key());
     if (current) return this._normalize(current);
-    const legacy = this._read(this.legacyKey()) || {};
-    const migrated = this._blank();
-    for (const key of ['formation','backfield']) {
-      const defaults = TagLibrary.DEFINITIONS[key];
-      migrated.groups[key].custom = [...new Set((legacy[key] || []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
-      migrated.groups[key].enabled.push(...migrated.groups[key].custom);
-      migrated.groups[key].order.push(...migrated.groups[key].custom);
-    }
-    const state = this._normalize(migrated);
-    // Only drop the legacy key once the migrated library is actually stored.
-    if (this._write(state)) this._remove(this.legacyKey());
-    return state;
+    // An old chips key or a library below the current version is converted
+    // once at boot (settings-format.js); nothing is written on read.
+    return this._normalize(this._blank());
   }
   /** A saved custom value reserved for another field (added before the rule
    *  existed) is left in storage untouched and simply never offered. */

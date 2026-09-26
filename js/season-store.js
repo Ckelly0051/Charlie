@@ -351,25 +351,9 @@ export class SeasonStore {
           if (typeof p.tags[key] !== 'string') p.tags[key] = p.tags[key] == null ? '' : String(p.tags[key]);
         }
         if (!['', 'subject', 'opponent', 'unknown'].includes(p.tags.fumbleRecovery)) p.tags.fumbleRecovery = 'unknown';
-        // Every in-app creation site sets `custom: []`, but an imported or
-        // pre-field season file has no such key — and the tag form both READS
-        // it (_renderCustomTags) and WRITES it (`custom.includes(tag)` on the
-        // custom-tag input). Backfilling here fixes the class at the data
-        // boundary instead of patching each sink; the sinks keep their own
-        // guards because a render guard alone already proved insufficient.
-        if (p?.tags && !Array.isArray(p.tags.custom)) {
-          const legacy = p.tags.custom;
-          if (legacy == null) {
-            p.tags.custom = [];
-          } else {
-            // Preserve recoverable imported data while restoring the string[]
-            // model. Silent deletion requires coach approval and is forbidden.
-            let value;
-            try { value = typeof legacy === 'string' ? legacy : JSON.stringify(legacy); }
-            catch { value = String(legacy); }
-            p.tags.custom = value == null ? [] : [value];
-          }
-        }
+        // Custom tags are a list. A missing key is an empty list; any other
+        // shape is the retired format, refused by SeasonFormat before it gets here.
+        if (p?.tags && p.tags.custom == null) p.tags.custom = [];
         SeasonStore.coerceLookFields(p);
         SeasonStore.stripStAlignment(p);
         SeasonStore.stripLeakedFronts(p);

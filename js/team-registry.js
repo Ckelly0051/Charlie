@@ -190,9 +190,8 @@ export class TeamRegistry {
   // ------------------------------------------------------------- lifecycle --
 
   /**
-   * One-time migration + reconcile. Run before reading the registry.
-   * - A pre-registry install (single ffa_team_profile) becomes the first
-   *   registry team, owning all existing seasons.
+   * Reconcile. Run before reading the registry. (A pre-registry install is
+   *   converted once at boot, settings-format.js.)
    * - A registry with no active profile (partial clear / old bug) re-adopts a
    *   team, so pills and profile never disagree.
    * - Game Info edits write ffa_team_profile directly, so mirror those back
@@ -201,13 +200,6 @@ export class TeamRegistry {
   ensureRegistry() {
     let teams = this.teams();
     const profile = this.teamProfile();
-    if (!teams.length && profile.teamName) {
-      const t = { id: this.newTeamId(profile.teamName, []), teamName: profile.teamName, school: profile.school || '', nickname: profile.nickname || '', jerseyColor: profile.jerseyColor || '' };
-      teams = [t];
-      this.saveTeams(teams);
-      this.setActiveTeamId(t.id);
-      return;
-    }
     if (teams.length && !profile.teamName) {
       const first = teams.find(t => t.id === this.activeTeamId()) || teams[0];
       this.setActiveTeamId(first.id);

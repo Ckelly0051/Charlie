@@ -750,7 +750,6 @@ export class TeamHubScreen {
         team: this._state.profile.teamName || '', teamId: this._state.activeTeamId, kind: 'program'
       });
       if (!rec) return { ok: false, message: 'The season could not be created. Nothing changed.' };
-      try { localStorage.setItem('giq_home_workspace', 'program'); } catch {}
       this._state.workspaceMode = 'program';
       await this.app.workspaceShell.show('home');
       return { ok: true };
