@@ -429,6 +429,7 @@ export class SettingsScreen {
    *  every failure, which pointed at the disk; the real limit was the WebView's
    *  settings storage (2026-09-24). */
   _libraryWriteMessage(error) {
+    if (error?.name === 'ReservedValue') return `${error.message} Chart it under ${error.owner}.`;
     if (error?.name === 'QuotaExceededError') return 'Could not save that choice: the app settings storage is full.';
     if (error?.name === 'NoStorage') return 'Could not save that choice: settings storage is unavailable.';
     return `Could not save that choice${error?.name ? ` (${error.name})` : ''}.`;

@@ -1,5 +1,6 @@
 import { h } from 'preact';
 import { AutoDetectContent } from './native-autodetect.jsx';
+import { SeasonFormat } from './season-format.js';
 
 /**
  * Native Auto-Detect operation + state API.
@@ -290,10 +291,8 @@ export class AutoDetectScreen {
             }
             visionMs = Math.round(performance.now() - t0);
             for (let i = 0; i < visionResults.length; i++) {
-              const vt = visionResults[i]?.tags || {};
-              const ht = this._lastAnalyses[i]?.tags || {};
-              const vCount = Object.values(vt).filter((v) => v).length;
-              const hCount = Object.values(ht).filter((v) => v).length;
+              const vCount = Object.values(AutoDetectScreen.currentTags(visionResults[i])).filter((v) => v).length;
+              const hCount = Object.values(AutoDetectScreen.currentTags(this._lastAnalyses[i])).filter((v) => v).length;
               if (vCount >= hCount) this._lastAnalyses[i] = visionResults[i];
             }
             visionUsed = true;
@@ -327,10 +326,8 @@ export class AutoDetectScreen {
               const backendMs = Math.round(performance.now() - t0);
               if (Array.isArray(backendResults) && backendResults.length === plays.length) {
                 for (let i = 0; i < backendResults.length; i++) {
-                  const bt = backendResults[i]?.tags || {};
-                  const ht = this._lastAnalyses[i]?.tags || {};
-                  const bCount = Object.values(bt).filter((v) => v).length;
-                  const hCount = Object.values(ht).filter((v) => v).length;
+                  const bCount = Object.values(AutoDetectScreen.currentTags(backendResults[i])).filter((v) => v).length;
+                  const hCount = Object.values(AutoDetectScreen.currentTags(this._lastAnalyses[i])).filter((v) => v).length;
                   if (bCount >= hCount) this._lastAnalyses[i] = backendResults[i];
                 }
                 this._setState({ statusText: `✅ Local server tagged ${backendResults.length} plays in ${(backendMs / 1000).toFixed(1)}s` });
@@ -343,7 +340,7 @@ export class AutoDetectScreen {
           }
         }
 
-        const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => sum + Object.values(a?.tags || {}).filter((v) => v).length, 0);
+        const taggedFieldCount = this._lastAnalyses.reduce((sum, a) => sum + Object.values(AutoDetectScreen.currentTags(a)).filter((v) => v).length, 0);
         const analysisLabel = visionUsed
           ? ` · 🧠 Vision AI in ${(visionMs / 1000).toFixed(1)}s`
           : (app.vision.apiKey ? ' · ⚠️ Vision failed, heuristic fallback' : ' · heuristic (set API key for AI tagging)');
@@ -388,6 +385,12 @@ export class AutoDetectScreen {
     return added;
   }
 
+  /** An analyzer's tags in the current format: every backend (vision, local
+   *  CV, the optional Python server) passes through here, so a retired key or a
+   *  value that belongs to another field (formation 'Shotgun', coverage 'Man')
+   *  is dropped rather than stamped as an old-format play. */
+  static currentTags(a) { return SeasonFormat.currentTagValues(a?.tags || {}); }
+
   /** Merge heuristic/vision auto-tags onto plays just appended to the tagger.
    *  Only writes into empty fields -- a coach's manual tag always wins. */
   _stampAutoTags(startIndex = 0) {
@@ -400,7 +403,7 @@ export class AutoDetectScreen {
       const play = newPlays[i];
       const a = analyses[i];
       if (!a || !a.tags) continue;
-      for (const [k, v] of Object.entries(a.tags)) {
+      for (const [k, v] of Object.entries(AutoDetectScreen.currentTags(a))) {
         const isDefault = !play.tags[k] || play.tags[k] === ''
           || (k === 'fieldSide' && play.tags[k] === 'own');
         if (v && isDefault) { play.tags[k] = v; stamped++; }
@@ -463,11 +466,11 @@ export class AutoDetectScreen {
     const renderTagPills = (a) => {
       if (!a || !a.tags) return '';
       const pills = [];
-      for (const [k, v] of Object.entries(a.tags)) {
+      for (const [k, v] of Object.entries(AutoDetectScreen.currentTags(a))) {
         if (!v) continue;
         const c = a.confidence?.[k] || 0;
         const confCls = c >= 0.6 ? 'hi' : c >= 0.4 ? 'med' : 'lo';
-        const label = ({ formation: 'Form', playType: 'Type', hash: 'Dir', result: 'Result', yardage: 'Yds' })[k] || k;
+        const label = ({ formation: 'Form', qbAlignment: 'QB', backfield: 'Backfield', playType: 'Type', hash: 'Dir', result: 'Result', yardage: 'Yds' })[k] || k;
         const title = a.reasons?.[k] ? `${label}: ${v} — ${a.reasons[k]} (${Math.round(c * 100)}%)` : `${label}: ${v}`;
         pills.push(`<span class="drr-tag ${confCls}" title="${title.replace(/"/g, '&quot;')}">${label} · ${v}</span>`);
       }

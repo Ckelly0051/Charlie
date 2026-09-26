@@ -10,7 +10,7 @@ Output shape is intentionally identical to js/clip-analyzer.js so the
 browser frontend treats this server as a drop-in replacement:
 
     {
-        "tags":       { formation, playType, hash, result, yardage, personnel },
+        "tags":       { qbAlignment | formation | backfield, playType, hash, result, yardage, personnel },
         "confidence": { ... },
         "reasons":    { ... },
         "extras":     { duration, player_count, ... }
@@ -25,6 +25,18 @@ from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
+
+QB_ALIGNMENTS = ("Under Center", "Shotgun", "Pistol")
+BACKFIELD_VALUES = ("Empty",)
+
+
+def _look_field(value: str) -> str:
+    """The tag field a pre-snap look value belongs to (GRIDIRON-IQ-TAG-MODEL)."""
+    if value in QB_ALIGNMENTS:
+        return "qbAlignment"
+    if value in BACKFIELD_VALUES:
+        return "backfield"
+    return "formation"
 
 try:
     from ultralytics import YOLO
@@ -251,8 +263,12 @@ class ClipAnalyzer:
             # --- 6. Personnel hint from pre-snap player count -----------
             personnel_result = self._infer_personnel(pre_snap_dets)
 
+            # Each look value goes in its OWN field: an alignment is never a
+            # formation and 'Empty' is a backfield (the current tag model;
+            # the app refuses the old combined shape).
+            look_key = _look_field(formation_result["value"])
             tags = {
-                "formation": formation_result["value"],
+                look_key: formation_result["value"],
                 "playType": play_type_result["value"],
                 "hash": hash_result["value"],
                 "result": result_bucket["value"],
@@ -260,7 +276,7 @@ class ClipAnalyzer:
                 "personnel": personnel_result["value"],
             }
             confidence = {
-                "formation": formation_result["conf"],
+                look_key: formation_result["conf"],
                 "playType": play_type_result["conf"],
                 "hash": hash_result["conf"],
                 "result": result_bucket["conf"],
@@ -268,7 +284,7 @@ class ClipAnalyzer:
                 "personnel": personnel_result["conf"],
             }
             reasons = {
-                "formation": formation_result["reason"],
+                look_key: formation_result["reason"],
                 "playType": play_type_result["reason"],
                 "hash": hash_result["reason"],
                 "result": result_bucket["reason"],

@@ -1,5 +1,23 @@
+import { TagProjection } from './tag-projection.js';
+
 /** Per-team charting vocabulary. Visibility and ordering change controls, never stored tags. */
 export class TagLibrary {
+  // Values that belong to ANOTHER field and so may never be a choice in this
+  // group: an alignment is never a formation or backfield, 'Empty' is never a
+  // formation, a family is never a coverage call. Charting one would store the
+  // old combined shape (TagProjection.isCombined). Matched case-insensitively.
+  static RESERVED = Object.freeze({
+    formation: { values: TagProjection.PICKER_EXCLUDE.formation, owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : 'Backfield' },
+    backfield: { values: TagProjection.PICKER_EXCLUDE.backfield, owner: () => 'QB Alignment' },
+    coverage: { values: TagProjection.PICKER_EXCLUDE.coverage, owner: () => 'Coverage Family' },
+  });
+  /** The field a reserved value belongs to, or null when `value` is allowed in `key`. */
+  static reservedOwner(key, value) {
+    const rule = TagLibrary.RESERVED[key];
+    const v = String(value || '').trim().toLowerCase();
+    const match = rule && rule.values.find(item => item.toLowerCase() === v);
+    return match ? rule.owner(match) : null;
+  }
   static VERSION = 4;
   static DEFINITIONS = {
     // Classification-critical fields (down, result, run/pass, QB alignment,
@@ -107,12 +125,19 @@ export class TagLibrary {
     if (this._write(state)) this._remove(this.legacyKey());
     return state;
   }
+  /** A saved custom value reserved for another field (added before the rule
+   *  existed) is left in storage untouched and simply never offered. */
   group(key) {
     const state = this.load(), group = state.groups[key];
-    return group ? { values: group.order.slice(), custom: group.custom.slice(), enabled: group.enabled.slice() } : { values: [], custom: [], enabled: [] };
+    if (!group) return { values: [], custom: [], enabled: [] };
+    const allowed = value => !TagLibrary.reservedOwner(key, value);
+    return { values: group.order.filter(allowed), custom: group.custom.filter(allowed), enabled: group.enabled.filter(allowed) };
   }
   add(key, value) {
     const state = this.load(), group = state.groups[key], defaults = TagLibrary.DEFINITIONS[key], v = String(value || '').trim();
+    this.lastError = null;
+    const owner = TagLibrary.reservedOwner(key, v);
+    if (owner) { this.lastError = { name: 'ReservedValue', message: `${v} is a ${owner} value.`, owner }; return false; }
     if (!group || !defaults || !v || defaults.includes(v) || group.custom.includes(v)) return false;
     group.custom.push(v); group.enabled.push(v); group.order.push(v);
     if (!this._write(state)) return false;
