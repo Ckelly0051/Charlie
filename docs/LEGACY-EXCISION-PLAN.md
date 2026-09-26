@@ -162,6 +162,15 @@ history is needed.
    the Unit column (storing `offense` would change their drive labels from
    `Drive N` to `Our Drive N`; Codex P2-7), and the ambiguous legacy Special
    Teams plays are charted by hand. Field position is never used to guess.
+   **Worklist (live catalog, read-only, 2026-09-25), all in 2025 JV; # is the play's
+   position in the game.** Chart in Break Down (side or kind uncertain): Wk 1 #21;
+   Wk 4 #33, #52, #53; Wk 5 #37, #52, #65, #72, #79, #81. Optional unit check (would
+   convert to Offense): Wk 4 #54; Wk 5 #63, #82 (passer and carrier both 81).
+   Converted automatically, no hand work: the 7 certain legacy Special Teams plays,
+   22 combined formations, 14 extra points on the Field Goal unit, and 33 blank
+   uncharted SJM Varsity 2026 plays with no unit (clip-import LG-1; they take Offense
+   like any new play). Coach decision pending: whether general yards on legacy
+   return plays become return yards.
 3. **A one-time conversion tool, current state only** (`tools/convert-legacy-once.mjs`,
    deleted after use). Target: the live seasons in the catalog. Conversions, each
    exact: every projected pair (alignment in formation and in backfield, `Empty`
