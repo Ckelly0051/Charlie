@@ -60,12 +60,16 @@ r = await page.evaluate(() => {
   const wipe = () => keys.forEach(k => localStorage.removeItem(k));
   const out = {};
   try {
-    // (a) a pre-registry install is converted once at boot (settings-format.js,
-    //     e2e-settings-format); ensureRegistry itself no longer converts it.
+    // (a) a profile with no registry (a first team saved through
+    //     saveTeamIdentity) becomes team one; rosters remain season-owned.
     wipe();
     localStorage.setItem('ffa_team_profile', JSON.stringify({ teamName: 'Mavericks', jerseyColor: 'blue' }));
     reg.ensureRegistry();
-    out.migrate = { count: reg.teams().length, active: reg.activeTeamId() };
+    const migrated = reg.teams();
+    out.migrate = {
+      count: migrated.length, name: migrated[0]?.teamName,
+      active: reg.activeTeamId() === migrated[0]?.id,
+    };
 
     // (b) self-heal: a registry with no active profile must re-adopt a team,
     //     or the pills and the profile disagree forever.
@@ -93,8 +97,8 @@ r = await page.evaluate(() => {
   }
   return out;
 });
-ok(r.migrate.count === 0 && r.migrate.active === '',
-  'ensureRegistry holds no pre-registry conversion (settings-format converts it once at boot)', JSON.stringify(r.migrate));
+ok(r.migrate.count === 1 && r.migrate.name === 'Mavericks' && r.migrate.active,
+  'A profile with no registry becomes the first team while rosters remain season-owned', JSON.stringify(r.migrate));
 ok(r.selfHeal.profile === 'JV' && r.selfHeal.active === 'jv',
   'A registry with no active profile self-heals instead of showing first-run setup', JSON.stringify(r.selfHeal));
 ok(r.mirror.name === 'Renamed' && r.mirror.color === 'navy',

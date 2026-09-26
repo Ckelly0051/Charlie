@@ -60,7 +60,7 @@ console.log('\n== 1. Each conversion on an old profile ==');
     'per-version beta markers become one key holding the version', st.getItem('ffa_beta_defaults'));
   ok(['ffa_wizard_v2', 'ffa_video_controls_y', 'ffa_film_room_collapsed'].every(k => st.getItem(k) === null), 'dead UI keys are removed');
   ok(st.getItem('ffa_linked_dirs') === '{"keep":1}' && st.getItem('ffa_teams') === '[{"id":"mav","teamName":"Mav"}]', 'current keys are not touched');
-  ok(r.receipt === 'written' && JSON.parse(st.getItem(SettingsFormat.MARKER)).results.length === 7, 'the outcome is recorded under the marker', JSON.stringify(r.report));
+  ok(r.receipt === 'written' && JSON.parse(st.getItem(SettingsFormat.MARKER)).results.length === 6, 'the outcome is recorded under the marker', JSON.stringify(r.report));
   st.setItem('giq_home_workspace', 'program');
   const again = run(st);
   ok(again.skipped && st.getItem('giq_home_workspace') === 'program', 'with the marker present it never runs again');
@@ -90,20 +90,18 @@ console.log('\n== 2. Ownership rules carried over from the old readers ==');
   const e = new Mem({ ffa_tag_libraries_t: '{"version":4,"groups":{}}', ffa_custom_chips_t: '{"formation":["X"]}' });
   run(e);
   ok(e.getItem('ffa_tag_libraries_t') === '{"version":4,"groups":{}}' && e.getItem('ffa_custom_chips_t') === null, 'an existing library is never overwritten by old chips');
-  // Pre-registry install; and an installed registry is left alone.
-  const f = new Mem({ ffa_team_profile: '{"teamName":"St. Joseph Mavericks","jerseyColor":"#003"}' });
+  // The team registry is not a settings conversion (TeamRegistry.ensureRegistry
+  // creates a first team from a profile); the converter never touches it.
+  const f = new Mem({ ffa_team_profile: '{"teamName":"St. Joseph Mavericks"}' });
   run(f);
-  ok(f.getItem('ffa_teams') === '[{"id":"st-joseph-mavericks","teamName":"St. Joseph Mavericks","school":"","nickname":"","jerseyColor":"#003"}]' && f.getItem('ffa_active_team_id') === 'st-joseph-mavericks',
-    'a pre-registry profile becomes the first registry team', f.getItem('ffa_teams'));
-  const g = new Mem({ ffa_team_profile: '{"teamName":"X"}', ffa_teams: '[{"id":"y","teamName":"Y"}]' });
-  run(g);
-  ok(g.getItem('ffa_teams') === '[{"id":"y","teamName":"Y"}]', 'an existing registry is not touched');
+  ok(f.getItem('ffa_teams') === null && f.getItem('ffa_active_team_id') === null, 'the converter never writes the team registry');
   // Beta: a profile that never ran this version keeps no key, so its defaults apply once.
-  // A pre-registry profile with the old global list: the list reaches the new program, not `default`.
+  // No program active yet: the old list lands in the current `default` key,
+  // which PlayGrid hands to the first program (e2e-film-room-columns).
   const pr = new Mem({ ffa_team_profile: '{"teamName":"Pre Reg"}', ffa_film_room_cols: '["sit","notes"]' });
   run(pr);
-  ok(pr.getItem('ffa_film_room_columns_pre-reg') === '{"all":["sit","notes"]}' && pr.getItem('ffa_film_room_columns_default') === null,
-    "a pre-registry profile's column list is carried to the program it becomes", JSON.stringify([...pr.m.keys()]));
+  ok(pr.getItem('ffa_film_room_columns_default') === '{"all":["sit","notes"]}' && pr.getItem('ffa_film_room_cols') === null,
+    'with no program active the old list lands in the current default key', JSON.stringify([...pr.m.keys()]));
   const h = new Mem({ 'ffa_beta_defaults_1.12.0-99': '1' });
   run(h, '1.12.0-103');
   ok(h.getItem('ffa_beta_defaults') === null && h.getItem('ffa_beta_defaults_1.12.0-99') === null, 'older beta markers are removed without claiming the running version');
@@ -151,12 +149,12 @@ console.log('\n== 4. The real app converts an old profile at boot ==');
     const keys = []; for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
     return { report: window.app.settingsFormat?.report, keys, teams: localStorage.getItem('ffa_teams'), active: localStorage.getItem('ffa_active_team_id'),
       marker: !!localStorage.getItem('giq_settings_format_2026_09_26'), preset: window.app.playGrid.constructor.PRESETS.default,
-      cols: JSON.stringify(JSON.parse(localStorage.getItem('ffa_film_room_columns_boot-mavericks') || 'null')?.all ? { all: JSON.parse(localStorage.getItem('ffa_film_room_columns_boot-mavericks')).all } : null) };
+      cols: JSON.stringify({ all: window.app.playGrid._colSets().all }), colsKey: window.app.playGrid.columnsKey() };
   });
   const old = ['ffa_custom_chips_boot', 'ffa_film_room_cols', 'giq_home_workspace', 'ffa_workspace_shell_v2', 'ffa_beta_defaults_1.12.0-2'];
   ok(r.marker && old.every(k => !r.keys.includes(k)), 'boot converts the old profile: every old key is gone and the marker is written', JSON.stringify(r));
-  ok(r.active === 'boot-mavericks' && /"id":"boot-mavericks"/.test(r.teams), 'the pre-registry profile became the registry team before the app read it', JSON.stringify(r));
-  ok(r.cols === JSON.stringify({ all: ['sit', 'notes', 'formation'] }), "the old custom column list is carried to the new program's key (the registry is converted first)", JSON.stringify({ cols: r.cols }));
+  ok(r.active === 'boot-mavericks' && /"id":"boot-mavericks"/.test(r.teams), 'the profile became the registry team (TeamRegistry.ensureRegistry)', JSON.stringify(r));
+  ok(r.cols === JSON.stringify({ all: ['sit', 'notes', 'formation'] }), "the old custom column list reaches the program's Film Room All plays", JSON.stringify({ cols: r.cols, key: r.colsKey }));
   ok(!errors.length, 'no page errors', errors.join(' | '));
   await browser.close();
 }
