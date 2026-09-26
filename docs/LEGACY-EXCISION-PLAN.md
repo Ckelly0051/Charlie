@@ -2,7 +2,7 @@
 
 Coach direction, 2026-09-25: excising legacy code is the next step, done
 properly rather than around. **Status: APPROVED by the coach (2026-09-25), cut to three passes the same
-day. Pass 1 and Pass 2 steps 1-7 done in source (2026-09-26); next: full gate, then step 8.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
+day. Pass 1 and Pass 2 steps 1-7 done in source (2026-09-26), full gate 135/135 at `42e4097`; next: Pass 2b, then step 8.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.
 
 ## Why it keeps biting
 
@@ -237,7 +237,8 @@ history is needed.
    counts for these readers and they must reach zero; the docs (including
    `CLAUDE.md`'s projection rule) are rewritten.
    **Done in source 2026-09-26** (`b84e207`..`5c53b44`; Codex re-reviewed through
-   `8c9248e`, no findings; full gate pending):
+   `8c9248e`, no findings; later repairs `3bef026` (every stored payload validated
+   before a season opens) and `42e4097`; **full gate 135/135 at `42e4097`**):
    - Canonical Reports season: a converted current-format fixture (coach
      decision; its old Special Teams values are blank until retagged) — `b84e207`.
    - Special Teams: every `stType`/`kickOutcome` reader and the field-goal-unit

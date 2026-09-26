@@ -83,7 +83,7 @@ first restore, when the row briefly has no buttons; the button returns within ~2
 The app is correct. Both clicks now wait for the button first (the rule: assert the
 subject is on screen before interacting); 5/5 runs 10/10.
 
-**LEGACY EXCISION STEP 7 — DONE IN SOURCE 2026-09-26; full gate pending.** Every
+**LEGACY EXCISION STEP 7 — DONE IN SOURCE 2026-09-26; full gate 135/135 at `42e4097`; installed smoke pending (step 8).** Every
 old-format season reader is deleted (`b84e207`..`5c53b44`; record in
 `docs/LEGACY-EXCISION-PLAN.md` step 7). ST-GAPS below is now unblocked: there is one
 data format to extend. What changed for the coach, to check in the step 8 smoke:
