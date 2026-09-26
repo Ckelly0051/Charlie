@@ -13,7 +13,7 @@ const groups = [
     [['Shift + 1–4'], 'Down number'],
     [['Y'], 'Jump to yardage'],
     [['C'], 'Cycle Offense / Defense / Special Teams'],
-    [['1–9'], 'Special Teams play type'],
+    [['1–8'], 'Special Teams unit: Kickoff, Kick Return, Punt, Punt Return / Block, Field Goal, Field Goal Block, Try, Defending a Try'],
     [['Enter'], 'Save & next play'],
     [['Shift + Enter'], 'Previous play'],
   ]],

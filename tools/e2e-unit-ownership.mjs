@@ -196,19 +196,25 @@ r = await page.evaluate(async () => {
   app.nativeFilmRoom.toggleFilter('unit', 'offense');
   const saved = app.playGrid.cols.slice();
   // A coach's custom Offense set that carries a Special Teams column.
-  app.nativeFilmRoom.setColumn('stType', true, 'offense');
+  app.nativeFilmRoom.setColumn('stUnit', true, 'offense');
   app.nativeFilmRoom.setColumn('defFront', true, 'offense');
   await new Promise(res => setTimeout(res, 120));
   const snap = app.nativeFilmRoom.snapshot();
   const row = snap.rows.find(x => x.id === 2);
-  const editor = app.playGrid.nativeEditor(2, 'stType');
-  const cell = document.querySelector('[data-cell="2:stType"]')?.textContent.trim() ?? null;
+  const cell = document.querySelector('[data-cell="2:stUnit"]')?.textContent.trim() ?? null;
+  // The grid's own refusal, on an editable column: a Special Teams play cannot
+  // hold a formation, so the grid hands out no editor for it (the old editable
+  // ST Type column is retired with the legacy stType field).
+  const special = { id: 9501, timestamp: { start: 0, end: 1 }, notes: '', annotations: [], tags: { ...app.tagger.constructor.blankTags({ unit: 'special' }) } };
+  app.tagger.plays.push(special);
+  const editor = app.playGrid.nativeEditor(9501, 'formation');
+  app.tagger.plays = app.tagger.plays.filter(p => p.id !== 9501);
   app.playGrid.cols = saved; app.playGrid._saveCols();
   app.nativeFilmRoom.clearFilters();
   return { scope: snap.columnScope, na: row?.na, cell, front: row?.cells.defFront, editorCol: editor?.col?.key ?? null };
 });
-ok(r.scope === 'offense' && r.na?.includes('stType') && r.cell === '', 'filtered to Offense, a custom set\'s ST Type cell is blank and locked on an offensive play', JSON.stringify(r));
-ok(r.editorCol === null, 'the grid itself refuses an editor for that locked cell, not only the view', JSON.stringify(r));
+ok(r.scope === 'offense' && r.na?.includes('stUnit') && r.cell === '', 'filtered to Offense, a custom set\'s Special Teams cell is blank and locked on an offensive play', JSON.stringify(r));
+ok(r.editorCol === null, 'the grid itself refuses an editor for a locked cell (Formation on a Special Teams play), not only the view', JSON.stringify(r));
 ok(!r.na?.includes('defFront'), 'the same filtered row keeps the front it faced editable', JSON.stringify(r));
 
 console.log('\n== 6. Save & Next carries the unit through the one write ==');
@@ -257,11 +263,11 @@ r = await page.evaluate(async play => {
   document.activeElement?.blur?.();
   document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1', key: '1', bubbles: true, cancelable: true }));
   await new Promise(res => setTimeout(res, 40));
-  const out = { stType: t.getPlay(play.id).tags.stType || '', unit: t.getPlay(play.id).tags.unit };
+  const out = { special: t.getPlay(play.id).specialTeams || null, unit: t.getPlay(play.id).tags.unit };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
 }, noUnit(92));
-ok(r.stType === '' && r.unit === undefined, 'CR-1: a digit on a play shown as Offense writes no Special Teams type', JSON.stringify(r));
+ok(r.special === null && r.unit === undefined, 'CR-1: a digit on a play shown as Offense writes no Special Teams unit', JSON.stringify(r));
 r = await page.evaluate(async play => {
   const app = window.app, t = app.tagger;
   t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'defense';

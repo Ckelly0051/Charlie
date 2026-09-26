@@ -59,7 +59,6 @@ export class PlayGrid {
     { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
     { key: 'coverageFamily', label: 'Cov Family', type: 'enum', src: 'tagCoverageFamily',      unit: 'defense' },
     { key: 'blitz',     label: 'Blitz',     type: 'enum', src: 'tagBlitz',     multi: true,   unit: 'defense' },
-    { key: 'stType',    label: 'ST Type',   type: 'enum', src: 'tagStType',                   unit: 'special' },
     { key: 'stUnit',    label: 'ST Unit',   type: 'st-readonly',                              unit: 'special' },
     { key: 'stOutcome', label: 'ST Outcome',type: 'st-readonly',                              unit: 'special' },
     { key: 'stKick',    label: 'Kick',      type: 'st-readonly',                              unit: 'special' },

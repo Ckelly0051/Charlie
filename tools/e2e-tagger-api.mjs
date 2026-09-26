@@ -90,6 +90,22 @@ const kb = await page.evaluate(async () => {
 ok(kb.down === '3' && kb.downCleared === '', 'Shift+3 sets 3rd down and a second press clears it', JSON.stringify(kb));
 ok(kb.types === 'Run Inside + RPO' && kb.typesAfter === 'RPO', 'R and Q build a multi-select play type; R again removes Run Inside', JSON.stringify(kb));
 ok(kb.result === 'Loss', 'L replaces its rival Gain', JSON.stringify(kb));
+console.log('\n== 4. Special Teams number keys set the unit (the old stType is retired) ==');
+const stk = await page.evaluate(async () => {
+  const app = window.app, t = app.tagger;
+  t.plays = [{ id: 40, timestamp: { start: 0, end: 4 }, notes: '', annotations: [], tags: t.constructor.blankTags({ unit: 'special' }) }];
+  t.selectPlay(40);
+  document.activeElement?.blur?.();
+  const key = code => document.body.dispatchEvent(new KeyboardEvent('keydown', { code, key: code.replace('Digit', ''), bubbles: true, cancelable: true }));
+  const tick = () => new Promise(res => setTimeout(res, 30));
+  key('Digit1'); await tick(); const one = t.getPlay(40).specialTeams?.unit || null;
+  key('Digit7'); await tick(); const seven = t.getPlay(40).specialTeams?.unit || null;
+  key('Digit9'); await tick(); const nine = t.getPlay(40).specialTeams?.unit || null;
+  return { one, seven, nine, stType: Object.prototype.hasOwnProperty.call(t.getPlay(40).tags, 'stType') };
+});
+ok(stk.one === 'kickoff' && stk.seven === 'try' && stk.nine === 'try' && !stk.stType,
+  '1 sets Kickoff, 7 sets Try, 9 (no unit) changes nothing, and no stType is written', JSON.stringify(stk));
+
 ok(!errors.length, 'no page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

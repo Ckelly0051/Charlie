@@ -53,6 +53,7 @@ import { CustomFieldsManager } from './custom-fields.js';
 import { CustomChips } from './custom-chips.js';
 import { TagLibrarySettings } from './tag-library-settings.js';
 import { BreakdownChartingService } from './breakdown-charting-service.js';
+import { SpecialTeamsModel } from './special-teams.js';
 import { PlayDiagram } from './play-diagram.js';
 import { MultiAngle } from './multi-angle.js';
 import { Updater } from './updater.js';
@@ -1361,13 +1362,16 @@ class App {
       return true;
     }
 
-    // In Special Teams mode, digits 1-9 pick the ST play type.
+    // In Special Teams mode, digits 1-8 pick the Special Teams unit, in the
+    // model's own order (SpecialTeamsModel.unitOptions): Kickoff, Kick Return,
+    // Punt, Punt Return / Block, Field Goal, Field Goal Block, Try, Defending a
+    // Try. The same write the deck's unit chips make; the old stType is retired.
     if (curUnit === 'special' && !e.shiftKey && /^Digit[1-9]$/.test(e.code)) {
-      const stTypes = ['Kickoff', 'Kick Return', 'Punt', 'Punt Return', 'Field Goal', 'XP', '2-Pt', 'Onside', 'Fake'];
+      const units = SpecialTeamsModel.unitOptions().map(([unit]) => unit);
       const n = parseInt(e.code.replace('Digit', ''), 10);
-      if (n >= 1 && n <= stTypes.length) {
+      if (n >= 1 && n <= units.length) {
         e.preventDefault();
-        this.tagger.toggleTagValue('stType', stTypes[n - 1]);
+        this.breakdownCharting?.setSpecialUnit?.(units[n - 1]);
         return true;
       }
     }

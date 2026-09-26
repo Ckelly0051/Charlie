@@ -57,7 +57,7 @@ export class PlayTagger {
       playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
       defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '',
       hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
-      driveNumber: String(driveNumber ?? ''), unit, stType: '',
+      driveNumber: String(driveNumber ?? ''), unit,
       players: {}, grades: {}, custom: [], customFields: {},
     };
   }
