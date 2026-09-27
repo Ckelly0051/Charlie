@@ -1,5 +1,25 @@
 # GridIron IQ Open Defects
 
+## Installed smoke, 1.12.0-103 (2026-09-27)
+
+Run on the installed build (checklist `SMOKE-1.12.0-103.md`). First launch:
+the storage-cleanup receipt and `giq_settings_format_2026_09_26` both read back
+with no failed step from a copy of the profile. Every other check run passed;
+details are in the smoke record.
+
+**S103-1 — Recover seasons showed a dead button — REPAIRED IN SOURCE
+(`c1e8d2b`), not yet in an installer.** The two mirror folders holding a bare
+pre-envelope `season.json` (`2025-st-joseph-mavericks-jv`,
+`2026-st-joseph-mavericks-jv`) listed as `Old format` with a `Recover` button
+that was disabled but styled like an enabled one; its reason lived in a `title`
+a disabled button never shows, so a click did nothing and said nothing. The rows
+also printed `0 games · 0 plays` for a file that was never read. An
+unrecoverable candidate now shows its reason as visible text and no button
+(`Saved in an old GridIron IQ format. It cannot be recovered.`, or `It cannot be
+recovered.`), and the scan reports unknown counts as `null`, which the row
+omits. Failing first: `e2e-native-mirror-recovery` 4 red, `e2e-season-format`
+1 red; green after (16/16, 43/43).
+
 ## Installed smoke, 1.12.0-102 (in progress, 2026-09-25)
 
 Findings logged as the coach lists them; no repair starts until the coach
