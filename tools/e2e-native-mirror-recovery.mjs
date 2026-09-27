@@ -91,8 +91,8 @@ await page.evaluate(() => {
   window.__scanResult = [
     { id: 'rec-valid', valid: true, name: 'Recovered Season', team: 'Recovery Test', gameCount: 3, playCount: 42, revision: '2026-01-01T00:00:00Z', timestamp: '2026-01-01T00:00:00Z', existsInCatalog: false },
     { id: 'rec-conflict', valid: true, name: 'Conflicting Season', team: 'Recovery Test', gameCount: 1, playCount: 5, revision: '2026-01-02T00:00:00Z', timestamp: '2026-01-02T00:00:00Z', existsInCatalog: true },
-    { id: 'rec-broken', valid: false, reason: 'checksum-mismatch', name: 'Corrupt Snapshot', team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog: false },
-    { id: 'rec-legacy', valid: false, reason: 'old-format', name: 'Old Format Season', team: 'Recovery Test', gameCount: 2, playCount: 18, revision: null, timestamp: null, existsInCatalog: false },
+    { id: 'rec-broken', valid: false, reason: 'checksum-mismatch', name: 'Corrupt Snapshot', team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog: false },
+    { id: 'rec-legacy', valid: false, reason: 'old-format', name: 'Old Format Season', team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog: false },
   ];
 });
 await page.evaluate(() => [...document.querySelectorAll('.library-overview-actions button')]
@@ -101,27 +101,33 @@ await page.waitForSelector('[data-overlay-id="team-hub-recover-seasons"]');
 r = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.gi-hub-recover-row')];
   const legacyRow = rows.find(row => row.textContent.includes('Old Format Season'));
-  const legacyButton = legacyRow?.querySelector('button');
+  const brokenRow = rows.find(row => row.textContent.includes('Corrupt Snapshot'));
+  const shown = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
   return {
     count: rows.length,
     names: rows.map(row => row.querySelector('strong')?.textContent),
-    brokenDisabled: rows.find(row => row.textContent.includes('Corrupt Snapshot'))?.querySelector('button')?.disabled,
+    brokenButtons: brokenRow?.querySelectorAll('button').length,
+    brokenReason: shown(brokenRow?.querySelector('.gi-hub-recover-reason')) ? brokenRow.querySelector('.gi-hub-recover-reason').textContent : null,
     legacyLabel: legacyRow?.querySelector('.gi-hub-recover-state')?.textContent,
-    legacyDisabled: legacyButton?.disabled,
-    legacyHint: legacyButton?.title,
+    legacyButtons: legacyRow?.querySelectorAll('button').length,
+    legacyReason: shown(legacyRow?.querySelector('.gi-hub-recover-reason')) ? legacyRow.querySelector('.gi-hub-recover-reason').textContent : null,
+    legacyMeta: legacyRow?.querySelector('small')?.textContent,
+    validMeta: rows.find(row => row.textContent.includes('Recovered Season'))?.querySelector('small')?.textContent,
   };
 });
 ok(r.count === 4 && r.names.join('|') === 'Recovered Season|Conflicting Season|Corrupt Snapshot|Old Format Season',
   'every scanned candidate renders as its own row, in scan order', JSON.stringify(r));
-ok(r.brokenDisabled === true, 'an invalid (checksum-mismatch) candidate\'s Recover control is disabled -- it cannot be imported', JSON.stringify(r));
-// ---- 4b. An old-format candidate (a bare pre-envelope snapshot among them)
-// candidate (no checksum, no validated identity) stays VISIBLE -- the coach
-// can see the file exists -- but its Recover control is disabled, not a
-// one-click importable action, until a permissioned migration path can give
-// it a real integrity check.
+// ---- 4b. A candidate that cannot be recovered stays VISIBLE -- the coach can
+// see the file exists -- and offers NO action. Installed smoke 1.12.0-103,
+// S103-1: a disabled Recover button looked identical to an enabled one, and its
+// reason lived in a `title` that a disabled button never shows, so clicking it
+// did nothing and said nothing. The reason is now visible text in the row.
+ok(r.brokenButtons === 0 && r.brokenReason === 'It cannot be recovered.', 'an invalid (checksum-mismatch) candidate offers no Recover control and says so in visible text', JSON.stringify(r));
 ok(r.legacyLabel === 'Old format', 'an old-format candidate is plainly labeled, not silently hidden', JSON.stringify(r));
-ok(r.legacyDisabled === true, 'an old-format candidate\'s Recover control is disabled -- it cannot be imported', JSON.stringify(r));
-ok(r.legacyHint === 'Saved in an old GridIron IQ format. It cannot be recovered.', 'the disabled control says why, plainly', JSON.stringify(r));
+ok(r.legacyButtons === 0, 'an old-format candidate offers no Recover control -- it cannot be imported', JSON.stringify(r));
+ok(r.legacyReason === 'Saved in an old GridIron IQ format. It cannot be recovered.', 'the old-format row says why in visible text, plainly', JSON.stringify(r));
+ok(!r.legacyMeta && /Recovery Test · 3 games · 42 plays/.test(r.validMeta || ''),
+  'unknown counts print nothing (never "0 games" or "null"); known counts still print', JSON.stringify(r));
 r = await page.evaluate(() => window.__recoverCalls.length);
 ok(r === 0, 'clicking near a disabled legacy row never invokes recoverSeasonFromMirror at all', String(r));
 

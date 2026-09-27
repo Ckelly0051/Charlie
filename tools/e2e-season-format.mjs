@@ -72,6 +72,13 @@ console.log('\n== 2. Mirror recovery and first-run import refuse old seasons =='
     'recovering an old mirror copy is refused before any catalog lookup or write', JSON.stringify({ rec, catalogTouched }));
   const scan = await TauriBackend.prototype.scanRecoverableSeasons.call(fakeThis);
   ok(scan.length === 1 && scan[0].valid === false && scan[0].reason === 'old-format', 'the recovery list shows it as Old format, not recoverable', JSON.stringify(scan));
+  // A bare pre-envelope season.json (the shape the coach's two oldest mirror
+  // folders hold) is not read, so its counts are unknown -- never a measured 0
+  // (installed smoke 1.12.0-103, S103-1).
+  const bareThis = { ...fakeThis, fs: { ...fakeThis.fs, readTextFile: async () => JSON.stringify(old) } };
+  const bare = await TauriBackend.prototype.scanRecoverableSeasons.call(bareThis);
+  ok(bare.length === 1 && bare[0].reason === 'old-format' && bare[0].gameCount === null && bare[0].playCount === null,
+    'a bare pre-envelope mirror copy is Old format with unknown counts, not 0 games and 0 plays', JSON.stringify(bare));
 
   const SQL = await (await import('sql.js')).default();
   const cat = new SqlCatalog(SQL); await cat.open();

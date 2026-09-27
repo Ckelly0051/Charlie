@@ -671,7 +671,8 @@ export class TauriBackend extends StorageBackend {
           revision: envelope.revision, timestamp: envelope.timestamp, existsInCatalog,
         });
       } else {
-        out.push({ id, valid: false, reason: result.reason, name: id, team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog });
+        // Not read, so its counts are unknown -- never a measured 0 (S103-1).
+        out.push({ id, valid: false, reason: result.reason, name: id, team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog });
       }
     }
     return out;

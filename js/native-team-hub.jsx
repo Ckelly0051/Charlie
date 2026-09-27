@@ -273,11 +273,13 @@ function RecoverCandidate({ candidate, onRecover }) {
     : candidate.reason === 'old-format' ? 'Old format'
     : `Not recoverable (${candidate.reason || 'unreadable'})`;
   // Every invalid candidate stays VISIBLE, so the coach knows the file exists,
-  // and is not recoverable.
-  const disabled = !candidate.valid;
-  const disabledHint = disabled && candidate.reason === 'old-format'
-      ? 'Saved in an old GridIron IQ format. It cannot be recovered.'
-      : undefined;
+  // and offers no action: the reason is visible text in the row. A disabled
+  // Recover button looked enabled and kept its reason in a `title` a disabled
+  // button never shows (installed smoke 1.12.0-103, S103-1).
+  const reason = candidate.valid ? null
+    : candidate.reason === 'old-format' ? 'Saved in an old GridIron IQ format. It cannot be recovered.'
+    : 'It cannot be recovered.';
+  const count = (n, noun) => Number.isFinite(n) ? `${n} ${noun}${n === 1 ? '' : 's'}` : null;
   const run = async (confirmOverwrite) => {
     setState('busy'); setError('');
     const result = await onRecover(candidate, confirmOverwrite);
@@ -288,10 +290,11 @@ function RecoverCandidate({ candidate, onRecover }) {
   return <article class={`gi-hub-recover-row is-${candidate.valid ? 'valid' : 'invalid'}`}>
     <div class="gi-hub-recover-main">
       <strong>{candidate.name}</strong>
-      <small>{[candidate.team, `${candidate.gameCount} game${candidate.gameCount === 1 ? '' : 's'}`, `${candidate.playCount} play${candidate.playCount === 1 ? '' : 's'}`, formatDate(candidate.timestamp)].filter(Boolean).join(' · ')}</small>
+      <small>{[candidate.team, count(candidate.gameCount, 'game'), count(candidate.playCount, 'play'), candidate.timestamp && formatDate(candidate.timestamp)].filter(Boolean).join(' · ')}</small>
       <span class={`gi-hub-recover-state is-${candidate.valid ? 'ok' : 'warn'}`}>{label}</span>
     </div>
-    {state === 'confirming'
+    {reason ? <p class="gi-hub-recover-reason">{reason}</p>
+      : state === 'confirming'
       ? <div class="gi-hub-recover-confirm">
           <p>A season with this id is already in your library. Recovering will overwrite it.</p>
           <button onClick={() => setState('idle')}>Cancel</button>
@@ -299,7 +302,7 @@ function RecoverCandidate({ candidate, onRecover }) {
         </div>
       : <div class="gi-hub-recover-actions">
           {state === 'recovered' ? <span class="gi-hub-recover-done">Recovered</span>
-            : <button disabled={disabled || state === 'busy'} title={disabledHint} onClick={click}>{state === 'busy' ? 'Recovering…' : candidate.existsInCatalog ? 'Recover (overwrite)' : 'Recover'}</button>}
+            : <button disabled={state === 'busy'} onClick={click}>{state === 'busy' ? 'Recovering…' : candidate.existsInCatalog ? 'Recover (overwrite)' : 'Recover'}</button>}
           {error && <p class="gi-hub-error" role="alert">{error}</p>}
         </div>}
   </article>;

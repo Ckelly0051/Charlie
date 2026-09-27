@@ -49,6 +49,7 @@
 .gi-hub-recover-state.is-ok{background:color-mix(in srgb,var(--gi-ok) 18%,transparent);color:var(--gi-ok)}
 .gi-hub-recover-state.is-warn{background:var(--gi-warn-surface);color:var(--gi-warn)}
 .gi-hub-recover-actions{display:flex;align-items:center;gap:var(--gi-2x);flex-shrink:0}
+.gi-hub-recover-reason{margin:0;flex:0 1 auto;max-width:380px;color:var(--gi-11);font-size:12.5px;line-height:1.35;text-align:right}
 .gi-hub-recover-done{color:var(--gi-ok);font:700 12px/1 var(--gi-sans)}
 .gi-hub-recover-confirm{display:flex;align-items:center;gap:var(--gi-2x);flex-shrink:0}.gi-hub-recover-confirm p{margin:0;color:var(--gi-11);font-size:12px;max-width:220px}
 @media(max-width:900px){.gi-hub-head,.gi-hub-teambar,.gi-hub-body{padding-left:var(--gi-4x);padding-right:var(--gi-4x)}.gi-hub-season-summary{grid-template-columns:64px minmax(170px,1fr) 128px}.gi-hub-film{grid-column:2/4}.gi-hub-season-actions{flex-direction:column;justify-content:center;padding-left:0}.gi-hub-season-actions button{width:100%;margin-left:0}}
