@@ -25,14 +25,16 @@ export class CustomFieldsManager {
 
   static KEY = 'ffa_custom_fields';
 
+  /** The stored text; the one read of this key (load and write verification). */
+  _readStored() { return localStorage.getItem(CustomFieldsManager.KEY); }
   _load() {
-    try { return JSON.parse(localStorage.getItem(CustomFieldsManager.KEY) || '[]') || []; }
+    try { return JSON.parse(this._readStored() || '[]') || []; }
     catch { return []; }
   }
   /** Write `defs` and read it back. True only when storage holds exactly it. */
   _persist(defs) {
     const text = JSON.stringify(defs);
-    try { localStorage.setItem(CustomFieldsManager.KEY, text); return localStorage.getItem(CustomFieldsManager.KEY) === text; }
+    try { localStorage.setItem(CustomFieldsManager.KEY, text); return this._readStored() === text; }
     catch { return false; }
   }
   newId() { return 'cf_' + Math.random().toString(36).slice(2, 8); }
