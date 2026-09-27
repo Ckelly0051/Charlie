@@ -66,9 +66,10 @@ impact report and the coach's explicit confirmation (binding data rules).
 
 ## Three passes (coach, 2026-09-25: the seven phases are cut to three)
 
-Pass 0 is done. Passes 1 and 2 are the work that matters; Pass 3 is optional.
+**Status 2026-09-27: Passes 0, 1, 2 and 2b are done** (installed smoke `1.12.0-103`
+passed; the one-time modules were then deleted). Pass 3 is optional and not started.
 
-**Pass 0 — Guardrails and inventory (no product change). BUILT, pending the full gate.**
+**Pass 0 — Guardrails and inventory (no product change). DONE; in every full gate since `ac893b5`.**
 Build `compare-builds.mjs` and `e2e-legacy-roundtrip`; add
 `tools/audit-legacy.mjs`, a read-only scan that regenerates the table above
 (unreferenced names, inline unit readings, fake-field reads, localStorage keys,
@@ -76,8 +77,7 @@ Build `compare-builds.mjs` and `e2e-legacy-roundtrip`; add
 copy) so progress is measured, not asserted.
 *Done when:* all three run in the gate and the inventory matches this table.
 
-**Built 2026-09-25 (`aa27da9`), awaiting Codex review; full gate not yet run
-with the two new harnesses.**
+**Built 2026-09-25 (`aa27da9`); Codex-reviewed; gated with Pass 1.**
 - `tools/audit-legacy.mjs` — the read-only inventory (`--live` reads a copy
   of the installed catalog and confirms its hash is unchanged). Baseline in
   `tools/legacy-inventory-baseline.json`: 41 dead-name candidates, 1 orphan
@@ -171,8 +171,9 @@ history is needed.
    Converted automatically, no hand work: the 7 certain legacy Special Teams plays,
    22 combined formations, 14 extra points on the Field Goal unit, and 33 blank
    uncharted SJM Varsity 2026 plays with no unit (clip-import LG-1; they take Offense
-   like any new play). Coach decision pending: whether general yards on legacy
-   return plays become return yards.
+   like any new play). The open question about general yards on legacy return
+   plays was settled by the coach's rule below: convert only what maps exactly,
+   blank the rest and log it.
 **Steps 2-5 DONE 2026-09-26.** The coach replaced the hand fixes with one rule: convert what
    maps exactly, blank the rest and log it (`docs/LEGACY-RECHART-LIST.md`, 20 plays). The
    live catalog was converted by `tools/convert-legacy-once.mjs` (`71761f5`, three Codex
@@ -215,9 +216,9 @@ history is needed.
    structural check is the whole test, because the converted catalog carries no
    marker and stamping one would have been a second write to coach data.
    `e2e-season-format` (20) pins it.
-   **Open decision before step 7:** the Reports real-data harnesses read the
-   Documents-mirror copy of 2025 JV (`CANONICAL_SEASON`, 449 plays, old format).
-   Once the old readers are deleted they would read it raw.
+   **Decided before step 7 (coach, 2026-09-26, `b84e207`):** the Reports
+   real-data harnesses read a converted current-format fixture
+   (`tools/canonical-season.mjs`) instead of the old-format Documents-mirror copy.
 6. **Refuse old files before any mutation** (Codex P2-8): a post-conversion format
    marker written by every save, plus structural validation, checked ahead of
    every import, restore, version restore and recovery path — before a scaffold
@@ -316,8 +317,10 @@ left (ratchet count `legacySettingsReaders` to 0).
 **Pass 3 — Optional, when the coach wants it (was Phases 4 and 6).**
 - Settings out of localStorage into the catalog (ends the 5 MB failure class,
   lets settings travel with a season, unblocks the mobile companion).
-- The four remaining old-style screens (roster, custom fields, scoreboard
-  reading, auto-detect) rebuilt in Preact; `window.app` lookups made explicit.
+- `window.app` lookups made explicit. (Checked 2026-09-27: roster and custom
+  fields are already native, and their old renderers wrote into elements that no
+  longer exist — deleted as dead code. What remains: the auto-detect Review dialog
+  is hand-built outside the overlay service, and scoreboard reading has no UI.)
 
 **After the passes (coach, 2026-09-25): precision and efficiency.** Once the old
 stuff is gone, the next work is making what remains lean: consolidating the four

@@ -2463,29 +2463,19 @@ Breakdown film-state defects above.
    formal production acceptance. The registry audit can now inspect all nine
    surfaces.
 
-4. **Dead code outside Break Down, inventoried 2026-09-24, not yet removed.**
-   A static scan (names defined and referenced nowhere else in `js/` or
-   `tools/`; each needs a check for dynamic use before deletion; the whole
-   `js/report-visual-data.js` is already deleted): `native-report-tabs.jsx`
-   `SparseModule`, `SpecialTeamsPlayerTable`, `OFFENSE_MODULES`,
-   `PLAYER_HALF_1280`, `PLAYER_GAME_CELL`, `PLAYER_SITU_HEAD`;
-   `native-report-kit.jsx` `Gauge`, `DefMark`; `reports-view.js` `gamePlan`,
-   `offenseHero`; `charts.js` `rampBars`, `donutBlock`, `donutWithLegend`,
-   `stackBar`, `trendLine`; `stats-engine.js` `_watchPlayer`, `_meterColor`,
-   `_verdictIcon`, `_verdictLabel`, `topPlaysByYards`, `RUN_COLOR`,
-   `PASS_COLOR`; `video-controller.js` `setLoopA`, `setLoopB`,
-   `setFrameRate`; `canvas-overlay.js` `toCanvas`, `_toCtx`,
-   `clearAnnotationsForTime`; `play-detector.js` `saveROI`; `app._setVal`,
-   `app._applyTrackedScore`, `home-screen.openBreakdown`,
-   `play-filter.clearAll`, `play-tagger.registerChip` / `unregisterChip`,
-   `storage.setSeasonName` / `bindBackupFolder`, `tag-library.replaceCustom`,
-   `workspace-shell.restoreRouteVisibility`, `ui-polish._activeFilmGame`. The
-   three Break Down ones (`_ordinal`, `toggleStrip`, `setPerspective`) were
-   deleted in `05560c1`. The legacy data readers listed here then (Special
-   Teams `stType`, field-goal-unit extra points, per-game rosters, the old
-   Film Room column keys) were deleted by the legacy excision (2026-09-26).
-   Not dead: `polarityOf`, `listMeasures`, `listBlocks`, `matchingRefs`, which
-   harnesses call.
+4. **Dead code outside Break Down — CLOSED.** The 2026-09-24 inventory (about
+   40 names across the Reports views, `charts.js`, `stats-engine.js`, the video
+   and canvas layers, `app.js`, `storage.js` and `js/report-visual-data.js`)
+   was removed by legacy excision Pass 1 (2026-09-25); a re-check on 2026-09-27
+   found none of those names in `js/`. The legacy readers named alongside it were
+   deleted in Pass 2. Still used, not dead: `polarityOf`, `listMeasures`,
+   `listBlocks`, `matchingRefs`. The full list is in this file's git history.
+   **Found 2026-09-27, handled separately:** old renderers whose host elements no
+   longer exist (roster list and quick pick, custom-field inputs and manager,
+   the scoreboard-reading preview) — deleted 2026-09-27; see below. The
+   scoreboard reader has no UI at all (a keep-or-remove decision for the coach),
+   and the auto-detect Review dialog is still hand-built outside the overlay
+   service.
 5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
    (a) Break Down was five mounted roots kept in step by events — rebuilt
    (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87
