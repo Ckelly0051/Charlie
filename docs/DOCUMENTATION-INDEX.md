@@ -42,6 +42,10 @@ This section is the one place release state is kept current.
   one-time storage cleanup and settings conversion ran on the installed profile
   (receipts read back 2026-09-27) and their modules are deleted in source
   (after `1.12.0-104`; not yet in an installer).
+- Source after `1.12.0-104` (not in an installer): the efficiency-audit slim-down,
+  the one-time modules and dead renderers deleted, the custom-field editor rebuilt
+  on the overlay service. **Full gate 135/135 at `b399516`** (the first run at
+  `8455e61` was 134/135, a ratchet rise repaired in `b399516`).
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports
