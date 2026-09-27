@@ -11,6 +11,7 @@
 .gi-custom-fields button:focus-visible,.gi-custom-fields input:focus-visible{outline:2px solid var(--gi-10);outline-offset:2px}
 .gi-custom-fields button.is-primary{border-color:var(--gi-10);background:var(--gi-9);color:var(--gi-on-solid)}
 .gi-custom-fields button.is-primary:hover{background:var(--gi-10)}
+.gi-custom-fields-error{margin:0;padding:10px 12px;border-left:3px solid var(--gi-turnover);background:var(--gi-danger-surface);color:var(--gi-12);font-size:12.5px}
 .gi-custom-fields-actions{display:flex;align-items:center;gap:9px}
 .gi-custom-fields-actions>span{flex:1}
 @media(max-width:700px){.gi-custom-fields-row{grid-template-columns:1fr}.gi-custom-fields-row+.gi-custom-fields-row{padding-top:12px;border-top:1px solid var(--gi-6)}.gi-custom-fields-actions{flex-wrap:wrap}.gi-custom-fields-actions button{flex:1}}

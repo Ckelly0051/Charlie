@@ -29,21 +29,28 @@ export class CustomFieldsManager {
     try { return JSON.parse(localStorage.getItem(CustomFieldsManager.KEY) || '[]') || []; }
     catch { return []; }
   }
-  _save() {
-    try { localStorage.setItem(CustomFieldsManager.KEY, JSON.stringify(this.defs)); } catch {}
+  /** Write `defs` and read it back. True only when storage holds exactly it. */
+  _persist(defs) {
+    const text = JSON.stringify(defs);
+    try { localStorage.setItem(CustomFieldsManager.KEY, text); return localStorage.getItem(CustomFieldsManager.KEY) === text; }
+    catch { return false; }
   }
   newId() { return 'cf_' + Math.random().toString(36).slice(2, 8); }
 
   /** Replace the definitions from editor rows ({ id, name, options: string }).
-   *  A row with no name is dropped; options are comma-separated, blank = text. */
+   *  A row with no name is dropped; options are comma-separated, blank = text.
+   *  Nothing changes in memory unless storage verifiably holds the new set, so
+   *  a charted value can never reference a field that vanishes on restart.
+   *  Returns true on a verified save, false on a failed write. */
   saveDefs(rows) {
-    this.defs = (rows || []).map(row => ({
+    const next = (rows || []).map(row => ({
       id: row.id || this.newId(),
       name: String(row.name || '').trim(),
       options: String(row.options || '').split(',').map(v => v.trim()).filter(Boolean),
     })).filter(def => def.name);
-    this._save();
-    return this.defs;
+    if (!this._persist(next)) return false;
+    this.defs = next;
+    return true;
   }
 
   _write(id, value) {

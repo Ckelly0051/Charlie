@@ -2488,7 +2488,11 @@ Breakdown film-state defects above.
      (`native-custom-fields.jsx`, a modal sheet; `e2e-custom-fields` 14,
      mutation-verified): Save stores the fields and the deck shows them at once
      (the old dialog never refreshed the deck), Escape and Cancel write nothing,
-     a nameless row is dropped, focus returns to the button.
+     a nameless row is dropped, focus returns to the button. Codex review of
+     `dc4328c` (P2): a failed write still replaced the fields in memory and
+     announced success; the save now reads storage back before changing memory,
+     and a failure keeps the sheet and draft open with an error and no toast
+     (4 regression checks, red first; 18/18).
    - **Still hand-built:** the auto-detect Review dialog
      (`AutoDetectScreen.openReview`); works, but outside the overlay spec's
      focus and Escape rules.

@@ -8,6 +8,9 @@ export function NativeCustomFields({ manager, onClose }) {
   const update = (index, key, value) => setDraft(rows => rows.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
   const remove = index => setDraft(rows => rows.filter((_, i) => i !== index));
   const add = () => setDraft(rows => [...rows, { id: manager.newId(), name: '', options: '' }]);
+  const [error, setError] = useState('');
+  // A failed write keeps the sheet and the draft; nothing is claimed.
+  const save = () => { if (manager.saveDefs(draft)) onClose('saved'); else setError('Custom fields could not be saved. Storage is full or unavailable; the draft is kept.'); };
   return <div class="gi-custom-fields" data-custom-fields>
     <p class="gi-custom-fields-intro">A field with options charts as chips; a field without options charts as text.</p>
     {draft.length
@@ -19,11 +22,12 @@ export function NativeCustomFields({ manager, onClose }) {
           </div>)}
         </div>
       : <p class="gi-custom-fields-empty">No custom fields.</p>}
+    {error && <p class="gi-custom-fields-error" role="alert" data-custom-fields-error>{error}</p>}
     <div class="gi-custom-fields-actions">
       <button type="button" onClick={add} data-custom-field-add>Add field</button>
       <span />
       <button type="button" onClick={() => onClose('cancel')} data-custom-fields-cancel>Cancel</button>
-      <button type="button" class="is-primary" onClick={() => { manager.saveDefs(draft); onClose('saved'); }} data-custom-fields-save>Save</button>
+      <button type="button" class="is-primary" onClick={save} data-custom-fields-save>Save</button>
     </div>
   </div>;
 }

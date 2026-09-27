@@ -51,8 +51,8 @@ const open = async () => {
     await summary.click(); await settle(page);
   }
   const btn = await editButton();
-  await btn.evaluate(b => b.scrollIntoView({ block: 'center' }));
-  await btn.click();
+  // A toast from the previous save can sit over the button; activate it directly.
+  await btn.evaluate(b => { b.scrollIntoView({ block: 'center' }); b.focus(); b.click(); });
   await page.waitForSelector('[data-overlay-id="custom-fields"] [data-custom-fields]', { timeout: 5000 });
   await settle(page);
 };
@@ -116,6 +116,32 @@ ok(after.length === 1 && after[0].id === defs[0].id, 'a removed field is gone af
 await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Tempo Cold')?.click()); await settle(page);
 r = await page.evaluate(id => window.app.tagger.getPlay(1)?.tags?.customFields?.[id], defs[0].id);
 ok(r === 'Tempo Cold', 'a custom chip writes the play value', String(r));
+
+console.log('\n== 5. A failed write keeps the sheet and draft open and claims nothing (Codex, dc4328c) ==');
+const before = await stored();
+await page.evaluate(() => {
+  const real = Storage.prototype.setItem;
+  window.__restoreSetItem = () => { Storage.prototype.setItem = real; };
+  Storage.prototype.setItem = function (k, v) { if (k === 'ffa_custom_fields') throw new DOMException('full', 'QuotaExceededError'); return real.call(this, k, v); };
+});
+await open();
+await page.click('[data-custom-field-add]'); await settle(page);
+await typeInto('[data-custom-field-row]:nth-of-type(2) [data-custom-field-name]', 'Unsaved field');
+const toastsBefore = await page.evaluate(() => (document.body.textContent.match(/Custom fields saved/g) || []).length);
+await page.click('[data-custom-fields-save]'); await settle(page);
+r = await page.evaluate(() => ({
+  open: !!document.querySelector('[data-overlay-id="custom-fields"] [data-custom-fields]'),
+  error: document.querySelector('[data-custom-fields-error]')?.textContent.trim() || '',
+  draft: [...document.querySelectorAll('[data-custom-field-name]')].map(i => i.value),
+  toasts: (document.body.textContent.match(/Custom fields saved/g) || []).length,
+  defs: window.app.customFields.defs.map(d => d.name),
+}));
+await page.evaluate(() => window.__restoreSetItem());
+ok(r.open && /could not be saved/i.test(r.error) && r.draft.includes('Unsaved field'), 'the sheet stays open with the draft and a plain error', JSON.stringify(r));
+ok(r.defs.join('|') === before.map(d => d.name).join('|') && JSON.stringify(await stored()) === JSON.stringify(before), 'the definitions in memory and in storage are unchanged', JSON.stringify(r.defs));
+ok(r.toasts === toastsBefore, 'no success toast is shown for a failed save', JSON.stringify(r));
+await page.click('[data-custom-fields-save]'); await settle(page);
+ok(!(await page.$('[data-overlay-id="custom-fields"]')) && (await stored()).some(d => d.name === 'Unsaved field'), 'once storage works, Save from the same draft succeeds');
 
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
