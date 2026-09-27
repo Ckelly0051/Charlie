@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-09-27 (the one-time storage cleanup and settings conversion are deleted)",
+  "recorded": "2026-09-27 (one-time modules and the dead roster / custom-field / OCR renderers deleted)",
   "note": "Phase 0 baseline (docs/LEGACY-EXCISION-PLAN.md). Counts may only fall; lower them here in the commit that removes legacy code.",
   "counts": {
     "deadNames": 0,
@@ -16,7 +16,7 @@
     "legacyLayoutReaders": 0,
     "localStorageCalls": 86,
     "windowAppRefs": 73,
-    "innerHtmlSinks": 38,
+    "innerHtmlSinks": 31,
     "statsEngineLines": 6731
   },
   "deadNames": [],

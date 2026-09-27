@@ -8,22 +8,17 @@
  * so they travel with the project save and appear in CSV export.
  *
  * Field def shape: { id, name, options: string[] }  (options empty => text)
+ *
+ * The charting deck renders the per-play inputs (native-tagging.jsx) and writes
+ * through `_write`; its "Edit custom fields" button opens `openManager`, which
+ * is still a hand-built dialog outside the overlay service. The old per-play
+ * input renderer wrote into elements that no longer exist and was deleted
+ * 2026-09-27.
  */
 export class CustomFieldsManager {
   constructor(tagger) {
     this.tagger = tagger;
     this.defs = this._load();
-
-    this.container = document.getElementById('tagCustomFields');   // per-play inputs
-    this.section = document.getElementById('customFieldsSection');
-    this.btnEdit = document.getElementById('btnEditCustomFields');
-
-    if (this.btnEdit) this.btnEdit.addEventListener('click', () => this.openManager());
-
-    // Re-render per-play inputs whenever the form loads a play.
-    this.tagger.on && this.tagger.on('play-selected', () => this.loadValues(this.tagger.getCurrentPlay()));
-
-    this.renderInputs();
   }
 
   static KEY = 'ffa_custom_fields';
@@ -36,61 +31,6 @@ export class CustomFieldsManager {
     try { localStorage.setItem(CustomFieldsManager.KEY, JSON.stringify(this.defs)); } catch {}
   }
   _uid() { return 'cf_' + Math.random().toString(36).slice(2, 8); }
-
-  /** Render the per-play inputs (chips / text) into the tag form. */
-  renderInputs() {
-    if (!this.container) return;
-    if (!this.defs.length) {
-      if (this.section) this.section.classList.add('cf-empty');
-      this.container.innerHTML = '';
-      return;
-    }
-    if (this.section) this.section.classList.remove('cf-empty');
-
-    this.container.innerHTML = this.defs.map(d => {
-      if (d.options && d.options.length) {
-        const chips = d.options.map(o =>
-          `<button class="pick" type="button" data-cf="${d.id}" data-value="${this._attr(o)}">${this._esc(o)}</button>`
-        ).join('');
-        return `<div class="cf-field"><label class="chip-label">${this._esc(d.name)}</label>
-          <div class="pick-group cf-picks" data-cf-group="${d.id}">${chips}</div></div>`;
-      }
-      return `<div class="cf-field"><label class="chip-label">${this._esc(d.name)}</label>
-        <input type="text" class="cf-text" data-cf="${d.id}" placeholder="${this._attr(d.name)}…"></div>`;
-    }).join('');
-
-    // Wire chip toggles
-    this.container.querySelectorAll('.cf-picks .pick').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.cf;
-        const group = btn.parentElement;
-        const wasActive = btn.classList.contains('active');
-        group.querySelectorAll('.pick').forEach(b => b.classList.remove('active'));
-        if (!wasActive) btn.classList.add('active');
-        this._write(id, wasActive ? '' : btn.dataset.value);
-      });
-    });
-    // Wire text inputs
-    this.container.querySelectorAll('.cf-text').forEach(inp => {
-      inp.addEventListener('change', () => this._write(inp.dataset.cf, inp.value.trim()));
-    });
-
-    this.loadValues(this.tagger.getCurrentPlay && this.tagger.getCurrentPlay());
-  }
-
-  /** Reflect a play's stored custom values into the inputs. */
-  loadValues(play) {
-    if (!this.container) return;
-    const vals = (play && play.tags && play.tags.customFields) || {};
-    this.container.querySelectorAll('.cf-picks').forEach(group => {
-      const id = group.dataset.cfGroup;
-      const v = vals[id] || '';
-      group.querySelectorAll('.pick').forEach(b => b.classList.toggle('active', b.dataset.value === v));
-    });
-    this.container.querySelectorAll('.cf-text').forEach(inp => {
-      inp.value = vals[inp.dataset.cf] || '';
-    });
-  }
 
   _write(id, value) {
     const play = this.tagger.getCurrentPlay && this.tagger.getCurrentPlay();
@@ -160,7 +100,6 @@ export class CustomFieldsManager {
           }))
           .filter(d => d.name);
         this._save();
-        this.renderInputs();
         close();
       }
     });

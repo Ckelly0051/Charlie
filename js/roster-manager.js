@@ -1,11 +1,13 @@
 import { SpecialTeamsModel } from './special-teams.js';
 /**
- * RosterManager — team roster + player attribution helper.
+ * RosterManager — the team roster and the charting deck's active player role.
  *
- * Owns the roster (jersey #, name, position, side) and the "quick-pick"
- * jersey chip bar in the tag form. Clicking a chip stamps the currently
- * focused player-role input (Ball Carrier / Passer / Receiver / Tackler),
- * so a coach can attribute players to a play in a couple of taps.
+ * Owns the roster (jersey #, name, position, side), CSV/paste import and the
+ * depth-chart print, all driven from Settings > Roster, and the role the deck's
+ * player chips stamp (`activeRole`, defaulted from the selected play's unit).
+ * The deck itself renders the chips (native-tagging.jsx). The old imperative
+ * roster list, quick-pick bar and add/import forms wrote into elements that no
+ * longer exist and were deleted 2026-09-27.
  *
  * The active season owns the roster. StorageManager hydrates this service when
  * a season opens and writes edits back to that season. Per-play attribution
@@ -17,35 +19,12 @@ export class RosterManager {
     this.players = [];           // [{ num, name, pos, side }] side: 'O'|'D'|'B'
     this.activeRole = 'ballCarrier';
 
-    // Roster panel elements
-    this.listEl = document.getElementById('rosterList');
-    this.numInput = document.getElementById('rosterNum');
-    this.nameInput = document.getElementById('rosterName');
-    this.posInput = document.getElementById('rosterPos');
-    this.sideInput = document.getElementById('rosterSide');
-    this.addBtn = document.getElementById('btnAddPlayer');
-
-    // Quick-pick bar in the tag form + the role inputs it stamps
-    this.quickPickEl = document.getElementById('rosterQuickPick');
-    this.roleInputs = {
-      ballCarrier: document.getElementById('tagPlayerBC'),
-      passer: document.getElementById('tagPlayerPasser'),
-      receiver: document.getElementById('tagPlayerReceiver'),
-      tackler: document.getElementById('tagPlayerTackler'),
-      takeaway: document.getElementById('tagPlayerTakeaway'),
-      kicker: document.getElementById('tagPlayerKicker'),
-      returner: document.getElementById('tagPlayerReturner'),
-    };
     // Roles that accept multiple jersey #s (e.g. shared/assisted tackles).
     // Stamping toggles membership in a comma-separated list instead of
     // replacing the single value.
     this.multiRoles = new Set(['tackler']);
 
     this._bind();
-    this._bindImport();
-    document.getElementById('btnDepthChart')?.addEventListener('click', () => this.exportDepthChart());
-    this.renderList();
-    this.renderQuickPick();
   }
 
   /**
@@ -92,30 +71,12 @@ export class RosterManager {
   }
 
   _bind() {
-    if (this.addBtn) {
-      this.addBtn.addEventListener('click', () => this._addFromForm());
-    }
-    // Enter in any add-field commits the player
-    [this.numInput, this.nameInput, this.posInput].forEach(el => {
-      if (el) el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); this._addFromForm(); }
-      });
-    });
-
-    // Track which role the roster chips will stamp (last focused input).
-    for (const [role, el] of Object.entries(this.roleInputs)) {
-      if (!el) continue;
-      el.addEventListener('focus', () => { this.activeRole = role; this._markActiveRole(); });
-    }
-
-    // Refresh chip highlights when a different play is selected, and default
-    // the stamped role to the play's unit (defense → tackler, ST → kicker/
-    // returner) — otherwise every defensive series silently stamps Ball
-    // Carrier until the coach remembers to tap the Tackler input first.
+    // Default the stamped role to the play's unit (defense → tackler, ST →
+    // kicker/returner) — otherwise every defensive series silently stamps Ball
+    // Carrier until the coach remembers to pick the Tackler role first.
     if (this.tagger) {
       this.tagger.on('play-selected', (play) => {
         this._defaultRoleForUnit(play?.tags?.unit);
-        this.refreshActiveChips();
       });
       this.tagger.on('play-updated', (play) => {
         // Unit toggle changes arrive as play-updated; follow them too.
@@ -126,8 +87,7 @@ export class RosterManager {
     }
   }
 
-  /** Pick the natural stamping role for the play's unit, unless the coach has
-   *  explicitly focused a role input on this play (focus always wins). */
+  /** Pick the natural stamping role for the play's unit. */
   _defaultRoleForUnit(unit) {
     // Defense with an INT/Fumble result → the next # the coach taps is almost
     // always the defender who made the takeaway, not a tackler.
@@ -136,29 +96,10 @@ export class RosterManager {
     const wanted = unit === 'defense' ? (turnover ? 'takeaway' : 'tackler')
       : unit === 'special' ? (/Return$/.test(SpecialTeamsModel.normalize(cur?.specialTeams)?.unit || '') ? 'returner' : 'kicker')
       : 'ballCarrier';
-    if (this.activeRole === wanted) return;
-    // Don't fight an input the coach is actively typing in.
-    const focused = document.activeElement;
-    if (focused && Object.values(this.roleInputs).includes(focused)) return;
     this.activeRole = wanted;
-    this._markActiveRole();
   }
 
   // --- Roster CRUD ---
-
-  _addFromForm() {
-    const num = (this.numInput?.value || '').trim();
-    if (!num) { this.numInput?.focus(); return; }
-    const name = (this.nameInput?.value || '').trim();
-    const pos = (this.posInput?.value || '').trim();
-    const side = this.sideInput?.value || 'B';
-    this.addPlayer(num, name, pos, side);
-    // Reset for fast entry
-    if (this.numInput) this.numInput.value = '';
-    if (this.nameInput) this.nameInput.value = '';
-    if (this.posInput) this.posInput.value = '';
-    this.numInput?.focus();
-  }
 
   addPlayer(num, name = '', pos = '', side = 'B') {
     num = String(num).trim();
@@ -173,15 +114,11 @@ export class RosterManager {
     }
     this.players.sort((a, b) => (parseInt(a.num, 10) || 0) - (parseInt(b.num, 10) || 0));
     this._save();
-    this.renderList();
-    this.renderQuickPick();
   }
 
   removePlayer(num) {
     this.players = this.players.filter(p => p.num !== String(num));
     this._save();
-    this.renderList();
-    this.renderQuickPick();
   }
 
   /** "#22 Smith" when named, else "#22" — used by the stats tables. */
@@ -197,140 +134,13 @@ export class RosterManager {
   loadFrom(arr, { persist = true } = {}) {
     this.players = Array.isArray(arr) ? arr.filter(p => p && p.num != null) : [];
     if (persist) this._save();
-    this.renderList();
-    this.renderQuickPick();
   }
 
   _save() {
     window.app?.storage?.updateSeasonRoster?.(this.players);
   }
 
-  // --- Rendering ---
-
-  renderList() {
-    if (!this.listEl) return;
-    if (this.players.length === 0) {
-      this.listEl.innerHTML = '<div class="roster-empty">No players yet. Add jersey numbers to chart per-player stats.</div>';
-      return;
-    }
-    this.listEl.innerHTML = '';
-    this.players.forEach(p => {
-      const row = document.createElement('div');
-      row.className = 'roster-row';
-      const meta = [p.pos, p.side && p.side !== 'B' ? p.side : ''].filter(Boolean).join(' · ');
-      row.innerHTML = `
-        <span class="roster-num">#${p.num}</span>
-        <span class="roster-name">${p.name || '<em>unnamed</em>'}</span>
-        <span class="roster-meta">${meta}</span>
-        <button class="roster-del" title="Remove" data-num="${p.num}">&times;</button>`;
-      row.querySelector('.roster-del').addEventListener('click', () => this.removePlayer(p.num));
-      this.listEl.appendChild(row);
-    });
-  }
-
-  /** Players relevant to the active role: offense roles show O/B, tackler
-   *  shows D/B, special-teams roles (kicker/returner) show everyone. */
-  _playersForRole(role) {
-    if (role === 'kicker' || role === 'returner') return this.players;
-    const wantSide = (role === 'tackler' || role === 'takeaway') ? 'D' : 'O';
-    const filtered = this.players.filter(p => p.side === wantSide || p.side === 'B' || !p.side);
-    return filtered.length ? filtered : this.players;
-  }
-
-  renderQuickPick() {
-    if (!this.quickPickEl) return;
-    if (this.players.length === 0) {
-      this.quickPickEl.innerHTML = '<span class="quickpick-hint">Add players in the Roster panel for one-tap entry.</span>';
-      return;
-    }
-    this.quickPickEl.innerHTML = '';
-    this._playersForRole(this.activeRole).forEach(p => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'pick pick-sm quickpick-chip';
-      chip.dataset.num = p.num;
-      chip.textContent = p.name ? `${p.num} ${p.name.split(' ')[0]}` : p.num;
-      chip.title = this.getLabel(p.num);
-      chip.addEventListener('click', () => this._stamp(p.num));
-      this.quickPickEl.appendChild(chip);
-    });
-    this.refreshActiveChips();
-  }
-
-  _stamp(num) {
-    const input = this.roleInputs[this.activeRole];
-    if (!input) return;
-    num = String(num);
-    if (this.multiRoles.has(this.activeRole)) {
-      // Toggle membership in the jersey list (shared tackles).
-      const list = input.value.match(/\d+/g) || [];
-      const i = list.indexOf(num);
-      if (i >= 0) list.splice(i, 1); else list.push(num);
-      input.value = list.join(', ');
-    } else {
-      // Single-value role: toggle off if re-tapping the same number.
-      input.value = (input.value.trim() === num) ? '' : num;
-    }
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    this.refreshActiveChips();
-  }
-
-  _markActiveRole() {
-    document.querySelectorAll('.player-role').forEach(el => {
-      el.classList.toggle('active', el.dataset.role === this.activeRole);
-    });
-    this.renderQuickPick();
-  }
-
-  /** Highlight chips that match the current value(s) of the active role input. */
-  refreshActiveChips() {
-    if (!this.quickPickEl) return;
-    const set = new Set((this.roleInputs[this.activeRole]?.value || '').match(/\d+/g) || []);
-    this.quickPickEl.querySelectorAll('.quickpick-chip').forEach(chip => {
-      chip.classList.toggle('active', set.has(String(chip.dataset.num)));
-    });
-  }
-
   // --- Import from CSV / paste ---
-
-  _bindImport() {
-    const toggleBtn = document.getElementById('btnRosterImport');
-    const area = document.getElementById('rosterImportArea');
-    const applyBtn = document.getElementById('btnRosterImportApply');
-    const textarea = document.getElementById('rosterImportText');
-    const fileInput = document.getElementById('rosterImportFile');
-    const msgEl = document.getElementById('rosterImportMsg');
-
-    if (toggleBtn && area) {
-      toggleBtn.addEventListener('click', () => {
-        area.classList.toggle('hidden');
-      });
-    }
-
-    if (applyBtn && textarea && msgEl) {
-      applyBtn.addEventListener('click', () => {
-        const text = textarea.value;
-        const count = this.importFromText(text);
-        msgEl.textContent = count > 0
-          ? `Imported ${count} player${count !== 1 ? 's' : ''}.`
-          : 'No players found. Check format.';
-        msgEl.classList.remove('hidden');
-        textarea.value = '';
-        setTimeout(() => msgEl.classList.add('hidden'), 3000);
-      });
-    }
-
-    if (fileInput && textarea) {
-      fileInput.addEventListener('change', () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => { textarea.value = reader.result; };
-        reader.readAsText(file);
-        fileInput.value = '';
-      });
-    }
-  }
 
   /**
    * Parse pasted/CSV text and add players to the roster.

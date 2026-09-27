@@ -281,7 +281,7 @@ export class NativeTaggingScreen {
   newDrive() { return this.tagger?.newDrive?.(); }
   addNoteTimestamp() { return this.app.notes?.insertTimestamp?.(); }
 
-  setActiveRole(role) { this.activeRole=role; this.app.roster.activeRole=role; this.app.roster._markActiveRole?.(); this._queuePublish(); }
+  setActiveRole(role) { this.activeRole=role; this.app.roster.activeRole=role; this._queuePublish(); }
   quickPickPlayer(number) {
     const role=this.app.roster?.activeRole || this.activeRole, current=String(this.tagger?.getCurrentPlay?.()?.tags?.players?.[role]||'');
     if (this.app.roster?.multiRoles?.has(role)) {

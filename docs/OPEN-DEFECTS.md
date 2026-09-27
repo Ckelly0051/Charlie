@@ -2470,12 +2470,21 @@ Breakdown film-state defects above.
    found none of those names in `js/`. The legacy readers named alongside it were
    deleted in Pass 2. Still used, not dead: `polarityOf`, `listMeasures`,
    `listBlocks`, `matchingRefs`. The full list is in this file's git history.
-   **Found 2026-09-27, handled separately:** old renderers whose host elements no
-   longer exist (roster list and quick pick, custom-field inputs and manager,
-   the scoreboard-reading preview) — deleted 2026-09-27; see below. The
-   scoreboard reader has no UI at all (a keep-or-remove decision for the coach),
-   and the auto-detect Review dialog is still hand-built outside the overlay
-   service.
+   **Found 2026-09-27:** old renderers whose host elements no longer exist were
+   deleted: the roster list, quick pick, add form and import form
+   (`roster-manager.js`), the per-play custom-field inputs (`custom-fields.js`)
+   and the scoreboard reader's three legacy buttons (`scoreboard-ocr.js`).
+   Still open, for the coach:
+   - **OCR-1 — scoreboard reading shows no result.** The deck's Set region, Read
+     and Auto OCR controls work, but the confirmation strip and status render
+     into `#ocrPreview` / `#ocrStatus`, which no longer exist, so a read
+     produces nothing visible and is never applied. Rebuild the strip natively or
+     drop the feature.
+   - **Hand-built dialogs outside the overlay service:** the auto-detect Review
+     dialog (`AutoDetectScreen.openReview`) and the custom-field manager
+     (`CustomFieldsManager.openManager`, opened by the deck's "Edit custom
+     fields"). Both work; neither follows the overlay spec's focus and Escape
+     rules.
 5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
    (a) Break Down was five mounted roots kept in step by events — rebuilt
    (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87

@@ -12,6 +12,12 @@
  *      reject to ignore. Manual override always available.
  *
  * Tesseract.js is loaded from CDN on first use only (~1MB).
+ *
+ * The charting deck drives it (Set region, Read, Auto OCR in native-tagging.jsx).
+ * KNOWN GAP (2026-09-27): the confirmation strip and status render into
+ * #ocrPreview / #ocrStatus, which no longer exist, so a read shows nothing and
+ * is never applied. Whether to rebuild that strip or drop the feature is an open
+ * coach decision (docs/OPEN-DEFECTS.md). The old legacy buttons were deleted.
  */
 export class ScoreboardOCR {
   constructor(videoController, playTagger) {
@@ -24,14 +30,10 @@ export class ScoreboardOCR {
     this.tesseractLoading = null;
     this.autoOnPlayEnd = false;
 
-    this.btnSetRegion = document.getElementById('btnSetScoreboardRegion');
-    this.btnReadNow = document.getElementById('btnReadScoreboard');
-    this.btnAutoOcr = document.getElementById('btnAutoOcr');
     this.statusEl = document.getElementById('ocrStatus');
     this.previewEl = document.getElementById('ocrPreview');
     this.videoContainer = document.getElementById('videoContainer');
 
-    this._bindEvents();
     this._loadRegion();
 
     // Auto-read when a play is created (if enabled)
@@ -43,23 +45,9 @@ export class ScoreboardOCR {
     });
   }
 
-  _bindEvents() {
-    if (this.btnSetRegion) {
-      this.btnSetRegion.addEventListener('click', () => this.startRegionSelect());
-    }
-    if (this.btnReadNow) {
-      this.btnReadNow.addEventListener('click', () => this.readNow());
-    }
-    if (this.btnAutoOcr) {
-      this.btnAutoOcr.addEventListener('change', () => this.setAutoOcr(this.btnAutoOcr.checked));
-    }
-  }
-
-  /** Real setter — a native control can drive this directly. Mirrors into the
-   *  optional legacy checkbox rather than depending on it. */
+  /** Driven by the charting deck's Auto OCR checkbox. */
   setAutoOcr(value) {
     this.autoOnPlayEnd = !!value;
-    if (this.btnAutoOcr) this.btnAutoOcr.checked = this.autoOnPlayEnd;
     return true;
   }
 
