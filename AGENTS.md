@@ -83,6 +83,7 @@ confirmation, toast timing — is `GRIDIRON-IQ-OVERLAY-SPEC.md`.
 `storage-backend.js` (`BrowserBackend` / `TauriBackend` seam),
 `sql-catalog.js` + `catalog-persistence.js` (canonical desktop catalog),
 `snapshot-envelope.js` (versioned recovery snapshots),
+`season-format.js` (detects and refuses retired season shapes),
 `version-manager.js`, `history-manager.js`, `team-registry.js`
 
 **Film**
@@ -100,9 +101,7 @@ confirmation, toast timing — is `GRIDIRON-IQ-OVERLAY-SPEC.md`.
 **Analytics**
 `stats-engine.js` (all formulas), `analytics-registry.js` (dimensions and
 measures), `analytics-metrics.js`, `study-query.js`, `study-view.js`,
-`study-plan.js`, `advanced-metrics.js` (EPA), `report-visual-data.js` (imported by nothing;
-dead, see `docs/OPEN-DEFECTS.md` > Deferred Beta Maintenance),
-`reports-view.js`, `charts.js`, `html-report.js`, `plan-export.js`,
+`study-plan.js`, `advanced-metrics.js` (EPA), `reports-view.js`, `charts.js`, `html-report.js`, `plan-export.js`,
 `call-sheet-builder.js`, `season-manager.js`
 
 **Auxiliary**
@@ -151,9 +150,10 @@ store `" + "`-joined strings so every string consumer keeps working;
 `StatsEngine.splitFormations()` and its siblings are the canonical splitters,
 and analytics attribute a play to each component.
 
-`tag-projection.js` is the **read-time** split of legacy combined fields (QB
-alignment out of `formation`/`backfield`, coverage family out of `coverage`).
-It never mutates stored data — legacy plays read correctly without migration.
+Each look field is stored in its own field; `tag-projection.js` is the plain
+read and the vocabulary of values reserved for another field. The live data was
+converted once (2026-09-26); `season-format.js` detects and refuses every
+retired shape, and no code converts one.
 
 Canonical contracts: `GRIDIRON-IQ-TAG-MODEL.md`,
 `GRIDIRON-IQ-PENALTY-MODEL.md`, `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`,

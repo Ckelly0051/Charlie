@@ -1638,7 +1638,7 @@ edge-to-edge by design; the top bar's 18px inset is not.
    repaired and closed (item 13). The manifest still reads
    `productionStatus: REJECTED`: the approval is the installed smoke, not a
    registry state. Built to the coach-approved Revision 2 comp. Metric
-   definitions are recorded in `CLAUDE.md`. Intentional differences from the
+   definitions are recorded in `docs/REPORTS-CONTRACTS.md` > Defense. Intentional differences from the
    standalone comp: the Reports shell's header and scorebug carry report
    identity, so the comp's title block and footer line are not rendered; Export
    Report is retained; the production condensed face is wider than the comp's,
@@ -2465,8 +2465,8 @@ Breakdown film-state defects above.
 
 4. **Dead code outside Break Down, inventoried 2026-09-24, not yet removed.**
    A static scan (names defined and referenced nowhere else in `js/` or
-   `tools/`; each needs a check for dynamic use before deletion): the whole
-   `js/report-visual-data.js` (imported by nothing); `native-report-tabs.jsx`
+   `tools/`; each needs a check for dynamic use before deletion; the whole
+   `js/report-visual-data.js` is already deleted): `native-report-tabs.jsx`
    `SparseModule`, `SpecialTeamsPlayerTable`, `OFFENSE_MODULES`,
    `PLAYER_HALF_1280`, `PLAYER_GAME_CELL`, `PLAYER_SITU_HEAD`;
    `native-report-kit.jsx` `Gauge`, `DefMark`; `reports-view.js` `gamePlan`,
@@ -2481,10 +2481,11 @@ Breakdown film-state defects above.
    `storage.setSeasonName` / `bindBackupFolder`, `tag-library.replaceCustom`,
    `workspace-shell.restoreRouteVisibility`, `ui-polish._activeFilmGame`. The
    three Break Down ones (`_ordinal`, `toggleStrip`, `setPerspective`) were
-   deleted in `05560c1`. Not dead: the legacy data readers (Special Teams
-   `stType`, field-goal-unit extra points, per-game rosters), the old
-   `ffa_film_room_cols` key (coach data), and `polarityOf`, `listMeasures`,
-   `listBlocks`, `matchingRefs`, which harnesses call.
+   deleted in `05560c1`. The legacy data readers listed here then (Special
+   Teams `stType`, field-goal-unit extra points, per-game rosters, the old
+   Film Room column keys) were deleted by the legacy excision (2026-09-26).
+   Not dead: `polarityOf`, `listMeasures`, `listBlocks`, `matchingRefs`, which
+   harnesses call.
 5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
    (a) Break Down was five mounted roots kept in step by events — rebuilt
    (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87

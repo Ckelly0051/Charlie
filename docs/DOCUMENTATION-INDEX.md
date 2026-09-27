@@ -1,10 +1,12 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-22.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-27.
 
 ## Current Authority
 
-- `CLAUDE.md` - current operating state, invariants, owners, and handoff truth.
+- `CLAUDE.md` - binding rules, owners and process (always loaded; kept short).
+- `docs/REPORTS-CONTRACTS.md` and `docs/HOME-CONTRACTS.md` - current Reports
+  and Home rules, read when touching those surfaces.
 - `AGENTS.md` - current architecture and module map.
 - `GRIDIRON-IQ-PLAN-V2.md` - active product roadmap and accepted decisions.
 - `docs/OPEN-DEFECTS.md` - canonical index of unresolved defects.
@@ -20,36 +22,29 @@
   `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`, `GRIDIRON-IQ-PLAY-CALL-MODEL.md`,
   `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`, and `GRIDIRON-IQ-OVERLAY-SPEC.md` -
   binding domain and interaction contracts. Their historical milestone notes do
-  not override current status in `CLAUDE.md` or the defect index.
+  not override the Current Snapshot below or the defect index.
 - `GRIDIRON-IQ-RELEASE-GATE.md` and
   `GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md` - standing release controls.
 
 ## Current Snapshot
 
-- The main checkout is `1.12.0-95`. The latest unsigned installer is
-  `1.12.0-95`, built from `8b926a6`; its installed coach smoke is pending, not
-  approved as a release; see `SMOKE-1.12.0-95.md`. The preceding `1.12.0-94`
-  installer's smoke was in progress and produced the findings recorded in
-  `SMOKE-1.12.0-94.md`; it received no complete verdict.
-- The installed `1.12.0-91` smoke approved the bounded Players, Defense cohort
-  and Special Teams presentation changes. The `1.12.0-92` smoke approved Home's
-  visual composition only; later Home/Breakdown fixes still need installed
-  verification. The rapid-scrubbing `Film missing` report remains open but
-  deprioritized. Nothing is tagged, pushed or published.
-- The coach approved a new Reports global navigation concept on 2026-09-22:
-  `design-comps/reports-global-strip-2026-09-22.html`. It is implemented
-  (`160533c`) with the outer-frame and Players name repairs and packaged in
-  `1.12.0-95`; it is not installed-smoke accepted.
-  Current `1.12.0-94` Reports smoke findings, including the outer frame,
-  Overview-only score and Players name alignment, are indexed in
-  `docs/OPEN-DEFECTS.md`; the shared visual contract is in
-  `docs/VISUAL-SYSTEM-RULES.md`.
-- Current production status: Home and all eight Our Program Reports surfaces are
-  `REJECTED`; approved comps remain binding design evidence.
-- Current harness inventory is discovered from `tools/e2e-*.mjs`; do not copy a
-  volatile total into prose.
-- The OLL Reports audit and other unresolved issues are indexed in
-  `docs/OPEN-DEFECTS.md`.
+This section is the one place release state is kept current.
+
+- Main checkout and latest installer: `1.12.0-104` (bump `5b694f7` on top of
+  `ec71410`; full gate 137/137 at `ec71410`). It is `1.12.0-103` plus the
+  S103-1 Recover seasons repair; installed check pending (`SMOKE-1.12.0-104.md`).
+- `1.12.0-103` (legacy excision step 8) passed its installed smoke on
+  2026-09-27 (`SMOKE-1.12.0-103.md`). Earlier installers are superseded; their
+  records are the `SMOKE-1.12.0-*.md` files and
+  `docs/archive/CLAUDE-2026-09-27.md`.
+- Legacy excision: Passes 0-2b done (`docs/LEGACY-EXCISION-PLAN.md`); one
+  season format, every old-format reader deleted, old files refused.
+- Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
+  installed smokes approved Players, Defense cohort presentation and Special
+  Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports
+  navigation work (`1.12.0-98`) without moving the registry.
+- Nothing is tagged, pushed or published.
+- Harness inventory is discovered from `tools/e2e-*.mjs`; never a count in prose.
 
 ## Historical And Reference Material
 
@@ -65,7 +60,9 @@ they are evidence, not current status. In particular, do not treat
 `GRIDIRON-IQ-VISUAL-RECOMPOSITION-PLAN.md`, `STATS-REDESIGN-BRIEF.md`, or
 `sample-analytics-report.md` as current-state authority.
 
-`docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md` is append-only history.
+`docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md`, `docs/archive/CLAUDE-2026-09-27.md`
+and `docs/archive/TESTING-2026-09-27.md` are append-only history.
+`docs/POST-LEGACY-INSTRUCTION-AUDIT.md` is a completed audit prompt (run 2026-09-27).
 `docs/REPORTS-SECTION-PROMPTS.md` is a retired assignment artifact; its DOCX
 copy is local-only. Untracked historical captures under
 `design-comps/visual-reset-2026-08/part1-verification/` and

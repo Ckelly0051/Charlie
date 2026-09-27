@@ -356,4 +356,5 @@ Reports harnesses were red, two of them against hash-protected approved
 evidence. The repairs are recorded in `docs/OPEN-DEFECTS.md`. `1.12.0-80` remains
 a historical installed visual-scope pass; this repair is un-packaged source work
 made after that installer. Later beta packages contain its descendant source;
-their installed status is recorded in `CLAUDE.md`.
+their installed status is recorded in `docs/DOCUMENTATION-INDEX.md` > Current
+Snapshot and the `SMOKE-1.12.0-*.md` records.
