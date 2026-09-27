@@ -653,7 +653,7 @@ export class TauriBackend extends StorageBackend {
       // that content. Bind identity to the folder explicitly: refuse rather than
       // report it as an importable candidate for the id it was merely found under.
       if (result.ok && String(result.envelope.seasonId) !== String(id)) {
-        out.push({ id, valid: false, reason: 'folder-identity-mismatch', name: id, team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog });
+        out.push({ id, valid: false, reason: 'folder-identity-mismatch', name: id, team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog });
         continue;
       }
       if (result.ok && !SeasonFormat.isCurrentSeason(result.envelope.data)) {

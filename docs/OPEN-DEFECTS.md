@@ -19,6 +19,9 @@ unrecoverable candidate now shows its reason as visible text and no button
 recovered.`), and the scan reports unknown counts as `null`, which the row
 omits. Failing first: `e2e-native-mirror-recovery` 4 red, `e2e-season-format`
 1 red; green after (16/16, 43/43).
+Codex review of `c1e8d2b` (P3): the folder-identity-mismatch refusal still
+invented `0` counts; it reports `null` too (checked in `e2e-catalog-backend`,
+red on `[0,0]` first, 29/29 after).
 
 ## Installed smoke, 1.12.0-102 (in progress, 2026-09-25)
 

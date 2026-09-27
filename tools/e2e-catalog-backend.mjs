@@ -378,6 +378,7 @@ const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', pla
     const matchRow = scan.find(c => c.id === 's-C');
     out.folderMismatchScanValid = mismatchRow && mismatchRow.valid;
     out.folderMismatchScanReason = mismatchRow && mismatchRow.reason;
+    out.folderMismatchCounts = mismatchRow && [mismatchRow.gameCount, mismatchRow.playCount];
     out.folderMatchScanValid = matchRow && matchRow.valid;
 
     out.folderMismatchRecover = await be.recoverSeasonFromMirror('s-B', {});
@@ -473,6 +474,7 @@ ok(result.failClosedTouchRet === false, 'PC-2: touchOpened() refuses (false) whe
 ok(result.failClosedBackupRet === null, 'PC-2: createBackup() refuses (null) when the catalog genuinely cannot be opened (no legacy JSON restore-point file is created as a fallback)', JSON.stringify(result.failClosedBackupRet));
 ok(result.failClosedNoSidecarWrites === 0, 'PC-2: none of the six fail-closed operations above ever wrote a season.json/library.json/backup-file sidecar as a substitute authority', JSON.stringify(result.failClosedCalls));
 ok(result.folderMismatchScanValid === false && result.folderMismatchScanReason === 'folder-identity-mismatch', 'PC-2: scanRecoverableSeasons() refuses a snapshot whose OWN declared identity disagrees with the mirror folder it was found under, rather than reporting it as an importable candidate for that folder', JSON.stringify(result));
+ok(JSON.stringify(result.folderMismatchCounts) === '[null,null]', 'a folder-identity-mismatch row reports unknown counts, never an invented 0 games / 0 plays (Codex review of c1e8d2b)', JSON.stringify(result.folderMismatchCounts));
 ok(result.folderMatchScanValid === true, 'PC-2: the positive control -- a snapshot that genuinely matches its own folder -- still scans as a valid candidate', JSON.stringify(result));
 ok(result.folderMismatchRecover.ok === false && result.folderMismatchRecover.reason === 'folder-identity-mismatch' && result.folderMismatchSaveCallsAfterMismatch === 0, 'PC-2: recoverSeasonFromMirror() refuses the same folder-identity mismatch at the point of action -- zero catalog writes, identity is never coerced to match the requested folder', JSON.stringify(result));
 ok(result.folderMatchRecover.ok === true && result.folderMatchSaveCalls.length === 1 && result.folderMatchSaveCalls[0].id === 's-C' && result.folderMatchSaveCalls[0].dataId === 's-C', 'PC-2: a genuinely folder-matching snapshot still recovers normally, proving the identity check above is not disabling recovery entirely', JSON.stringify(result));
