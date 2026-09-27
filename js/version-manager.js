@@ -16,18 +16,14 @@ import { SeasonFormat } from './season-format.js';
  * game keeps up to 20, so they filled the WebView's ~5 MB origin quota; after
  * that EVERY small settings write in the app failed (the installed `Could not
  * save that choice` finding) while this class dropped its own writes silently.
- * `migrateLegacy()` moves each scoped key into the backend and removes the
- * localStorage copy only after every version reads back identical. The
- * pre-2026 unscoped `ffa_versions_default` / `ffa_versions_<file>` keys carry no
- * game identity; they are deliberately left untouched (see `_key()`'s history in
- * git) and never read.
+ * The one-time move into the backend ran on the coach's profile and is deleted
+ * (legacy excision Pass 2b, row 9); the unscoped `ffa_versions_default` key was
+ * archived and removed by storage-cleanup.js.
  *
  * The old list renderer (#versionList, #btnSaveVersion) is gone: no such DOM
  * exists, and Settings > Recovery is the only presentation owner.
  */
 export class VersionManager {
-  static LEGACY_PREFIX = 'ffa_versions_';
-
   constructor(storage, tagger) {
     this.storage = storage;
     this.tagger = tagger;
@@ -137,42 +133,6 @@ export class VersionManager {
     const ok = await this.tagger._confirmDialog('Delete this version?', 'Delete Version');
     if (!ok) return null;
     return backend.deleteVersion(scope.seasonId, scope.gameId, String(id));
-  }
-
-  /**
-   * One-time move of scoped localStorage versions into the backend. For each
-   * `ffa_versions_<season>::<game>` key: import every version all-or-nothing,
-   * and remove the key only when the import reports every version read back
-   * identical. A key that fails stays exactly as it was and is retried on the
-   * next launch. Unscoped legacy keys are never touched.
-   * Resolves to { moved, versions, kept, failed } for diagnosis.
-   */
-  async migrateLegacy(storage = (typeof localStorage !== 'undefined' ? localStorage : null)) {
-    const report = { moved: [], versions: 0, kept: [], failed: [] };
-    const backend = this._backend();
-    if (!storage || !backend) return report;
-    const keys = [];
-    try { for (let i = 0; i < storage.length; i++) keys.push(storage.key(i)); } catch (e) { return report; }
-    for (const key of keys) {
-      if (!key || !key.startsWith(VersionManager.LEGACY_PREFIX)) continue;
-      const scope = key.slice(VersionManager.LEGACY_PREFIX.length).split('::');
-      if (scope.length !== 2 || !scope[0] || !scope[1] || scope[0] === 'na' || scope[1] === 'na') { report.kept.push(key); continue; }
-      const [seasonId, gameId] = scope;
-      let list = null;
-      try { list = JSON.parse(storage.getItem(key) || 'null'); } catch (e) { list = null; }
-      if (!Array.isArray(list)) { report.failed.push(key); continue; }
-      // A version stamped with another season/game is not this key's to move.
-      const own = list.filter(v => v && v.id != null && v.data
-        && (!v.seasonId || v.seasonId === seasonId) && (!v.gameId || v.gameId === gameId));
-      if (own.length !== list.length) { report.failed.push(key); continue; }
-      const ok = await backend.importVersions(seasonId, gameId, own.map(v => ({ ...v, id: String(v.id) })));
-      if (!ok) { report.failed.push(key); continue; }
-      try { storage.removeItem(key); } catch (e) { report.failed.push(key); continue; }
-      report.moved.push(key);
-      report.versions += own.length;
-    }
-    if (report.moved.length || report.failed.length) console.info('Version history migration', report);
-    return report;
   }
 
   _maybeAutoSnap() {

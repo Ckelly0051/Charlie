@@ -389,6 +389,8 @@ export class StorageManager {
   /** Seasons the first-run import refused as old format are named once, so a
    *  season never vanishes from the library without a word (step 6). */
   _reportOldFormatSeasons() {
+    const oldLayout = this.seasonStore?.backend?.takeOldLayoutNotice?.();
+    if (oldLayout) this.tagger?.toast?.(oldLayout, 10000);
     const refused = this.seasonStore?.backend?.takeOldFormatRefusals?.() || [];
     if (!refused.length) return;
     const names = refused.map(s => s.name).join(', ');

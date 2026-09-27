@@ -77,12 +77,14 @@ export class StorageBackend {
   // in the app fail (the installed `Could not save that choice` finding,
   // 2026-09-24). Each backend now keeps them in real storage with no such cap.
   // `v` is { id, label, time, manual, playCount, data }. Ids are strings.
-  // saveVersion/importVersions return success only when the write is durable.
+  // saveVersion returns success only when the write is durable.
+  /** A retired single-save layout found when the library was first created,
+   *  reported once and never read (legacy excision Pass 2b, row 11). */
+  takeOldLayoutNotice() { const found = !!this._oldLayoutFound; this._oldLayoutFound = false; return found ? "An old-format GridIron IQ save was found and not opened. It was left where it is." : null; }
   async saveVersion(_seasonId, _gameId, _v) { return null; }        // id | null
   async listVersions(_seasonId, _gameId) { return []; }              // [{id,label,time,manual,playCount}] oldest first
   async getVersion(_seasonId, _gameId, _id) { return null; }         // snapshot data | null
   async deleteVersion(_seasonId, _gameId, _id) { return false; }
-  async importVersions(_seasonId, _gameId, _list) { return false; }  // all-or-nothing, no pruning
 
   // ---- durable disk (optional) ----
   supportsDisk() { return false; }
@@ -180,7 +182,7 @@ export class BrowserBackend extends StorageBackend {
   constructor() {
     super();
     this.LIB = 'ffa_library';
-    this.LEGACY = 'ffa_season';
+    this.OLD_LAYOUT = 'ffa_season';
     this.dirHandle = null;
     this._lastWrite = 0;
     this._writing = false;
@@ -197,26 +199,17 @@ export class BrowserBackend extends StorageBackend {
   _writeLib(arr) {
     try { localStorage.setItem(this.LIB, JSON.stringify(arr)); } catch (e) {}
   }
-  /** One-time migration: an old single `ffa_season` becomes the first season. */
-  _migrateLegacy() {
+  /** Starts an empty library. A save from before the season library (a single
+   *  `ffa_season` key) is the retired layout: it is not read, it is left where
+   *  it is, and the coach is told once (takeOldLayoutNotice). */
+  _ensureLibrary() {
     if (localStorage.getItem(this.LIB) != null) return;     // library already exists
-    let legacy = null;
-    try { legacy = JSON.parse(localStorage.getItem(this.LEGACY) || 'null'); } catch (e) {}
-    if (legacy && Array.isArray(legacy.games)) {
-      const id = this._uniqueId(this.slugify(legacy.seasonName || 'my-season'), []);
-      legacy.id = id;
-      try { localStorage.setItem(this._seasonKey(id), JSON.stringify(legacy)); } catch (e) {}
-      const meta = this._seasonMeta(id, legacy);
-      meta.created = new Date().toISOString();
-      meta.lastOpened = meta.created;
-      this._writeLib([meta]);
-    } else {
-      this._writeLib([]);                                   // fresh install
-    }
+    if (localStorage.getItem(this.OLD_LAYOUT) != null) this._oldLayoutFound = true;
+    this._writeLib([]);
   }
 
   async listSeasons() {
-    this._migrateLegacy();
+    this._ensureLibrary();
     return this._readLib().slice().sort((a, b) =>
       String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || '')));
   }
@@ -428,21 +421,6 @@ export class BrowserBackend extends StorageBackend {
     for (const r of recs) { if (over <= 0) break; if (r.manual && !del.includes(r.id)) { del.push(r.id); over--; } }
     for (const id of del) await this._tx('versions', 'readwrite', os => os.delete(this._versionKey(seasonId, gameId, id)));
   }
-  /** One transaction for the whole list; success only when every record reads
-   *  back identical. Never prunes: a migration must not lose a version. */
-  async importVersions(seasonId, gameId, list) {
-    if (!seasonId || !gameId || !Array.isArray(list)) return false;
-    const recs = list.filter(v => v && v.id != null).map(v => this._versionRecord(seasonId, gameId, v));
-    try {
-      await this._tx('versions', 'readwrite', os => { for (const r of recs) os.put(r, this._versionKey(seasonId, gameId, r.id)); });
-      for (const r of recs) {
-        const back = await this.getVersion(seasonId, gameId, r.id);
-        if (JSON.stringify(back) !== JSON.stringify(r.data)) return false;
-      }
-      return true;
-    } catch (e) { console.error('Version import failed', e); return false; }
-  }
-
   // ---- disk (File System Access API) ----
   supportsDisk() { return typeof window !== 'undefined' && 'showDirectoryPicker' in window; }
   diskStatus() {
@@ -549,7 +527,7 @@ export class TauriBackend extends StorageBackend {
     this.mirrorDir = (this.fs && this.fs.BaseDirectory) ? this.fs.BaseDirectory.Document : undefined;
     this.MIRROR_ROOT = 'GridIron IQ';
     this.LIB = 'library.json';
-    this.LEGACY = 'season.json';
+    this.OLD_LAYOUT = 'season.json';
     this._lastWrite = 0;
     this._dirReady = {};        // per-season "backups dir ensured" cache
   }
@@ -588,28 +566,19 @@ export class TauriBackend extends StorageBackend {
   async _readLib() { return (await this._readJson(this.LIB)) || []; }
   async _writeLib(arr) { try { await this._writeJson(this.LIB, arr); } catch (e) {} }
 
-  /** One-time migration: an old top-level season.json becomes the first season. */
-  async _migrateLegacy() {
+  /** Starts an empty library. A save from before the season library (a single
+   *  top-level `season.json`) is the retired layout: it is not read, it is left
+   *  where it is, and the coach is told once (takeOldLayoutNotice). */
+  async _ensureLibrary() {
     if (!this._ok()) return;
     if (await this._exists(this.LIB)) return;
-    const legacy = (await this._exists(this.LEGACY)) ? await this._readJson(this.LEGACY) : null;
-    if (legacy && Array.isArray(legacy.games)) {
-      const id = this._uniqueId(this.slugify(legacy.seasonName || 'my-season'), []);
-      legacy.id = id;
-      await this._ensureSeasonDir(id);
-      try { await this._writeJson(this._seasonFile(id), legacy); } catch (e) {}
-      const meta = this._seasonMeta(id, legacy);
-      meta.created = new Date().toISOString();
-      meta.lastOpened = meta.created;
-      await this._writeLib([meta]);
-    } else {
-      await this._writeLib([]);
-    }
+    if (await this._exists(this.OLD_LAYOUT)) this._oldLayoutFound = true;
+    await this._writeLib([]);
   }
 
   async listSeasons() {
     if (!this._ok()) return [];
-    await this._migrateLegacy();
+    await this._ensureLibrary();
     let lib = await this._readLib();
     // PC-3 (Invariant #6): an empty library no longer AUTO-triggers a
     // Documents-mirror import. "Never auto-import merely because app data
@@ -643,11 +612,9 @@ export class TauriBackend extends StorageBackend {
    * and returns PREVIEW records only -- WRITES NOTHING, imports nothing,
    * touches neither the SQLite catalog nor library.json. This is the
    * "previews the action" half of Invariant #6; the coach reviews this
-   * list before anything is recovered. A legacy pre-envelope bare
-   * season.json is reported as `valid:false, reason:'legacy-unenveloped'`
-   * with its raw data attached, so it is visible rather than silently
-   * skipped -- but it still requires the same explicit confirmation to
-   * import as anything else.
+   * list before anything is recovered. A bare pre-envelope season.json is an
+   * old format: listed as `valid:false, reason:'old-format'` so it is visible,
+   * and never importable.
    *
    * Returns: [{ id, valid, reason?, name, team, gameCount, playCount,
    *             revision, timestamp, existsInCatalog }]
@@ -703,14 +670,6 @@ export class TauriBackend extends StorageBackend {
           gameCount: envelope.gameCount, playCount: envelope.playCount,
           revision: envelope.revision, timestamp: envelope.timestamp, existsInCatalog,
         });
-      } else if (result.reason === 'legacy-unenveloped' && result.data) {
-        out.push({
-          id, valid: false, reason: result.reason, name: result.data.seasonName || id,
-          team: result.data.teamProfile && result.data.teamProfile.teamName || '',
-          gameCount: Array.isArray(result.data.games) ? result.data.games.length : 0,
-          playCount: (result.data.games || []).reduce((n, g) => n + (Array.isArray(g.plays) ? g.plays.length : 0), 0),
-          revision: null, timestamp: null, existsInCatalog,
-        });
       } else {
         out.push({ id, valid: false, reason: result.reason, name: id, team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog });
       }
@@ -757,12 +716,9 @@ export class TauriBackend extends StorageBackend {
     // recovery button being disabled for an invalid candidate does not, by
     // itself, stop this method from being called with one, whether by a
     // future caller, a scripting mistake, or a compromised UI. EVERY
-    // !result.ok outcome -- including the disclosed 'legacy-unenveloped'
-    // case (a bare pre-PC-3 snapshot with no checksum, no validated
-    // identity, no count check at all) -- is refused HERE, before catalog
-    // lookup or any write. A future permissioned legacy migration is a
-    // separate, explicit path; this method is not it.
-    if (!result.ok) return { ok: false, reason: result.reason };
+    // !result.ok outcome -- including a bare pre-envelope snapshot, an old
+    // format -- is refused HERE, before catalog lookup or any write.
+    if (!result.ok) return { ok: false, reason: result.reason, ...(result.reason === 'old-format' ? { message: SeasonFormat.MESSAGE } : {}) };
     const data = result.envelope.data;
     if (!data || !Array.isArray(data.games)) return { ok: false, reason: 'malformed' };
     // Old format: refused before any catalog lookup or write (step 6).
@@ -1144,12 +1100,6 @@ export class TauriBackend extends StorageBackend {
     if (!this._ok() || !seasonId || !gameId || id == null) return false;
     const cp = await this._ensureCatalog();
     return cp ? cp.deleteVersionScoped(seasonId, gameId, String(id)) : false;
-  }
-  async importVersions(seasonId, gameId, list) {
-    if (!this._ok() || !seasonId || !gameId || !Array.isArray(list)) return false;
-    const cp = await this._ensureCatalog();
-    if (!cp) { console.error('Blocked version import: the catalog could not be opened.'); return false; }
-    return cp.importVersions(seasonId, gameId, list.map(v => ({ ...v, id: String(v.id) })));
   }
   async _prune(seasonId) {
     if (!seasonId) return;

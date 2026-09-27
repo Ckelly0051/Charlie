@@ -278,13 +278,9 @@ class App {
     // next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(async () => {
       await this.storage.initLibrary();
-      // Move version history out of localStorage (it filled the ~5 MB quota and
-      // broke every settings write). Not awaited: startup never waits on it, and
-      // a key that fails stays put and is retried next launch.
-      this.versionMigration = this.versions.migrateLegacy();
       // One-time, hash-guarded removal of retired keys already archived outside
-      // the app (storage-cleanup.js). After the version move, never awaited.
-      this.storageCleanup = Promise.resolve(this.versionMigration).catch(() => null).then(() => StorageCleanup.run()).catch(() => null);
+      // the app (storage-cleanup.js). Never awaited.
+      this.storageCleanup = StorageCleanup.run().catch(() => null);
       this._bindGamesPanel();
       await this.workspaceShell.init();
       await this.workspaceShell.show('home');

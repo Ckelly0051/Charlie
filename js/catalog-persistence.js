@@ -398,15 +398,6 @@ export class CatalogPersistence {
     const r = await this._durably(() => this.catalog.saveVersion(seasonId, gameId, v));
     return r.ok ? r.value : null;
   }
-  /** All-or-nothing, no pruning: a migration must not lose a version. True only
-   *  when the db reached disk and every row reads back identical. */
-  async importVersions(seasonId, gameId, list) {
-    if (!seasonId || !gameId || !Array.isArray(list)) return false;
-    const rows = list.filter(v => v && v.id != null);
-    const r = await this._durably(() => { for (const v of rows) this.catalog.saveVersion(seasonId, gameId, v, { prune: false }); });
-    if (!r.ok) return false;
-    return rows.every(v => JSON.stringify(this.catalog.getVersionScoped(seasonId, gameId, String(v.id))) === JSON.stringify(v.data));
-  }
   async listVersions(seasonId, gameId) {
     if (!seasonId || !gameId) return [];
     await this._ensureLoaded();

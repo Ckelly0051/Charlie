@@ -96,9 +96,8 @@ export const SnapshotEnvelope = {
    * (identity, counts, checksum) agrees with the enclosed data.
    * Returns `{ ok:false, reason, ... }` for anything else:
    *   - 'not-an-object' / 'unrecognized'  — not JSON-shaped at all
-   *   - 'legacy-unenveloped'              — a bare pre-PC-3 season.json
-   *     (carries `data: raw` so a caller MAY still offer it, explicitly,
-   *     rather than the file being silently invisible to recovery)
+   *   - 'old-format'                      — a bare pre-envelope season.json
+   *     (an old format: listed by recovery, never read or imported)
    *   - 'unsupported-version'             — a newer/older envelope format
    *   - 'malformed'                       — missing seasonId/data/games
    *   - 'count-mismatch' / 'checksum-mismatch' — declared vs. actual disagree
@@ -107,7 +106,7 @@ export const SnapshotEnvelope = {
   unwrap(raw) {
     if (!raw || typeof raw !== 'object') return { ok: false, reason: 'not-an-object' };
     if (!raw.envelopeVersion) {
-      if (Array.isArray(raw.games)) return { ok: false, reason: 'legacy-unenveloped', data: raw };
+      if (Array.isArray(raw.games)) return { ok: false, reason: 'old-format' };
       return { ok: false, reason: 'unrecognized' };
     }
     if (raw.envelopeVersion !== SnapshotEnvelope.VERSION) return { ok: false, reason: 'unsupported-version', declaredVersion: raw.envelopeVersion };

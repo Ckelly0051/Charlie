@@ -270,22 +270,12 @@ function RecoverCandidate({ candidate, onRecover }) {
   const [state, setState] = useState('idle'); // idle | confirming | busy | error
   const [error, setError] = useState('');
   const label = candidate.valid ? 'Recoverable'
-    : candidate.reason === 'legacy-unenveloped' ? 'Legacy backup (unverified)'
     : candidate.reason === 'old-format' ? 'Old format'
     : `Not recoverable (${candidate.reason || 'unreadable'})`;
-  // PC-2 repair (Codex review 89e34c6, finding 4): a legacy-unenveloped
-  // snapshot has NO checksum, NO validated identity, and NO count check at
-  // all -- unwrap() reports it as `valid:false` for exactly that reason. It
-  // previously stayed one-click actionable anyway (only the label read
-  // "unverified"), and the backend imported its raw contents unconditionally.
-  // Every genuinely-invalid candidate is disabled now, legacy included: still
-  // VISIBLE so the coach knows the file exists rather than it silently
-  // disappearing, but not importable until a permissioned migration path can
-  // give it a real integrity check.
+  // Every invalid candidate stays VISIBLE, so the coach knows the file exists,
+  // and is not recoverable.
   const disabled = !candidate.valid;
-  const disabledHint = disabled && candidate.reason === 'legacy-unenveloped'
-    ? 'This backup predates checksum verification and cannot be recovered automatically yet.'
-    : disabled && candidate.reason === 'old-format'
+  const disabledHint = disabled && candidate.reason === 'old-format'
       ? 'Saved in an old GridIron IQ format. It cannot be recovered.'
       : undefined;
   const run = async (confirmOverwrite) => {
