@@ -56,7 +56,7 @@ await page.evaluate(() => {
     // PC-2 repair (Codex review 89e34c6 finding 4 / d206b58 finding 1): this
     // mock mirrors the REAL TauriBackend.recoverSeasonFromMirror() contract,
     // which now rejects every !result.ok outcome -- including
-    // legacy-unenveloped -- unconditionally at the production boundary
+    // old-format -- unconditionally at the production boundary
     // itself (tools/e2e-catalog-backend.mjs section 8 asserts this directly
     // against the real backend, not this mock). The UI additionally keeps
     // the Recover control disabled for such a candidate (section 4b below),
@@ -86,13 +86,13 @@ ok(/No Documents-mirror recovery snapshots/.test(r.text), 'an empty scan shows a
 await page.click('[data-overlay-action="ok"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-panel'));
 
-// ---- 4. Real candidates: valid, existsInCatalog, invalid, and legacy-unenveloped, all in one scan ----
+// ---- 4. Real candidates: valid, existsInCatalog, invalid, and old-format, all in one scan ----
 await page.evaluate(() => {
   window.__scanResult = [
     { id: 'rec-valid', valid: true, name: 'Recovered Season', team: 'Recovery Test', gameCount: 3, playCount: 42, revision: '2026-01-01T00:00:00Z', timestamp: '2026-01-01T00:00:00Z', existsInCatalog: false },
     { id: 'rec-conflict', valid: true, name: 'Conflicting Season', team: 'Recovery Test', gameCount: 1, playCount: 5, revision: '2026-01-02T00:00:00Z', timestamp: '2026-01-02T00:00:00Z', existsInCatalog: true },
     { id: 'rec-broken', valid: false, reason: 'checksum-mismatch', name: 'Corrupt Snapshot', team: '', gameCount: 0, playCount: 0, revision: null, timestamp: null, existsInCatalog: false },
-    { id: 'rec-legacy', valid: false, reason: 'legacy-unenveloped', name: 'Old Format Season', team: 'Recovery Test', gameCount: 2, playCount: 18, revision: null, timestamp: null, existsInCatalog: false },
+    { id: 'rec-legacy', valid: false, reason: 'old-format', name: 'Old Format Season', team: 'Recovery Test', gameCount: 2, playCount: 18, revision: null, timestamp: null, existsInCatalog: false },
   ];
 });
 await page.evaluate(() => [...document.querySelectorAll('.library-overview-actions button')]
@@ -114,14 +114,14 @@ r = await page.evaluate(() => {
 ok(r.count === 4 && r.names.join('|') === 'Recovered Season|Conflicting Season|Corrupt Snapshot|Old Format Season',
   'every scanned candidate renders as its own row, in scan order', JSON.stringify(r));
 ok(r.brokenDisabled === true, 'an invalid (checksum-mismatch) candidate\'s Recover control is disabled -- it cannot be imported', JSON.stringify(r));
-// ---- 4b. PC-2 repair (Codex review 89e34c6, finding 4): a legacy-unenveloped
+// ---- 4b. An old-format candidate (a bare pre-envelope snapshot among them)
 // candidate (no checksum, no validated identity) stays VISIBLE -- the coach
 // can see the file exists -- but its Recover control is disabled, not a
 // one-click importable action, until a permissioned migration path can give
 // it a real integrity check.
-ok(r.legacyLabel === 'Legacy backup (unverified)', 'a legacy-unenveloped candidate is honestly labeled, not silently hidden', JSON.stringify(r));
-ok(r.legacyDisabled === true, 'a legacy-unenveloped candidate\'s Recover control is disabled -- it cannot be one-click imported', JSON.stringify(r));
-ok(!!r.legacyHint, 'the disabled legacy control explains why, rather than sitting silently unclickable', JSON.stringify(r));
+ok(r.legacyLabel === 'Old format', 'an old-format candidate is plainly labeled, not silently hidden', JSON.stringify(r));
+ok(r.legacyDisabled === true, 'an old-format candidate\'s Recover control is disabled -- it cannot be imported', JSON.stringify(r));
+ok(r.legacyHint === 'Saved in an old GridIron IQ format. It cannot be recovered.', 'the disabled control says why, plainly', JSON.stringify(r));
 r = await page.evaluate(() => window.__recoverCalls.length);
 ok(r === 0, 'clicking near a disabled legacy row never invokes recoverSeasonFromMirror at all', String(r));
 

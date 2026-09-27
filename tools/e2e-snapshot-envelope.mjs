@@ -7,7 +7,7 @@
    parse validates ok; tampered content (checksum), tampered declared counts,
    and identity mismatch are all caught with the exact named reason; a bare
    legacy pre-envelope season.json is recognized (not silently accepted, not
-   silently invisible -- `legacy-unenveloped` with its data attached); garbage
+   silently invisible -- `old-format`, never read); garbage
    input never throws; the checksum is key-order-independent (deterministic
    stringify) and content-sensitive (two different seasons never collide).
 
@@ -77,8 +77,8 @@ const seasonB = season('s2', 'Bravo', [mkGame('b1', 4)]);
 {
   const bare = clone(seasonA); // no envelopeVersion at all -- a pre-PC-3 mirror file
   const result = SnapshotEnvelope.unwrap(bare);
-  ok(result.ok === false && result.reason === 'legacy-unenveloped', 'a bare legacy season.json is reported as legacy-unenveloped, not silently accepted or silently invisible', JSON.stringify(result.reason));
-  ok(result.data && result.data.id === 's1', 'the legacy raw data is still attached so a caller MAY choose to offer it for recovery', JSON.stringify(result.data && result.data.id));
+  ok(result.ok === false && result.reason === 'old-format', 'a bare pre-envelope season.json is reported as old-format, not silently accepted or silently invisible', JSON.stringify(result.reason));
+  ok(!('data' in result), 'its contents are not read or handed on (legacy excision Pass 2b, row 11)', JSON.stringify(Object.keys(result)));
 }
 
 // ---- 7. garbage input never throws -----------------------------------------

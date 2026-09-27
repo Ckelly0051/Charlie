@@ -9,13 +9,12 @@
  * readback. The repair moves version history into the storage backend and
  * makes library writes name their failure.
  *
- * This harness fills localStorage the same way, proves the add fails with a
- * diagnosable message, runs the one-time migration, and then proves: every
- * version moved identically and the scoped keys are gone, the orphaned
- * unscoped key is untouched, a failed import keeps its key, the add succeeds
- * and reaches the deck immediately for all six library groups, it persists
- * across a reload, it is scoped to the team, existing charted values are
- * unchanged, and new snapshots never write localStorage again.
+ * This harness fills localStorage the same way and proves the add fails with a
+ * diagnosable message; then, with the old version keys gone (the one-time move
+ * ran on the coach's profile and is deleted, legacy excision Pass 2b row 9),
+ * that the add succeeds and reaches the deck immediately for all six library
+ * groups, persists across a reload, is scoped to the team, leaves existing
+ * charted values unchanged, and that new snapshots never write localStorage.
  */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
@@ -89,41 +88,14 @@ ok(failed.ok === false && /settings storage is full/.test(failed.message),
 ok(await page.evaluate(() => window.app.customChips.library.lastError?.name === 'QuotaExceededError'),
   'the library records the QuotaExceededError for diagnosis');
 
-console.log('\n== 2. The one-time migration moves version history out, verified ==');
-const report = await page.evaluate(() => window.app.versions.migrateLegacy());
-const after = await page.evaluate(async ({ seasonId, gameId }) => {
-  const vm = window.app.versions, backend = window.app.storage.seasonStore.backend;
-  const list = await backend.listVersions(seasonId, gameId);
-  const named = await backend.getVersion(seasonId, gameId, '101');
-  const other = await backend.getVersion(seasonId, 'g-other', '201');
-  const scoped = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^ffa_versions_.+::.+/.test(k)) scoped.push(k); }
+console.log('\n== 2. With the old version keys gone, localStorage has room again ==');
+const after = await page.evaluate(() => {
+  const drop = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^ffa_versions_/.test(k) || /^[\u4e00-\u6000]$/.test(k)) drop.push(k); }
+  drop.forEach(k => localStorage.removeItem(k));
   let probe = 'ok'; try { localStorage.setItem('__probe__', 'x'.repeat(100000)); localStorage.removeItem('__probe__'); } catch (e) { probe = e.name; }
-  return { list, named: named?.marker, other: other?.marker, scoped, orphan: localStorage.getItem('ffa_versions_default'), probe, uiList: await vm.list() };
-}, scope);
-ok(report.moved.length === seeded.fillKeys + 2 && report.failed.length === 0,
-  `every scoped key moved (${report.moved.length} keys, ${report.versions} versions) and none failed`, JSON.stringify({ moved: report.moved.length, failed: report.failed, kept: report.kept }));
-ok(after.list.length === 2 && after.list.some(v => v.id === '101' && v.manual && v.label === 'Named') && after.named === `${scope.gameId}:101`,
-  'the open game\'s versions read back from the backend with their labels, flags and data');
-ok(after.other === 'g-other:201', 'another game\'s versions moved under their own game');
-ok(after.scoped.length === 0, 'no scoped ffa_versions key remains in localStorage', JSON.stringify(after.scoped.slice(0, 3)));
-ok(after.orphan && JSON.parse(after.orphan)[0]?.label === 'orphan' && report.kept.includes('ffa_versions_default'),
-  'the orphaned unscoped ffa_versions_default is left exactly as it was');
-ok(after.probe === 'ok', 'localStorage has room again after the move');
-ok(after.uiList.length === 2, 'Recovery lists the open game\'s moved versions');
-
-console.log('\n== 3. A failed import keeps its key ==');
-const kept = await page.evaluate(async ({ seasonId }) => {
-  const backend = window.app.storage.seasonStore.backend, real = backend.importVersions.bind(backend);
-  localStorage.setItem(`ffa_versions_${seasonId}::g-keep`, JSON.stringify([{ id: 9, label: 'k', manual: true, data: { plays: [] } }]));
-  backend.importVersions = async () => false;
-  const r = await window.app.versions.migrateLegacy();
-  backend.importVersions = real;
-  const still = localStorage.getItem(`ffa_versions_${seasonId}::g-keep`);
-  const retry = await window.app.versions.migrateLegacy();
-  return { failed: r.failed, still: !!still, retried: retry.moved, gone: !localStorage.getItem(`ffa_versions_${seasonId}::g-keep`) };
-}, scope);
-ok(kept.failed.length === 1 && kept.still, 'a key whose import fails stays in localStorage untouched', JSON.stringify(kept));
-ok(kept.retried.length === 1 && kept.gone, 'the next run moves it');
+  return { dropped: drop.length, probe };
+});
+ok(after.dropped > 3 && after.probe === 'ok', 'localStorage has room once the version keys are gone', JSON.stringify(after));
 
 console.log('\n== 4. Adding choices works again, for all six library groups ==');
 const GROUPS = [['formation', 'formation', 'offense', 'Rhino Trips'], ['backfield', 'backfield', 'offense', 'Rhino Back'],

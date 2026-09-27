@@ -13,6 +13,7 @@
     "legacyLookReaders": 0,
     "legacyRosterReaders": 0,
     "legacySettingsReaders": 0,
+    "legacyLayoutReaders": 0,
     "localStorageCalls": 92,
     "windowAppRefs": 73,
     "innerHtmlSinks": 38,

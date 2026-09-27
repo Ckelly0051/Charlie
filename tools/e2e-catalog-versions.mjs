@@ -91,23 +91,7 @@ function makeFs() {
   const listed = await cp.listVersions('s1', 'g1');
   ok(lost === null && listed.length === 1 && listed[0].label === 'Kept',
     'a version whose db write fails returns null and is rolled back out of memory', JSON.stringify({ lost, listed }));
-  const imported = await cp.importVersions('s1', 'g2', [snap('I1', true, 1), snap('I2', false, 1)]);
-  ok(imported === false && (await cp.listVersions('s1', 'g2')).length === 0,
-    'an import whose db write fails reports failure and leaves nothing behind');
 }
-{
-  const fs = makeFs();
-  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const many = Array.from({ length: 22 }, (_, i) => snap(`L${i}`, i % 3 === 0, 1));
-  const imported = await cp.importVersions('s1', 'g3', many);
-  const reopened = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const back = await reopened.listVersions('s1', 'g3');
-  const body = await reopened.getVersionScoped('s1', 'g3', many[5].id);
-  ok(imported === true && back.length === 22 && JSON.stringify(body) === JSON.stringify(many[5].data),
-    'an import is all-or-nothing, never pruned, and reads back identical after reopening from disk',
-    JSON.stringify({ imported, n: back.length }));
-}
-
 // ---- 5. Concurrency: a later write is never overwritten by an earlier one ---
 // Codex repro (2026-09-24): delay the FIRST of two concurrent saveVersion disk
 // writes, let the second finish, then release the first. Both reported
@@ -150,21 +134,21 @@ const idle = () => new Promise(r => setTimeout(r, 20));
     'a failed first write rolls back only itself; the queued second save lands in memory and on disk', JSON.stringify({ ra, rb, mem, disk }));
 }
 {
-  // An import and a save racing: neither may erase the other.
+  // Two saves on different games racing: neither may erase the other.
   const fs = makeFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   await cp.saveVersion('s1', 'g0', snap('seed', true, 1));
   const realWrite = fs.writeDb;
   let calls = 0, releaseFirst;
   fs.writeDb = async (b) => { calls++; if (calls === 1) await new Promise(r => { releaseFirst = r; }); return realWrite(b); };
-  const imp = cp.importVersions('s1', 'g2', [snap('I1', true, 1), snap('I2', false, 1)]);
+  const imp = cp.saveVersion('s1', 'g2', snap('I1', true, 1));
   const sv = cp.saveVersion('s1', 'g3', snap('Solo', true, 1));
   await idle(); await idle();
   releaseFirst && releaseFirst();
   const [ri, rs] = await Promise.all([imp, sv]);
   const re = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   const g2 = (await re.listVersions('s1', 'g2')).length, g3 = (await re.listVersions('s1', 'g3')).length;
-  ok(ri === true && !!rs && g2 === 2 && g3 === 1, 'a held import and a concurrent save both survive a reopen', JSON.stringify({ ri, rs, g2, g3 }));
+  ok(!!ri && !!rs && g2 === 1 && g3 === 1, 'a held save and a concurrent save on another game both survive a reopen', JSON.stringify({ ri, rs, g2, g3 }));
 }
 {
   // Seasons share the same db: a season save racing a version save.

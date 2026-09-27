@@ -233,6 +233,50 @@ ok(stored.empty, 'a slot with nothing stored still opens as a new empty season')
 
 ok(!errors.length, 'no page errors', errors.join(' | '));
 
+// A save from before the season library (one top-level season.json on desktop,
+// one `ffa_season` key in a browser) is the retired layout: never read, left
+// where it is, and named once when the library is first created.
+{
+  const files = new Map([['season.json', JSON.stringify({ games: [{ id: 'g', plays: [] }], seasonName: 'Pre-library' })]]);
+  const writes = [];
+  const be = Object.create(TauriBackend.prototype);
+  Object.assign(be, { fs: {}, baseDir: 0, LIB: 'library.json', OLD_LAYOUT: 'season.json' });
+  be._exists = async p => files.has(p);
+  be._readJson = async p => { throw new Error('read ' + p); };
+  be._writeLib = async arr => { writes.push(['library.json', JSON.stringify(arr)]); files.set('library.json', JSON.stringify(arr)); };
+  await be._ensureLibrary();
+  const notice = be.takeOldLayoutNotice();
+  await be._ensureLibrary();
+  ok(notice === 'An old-format GridIron IQ save was found and not opened. It was left where it is.' && be.takeOldLayoutNotice() === null
+     && JSON.stringify(writes) === '[["library.json","[]"]]' && files.get('season.json').includes('Pre-library'),
+    'desktop: an old top-level season.json is not read, is left in place, and is named once', JSON.stringify({ notice, writes }));
+}
+{
+  const page2 = await browser.newPage();
+  const errors2 = []; page2.on('pageerror', e => errors2.push(e.message));
+  await page2.evaluateOnNewDocument(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    localStorage.clear();
+    localStorage.setItem('ffa_season', JSON.stringify({ seasonName: 'Pre-library', games: [{ id: 'g', plays: [] }] }));
+    sessionStorage.setItem('seeded', '1');
+  });
+  const toasts = [];
+  await page2.exposeFunction('__toast', m => toasts.push(String(m)));
+  await page2.evaluateOnNewDocument(() => {
+    const hook = () => { const t = window.app?.tagger; if (t && !t.__hooked) { const real = t.toast?.bind(t); t.toast = (m, ...r) => { window.__toast(m); return real?.(m, ...r); }; t.__hooked = true; } else if (!t) setTimeout(hook, 5); };
+    hook();
+  });
+  await page2.goto(APP_URL, { waitUntil: 'networkidle0' });
+  const r = await page2.evaluate(async () => {
+    await window.app.storage.listSeasons();
+    return { old: localStorage.getItem('ffa_season'), lib: localStorage.getItem('ffa_library'), seasons: (await window.app.storage.listSeasons()).length };
+  });
+  ok(toasts.filter(t => /old-format GridIron IQ save was found and not opened/.test(t)).length === 1 && JSON.parse(r.old).seasonName === 'Pre-library' && r.lib === '[]' && r.seasons === 0,
+    'browser: an old ffa_season key is not read, is left in place, and is named once', JSON.stringify({ toasts, r }));
+  ok(!errors2.length, 'no page errors (old layout)', errors2.join(' | '));
+  await page2.close();
+}
+
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

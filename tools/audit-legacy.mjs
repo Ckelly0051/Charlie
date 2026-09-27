@@ -109,6 +109,8 @@ export function inventory() {
     // converter that names them.
     legacySettingsReaders: count(Object.entries(src).filter(([f]) => f !== 'js/settings-format.js').map(([, t]) => t).join('\n'),
       /\b(ffa_custom_chips|legacyKey|ffa_film_room_cols|ffa_film_room_cols_claimed_by|LEGACY_PRESETS|PRE_CALL_PRESETS|_upgradeCols|_loadCols|LEGACY_MEASURE_UPGRADE|giq_home_workspace|storedVersion)\b|ffa_beta_defaults_/g),
+    // The scoped version migrator and the pre-library / pre-envelope layout readers (Pass 2b rows 9, 11).
+    legacyLayoutReaders: count(js, /\b(migrateLegacy|_migrateLegacy|importVersions|LEGACY_PREFIX)\b|legacy-unenveloped/g),
     // E: platform choices.
     localStorageCalls: count(js, /localStorage\.(getItem|setItem|removeItem)\(/g),
     windowAppRefs: count(js, /\bwindow\.app\b/g),
