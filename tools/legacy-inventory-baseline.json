@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-09-26 (Pass 2 step 7: the old Special Teams, look, game-roster and settings readers are gone)",
+  "recorded": "2026-09-27 (the one-time storage cleanup and settings conversion are deleted)",
   "note": "Phase 0 baseline (docs/LEGACY-EXCISION-PLAN.md). Counts may only fall; lower them here in the commit that removes legacy code.",
   "counts": {
     "deadNames": 0,
@@ -14,7 +14,7 @@
     "legacyRosterReaders": 0,
     "legacySettingsReaders": 0,
     "legacyLayoutReaders": 0,
-    "localStorageCalls": 92,
+    "localStorageCalls": 86,
     "windowAppRefs": 73,
     "innerHtmlSinks": 38,
     "statsEngineLines": 6731
