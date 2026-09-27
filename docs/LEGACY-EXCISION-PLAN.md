@@ -319,9 +319,10 @@ left (ratchet count `legacySettingsReaders` to 0).
   lets settings travel with a season, unblocks the mobile companion).
 - `window.app` lookups made explicit. (Checked 2026-09-27: roster and custom
   fields are already native, and their old renderers wrote into elements that no
-  longer exist — deleted as dead code. What remains: two hand-built dialogs
-  outside the overlay service (auto-detect Review, custom-field manager) and
-  scoreboard reading's missing result strip, OCR-1 in `docs/OPEN-DEFECTS.md`.)
+  longer exist — deleted as dead code. What remains: the auto-detect Review
+  dialog (hand-built outside the overlay service) and scoreboard reading's
+  missing result strip, OCR-1, parked as a future enhancement. The custom-field
+  manager was rebuilt on the overlay service 2026-09-27.)
 
 **After the passes (coach, 2026-09-25): precision and efficiency.** Once the old
 stuff is gone, the next work is making what remains lean: consolidating the four

@@ -2474,17 +2474,39 @@ Breakdown film-state defects above.
    deleted: the roster list, quick pick, add form and import form
    (`roster-manager.js`), the per-play custom-field inputs (`custom-fields.js`)
    and the scoreboard reader's three legacy buttons (`scoreboard-ocr.js`).
-   Still open, for the coach:
-   - **OCR-1 — scoreboard reading shows no result.** The deck's Set region, Read
-     and Auto OCR controls work, but the confirmation strip and status render
-     into `#ocrPreview` / `#ocrStatus`, which no longer exist, so a read
-     produces nothing visible and is never applied. Rebuild the strip natively or
-     drop the feature.
-   - **Hand-built dialogs outside the overlay service:** the auto-detect Review
-     dialog (`AutoDetectScreen.openReview`) and the custom-field manager
-     (`CustomFieldsManager.openManager`, opened by the deck's "Edit custom
-     fields"). Both work; neither follows the overlay spec's focus and Escape
-     rules.
+   - **OCR-1 — PARKED as a future enhancement (coach, 2026-09-27).** The deck's
+     Set region, Read and Auto OCR controls run, but the confirmation strip and
+     status render into `#ocrPreview` / `#ocrStatus`, which no longer exist,
+     so a read shows nothing and is never applied. The coach rarely has a clear
+     scoreboard in frame (no dedicated scoreboard camera), so it is parked. Idle
+     cost is negligible: one saved-region read and one listener at boot, no
+     timers; Tesseract loads only on Read or Auto OCR (not persisted). Unproven
+     on the installed build: Tesseract's blob-URL worker against the CSP (no
+     `worker-src`, no `blob:` in `script-src`) and `getImageData` on
+     asset-protocol video. The three deck controls remain a visible dead end.
+   - **Custom-field manager — REBUILT 2026-09-27** on the overlay service
+     (`native-custom-fields.jsx`, a modal sheet; `e2e-custom-fields` 14,
+     mutation-verified): Save stores the fields and the deck shows them at once
+     (the old dialog never refreshed the deck), Escape and Cancel write nothing,
+     a nameless row is dropped, focus returns to the button.
+   - **Still hand-built:** the auto-detect Review dialog
+     (`AutoDetectScreen.openReview`); works, but outside the overlay spec's
+     focus and Escape rules.
+
+   **Stale references found in passing (logged 2026-09-27; standing practice:
+   any stale or dead reference met during a task is recorded here):**
+   - `tools/e2e-film-room-sheet.mjs:49,53` seeds retired `stType` tags
+     (`'Punt'`, `'Kickoff'`) on Special Teams plays in a live season — a state
+     the app no longer produces. The assertions read the structured event, so it
+     is inert; the fixture should drop the retired tags.
+   - `tools/e2e-native-tagging.mjs:459` checks `window.app.ocr.auto`, which does
+     not exist; the assertion passes only through its checkbox fallback.
+   - `tools/p0-capability-inventory.mjs:80` comment names `e2e-season-tab`
+     (deleted 2026-09-27); `tools/e2e-field-fixes.mjs:244` comment describes
+     `RosterManager.roleInputs` (deleted 2026-09-27). Comments only.
+   - `tools/e2e-css-ownership.mjs` audits only `css/styles.css` and
+     `css/redesign-stats.css`; dead rules in the other stylesheets are not
+     detected.
 5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
    (a) Break Down was five mounted roots kept in step by events — rebuilt
    (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87

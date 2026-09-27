@@ -240,7 +240,7 @@ export class NativeTaggingScreen {
   addCustomTag(value) { const play=this.tagger?.getCurrentPlay?.(),clean=String(value||'').trim(); if(!play||!clean)return false; if(!Array.isArray(play.tags.custom))play.tags.custom=[]; if(!play.tags.custom.includes(clean))play.tags.custom.push(clean); this.tagger._emit('play-updated',play); return true; }
   removeCustomTag(index) { const play=this.tagger?.getCurrentPlay?.(); if(!play||!Array.isArray(play.tags.custom))return false; play.tags.custom.splice(index,1); this.tagger._emit('play-updated',play); return true; }
   setCustomField(id,value) { this.app.customFields?._write?.(id,value); this._queuePublish(); }
-  openCustomFields() { this.app.customFields?.openManager?.(); }
+  openCustomFields() { return this.app.customFields?.openManager?.({ overlays: this.app.overlays, onSaved: () => { this._queuePublish(); this.app.overlays?.toast?.({ message: 'Custom fields saved', tone: 'success' }); } }); }
   openLibrary(group) { this.app.tagLibrarySettings?.open?.(group); }
   previous() { this.app.notes?.flush?.(); this.tagger.prevPlay(); this.app._autoPlayCurrent?.(); }
   saveNext() {
