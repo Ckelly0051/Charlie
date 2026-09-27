@@ -38,7 +38,10 @@ This section is the one place release state is kept current.
   records are the `SMOKE-1.12.0-*.md` files and
   `docs/archive/CLAUDE-2026-09-27.md`.
 - Legacy excision: Passes 0-2b done (`docs/LEGACY-EXCISION-PLAN.md`); one
-  season format, every old-format reader deleted, old files refused.
+  season format, every old-format reader deleted, old files refused. The
+  one-time storage cleanup and settings conversion ran on the installed profile
+  (receipts read back 2026-09-27) and their modules are deleted in source
+  (after `1.12.0-104`; not yet in an installer).
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports

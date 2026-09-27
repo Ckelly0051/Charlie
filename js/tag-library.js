@@ -36,8 +36,8 @@ export class TagLibrary {
     // ball-carrier decision after the snap, an RPO a pass-or-run read. Both are
     // AMBIGUOUS for run/pass classification (PlayTagger.runPassForPlayType) and
     // neither joins the run/pass-depth exclusive group, so `Option + Run Outside`
-    // is chartable. Added as a default at VERSION 4; settings-format.js made it
-    // visible in every library saved before that.
+    // is chartable. Added as a default at VERSION 4; it was made visible in every
+    // library saved before that by a one-time conversion (legacy excision Pass 2b).
     playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Option','Trick Play'],
     blitz: ['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   };
@@ -106,7 +106,7 @@ export class TagLibrary {
     const current = this._read(this.key());
     if (current) return this._normalize(current);
     // An old chips key or a library below the current version is converted
-    // once at boot (settings-format.js); nothing is written on read.
+    // once (legacy excision Pass 2b); nothing is written on read.
     return this._normalize(this._blank());
   }
   /** A saved custom value reserved for another field (added before the rule

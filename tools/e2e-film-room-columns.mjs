@@ -2,9 +2,9 @@
  * FILM ROOM COLUMN SETS PER UNIT (coach direction, 2026-09-24). The table keeps
  * four column sets -- Offense, Defense, Special Teams and All plays -- and the
  * unit FILTER picks the one on screen. Editing columns while a unit is shown
- * changes only that unit's set. Sets persist per program. The coach's old
- * single column list is converted once at boot (settings-format.js) and seeds
- * All plays. In All plays a
+ * changes only that unit's set. Sets persist per program. (The coach's old
+ * single column list was converted once, legacy excision Pass 2b; the converter
+ * and its checks are deleted.) In All plays a
  * unit-specific column is blank, and not editable, on a row of another unit.
  * Run:  node tools/e2e-film-room-columns.mjs
  */
@@ -22,10 +22,10 @@ const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.setViewport({ width: 1440, height: 900 });
-// A coach arriving with an existing custom single column list.
+// A coach arriving with a saved custom All plays set (the current per-program key).
 await page.evaluateOnNewDocument(() => {
   if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem('ffa_film_room_cols', JSON.stringify(['sit', 'formation', 'defFront', 'result']));
+    localStorage.setItem('ffa_film_room_columns_default', JSON.stringify({ all: ['sit', 'formation', 'defFront', 'result'] }));
     sessionStorage.setItem('seeded', '1');
   }
 });
@@ -41,7 +41,7 @@ const seed = () => page.evaluate(async () => {
   g.plays = [
     mk(1, 'offense', { formation: 'Ace', playType: 'Run Inside', runPass: 'Run' }),
     mk(2, 'defense', { defFront: '4-3', coverage: 'Cover 3', runPass: 'Pass', playType: 'Short Pass' }),
-    mk(3, 'special', { stType: 'Punt' }),
+    mk(3, 'special', {}),
   ];
   g.nextId = 4;
   app.tagger.plays = g.plays; app.tagger.nextId = 4; app.tagger._emit('plays-loaded');
@@ -53,8 +53,7 @@ const view = () => page.evaluate(() => {
   const grid = window.app.playGrid, snap = grid.nativeSnapshot();
   const heads = [...document.querySelectorAll('[data-native-film-room] thead th span')].map(h => h.textContent.trim());
   let stored = null; try { stored = JSON.parse(localStorage.getItem(grid.columnsKey())); } catch {}
-  return { scope: snap.columnScope, label: snap.columnScopeLabel, cols: snap.activeColumns, heads, stored, key: grid.columnsKey(),
-    legacy: localStorage.getItem('ffa_film_room_cols') };
+  return { scope: snap.columnScope, label: snap.columnScopeLabel, cols: snap.activeColumns, heads, stored, key: grid.columnsKey() };
 });
 const filter = async (value) => { await page.click(`[data-film-controls] [data-filter="unit:${value}"]`); await settle(page); };
 
@@ -63,7 +62,7 @@ await seed(); await settle(page);
 const PG = await page.evaluate(() => { const P = window.app.playGrid.constructor; return { default: P.PRESETS.default, offense: P.PRESETS.offense, defense: P.PRESETS.defense, special: P.PRESETS.special }; });
 let v = await view();
 ok(v.scope === 'all' && JSON.stringify(v.cols) === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
-  'All plays inherits the existing custom column list', JSON.stringify(v));
+  'All plays shows the saved custom column list', JSON.stringify(v));
 await filter('offense'); v = await view();
 ok(v.scope === 'offense' && JSON.stringify(v.cols) === JSON.stringify(PG.offense), 'Offense shows the offense set (seeded from its preset)', JSON.stringify(v.cols));
 await filter('defense'); v = await view();
@@ -82,8 +81,7 @@ ok(v.cols.includes('quarter') && v.heads.includes('Qtr'), 'Qtr added while viewi
 ok(v.stored && v.stored.defense.includes('quarter') && !v.stored.offense.includes('quarter') && !v.stored.all.includes('quarter') && !v.stored.special.includes('quarter'),
   'only the defense set changed, and it is stored', JSON.stringify(v.stored));
 const team = await page.evaluate(() => localStorage.getItem('ffa_active_team_id') || 'default');
-ok(v.key === `ffa_film_room_columns_${team}` && v.legacy === null,
-  'sets are stored per program; the old single list was converted and removed at boot', JSON.stringify({ key: v.key, legacy: v.legacy }));
+ok(v.key === `ffa_film_room_columns_${team}`, 'sets are stored per program', JSON.stringify({ key: v.key }));
 await filter('offense'); v = await view();
 ok(!v.cols.includes('quarter') && !v.heads.includes('Qtr'), 'the offense table is unaffected', JSON.stringify(v.heads));
 

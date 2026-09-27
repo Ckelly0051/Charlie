@@ -21,7 +21,6 @@
 import puppeteer from 'puppeteer';
 import { APP_URL } from './app-entry.mjs';
 import { TagLibrary } from '../js/tag-library.js';
-import { SettingsFormat } from '../js/settings-format.js';
 import { PlayTagger } from '../js/play-tagger.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -60,26 +59,14 @@ console.log('\n-- PL-2 Option is a built-in, owned once --');
   ok(PlayTagger.normalizeMulti('playType', 'Option + RPO') === 'Option + RPO',
     'Option and RPO do not evict each other', PlayTagger.normalizeMulti('playType', 'Option + RPO'));
 
-  // A team whose saved state predates the new default must still SEE it: a new
-  // default is filtered out of a stored `enabled` array.
+  // Libraries saved before Option existed were made to show it by a one-time
+  // conversion (legacy excision Pass 2b; the converter is deleted). A new library
+  // offers it as a default.
   const store = new Map();
-  const fakeStorage = {
-    getItem: k => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: k => store.delete(k),
-    get length() { return store.size; },
-    key: i => [...store.keys()][i] ?? null,
-  };
-  const legacy = { version: 3, groups: { playType: {
-    custom: [], order: types.filter(t => t !== 'Option'), enabled: types.filter(t => t !== 'Option'),
-  } }, presets: [] };
-  store.set('ffa_tag_libraries_t1', JSON.stringify(legacy));
-  // A library saved before the bump is converted once at boot (settings-format.js).
-  SettingsFormat.convertOnce({ storage: fakeStorage });
-  const lib = new TagLibrary({ storage: fakeStorage, teamId: 't1' });
-  const group = lib.group('playType');
+  const fakeStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const group = new TagLibrary({ storage: fakeStorage, teamId: 't1' }).group('playType');
   ok(group.values.includes('Option') && group.enabled.includes('Option'),
-    'A team saved before the bump gets Option visible, not hidden',
+    'A team library shows Option as an enabled default',
     { values: group.values.includes('Option'), enabled: group.enabled.includes('Option') });
   ok(!group.custom.includes('Option'), 'Option is a DEFAULT, never a custom entry', group.custom);
 

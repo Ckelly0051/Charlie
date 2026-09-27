@@ -426,7 +426,7 @@ for (const key of ['qbAlignment', 'backfield', 'strength', 'coverageFamily']) {
 console.log('\n== 8d. E3b/E4-2: projected cells + editable projected columns + saved-column upgrade ==');
 // Fully pure -- _cellText/_cell and PG.COLUMNS never touch the classic .pg-*
 // markup. (The saved-column upgrade from old stock lists is converted once at
-// boot and tested in e2e-settings-format.)
+// boot by a one-time conversion, since deleted.)
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });

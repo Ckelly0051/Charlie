@@ -109,7 +109,7 @@ export class PlayGrid {
      existing reader and writer keeps working. Sets belong to the program: one
      settings key per team, read lazily so a program switch brings its own; a
      program with none starts from the presets. The old global list is
-     converted once at boot (settings-format.js). */
+     converted once on the coach's profile (legacy excision Pass 2b; the converter was deleted after the 1.12.0-103 smoke confirmed it). */
   static COLUMN_SCOPES = Object.freeze(['all', 'offense', 'defense', 'special']);
   static SCOPE_PRESET = Object.freeze({ all: 'default', offense: 'offense', defense: 'defense', special: 'special' });
   static SCOPE_LABEL = Object.freeze({ all: 'All plays', offense: 'Offense', defense: 'Defense', special: 'Special Teams' });

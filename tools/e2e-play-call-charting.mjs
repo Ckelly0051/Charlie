@@ -1,5 +1,4 @@
 import puppeteer from 'puppeteer';
-import { SettingsFormat } from '../js/settings-format.js';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;
@@ -139,10 +138,7 @@ ok(state.columns.some(col => col.key === 'playCall' && col.label === 'Play Call'
   && state.columns.some(col => col.key === 'playConcept' && col.label === 'Concept')
   && state.columns.some(col => col.key === 'notes' && col.label === 'Notes'),
   'Film Room exposes distinct Play Call, Concept, and Notes columns', JSON.stringify(state.columns));
-// A saved pre-call stock list is upgraded once at boot (settings-format.js).
-const upgraded = SettingsFormat._upgradeColumns(SettingsFormat.STOCK_COLUMNS.default[1].slice(), { default: state.presetDefault });
-ok(upgraded.includes('playCall') && JSON.stringify(upgraded) === JSON.stringify(state.presetDefault),
-  'A saved pre-call stock preset upgrades to reveal Play Call', JSON.stringify(upgraded));
+ok(state.presetDefault.includes('playCall'), 'The default Film Room preset shows Play Call', JSON.stringify(state.presetDefault));
 ok(state.after.playCall === '26 Blast' && state.after.playCallId === 'call_26_blast'
   && state.after.playConcept === 'Blast' && state.after.formation === 'Power-I',
   'Film Room selects a saved call through the same snapshot/default rules as Chart', JSON.stringify(state.after));

@@ -105,9 +105,8 @@ export function inventory() {
     // read of a game's own roster (season-format.js names it only to refuse it).
     legacyRosterReaders: count(Object.entries(src).filter(([f]) => f !== 'js/season-format.js').map(([, t]) => t).join('\n'),
       /\b(adoptLegacyRoster|rosterIdentity|gameFromLegacy|addGameFromData|rosterMigration)\b|\b(?:game|g|prev|node)\??\.roster\b/g),
-    // Old app-settings readers (Pass 2b); js/settings-format.js is the one-time
-    // converter that names them.
-    legacySettingsReaders: count(Object.entries(src).filter(([f]) => f !== 'js/settings-format.js').map(([, t]) => t).join('\n'),
+    // Old app-settings readers (Pass 2b). The one-time converter is deleted.
+    legacySettingsReaders: count(js,
       /\b(ffa_custom_chips|legacyKey|ffa_film_room_cols|ffa_film_room_cols_claimed_by|LEGACY_PRESETS|PRE_CALL_PRESETS|_upgradeCols|_loadCols|LEGACY_MEASURE_UPGRADE|giq_home_workspace|storedVersion)\b|ffa_beta_defaults_/g),
     // The scoped version migrator and the pre-library / pre-envelope layout readers (Pass 2b rows 9, 11).
     legacyLayoutReaders: count(js, /\b(migrateLegacy|_migrateLegacy|importVersions|LEGACY_PREFIX)\b|legacy-unenveloped/g),

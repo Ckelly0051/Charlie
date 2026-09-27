@@ -43,7 +43,6 @@ import { BreakdownTheaterScreen } from './breakdown-theater-screen.js';
 import { BreakdownWorkspace } from './breakdown-workspace.js';
 import { HistoryManager } from './history-manager.js';
 import { VersionManager } from './version-manager.js';
-import { StorageCleanup } from './storage-cleanup.js';
 import { ScoreboardOCR } from './scoreboard-ocr.js';
 import { CutupExporter } from './cutup-exporter.js';
 import { CutupPlayer } from './cutup-player.js';
@@ -64,7 +63,6 @@ import { PlaybookLibrary } from './playbook-library.js';
 import { PlayGrid } from './play-grid.js';
 import { AutoDetectScreen } from './auto-detect-screen.js';
 import { configureBetaDefaults } from './beta-config.js';
-import { SettingsFormat } from './settings-format.js';
 // LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
 // crosses every route, so it has to win on source order against the per-route
 // stylesheets those modules pull in. Importing it after them puts it last in
@@ -83,9 +81,6 @@ const APP_VERSION = '1.12.0-104';
 
 class App {
   constructor() {
-    // Old settings keys are converted once, before anything reads a setting.
-    this.settingsFormat = SettingsFormat.convertOnce({ storage: localStorage, version: APP_VERSION,
-      gridColumns: PlayGrid.COLUMNS.map(c => c.key), gridPresets: PlayGrid.PRESETS });
     configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
     try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
     catch { this.autoPlayNext = true; }
@@ -278,9 +273,6 @@ class App {
     // next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(async () => {
       await this.storage.initLibrary();
-      // One-time, hash-guarded removal of retired keys already archived outside
-      // the app (storage-cleanup.js). Never awaited.
-      this.storageCleanup = StorageCleanup.run().catch(() => null);
       this._bindGamesPanel();
       await this.workspaceShell.init();
       await this.workspaceShell.show('home');

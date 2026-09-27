@@ -1,19 +1,15 @@
 import { TagLibrary } from '../js/tag-library.js';
-import { SettingsFormat } from '../js/settings-format.js';
 
 let pass=0,fail=0;
 const ok=(value,label,extra='')=>{console.log(`${value?'  PASS':'  FAIL'}  ${label}${!value&&extra?` -- ${extra}`:''}`);value?pass++:fail++;};
 class MemoryStorage { constructor(seed={}){this.data=new Map(Object.entries(seed));} getItem(k){return this.data.get(k)||null;} setItem(k,v){this.data.set(k,String(v));} removeItem(k){this.data.delete(k);} get length(){return this.data.size;} key(i){return [...this.data.keys()][i]??null;} }
-// Old chips and pre-version-4 libraries are converted once at boot (settings-format.js).
-const convert = storage => SettingsFormat.convertOnce({ storage, marker: 'test_marker_' + Math.random() });
-
-const storage=new MemoryStorage({ffa_custom_chips_teamA:JSON.stringify({formation:['Trey','Power-I'],backfield:['Ace']})});
-convert(storage);
+// Old chips and pre-version-4 libraries were converted once on the coach's
+// profile (legacy excision Pass 2b); the converter and its checks are deleted.
+const storage=new MemoryStorage();
 const library=new TagLibrary({storage,teamId:'teamA'});
 let state=library.load();
 ok(library.key()==='ffa_tag_libraries_teamA','library is scoped to the active team');
-ok(state.groups.formation.custom.join(',')==='Trey'&&state.groups.formation.enabled.includes('Power-I')&&state.groups.backfield.custom[0]==='Ace','legacy custom chips promote a new default without duplication or data loss');
-ok(storage.getItem('ffa_custom_chips_teamA')===null,'the one-time conversion retires the chips key');
+ok(library.add('formation','Trey')&&library.group('formation').custom.join(',')==='Trey','a custom formation is added once');
 ok(state.groups.front.enabled.includes('4-2-5'),'Front library is first-class and defaults enabled');
 ok(library.add('front','Bear')&&library.group('front').enabled.includes('Bear'),'custom Front is added and enabled');
 // E4: 'Shotgun' was removed from TagLibrary.DEFINITIONS.formation — it moved to
@@ -25,11 +21,7 @@ ok(['I-Form','Split Back','Power-I','Ace','Victory'].every(value=>library.group(
 ok(!library.remove('formation','Power-I')&&library.group('formation').values.includes('Power-I'),'standard formations can be hidden but not removed as custom values');
 library.restore(); state=library.load();
 ok(state.groups.formation.custom.length===0&&state.groups.formation.enabled.length===TagLibrary.DEFINITIONS.formation.length,'restore returns every group to defaults');
-const v1Storage=new MemoryStorage({ffa_tag_libraries_teamC:JSON.stringify({version:1,groups:{formation:{custom:[],enabled:['Wing-T']},backfield:{custom:[],enabled:['I','Split']},front:{custom:[],enabled:['4-2-5']}}})});
-convert(v1Storage);
-const upgraded=new TagLibrary({storage:v1Storage,teamId:'teamC'});
-ok(['I-Form','Split Back'].every(value=>upgraded.group('formation').enabled.includes(value)),'v1 team libraries enable newly added standard formations exactly once');
-ok(upgraded.setEnabled('formation','I-Form',false)&&!new TagLibrary({storage:v1Storage,teamId:'teamC'}).group('formation').enabled.includes('I-Form'),'coach can hide an upgraded standard formation without it resurrecting');
+ok(library.setEnabled('formation','I-Form',false)&&!new TagLibrary({storage,teamId:'teamA'}).group('formation').enabled.includes('I-Form'),'a hidden standard formation stays hidden across a reload');
 const other=new TagLibrary({storage,teamId:'teamB'});
 ok(other.group('front').custom.length===0,'team libraries remain isolated');
 ok(library.group('unknown').values.length===0&&!library.add('unknown','Value'),'unknown groups fail closed');

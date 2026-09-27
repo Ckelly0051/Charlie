@@ -693,7 +693,7 @@ export class StudyScreen {
     const view = this._views().find(item => item.id === id);
     if (!view || !this._native) return;
     const savedMeasure = view.state.measure;
-    // Renamed measures in saved views are converted once at boot (settings-format.js).
+    // Renamed measures in saved views were converted once on the coach's profile (legacy excision Pass 2b; the converter was deleted after the 1.12.0-103 smoke confirmed it).
     const measure = StudyScreen.SELECTABLE_METRICS.includes(savedMeasure) ? savedMeasure : StudyScreen.DEFAULT_METRIC;
     const role = view.state.playerRole || '';
     const roleConfig = StudyScreen.PLAYER_ROLES[role];

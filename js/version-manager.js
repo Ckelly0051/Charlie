@@ -18,7 +18,7 @@ import { SeasonFormat } from './season-format.js';
  * save that choice` finding) while this class dropped its own writes silently.
  * The one-time move into the backend ran on the coach's profile and is deleted
  * (legacy excision Pass 2b, row 9); the unscoped `ffa_versions_default` key was
- * archived and removed by storage-cleanup.js.
+ * archived and removed once (legacy excision Pass 2b, 2026-09-27).
  *
  * The old list renderer (#versionList, #btnSaveVersion) is gone: no such DOM
  * exists, and Settings > Recovery is the only presentation owner.

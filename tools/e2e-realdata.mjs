@@ -1,6 +1,10 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* REAL-DATA E2E — drives the built app against the coach's actual saved seasons
-   (the Documents mirror). Fresh page per game (no state accumulation); each view
+/* REAL-DATA E2E — drives the built app against the coach's real season: the
+   frozen canonical fixture (tools/canonical-season.mjs), a read-only, current-
+   format copy of 2025 JV. It read the Documents mirror until 2026-09-27; those
+   files include pre-conversion copies the app now refuses, so seeding them
+   bypassed the refusal and tested a state production cannot reach. Fresh page
+   per game (no state accumulation); each view
    driven under its own timeout so a hang/slow render is localized to an exact
    game+view instead of wedging the whole run. Also re-checks the data AFTER
    normalize to confirm the self-healing strip fired.
@@ -9,10 +13,10 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
+import { SeasonFormat } from '../js/season-format.js';
 
-const MIRROR = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons';
-const files = fs.existsSync(MIRROR)
-  ? fs.readdirSync(MIRROR).map(d => path.join(MIRROR, d, 'season.json')).filter(f => fs.existsSync(f)) : [];
+const files = fs.existsSync(CANONICAL_SEASON) ? [CANONICAL_SEASON] : [];
 
 // This was `process.exit(0)` — a missing fixture reported success, so on any
 // machine without the mirror the real-data gate silently did not run and the
@@ -24,11 +28,11 @@ let gamesChecked = 0;
 let gamesPassed = 0;
 if (!files.length) {
   if (process.env.GIQ_REALDATA_OPTIONAL === '1') {
-    console.log('SKIP: no season.json at', MIRROR, '(GIQ_REALDATA_OPTIONAL=1)');
+    console.log('SKIP: no canonical season at', CANONICAL_SEASON, '(GIQ_REALDATA_OPTIONAL=1)');
     console.log('\n== RESULT: 0 passed, 0 failed (skipped) ==');
     process.exit(0);
   }
-  console.log('No season.json at', MIRROR);
+  console.log('No canonical season at', CANONICAL_SEASON);
   console.log('\n== RESULT: 0 passed, 1 failed ==');
   console.log('   The real-data check did not run. This is the designated review');
   console.log('   machine unless GIQ_REALDATA_OPTIONAL=1 is set.');
@@ -87,6 +91,10 @@ const VIEWS = [
 
 for (const file of files) {
   const season = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  // The fixture must be a season the app would open; an old-format copy would
+  // make every view below meaningless.
+  const problems = SeasonFormat.seasonProblems(season);
+  if (problems.length) { console.log(`  FAIL: the fixture is not current format: ${JSON.stringify(problems.slice(0, 3))}`); failures++; continue; }
   const name = season.seasonName || season.id || path.basename(path.dirname(file));
   console.log(`\n${'='.repeat(72)}\nSEASON: ${name}  (${(season.games || []).length} games)`);
   errors.length = 0;

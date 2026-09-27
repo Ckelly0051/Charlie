@@ -20,7 +20,7 @@ const WORKSPACE_ROUTES = Object.freeze([
  */
 export class WorkspaceContext {
   /** The one durable key for the Home parent context (the mode-only key it
-   *  replaced is converted once at boot, settings-format.js). */
+   *  replaced was converted once, legacy excision Pass 2b). */
   static PARENT_KEY = 'giq_home_parent';
 
   constructor(app) {
