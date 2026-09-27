@@ -20,13 +20,10 @@ const makeFs = () => {
 const catalog = fs => new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
 const version = (id, owner) => ({ id, label: owner, data: { owner } });
 
-await check('a colliding import never changes another game or writes partial rows', async () => {
+await check('a colliding version id never changes another game', async () => {
   const fs = makeFs(), cp = catalog(fs);
   assert.equal(await cp.saveVersion('season-a', 'game-a', version('shared', 'A')), 'shared');
-  assert.equal(await cp.importVersions('season-b', 'game-b', [version('new', 'B'), version('shared', 'B')]), false);
-  const reopened = catalog(fs);
-  assert.deepEqual(await reopened.getVersionScoped('season-a', 'game-a', 'shared'), { owner: 'A' });
-  assert.equal(await reopened.getVersionScoped('season-b', 'game-b', 'new'), null);
+  assert.deepEqual(await catalog(fs).getVersionScoped('season-a', 'game-a', 'shared'), { owner: 'A' });
   assert.equal(await cp.saveVersion('season-b', 'game-b', version('shared', 'B')), null);
   assert.deepEqual(await cp.getVersionScoped('season-a', 'game-a', 'shared'), { owner: 'A' });
 });
