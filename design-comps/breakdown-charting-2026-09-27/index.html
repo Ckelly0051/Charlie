@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Break Down charting fields - design comp</title>
+  <style>
+    :root { color-scheme: dark; font: 13px Arial, sans-serif; background:#0b0b0b; color:#f4f4f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; }
+    button { font:inherit; cursor:pointer; }
+    .shell { height:100vh; min-height:620px; display:grid; grid-template-rows:68px 67px minmax(0,1fr); }
+    .top { display:flex; align-items:center; gap:32px; padding:0 18px; background:#171717; border-bottom:1px solid #444; white-space:nowrap; }
+    .brand { font-size:16px; font-weight:800; margin-right:12px; }
+    .brand b { color:#4185ff; }
+    .top .nav { font-size:17px; font-weight:700; color:#aaa; }
+    .top .nav.active { height:100%; display:grid; place-items:center; color:#fff; border-bottom:3px solid #e5b319; }
+    .context { background:#101010; border-bottom:1px solid #444; display:grid; grid-template-rows:25px 42px; }
+    .context-line { display:flex; gap:28px; align-items:center; padding:0 13px; background:#303030; color:#e7e7e7; font-size:11px; overflow:hidden; white-space:nowrap; }
+    .context-line strong { color:#fff; }
+    .toolbar { display:flex; align-items:center; gap:8px; padding:0 12px; overflow:hidden; }
+    .tool { border:1px solid #555; background:#242424; color:#ddd; padding:8px 14px; white-space:nowrap; font-weight:700; }
+    .tool.active { background:#e6b21b; border-color:#e6b21b; color:#050505; }
+    .layout { min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 286px 468px; }
+    .film { min-width:0; min-height:0; display:grid; grid-template-rows:minmax(0,1fr) 104px 70px; border-right:2px solid #444; }
+    .frame { min-height:0; background:#050505; display:grid; place-items:center; overflow:hidden; }
+    .frame img { width:100%; height:100%; object-fit:contain; }
+    .film-meta { border-top:2px solid #e5b319; background:#151515; padding:10px 16px; display:flex; flex-direction:column; gap:6px; }
+    .film-meta strong { font-size:14px; }
+    .film-meta span { color:#c7c7c7; }
+    .film-meta .accent { color:#e9ba21; }
+    .film-controls { border-top:1px solid #555; padding:8px 12px; background:#151515; }
+    .film-controls .buttons { display:flex; align-items:center; gap:5px; }
+    .film-controls button { width:35px; height:30px; background:#242424; border:1px solid #666; color:#fff; }
+    .film-controls button.play { background:#f0f0f0; color:#111; }
+    .track { flex:1; height:5px; background:linear-gradient(90deg,#e5b319 34%,#777 34%); border-radius:4px; margin:0 11px; }
+    .plays { min-width:0; min-height:0; background:#151515; border-right:2px solid #444; display:grid; grid-template-rows:42px minmax(0,1fr); }
+    .plays-head { padding:13px; border-bottom:1px solid #555; font-weight:700; }
+    .plays-head small { color:#aaa; font-weight:400; margin-left:10px; }
+    .play-list { overflow:auto; }
+    .play-row { height:47px; display:grid; grid-template-columns:30px 1fr 65px; gap:5px; align-items:center; padding:0 9px; border-bottom:1px solid #363636; font-size:12px; }
+    .play-row b { color:#f3f3f3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .play-row span { color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .play-row.current { background:#26343c; border-left:3px solid #e5b319; padding-left:6px; }
+    .deck { min-width:0; min-height:0; display:grid; grid-template-rows:44px 53px minmax(0,1fr) 56px; background:#111; }
+    .deck-head { display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid #555; }
+    .deck-head strong { font-size:16px; }
+    .deck-head small { color:#aaa; }
+    .unit { display:flex; align-items:center; gap:0; padding:6px 10px; border-bottom:1px solid #555; }
+    .unit button { background:#222; border:1px solid #555; color:#bbb; padding:8px 10px; }
+    .unit button.active { background:#13a7c7; border-color:#13a7c7; color:#000; font-weight:700; }
+    .unit .mode { margin-left:auto; font-size:11px; color:#8b8b8b; }
+    .deck-body { min-height:0; overflow:auto; padding:0 9px 16px; }
+    .section { border-bottom:1px solid #4b4b4b; padding:7px 2px 9px; }
+    .section-title { display:inline-block; background:#e3b21a; color:#000; padding:6px 28px 6px 9px; font-weight:800; font-size:12px; clip-path:polygon(0 0,100% 0,88% 100%,0 100%); margin-bottom:8px; }
+    .section-title.cyan { background:#0eb4d2; }
+    .field { margin:7px 0 10px; }
+    .field-label { display:flex; justify-content:space-between; align-items:center; gap:8px; color:#ddd; font-weight:700; margin-bottom:5px; }
+    .optional { color:#888; font-weight:400; }
+    .chips { display:flex; flex-wrap:wrap; gap:4px; }
+    .chip { background:#222; border:1px solid #5a5a5a; color:#c7c7c7; padding:5px 8px; min-height:29px; line-height:17px; }
+    .chip.on { background:#e6b21b; border-color:#e6b21b; color:#000; }
+    .chip.cyan-on { background:#11a7c5; border-color:#11a7c5; color:#000; }
+    .select-line { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .select-line .field { min-width:0; }
+    .select-line .chip { min-width:30px; }
+    .input { border:1px solid #5a5a5a; background:#181818; color:#f4f4f4; height:31px; padding:6px 8px; width:100%; }
+    .new-field { margin:8px -2px 0; padding:7px 7px 3px; border-left:3px solid #1ab4cf; background:#10252a; }
+    .new-field .field:first-child { margin-top:0; }
+    .new-field .field-label { color:#f2f2f2; }
+    .tag { color:#1dc6e5; text-transform:uppercase; font-size:10px; font-weight:800; letter-spacing:.4px; }
+    .help { color:#9ec1c8; font-size:11px; line-height:1.35; margin:4px 0 2px; }
+    .scenario { display:none; }
+    .scenario.active { display:contents; }
+    .save { display:grid; grid-template-columns:90px 72px minmax(0,1fr); gap:6px; padding:8px; border-top:1px solid #555; }
+    .save button { border:1px solid #555; background:#242424; color:#ddd; font-weight:700; }
+    .save .primary { background:#e5b319; color:#000; border-color:#e5b319; }
+    .review-tabs { position:absolute; z-index:4; top:145px; left:14px; display:flex; gap:5px; padding:5px; background:#090909e8; border:1px solid #666; }
+    .review-tabs button { border:1px solid #555; color:#ddd; background:#252525; padding:7px 12px; font-weight:700; white-space:nowrap; }
+    .review-tabs button.active { color:#000; border-color:#e5b319; background:#e5b319; }
+    @media(max-width:1300px) { .layout { grid-template-columns:minmax(0,1fr) 230px 410px; } .review-tabs { top:140px; } }
+    @media(max-width:950px) { .shell { grid-template-rows:55px 55px minmax(0,1fr); } .top { gap:18px; } .top .nav { font-size:14px; } .context { grid-template-rows:25px 30px; } .toolbar .tool { padding:4px 10px; } .layout { grid-template-columns:minmax(0,1fr) minmax(330px,45%); } .plays { display:none; } .review-tabs { top:118px; } }
+    @media(max-width:650px) { .shell { height:auto; min-height:100vh; display:block; } .top { height:49px; gap:13px; overflow:auto; } .top .nav { font-size:13px; } .brand { font-size:13px; margin:0; } .context { height:56px; } .context-line { gap:12px; } .layout { display:block; } .film { height:307px; padding-top:42px; display:grid; grid-template-rows:minmax(0,1fr) 44px 48px; border-right:0; } .film-meta { padding:6px 10px; gap:2px; } .film-meta span:last-child { display:none; } .film-controls { padding:6px; } .review-tabs { position:fixed; top:105px; left:0; width:100%; border-left:0; border-right:0; overflow-x:auto; } .review-tabs button { padding:7px 9px; } .deck { display:block; } .deck-head { height:40px; } .unit { height:46px; } .deck-body { overflow:visible; } .save { position:sticky; bottom:0; background:#111; height:54px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top"><div class="brand">GRIDIRON <b>IQ</b></div><div class="nav">Home</div><div class="nav active">Break Down</div><div class="nav">Study</div><div class="nav">Reports</div><div class="nav">Plan</div></header>
+    <div class="context"><div class="context-line"><span>PROGRAM <strong>Mavericks</strong></span><span>SEASON <strong>2025 St. Joseph Mavericks - JV</strong></span><span>GAME <strong>Week 1 vs St. Peter Lutheran Patriots</strong></span></div><div class="toolbar"><button class="tool">Our Program</button><button class="tool active">Chart</button><button class="tool">Film Room</button><button class="tool">Quick chart</button><button class="tool">Customize fields</button></div></div>
+    <main class="layout">
+      <div class="film"><div class="frame"><img src="../../ux-prototype/assets/all22-frame.png" alt="All-22 football film frame"></div><div class="film-meta"><strong>Play 8 <span style="color:#999;font-weight:400">1st &amp; 10 · Own 28 · Left hash</span></strong><span class="accent" id="film-summary">26 Blast · Run inside · Gain +8</span><span>Our Drive 1</span></div><div class="film-controls"><div class="buttons"><button title="Previous play">|&lt;</button><button title="Rewind">&lt;</button><button class="play" title="Play">&#9654;</button><button title="Forward">&gt;</button><span>0:12</span><div class="track"></div><span>0:19</span></div></div></div>
+      <aside class="plays"><div class="plays-head">PLAYS <small>67 plays · grouped by drive</small></div><div class="play-list"><div class="play-row"><span>3</span><b>1st &amp; 10</b><span>Loss -3</span></div><div class="play-row"><span>4</span><b>2nd &amp; 13</b><span>Penalty +5</span></div><div class="play-row"><span>5</span><b>2nd &amp; 8</b><span>Loss -1</span></div><div class="play-row"><span>6</span><b>3rd &amp; 9</b><span>Loss -4</span></div><div class="play-row"><span>7</span><b>4th &amp; 13</b><span>Punt</span></div><div class="play-row current"><span>8</span><b>1st &amp; 10</b><span>Gain +8</span></div><div class="play-row"><span>9</span><b>1st &amp; 10</b><span>Gain +6</span></div><div class="play-row"><span>10</span><b>2nd &amp; 4</b><span>TD +8</span></div><div class="play-row"><span>11</span><b>Down -</b><span>XP</span></div><div class="play-row"><span>12</span><b>Down -</b><span>Kickoff</span></div><div class="play-row"><span>13</span><b>1st &amp; 10</b><span>Loss -1</span></div><div class="play-row"><span>14</span><b>2nd &amp; 11</b><span>Gain +1</span></div></div></aside>
+      <section class="deck" aria-label="Charting deck"><div class="deck-head"><strong>Play 8</strong><small>8 / 67 tagged</small></div><div class="unit"><button class="active">Offense</button><button>Defense</button><button>Special Teams</button><span class="mode">SAVED</span></div><div class="deck-body"><div class="section"><span class="section-title">SITUATION</span><div class="select-line"><div class="field"><div class="field-label">Quarter</div><div class="chips"><button class="chip on">Q1</button><button class="chip">Q2</button></div></div><div class="field"><div class="field-label">Down</div><div class="chips"><button class="chip on">1</button><button class="chip">2</button><button class="chip">3</button></div></div><div class="field"><div class="field-label">Distance</div><input class="input" value="10" aria-label="Distance"></div></div></div>
+      <div class="section"><span class="section-title">OUR OFFENSIVE LOOK</span><div class="field"><div class="field-label">Play Call</div><input class="input" id="play-call" value="26 Blast" aria-label="Play call"></div><div class="field"><div class="field-label">Formation</div><div class="chips"><button class="chip">Spread</button><button class="chip">Trips</button><button class="chip on">Power-I</button><button class="chip">Flexbone</button></div></div><div class="field"><div class="field-label">Motion <span class="optional">optional</span></div><div class="chips"><button class="chip" id="jet-chip">Jet</button><button class="chip">Orbit</button><button class="chip">Shift</button><button class="chip">Other</button></div></div>
+      <div class="scenario" data-scenario="motion"><div class="new-field"><div class="field-label"><span>Motion path</span><span class="tag">Proposed</span></div><div class="field"><div class="field-label">Starts</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Ends</div><div class="chips"><button class="chip">Left</button><button class="chip">Middle</button><button class="chip on">Right</button></div></div><div class="help">Offense's perspective. Each endpoint can be left blank.</div></div></div></div>
+      <div class="section"><span class="section-title cyan">DEFENSE FACED</span><div class="field"><div class="field-label">Front</div><div class="chips"><button class="chip">4-3</button><button class="chip on">5-2</button><button class="chip">3-4</button><button class="chip">Nickel</button></div></div><div class="field"><div class="field-label">Coverage</div><div class="chips"><button class="chip">Cover 1</button><button class="chip on">Cover 3</button><button class="chip">Cover 4</button></div></div></div>
+      <div class="section"><span class="section-title">PLAY &amp; RESULT</span><div class="field"><div class="field-label">Run / Pass</div><div class="chips"><button class="chip on">Run</button><button class="chip">Pass</button></div></div><div class="field"><div class="field-label">Play Type</div><div class="chips"><button class="chip on">Run Inside</button><button class="chip">Run Outside</button><button class="chip">RPO</button><button class="chip">Play Action</button></div></div>
+      <div class="scenario" data-scenario="gap"><div class="new-field"><div class="field-label"><span>Gap hit <span class="optional">optional</span></span><span class="tag">Proposed</span></div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip on">Left A</button><button class="chip">Right A</button><button class="chip">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div><div class="help">Actual lane hit, separate from the called play and play direction.</div></div></div>
+      <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label"><span>RPO details</span><span class="tag">Proposed vocabulary</span></div><div class="field"><div class="field-label">Read defender <span class="optional">optional</span></div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Decision <span class="optional">optional</span></div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div><div class="help">Decision is distinct from the resulting Run / Pass classification.</div></div></div>
+      <div class="field"><div class="field-label">Play Direction</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Result</div><div class="chips"><button class="chip on">Gain</button><button class="chip">Loss</button><button class="chip">No Gain</button><button class="chip">Touchdown</button></div></div><div class="field"><div class="field-label">Yards</div><input class="input" value="8" aria-label="Yards"></div></div>
+      <div class="section"><span class="section-title">PLAYERS &amp; GRADES</span><div class="field"><div class="field-label"><span id="player-role">Ball Carrier</span> <span class="optional">optional</span></div><div class="chips"><button class="chip on" id="player-name">#42 Leo Johnson</button></div></div></div>
+      </div><div class="save"><button>Previous</button><button>Skip</button><button class="primary">Save &amp; Next</button></div></section>
+    </main>
+  </div>
+  <nav class="review-tabs" aria-label="Comp views"><button data-view="gap" class="active">Run gap hit</button><button data-view="motion">Motion direction</button><button data-view="rpo">RPO details</button></nav>
+  <script>
+    const views = {gap:'26 Blast · Run inside · Gain +8', motion:'Jet motion · Run inside · Gain +8', rpo:'RPO · Throw · Gain +8'};
+    function show(view) {
+      document.querySelectorAll('.review-tabs button').forEach(button => button.classList.toggle('active',button.dataset.view===view));
+      document.querySelectorAll('.scenario').forEach(panel => panel.classList.toggle('active',panel.dataset.scenario===view));
+      document.getElementById('film-summary').textContent=views[view];
+      document.getElementById('play-call').value=view==='rpo'?'RPO Glance':'26 Blast';
+      document.getElementById('jet-chip').classList.toggle('on',view==='motion');
+      document.getElementById('player-role').textContent=view==='rpo'?'Receiver':'Ball Carrier';
+      document.getElementById('player-name').textContent=view==='rpo'?'#81 Jace Schaffer':'#42 Leo Johnson';
+      document.querySelectorAll('.deck-body .chip').forEach(button => {
+        if (button.closest('.scenario')) return;
+        if (button.textContent==='RPO') button.classList.toggle('on',view==='rpo');
+        if (button.textContent==='Run Inside') button.classList.toggle('on',view!=='rpo');
+      });
+      const resultButtons=[...document.querySelectorAll('.section')].find(section => section.textContent.includes('PLAY & RESULT'))?.querySelectorAll('.field')[0]?.querySelectorAll('.chip');
+      if(resultButtons) resultButtons.forEach(button => button.classList.toggle('on',button.textContent===(view==='rpo'?'Pass':'Run')));
+      if (innerWidth>650) {
+        const deckBody=document.querySelector('.deck-body');
+        const field=document.querySelector(`.scenario[data-scenario="${view}"] .new-field`);
+        deckBody.scrollTop+=field.getBoundingClientRect().top-deckBody.getBoundingClientRect().top-175;
+      }
+      history.replaceState(null,'','#'+view);
+    }
+    document.querySelectorAll('.review-tabs button').forEach(button => button.addEventListener('click',()=>show(button.dataset.view)));
+    document.querySelectorAll('.new-field .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); }));
+    show(['gap','motion','rpo'].includes(location.hash.slice(1))?location.hash.slice(1):'gap');
+  </script>
+</body>
+</html>
