@@ -16,6 +16,14 @@ manifest status, or installed acceptance is changed.
   reachable farther down the deck.
 - `#formation`, `#gap`, `#motion`, `#rpo`, `#qb`: the previously approved field
   proposal in the same workspace, with its direct chip-to-detail interaction.
+- `#gap` and `#qb` now place the Gap control immediately below Play Direction.
+  Clicking a direction reveals it; Gap side (Left/Right/Center) and the A-D
+  letter remain explicit. Center has no letter. Neither direction nor the call
+  silently supplies a gap side.
+- `#reverse` proposes Reverse as a Play Type. Its example is directed Right but
+  hits Left C, making clear that Play Direction and the actual lane hit are
+  distinct charted facts. Reverse stays a run and retains the normal result,
+  yardage, and ball-carrier controls.
 - Click Program, Season, or Game in the top row to see one shared menu pattern.
   Season retains the three example seasons, counts, Season Library and New
   season. The labels and counts are illustrative, not live-catalog evidence.
@@ -39,6 +47,9 @@ presentation. It must not be interpreted as permission to change a program,
 season, game, or coach data while reviewing the design.
 
 No explanatory prose or `optional` subtext is added to the on-screen deck.
+The nested Gap interaction and Reverse Play Type are new review proposals,
+not changes to the approved production build contract in the plan. The coach
+must approve them before that contract or data schema is revised.
 
 ## Review evidence
 
