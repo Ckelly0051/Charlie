@@ -8,20 +8,13 @@
 > product direction; it is not authorization to modify, migrate, or delete
 > customer data.
 
-> **Release checkpoint, 2026-09-22 (current status updated 2026-09-23):**
-> unsigned Windows `1.12.0-95` is the latest installer, built from `8b926a6`
-> (committed bump; full gate 123/123 at `8ed64ec`). It adds the Reports global
-> strip and the `1.12.0-94` frame and Players-name repairs; its installed smoke
-> is pending and nothing about it is accepted (`SMOKE-1.12.0-95.md`).
-> The preceding `1.12.0-94` installer was built from source `81fe261` in a clean
-> detached worktree with an uncommitted local version bump; its coach smoke was
-> in progress, with no complete installed verdict.
-> It carries the corrected Breakdown library spacing, completed Reports/export
-> work, and Balanced strength label. `1.12.0-91` passed the coach's Players,
-> Defense cohort, and Special Teams installed smoke; `1.12.0-92` received a
-> bounded Home visual-composition approval. None is tagged, pushed, or
-> published. Home and Reports remain formally `REJECTED` in the valid registry,
-> whose audit now passes. See `CLAUDE.md` for the package and smoke scope.
+> **Current release snapshot (2026-09-28):** `docs/DOCUMENTATION-INDEX.md`
+> is the release-status authority. The latest installer is `1.12.0-106`, and
+> the coach approved its installed smoke (`SMOKE-1.12.0-106.md`). The new
+> Break Down charting fields and BD-UX-1/2 visual work are not in that build.
+> Home and Reports remain formally `REJECTED` in their design manifests;
+> bounded installed-smoke decisions do not change those statuses. Nothing is
+> tagged, pushed, or published.
 >
 > **Reports global navigation decision, 2026-09-22:** the coach approved
 > `design-comps/reports-global-strip-2026-09-22.html` as the shared top-level
@@ -35,9 +28,10 @@
 > and Players jersey/name alignment found in the same smoke are separate
 > open defects in `docs/OPEN-DEFECTS.md`. Reuse the existing complete boards
 > below the strip and verify canonical data after implementation.
-> **Status:** implemented in source with the frame and Players name repairs
-> (`160533c`); canonical browser evidence is green; it needs a new installer
-> and the coach's installed smoke.
+> **Status:** implemented and included in the `1.12.0-98` Reports smoke. The
+> coach said the remaining navigation/composition checks looked good; the
+> approval registry has not moved. See `SMOKE-1.12.0-98.md` and the later
+> label repairs in `docs/OPEN-DEFECTS.md`.
 >
 > **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
 > `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
@@ -57,95 +51,115 @@
 > are not open Home work. All unresolved product defects are indexed in
 > `docs/OPEN-DEFECTS.md`.
 
-## Next Work Packages - Coach-Aligned (2026-09-23)
+## Next Work Packages - Coach-Aligned (updated 2026-09-28)
 
-The coach has finished listing findings for this smoke pass for now. The
-sequence below is an agreed grouping for efficient repair, not approval of a
-new comp, an installed build, or the Reports release. Keep the individual
-findings open in `docs/OPEN-DEFECTS.md` until verified.
+These packages were agreed during the Reports/Break Down smoke. Status below
+separates shipped source from remaining work; `docs/OPEN-DEFECTS.md` is the
+finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
 
-1. **Reports composition and navigation.** Remove the repeated game KPI
-   banner from detail tabs. Keep a compact, nonduplicative score and summary
-   on Overview, including removal of the redundant right-side opponent name.
-   Design a consistent secondary-tab pattern for multi-section reports, using
-   Special Teams and Players as the interaction reference while leaving the
-   approved global strip stable. A coach-reviewed comp must settle the Offense
-   and Defense long-page conversion before code changes. Preserve all modules,
-   cohorts, film actions, and exports. Decide where the requested down-and-
-   distance chart belongs during this design pass; build and validate its
-   analytics as a separate checkpoint using existing charted fields.
-   **Status 2026-09-23:** comp ready for coach review at
-   `design-comps/reports-secondary-nav-2026-09-23/`; not approved or built.
-2. **Breakdown charting.** Reproduce and repair the installed charting-library
-   save failure before adding choices. Tighten desktop chip padding and
-   between-section gaps without shrinking type. Make custom Play Call and
-   built-in Play Type independently collapsible, retaining a clear selected
-   state. Add the approved Formation Family / Receiver Set split, actual run
-   Gap, motion start/end, RPO read/decision, and QB run classification as
-   explicit charting fields. Do not infer values for historical plays. Carry
-   new fields through Film Room, export, and relevant reporting.
-   **Status 2026-09-28:** library save, spacing, and the two folds are repaired
-   in source (installed smoke pending). The charting-additions comp at
+1. **Reports composition and navigation — built.** The stable global strip,
+   shared secondary tabs, Overview-only compact score, removal of the repeated
+   detail-tab KPI banner, and down-and-distance chart were included in the
+   `1.12.0-98` installed Reports smoke. The coach said the remaining checks
+   looked good. Reports production manifests still read `REJECTED`; do not
+   repeat the completed composition package as new work.
+2. **Break Down charting — next build.** The library-save repair, tighter
+   desktop spacing without smaller type, and independent Play Call/Play Type
+   folds are in shipped source. Add explicit Formation Family/Receiver Set,
+   Gap, motion path, RPO read/decision, QB-run classification, and Reverse.
+   Carry them through Film Room, export, and relevant reporting. The comp at
    `design-comps/breakdown-charting-2026-09-27/` is coach-approved, including
-   inline disclosure and shorter desktop chips; its new fields are not built.
-3. **Film Room.** Review a video-first comp with the editable breakdown table
-   docked beneath the video by default, plus movable/resizable video and table
-   arrangements and a usable reset. Keep playback, selection, table editing,
-   and narrow-screen behavior intact. Treat this as a separate higher-risk
-   checkpoint from the charting-form changes.
-   **Status 2026-09-24:** built in source to the agreed direction without a
-   separate comp (table below by default, Beside, resize, Reset, persisted);
-   not packaged, installed smoke pending.
+   inline disclosure and shorter desktop chips. The later supplemental comp
+   records the coach-reviewed Gap row and proposed visual finish. The new
+   fields are not built. Stored-data changes require the confirmed,
+   single-format cutover below; no coach data rewrite is authorized yet.
+3. **Film Room — built, specific smoke outstanding.** The table docks below
+   film by default, with Beside, resize, Reset, and persisted layouts. This
+   is shipped source, not a new design/build task. A specific installed smoke
+   of both docks and persistence is not recorded; verify it with real film on
+   the next candidate.
 
-Use focused tests and canonical 2025 JV data checks for each checkpoint, then
-one integrated full gate and installed smoke covering all three packages on a
-new candidate. No package or production acceptance is implied by the plan.
+Use focused tests and canonical 2025 JV copies for the remaining charting and
+visual work, then one coach-authorized full gate and installed smoke on a new
+candidate. No production acceptance is implied by this plan.
 Broader visualization work remains lower priority and should accompany a
 substantive analysis feature rather than become a standalone redesign.
 
 ### Approved Break Down charting comp - build contract (2026-09-28)
 
 Formal status: `design-approvals/breakdown-charting/manifest.json` is
-`COMP_APPROVED`; production is still `DRAFT`. The visual contract is
-`design-comps/breakdown-charting-2026-09-27/index.html` and `RATIONALE.md`
-beside it. The five comp tabs are review shortcuts, not product
-navigation. The actual coach action is local: selecting a Motion chip opens
-Starts and Ends side by side immediately below it; selecting Run Inside/Outside,
-RPO, or QB Run opens its details immediately below Play Type. These disclosures
-do not jump the deck or require a trip to the top. Keep existing Chart/Film Room
-layout and Save & Next. Use the comp's field order and compact grouping on
-desktop and narrow screens, but do not copy its illustrative film or game data.
+`COMP_APPROVED`; production is still `DRAFT`. Its canonical artifact remains
+`design-comps/breakdown-charting-2026-09-27/`. The later supplemental
+`design-comps/breakdown-visual-finish-2026-09-28/` is not a blanket-approved
+replacement: the coach reviewed its Gap interaction and spacing, while the
+full-library and context-selector visual findings remain open until production
+verification. Comp tabs are review shortcuts, not product navigation. Selecting
+a Motion chip opens Starts and Ends immediately below it; selecting RPO or QB
+Run opens its details locally. Selecting Play Direction opens Gap immediately
+below that field, with no scroll jump or separate side control. Keep the
+existing Chart/Film Room layout and Save & Next; do not copy illustrative film
+or game data.
 
-1. **Owned tags and semantics.** Add explicit Formation Family and Receiver Set
-   values (the comp shows Spread + 3x1), leaving QB Alignment, Backfield,
-   Strength, Personnel, Motion type, and Play Call separate. Current `formation`
-   is multi-valued and mixes family, set, and package names; do not simply
-   rename that key, split old strings by guess, overwrite old tags, or make
-   historical values disappear from the editor. Show the original charted
-   Formation on an old play until the coach explicitly retags it; reopening or
-   saving another field must preserve that value. Only an explicit retag may
-   replace it, as one undoable write. Keep the existing Motion choice Trade and
-   coach-defined library entries available; the comp's chips are example
-   defaults, not a deletion list. New plays write the separated structure,
-   not a new mixed Formation value. Document the exact transition rule before
-   any stored-data rewrite; none is authorized by this comp.
-2. **New play details.** Gap means the actual lane hit, with Left/Right A-D and
-   Other lane, not the called gap or the broad play direction. Motion type and
-   Starts/Ends are separate, using offensive left/middle/right. RPO stores read
+1. **Owned tags and libraries.** Add explicit Formation Family and Receiver Set
+   single-value selections (the comp shows Spread + 3x1), leaving QB
+   Alignment, Backfield, Strength, Personnel, Motion type, and Play Call
+   separate. Formation Family
+   must be its own coach-managed library group, with the existing add,
+   show/hide, reorder, and remove-custom-choice behavior in Settings and the
+   deck. Seed a useful editable vocabulary that includes Power-I and Split
+   Back; the four comp chips are examples, not the catalog limit. The existing
+   Power backfield remains separate from Power-I as a Family choice. Preserve
+   current coach-defined Formation choices through the cutover; do not erase a
+   recorded value or guess its new semantic owner. The current `formation`
+   field mixes family, set, and package names, so it cannot simply be renamed
+   or projected into Family/Receiver Set at read time. Keep Motion's Trade
+   choice and existing coach-defined library entries available. New plays
+   write only the separated current structure.
+2. **New play details.** Gap records the actual lane hit. Under Play Direction,
+   show one desktop row of L-A through L-D, R-A through R-D, Center, and Other
+   at the approved text size; the L chips surrender a little width so Center
+   has usable padding. There is no Gap-side field. A sided Gap selection sets
+   the corresponding Play Direction; changing direction clears a contradictory
+   Gap, and Center sets Middle. Neither the call nor a blank Gap is inferred.
+   Reverse is a selectable Play Type; keep Run/Pass explicit rather than
+   changing statistical classification solely from the word Reverse. Motion
+   type and Starts/Ends are separate, using offensive left/middle/right. RPO
+   stores read
    role (End/Apex/Box/Other), a charted defender jersey when known, and
    decision (Give/Keep/Throw) separately from Play Type and Run/Pass. QB Run
    stores Designed/Scramble/RPO keeper separately from ball carrier and yardage;
    the QB Run Play Type can coexist with RPO when the coach explicitly selects
    both. Do not infer any of these from the call, outcome, player, or existing
    tags. Blank remains uncharted, not a negative or zero event.
-3. **Editing contract.** The deck and Film Room edit the same owned fields.
+3. **Single-format cutover, no compatibility tail (coach decision 2026-09-28).**
+   Build the new charting schema and one-time conversion together. Before a
+   live write, inventory every stored Formation value and every affected
+   season, play, active backup, version, mirror, and configured browser store;
+   publish exact counts, a field-by-field proposed mapping, and an explicit
+   unresolved list.
+   Deterministic mappings may be converted once; ambiguous values require the
+   coach's explicit retag or classification before cutover. No value is
+   discarded, guessed, or silently assigned to Family or Receiver Set. Rehearse
+   on copies, compare identity, film references, unrelated tags, analytics, and
+   exports, and verify a current-format round trip. Obtain the coach's explicit
+   confirmation immediately before any live write; make and verify an immutable
+   restore point, stage the write, read it back, and stop on any mismatch.
+   Convert active restore/version/mirror copies or archive and remove them from
+   active storage with the coach's confirmation; old external files and
+   unconverted browser profiles are refused with a plain message. Before
+   shipping, delete old-shape Formation readers and projections, any dual-write
+   path, and the throwaway converter from active source. Retain projection
+   needed for current data; keep no old deck or compatibility branch. Update
+   tests and current docs to the new contract. This plan does
+   not authorize a coach-data rewrite now.
+4. **Editing contract.** The deck and Film Room edit the same owned fields.
    Select, change, clear, save/reopen, undo/redo, unit switch, and perspective
    switch must agree. Removing a trigger must not silently discard populated
    child details or leave hidden stale values; confirm the clear and make it one
    undoable write. A contradictory RPO decision and Run/Pass needs a visible
    correction path, not a silent overwrite. Keep the current play-unit owner
    and the charting API as the only write path.
-4. **Density and accessibility.** The approved comp reduces chip height from
+5. **Density and accessibility.** The approved comp reduces chip height from
    29px to 27px using 4px rather than 5px vertical padding. Apply that visual
    target to desktop Chart chips by tightening height/padding, not font size or
    horizontal padding; preserve the app's current type scale and the existing
@@ -157,7 +171,7 @@ desktop and narrow screens, but do not copy its illustrative film or game data.
    deck, with consistent label/action alignment and controlled chip wrapping.
    Keep all coach choices reachable and selected values visible. Do not accept
    a four-chip comp state as proof that a populated real-game deck is fixed.
-5. **Downstream contract.** Add the fields to Film Room detail, relevant editable
+6. **Downstream contract.** Add the fields to Film Room detail, relevant editable
    columns, CSV import/export, and the shared analytics registry without changing
    established yardage or success formulas. Add focused, film-linked tendencies
    only where the fields add value: offensive/defensive scouting, season rollup,
@@ -167,8 +181,8 @@ desktop and narrow screens, but do not copy its illustrative film or game data.
    recompose every tab or invent a separate report engine. A report/export
    section built for a new field must match its on-screen cohort and exact
    contributing film.
-6. **Delivery checkpoints.** First build the tag ownership, inline deck behavior,
-   and preservation of old Formation values. Then wire Film Room and CSV
+7. **Delivery checkpoints.** First build the tag ownership, inline deck behavior,
+   and the single-format migration proof. Then wire Film Room and CSV
    round-trips. Then add bounded analytics/report/export surfaces. Focused
    harnesses must cover trigger-to-disclosure clicks (without the comp tabs),
    keyboard and undo, old-play preservation, import/export, and all three
@@ -1117,33 +1131,36 @@ desktop Reports composition pass. They should reuse the canonical analytics
 registry, stored charting data, and film-navigation service rather than create
 parallel formulas or report-only data models.
 
-**Coach-prioritized follow-ons (2026-09-22; updated 2026-09-28):** Items 2-4 and
-7 now have an approved Break Down charting comp and build contract above; they
-are not yet built or approved in an installed app. The remaining items are a
-shortlist, not approval to change the current report compositions or schema.
+**Coach-prioritized follow-ons (2026-09-22; updated 2026-09-28):** Item 1 is
+already built and included in the `1.12.0-98` Reports smoke. Items 2-4 and 7
+have the charting build contract above but are not yet built or approved in an
+installed app; Reverse is added to that same checkpoint. The remaining items
+are a shortlist, not approval to change report compositions or schema.
 Keep the shared Reports strip and unaffected tabs intact; design and verify
 only the charting and report surfaces each item actually touches.
 
-1. **Down-and-distance chart.** A dedicated, scannable report by down and
+1. **Down-and-distance chart — built.** A dedicated, scannable report by down and
    distance with play count, run/pass split, top calls, yards/play, success,
-   eligible sample, and exact film links. The tags already exist; the current
-   by-down and situational tables are not a substitute for this chart.
-2. **Run gap hit.** Add a first-class A/B/C/D gap or named run-lane tag, then
-   build a strength-aware hit chart without treating broad Left/Middle/Right
-   direction as exact gap data. See the run hit/gap follow-on below.
+   eligible sample, and exact film links. The tags already exist; the chart
+   was delivered in the `1.12.0-97/98` Reports work.
+2. **Run gap hit.** Add the explicit L-A through R-D, Center, and Other choices
+   under Play Direction, then build a strength-aware hit chart without
+   inferring an uncharted gap. See the run hit/gap follow-on below.
 3. **Motion direction.** Keep motion type and separately chart its start and
    end direction or side for film-linked tendencies.
-4. **RPO details.** Chart the coach-defined read and decision separately from
-   play type `RPO` and the resulting Run/Pass classification. Settle the exact
-   vocabulary with the coach before adding fields; never infer detail for old
-   plays from their play type or outcome.
+4. **RPO details.** Chart End/Apex/Box/Other read and Give/Keep/Throw decision
+   separately from play type `RPO` and the resulting Run/Pass classification;
+   never infer detail for old plays from their play type or outcome.
 5. **Pass target and catch location.** Chart field side and depth of the target
    and catch separately from total gain; do not infer either from play direction.
 6. **Receiver route and release.** Tie route and release to the identified
    receiver so player and formation tendencies can be queried reliably.
 7. **QB run classification.** Distinguish designed QB runs, scrambles, and RPO
    keepers rather than deriving intent from Run/Pass or Play Type alone.
-8. **Missed tackles.** Chart a missed-tackle event on the defensive play and
+8. **Reverse Play Type.** Add Reverse to the coach-managed Play Type library
+   and the deck. Keep Run/Pass explicit and preserve exact film cohorts in
+   reports and exports; do not treat every Reverse label as a measured rush.
+9. **Missed tackles.** Chart a missed-tackle event on the defensive play and
    optionally attribute each miss to a roster player. Allow more than one
    player miss on a play and retain the play-level event when the player is
    unknown. Keep plays with a missed tackle distinct from player miss credits
@@ -1399,11 +1416,21 @@ future products and are not implied by Plan V2.
 
 ## 5. Recommended Sequence
 
-1. **Complete foundation:** V2-A navigation/context ownership.
-2. **Guided trust:** V2-B onboarding plus team, film, scouting, recovery, and diagnostics.
-3. **Daily work:** V2-E configurable charting and V2-H playback performance.
-4. **Coaching value:** V2-F Study and V2-G Plan.
-5. **Companion experience:** V2-I mobile workflow.
+V2-A through V2-H are complete baseline milestones. The current sequence is:
+
+1. **Break Down charting cutover:** Formation Family/Receiver Set, Gap,
+   Motion path, RPO and QB-run detail, and Reverse; coach-managed Family
+   library, one-time verified conversion, no legacy reader or writer shipped.
+2. **Break Down visual finish:** resolve BD-UX-1 populated deck and BD-UX-2
+   context selectors against real data; preserve existing choices and film.
+3. **Installed verification:** focused harnesses, one coach-authorized full
+   gate, a new installer, and a continuous installed smoke of the charting
+   and Film Room dock/resize/persistence behaviors.
+4. **Competitive follow-ons:** film-linked run-gap reporting, pass target and
+   catch location, receiver route/release, missed tackles, and useful
+   visualizations paired with each substantive report change.
+5. **V2-I mobile companion:** after the desktop charting and reporting
+   contract is competitive and the installed workflow is accepted.
 
 Functional Beta Acceptance requires a cold-start Assistant Coach Test on a clean Windows
 profile with no fixture data and no verbal help. In one continuous journey the

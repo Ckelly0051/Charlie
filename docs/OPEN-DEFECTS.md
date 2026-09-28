@@ -17,8 +17,17 @@ chip-wrap rhythm. Preserve every existing library choice and make selected
 values visible; do not make the screen look tidy by permanently hiding data or
 shrinking the type. Verify populated 1920, 1440, and 1280 desktop captures at
 the real deck width, plus a narrow view. No source repair or installed
-acceptance is claimed here. Supplemental review comp (not yet approved):
-`design-comps/breakdown-visual-finish-2026-09-28/`.
+acceptance is claimed here. The supplemental
+`design-comps/breakdown-visual-finish-2026-09-28/` shows the full old Formation
+library at the real deck width; it is not a blanket-approved replacement for
+the registered charting comp. The new Formation Family must get its own
+coach-managed library group, with Power-I and Split Back available and
+add/show/hide/reorder/remove-custom behavior. No extra comp is required for
+that library workflow. The coach also reviewed Gap as ten chips in one row
+under Play Direction (L-A through R-D, Center, Other) and requested Reverse
+as a Play Type. These are planned, not production repairs. The new charting
+schema has a one-time, confirmed migration checkpoint with no legacy reader
+or dual-write tail; see `GRIDIRON-IQ-PLAN-V2.md`.
 
 **BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and

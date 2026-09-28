@@ -1,5 +1,12 @@
 # Legacy excision — plan
 
+> Historical Pass 2 record, not the current Break Down charting cutover.
+> The early fallback line in guardrail 4 below was superseded by the same-day
+> clean-break decision in Pass 2: no old-format reader ships after a verified
+> conversion. The 2026-09-28 Formation Family / Receiver Set cutover is governed
+> by `GRIDIRON-IQ-PLAN-V2.md`, including a fresh impact report and coach
+> confirmation. This historical plan does not authorize a new data write.
+
 Coach direction, 2026-09-25: excising legacy code is the next step, done
 properly rather than around. **Status: APPROVED by the coach (2026-09-25), cut to three passes the same
 day. Pass 1 and Pass 2 steps 1-7 done in source (2026-09-26), full gate 135/135 at `42e4097`; next: Pass 2b, then step 8.** Base: `1.12.0-102` (`f6e1490`), full gate 131/131.

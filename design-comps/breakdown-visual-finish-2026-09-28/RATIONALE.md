@@ -1,11 +1,12 @@
 # Break Down populated layout - review comp
 
-Status: **PROPOSED, not coach-approved.** This supplements, but does not
-replace, the approved `design-comps/breakdown-charting-2026-09-27/` field comp.
-The original comp settled new field meanings and inline placement; this one
-tests the full library at the real desktop deck width (BD-UX-1) and the closed
-and open context selectors (BD-UX-2). No production behavior, data migration,
-manifest status, or installed acceptance is changed.
+Status: **supplemental review comp, not blanket `COMP_APPROVED`.** The coach
+reviewed the nested, single-row Gap control and asked for Reverse as a Play
+Type on 2026-09-28. The full-library (BD-UX-1) and context-selector (BD-UX-2)
+states remain proposals until production is verified. This supplements, but
+does not replace, the registered
+`design-comps/breakdown-charting-2026-09-27/` field comp. No production
+behavior, coach data, manifest status, or installed acceptance is changed.
 
 ## Review states
 
@@ -37,9 +38,11 @@ and the approved 27px desktop height. Field labels and their independent
 actions share a consistent header rhythm. The full Formation catalog uses
 four stable columns; collapsed libraries keep their selected values visible
 and reduce the scroll before Motion without deleting or silently hiding any
-choice. Historical Formation is shown as recorded; the comp does not infer a
-new Family or Receiver Set from `Trips`. The separate new-field review state
-still governs explicit retagging.
+choice. Historical Formation is shown as recorded in this pre-cutover review
+state; the comp does not infer a new Family or Receiver Set from `Trips`.
+Before a production cutover, every stored value must be explicitly mapped or
+retagged under the one-time migration contract. This screen is not permission
+to ship a permanent old-Formation editor or reader.
 
 The three closed context controls show a label, full-value area, and disclosure
 arrow. Their menus share typography, item spacing, selected-state treatment,
@@ -49,9 +52,15 @@ presentation. It must not be interpreted as permission to change a program,
 season, game, or coach data while reviewing the design.
 
 No explanatory prose or `optional` subtext is added to the on-screen deck.
-The nested Gap interaction and Reverse Play Type are new review proposals,
-not changes to the approved production build contract in the plan. The coach
-must approve them before that contract or data schema is revised.
+The coach's later Gap and Reverse decisions are recorded in the current build
+contract in `GRIDIRON-IQ-PLAN-V2.md`; the registered canonical artifact remains
+the earlier comp. Formation Family uses the existing coach-managed library
+workflow, extended to its own field: add, show/hide, reorder, and remove a
+custom choice without shrinking this deck or silently changing stored plays.
+Power-I and Split Back must be available. Historical mixed Formation values
+are not inferred into Family or Receiver Set. The coach requires a one-time,
+verified cutover with no old-format reader or dual-write path left in the app;
+that migration needs a separate impact report and live-write confirmation.
 
 ## Review evidence
 

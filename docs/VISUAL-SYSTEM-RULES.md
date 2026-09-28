@@ -72,7 +72,8 @@ coach-facing label — and density is not a reason. When type and a fixed
 composition genuinely conflict, recompose the container, spend padding, or open
 a defect; do not shrink the text.
 
-Four narrow exceptions, each named, each for a non-primary utility annotation:
+Five narrow exceptions, each named. The first four are non-primary utility
+annotations; the fifth preserves an approved, surface-specific control size:
 
 1. **Technical timecodes.** The theater's monospaced elapsed/duration readout.
 2. **Keyboard hints.** `kbd` shortcut chips.
@@ -89,6 +90,12 @@ Four narrow exceptions, each named, each for a non-primary utility annotation:
    2026-09-24). The approved board forbids
    both an internal scroller and a resize, so the fix is to recompose the
    three-up band; it is open in `docs/OPEN-DEFECTS.md`.
+5. **Break Down Chart chips.** The existing charting deck uses 12px chip text.
+   The coach-approved `design-comps/breakdown-charting-2026-09-27/` retains that
+   type size and targets a 27px desktop chip by reducing vertical padding, not
+   the font. This is confined to the Chart deck, not a new app-wide control
+   floor; coarse-pointer targets remain at least 44px. The supplemental Gap
+   row keeps the same text size while fitting ten choices on one desktop row.
 
 **Enforcement.** `e2e-reports-defense-realdata` walks every rendered text
 element on the Defense Revision 2 board across all six canonical games at both

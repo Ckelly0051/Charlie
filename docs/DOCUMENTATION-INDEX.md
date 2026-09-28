@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-27.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-28.
 
 ## Current Authority
 
@@ -50,8 +50,13 @@ This section is the one place release state is kept current.
 - Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
   modules and dead renderers deleted, the custom-field editor rebuilt on the
   overlay service, and Special Teams try charting.
-- The approved Break Down charting comp is a future build contract, not a
-  change in this installer; BD-UX-1 remains open in `docs/OPEN-DEFECTS.md`.
+- The registered Break Down charting comp is a future build contract, not a
+  change in this installer. The coach reviewed the later Gap-row treatment
+  and requested Reverse; the supplemental visual-finish comp is not a blanket
+  approval. Formation Family needs its own coach-managed library group. New
+  charting storage requires an inventoried, coach-confirmed one-time cutover
+  with no legacy reader shipped. BD-UX-1 and BD-UX-2 remain open in
+  `docs/OPEN-DEFECTS.md`.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports

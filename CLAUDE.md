@@ -202,7 +202,9 @@ a reviewed correction named in the diff.
 - **Interaction states.** Every enabled control has distinct rest, hover,
   active/selected and `:focus-visible` states without changing its size.
 - **Density.** From geometry and padding, never smaller type. Chips ≥30px
-  desktop, ≥44px coarse pointer. No page-level horizontal overflow at 1440×900,
+  desktop except the approved Break Down Chart target of 27px at its existing
+  type size; all chips remain ≥44px on a coarse pointer. No page-level
+  horizontal overflow at 1440×900,
   1280×800, 768×1024 or 390×844; wide content scrolls in its own container.
 - **Typography.** Bundled IBM Plex Sans / Sans Condensed / Mono; condensed and
   display faces only for true headings and major KPIs. Floors and exceptions are
