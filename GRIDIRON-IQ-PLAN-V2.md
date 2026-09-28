@@ -80,11 +80,14 @@ findings open in `docs/OPEN-DEFECTS.md` until verified.
    save failure before adding choices. Tighten desktop chip padding and
    between-section gaps without shrinking type. Make custom Play Call and
    built-in Play Type independently collapsible, retaining a clear selected
-   state. Add optional run-gap hit and motion start/end direction as first-
-   class charting fields, without inferring values for old plays; carry their
-   semantics through reporting and export where applicable.
+   state. Add optional run-gap hit, motion start/end direction, and RPO details
+   as first-class charting fields, without inferring values for old plays. Define
+   the RPO detail vocabulary with the coach before implementation; play type
+   `RPO` and Run/Pass alone do not capture the full read and decision. Carry
+   each new field through reporting and export where applicable.
    **Status 2026-09-24:** library save, spacing and the two folds are repaired
-   in source (installed smoke pending); run-gap and motion fields are not built.
+   in source (installed smoke pending); run-gap, motion-direction, and RPO-detail
+   fields are not built.
 3. **Film Room.** Review a video-first comp with the editable breakdown table
    docked beneath the video by default, plus movable/resizable video and table
    arrangements and a usable reset. Keep playback, selection, table editing,
@@ -1050,15 +1053,19 @@ only the charting and report surfaces each item actually touches.
 2. **Run gap hit.** Add a first-class A/B/C/D gap or named run-lane tag, then
    build a strength-aware hit chart without treating broad Left/Middle/Right
    direction as exact gap data. See the run hit/gap follow-on below.
-3. **Motion direction.** Keep motion type and separately chart its direction
-   or start/end side for film-linked tendencies.
-4. **Pass target and catch location.** Chart field side and depth of the target
+3. **Motion direction.** Keep motion type and separately chart its start and
+   end direction or side for film-linked tendencies.
+4. **RPO details.** Chart the coach-defined read and decision separately from
+   play type `RPO` and the resulting Run/Pass classification. Settle the exact
+   vocabulary with the coach before adding fields; never infer detail for old
+   plays from their play type or outcome.
+5. **Pass target and catch location.** Chart field side and depth of the target
    and catch separately from total gain; do not infer either from play direction.
-5. **Receiver route and release.** Tie route and release to the identified
+6. **Receiver route and release.** Tie route and release to the identified
    receiver so player and formation tendencies can be queried reliably.
-6. **QB run classification.** Distinguish designed QB runs, scrambles, and RPO
+7. **QB run classification.** Distinguish designed QB runs, scrambles, and RPO
    keepers rather than deriving intent from Run/Pass or Play Type alone.
-7. **Missed tackles.** Chart a missed-tackle event on the defensive play and
+8. **Missed tackles.** Chart a missed-tackle event on the defensive play and
    optionally attribute each miss to a roster player. Allow more than one
    player miss on a play and retain the play-level event when the player is
    unknown. Keep plays with a missed tackle distinct from player miss credits
