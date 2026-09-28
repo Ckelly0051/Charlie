@@ -21,7 +21,8 @@ manifest status, or installed acceptance is changed.
   L-D, R-A through R-D, Center, and Other. There is no separate Gap
   side control. Selecting a sided gap keeps Play Direction on that side;
   choosing another direction clears a conflicting gap instead of guessing.
-  Center selects Middle direction.
+  Center selects Middle direction. The four L chips use less horizontal space
+  so Center has comfortable padding without reducing text size or wrapping.
 - `#reverse` proposes Reverse as a Play Type. Its example travels Left and
   hits L-C. Reverse stays a run and retains the normal result, yardage,
   and ball-carrier controls.
