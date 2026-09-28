@@ -30,9 +30,10 @@
 
 This section is the one place release state is kept current.
 
-- Main checkout and latest installer: `1.12.0-104` (bump `5b694f7` on top of
-  `ec71410`; full gate 137/137 at `ec71410`). It is `1.12.0-103` plus the
-  S103-1 Recover seasons repair; installed check pending (`SMOKE-1.12.0-104.md`).
+- Main checkout and latest installer: `1.12.0-105` (bump `2ef667d` on top of
+  `206551e`; full gate 136/136 at `206551e`): `1.12.0-104` plus the efficiency
+  cleanup, the custom-field editor and Special Teams try charting. Installed
+  smoke pending (`SMOKE-1.12.0-105.md`). `1.12.0-104` was never smoked; superseded.
 - `1.12.0-103` (legacy excision step 8) passed its installed smoke on
   2026-09-27 (`SMOKE-1.12.0-103.md`). Earlier installers are superseded; their
   records are the `SMOKE-1.12.0-*.md` files and
