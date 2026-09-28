@@ -68,8 +68,6 @@
     .new-field { margin:8px -2px 0; padding:7px 7px 3px; border-left:3px solid #1ab4cf; background:#10252a; }
     .new-field .field:first-child { margin-top:0; }
     .new-field .field-label { color:#f2f2f2; }
-    .tag { color:#1dc6e5; text-transform:uppercase; font-size:10px; font-weight:800; letter-spacing:.4px; }
-    .help { color:#9ec1c8; font-size:11px; line-height:1.35; margin:4px 0 2px; }
     .scenario { display:none; }
     .scenario.active { display:contents; }
     .save { display:grid; grid-template-columns:90px 72px minmax(0,1fr); gap:6px; padding:8px; border-top:1px solid #555; }
@@ -92,41 +90,49 @@
       <aside class="plays"><div class="plays-head">PLAYS <small>67 plays · grouped by drive</small></div><div class="play-list"><div class="play-row"><span>3</span><b>1st &amp; 10</b><span>Loss -3</span></div><div class="play-row"><span>4</span><b>2nd &amp; 13</b><span>Penalty +5</span></div><div class="play-row"><span>5</span><b>2nd &amp; 8</b><span>Loss -1</span></div><div class="play-row"><span>6</span><b>3rd &amp; 9</b><span>Loss -4</span></div><div class="play-row"><span>7</span><b>4th &amp; 13</b><span>Punt</span></div><div class="play-row current"><span>8</span><b>1st &amp; 10</b><span>Gain +8</span></div><div class="play-row"><span>9</span><b>1st &amp; 10</b><span>Gain +6</span></div><div class="play-row"><span>10</span><b>2nd &amp; 4</b><span>TD +8</span></div><div class="play-row"><span>11</span><b>Down -</b><span>XP</span></div><div class="play-row"><span>12</span><b>Down -</b><span>Kickoff</span></div><div class="play-row"><span>13</span><b>1st &amp; 10</b><span>Loss -1</span></div><div class="play-row"><span>14</span><b>2nd &amp; 11</b><span>Gain +1</span></div></div></aside>
       <section class="deck" aria-label="Charting deck"><div class="deck-head"><strong>Play 8</strong><small>8 / 67 tagged</small></div><div class="unit"><button class="active">Offense</button><button>Defense</button><button>Special Teams</button><span class="mode">SAVED</span></div><div class="deck-body"><div class="section"><span class="section-title">SITUATION</span><div class="select-line"><div class="field"><div class="field-label">Quarter</div><div class="chips"><button class="chip on">Q1</button><button class="chip">Q2</button></div></div><div class="field"><div class="field-label">Down</div><div class="chips"><button class="chip on">1</button><button class="chip">2</button><button class="chip">3</button></div></div><div class="field"><div class="field-label">Distance</div><input class="input" value="10" aria-label="Distance"></div></div></div>
       <div class="section"><span class="section-title">OUR OFFENSIVE LOOK</span><div class="field"><div class="field-label">Play Call</div><input class="input" id="play-call" value="26 Blast" aria-label="Play call"></div><div class="field"><div class="field-label">Formation</div><div class="chips"><button class="chip">Spread</button><button class="chip">Trips</button><button class="chip on">Power-I</button><button class="chip">Flexbone</button></div></div><div class="field"><div class="field-label">Motion <span class="optional">optional</span></div><div class="chips"><button class="chip" id="jet-chip">Jet</button><button class="chip">Orbit</button><button class="chip">Shift</button><button class="chip">Other</button></div></div>
-      <div class="scenario" data-scenario="motion"><div class="new-field"><div class="field-label"><span>Motion path</span><span class="tag">Proposed</span></div><div class="field"><div class="field-label">Starts</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Ends</div><div class="chips"><button class="chip">Left</button><button class="chip">Middle</button><button class="chip on">Right</button></div></div><div class="help">Offense's perspective. Each endpoint can be left blank.</div></div></div></div>
+      <div class="scenario" data-scenario="motion"><div class="new-field"><div class="field-label">Motion path</div><div class="field"><div class="field-label">Starts</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Ends</div><div class="chips"><button class="chip">Left</button><button class="chip">Middle</button><button class="chip on">Right</button></div></div></div></div></div>
       <div class="section"><span class="section-title cyan">DEFENSE FACED</span><div class="field"><div class="field-label">Front</div><div class="chips"><button class="chip">4-3</button><button class="chip on">5-2</button><button class="chip">3-4</button><button class="chip">Nickel</button></div></div><div class="field"><div class="field-label">Coverage</div><div class="chips"><button class="chip">Cover 1</button><button class="chip on">Cover 3</button><button class="chip">Cover 4</button></div></div></div>
       <div class="section"><span class="section-title">PLAY &amp; RESULT</span><div class="field"><div class="field-label">Run / Pass</div><div class="chips"><button class="chip on">Run</button><button class="chip">Pass</button></div></div><div class="field"><div class="field-label">Play Type</div><div class="chips"><button class="chip on">Run Inside</button><button class="chip">Run Outside</button><button class="chip">RPO</button><button class="chip">Play Action</button></div></div>
-      <div class="scenario" data-scenario="gap"><div class="new-field"><div class="field-label"><span>Gap hit <span class="optional">optional</span></span><span class="tag">Proposed</span></div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip on">Left A</button><button class="chip">Right A</button><button class="chip">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div><div class="help">Actual lane hit, separate from the called play and play direction.</div></div></div>
-      <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label"><span>RPO details</span><span class="tag">Proposed vocabulary</span></div><div class="field"><div class="field-label">Read defender <span class="optional">optional</span></div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Defender # <span class="optional">optional</span></div><input class="input" value="" placeholder="Jersey number, if visible" aria-label="Read defender jersey number"></div><div class="field"><div class="field-label">Decision <span class="optional">optional</span></div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div><div class="help">Decision is distinct from the resulting Run / Pass classification.</div></div></div>
+      <div class="scenario" data-scenario="gap"><div class="new-field"><div class="field-label">Gap <span class="optional">optional</span></div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip on">Left A</button><button class="chip">Right A</button><button class="chip">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div></div></div>
+      <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label">RPO details</div><div class="field"><div class="field-label">Read defender <span class="optional">optional</span></div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Defender # <span class="optional">optional</span></div><input class="input" value="" placeholder="Jersey number" aria-label="Read defender jersey number"></div><div class="field"><div class="field-label">Decision <span class="optional">optional</span></div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div></div></div>
+      <div class="scenario" data-scenario="qb"><div class="new-field"><div class="field-label">QB run</div><div class="field"><div class="field-label">Run type</div><div class="chips"><button class="chip on">Designed</button><button class="chip">Scramble</button><button class="chip">RPO keeper</button></div></div><div class="field"><div class="field-label">Gap <span class="optional">optional</span></div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip">Left A</button><button class="chip">Right A</button><button class="chip on">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div></div></div></div>
       <div class="field"><div class="field-label">Play Direction</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Result</div><div class="chips"><button class="chip on">Gain</button><button class="chip">Loss</button><button class="chip">No Gain</button><button class="chip">Touchdown</button></div></div><div class="field"><div class="field-label">Yards</div><input class="input" value="8" aria-label="Yards"></div></div>
       <div class="section"><span class="section-title">PLAYERS &amp; GRADES</span><div class="field"><div class="field-label"><span id="player-role">Ball Carrier</span> <span class="optional">optional</span></div><div class="chips"><button class="chip on" id="player-name">#42 Leo Johnson</button></div></div></div>
       </div><div class="save"><button>Previous</button><button>Skip</button><button class="primary">Save &amp; Next</button></div></section>
     </main>
   </div>
-  <nav class="review-tabs" aria-label="Comp views"><button data-view="gap" class="active">Run gap hit</button><button data-view="motion">Motion direction</button><button data-view="rpo">RPO details</button></nav>
+  <nav class="review-tabs" aria-label="Comp views"><button data-view="gap" class="active">Gap</button><button data-view="motion">Motion direction</button><button data-view="rpo">RPO details</button><button data-view="qb">QB run</button></nav>
   <script>
     let currentView='gap';
     function selected(group) { return document.querySelector(group+' .chip.on')?.textContent || 'Uncharted'; }
+    function syncExample() {
+      const keeper=currentView==='qb' && selected('[data-scenario="qb"] .field:nth-of-type(2)')==='RPO keeper';
+      document.querySelectorAll('.deck-body .chip').forEach(button => {
+        if (button.closest('.scenario')) return;
+        if (button.textContent==='RPO') button.classList.toggle('on',currentView==='rpo'||keeper);
+        if (button.textContent==='Run Inside') button.classList.toggle('on',currentView!=='rpo'&&!keeper);
+      });
+      const direction=[...document.querySelectorAll('.section .field')].find(field=>field.querySelector('.field-label')?.textContent==='Play Direction');
+      direction?.querySelectorAll('.chip').forEach(button=>button.classList.toggle('on',button.textContent===(currentView==='qb'?'Right':'Left')));
+    }
     function updateSummary() {
       let detail;
-      if (currentView==='gap') detail=`26 Blast · ${selected('[data-scenario="gap"]')} gap hit`;
+      if (currentView==='gap') detail=`26 Blast · Gap ${selected('[data-scenario="gap"]')}`;
       if (currentView==='motion') detail=`Jet motion · ${selected('[data-scenario="motion"] .field:nth-of-type(2)')} to ${selected('[data-scenario="motion"] .field:nth-of-type(3)')}`;
       if (currentView==='rpo') detail=`RPO Glance · ${selected('[data-scenario="rpo"] .field:nth-of-type(2)')} read · ${selected('[data-scenario="rpo"] .field:nth-of-type(4)')}`;
+      if (currentView==='qb') detail=`QB Draw · ${selected('[data-scenario="qb"] .field:nth-of-type(2)')} · Gap ${selected('[data-scenario="qb"] .field:nth-of-type(3)')}`;
       document.getElementById('film-summary').textContent=detail+' · Gain +8';
+      syncExample();
     }
     function show(view) {
       currentView=view;
       document.querySelectorAll('.review-tabs button').forEach(button => button.classList.toggle('active',button.dataset.view===view));
       document.querySelectorAll('.scenario').forEach(panel => panel.classList.toggle('active',panel.dataset.scenario===view));
       updateSummary();
-      document.getElementById('play-call').value=view==='rpo'?'RPO Glance':'26 Blast';
+      document.getElementById('play-call').value=view==='rpo'?'RPO Glance':view==='qb'?'QB Draw':'26 Blast';
       document.getElementById('jet-chip').classList.toggle('on',view==='motion');
       document.getElementById('player-role').textContent=view==='rpo'?'Receiver':'Ball Carrier';
-      document.getElementById('player-name').textContent=view==='rpo'?'#81 Jace Schaffer':'#42 Leo Johnson';
-      document.querySelectorAll('.deck-body .chip').forEach(button => {
-        if (button.closest('.scenario')) return;
-        if (button.textContent==='RPO') button.classList.toggle('on',view==='rpo');
-        if (button.textContent==='Run Inside') button.classList.toggle('on',view!=='rpo');
-      });
+      document.getElementById('player-name').textContent=view==='rpo'?'#81 Jace Schaffer':view==='qb'?'#7 Colton Schurig':'#42 Leo Johnson';
       const resultButtons=[...document.querySelectorAll('.section')].find(section => section.textContent.includes('PLAY & RESULT'))?.querySelectorAll('.field')[0]?.querySelectorAll('.chip');
       if(resultButtons) resultButtons.forEach(button => button.classList.toggle('on',button.textContent===(view==='rpo'?'Pass':'Run')));
       if (innerWidth>650) {
@@ -138,7 +144,7 @@
     }
     document.querySelectorAll('.review-tabs button').forEach(button => button.addEventListener('click',()=>show(button.dataset.view)));
     document.querySelectorAll('.new-field .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
-    show(['gap','motion','rpo'].includes(location.hash.slice(1))?location.hash.slice(1):'gap');
+    show(['gap','motion','rpo','qb'].includes(location.hash.slice(1))?location.hash.slice(1):'gap');
   </script>
 </body>
 </html>
