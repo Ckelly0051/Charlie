@@ -175,10 +175,13 @@ or game data.
    columns, CSV import/export, and the shared analytics registry without changing
    established yardage or success formulas. Add focused, film-linked tendencies
    only where the fields add value: offensive/defensive scouting, season rollup,
-   and run-gap/QB-run/RPO cohorts. State each eligible sample and keep missing
-   charting distinct; do not count old mixed Formation values as explicit Family
-   or Receiver Set selections. Use the current report/export framework; do not
-   recompose every tab or invent a separate report engine. A report/export
+   and run-gap/QB-run/RPO cohorts. Ship the run-gap hit chart with Gap charting,
+   with frequency and performance views, offensive strength where charted,
+   and exact contributing run clips. Preserve multi-value attribution rules
+   and complement the existing direction tables. State each eligible sample
+   and keep missing charting distinct; do not count old mixed Formation values
+   as explicit Family or Receiver Set selections. Use the current report/export
+   framework; do not recompose every tab or invent a separate report engine. A report/export
    section built for a new field must match its on-screen cohort and exact
    contributing film.
 7. **Delivery checkpoints.** First build the tag ownership, inline deck behavior,
@@ -1145,7 +1148,8 @@ only the charting and report surfaces each item actually touches.
    was delivered in the `1.12.0-97/98` Reports work.
 2. **Run gap hit.** Add the explicit L-A through R-D, Center, and Other choices
    under Play Direction, then build a strength-aware hit chart without
-   inferring an uncharted gap. See the run hit/gap follow-on below.
+   inferring an uncharted gap. Charting and the film-linked report ship together
+   in the Break Down charting cutover.
 3. **Motion direction.** Keep motion type and separately chart its start and
    end direction or side for film-linked tendencies.
 4. **RPO details.** Chart End/Apex/Box/Other read and Give/Keep/Throw decision
@@ -1174,7 +1178,8 @@ analytics, export parity, and exact contributing film references.
 currently carries the visible chart treatment the coach wants to see more
 widely. Add useful visualizations to other Reports tabs as part of later
 functional/reporting work, not as a standalone cosmetic pass. The
-down-and-distance and run-gap work above are natural opportunities. Each chart
+down-and-distance chart is built; the run-gap chart belongs to the current
+charting cutover, not this later expansion. Each later chart
 must expose its eligible sample, match the underlying table or metric, and
 open its contributing film; do not replace legible data with decoration.
 
@@ -1183,23 +1188,18 @@ open its contributing film; do not replace legible data with decoration.
    rushing, passing, and accepted-penalty contributions. Selecting a drive must
    open exactly that drive's film cohort. Missing or incomplete drive and
    penalty charting must be disclosed rather than inferred.
-2. **Run hit/gap chart.** Add a field-oriented visualization of where runs hit,
-   organized by offensive strength where available. It must support frequency
-   and performance views, state its eligible sample, preserve multi-value tag
-   attribution rules, and open the exact contributing run clips. This
-   complements, rather than replaces, the existing direction tables.
-3. **Saved composable reports.** Let a coach combine registered and custom
+2. **Saved composable reports.** Let a coach combine registered and custom
    dimensions with approved measures, filters, scope, and perspective; save the
    definition; and rerun it as new games are charted. Study remains the query
    engine and Reports may surface saved outputs. Do not duplicate formulas,
    accept arbitrary executable expressions, or sever results from film.
-4. **Conventional two-team box score.** Provide a familiar our-team/opponent
+3. **Conventional two-team box score.** Provide a familiar our-team/opponent
    game summary including score by quarter, first downs, rushing/passing/total
    yards, completion/attempts, turnovers, interceptions, fumbles lost, and
    penalties/yards when those fields are reliably charted. Every displayed
    total must identify its data availability and reconcile with the detailed
    report; unsupported categories remain absent or explicitly unavailable.
-5. **Automated data production.** Pursue import automation and AI-assisted
+4. **Automated data production.** Pursue import automation and AI-assisted
    charting as a separate, high-scope capability spanning V2-E and V2-F. The
    objective is substantial reduction in coach charting time, not generated
    prose. Proposed tags must carry confidence/provenance, remain reviewable in
@@ -1420,15 +1420,17 @@ V2-A through V2-H are complete baseline milestones. The current sequence is:
 
 1. **Break Down charting cutover:** Formation Family/Receiver Set, Gap,
    Motion path, RPO and QB-run detail, and Reverse; coach-managed Family
-   library, one-time verified conversion, no legacy reader or writer shipped.
+   library, one-time verified conversion, and the first film-linked run-gap
+   chart/report with eligible sample and export parity. No legacy reader or
+   writer shipped.
 2. **Break Down visual finish:** resolve BD-UX-1 populated deck and BD-UX-2
    context selectors against real data; preserve existing choices and film.
 3. **Installed verification:** focused harnesses, one coach-authorized full
    gate, a new installer, and a continuous installed smoke of the charting
    and Film Room dock/resize/persistence behaviors.
-4. **Competitive follow-ons:** film-linked run-gap reporting, pass target and
-   catch location, receiver route/release, missed tackles, and useful
-   visualizations paired with each substantive report change.
+4. **Later data expansion:** pass target and catch location, receiver
+   route/release, missed tackles, and useful visualizations paired with each
+   new report capability. Do not revisit run-gap reporting here.
 5. **V2-I mobile companion:** after the desktop charting and reporting
    contract is competitive and the installed workflow is accepted.
 
