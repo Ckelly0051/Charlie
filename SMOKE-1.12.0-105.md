@@ -53,4 +53,10 @@ on the overlay service, and Special Teams try charting. Supersedes `1.12.0-104`.
 11. First launch opens normally with the charting library, Film Room columns and
     Home mode unchanged.
 
-Installed smoke pending. Not tagged, pushed or published.
+## Result (2026-09-28)
+
+The coach ran the smoke: one finding, S105-1 (a team name typed in Settings
+was lost when the sheet closed without Save), repaired in source after this
+installer; "the rest looks good." See `docs/OPEN-DEFECTS.md`.
+
+Not tagged, pushed or published.

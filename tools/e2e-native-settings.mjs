@@ -248,6 +248,38 @@ await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team
 await page.waitForFunction(() => document.activeElement?.id === 'settings-test-invoker');
 ok(await page.evaluate(() => document.activeElement?.id === 'settings-test-invoker'), 'Closing Settings restores its invoking control');
 
+// S105-1 (installed smoke 1.12.0-105): a team name typed in Settings was lost
+// when the sheet closed with Done, the close button or Escape without pressing
+// Save team identity first. Closing now keeps it.
+const openTeam = async () => {
+  await page.evaluate(() => { void window.app.settingsScreen.open({ initialTab: 'team', returnFocus: document.getElementById('settings-test-invoker') }); });
+  await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-settings-panel="team"] input');
+};
+const typeProgram = async text => {
+  const input = await page.$('[data-settings-panel="team"] input');
+  await input.click(); await page.keyboard.down('Control'); await page.keyboard.press('KeyA'); await page.keyboard.up('Control');
+  if (text) await page.keyboard.type(text); else await page.keyboard.press('Backspace');
+};
+const closed = () => page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
+// The registry is stubbed in this harness (above): a save lands in __nativeSettingsState.teamSave.
+const identity = () => page.evaluate(() => ({ profile: window.__nativeSettingsState.teamSave?.name, toasts: [...document.querySelectorAll('.gi-toast, [data-toast-id], [role="status"]')].map(t => t.textContent.trim()).filter(Boolean).join(' | ') }));
+await openTeam(); await typeProgram('Rename One');
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]'); await closed();
+r = await identity();
+ok(r.profile === 'Rename One' && /Team identity saved/.test(r.toasts), 'Done keeps a team name typed without pressing Save, and says so', JSON.stringify(r));
+await openTeam(); await typeProgram('Rename Two');
+await page.click('[data-settings-tab="film"]'); await page.click('[data-settings-tab="team"]');
+await page.waitForSelector('[data-settings-panel="team"] input');
+const kept = await page.$eval('[data-settings-panel="team"] input', el => el.value);
+await page.keyboard.press('Escape'); await closed();
+r = await identity();
+ok(kept === 'Rename Two', 'a tab switch keeps the typed name', kept);
+ok(r.profile === 'Rename Two', 'Escape keeps it too', JSON.stringify(r));
+await openTeam(); await typeProgram('');
+await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]'); await closed();
+r = await identity();
+ok(r.profile === 'Rename Two' && /program name is required/.test(r.toasts), 'a blank program name is not saved and says why', JSON.stringify(r));
+
 await page.setViewport({ width:390, height:844 });
 await page.evaluate(() => { window.app.settingsScreen.open({ returnFocus:document.getElementById('settings-test-invoker') }); });
 await page.waitForSelector('[data-overlay-id="team-film-settings"] [data-native-settings]');

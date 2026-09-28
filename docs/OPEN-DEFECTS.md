@@ -1,5 +1,21 @@
 # GridIron IQ Open Defects
 
+## Installed smoke, 1.12.0-105 (list complete, 2026-09-28)
+
+Findings logged as the coach lists them; no repair starts until the coach
+says the list is complete. Checklist: `SMOKE-1.12.0-105.md`.
+
+**S105-1 — REPAIRED IN SOURCE 2026-09-28, not in an installer. Changing the team name in Settings does not save.** Coach:
+"changing Team name via the settings menu does not save." Reproduced on the
+installed build 2026-09-28: the save itself works (renamed, restarted, restored),
+but a name typed and then closed with Done, the close button or Escape, without
+pressing Save team identity first, was silently discarded. **Repaired in source:**
+the Team form keeps its unsaved values on the Settings screen (a tab switch keeps
+them), closing Settings saves a changed identity with a `Team identity saved`
+toast, and a blank program name is not saved and says why.
+`e2e-native-settings` 29 (3 new checks, red with the save-on-close removed).
+The coach's smoke list is otherwise complete ("the rest looks good").
+
 ## Installed smoke, 1.12.0-103 (2026-09-27)
 
 Run on the installed build (checklist `SMOKE-1.12.0-103.md`). First launch:

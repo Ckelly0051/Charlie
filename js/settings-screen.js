@@ -87,6 +87,7 @@ export class SettingsScreen {
       return this.handle.result;
     }
     const requestedTab = required ? 'film' : initialTab;
+    this.teamDraft = null;
     this.activeTab = requestedTab === 'roster' && !this.canManageRoster() ? 'film' : requestedTab;
     if (requestedTab === 'roster' && this.activeTab !== 'roster') this._toast(this.rosterUnavailableMessage(), 'info');
     const finish = value => this.close(value);
@@ -104,6 +105,10 @@ export class SettingsScreen {
     const result = handle.result.finally(() => {
       if (this.handle === handle) this.handle = null;
       this.activeTab = null;
+      // Closing Settings (Done, the close button, Escape) keeps a team identity
+      // the coach typed; it used to be discarded unless Save was pressed first
+      // (installed smoke 1.12.0-105, S105-1).
+      this._flushTeamDraft();
       // S7-c: the legacy overlay is gone; the native Team Hub owns this view.
       this.app.teamHubScreen?.load?.();
       this.app.homeScreen?.refreshFilm?.();
@@ -138,7 +143,26 @@ export class SettingsScreen {
   _toast(message, tone = 'success') { this.overlays.toast({ message, tone }); }
 
   teamProfile() { return { ...this.app.teamRegistry.teamProfile(), logoData:this.app.teamRegistry.teamLogo?.() || '' }; }
-  saveTeam(school, nickname, color) { return this.app.teamRegistry.saveTeamIdentity(school, nickname, color) === true; }
+  saveTeam(school, nickname, color) {
+    const saved = this.app.teamRegistry.saveTeamIdentity(school, nickname, color) === true;
+    if (saved) this.teamDraft = null;
+    return saved;
+  }
+  /** The Team form's unsaved values, kept here so a tab switch or closing the
+   *  sheet does not lose them. Null when the form matches the saved identity. */
+  setTeamDraft(draft) { this.teamDraft = draft ? { school: String(draft.school || ''), nickname: String(draft.nickname || ''), color: String(draft.color || '') } : null; }
+  _flushTeamDraft() {
+    const draft = this.teamDraft;
+    this.teamDraft = null;
+    if (!draft) return;
+    const profile = this.app.teamRegistry.teamProfile();
+    const unchanged = draft.school.trim() === String(profile.school || profile.teamName || '').trim()
+      && draft.nickname.trim() === String(profile.nickname || '').trim() && draft.color === String(profile.jerseyColor || '');
+    if (unchanged) return;
+    if (!draft.school.trim()) { this._toast('Team identity not saved: a program name is required.', 'error'); return; }
+    if (this.app.teamRegistry.saveTeamIdentity(draft.school, draft.nickname, draft.color) === true) this._toast('Team identity saved');
+    else this._toast('Team identity could not be saved.', 'error');
+  }
   async saveTeamLogo(file) {
     try {
       const logoData = await normalizeTeamLogo(file);

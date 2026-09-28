@@ -123,10 +123,18 @@ function TeamSettings({ screen, initialPlayCall = '' }) {
   // School/nickname are additive companion fields (2026-08-31 Home naming
   // contract). An existing profile predating them has no `school` — its
   // intact `teamName` is the honest default, never a heuristic split, so an
-  // unmodified re-save reproduces the exact prior identity.
-  const [school, setSchool] = useState(profile.school || profile.teamName || '');
-  const [nickname, setNickname] = useState(profile.nickname || '');
-  const [color, setColor] = useState(profile.jerseyColor || '');
+  // unmodified re-save reproduces the exact prior identity. Unsaved values live
+  // on the screen (`teamDraft`) so a tab switch keeps them and closing the
+  // sheet saves them (S105-1).
+  const draft = screen.teamDraft;
+  const [school, setSchool] = useState(draft ? draft.school : (profile.school || profile.teamName || ''));
+  const [nickname, setNickname] = useState(draft ? draft.nickname : (profile.nickname || ''));
+  const [color, setColor] = useState(draft ? draft.color : (profile.jerseyColor || ''));
+  useEffect(() => {
+    const saved = screen.teamProfile();
+    const same = school === (saved.school || saved.teamName || '') && nickname === (saved.nickname || '') && color === (saved.jerseyColor || '');
+    screen.setTeamDraft?.(same ? null : { school, nickname, color });
+  }, [school, nickname, color]);
   const [logo, setLogo] = useState(profile.logoData || '');
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoError, setLogoError] = useState('');
