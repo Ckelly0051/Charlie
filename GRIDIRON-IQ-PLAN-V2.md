@@ -152,7 +152,11 @@ desktop and narrow screens, but do not copy its illustrative film or game data.
    coarse-pointer 44px minimum. Remove visible `optional` subtext from the
    charting deck and do not add explainer prose to the form. Keep labels,
    selected/hover/focus states, keyboard access, and the sticky Save & Next
-   clear and usable.
+   clear and usable. Close `BD-UX-1` in `docs/OPEN-DEFECTS.md`: the full
+   existing library must scan cleanly in the approximately 465px desktop
+   deck, with consistent label/action alignment and controlled chip wrapping.
+   Keep all coach choices reachable and selected values visible. Do not accept
+   a four-chip comp state as proof that a populated real-game deck is fixed.
 5. **Downstream contract.** Add the fields to Film Room detail, relevant editable
    columns, CSV import/export, and the shared analytics registry without changing
    established yardage or success formulas. Add focused, film-linked tendencies
@@ -168,8 +172,9 @@ desktop and narrow screens, but do not copy its illustrative film or game data.
    round-trips. Then add bounded analytics/report/export surfaces. Focused
    harnesses must cover trigger-to-disclosure clicks (without the comp tabs),
    keyboard and undo, old-play preservation, import/export, and all three
-   units/perspectives. Verify populated captures at 1440, 1280, and 390 widths
-   and no overlap or overflow. Use read-only copies of the canonical 2025 JV
+   units/perspectives. Verify populated captures at 1920, 1440, 1280, and 390
+   widths, including the full formation/personnel library, with no overlap or
+   overflow. Use read-only copies of the canonical 2025 JV
    data for parity; do not edit coach data. Run the full gate once after focused
    work, then package for a separate installed smoke. Source or comp approval
    is not installed acceptance.

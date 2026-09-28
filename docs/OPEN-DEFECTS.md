@@ -1,5 +1,24 @@
 # GridIron IQ Open Defects
 
+## Break Down next update (coach finding, 2026-09-28)
+
+**BD-UX-1 — OPEN. The populated Chart deck looks jagged beside the approved
+comp.** In the coach's 1920x1080 Break Down capture (SJM JV 2026, Week 5,
+Play 24), the Situation grid is reasonably aligned, but Our Offensive Look
+becomes a wall of variable-width chip outlines. The full Formation catalog
+wraps into uneven rows; `select all`, `optional`, and `Edit library` interrupt
+the label rhythm; Play Call, Formation, Backfield, and Personnel have very
+different heights. Motion is pushed below the fold. The deck is about 465px
+wide, close to the comp's 468px, so width alone does not explain the gap.
+The approved `design-comps/breakdown-charting-2026-09-27/` is intentionally
+curated and does not prove the full-library state. In the next charting update,
+compose that real state with consistent label/action alignment and a cleaner
+chip-wrap rhythm. Preserve every existing library choice and make selected
+values visible; do not make the screen look tidy by permanently hiding data or
+shrinking the type. Verify populated 1920, 1440, and 1280 desktop captures at
+the real deck width, plus a narrow view. No source repair or installed
+acceptance is claimed here.
+
 ## Installed smoke, 1.12.0-105 (list complete, 2026-09-28)
 
 Findings logged as the coach lists them; no repair starts until the coach
