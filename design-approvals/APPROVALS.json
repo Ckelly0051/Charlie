@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "scope": "Initial registry: Home and Our Program Reports",
+  "scope": "Home, Our Program Reports, and Break Down charting additions",
   "allowedStatuses": [
     "DRAFT",
     "COMP_APPROVED",
@@ -25,7 +25,8 @@
     "design-approvals/reports/players/manifest.json",
     "design-approvals/reports/self-scout/manifest.json",
     "design-approvals/reports/season/manifest.json",
-    "design-approvals/reports/matchup/manifest.json"
+    "design-approvals/reports/matchup/manifest.json",
+    "design-approvals/breakdown-charting/manifest.json"
   ],
   "releases": [
     {

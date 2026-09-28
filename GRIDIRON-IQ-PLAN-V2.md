@@ -80,14 +80,14 @@ findings open in `docs/OPEN-DEFECTS.md` until verified.
    save failure before adding choices. Tighten desktop chip padding and
    between-section gaps without shrinking type. Make custom Play Call and
    built-in Play Type independently collapsible, retaining a clear selected
-   state. Add optional run-gap hit, motion start/end direction, and RPO details
-   as first-class charting fields, without inferring values for old plays. Define
-   the RPO detail vocabulary with the coach before implementation; play type
-   `RPO` and Run/Pass alone do not capture the full read and decision. Carry
-   each new field through reporting and export where applicable.
-   **Status 2026-09-24:** library save, spacing and the two folds are repaired
-   in source (installed smoke pending); run-gap, motion-direction, and RPO-detail
-   fields are not built.
+   state. Add the approved Formation Family / Receiver Set split, actual run
+   Gap, motion start/end, RPO read/decision, and QB run classification as
+   explicit charting fields. Do not infer values for historical plays. Carry
+   new fields through Film Room, export, and relevant reporting.
+   **Status 2026-09-28:** library save, spacing, and the two folds are repaired
+   in source (installed smoke pending). The charting-additions comp at
+   `design-comps/breakdown-charting-2026-09-27/` is coach-approved, including
+   inline disclosure and shorter desktop chips; its new fields are not built.
 3. **Film Room.** Review a video-first comp with the editable breakdown table
    docked beneath the video by default, plus movable/resizable video and table
    arrangements and a usable reset. Keep playback, selection, table editing,
@@ -102,6 +102,77 @@ one integrated full gate and installed smoke covering all three packages on a
 new candidate. No package or production acceptance is implied by the plan.
 Broader visualization work remains lower priority and should accompany a
 substantive analysis feature rather than become a standalone redesign.
+
+### Approved Break Down charting comp - build contract (2026-09-28)
+
+Formal status: `design-approvals/breakdown-charting/manifest.json` is
+`COMP_APPROVED`; production is still `DRAFT`. The visual contract is
+`design-comps/breakdown-charting-2026-09-27/index.html` and `RATIONALE.md`
+beside it. The five comp tabs are review shortcuts, not product
+navigation. The actual coach action is local: selecting a Motion chip opens
+Starts and Ends side by side immediately below it; selecting Run Inside/Outside,
+RPO, or QB Run opens its details immediately below Play Type. These disclosures
+do not jump the deck or require a trip to the top. Keep existing Chart/Film Room
+layout and Save & Next. Use the comp's field order and compact grouping on
+desktop and narrow screens, but do not copy its illustrative film or game data.
+
+1. **Owned tags and semantics.** Add explicit Formation Family and Receiver Set
+   values (the comp shows Spread + 3x1), leaving QB Alignment, Backfield,
+   Strength, Personnel, Motion type, and Play Call separate. Current `formation`
+   is multi-valued and mixes family, set, and package names; do not simply
+   rename that key, split old strings by guess, overwrite old tags, or make
+   historical values disappear from the editor. Show the original charted
+   Formation on an old play until the coach explicitly retags it; reopening or
+   saving another field must preserve that value. Only an explicit retag may
+   replace it, as one undoable write. Keep the existing Motion choice Trade and
+   coach-defined library entries available; the comp's chips are example
+   defaults, not a deletion list. New plays write the separated structure,
+   not a new mixed Formation value. Document the exact transition rule before
+   any stored-data rewrite; none is authorized by this comp.
+2. **New play details.** Gap means the actual lane hit, with Left/Right A-D and
+   Other lane, not the called gap or the broad play direction. Motion type and
+   Starts/Ends are separate, using offensive left/middle/right. RPO stores read
+   role (End/Apex/Box/Other), a charted defender jersey when known, and
+   decision (Give/Keep/Throw) separately from Play Type and Run/Pass. QB Run
+   stores Designed/Scramble/RPO keeper separately from ball carrier and yardage;
+   the QB Run Play Type can coexist with RPO when the coach explicitly selects
+   both. Do not infer any of these from the call, outcome, player, or existing
+   tags. Blank remains uncharted, not a negative or zero event.
+3. **Editing contract.** The deck and Film Room edit the same owned fields.
+   Select, change, clear, save/reopen, undo/redo, unit switch, and perspective
+   switch must agree. Removing a trigger must not silently discard populated
+   child details or leave hidden stale values; confirm the clear and make it one
+   undoable write. A contradictory RPO decision and Run/Pass needs a visible
+   correction path, not a silent overwrite. Keep the current play-unit owner
+   and the charting API as the only write path.
+4. **Density and accessibility.** The approved comp reduces chip height from
+   29px to 27px using 4px rather than 5px vertical padding. Apply that visual
+   target to desktop Chart chips by tightening height/padding, not font size or
+   horizontal padding; preserve the app's current type scale and the existing
+   coarse-pointer 44px minimum. Remove visible `optional` subtext from the
+   charting deck and do not add explainer prose to the form. Keep labels,
+   selected/hover/focus states, keyboard access, and the sticky Save & Next
+   clear and usable.
+5. **Downstream contract.** Add the fields to Film Room detail, relevant editable
+   columns, CSV import/export, and the shared analytics registry without changing
+   established yardage or success formulas. Add focused, film-linked tendencies
+   only where the fields add value: offensive/defensive scouting, season rollup,
+   and run-gap/QB-run/RPO cohorts. State each eligible sample and keep missing
+   charting distinct; do not count old mixed Formation values as explicit Family
+   or Receiver Set selections. Use the current report/export framework; do not
+   recompose every tab or invent a separate report engine. A report/export
+   section built for a new field must match its on-screen cohort and exact
+   contributing film.
+6. **Delivery checkpoints.** First build the tag ownership, inline deck behavior,
+   and preservation of old Formation values. Then wire Film Room and CSV
+   round-trips. Then add bounded analytics/report/export surfaces. Focused
+   harnesses must cover trigger-to-disclosure clicks (without the comp tabs),
+   keyboard and undo, old-play preservation, import/export, and all three
+   units/perspectives. Verify populated captures at 1440, 1280, and 390 widths
+   and no overlap or overflow. Use read-only copies of the canonical 2025 JV
+   data for parity; do not edit coach data. Run the full gate once after focused
+   work, then package for a separate installed smoke. Source or comp approval
+   is not installed acceptance.
 
 ## Home Accepted Baseline - Current Production Rejected (2026-09-10)
 
@@ -1041,8 +1112,10 @@ desktop Reports composition pass. They should reuse the canonical analytics
 registry, stored charting data, and film-navigation service rather than create
 parallel formulas or report-only data models.
 
-**Coach-prioritized future review (2026-09-22; updated 2026-09-23):** This is a shortlist,
-not approval to change the current report compositions or charting schema.
+**Coach-prioritized follow-ons (2026-09-22; updated 2026-09-28):** Items 2-4 and
+7 now have an approved Break Down charting comp and build contract above; they
+are not yet built or approved in an installed app. The remaining items are a
+shortlist, not approval to change the current report compositions or schema.
 Keep the shared Reports strip and unaffected tabs intact; design and verify
 only the charting and report surfaces each item actually touches.
 

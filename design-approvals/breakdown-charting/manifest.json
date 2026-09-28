@@ -1,0 +1,15 @@
+{
+  "surfaceId": "breakdown.charting-additions",
+  "title": "Break Down charting additions",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "DRAFT",
+  "approvedOn": "2026-09-28",
+  "approvalNote": "The coach approved the five-view charting comp, inline field disclosure, Formation Family and Receiver Set split, and 27px desktop chips. New production fields and installed smoke are pending.",
+  "canonicalArtifact": {
+    "path": "design-comps/breakdown-charting-2026-09-27",
+    "kind": "directory",
+    "sha256": "1ab598c12528cb767762708087b8090ddb9c818d3a4e5afaab88829e286f022f",
+    "fileCount": 15
+  },
+  "decisionRecord": "design-comps/breakdown-charting-2026-09-27/RATIONALE.md"
+}
