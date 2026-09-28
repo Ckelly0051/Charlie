@@ -130,11 +130,19 @@ function TeamSettings({ screen, initialPlayCall = '' }) {
   const [school, setSchool] = useState(draft ? draft.school : (profile.school || profile.teamName || ''));
   const [nickname, setNickname] = useState(draft ? draft.nickname : (profile.nickname || ''));
   const [color, setColor] = useState(draft ? draft.color : (profile.jerseyColor || ''));
-  useEffect(() => {
+  // The draft is written IN the input handler, not a deferred effect: a close
+  // right after typing runs before any effect and would save nothing (Codex,
+  // 9b1136d P2).
+  const edit = next => {
+    const values = { school, nickname, color, ...next };
+    if ('school' in next) setSchool(next.school);
+    if ('nickname' in next) setNickname(next.nickname);
+    if ('color' in next) setColor(next.color);
+    setSaved(false);
     const saved = screen.teamProfile();
-    const same = school === (saved.school || saved.teamName || '') && nickname === (saved.nickname || '') && color === (saved.jerseyColor || '');
-    screen.setTeamDraft?.(same ? null : { school, nickname, color });
-  }, [school, nickname, color]);
+    const same = values.school === (saved.school || saved.teamName || '') && values.nickname === (saved.nickname || '') && values.color === (saved.jerseyColor || '');
+    screen.setTeamDraft?.(same ? null : values);
+  };
   const [logo, setLogo] = useState(profile.logoData || '');
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoError, setLogoError] = useState('');
@@ -157,8 +165,8 @@ function TeamSettings({ screen, initialPlayCall = '' }) {
   };
   return <div class="gi-settings-team" data-settings-panel="team"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Team identity</span><h3>Coach-facing name and jersey</h3></div></header><div class="gi-settings-section-body">
     <div class="gi-settings-field-row">
-      <label class="gi-settings-field"><span>Program: school / organization</span><input value={school} onInput={event => { setSchool(event.currentTarget.value); setSaved(false); }} placeholder="e.g. St. Joseph" /></label>
-      <label class="gi-settings-field"><span>Nickname <small>Optional</small></span><input value={nickname} onInput={event => { setNickname(event.currentTarget.value); setSaved(false); }} placeholder="e.g. Mavericks" /></label>
+      <label class="gi-settings-field"><span>Program: school / organization</span><input value={school} onInput={event => edit({ school: event.currentTarget.value })} placeholder="e.g. St. Joseph" /></label>
+      <label class="gi-settings-field"><span>Nickname <small>Optional</small></span><input value={nickname} onInput={event => edit({ nickname: event.currentTarget.value })} placeholder="e.g. Mavericks" /></label>
     </div>
     {composed && <p class="gi-settings-name-preview"><small>Full identity</small><strong>{composed}</strong></p>}
     <div class="gi-team-logo">
@@ -168,7 +176,7 @@ function TeamSettings({ screen, initialPlayCall = '' }) {
         {logoError && <p class="gi-settings-error" role="alert">{logoError}</p>}
       </div>
     </div>
-    <fieldset class="gi-settings-swatches"><legend>Jersey color</legend>{JERSEY_COLORS.map(value => <button key={value} type="button" class={color === value ? 'is-selected' : ''} aria-label={`${value} jersey`} aria-pressed={color === value} data-color={value} onClick={() => { setColor(value); setSaved(false); }} />)}</fieldset>
+    <fieldset class="gi-settings-swatches"><legend>Jersey color</legend>{JERSEY_COLORS.map(value => <button key={value} type="button" class={color === value ? 'is-selected' : ''} aria-label={`${value} jersey`} aria-pressed={color === value} data-color={value} onClick={() => edit({ color: value })} />)}</fieldset>
     <button type="button" class="gi-settings-primary" disabled={!school.trim()} onClick={() => setSaved(screen.saveTeam(school, nickname, color))}>Save team identity</button>{saved && <span class="gi-settings-saved" role="status">Team identity saved</span>}
   </div></section><PlaybookSettings screen={screen} initialName={initialPlayCall}/></div>;
 }

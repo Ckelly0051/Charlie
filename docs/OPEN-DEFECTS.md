@@ -32,7 +32,7 @@ pressing Save team identity first, was silently discarded. **Repaired in source:
 the Team form keeps its unsaved values on the Settings screen (a tab switch keeps
 them), closing Settings saves a changed identity with a `Team identity saved`
 toast, and a blank program name is not saved and says why.
-`e2e-native-settings` 29 (3 new checks, red with the save-on-close removed).
+`e2e-native-settings` 29 (3 new checks, red with the save-on-close removed). Codex review of `9b1136d` (P2): the draft was copied in a deferred effect, so typing and closing at once lost the name (10/10); the draft is now written in the input handler. 31 (2 immediate-close checks, red first).
 The coach's smoke list is otherwise complete ("the rest looks good").
 
 ## Installed smoke, 1.12.0-103 (2026-09-27)

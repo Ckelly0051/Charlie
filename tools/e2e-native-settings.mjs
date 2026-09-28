@@ -279,6 +279,22 @@ await openTeam(); await typeProgram('');
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]'); await closed();
 r = await identity();
 ok(r.profile === 'Rename Two' && /program name is required/.test(r.toasts), 'a blank program name is not saved and says why', JSON.stringify(r));
+// Codex (9b1136d, P2): an input followed IMMEDIATELY by a close lost the name,
+// because the draft was copied in a deferred effect. Input and close run in one
+// task here, so no effect can run between them.
+const fastClose = how => page.evaluate(how => {
+  const input = document.querySelector('[data-settings-panel="team"] input');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, how === 'escape' ? 'Fast Escape' : 'Fast Done');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  if (how === 'escape') window.app.overlays.dismissTop('cancel');
+  else document.querySelector('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]').click();
+}, how);
+await openTeam(); await fastClose('escape'); await closed();
+r = await identity();
+ok(r.profile === 'Fast Escape', 'a name typed and immediately closed with Escape is kept', JSON.stringify(r));
+await openTeam(); await fastClose('done'); await closed();
+r = await identity();
+ok(r.profile === 'Fast Done', 'a name typed and immediately closed with Done is kept', JSON.stringify(r));
 
 await page.setViewport({ width:390, height:844 });
 await page.evaluate(() => { window.app.settingsScreen.open({ returnFocus:document.getElementById('settings-test-invoker') }); });
