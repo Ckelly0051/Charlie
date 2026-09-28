@@ -30,12 +30,13 @@
 
 This section is the one place release state is kept current.
 
-- Main checkout: `1.12.0-106` candidate, containing the Settings team-name
-  save-on-close repair and its immediate-close regression checks. Full gate
-  136/136, zero skipped and zero failed at `2f309d6`, before the four-owner
-  version bump. Packaging and installed smoke are pending
-  (`SMOKE-1.12.0-106.md`). Latest built installer: `1.12.0-105`; its coach
-  smoke found S105-1, repaired in source. `1.12.0-104` was never smoked and
+- Main checkout and latest built installer: `1.12.0-106` (`cbf1889`),
+  containing the Settings team-name save-on-close repair and its immediate-close
+  regression checks. Full gate 136/136, zero skipped and zero failed at
+  `2f309d6`, before the four-owner version-only bump; `e2e-p0-exit` 19/19
+  after it. The unsigned NSIS installer was built successfully; installed
+  smoke and acceptance remain pending (`SMOKE-1.12.0-106.md`). The
+  `1.12.0-105` coach smoke found S105-1. `1.12.0-104` was never smoked and
   was superseded.
 - `1.12.0-103` (legacy excision step 8) passed its installed smoke on
   2026-09-27 (`SMOKE-1.12.0-103.md`). Earlier installers are superseded; their

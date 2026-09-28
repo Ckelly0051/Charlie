@@ -1,9 +1,16 @@
 # SMOKE 1.12.0-106 - Windows x64 Beta (unsigned)
 
-**Source:** `2f309d6` plus the four-owner `1.12.0-106` version bump.
+**Source:** `cbf1889` (`2f309d6` plus the four-owner `1.12.0-106` version bump).
 **Gate:** 136/136 green, 0 skipped, 0 failed at `2f309d6`, before the
-version-only bump. **Installer:** pending. No installed smoke or acceptance
-is claimed. No tag, push, or publication is planned.
+version-only bump; `e2e-p0-exit` 19/19 after it. **Installer:**
+`src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-106_x64-setup.exe`
+(4,030,483 bytes), SHA-256
+`E5A24C677D4235D0C58300362CDD9E8AD035ED87418DB92D77D9D600FDB8E8CA`.
+Built with `cargo tauri build --bundles nsis --config
+artifacts/local-installer-config.json` (exit 0); the scratch config disables
+updater-artifact signing. The built executable reports product and file version
+`1.12.0-106`. No installed smoke or acceptance is claimed. Nothing was tagged,
+pushed, or published.
 
 This candidate repairs S105-1 from the `1.12.0-105` installed smoke. The
 approved Break Down charting comp is not implemented in this candidate;
@@ -23,6 +30,5 @@ BD-UX-1 remains open.
    film, confirm both play; chart a play and restart to confirm data and film;
    switch seasons and confirm counts, tags, and film identity.
 
-Record installer path, size, SHA-256, build revision, and coach's installed
-result here after packaging and smoke. A green browser gate does not certify
-WebView2 behavior.
+Record the coach's installed result here after smoke. A green browser gate does
+not certify WebView2 behavior.
