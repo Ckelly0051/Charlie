@@ -96,7 +96,7 @@
       <div class="section"><span class="section-title cyan">DEFENSE FACED</span><div class="field"><div class="field-label">Front</div><div class="chips"><button class="chip">4-3</button><button class="chip on">5-2</button><button class="chip">3-4</button><button class="chip">Nickel</button></div></div><div class="field"><div class="field-label">Coverage</div><div class="chips"><button class="chip">Cover 1</button><button class="chip on">Cover 3</button><button class="chip">Cover 4</button></div></div></div>
       <div class="section"><span class="section-title">PLAY &amp; RESULT</span><div class="field"><div class="field-label">Run / Pass</div><div class="chips"><button class="chip on">Run</button><button class="chip">Pass</button></div></div><div class="field"><div class="field-label">Play Type</div><div class="chips"><button class="chip on">Run Inside</button><button class="chip">Run Outside</button><button class="chip">RPO</button><button class="chip">Play Action</button></div></div>
       <div class="scenario" data-scenario="gap"><div class="new-field"><div class="field-label"><span>Gap hit <span class="optional">optional</span></span><span class="tag">Proposed</span></div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip on">Left A</button><button class="chip">Right A</button><button class="chip">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div><div class="help">Actual lane hit, separate from the called play and play direction.</div></div></div>
-      <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label"><span>RPO details</span><span class="tag">Proposed vocabulary</span></div><div class="field"><div class="field-label">Read defender <span class="optional">optional</span></div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Decision <span class="optional">optional</span></div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div><div class="help">Decision is distinct from the resulting Run / Pass classification.</div></div></div>
+      <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label"><span>RPO details</span><span class="tag">Proposed vocabulary</span></div><div class="field"><div class="field-label">Read defender <span class="optional">optional</span></div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Defender # <span class="optional">optional</span></div><input class="input" value="" placeholder="Jersey number, if visible" aria-label="Read defender jersey number"></div><div class="field"><div class="field-label">Decision <span class="optional">optional</span></div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div><div class="help">Decision is distinct from the resulting Run / Pass classification.</div></div></div>
       <div class="field"><div class="field-label">Play Direction</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Result</div><div class="chips"><button class="chip on">Gain</button><button class="chip">Loss</button><button class="chip">No Gain</button><button class="chip">Touchdown</button></div></div><div class="field"><div class="field-label">Yards</div><input class="input" value="8" aria-label="Yards"></div></div>
       <div class="section"><span class="section-title">PLAYERS &amp; GRADES</span><div class="field"><div class="field-label"><span id="player-role">Ball Carrier</span> <span class="optional">optional</span></div><div class="chips"><button class="chip on" id="player-name">#42 Leo Johnson</button></div></div></div>
       </div><div class="save"><button>Previous</button><button>Skip</button><button class="primary">Save &amp; Next</button></div></section>
@@ -104,11 +104,20 @@
   </div>
   <nav class="review-tabs" aria-label="Comp views"><button data-view="gap" class="active">Run gap hit</button><button data-view="motion">Motion direction</button><button data-view="rpo">RPO details</button></nav>
   <script>
-    const views = {gap:'26 Blast · Run inside · Gain +8', motion:'Jet motion · Run inside · Gain +8', rpo:'RPO · Throw · Gain +8'};
+    let currentView='gap';
+    function selected(group) { return document.querySelector(group+' .chip.on')?.textContent || 'Uncharted'; }
+    function updateSummary() {
+      let detail;
+      if (currentView==='gap') detail=`26 Blast · ${selected('[data-scenario="gap"]')} gap hit`;
+      if (currentView==='motion') detail=`Jet motion · ${selected('[data-scenario="motion"] .field:nth-of-type(2)')} to ${selected('[data-scenario="motion"] .field:nth-of-type(3)')}`;
+      if (currentView==='rpo') detail=`RPO Glance · ${selected('[data-scenario="rpo"] .field:nth-of-type(2)')} read · ${selected('[data-scenario="rpo"] .field:nth-of-type(4)')}`;
+      document.getElementById('film-summary').textContent=detail+' · Gain +8';
+    }
     function show(view) {
+      currentView=view;
       document.querySelectorAll('.review-tabs button').forEach(button => button.classList.toggle('active',button.dataset.view===view));
       document.querySelectorAll('.scenario').forEach(panel => panel.classList.toggle('active',panel.dataset.scenario===view));
-      document.getElementById('film-summary').textContent=views[view];
+      updateSummary();
       document.getElementById('play-call').value=view==='rpo'?'RPO Glance':'26 Blast';
       document.getElementById('jet-chip').classList.toggle('on',view==='motion');
       document.getElementById('player-role').textContent=view==='rpo'?'Receiver':'Ball Carrier';
@@ -128,7 +137,7 @@
       history.replaceState(null,'','#'+view);
     }
     document.querySelectorAll('.review-tabs button').forEach(button => button.addEventListener('click',()=>show(button.dataset.view)));
-    document.querySelectorAll('.new-field .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); }));
+    document.querySelectorAll('.new-field .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
     show(['gap','motion','rpo'].includes(location.hash.slice(1))?location.hash.slice(1):'gap');
   </script>
 </body>
