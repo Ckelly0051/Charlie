@@ -2,6 +2,8 @@
 
 Status: proposal only. The coach has not approved the field design or vocabulary. This comp changes no production code, stored charting data, analytics, or installer.
 
+Design requirement: do not show "optional" subtext beside charting fields. Blank values remain valid where the data model permits them; the label does not need to announce that.
+
 Open `index.html` and switch between Gap, Motion direction, RPO details, and QB run. The existing Chart workspace and section order are preserved. A cyan inset highlights each proposed field group; the rest of the deck provides placement and density context. The game/play values are illustrative, not a claim about the canonical season. The film is a repository asset used as a visual fixture. On-screen explainer prose was removed at the coach's request; rationale remains here.
 
 ## Placement and behavior proposed
