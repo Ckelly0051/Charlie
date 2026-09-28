@@ -58,6 +58,9 @@
     .field { margin:7px 0 10px; }
     .field-label { display:flex; justify-content:space-between; align-items:center; gap:8px; color:#ddd; font-weight:700; margin-bottom:5px; }
     .chips { display:flex; flex-wrap:wrap; gap:4px; }
+    .gap-grid { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:3px; }
+    .gap-grid .chip { width:100%; min-width:0; padding-inline:2px; white-space:nowrap; }
+    #gap-extra { margin-top:4px; }
     .chip { background:#222; border:1px solid #5a5a5a; color:#c7c7c7; padding:4px 8px; min-height:27px; line-height:17px; }
     .chip.on { background:#e6b21b; border-color:#e6b21b; color:#000; }
     .chip.cyan-on { background:#11a7c5; border-color:#11a7c5; color:#000; }
@@ -123,7 +126,7 @@
     .review-tabs { top:170px; }
     @media(max-width:1300px) and (min-width:951px) { .layout { grid-template-columns:minmax(0,1fr) 230px 468px; } }
     @media(max-width:950px) { .shell { grid-template-rows:55px 87px minmax(0,1fr); } .context { grid-template-rows:48px 39px; } .review-tabs { top:151px; } }
-    @media(max-width:650px) { html { scroll-padding-bottom:76px; } .shell { display:block; height:auto; } .context { height:90px; grid-template-rows:49px 41px; } .context-line { display:flex; overflow-x:auto; } .ctx { flex:0 0 225px; } .review-tabs { top:145px; } .library-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .popover { max-height:65vh; } .library-panel button { scroll-margin-bottom:76px; } }
+    @media(max-width:650px) { html { scroll-padding-bottom:76px; } .shell { display:block; height:auto; } .context { height:90px; grid-template-rows:49px 41px; } .context-line { display:flex; overflow-x:auto; } .ctx { flex:0 0 225px; } .review-tabs { top:145px; } .library-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .gap-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } .popover { max-height:65vh; } .library-panel button { scroll-margin-bottom:76px; } }
     @media(pointer:coarse) { .ctx,.popover button,.library-panel .chip,.deck-body .field-label button { min-height:44px; } }
   </style>
 </head>
@@ -141,7 +144,7 @@
       <div class="section"><span class="section-title">PLAY &amp; RESULT</span><div class="field"><div class="field-label">Run / Pass</div><div class="chips"><button class="chip on">Run</button><button class="chip">Pass</button></div></div><div class="field"><div class="field-label">Play Type</div><div class="chips" id="play-type-chips"><button class="chip on">Run Inside</button><button class="chip">Run Outside</button><button class="chip">Reverse</button><button class="chip">RPO</button><button class="chip">QB Run</button><button class="chip">Play Action</button></div></div>
       <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label">RPO details</div><div class="field"><div class="field-label">Read defender</div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Defender #</div><input class="input" value="" placeholder="Jersey number" aria-label="Read defender jersey number"></div><div class="field"><div class="field-label">Decision</div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div></div></div>
       <div class="scenario" data-scenario="qb"><div class="new-field"><div class="field-label">QB run</div><div class="field"><div class="field-label">Run type</div><div class="chips"><button class="chip on">Designed</button><button class="chip">Scramble</button><button class="chip">RPO keeper</button></div></div></div></div>
-      <div class="field" id="play-direction"><div class="field-label">Play Direction</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div><div class="new-field" id="direction-gap"><div class="field"><div class="field-label">Gap side</div><div class="chips" id="gap-side"><button class="chip on">Left</button><button class="chip">Right</button><button class="chip">Center</button></div></div><div class="field" id="gap-letter-field"><div class="field-label">Gap</div><div class="chips" id="gap-letter"><button class="chip on">A</button><button class="chip">B</button><button class="chip">C</button><button class="chip">D</button><button class="chip">Other lane</button></div></div></div></div><div class="field"><div class="field-label">Result</div><div class="chips"><button class="chip on">Gain</button><button class="chip">Loss</button><button class="chip">No Gain</button><button class="chip">Touchdown</button></div></div><div class="field"><div class="field-label">Yards</div><input class="input" value="8" aria-label="Yards"></div></div>
+      <div class="field" id="play-direction"><div class="field-label">Play Direction</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div><div class="new-field" id="direction-gap"><div class="field"><div class="field-label">Gap</div><div class="gap-grid" id="gap-chips"><button class="chip on">Left A</button><button class="chip">Left B</button><button class="chip">Left C</button><button class="chip">Left D</button><button class="chip">Right A</button><button class="chip">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button></div><div class="chips" id="gap-extra"><button class="chip">Center</button><button class="chip">Other lane</button></div></div></div></div><div class="field"><div class="field-label">Result</div><div class="chips"><button class="chip on">Gain</button><button class="chip">Loss</button><button class="chip">No Gain</button><button class="chip">Touchdown</button></div></div><div class="field"><div class="field-label">Yards</div><input class="input" value="8" aria-label="Yards"></div></div>
       <div class="section"><span class="section-title">PLAYERS &amp; GRADES</span><div class="field"><div class="field-label"><span id="player-role">Ball Carrier</span></div><div class="chips"><button class="chip on" id="player-name">#42 Leo Johnson</button></div></div></div>
       </div><div class="save"><button>Previous</button><button>Skip</button><button class="primary">Save &amp; Next</button></div></section>
     </main>
@@ -211,16 +214,13 @@
     document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu()});
     document.addEventListener('click',event=>{if(menuAnchor&&!popover.contains(event.target)&&!event.target.closest('.ctx'))closeMenu()});
     function selected(group) { return document.querySelector(group+' .chip.on')?.textContent || 'Uncharted'; }
-    function gapLabel() { const side=selected('#gap-side'); return side==='Center'?'Center':`${side} ${selected('#gap-letter')}`; }
+    function gapLabel() { return document.querySelector('#gap-chips .chip.on, #gap-extra .chip.on')?.textContent || 'Uncharted'; }
+    function setDirection(value) { document.querySelectorAll('#play-direction > .chips .chip').forEach(button=>button.classList.toggle('on',button.textContent===value)); }
+    function setGap(value) { document.querySelectorAll('#gap-chips .chip, #gap-extra .chip').forEach(button=>button.classList.toggle('on',button.textContent===value)); }
     function syncExample() {
       document.querySelectorAll('#play-type-chips .chip').forEach(button => button.classList.toggle('on',button.textContent===currentPlayType));
-      const direction=currentView==='qb'||currentView==='reverse'?'Right':'Left';
-      document.querySelectorAll('#play-direction > .chips .chip').forEach(button=>button.classList.toggle('on',button.textContent===direction));
-      const gapSide=currentView==='qb'?'Right':'Left';
-      document.querySelectorAll('#gap-side .chip').forEach(button=>button.classList.toggle('on',button.textContent===gapSide));
-      const gapLetter=currentView==='qb'?'B':currentView==='reverse'?'C':'A';
-      document.querySelectorAll('#gap-letter .chip').forEach(button=>button.classList.toggle('on',button.textContent===gapLetter));
-      document.getElementById('gap-letter-field').hidden=false;
+      setDirection(currentView==='qb'?'Right':'Left');
+      setGap(currentView==='qb'?'Right B':currentView==='reverse'?'Left C':'Left A');
     }
     function updateSummary() {
       let detail;
@@ -277,14 +277,21 @@
     });
     document.querySelector('#play-direction > .chips').addEventListener('click',event=>{
       const button=event.target.closest('.chip');if(!button)return;
-      for(const chip of event.currentTarget.querySelectorAll('.chip'))chip.classList.toggle('on',chip===button);
+      setDirection(button.textContent);
+      const gap=gapLabel();
+      if((gap.startsWith('Left')&&button.textContent!=='Left')||(gap.startsWith('Right')&&button.textContent!=='Right')||(gap==='Center'&&button.textContent!=='Middle'))setGap('');
       document.getElementById('direction-gap').hidden=false;
       updateSummary();
     });
-    document.querySelectorAll('.new-field .chips, .formation-fields .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
-    document.getElementById('gap-side').addEventListener('click',()=>{
-      document.getElementById('gap-letter-field').hidden=selected('#gap-side')==='Center';
-    });
+    document.querySelectorAll('#gap-chips .chip, #gap-extra .chip').forEach(button=>button.addEventListener('click',()=>{
+      const value=button.textContent;
+      setGap(gapLabel()===value?'':value);
+      if(value.startsWith('Left'))setDirection('Left');
+      if(value.startsWith('Right'))setDirection('Right');
+      if(value==='Center')setDirection('Middle');
+      updateSummary();
+    }));
+    document.querySelectorAll('.new-field .chips:not(#gap-extra), .formation-fields .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
     show(['library','formation','gap','reverse','motion','rpo','qb'].includes(location.hash.slice(1))?location.hash.slice(1):'library');
   </script>
 </body>
