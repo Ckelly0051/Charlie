@@ -17,13 +17,13 @@ manifest status, or installed acceptance is changed.
 - `#formation`, `#gap`, `#motion`, `#rpo`, `#qb`: the previously approved field
   proposal in the same workspace, with its direct chip-to-detail interaction.
 - `#gap` and `#qb` now place the Gap control immediately below Play Direction.
-  Clicking a direction reveals eight explicit Left/Right A-D gap choices in
-  one desktop row, plus Center and Other lane below. There is no separate Gap
+  Clicking a direction reveals ten choices in one desktop row: L-A through
+  L-D, R-A through R-D, Center, and Other. There is no separate Gap
   side control. Selecting a sided gap keeps Play Direction on that side;
   choosing another direction clears a conflicting gap instead of guessing.
   Center selects Middle direction.
 - `#reverse` proposes Reverse as a Play Type. Its example travels Left and
-  hits Left C. Reverse stays a run and retains the normal result, yardage,
+  hits L-C. Reverse stays a run and retains the normal result, yardage,
   and ball-carrier controls.
 - Click Program, Season, or Game in the top row to see one shared menu pattern.
   Season retains the three example seasons, counts, Season Library and New
