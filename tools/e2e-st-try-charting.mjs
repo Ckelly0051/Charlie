@@ -138,6 +138,40 @@ await chip('defFront', '4-3');
 v = await view();
 ok(v.tags.defFront === '4-3', 'the defensive call is kept, not stripped', JSON.stringify(v.tags.defFront));
 
+console.log('\n== 6. Codex review of 67d1ee0 ==');
+// P2: switching between Run/Pass and Fake keeps a charted score.
+await page.evaluate(async () => {
+  const app = window.app, g = app.storage.seasonStore.activeGame();
+  const mk = id => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [], tags: { unit: 'special', custom: [], players: {}, grades: {} } });
+  g.plays.push(mk(3), mk(4)); app.tagger.plays = g.plays; app.tagger.nextId = 5; app.tagger._emit('plays-loaded');
+  app.tagger.selectPlay(3);
+});
+await settle(page);
+await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await choose('Official result', 'Converted'); await choose('Points awarded', '1 Point');
+await choose('Attempt', 'Fake');
+v = await view();
+ok(v.st.isFake === true && v.st.outcome.score === 'extraPoint', 'Run/Pass to Fake keeps a charted 1 point', JSON.stringify(v.st.outcome));
+await choose('Attempt', 'Run/Pass');
+v = await view();
+ok(v.st.isFake === false && v.st.outcome.score === 'extraPoint', 'Fake back to Run/Pass keeps it too', JSON.stringify(v.st.outcome));
+// P1: a play switch during the Kick XP confirmation changes only the play it asked about.
+await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
+await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await chip('formation', 'Bunch');
+await page.evaluate(() => window.app.tagger.selectPlay(3)); await settle(page);
+await chip('formation', 'Trips'); await chip('runPass', 'Pass');
+await choose('Attempt', 'Kick XP');
+const askedFor = await page.evaluate(() => !!document.querySelector('#ffaConfirmModal'));
+await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
+await page.click('#ffaConfirmModal [data-act="ok"]'); await settle(page); await settle(page);
+const both = await page.evaluate(() => {
+  const p = id => window.app.tagger.getPlay(id);
+  const pick = x => ({ attempt: x.specialTeams?.attemptType, formation: x.tags.formation, runPass: x.tags.runPass });
+  return { three: pick(p(3)), four: pick(p(4)) };
+});
+ok(askedFor, 'the confirmation opened for play 3', String(askedFor));
+ok(both.three.attempt === 'extraPoint' && !both.three.formation && !both.three.runPass, 'the play the confirmation named becomes Kick XP and is cleared', JSON.stringify(both.three));
+ok(both.four.attempt === 'twoPoint' && both.four.formation === 'Bunch', 'the play selected during the confirmation is untouched', JSON.stringify(both.four));
+
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

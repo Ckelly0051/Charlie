@@ -144,7 +144,7 @@ analytics (coach). Item 1 already worked before this change (a converted kick
 offered 1 or 2); item 2 was the gap. Model: `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
 §4b.3d. Evidence: `e2e-b2-tries` 17 (three new model/cohort checks, each red
 under its own reversion), `e2e-st-try-charting` 27 (two UI reversions red), the
-Special Teams, deck, Film Room and parity harnesses unchanged.
+Special Teams, deck, Film Room and parity harnesses unchanged. Codex review of `67d1ee0`: P1, selecting another play while the Kick XP confirmation was open cleared one play and changed the other; the change now applies to the play the coach acted on, in one update. P2, Run/Pass to Fake reset a charted 1 point to 2; a charted score now survives a switch within the same attempt kind. `e2e-st-try-charting` 32 (4 new checks, red first).
 Original entry: **ST-GAPS — OPEN, deferred until after the legacy migration (coach, 2026-09-25).** Special
 Teams charting is missing options the coach needs; the list grows as the coach finds them
 and nothing is built until the migration lands (one data format to extend).

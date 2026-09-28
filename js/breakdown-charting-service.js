@@ -187,11 +187,15 @@ export class BreakdownChartingService {
   /** Kick XP, Run/Pass or Fake. A Fake is a run/pass try with `isFake`. Leaving
    *  Run/Pass or Fake for Kick XP clears the snap's run/pass detail (look fields
    *  are stripped by the Special Teams rule; the rest is cleared here), after a
-   *  confirmation when any was charted. */
+   *  confirmation when any was charted.
+   *  The change applies to the play the coach acted on, captured before the
+   *  confirmation: selecting another play while it is open must not move the
+   *  change there (Codex, 67d1ee0 P1). Clearing and the attempt land in one
+   *  update. Switching between Run/Pass and Fake keeps a charted score; a new
+   *  attempt kind takes its own default (P2). */
   async _setTryAttempt(value) {
     const play = this.tagger.getCurrentPlay();
-    const current = SpecialTeamsModel.normalize(play?.specialTeams);
-    if (!play || !current) return false;
+    if (!play || !SpecialTeamsModel.normalize(play.specialTeams)) return false;
     const attemptType = value === 'fake' ? 'twoPoint' : value;
     const RUN_PASS_TAGS = ['runPass', 'playType', 'playDir', 'result', 'yardage', 'motion', 'playCall', 'playCallId', 'playConcept'];
     const RUN_PASS_ROLES = ['ballCarrier', 'passer', 'receiver', 'tackler', 'takeaway'];
@@ -200,14 +204,20 @@ export class BreakdownChartingService {
       const charted = RUN_PASS_TAGS.some(k => play.tags[k]) || SeasonStore.ST_ALIGNMENT_KEYS.some(k => play.tags[k])
         || RUN_PASS_ROLES.some(r => play.tags.players?.[r]);
       if (charted && !(await this.tagger._confirmDialog('Changing to Kick XP clears this try\'s run/pass details.', 'Change to Kick XP'))) return false;
+    }
+    const st = SpecialTeamsModel.normalize(play.specialTeams);
+    if (!st) return false;
+    if (leavingRunPass) {
       RUN_PASS_TAGS.forEach(k => { if (play.tags[k]) play.tags[k] = ''; });
       if (play.tags.players) RUN_PASS_ROLES.forEach(r => { delete play.tags.players[r]; });
     }
-    return this._saveSpecial(st => {
-      st.attemptType = attemptType;
-      st.isFake = value === 'fake';
-      if (st.result === 'converted' && !st.events.defensiveReturn) st.outcome.score = st.attemptType;
-    });
+    const sameKind = st.attemptType === attemptType;
+    st.attemptType = attemptType;
+    st.isFake = value === 'fake';
+    if (st.result === 'converted' && !st.events.defensiveReturn && !(sameKind && st.outcome.score)) st.outcome.score = st.attemptType;
+    play.specialTeams = SpecialTeamsModel.normalize(st);
+    this.tagger._emit('play-updated', play);
+    return true;
   }
 
   specialInput(key, value) {
