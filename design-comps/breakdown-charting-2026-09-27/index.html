@@ -67,6 +67,7 @@
     .new-field { margin:8px -2px 0; padding:7px 7px 3px; border-left:3px solid #1ab4cf; background:#10252a; }
     .new-field .field:first-child { margin-top:0; }
     .new-field .field-label { color:#f2f2f2; }
+    .formation-fields.focused { margin:8px -2px 0; padding:7px 7px 3px; border-left:3px solid #1ab4cf; background:#10252a; }
     .scenario { display:none; }
     .scenario.active { display:contents; }
     .save { display:grid; grid-template-columns:90px 72px minmax(0,1fr); gap:6px; padding:8px; border-top:1px solid #555; }
@@ -88,7 +89,7 @@
       <div class="film"><div class="frame"><img src="../../ux-prototype/assets/all22-frame.png" alt="All-22 football film frame"></div><div class="film-meta"><strong>Play 8 <span style="color:#999;font-weight:400">1st &amp; 10 · Own 28 · Left hash</span></strong><span class="accent" id="film-summary">26 Blast · Run inside · Gain +8</span><span>Our Drive 1</span></div><div class="film-controls"><div class="buttons"><button title="Previous play">|&lt;</button><button title="Rewind">&lt;</button><button class="play" title="Play">&#9654;</button><button title="Forward">&gt;</button><span>0:12</span><div class="track"></div><span>0:19</span></div></div></div>
       <aside class="plays"><div class="plays-head">PLAYS <small>67 plays · grouped by drive</small></div><div class="play-list"><div class="play-row"><span>3</span><b>1st &amp; 10</b><span>Loss -3</span></div><div class="play-row"><span>4</span><b>2nd &amp; 13</b><span>Penalty +5</span></div><div class="play-row"><span>5</span><b>2nd &amp; 8</b><span>Loss -1</span></div><div class="play-row"><span>6</span><b>3rd &amp; 9</b><span>Loss -4</span></div><div class="play-row"><span>7</span><b>4th &amp; 13</b><span>Punt</span></div><div class="play-row current"><span>8</span><b>1st &amp; 10</b><span>Gain +8</span></div><div class="play-row"><span>9</span><b>1st &amp; 10</b><span>Gain +6</span></div><div class="play-row"><span>10</span><b>2nd &amp; 4</b><span>TD +8</span></div><div class="play-row"><span>11</span><b>Down -</b><span>XP</span></div><div class="play-row"><span>12</span><b>Down -</b><span>Kickoff</span></div><div class="play-row"><span>13</span><b>1st &amp; 10</b><span>Loss -1</span></div><div class="play-row"><span>14</span><b>2nd &amp; 11</b><span>Gain +1</span></div></div></aside>
       <section class="deck" aria-label="Charting deck"><div class="deck-head"><strong>Play 8</strong><small>8 / 67 tagged</small></div><div class="unit"><button class="active">Offense</button><button>Defense</button><button>Special Teams</button><span class="mode">SAVED</span></div><div class="deck-body"><div class="section"><span class="section-title">SITUATION</span><div class="select-line"><div class="field"><div class="field-label">Quarter</div><div class="chips"><button class="chip on">Q1</button><button class="chip">Q2</button></div></div><div class="field"><div class="field-label">Down</div><div class="chips"><button class="chip on">1</button><button class="chip">2</button><button class="chip">3</button></div></div><div class="field"><div class="field-label">Distance</div><input class="input" value="10" aria-label="Distance"></div></div></div>
-      <div class="section"><span class="section-title">OUR OFFENSIVE LOOK</span><div class="field"><div class="field-label">Play Call</div><input class="input" id="play-call" value="26 Blast" aria-label="Play call"></div><div class="field"><div class="field-label">Formation</div><div class="chips"><button class="chip">Spread</button><button class="chip">Trips</button><button class="chip on">Power-I</button><button class="chip">Flexbone</button></div></div><div class="field"><div class="field-label">Motion</div><div class="chips"><button class="chip" id="jet-chip">Jet</button><button class="chip">Orbit</button><button class="chip">Shift</button><button class="chip">Other</button></div></div>
+      <div class="section"><span class="section-title">FORMATION &amp; CALL</span><div class="field"><div class="field-label">Play Call</div><input class="input" id="play-call" value="26 Blast" aria-label="Play call"></div><div class="formation-fields" id="formation-fields"><div class="field"><div class="field-label">Formation Family</div><div class="chips" id="formation-family"><button class="chip on">Spread</button><button class="chip">Wing-T</button><button class="chip">Flexbone</button><button class="chip">Single Wing</button></div></div><div class="field"><div class="field-label">Receiver Set</div><div class="chips" id="receiver-set"><button class="chip">2x2</button><button class="chip on">3x1</button><button class="chip">2x1</button><button class="chip">3x2</button></div></div></div><div class="field"><div class="field-label">QB Alignment</div><div class="chips"><button class="chip">Under Center</button><button class="chip">Pistol</button><button class="chip on">Shotgun</button></div></div><div class="field"><div class="field-label">Backfield</div><div class="chips"><button class="chip">Empty</button><button class="chip on">Single</button><button class="chip">I</button><button class="chip">Split</button></div></div><div class="field"><div class="field-label">Personnel</div><div class="chips"><button class="chip">10</button><button class="chip on">11</button><button class="chip">20</button><button class="chip">21</button></div></div><div class="field"><div class="field-label">Motion</div><div class="chips"><button class="chip" id="jet-chip">Jet</button><button class="chip">Orbit</button><button class="chip">Shift</button><button class="chip">Other</button></div></div>
       <div class="scenario" data-scenario="motion"><div class="new-field"><div class="field-label">Motion path</div><div class="field"><div class="field-label">Starts</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Ends</div><div class="chips"><button class="chip">Left</button><button class="chip">Middle</button><button class="chip on">Right</button></div></div></div></div></div>
       <div class="section"><span class="section-title cyan">DEFENSE FACED</span><div class="field"><div class="field-label">Front</div><div class="chips"><button class="chip">4-3</button><button class="chip on">5-2</button><button class="chip">3-4</button><button class="chip">Nickel</button></div></div><div class="field"><div class="field-label">Coverage</div><div class="chips"><button class="chip">Cover 1</button><button class="chip on">Cover 3</button><button class="chip">Cover 4</button></div></div></div>
       <div class="section"><span class="section-title">PLAY &amp; RESULT</span><div class="field"><div class="field-label">Run / Pass</div><div class="chips"><button class="chip on">Run</button><button class="chip">Pass</button></div></div><div class="field"><div class="field-label">Play Type</div><div class="chips"><button class="chip on">Run Inside</button><button class="chip">Run Outside</button><button class="chip">RPO</button><button class="chip">Play Action</button></div></div>
@@ -100,9 +101,9 @@
       </div><div class="save"><button>Previous</button><button>Skip</button><button class="primary">Save &amp; Next</button></div></section>
     </main>
   </div>
-  <nav class="review-tabs" aria-label="Comp views"><button data-view="gap" class="active">Gap</button><button data-view="motion">Motion direction</button><button data-view="rpo">RPO details</button><button data-view="qb">QB run</button></nav>
+  <nav class="review-tabs" aria-label="Comp views"><button data-view="formation" class="active">Formation</button><button data-view="gap">Gap</button><button data-view="motion">Motion direction</button><button data-view="rpo">RPO details</button><button data-view="qb">QB run</button></nav>
   <script>
-    let currentView='gap';
+    let currentView='formation';
     function selected(group) { return document.querySelector(group+' .chip.on')?.textContent || 'Uncharted'; }
     function syncExample() {
       const keeper=currentView==='qb' && selected('[data-scenario="qb"] .field:nth-of-type(2)')==='RPO keeper';
@@ -116,6 +117,7 @@
     }
     function updateSummary() {
       let detail;
+      if (currentView==='formation') detail=`${selected('#formation-family')} · ${selected('#receiver-set')} · 26 Blast`;
       if (currentView==='gap') detail=`26 Blast · Gap ${selected('[data-scenario="gap"]')}`;
       if (currentView==='motion') detail=`Jet motion · ${selected('[data-scenario="motion"] .field:nth-of-type(2)')} to ${selected('[data-scenario="motion"] .field:nth-of-type(3)')}`;
       if (currentView==='rpo') detail=`RPO Glance · ${selected('[data-scenario="rpo"] .field:nth-of-type(2)')} read · ${selected('[data-scenario="rpo"] .field:nth-of-type(4)')}`;
@@ -127,6 +129,7 @@
       currentView=view;
       document.querySelectorAll('.review-tabs button').forEach(button => button.classList.toggle('active',button.dataset.view===view));
       document.querySelectorAll('.scenario').forEach(panel => panel.classList.toggle('active',panel.dataset.scenario===view));
+      document.getElementById('formation-fields').classList.toggle('focused',view==='formation');
       updateSummary();
       document.getElementById('play-call').value=view==='rpo'?'RPO Glance':view==='qb'?'QB Draw':'26 Blast';
       document.getElementById('jet-chip').classList.toggle('on',view==='motion');
@@ -136,14 +139,14 @@
       if(resultButtons) resultButtons.forEach(button => button.classList.toggle('on',button.textContent===(view==='rpo'?'Pass':'Run')));
       if (innerWidth>650) {
         const deckBody=document.querySelector('.deck-body');
-        const field=document.querySelector(`.scenario[data-scenario="${view}"] .new-field`);
+        const field=view==='formation'?document.getElementById('formation-fields'):document.querySelector(`.scenario[data-scenario="${view}"] .new-field`);
         deckBody.scrollTop+=field.getBoundingClientRect().top-deckBody.getBoundingClientRect().top-175;
       }
       history.replaceState(null,'','#'+view);
     }
     document.querySelectorAll('.review-tabs button').forEach(button => button.addEventListener('click',()=>show(button.dataset.view)));
-    document.querySelectorAll('.new-field .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
-    show(['gap','motion','rpo','qb'].includes(location.hash.slice(1))?location.hash.slice(1):'gap');
+    document.querySelectorAll('.new-field .chips, .formation-fields .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
+    show(['formation','gap','motion','rpo','qb'].includes(location.hash.slice(1))?location.hash.slice(1):'formation');
   </script>
 </body>
 </html>
