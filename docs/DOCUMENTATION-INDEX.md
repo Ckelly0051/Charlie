@@ -30,10 +30,13 @@
 
 This section is the one place release state is kept current.
 
-- Main checkout and latest installer: `1.12.0-105` (bump `2ef667d` on top of
-  `206551e`; full gate 136/136 at `206551e`): `1.12.0-104` plus the efficiency
-  cleanup, the custom-field editor and Special Teams try charting. Installed
-  smoke pending (`SMOKE-1.12.0-105.md`). `1.12.0-104` was never smoked; superseded.
+- Main checkout: `1.12.0-106` candidate, containing the Settings team-name
+  save-on-close repair and its immediate-close regression checks. Full gate
+  136/136, zero skipped and zero failed at `2f309d6`, before the four-owner
+  version bump. Packaging and installed smoke are pending
+  (`SMOKE-1.12.0-106.md`). Latest built installer: `1.12.0-105`; its coach
+  smoke found S105-1, repaired in source. `1.12.0-104` was never smoked and
+  was superseded.
 - `1.12.0-103` (legacy excision step 8) passed its installed smoke on
   2026-09-27 (`SMOKE-1.12.0-103.md`). Earlier installers are superseded; their
   records are the `SMOKE-1.12.0-*.md` files and
@@ -43,10 +46,11 @@ This section is the one place release state is kept current.
   one-time storage cleanup and settings conversion ran on the installed profile
   (receipts read back 2026-09-27) and their modules are deleted in source
   (after `1.12.0-104`; not yet in an installer).
-- Source after `1.12.0-104` (not in an installer): the efficiency-audit slim-down,
-  the one-time modules and dead renderers deleted, the custom-field editor rebuilt
-  on the overlay service. **Full gate 135/135 at `b399516`** (the first run at
-  `8455e61` was 134/135, a ratchet rise repaired in `b399516`).
+- Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
+  modules and dead renderers deleted, the custom-field editor rebuilt on the
+  overlay service, and Special Teams try charting.
+- The approved Break Down charting comp is a future build contract, not a
+  change in this installer; BD-UX-1 remains open in `docs/OPEN-DEFECTS.md`.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports

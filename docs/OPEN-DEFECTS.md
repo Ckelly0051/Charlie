@@ -24,7 +24,7 @@ acceptance is claimed here.
 Findings logged as the coach lists them; no repair starts until the coach
 says the list is complete. Checklist: `SMOKE-1.12.0-105.md`.
 
-**S105-1 — REPAIRED IN SOURCE 2026-09-28, not in an installer. Changing the team name in Settings does not save.** Coach:
+**S105-1 — REPAIRED IN SOURCE 2026-09-28; 1.12.0-106 packaging and installed smoke pending. Changing the team name in Settings does not save.** Coach:
 "changing Team name via the settings menu does not save." Reproduced on the
 installed build 2026-09-28: the save itself works (renamed, restarted, restored),
 but a name typed and then closed with Done, the close button or Escape, without
