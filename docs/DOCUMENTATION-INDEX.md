@@ -34,10 +34,10 @@ This section is the one place release state is kept current.
   containing the Settings team-name save-on-close repair and its immediate-close
   regression checks. Full gate 136/136, zero skipped and zero failed at
   `2f309d6`, before the four-owner version-only bump; `e2e-p0-exit` 19/19
-  after it. The unsigned NSIS installer was built successfully; installed
-  smoke and acceptance remain pending (`SMOKE-1.12.0-106.md`). The
-  `1.12.0-105` coach smoke found S105-1. `1.12.0-104` was never smoked and
-  was superseded.
+  after it. The unsigned NSIS installer was built successfully, and the coach
+  approved its installed smoke on 2026-09-28 (`SMOKE-1.12.0-106.md`). The
+  `1.12.0-105` coach smoke found S105-1, accepted as repaired in `1.12.0-106`.
+  `1.12.0-104` was never smoked and was superseded.
 - `1.12.0-103` (legacy excision step 8) passed its installed smoke on
   2026-09-27 (`SMOKE-1.12.0-103.md`). Earlier installers are superseded; their
   records are the `SMOKE-1.12.0-*.md` files and
@@ -45,8 +45,8 @@ This section is the one place release state is kept current.
 - Legacy excision: Passes 0-2b done (`docs/LEGACY-EXCISION-PLAN.md`); one
   season format, every old-format reader deleted, old files refused. The
   one-time storage cleanup and settings conversion ran on the installed profile
-  (receipts read back 2026-09-27) and their modules are deleted in source
-  (after `1.12.0-104`; not yet in an installer).
+  (receipts read back 2026-09-27); their modules were deleted after
+  `1.12.0-104` and first shipped without them in `1.12.0-105`.
 - Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
   modules and dead renderers deleted, the custom-field editor rebuilt on the
   overlay service, and Special Teams try charting.

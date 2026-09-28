@@ -9,8 +9,7 @@ version-only bump; `e2e-p0-exit` 19/19 after it. **Installer:**
 Built with `cargo tauri build --bundles nsis --config
 artifacts/local-installer-config.json` (exit 0); the scratch config disables
 updater-artifact signing. The built executable reports product and file version
-`1.12.0-106`. No installed smoke or acceptance is claimed. Nothing was tagged,
-pushed, or published.
+`1.12.0-106`. Nothing was tagged, pushed, or published.
 
 This candidate repairs S105-1 from the `1.12.0-105` installed smoke. The
 approved Break Down charting comp is not implemented in this candidate;
@@ -30,5 +29,9 @@ BD-UX-1 remains open.
    film, confirm both play; chart a play and restart to confirm data and film;
    switch seasons and confirm counts, tags, and film identity.
 
-Record the coach's installed result here after smoke. A green browser gate does
-not certify WebView2 behavior.
+## Result (2026-09-28)
+
+The coach approved the `1.12.0-106` installed smoke. S105-1 is accepted in
+this build. This approval does not implement or accept the separate Break Down
+charting comp or close BD-UX-1. The coach did not provide per-check notes in
+the approval message; the checklist above remains the scope of this smoke.
