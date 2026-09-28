@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Break Down populated layout - review comp</title>
+  <link rel="stylesheet" href="../../css/fonts.css">
+  <style>
+    :root { color-scheme: dark; font: 13px Arial, sans-serif; background:#0b0b0b; color:#f4f4f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; }
+    button { font:inherit; cursor:pointer; }
+    .shell { height:100vh; min-height:620px; display:grid; grid-template-rows:68px 67px minmax(0,1fr); }
+    .top { display:flex; align-items:center; gap:32px; padding:0 18px; background:#171717; border-bottom:1px solid #444; white-space:nowrap; }
+    .brand { font-size:16px; font-weight:800; margin-right:12px; }
+    .brand b { color:#4185ff; }
+    .top .nav { font-size:17px; font-weight:700; color:#aaa; }
+    .top .nav.active { height:100%; display:grid; place-items:center; color:#fff; border-bottom:3px solid #e5b319; }
+    .context { background:#101010; border-bottom:1px solid #444; display:grid; grid-template-rows:25px 42px; }
+    .context-line { display:flex; gap:28px; align-items:center; padding:0 13px; background:#303030; color:#e7e7e7; font-size:11px; overflow:hidden; white-space:nowrap; }
+    .context-line strong { color:#fff; }
+    .toolbar { display:flex; align-items:center; gap:8px; padding:0 12px; overflow:hidden; }
+    .tool { border:1px solid #555; background:#242424; color:#ddd; padding:8px 14px; white-space:nowrap; font-weight:700; }
+    .tool.active { background:#e6b21b; border-color:#e6b21b; color:#050505; }
+    .layout { min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 286px 468px; }
+    .film { min-width:0; min-height:0; display:grid; grid-template-rows:minmax(0,1fr) 104px 70px; border-right:2px solid #444; }
+    .frame { min-height:0; background:#050505; display:grid; place-items:center; overflow:hidden; }
+    .frame img { width:100%; height:100%; object-fit:contain; }
+    .film-meta { border-top:2px solid #e5b319; background:#151515; padding:10px 16px; display:flex; flex-direction:column; gap:6px; }
+    .film-meta strong { font-size:14px; }
+    .film-meta span { color:#c7c7c7; }
+    .film-meta .accent { color:#e9ba21; }
+    .film-controls { border-top:1px solid #555; padding:8px 12px; background:#151515; }
+    .film-controls .buttons { display:flex; align-items:center; gap:5px; }
+    .film-controls button { width:35px; height:30px; background:#242424; border:1px solid #666; color:#fff; }
+    .film-controls button.play { background:#f0f0f0; color:#111; }
+    .track { flex:1; height:5px; background:linear-gradient(90deg,#e5b319 34%,#777 34%); border-radius:4px; margin:0 11px; }
+    .plays { min-width:0; min-height:0; background:#151515; border-right:2px solid #444; display:grid; grid-template-rows:42px minmax(0,1fr); }
+    .plays-head { padding:13px; border-bottom:1px solid #555; font-weight:700; }
+    .plays-head small { color:#aaa; font-weight:400; margin-left:10px; }
+    .play-list { overflow:auto; }
+    .play-row { height:47px; display:grid; grid-template-columns:30px 1fr 65px; gap:5px; align-items:center; padding:0 9px; border-bottom:1px solid #363636; font-size:12px; }
+    .play-row b { color:#f3f3f3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .play-row span { color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .play-row.current { background:#26343c; border-left:3px solid #e5b319; padding-left:6px; }
+    .deck { min-width:0; min-height:0; display:grid; grid-template-rows:44px 53px minmax(0,1fr) 56px; background:#111; }
+    .deck-head { display:flex; align-items:center; justify-content:space-between; padding:0 12px; border-bottom:1px solid #555; }
+    .deck-head strong { font-size:16px; }
+    .deck-head small { color:#aaa; }
+    .unit { display:flex; align-items:center; gap:0; padding:6px 10px; border-bottom:1px solid #555; }
+    .unit button { background:#222; border:1px solid #555; color:#bbb; padding:8px 10px; }
+    .unit button.active { background:#13a7c7; border-color:#13a7c7; color:#000; font-weight:700; }
+    .unit .mode { margin-left:auto; font-size:11px; color:#8b8b8b; }
+    .deck-body { min-height:0; overflow:auto; padding:0 9px 16px; }
+    .section { border-bottom:1px solid #4b4b4b; padding:7px 2px 9px; }
+    .section-title { display:inline-block; background:#e3b21a; color:#000; padding:6px 28px 6px 9px; font-weight:800; font-size:12px; clip-path:polygon(0 0,100% 0,88% 100%,0 100%); margin-bottom:8px; }
+    .section-title.cyan { background:#0eb4d2; }
+    .field { margin:7px 0 10px; }
+    .field-label { display:flex; justify-content:space-between; align-items:center; gap:8px; color:#ddd; font-weight:700; margin-bottom:5px; }
+    .chips { display:flex; flex-wrap:wrap; gap:4px; }
+    .chip { background:#222; border:1px solid #5a5a5a; color:#c7c7c7; padding:4px 8px; min-height:27px; line-height:17px; }
+    .chip.on { background:#e6b21b; border-color:#e6b21b; color:#000; }
+    .chip.cyan-on { background:#11a7c5; border-color:#11a7c5; color:#000; }
+    .select-line { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .select-line .field { min-width:0; }
+    .select-line .chip { min-width:30px; }
+    .input { border:1px solid #5a5a5a; background:#181818; color:#f4f4f4; height:31px; padding:6px 8px; width:100%; }
+    .new-field { margin:8px -2px 0; padding:7px 7px 3px; border-left:3px solid #1ab4cf; background:#10252a; }
+    .new-field .field:first-child { margin-top:0; }
+    .new-field .field-label { color:#f2f2f2; }
+    .motion-path { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .motion-path .field { min-width:0; margin:0 0 4px; }
+    .formation-fields.focused { margin:8px -2px 0; padding:7px 7px 3px; border-left:3px solid #1ab4cf; background:#10252a; }
+    .scenario { display:none; }
+    .scenario.active { display:contents; }
+    .save { display:grid; grid-template-columns:90px 72px minmax(0,1fr); gap:6px; padding:8px; border-top:1px solid #555; }
+    .save button { border:1px solid #555; background:#242424; color:#ddd; font-weight:700; }
+    .save .primary { background:#e5b319; color:#000; border-color:#e5b319; }
+    .review-tabs { position:absolute; z-index:4; top:145px; left:14px; display:flex; gap:5px; padding:5px; background:#090909e8; border:1px solid #666; }
+    .review-tabs button { border:1px solid #555; color:#ddd; background:#252525; padding:7px 12px; font-weight:700; white-space:nowrap; }
+    .review-tabs button.active { color:#000; border-color:#e5b319; background:#e5b319; }
+    @media(max-width:1300px) { .layout { grid-template-columns:minmax(0,1fr) 230px 410px; } .review-tabs { top:140px; } }
+    @media(max-width:950px) { .shell { grid-template-rows:55px 55px minmax(0,1fr); } .top { gap:18px; } .top .nav { font-size:14px; } .context { grid-template-rows:25px 30px; } .toolbar .tool { padding:4px 10px; } .layout { grid-template-columns:minmax(0,1fr) minmax(330px,45%); } .plays { display:none; } .review-tabs { top:118px; } }
+    @media(max-width:650px) { .shell { height:auto; min-height:100vh; display:block; } .top { height:49px; gap:13px; overflow:auto; } .top .nav { font-size:13px; } .brand { font-size:13px; margin:0; } .context { height:94px; } .layout { display:block; } .film { height:307px; padding-top:42px; display:grid; grid-template-rows:minmax(0,1fr) 44px 48px; border-right:0; } .film-meta { padding:6px 10px; gap:2px; } .film-meta span:last-child { display:none; } .film-controls { padding:6px; } .review-tabs { position:fixed; top:143px; left:0; width:100%; border-left:0; border-right:0; overflow-x:auto; } .review-tabs button { padding:7px 9px; } .deck { display:block; } .deck-head { height:40px; } .unit { height:46px; } .deck-body { overflow:visible; } .save { position:sticky; bottom:0; background:#111; height:54px; } }
+    /* Supplemental review states: production-width library and context selectors. */
+    :root { font-family:'IBM Plex Sans',Arial,sans-serif; }
+    [hidden] { display:none!important; }
+    .shell { grid-template-rows:68px 92px minmax(0,1fr); }
+    .context { grid-template-rows:50px 42px; }
+    .context-line { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.1fr) minmax(0,1.25fr); gap:0; padding:0; overflow:visible; }
+    .ctx { position:relative; display:grid; grid-template-columns:minmax(0,1fr) 14px; grid-template-rows:14px 19px; align-content:center; column-gap:7px; min-width:0; padding:4px 12px; border:0; border-right:1px solid #595d60; background:#292d2f; color:#f3f3f3; text-align:left; }
+    .ctx:hover,.ctx[aria-expanded="true"] { background:#353b3e; }
+    .ctx[aria-expanded="true"] { box-shadow:inset 0 -3px #e5b319; }
+    .ctx-label { color:#b7bec1; font-size:10px; font-weight:700; line-height:14px; text-transform:uppercase; }
+    .ctx-value { grid-column:1; overflow:hidden; color:#f4f4f4; font-size:13px; font-weight:700; line-height:19px; text-overflow:ellipsis; white-space:nowrap; }
+    .ctx-caret { grid-column:2; grid-row:1/3; align-self:center; justify-self:end; color:#c3c9cb; font-size:13px; }
+    .ctx:focus-visible,.popover button:focus-visible { outline:2px solid #44b9d2; outline-offset:-2px; }
+    .popover { position:fixed; z-index:12; display:none; width:min(360px,calc(100vw - 12px)); max-height:calc(100vh - 100px); overflow:auto; padding:6px; border:1px solid #697074; background:#24292b; box-shadow:0 18px 35px #000b; }
+    .popover.open { display:block; }
+    .popover-head { padding:6px 9px 9px; border-bottom:1px solid #4d5558; color:#bac2c5; font-size:11px; font-weight:700; text-transform:uppercase; }
+    .popover button { display:grid; grid-template-columns:minmax(0,1fr) 20px; gap:2px 6px; width:100%; min-height:46px; padding:7px 9px; border:0; border-bottom:1px solid #40494c; background:transparent; color:#f0f3f4; text-align:left; }
+    .popover button:hover,.popover button.selected { background:#344146; }
+    .popover button.selected { box-shadow:inset 3px 0 #e5b319; }
+    .popover button strong { overflow:hidden; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+    .popover button small { grid-column:1; color:#bdc7ca; font-size:11px; }
+    .popover button i { grid-column:2; grid-row:1/3; align-self:center; color:#e5b319; font-style:normal; }
+    .popover button.command { min-height:36px; border-bottom:0; font-weight:700; }
+    .popover button.command strong { color:#f2c747; }
+    .deck-body .field-label { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:23px; margin-bottom:4px; }
+    .deck-body .field-label button { min-height:22px; padding:0 7px; border:1px solid #666e71; background:#2b3032; color:#e2e8ea; font-size:11px; font-weight:600; }
+    .deck-body .field-label .actions { display:flex; gap:4px; align-items:center; }
+    .chip { min-height:27px; padding:4px 8px; font-size:12px; line-height:17px; }
+    .library-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
+    .library-grid .chip { width:100%; padding-inline:4px; overflow:hidden; text-overflow:ellipsis; }
+    .library-selected { display:flex; gap:4px; align-items:center; min-height:27px; margin-bottom:4px; }
+    .library-selected .chip { border-color:#69a6b5; background:#1e3b43; color:#ecfbff; }
+    .library-selected .retag { min-height:23px; padding:0 8px; border:1px solid #697174; background:#303537; color:#e6edef; font-size:11px; font-weight:600; }
+    .library-panel { margin:0 0 10px; }
+    .library-panel .field { margin-bottom:8px; }
+    .library-panel .chips { gap:4px; }
+    .library-panel .new-field { margin:0; }
+    .library-panel .compact-values { display:flex; flex-wrap:wrap; gap:4px; }
+    .review-tabs { top:170px; }
+    @media(max-width:1300px) and (min-width:951px) { .layout { grid-template-columns:minmax(0,1fr) 230px 468px; } }
+    @media(max-width:950px) { .shell { grid-template-rows:55px 87px minmax(0,1fr); } .context { grid-template-rows:48px 39px; } .review-tabs { top:151px; } }
+    @media(max-width:650px) { html { scroll-padding-bottom:76px; } .shell { display:block; height:auto; } .context { height:90px; grid-template-rows:49px 41px; } .context-line { display:flex; overflow-x:auto; } .ctx { flex:0 0 225px; } .review-tabs { top:145px; } .library-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .popover { max-height:65vh; } .library-panel button { scroll-margin-bottom:76px; } }
+    @media(pointer:coarse) { .ctx,.popover button,.library-panel .chip,.deck-body .field-label button { min-height:44px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top"><div class="brand">GRIDIRON <b>IQ</b></div><div class="nav">Home</div><div class="nav active">Break Down</div><div class="nav">Study</div><div class="nav">Reports</div><div class="nav">Plan</div></header>
+    <div class="context"><div class="context-line"><button class="ctx" data-context="program" aria-haspopup="menu" aria-expanded="false"><span class="ctx-label">Program</span><span class="ctx-value">St. Joseph Mavericks</span><span class="ctx-caret">v</span></button><button class="ctx" data-context="season" aria-haspopup="menu" aria-expanded="false"><span class="ctx-label">Season</span><span class="ctx-value">SJM Varsity 2026</span><span class="ctx-caret">v</span></button><button class="ctx" data-context="game" aria-haspopup="menu" aria-expanded="false"><span class="ctx-label">Game</span><span class="ctx-value">Week 5 vs St. George Dragon Slayers</span><span class="ctx-caret">v</span></button></div><div class="toolbar"><button class="tool active">Our Program</button><button class="tool">Opponent Scout</button><button class="tool active">Chart</button><button class="tool">Film Room</button><button class="tool">Quick chart</button><button class="tool">Customize fields</button><button class="tool">Game settings</button></div></div>
+    <main class="layout">
+      <div class="film"><div class="frame"><img src="../../ux-prototype/assets/all22-frame.png" alt="All-22 football film frame"></div><div class="film-meta"><strong>Play 8 <span style="color:#999;font-weight:400">1st &amp; 10 · Own 28 · Left hash</span></strong><span class="accent" id="film-summary">26 Blast · Run inside · Gain +8</span><span>Our Drive 1</span></div><div class="film-controls"><div class="buttons"><button title="Previous play">|&lt;</button><button title="Rewind">&lt;</button><button class="play" title="Play">&#9654;</button><button title="Forward">&gt;</button><span>0:12</span><div class="track"></div><span>0:19</span></div></div></div>
+      <aside class="plays"><div class="plays-head">PLAYS <small>67 plays · grouped by drive</small></div><div class="play-list"><div class="play-row"><span>3</span><b>1st &amp; 10</b><span>Loss -3</span></div><div class="play-row"><span>4</span><b>2nd &amp; 13</b><span>Penalty +5</span></div><div class="play-row"><span>5</span><b>2nd &amp; 8</b><span>Loss -1</span></div><div class="play-row"><span>6</span><b>3rd &amp; 9</b><span>Loss -4</span></div><div class="play-row"><span>7</span><b>4th &amp; 13</b><span>Punt</span></div><div class="play-row current"><span>8</span><b>1st &amp; 10</b><span>Gain +8</span></div><div class="play-row"><span>9</span><b>1st &amp; 10</b><span>Gain +6</span></div><div class="play-row"><span>10</span><b>2nd &amp; 4</b><span>TD +8</span></div><div class="play-row"><span>11</span><b>Down -</b><span>XP</span></div><div class="play-row"><span>12</span><b>Down -</b><span>Kickoff</span></div><div class="play-row"><span>13</span><b>1st &amp; 10</b><span>Loss -1</span></div><div class="play-row"><span>14</span><b>2nd &amp; 11</b><span>Gain +1</span></div></div></aside>
+      <section class="deck" aria-label="Charting deck"><div class="deck-head"><strong>Play 8</strong><small>8 / 67 tagged</small></div><div class="unit"><button class="active">Offense</button><button>Defense</button><button>Special Teams</button><span class="mode">SAVED</span></div><div class="deck-body"><div class="section"><span class="section-title">SITUATION</span><div class="select-line"><div class="field"><div class="field-label">Quarter</div><div class="chips"><button class="chip on">Q1</button><button class="chip">Q2</button></div></div><div class="field"><div class="field-label">Down</div><div class="chips"><button class="chip on">1</button><button class="chip">2</button><button class="chip">3</button></div></div><div class="field"><div class="field-label">Distance</div><input class="input" value="10" aria-label="Distance"></div></div></div>
+      <div class="section"><span class="section-title">FORMATION &amp; CALL</span><div class="field"><div class="field-label">Play Call</div><input class="input" id="play-call" value="26 Blast" aria-label="Play call"></div><div class="formation-fields" id="formation-fields"><div class="field"><div class="field-label">Formation Family</div><div class="chips" id="formation-family"><button class="chip on">Spread</button><button class="chip">Wing-T</button><button class="chip">Flexbone</button><button class="chip">Single Wing</button></div></div><div class="field"><div class="field-label">Receiver Set</div><div class="chips" id="receiver-set"><button class="chip">2x2</button><button class="chip on">3x1</button><button class="chip">2x1</button><button class="chip">3x2</button></div></div></div><div class="field"><div class="field-label">QB Alignment</div><div class="chips"><button class="chip">Under Center</button><button class="chip">Pistol</button><button class="chip on">Shotgun</button></div></div><div class="field"><div class="field-label">Backfield</div><div class="chips"><button class="chip">Empty</button><button class="chip on">Single</button><button class="chip">I</button><button class="chip">Split</button></div></div><div class="field"><div class="field-label">Personnel</div><div class="chips"><button class="chip">10</button><button class="chip on">11</button><button class="chip">20</button><button class="chip">21</button></div></div><div class="field"><div class="field-label">Motion</div><div class="chips" id="motion-chips"><button class="chip">Jet</button><button class="chip">Orbit</button><button class="chip">Shift</button><button class="chip">Other</button></div></div>
+      <div class="scenario" data-scenario="motion"><div class="new-field motion-path"><div class="field"><div class="field-label">Starts</div><div class="chips" id="motion-start"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Ends</div><div class="chips" id="motion-end"><button class="chip">Left</button><button class="chip">Middle</button><button class="chip on">Right</button></div></div></div></div></div>
+      <div class="section"><span class="section-title cyan">DEFENSE FACED</span><div class="field"><div class="field-label">Front</div><div class="chips"><button class="chip">4-3</button><button class="chip on">5-2</button><button class="chip">3-4</button><button class="chip">Nickel</button></div></div><div class="field"><div class="field-label">Coverage</div><div class="chips"><button class="chip">Cover 1</button><button class="chip on">Cover 3</button><button class="chip">Cover 4</button></div></div></div>
+      <div class="section"><span class="section-title">PLAY &amp; RESULT</span><div class="field"><div class="field-label">Run / Pass</div><div class="chips"><button class="chip on">Run</button><button class="chip">Pass</button></div></div><div class="field"><div class="field-label">Play Type</div><div class="chips" id="play-type-chips"><button class="chip on">Run Inside</button><button class="chip">Run Outside</button><button class="chip">RPO</button><button class="chip">QB Run</button><button class="chip">Play Action</button></div></div>
+      <div class="scenario" data-scenario="gap"><div class="new-field"><div class="field-label">Gap</div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip on">Left A</button><button class="chip">Right A</button><button class="chip">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div></div></div>
+      <div class="scenario" data-scenario="rpo"><div class="new-field"><div class="field-label">RPO details</div><div class="field"><div class="field-label">Read defender</div><div class="chips"><button class="chip">End</button><button class="chip on">Apex</button><button class="chip">Box</button><button class="chip">Other</button></div></div><div class="field"><div class="field-label">Defender #</div><input class="input" value="" placeholder="Jersey number" aria-label="Read defender jersey number"></div><div class="field"><div class="field-label">Decision</div><div class="chips"><button class="chip">Give</button><button class="chip">Keep</button><button class="chip on">Throw</button></div></div></div></div>
+      <div class="scenario" data-scenario="qb"><div class="new-field"><div class="field-label">QB run</div><div class="field"><div class="field-label">Run type</div><div class="chips"><button class="chip on">Designed</button><button class="chip">Scramble</button><button class="chip">RPO keeper</button></div></div><div class="field"><div class="field-label">Gap</div><div class="chips"><button class="chip">Left D</button><button class="chip">Left C</button><button class="chip">Left B</button><button class="chip">Left A</button><button class="chip">Right A</button><button class="chip on">Right B</button><button class="chip">Right C</button><button class="chip">Right D</button><button class="chip">Other lane</button></div></div></div></div>
+      <div class="field"><div class="field-label">Play Direction</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Result</div><div class="chips"><button class="chip on">Gain</button><button class="chip">Loss</button><button class="chip">No Gain</button><button class="chip">Touchdown</button></div></div><div class="field"><div class="field-label">Yards</div><input class="input" value="8" aria-label="Yards"></div></div>
+      <div class="section"><span class="section-title">PLAYERS &amp; GRADES</span><div class="field"><div class="field-label"><span id="player-role">Ball Carrier</span></div><div class="chips"><button class="chip on" id="player-name">#42 Leo Johnson</button></div></div></div>
+      </div><div class="save"><button>Previous</button><button>Skip</button><button class="primary">Save &amp; Next</button></div></section>
+    </main>
+  </div>
+  <div class="popover" id="context-popover" role="menu"></div>
+  <nav class="review-tabs" aria-label="Comp views"><button data-view="library" class="active">Full library</button><button data-view="formation">New fields</button><button data-view="gap">Gap</button><button data-view="motion">Motion</button><button data-view="rpo">RPO</button><button data-view="qb">QB run</button></nav>
+  <script>
+    let currentView='formation';
+    let currentPlayType='Run Inside';
+    const formationSection=document.getElementById('formation-fields').closest('.section');
+    const libraryPanel=document.createElement('div');
+    libraryPanel.className='library-panel';
+    libraryPanel.id='full-library';
+    libraryPanel.innerHTML=`
+      <div class="field"><div class="field-label">Saved Calls <span class="actions"><button data-library-toggle="calls" aria-expanded="false">Show calls</button></span></div><div class="library-selected"><button class="chip on">26 Blast</button></div><div class="chips" data-library="calls" hidden></div></div>
+      <div class="field"><div class="field-label">Recorded Formation <span class="actions"><button data-library-toggle="formation" aria-expanded="true">Hide choices</button><button>Edit library</button></span></div><div class="library-selected"><button class="chip">Trips</button><button class="retag" id="review-retag">Retag</button></div><div class="library-grid" data-library="formation"></div></div>
+      <div class="field"><div class="field-label">QB Alignment</div><div class="chips"><button class="chip">Under Center</button><button class="chip">Pistol</button><button class="chip on">Shotgun</button></div></div>
+      <div class="field"><div class="field-label">Backfield <span class="actions"><button data-library-toggle="backfield" aria-expanded="false">Show choices</button><button>Edit library</button></span></div><div class="library-selected"><button class="chip on">Power</button></div><div class="chips" data-library="backfield" hidden></div></div>
+      <div class="field"><div class="field-label">Strength</div><div class="chips"><button class="chip">Left</button><button class="chip on">Right</button><button class="chip">Balanced</button></div></div>
+      <div class="field"><div class="field-label">Personnel <span class="actions"><button data-library-toggle="personnel" aria-expanded="false">Show choices</button></span></div><div class="library-selected"><button class="chip on">11</button></div><div class="library-grid" data-library="personnel" hidden></div></div>
+      <div class="field"><div class="field-label">Motion</div><div class="chips" id="full-motion"><button class="chip">Jet</button><button class="chip">Orbit</button><button class="chip">Shift</button><button class="chip">Trade</button><button class="chip">Other</button></div><div class="new-field motion-path" id="full-motion-path" hidden><div class="field"><div class="field-label">Starts</div><div class="chips"><button class="chip on">Left</button><button class="chip">Middle</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Ends</div><div class="chips"><button class="chip">Left</button><button class="chip">Middle</button><button class="chip on">Right</button></div></div></div></div>`;
+    document.getElementById('formation-fields').before(libraryPanel);
+    const fullLists={
+      calls:['26 Blast','25 Blast','28 Sweep','27 Sweep'],
+      formation:['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','I-Form','Split Back','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch'],
+      backfield:['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
+      personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line']
+    };
+    for(const [key,values] of Object.entries(fullLists)){
+      const panel=libraryPanel.querySelector(`[data-library="${key}"]`);
+      for(const value of values){const button=document.createElement('button');button.type='button';button.className='chip'+(key==='formation'&&value==='Trips'?' on':'');button.textContent=value;panel.append(button)}
+    }
+    for(const button of libraryPanel.querySelectorAll('[data-library-toggle]'))button.addEventListener('click',()=>{
+      const panel=libraryPanel.querySelector(`[data-library="${button.dataset.libraryToggle}"]`);
+      panel.hidden=!panel.hidden;button.setAttribute('aria-expanded',String(!panel.hidden));button.textContent=panel.hidden?'Show choices':'Hide choices';
+    });
+    libraryPanel.querySelector('#full-motion').addEventListener('click',event=>{
+      const chip=event.target.closest('.chip');if(!chip)return;
+      for(const item of event.currentTarget.querySelectorAll('.chip'))item.classList.toggle('on',item===chip);
+      document.getElementById('full-motion-path').hidden=false;
+    });
+    libraryPanel.querySelector('#review-retag').addEventListener('click',()=>show('formation'));
+    const originalFormationFields=[...formationSection.children].filter(element=>element.id==='formation-fields'||element.classList.contains('field')&&element.querySelector('.field-label')?.textContent!=='Play Call'||element.matches('[data-scenario="motion"]'));
+    const playTypeField=document.getElementById('play-type-chips').closest('.field');
+    const playTypeToggle=document.createElement('button');playTypeToggle.type='button';playTypeToggle.textContent='Show choices';playTypeToggle.setAttribute('aria-expanded','false');
+    playTypeField.querySelector('.field-label').append(playTypeToggle);
+    const playTypeSelected=document.createElement('div');playTypeSelected.className='library-selected';playTypeSelected.innerHTML='<button class="chip on">Run Inside</button>';
+    document.getElementById('play-type-chips').before(playTypeSelected);
+    for(const value of ['Screen','Short Pass','Medium Pass','Deep Pass','Option','Trick Play']){const button=document.createElement('button');button.className='chip';button.textContent=value;document.getElementById('play-type-chips').append(button)}
+    playTypeToggle.addEventListener('click',()=>{const panel=document.getElementById('play-type-chips');panel.hidden=!panel.hidden;playTypeToggle.setAttribute('aria-expanded',String(!panel.hidden));playTypeToggle.textContent=panel.hidden?'Show choices':'Hide choices'});
+    const popover=document.getElementById('context-popover');let menuAnchor=null;
+    const menus={
+      program:[['St. Joseph Mavericks','Current program',true],['Mavericks','Another program'],['+ New program','',false,true]],
+      season:[['SJM Varsity 2026','6 games \u00b7 259 plays',true],['SJM JV 2026','3 games \u00b7 186 plays'],['2025 St. Joseph Mavericks - JV','6 games \u00b7 440 plays'],['Season Library','View and manage all program seasons',false,true],['+ New season','',false,true]],
+      game:[['Week 5 vs St. George Dragon Slayers','63 plays \u00b7 Film linked',true],['Week 4 vs Oakland Christian Lancers','64 plays \u00b7 Film linked'],['Week 3 vs Our Lady of the Lakes','57 plays \u00b7 Film linked'],['+ New game','',false,true]]
+    };
+    function closeMenu(){popover.classList.remove('open');if(menuAnchor)menuAnchor.setAttribute('aria-expanded','false');menuAnchor=null}
+    function openMenu(anchor){if(anchor===menuAnchor){closeMenu();return}closeMenu();menuAnchor=anchor;anchor.setAttribute('aria-expanded','true');
+      const kind=anchor.dataset.context;popover.replaceChildren();const heading=document.createElement('div');heading.className='popover-head';heading.textContent='Switch '+kind;popover.append(heading);
+      for(const [label,detail,selected,command] of menus[kind]){const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.className=(selected?'selected ':'')+(command?'command':'');
+        const strong=document.createElement('strong');strong.textContent=label;button.append(strong);if(detail){const small=document.createElement('small');small.textContent=detail;button.append(small)}
+        if(selected){const mark=document.createElement('i');mark.textContent='\u2713';button.append(mark)}
+        button.addEventListener('click',()=>{if(!command)anchor.querySelector('.ctx-value').textContent=label;closeMenu()});popover.append(button)}
+      const rect=anchor.getBoundingClientRect();popover.style.top=(rect.bottom+3)+'px';popover.style.left=Math.max(6,Math.min(rect.left,innerWidth-366))+'px';popover.classList.add('open');
+    }
+    for(const button of document.querySelectorAll('.ctx'))button.addEventListener('click',()=>openMenu(button));
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu()});
+    document.addEventListener('click',event=>{if(menuAnchor&&!popover.contains(event.target)&&!event.target.closest('.ctx'))closeMenu()});
+    function selected(group) { return document.querySelector(group+' .chip.on')?.textContent || 'Uncharted'; }
+    function syncExample() {
+      document.querySelectorAll('#play-type-chips .chip').forEach(button => button.classList.toggle('on',button.textContent===currentPlayType));
+      const direction=[...document.querySelectorAll('.section .field')].find(field=>field.querySelector('.field-label')?.textContent==='Play Direction');
+      direction?.querySelectorAll('.chip').forEach(button=>button.classList.toggle('on',button.textContent===(currentView==='qb'?'Right':'Left')));
+    }
+    function updateSummary() {
+      let detail;
+      if (currentView==='library') detail='Trips · 26 Blast';
+      if (currentView==='formation') detail=`${selected('#formation-family')} · ${selected('#receiver-set')} · 26 Blast`;
+      if (currentView==='gap') detail=`26 Blast · Gap ${selected('[data-scenario="gap"]')}`;
+      if (currentView==='motion') detail=`${selected('#motion-chips')} motion · ${selected('#motion-start')} to ${selected('#motion-end')}`;
+      if (currentView==='rpo') detail=`RPO Glance · ${selected('[data-scenario="rpo"] .field:nth-of-type(2)')} read · ${selected('[data-scenario="rpo"] .field:nth-of-type(4)')}`;
+      if (currentView==='qb') detail=`QB Draw · ${selected('[data-scenario="qb"] .field:nth-of-type(2)')} · Gap ${selected('[data-scenario="qb"] .field:nth-of-type(3)')}`;
+      document.getElementById('film-summary').textContent=detail+' · Gain +8';
+      syncExample();
+    }
+    function show(view,{jumpToField=true,motionType,playType}={}) {
+      currentView=view;
+      const isLibrary=view==='library';
+      libraryPanel.hidden=!isLibrary;
+      for(const element of originalFormationFields)element.hidden=isLibrary;
+      playTypeField.querySelector('.field-label button').hidden=!isLibrary;
+      playTypeSelected.hidden=!isLibrary;
+      document.getElementById('play-type-chips').hidden=isLibrary;
+      currentPlayType=playType || (view==='rpo'?'RPO':view==='qb'?'QB Run':'Run Inside');
+      document.querySelectorAll('.review-tabs button').forEach(button => button.classList.toggle('active',button.dataset.view===view));
+      document.querySelectorAll('.scenario').forEach(panel => panel.classList.toggle('active',panel.dataset.scenario===view));
+      document.getElementById('formation-fields').classList.toggle('focused',view==='formation');
+      document.querySelectorAll('#motion-chips .chip').forEach(button => button.classList.toggle('on',view==='motion' && button.textContent===(motionType || 'Jet')));
+      document.getElementById('play-call').value=view==='rpo'?'RPO Glance':view==='qb'?'QB Draw':'26 Blast';
+      document.getElementById('player-role').textContent=view==='rpo'?'Receiver':'Ball Carrier';
+      document.getElementById('player-name').textContent=view==='rpo'?'#81 Jace Schaffer':view==='qb'?'#7 Colton Schurig':'#42 Leo Johnson';
+      const resultButtons=[...document.querySelectorAll('.section')].find(section => section.textContent.includes('PLAY & RESULT'))?.querySelectorAll('.field')[0]?.querySelectorAll('.chip');
+      if(resultButtons) resultButtons.forEach(button => button.classList.toggle('on',button.textContent===(view==='rpo'?'Pass':'Run')));
+      updateSummary();
+      if(isLibrary)document.querySelector('.deck-body').scrollTop=0;
+      if (jumpToField && innerWidth>650) {
+        const deckBody=document.querySelector('.deck-body');
+        const field=view==='library'?libraryPanel:view==='formation'?document.getElementById('formation-fields'):document.querySelector(`.scenario[data-scenario="${view}"] .new-field`);
+        if(!isLibrary)deckBody.scrollTop+=field.getBoundingClientRect().top-deckBody.getBoundingClientRect().top-175;
+      }
+      history.replaceState(null,'','#'+view);
+    }
+    document.querySelectorAll('.review-tabs button').forEach(button => button.addEventListener('click',()=>show(button.dataset.view)));
+    document.getElementById('motion-chips').addEventListener('click',event => {
+      const button=event.target.closest('button');
+      if (!button) return;
+      show(button.classList.contains('on')?'formation':'motion',{jumpToField:false,motionType:button.textContent});
+    });
+    document.getElementById('play-type-chips').addEventListener('click',event => {
+      const button=event.target.closest('button');
+      if (!button) return;
+      const type=button.textContent;
+      const view=type==='RPO'?'rpo':type==='QB Run'?'qb':type.startsWith('Run')?'gap':'formation';
+      show(view,{jumpToField:false,playType:type});
+    });
+    document.querySelectorAll('.new-field .chips, .formation-fields .chips').forEach(group => group.addEventListener('click',event => { const button=event.target.closest('button'); if(!button) return; const wasOn=button.classList.contains('on'); group.querySelectorAll('button').forEach(item=>item.classList.remove('on')); if(!wasOn) button.classList.add('on'); updateSummary(); }));
+    show(['library','formation','gap','motion','rpo','qb'].includes(location.hash.slice(1))?location.hash.slice(1):'library');
+  </script>
+</body>
+</html>
