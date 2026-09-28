@@ -19,6 +19,18 @@ shrinking the type. Verify populated 1920, 1440, and 1280 desktop captures at
 the real deck width, plus a narrow view. No source repair or installed
 acceptance is claimed here.
 
+**BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
+coach's 2026-09-28 capture, the collapsed Season selector looks cramped and
+unfinished; its expanded menu uses the older flat styling and typography rather
+than the current visual system. Review the Program and Game selectors in the
+same top context row for the same issues, but do not assume they are identical
+without inspecting them. In the next Break Down visual update, make the closed
+controls and open menus feel like one coherent desktop selector system while
+preserving season names, game/play counts, Season Library, New season, keyboard
+navigation, and selection behavior. Verify closed and open states at populated
+desktop and narrow widths. This is a recorded visual finding, not a source
+repair or a change to the approved charting comp.
+
 ## Installed smoke, 1.12.0-105 (list complete, 2026-09-28)
 
 Findings logged as the coach lists them; no repair starts until the coach
