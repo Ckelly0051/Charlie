@@ -339,9 +339,9 @@ export class StatsEngine {
     // playType and would otherwise be filtered out below.
     let convSource = (playsOverride || (this.tagger ? this.tagger.plays : [])).filter(p => p && p.tags);
     if (playsOverride) {
-      plays = playsOverride.filter(p => p.tags && (p.tags.playType || p.tags.runPass));
+      plays = playsOverride.filter(p => p.tags && (p.tags.playType || p.tags.runPass) && !SpecialTeamsModel.isRunPassTry(p));
     } else {
-      plays = this.tagger.plays.filter(p => p.tags.playType || p.tags.runPass);
+      plays = this.tagger.plays.filter(p => (p.tags.playType || p.tags.runPass) && !SpecialTeamsModel.isRunPassTry(p));
       filterActive = this.filter && this.filter.active;
       if (filterActive) {
         plays = this.filter.filter(plays);
@@ -452,7 +452,9 @@ export class StatsEngine {
   }
 
   _currentPlays() {
-    let plays = this.tagger.plays.filter(p => p.tags.playType || p.tags.runPass);
+    // A run/pass or Fake try carries a look and result but is reported only by
+    // the Special Teams try module (SpecialTeamsModel.isRunPassTry).
+    let plays = this.tagger.plays.filter(p => (p.tags.playType || p.tags.runPass) && !SpecialTeamsModel.isRunPassTry(p));
     if (this.filter && this.filter.active) plays = this.filter.filter(plays);
     return plays;
   }

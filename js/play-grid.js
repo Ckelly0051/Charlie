@@ -245,6 +245,7 @@ export class PlayGrid {
    */
   static cellLocked(play, col) {
     if (!col?.unit) return false;
+    if (SpecialTeamsModel.isRunPassTry(play)) return false;
     const unit = countedUnit(play);
     return unit === 'special' ? col.unit !== 'special' : col.unit === 'special';
   }

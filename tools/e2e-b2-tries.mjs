@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { SpecialTeamsModel } from '../js/special-teams.js';
 import { StatsEngine } from '../js/stats-engine.js';
+import { SeasonStore } from '../js/season-store.js';
 import { isPlayTagged } from '../js/football-rules.js';
 
 let pass = 0;
@@ -235,6 +236,52 @@ test('compute includes untyped ST specialists without admitting untyped ST tackl
   assert.equal(stats.individuals.kickers[0].punts, 1);
   assert.equal(stats.individuals.kickers[0].puntYds, 42);
   assert.deepEqual(stats.individuals.tacklers, []);
+});
+// ---- Run/Pass and Fake tries (coach, 2026-09-27) -------------------------
+test('a run/pass try scores 2 by default and 1 when charted so (youth rules)', () => {
+  assert.equal(SpecialTeamsModel.points(special()), 2);
+  const one = SpecialTeamsModel.normalize(special({ outcome: { score: 'extraPoint' } }));
+  assert.equal(one.outcome.score, 'extraPoint');
+  assert.equal(SpecialTeamsModel.points(one), 1);
+  assert.equal(SpecialTeamsModel.points(special({ attemptType: 'extraPoint', outcome: { score: 'twoPoint' } })), 2, 'a kick charted for 2 keeps 2');
+  assert.equal(SpecialTeamsModel.points(special({ attemptType: 'extraPoint', outcome: { score: null } })), 1, 'a converted kick defaults to 1');
+});
+
+test('isRunPassTry names Run/Pass and Fake tries on either side, never a kick', () => {
+  const is = st => SpecialTeamsModel.isRunPassTry({ specialTeams: st });
+  assert.equal(is(special()), true);
+  assert.equal(is(special({ isFake: true })), true);
+  assert.equal(is(special({ unit: 'tryDefense', subjectRole: 'defending' })), true);
+  assert.equal(is(special({ attemptType: 'extraPoint' })), false);
+  assert.equal(is(special({ unit: 'punt', attemptType: null, result: undefined, events: undefined, isFake: true, outcome: { status: 'returned' } })), false);
+  assert.equal(SpecialTeamsModel.isRunPassTry({ tags: {} }), false);
+});
+
+test('a run/pass try keeps its look; a kicked try is stripped', () => {
+  const look = { formation: 'Trips', personnel: '11', qbAlignment: 'Shotgun' };
+  const runPass = play(1, special(), { ...look });
+  SeasonStore.stripStAlignment(runPass);
+  assert.deepEqual([runPass.tags.formation, runPass.tags.personnel, runPass.tags.qbAlignment], ['Trips', '11', 'Shotgun']);
+  const kick = play(2, special({ attemptType: 'extraPoint' }), { ...look });
+  SeasonStore.stripStAlignment(kick);
+  assert.deepEqual([kick.tags.formation, kick.tags.personnel, kick.tags.qbAlignment], ['', '', '']);
+});
+
+test('a run/pass try is in no analytics cohort (coach: the ST report carries kick versus go)', () => {
+  const offense = play(1, null, { unit: 'offense', playType: 'Run Inside', runPass: 'Run', formation: 'Ace', down: '1', distance: '10', yardage: '5', result: 'Gain' });
+  delete offense.specialTeams;
+  const tryRun = play(2, special(), { playType: 'Run Outside', runPass: 'Run', formation: 'Trips', yardage: '3', result: 'Touchdown', players: { ballCarrier: '2' } });
+  const fake = play(3, special({ isFake: true }), { playType: 'Short Pass', runPass: 'Pass', formation: 'Bunch', yardage: '3', result: 'Touchdown', players: { passer: '7' } });
+  const engine = Object.create(StatsEngine.prototype);
+  engine.tagger = { plays: [offense, tryRun, fake] };
+  engine.filter = null;
+  engine.advanced = { summarize: () => ({}) };
+  const stats = engine.compute();
+  assert.equal(stats.allPlays, 1, 'the classified cohort holds only the scrimmage snap');
+  assert.equal(stats.totalPlays, 1);
+  assert.deepEqual(stats.individuals.rushers.map(r => r.num), []);
+  assert.equal(engine._currentPlays().length, 1);
+  assert.equal(stats.specialTeams.tries.n, 2, 'both tries still reach the Special Teams try module');
 });
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (process.exitCode) process.exit(process.exitCode);

@@ -407,6 +407,40 @@ would remove an intended coach override. Un-forcing `twoPoint → 2` would remov
 an intended standard-rules guard. Both were considered and rejected on
 2026-07-16. Reopen only on an explicit coach decision.
 
+### 4b.3d AMENDMENT (coach, 2026-09-25 / 2026-09-27) — run/pass tries, Fake, youth scoring
+
+**Supersedes the one-directional override in 4b.3c.** The coach charts youth
+football, where a kicked try is worth 2 and a run/pass try 1 (ST-GAPS). Per
+play, the coach records the points:
+
+| Attempt | Stored | Points offered | Default |
+|---|---|---|---|
+| Kick XP | `attemptType:'extraPoint'` | 1 or 2 | 1 |
+| Run/Pass | `attemptType:'twoPoint'` | 1 or 2 | 2 |
+| Fake | `attemptType:'twoPoint'`, `isFake:true` | 1 or 2 | 2 |
+
+`normalize` keeps a charted `extraPoint` score on a `twoPoint` attempt (1 point)
+and otherwise defaults it to `twoPoint`. No season-level ruleset.
+
+**A kicked try has no returner.** Try (Kick) offers Kicker only; Defending a Try
+(Kick) offers Blocker only (`players.blocker`, synced like kicker and returner).
+
+**A run/pass or Fake try is charted like a scrimmage snap.**
+`SpecialTeamsModel.isRunPassTry(play)` names it (Try or Defending a Try with
+`attemptType:'twoPoint'`). The deck shows the offensive options of an offensive
+snap on Try and the defensive options of a defensive snap on Defending a Try,
+with that side's player roles; the look is exempt from the Special Teams
+alignment strip (`ST_ALIGNMENT_KEYS`) and Film Room locks none of its cells.
+Switching back to Kick XP asks, then clears the run/pass detail. The unit stays
+Special Teams.
+
+**Kept out of analytics entirely** (coach, 2026-09-27: "no need to confuse
+analytics with it"). The classified cohort (`compute()`, `_currentPlays()`)
+excludes a run/pass try, so it reaches no yards, success rate, player line or
+offensive/defensive tendency. Kick versus go-for-it is reported by the Special
+Teams try module, which reads the structured event. Pinned in `e2e-b2-tries`
+and `e2e-st-try-charting`.
+
 ### 4b.4 Scoring attribution
 
 `scoringTeam()` reads the dedicated try result rather than routing through the

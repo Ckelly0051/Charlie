@@ -316,7 +316,7 @@ export class SeasonStore {
   static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formation', 'backfield', 'strength',
     'personnel', 'defFront', 'coverage', 'coverageFamily', 'blitz'];
   static stripStAlignment(p) {
-    if (!p || !p.tags || countedUnit(p) !== 'special') return;
+    if (!p || !p.tags || countedUnit(p) !== 'special' || SpecialTeamsModel.isRunPassTry(p)) return;
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
   }
 

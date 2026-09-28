@@ -3,6 +3,7 @@ import { PenaltyModel } from './penalty-model.js';
 import { SeasonStore } from './season-store.js';
 import { TagProjection } from './tag-projection.js';
 import { SeasonFormat } from './season-format.js';
+import { SpecialTeamsModel } from './special-teams.js';
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
 
@@ -872,7 +873,8 @@ export class PlayTagger {
    *  (e.g. a formation carried over from an offense snap). Clear them when a play
    *  is special. Returns true if anything changed. */
   _stripStAlignment(play) {
-    if (!play || countedUnit(play) !== 'special') return false;
+    // A run/pass or Fake try charts its look like a scrimmage snap.
+    if (!play || countedUnit(play) !== 'special' || SpecialTeamsModel.isRunPassTry(play)) return false;
     let changed = false;
     // Single source of truth (GRIDIRON-IQ-TAG-MODEL.md §7): consume SeasonStore's
     // list instead of an inline copy that would silently drift from it.

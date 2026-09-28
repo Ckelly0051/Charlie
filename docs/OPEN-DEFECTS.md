@@ -52,7 +52,7 @@ the unit repairs (S99-1, S99-2, the Codex review, CR-1..3) read as fixed on
 the installed build. Formal per-item verdicts to be recorded when the list is
 complete.
 
-**S102-1 — OPEN. Break Down spacing is wrong on the installed build.** Coach:
+**S102-1 — CLOSED 2026-09-27 by the coach: out of context (the reported builds are superseded; no view, dock or width was ever identified). Break Down spacing is wrong on the installed build.** Coach:
 "the spacing is all fucked up in breakdown. Every time we touch the app this
 happens. I'm starting to think it really is the old code causing it." Which
 view, dock and width, and what is misplaced, not yet stated.
@@ -135,7 +135,17 @@ reserved look value; nothing in the app offers one to them.
 
 **STORAGE CLEANUP CHECKPOINT — IN SOURCE 2026-09-26 (`a70c52e`), installed check pending (step 8).** Three retired keys (`ffa_versions_default`: 20 unscoped game snapshots; `ffa_roster`: a copy of the 2025 JV roster; `ffa_roster_mavericks`: `[]`) are archived and verified in `C:\Users\charl\GridIronIQ-Backups` and removed once at boot only when each still matches its archived hash. After the step 8 install's first launch, re-read a copy of the profile: the three keys gone, `giq_storage_cleanup_2026_09_26` listing three `removed`. Record in `docs/LEGACY-EXCISION-PLAN.md` Pass 2b.
 
-**ST-GAPS — OPEN, deferred until after the legacy migration (coach, 2026-09-25).** Special
+**ST-GAPS — ITEMS 1-2 REPAIRED IN SOURCE 2026-09-27, plus three coach additions; not in an installer; list stays open for the coach's further gaps.**
+Attempt is now Kick XP / Run/Pass / Fake; every try records 1 or 2 points (kick
+defaults 1, run/pass and Fake 2); a kicked try offers Kicker (Defending: Blocker)
+and no Returner; a run/pass or Fake try shows the offensive (or, defending, the
+defensive) options of a scrimmage snap, keeps its look, and is kept out of all
+analytics (coach). Item 1 already worked before this change (a converted kick
+offered 1 or 2); item 2 was the gap. Model: `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
+§4b.3d. Evidence: `e2e-b2-tries` 17 (three new model/cohort checks, each red
+under its own reversion), `e2e-st-try-charting` 27 (two UI reversions red), the
+Special Teams, deck, Film Room and parity harnesses unchanged.
+Original entry: **ST-GAPS — OPEN, deferred until after the legacy migration (coach, 2026-09-25).** Special
 Teams charting is missing options the coach needs; the list grows as the coach finds them
 and nothing is built until the migration lands (one data format to extend).
 1. **Try points follow the league's rules.** Youth level: a kicked try is worth 2 and a
@@ -2494,8 +2504,12 @@ Breakdown film-state defects above.
      and a failure keeps the sheet and draft open with an error and no toast
      (4 regression checks, red first; 18/18).
    - **Still hand-built:** the auto-detect Review dialog
-     (`AutoDetectScreen.openReview`); works, but outside the overlay spec's
-     focus and Escape rules.
+     (`AutoDetectScreen.openReview`) and `PlayTagger._confirmDialog` /
+     `_promptDialog` (`js/play-tagger.js:433`; Delete Play, Clear Tags, the
+     Special Teams unit and try-attempt changes, templates). They work, but sit
+     outside the overlay spec's focus and Escape rules. (Corrects the earlier
+     note that the Review dialog was the only one left; found 2026-09-27 while
+     wiring the Kick XP confirmation.)
 
    **Stale references found in passing (logged 2026-09-27; standing practice:
    any stale or dead reference met during a task is recorded here):**

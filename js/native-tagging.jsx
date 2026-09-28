@@ -249,6 +249,14 @@ function Spot({label, code, spot, screen}) {
 
 export const TRY_RESULT_LABELS = { converted: 'Converted', failed: 'Failed', noPlay: 'No Play / Retry' };
 
+/** A try charted as Run/Pass or Fake charts its look and result like a scrimmage
+ *  snap (SpecialTeamsModel.isRunPassTry); Kick XP does not. */
+const runPassTry = st => !!st && (st.unit === 'try' || st.unit === 'tryDefense') && st.attemptType === 'twoPoint';
+/** The side whose look groups a play shows: its unit, or for a run/pass try the
+ *  attempting (Try) or defending (Defending a Try) side. */
+const lookSide = state => state.unit !== 'special' ? state.unit
+  : runPassTry(state.special) ? (state.special.unit === 'tryDefense' ? 'defense' : 'offense') : null;
+
 function TryEditor({screen, state, st}) {
   const subject = state.perspective === 'scout' ? 'Scouted team' : 'Our team';
   const other = state.perspective === 'scout' ? 'Other team' : 'Opponent';
@@ -257,7 +265,8 @@ function TryEditor({screen, state, st}) {
   const penaltyUnresolved = state.penalties.some(p => p.playCounts == null || p.disposition === 'unknown');
   const noPlayMismatch = state.penalties.some(p => p.playCounts === false) && st.result !== 'noPlay';
   return <>
-    <Choice label="Attempt" value={st.attemptType} options={[['extraPoint','Kick XP'],['twoPoint','Two-Point']]} choose={v => screen.specialAction('tryAttempt',v)}/>
+    <Choice label="Attempt" value={st.attemptType === 'twoPoint' && st.isFake ? 'fake' : st.attemptType}
+      options={[['extraPoint','Kick XP'],['twoPoint','Run/Pass'],['fake','Fake']]} choose={v => screen.specialAction('tryAttempt',v)}/>
     <Choice label="Official result" value={st.result} options={Object.entries(TRY_RESULT_LABELS)} choose={v => screen.specialAction('tryResult',v)}/>
     <div class="gi-tag-field"><div class="gi-tag-field-label"><span>What happened</span><small>optional</small></div><div class="gi-tag-chips">
       {[['badSnap','Bad Snap'],['blocked','Blocked'],['defensiveReturn','Defensive Return']].map(([v,l]) =>
@@ -266,7 +275,7 @@ function TryEditor({screen, state, st}) {
         <button type="button" key={v} class={st.events.turnover === v ? 'is-active' : ''} onClick={() => screen.specialAction('tryTurnover',v)}>{l}</button>)}
     </div></div>
     {st.result === 'converted' && !st.events.defensiveReturn && <Choice label="Points awarded" value={st.outcome.score}
-      options={st.attemptType === 'extraPoint' ? [['extraPoint','1 Point'],['twoPoint','2 Points']] : [['twoPoint','2 Points']]}
+      options={[['extraPoint','1 Point'],['twoPoint','2 Points']]}
       choose={v => screen.specialAction('score',v)}/>}
     {st.events.defensiveReturn && <Choice label="Official return ruling" value={st.outcome.returnAward}
       options={[['none','No Score'],['subject',`2 Points - ${subject}`],['opponent',`2 Points - ${other}`]]}
@@ -320,21 +329,25 @@ function SpecialTeams({screen, state}) {
 }
 
 function Players({screen, state}) {
-  const roles = state.unit === 'special' ? ['kicker','returner'] : state.unit === 'defense' ? ['tackler','takeaway'] : ['ballCarrier','passer','receiver'];
+  // A kicked try has no returner: Try (Kick) is the kicker; Defending a Try (Kick)
+  // is the blocker. A run/pass or Fake try takes its side's roles.
+  const st = state.special, side = lookSide(state);
+  const roles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
+    : st?.unit === 'try' ? ['kicker'] : st?.unit === 'tryDefense' ? ['blocker'] : ['kicker','returner'];
   const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) ? state.activeRole : roles[0]]));
   const openRole = role => setOpenRoles(current => new Set([...current, role]));
   useLayoutEffect(() => {
     setOpenRoles(new Set([roles[0]]));
     if (!roles.includes(state.activeRole)) screen.setActiveRole(roles[0]);
-  }, [state.unit]);
-  const allowed = role => state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'tackler' || role === 'takeaway'
+  }, [roles.join(',')]);
+  const allowed = role => state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'blocker' || role === 'tackler' || role === 'takeaway'
     ? player.side !== 'O' : player.side !== 'D');
   // Player attribution is charted on nearly every snap — tacklers on defense,
   // ball carrier / passer / receiver on offense — so this group opens with the
   // form. The focused role owns the only open roster picker, matching the comp
   // without hiding one-click jersey-number attribution.
   const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
-    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner' };
+    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner', blocker: 'Blocker' };
   return <Group title="Players & Grades" open>
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
@@ -408,17 +421,20 @@ export function NativeTagging({screen}) {
           <Field screen={screen} field="yardLine" label="Yard line" value={state.values.yardLine} min="1" max="50"/>
         </div>
       </Group>
-      {state.unit === 'special' ? <SpecialTeams screen={screen} state={state}/> : (() => {
+      {state.unit === 'special' && <SpecialTeams screen={screen} state={state}/>}
+      {lookSide(state) && (() => {
         // Charting defense, OUR call comes first and the offense we faced
-        // second. The group a coach is actually charting leads.
-        const offense = <Group key="off" title={state.unit === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} open={state.unit !== 'defense'} syncOpen>
-          <PlayCallField screen={screen} state={state}/>
+        // second. The group a coach is actually charting leads. A run/pass or
+        // Fake try shows the attempting or defending side's groups.
+        const side = lookSide(state);
+        const offense = <Group key="off" title={side === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} open={side !== 'defense'} syncOpen>
+          <PlayCallField screen={screen} state={{ ...state, unit: side }}/>
           {chips('formation','Formation',state.libraries.formation,'select all','formation')}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment,'optional')}
           {chips('backfield','Backfield',state.libraries.backfield,'optional','backfield')}
           {chips('strength','Strength',OPTIONS.strength)}{chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
         </Group>;
-        const defense = <Group key="def" title={state.unit === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} open={state.unit === 'defense'} syncOpen>
+        const defense = <Group key="def" title={side === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} open={side === 'defense'} syncOpen>
           {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
@@ -427,7 +443,7 @@ export function NativeTagging({screen}) {
           {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} state={state}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
         </Group>;
-        return <>{state.unit === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;
+        return <>{side === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;
       })()}
       <Players screen={screen} state={state}/>
       <Penalties screen={screen} state={state}/>

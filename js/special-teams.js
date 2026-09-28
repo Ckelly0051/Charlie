@@ -120,7 +120,9 @@ export class SpecialTeamsModel {
         score = null;
         scoredBy = null;
       } else if (attemptType === 'twoPoint') {
-        score = 'twoPoint';
+        // A run/pass try scores 2 by default; 1 where the league scores it so
+        // (youth rules, coach 2026-09-27). The charted points are the record.
+        score = score === 'extraPoint' ? 'extraPoint' : 'twoPoint';
       } else if (score !== 'extraPoint' && score !== 'twoPoint') {
         score = attemptType;
       }
@@ -182,6 +184,18 @@ export class SpecialTeamsModel {
     const normalized = this.normalize(play.specialTeams);
     if (normalized) play.specialTeams = normalized;
     return normalized;
+  }
+
+  /**
+   * A try charted as Run/Pass or Fake (`attemptType:'twoPoint'`, a Fake adds
+   * `isFake`). Its look and result are charted like an offensive or defensive
+   * snap, so it is exempt from the Special Teams alignment strip, and it is kept
+   * out of every analytics cohort: kick versus go-for-it is reported by the
+   * Special Teams try module (coach, 2026-09-27). The unit stays Special Teams.
+   */
+  static isRunPassTry(play) {
+    const event = this.normalize(play?.specialTeams);
+    return !!event && (event.unit === 'try' || event.unit === 'tryDefense') && event.attemptType === 'twoPoint';
   }
 
   static points(value) {

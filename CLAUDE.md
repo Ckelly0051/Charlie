@@ -145,7 +145,10 @@ roster (`SeasonManager._mergeRoster()`).
   coach.
 - `SeasonStore.ST_ALIGNMENT_KEYS` is the one list of fields a Special Teams
   play may not hold, enforced at `PlayTagger._emit` and every serialization path
-  (`_stripStAlignmentBeforeSave`).
+  (`_stripStAlignmentBeforeSave`). One exemption: a run/pass or Fake try
+  (`SpecialTeamsModel.isRunPassTry`) charts its look like a scrimmage snap and
+  is kept out of every analytics cohort (`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
+  §4b.3d).
 - A formation is never rewritten; each look field is its own field and
   `TagProjection.project` is a plain read.
 - Left/Right on `strength`, `playDir` and `hash` are always the offense's
