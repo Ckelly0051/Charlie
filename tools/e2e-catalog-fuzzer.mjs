@@ -43,7 +43,7 @@ function makeFs() {
   };
 }
 // A season with a random-ish but deterministic shape (id, N games, M plays each).
-const mkPlay = i => ({ id: i, timestamp: { start: i, end: i + 5 }, clipName: `c${i}.mp4`, clipId: i, notes: '', annotations: [], tags: { unit: i % 2 ? 'defense' : 'offense', down: String(1 + (i % 4)), formation: 'Shotgun', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 7), players: {}, grades: {}, custom: [] } });
+const mkPlay = i => ({ id: i, timestamp: { start: i, end: i + 5 }, clipName: `c${i}.mp4`, clipId: i, notes: '', annotations: [], tags: { unit: i % 2 ? 'defense' : 'offense', down: String(1 + (i % 4)), formationFamily: 'Spread', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 7), players: {}, grades: {}, custom: [] } });
 const mkGame = (gid, n) => ({ id: gid, name: gid, gameInfo: { opponent: gid }, status: 'final', plays: Array.from({ length: n }, (_, i) => mkPlay(i + 1)), annotations: [], nextId: n + 1, currentPlayId: null, videoFileName: '', clipNames: [], isMultiClip: true });
 const mkSeason = (id, ver, g, p) => ({ version: 5, type: 'season', id, seasonName: `${id} v${ver}`, activeGameId: `${id}_g1`, teamProfile: { teamName: id }, roster: [], games: Array.from({ length: g }, (_, i) => mkGame(`${id}_g${i + 1}`, p + i)) });
 const shape = data => data && { name: data.seasonName, games: data.games.map(g => ({ id: g.id, plays: (g.plays || []).length })) };

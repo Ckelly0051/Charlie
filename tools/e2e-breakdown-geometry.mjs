@@ -15,7 +15,7 @@ await page.waitForFunction(()=>window.app?.breakdownWorkspace&&document.querySel
 await page.evaluate(async()=>{
   await app.storage.createSeason({name:'S5d Geometry',team:'Mavericks',year:'2026'});
   const game=app.storage.seasonStore.activeGame();
-  game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',down:'1',distance:'10',formation:'I-Form',backfield:'I',runPass:'Run',playType:'Run Inside',result:'Gain',yardage:'6',players:{},grades:{},custom:[]}}];
+  game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',down:'1',distance:'10',formationFamily:'I-Form',backfield:'I',runPass:'Run',playType:'Run Inside',result:'Gain',yardage:'6',players:{},grades:{},custom:[]}}];
   app.tagger.plays=game.plays;app.tagger.nextId=2;app.tagger._emit('plays-loaded');app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
 });
@@ -98,7 +98,8 @@ ok(besideLibrary.length>=3
   && besideLibrary.every(item=>item.gap>=4&&item.gap<=12&&item.bodyRight-item.right>=11)
   && state.libraryAlignment.filter(item=>!item.beside).every(item=>Math.abs(item.delta-12)<=1),
   'Edit Library actions sit beside their labels inside the module content edge',JSON.stringify(state.libraryAlignment));
-ok(state.type.route.font>=12&&state.type.eyebrow===null&&state.type.title.font>=18&&state.type.unit.font>=12&&state.type.action.font>=12&&state.type.action.height>=30&&state.type.chip.font>=12&&state.type.chip.height>=30&&!state.type.title.clipped,'1440 charting matches the compact comp without redundant Charting copy or clipped controls',JSON.stringify(state.type));
+// The Chart chip is 27px by the registered charting comp (CLAUDE.md Density, VISUAL-SYSTEM-RULES); its type stays >=12px.
+ok(state.type.route.font>=12&&state.type.eyebrow===null&&state.type.title.font>=18&&state.type.unit.font>=12&&state.type.action.font>=12&&state.type.action.height>=30&&state.type.chip.font>=12&&state.type.chip.height===27&&!state.type.title.clipped,'1440 charting matches the compact comp without redundant Charting copy or clipped controls',JSON.stringify(state.type));
 ok(state.overlap===0&&state.overflow<=1,'1440 split never overlays film or overflows the page',JSON.stringify(state));
 state=await measure(1920,1080,false);
 // The new vertical rail deliberately spends horizontal room on navigation:

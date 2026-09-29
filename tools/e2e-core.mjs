@@ -93,13 +93,13 @@ console.log('\n== 5. isPlayTagged — one canonical "is this play tagged?" rule 
     stKickReturn: t({ unit: 'special', result: 'Fumble' }),  // no playType
     defenseScheme: t({ unit: 'defense', defFront: '4-3', coverage: 'Cover 3' }),     // no playType
     runPassOnly: t({ runPass: 'Run' }),
-    formationOnly: t({ formation: 'Shotgun' }),
+    formationOnly: t({ formationFamily: 'Spread' }),
     ddOnly: t({ down: '1', distance: '10' }),   // situational pre-fill only → NOT tagged
     blank: t({}),
   };
 }
 ok(r.offense && r.stKickReturn && r.defenseScheme, 'offense, special-teams (Kick Return), and defense plays all read as TAGGED', JSON.stringify(r));
-ok(r.runPassOnly && r.formationOnly, 'a run/pass call or a formation alone counts as tagged', JSON.stringify(r));
+ok(r.runPassOnly && r.formationOnly, 'a run/pass call or a formation family alone counts as tagged', JSON.stringify(r));
 ok(!r.ddOnly && !r.blank, 'down/distance pre-fill alone (or nothing) is NOT tagged', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

@@ -200,7 +200,7 @@ r = await page.evaluate(async () => {
 
   const play = {
     id: 10, timestamp: { start: 0, end: 8 },
-    tags: { unit: 'offense', formation: 'Ace', playType: 'Run Inside', result: 'Gain', yardage: '6', custom: [] },
+    tags: { unit: 'offense', formationFamily: 'I-Form', playType: 'Run Inside', result: 'Gain', yardage: '6', custom: [] },
     notes: 'keep me', clipId: 77, clipName: 'IMG_6251', clipPath: 'IMG_6251', catalogClipId: 'clip-1',
   };
   store.currentSeasonId = 's1';
@@ -279,7 +279,7 @@ ok(r.linked === true && r.root === 'D:/Football/Film' && r.setRootCalls === 1,
   'Linking Week 1 cannot overwrite the one-time library root', JSON.stringify(r));
 ok(r.savedMode === 'linked' && r.savedDir === 'St Peter 41-0',
   'Game link persists canonical linked mode plus child-folder reference', JSON.stringify(r));
-ok(r.imported === 0 && r.savedPlay?.id === 10 && r.savedPlay?.tags?.formation === 'Ace' && r.savedPlay?.notes === 'keep me',
+ok(r.imported === 0 && r.savedPlay?.id === 10 && r.savedPlay?.tags?.formationFamily === 'I-Form' && r.savedPlay?.notes === 'keep me',
   'Linked flow makes no managed copy and preserves play identity/tags/notes', JSON.stringify(r));
 ok(r.sourceMode === 'linked' && /D:\/Football\/Film\/St Peter 41-0/.test(r.source),
   'Settings shows the active game actual linked source path', JSON.stringify(r));

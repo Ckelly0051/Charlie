@@ -18,7 +18,7 @@ let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => { if (cond) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 const clone = x => JSON.parse(JSON.stringify(x));
 
-const mkPlay = (i) => ({ id: i, timestamp: { start: 0, end: 6 }, clipId: i, notes: '', tags: { unit: 'offense', down: '1', distance: '10', formation: 'Shotgun', playType: 'Run Inside', result: 'Gain', yardage: String(i) } });
+const mkPlay = (i) => ({ id: i, timestamp: { start: 0, end: 6 }, clipId: i, notes: '', tags: { unit: 'offense', down: '1', distance: '10', formationFamily: 'Spread', playType: 'Run Inside', result: 'Gain', yardage: String(i) } });
 const mkGame = (gid, n) => ({ id: gid, name: gid, plays: Array.from({ length: n }, (_, i) => mkPlay(i + 1)) });
 const season = (id, name, games) => ({ version: 5, type: 'season', id, seasonName: name, games });
 

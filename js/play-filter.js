@@ -13,7 +13,7 @@ export class PlayFilter {
       quarters: [],
       downs: [],
       playTypes: [],
-      formations: [],
+      formationFamilies: [],
       personnel: [],
       results: [],
       situation: ''
@@ -37,13 +37,10 @@ export class PlayFilter {
       const playParts = String(tags.playType || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
       if (!c.playTypes.some(t => playParts.includes(t))) return false;
     }
-    if (c.formations.length) {
-      // E3b: this filter FEEDS the cut-up exporter, so it must select the SAME
-      // plays analytics does — read the PROJECTED structural formation. A raw read
-      // would match a legacy alignment token ("Shotgun") that is no longer a
-      // formation, diverging the coach's film set from every report.
-      const playForms = StatsEngine.splitFormations(StatsEngine.proj(p).formation);
-      if (!c.formations.some(f => playForms.includes(f))) return false;
+    if (c.formationFamilies.length) {
+      // This filter FEEDS the cut-up exporter, so it must select the SAME plays
+      // analytics does: read the family through the one projection.
+      if (!c.formationFamilies.includes(StatsEngine.proj(p).formationFamily)) return false;
     }
     if (c.personnel.length && !c.personnel.includes(tags.personnel)) return false;
     if (c.results.length) {
@@ -96,7 +93,7 @@ export class PlayFilter {
       quarters: [...this.criteria.quarters],
       downs: [...this.criteria.downs],
       playTypes: [...this.criteria.playTypes],
-      formations: [...this.criteria.formations],
+      formationFamilies: [...this.criteria.formationFamilies],
       personnel: [...this.criteria.personnel],
       results: [...this.criteria.results],
     };
@@ -108,14 +105,14 @@ export class PlayFilter {
       quarters: list('quarters'),
       downs: list('downs'),
       playTypes: list('playTypes'),
-      formations: list('formations'),
+      formationFamilies: list('formationFamilies'),
       personnel: list('personnel'),
       results: list('results'),
       situation: String(next.situation || ''),
     };
     this.active = this.criteria.situation !== '' ||
       [this.criteria.quarters, this.criteria.downs, this.criteria.playTypes,
-       this.criteria.formations, this.criteria.personnel, this.criteria.results]
+       this.criteria.formationFamilies, this.criteria.personnel, this.criteria.results]
         .some(values => values.length > 0);
     this._emit('filter-changed');
     return this.snapshot();

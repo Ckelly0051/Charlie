@@ -14,7 +14,7 @@ await page.goto(URL, { waitUntil:'networkidle0' });
 await page.evaluate(async () => {
   await window.app.storage.createSeason({ name:'2026 Varsity', team:'Mavericks', year:'2026' });
   const game=window.app.storage.seasonStore.activeGame();
-  game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',down:'1',distance:'10',formation:'Shotgun',backfield:'Single',playType:'Run Inside',result:'Gain',yardage:'5',players:{},grades:{},custom:[]}}];
+  game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',down:'1',distance:'10',formationFamily:'Shotgun',backfield:'Single',playType:'Run Inside',result:'Gain',yardage:'5',players:{},grades:{},custom:[]}}];
   await window.app.storage._loadActiveGame(); await window.app.workspaceShell.show('breakdown');
 });
 

@@ -13,6 +13,7 @@ import { countedUnit, isPlayTagged } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { PlayCallModel } from './play-call-model.js';
+import { ChartingDetails } from './charting-details.js';
 import { OPTIONS as TAG_OPTIONS, RESULT_OPTIONS } from './native-tagging.jsx';
 
 export class PlayGrid {
@@ -30,7 +31,8 @@ export class PlayGrid {
     { key: 'sit',       label: 'Dn & Dist', type: 'sit' },
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
-    { key: 'formation', label: 'Formation', type: 'enum', src: 'tagFormation', multi: true,  unit: 'offense' },
+    { key: 'formationFamily', label: 'Family', type: 'enum', src: 'tagFormationFamily',       unit: 'offense' },
+    { key: 'receiverSet', label: 'Rec Set',   type: 'enum', src: 'tagReceiverSet',             unit: 'offense' },
     // QB Alignment, Backfield, Strength and Coverage Family are single-select
     // look fields, edited inline with the plain `enum` editor. Not in any
     // default preset, but available in the Columns menu like any other column.
@@ -39,11 +41,20 @@ export class PlayGrid {
     { key: 'strength',  label: 'Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
+    // A motion's path opens with the motion (ChartingDetails.TRIGGERS): a cell is
+    // locked while its opening field is blank.
+    { key: 'motionStart', label: 'Mot Start', type: 'enum', src: 'tagMotionStart',            unit: 'offense' },
+    { key: 'motionEnd', label: 'Mot End',   type: 'enum', src: 'tagMotionEnd',                unit: 'offense' },
     { key: 'playCall',  label: 'Play Call', type: 'call',                                  unit: 'offense' },
     { key: 'playConcept', label: 'Concept', type: 'text-tag',                               unit: 'offense' },
     { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
     { key: 'playType',  label: 'Type',      type: 'enum', src: 'tagPlayType',  multi: true },
     { key: 'playDir',   label: 'Dir',       type: 'enum', src: 'tagPlayDir' },
+    { key: 'gap',       label: 'Gap',       type: 'enum', src: 'tagGap' },
+    { key: 'rpoRead',   label: 'RPO Read',  type: 'enum', src: 'tagRpoRead' },
+    { key: 'rpoDefender', label: 'RPO Def #', type: 'text-tag' },
+    { key: 'rpoDecision', label: 'RPO Dec', type: 'enum', src: 'tagRpoDecision' },
+    { key: 'qbRun',     label: 'QB Run',    type: 'enum', src: 'tagQbRun' },
     { key: 'result',    label: 'Result',    type: 'enum', src: 'tagResult',    multi: true },
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
     { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
@@ -62,8 +73,8 @@ export class PlayGrid {
   // E3b coach decision: Offense/Default place QB Alignment AFTER Formation;
   // Defense places Coverage Family AFTER Coverage Call.
   static PRESETS = {
-    default: ['sit', 'playCall', 'formation', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
-    offense: ['sit', 'playCall', 'playConcept', 'formation', 'qbAlignment', 'personnel', 'runPass', 'playType', 'result', 'yardage', 'penalty', 'penaltyYards'],
+    default: ['sit', 'playCall', 'formationFamily', 'receiverSet', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
+    offense: ['sit', 'playCall', 'playConcept', 'formationFamily', 'receiverSet', 'qbAlignment', 'personnel', 'runPass', 'playType', 'gap', 'result', 'yardage', 'penalty', 'penaltyYards'],
     defense: ['sit', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'yardage', 'penalty', 'penaltyYards'],
     special: ['sit', 'stUnit', 'stOutcome', 'stKick', 'stReturn', 'penalty', 'penaltyYards', 'notes'],
   };
@@ -244,6 +255,10 @@ export class PlayGrid {
    * snapshot, the editor and the commit, whatever the scope or column set.
    */
   static cellLocked(play, col) {
+    // A detail cell (Motion start, RPO read, QB run type) is locked while the
+    // field that opens it is blank (ChartingDetails.TRIGGERS).
+    const opener = ChartingDetails.TRIGGERS.find(trigger => trigger.children.includes(col?.key));
+    if (opener && !opener.opened(play?.tags || {})) return true;
     if (!col?.unit) return false;
     if (SpecialTeamsModel.isRunPassTry(play)) return false;
     const unit = countedUnit(play);
@@ -348,7 +363,7 @@ export class PlayGrid {
     if (StatsEngine.PROJECTED_FIELDS.includes(col.key)) {
       const value = StatsEngine.projField(play, col.key);
       if (value) return String(value);
-      return col.key === 'formation' ? 'Not charted' : '';
+      return col.key === 'formationFamily' ? 'Not charted' : '';
     }
     return String(tags[col.key] || '');
   }
@@ -364,7 +379,7 @@ export class PlayGrid {
   // native-tagging.jsx does; fixed-vocabulary fields read the same OPTIONS/
   // RESULT_OPTIONS constants that file exports, so there is exactly one copy
   // of each field's vocabulary, not two drifting apart.
-  static LIBRARY_COLUMNS = { formation:'formation', backfield:'backfield', defFront:'front', coverage:'coverage', playType:'playType', blitz:'blitz' };
+  static LIBRARY_COLUMNS = { formationFamily:'formationFamily', backfield:'backfield', defFront:'front', coverage:'coverage', playType:'playType', blitz:'blitz' };
   _options(col, current = []) {
     let opts = this._optionCache[col.key];
     if (!opts) {
@@ -394,8 +409,8 @@ export class PlayGrid {
     } else if (col.key === 'playCall') {
       PlayCallModel.apply(play, value, this.playbook,
         playType => PlayTagger.runPassForPlayType(playType));
-    } else if (col.key === 'playConcept') {
-      play.tags.playConcept = String(value || '').trim();
+    } else if (col.type === 'text-tag') {
+      play.tags[col.key] = String(value || '').trim();
     } else if (col.type === 'sit') {
       play.tags.down = value.down;
       play.tags.distance = value.distance;
@@ -414,6 +429,9 @@ export class PlayGrid {
         if (auto && play.tags.runPass !== auto) play.tags.runPass = auto;
       }
     }
+    // The same coupling every chart write makes: a gap names its direction, a
+    // contradicting direction clears the gap, a detail without its opener clears.
+    ChartingDetails.settle(play.tags, col.key);
     // Positive yardage with no result yet = a gain (mirror of setTagValue), so a
     // yardage-only grid edit is classified the same as one typed in the form.
     if (col.key === 'yardage' && !play.tags.result) {
@@ -609,6 +627,10 @@ export class PlayGrid {
       options: col.type === 'enum' ? this._options(col, String(projected || '').split(/\s*\+\s*/)) : [],
     };
   }
+  /** Commits an edit. A change that removes the field opening populated details
+   *  (Motion, the RPO or QB Run play type, the Play Direction a Gap sits under)
+   *  says what it clears and waits; the whole edit is then one undoable write.
+   *  Returns a boolean, or a promise of one when it asked. */
   nativeCommitEdit(playId, colKey, value) {
     const play = this.tagger.getPlay(Number(playId));
     const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
@@ -619,9 +641,12 @@ export class PlayGrid {
       this.refresh();
       return true;
     }
-    this._applyEdit(play, col, value);
-    this.refresh();
-    return true;
+    const next = col.multi ? PlayTagger.normalizeMulti(col.key, value) : value;
+    const removals = col.type === 'enum' || col.type === 'text-tag'
+      ? ChartingDetails.orphans(play.tags, col.key, next).filter(item => !item.coupled) : [];
+    const commit = () => { this._applyEdit(play, col, value); this.refresh(); return true; };
+    if (!removals.length) return commit();
+    return this.tagger._confirmDialog(ChartingDetails.clearMessage(removals), 'Clear').then(ok => (ok ? commit() : false));
   }
 
 }

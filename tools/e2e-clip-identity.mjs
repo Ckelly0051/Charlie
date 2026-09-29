@@ -123,7 +123,7 @@ const repair = await page.evaluate(async () => {
         timestamp: { start: 0, end: 5 },
         clipId: 9001,
         clipName: '0001',
-        tags: { playType: 'Run Inside', result: 'Gain', yardage: '4', formation: 'Shotgun', custom: [] },
+        tags: { playType: 'Run Inside', result: 'Gain', yardage: '4', formationFamily: 'I-Form', custom: [] },
         notes: 'first tag survives'
       },
       {
@@ -131,7 +131,7 @@ const repair = await page.evaluate(async () => {
         timestamp: { start: 0, end: 6 },
         clipId: 9002,
         clipName: '0001',
-        tags: { playType: 'Short Pass', result: 'Incomplete', yardage: '0', formation: 'Trips', custom: [] },
+        tags: { playType: 'Short Pass', result: 'Incomplete', yardage: '0', formationFamily: 'Spread', custom: [] },
         notes: 'second tag survives'
       }
     ];
@@ -218,7 +218,7 @@ ok(repair.clipCount === 2, 'repair builds one live clip per tagged play', `clips
 ok(repair.linked === true, 'repaired plays point at current live clips');
 ok(repair.assetUrls?.every(Boolean), 'repair switches playlist to library asset URLs', `urls=${JSON.stringify(repair.assetUrls)}`);
 ok(JSON.stringify(repair.paths) === JSON.stringify(['Game7/endzone/0001', 'Game7/sideline/0001']), 'legacy duplicate basenames migrate to folder paths by order', `paths=${JSON.stringify(repair.paths)}`);
-ok(repair.tags?.[0]?.tags?.formation === 'Shotgun' && repair.tags?.[1]?.tags?.formation === 'Trips', 'repair preserves existing tags and notes');
+ok(repair.tags?.[0]?.tags?.formationFamily === 'I-Form' && repair.tags?.[1]?.tags?.formationFamily === 'Spread', 'repair preserves existing tags and notes');
 ok(repair.imported?.length === 2, 'repair imports only the matched clips', `imported=${JSON.stringify(repair.imported)}`);
 ok(JSON.stringify(repair.filmUrls) === JSON.stringify(repair.imported), 'repair resolves imported library paths before reporting success', `filmUrls=${JSON.stringify(repair.filmUrls)}`);
 ok(repair.snapshots?.includes('Before film repair'), 'repair creates a restore point before saving');

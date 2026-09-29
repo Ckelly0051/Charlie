@@ -36,7 +36,7 @@ await page.evaluate(async () => {
   const mk = (id, unit, tags, extra = {}) => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [],
     tags: Object.assign({ unit, custom: [], players: {}, grades: {} }, tags), ...extra });
   g.plays = [
-    mk(1, 'offense', { quarter: 'Q1', down: '1', distance: '10', hash: 'Left', fieldSide: 'own', yardLine: '25', formation: 'Trips', personnel: '11',
+    mk(1, 'offense', { quarter: 'Q1', down: '1', distance: '10', hash: 'Left', fieldSide: 'own', yardLine: '25', formationFamily: 'Spread', personnel: '11',
       qbAlignment: 'Shotgun', runPass: 'Pass', playType: 'Short Pass', playDir: 'Right', result: 'Gain', yardage: '7', players: { passer: '7', receiver: '88' },
       grades: { passer: '1' }, customFields: { cfPressure: 'Edge' }, custom: ['Motion tell'] },
       { notes: 'Slot ran the wrong depth.' }),
@@ -82,7 +82,7 @@ ok(g('grades').rows.Passer === '+1' && g('custom').rows.Pressure === 'Edge' && g
   'grades, custom fields and custom tags are on the sheet', JSON.stringify({ grades: g('grades'), custom: g('custom') }));
 ok(g('situation').rows.Quarter === 'Q1' && g('situation').rows['Down & distance'] === '1st & 10' && g('situation').rows['Field position'] === 'Own 25' && g('situation').rows.Hash === 'Left',
   'situation values are the charted ones', JSON.stringify(g('situation').rows));
-ok(g('offense').title === 'Our offensive look' && g('offense').rows.Formation === 'Trips' && g('offense').rows.Personnel === '11' && g('offense').rows['Play call'] === 'Not charted',
+ok(g('offense').title === 'Our offensive look' && g('offense').rows['Formation family'] === 'Spread' && g('offense').rows.Personnel === '11' && g('offense').rows['Play call'] === 'Not charted',
   'the unit\'s look is filled where charted and says Not charted where not', JSON.stringify(g('offense')));
 ok(g('defense').title === 'Defense faced' && Object.values(g('defense').rows).every(v => v === 'Not charted'), 'the faced side is listed, uncharted', JSON.stringify(g('defense')));
 ok(g('play').rows['Run / pass'] === 'Pass' && g('play').rows['Play type'] === 'Short Pass' && /Gain/.test(g('play').rows.Result),

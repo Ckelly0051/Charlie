@@ -20,7 +20,7 @@ const fixture = await page.evaluate(async () => {
   const store = window.app.storage.seasonStore;
   const game = store.activeGame();
   game.gameInfo = { ...(game.gameInfo || {}), week: '1', opponent: 'Alpha', date: '2026-08-20', perspective: 'offense' };
-  game.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', formation: 'Ace', playType: 'Run Inside', result: 'Gain', yardage: '4', players: {}, grades: {}, custom: [] } }];
+  game.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', formationFamily: 'I-Form', playType: 'Run Inside', result: 'Gain', yardage: '4', players: {}, grades: {}, custom: [] } }];
   await store.persist();
   await window.app.storage._loadActiveGame({ renderGames: false });
   return { firstId: game.id };
@@ -86,7 +86,7 @@ ok(JSON.stringify(r.info) === JSON.stringify(r.durableInfo), 'Created game conte
    one that still has a subject: a program season derives a program game, and
    creating it does not disturb the previous game's film tags. Scout-season
    creation is covered by e2e-game-form-context section 5. */
-ok(r.perspective === 'offense' && r.defaultUnit === 'offense' && /Ace/.test(r.firstIntact), 'A program season derives a program game without mutating prior-game film tags', JSON.stringify(r));
+ok(r.perspective === 'offense' && r.defaultUnit === 'offense' && /I-Form/.test(r.firstIntact), 'A program season derives a program game without mutating prior-game film tags', JSON.stringify(r));
 ok(r.headerButton && /Bravo Bears/.test(r.headerSummary) && /Bravo Bears/.test(r.shellContext), 'Game header remains an edit launcher and reflects the created game', JSON.stringify(r));
 
 await page.evaluate(() => { void window.app.gameScreen.open({ mode: 'edit' }); });

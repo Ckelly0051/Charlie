@@ -198,7 +198,7 @@ await page.evaluate(async () => {
   const app = window.app;
   const game = app.storage.seasonStore.activeGame();
   game.plays = [
-    { id: 1, timestamp: { start: 0, end: 5 }, notes: '', tags: { unit: 'offense', down: '1', distance: '10', quarter: 'Q1', hash: 'Middle', fieldSide: 'own', yardLine: '25', formation: 'Wing-T', qbAlignment: 'Shotgun', backfield: 'Split', strength: 'Right', personnel: '11', motion: 'Jet', runPass: 'Run', playType: 'Run Inside', playDir: 'Right', result: 'Gain', yardage: '6', players: {}, grades: {}, custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 5 }, notes: '', tags: { unit: 'offense', down: '1', distance: '10', quarter: 'Q1', hash: 'Middle', fieldSide: 'own', yardLine: '25', formationFamily: 'Wing-T', qbAlignment: 'Shotgun', backfield: 'Split', strength: 'Right', personnel: '11', motion: 'Jet', runPass: 'Run', playType: 'Run Inside', playDir: 'Right', result: 'Gain', yardage: '6', players: {}, grades: {}, custom: [] } },
     { id: 2, timestamp: { start: 6, end: 11 }, notes: '', tags: { unit: 'defense', down: '2', distance: '4', quarter: 'Q1', hash: 'Left', fieldSide: 'own', yardLine: '30', defFront: '4-3', coverage: 'Cover 3', coverageFamily: 'Zone', blitz: 'A-Gap', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', players: {}, grades: {}, custom: [] } },
     { id: 3, timestamp: { start: 12, end: 17 }, notes: '', tags: { unit: 'special', down: '', distance: '', quarter: 'Q2', players: {}, grades: {}, custom: [] }, specialTeams: { unit: 'punt', outcome: { status: 'returned' }, kick: { distance: 42, hangTime: 4.2, landing: { fieldSide: 'opp', yardLine: 35 } }, return: { yards: 8, end: { fieldSide: 'opp', yardLine: 43 } }, players: {} } },
   ];

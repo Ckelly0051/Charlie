@@ -27,7 +27,7 @@ const SQL = await initSqlJs();
 const play = (i, clip) => ({
   id: i, timestamp: { start: 0, end: 10 + i * 0.5 },
   clipId: i, clipName: clip, clipPath: `Wk1/${clip}`,
-  tags: { unit: i % 3 === 1 ? 'defense' : 'offense', down: String(1 + (i % 4)), distance: '10', formation: 'Shotgun + Trips', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 9), players: {}, grades: {}, custom: [] },
+  tags: { unit: i % 3 === 1 ? 'defense' : 'offense', down: String(1 + (i % 4)), distance: '10', formationFamily: 'Spread', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 9), players: {}, grades: {}, custom: [] },
   annotations: [], notes: i % 5 === 0 ? `note ${i}` : '',
   ...(i === 1 ? {
     penalties: [{ id:`pen_${clip}`, team:'subject', phase:'defense', foul:'Holding', disposition:'accepted', yards:8, playCounts:false, player:'72', automaticFirstDown:null, lossOfDown:null, notes:'half distance', legacy:false }],

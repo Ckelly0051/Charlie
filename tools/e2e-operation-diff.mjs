@@ -35,7 +35,7 @@ const fixture = {
         jerseyColor: '', perspective: 'offense', direction: '',
       },
       plays: [
-        { id: 1, timestamp: { start: 0, end: 5 }, notes: '', tags: { unit: 'offense', formation: 'Ace', custom: [] } },
+        { id: 1, timestamp: { start: 0, end: 5 }, notes: '', tags: { unit: 'offense', formationFamily: 'I-Form', custom: [] } },
       ],
       annotations: [], nextId: 2, currentPlayId: 1, clipNames: [], clipPaths: [], clipRefs: [], isMultiClip: false,
     },
@@ -52,7 +52,7 @@ const fixture = {
         jerseyColor: '', perspective: 'offense', direction: '',
       },
       plays: [
-        { id: 1, timestamp: { start: 10, end: 15 }, notes: 'keep', tags: { unit: 'offense', formation: 'Power-I', custom: [] } },
+        { id: 1, timestamp: { start: 10, end: 15 }, notes: 'keep', tags: { unit: 'offense', formationFamily: 'Power-I', custom: [] } },
         { id: 2, timestamp: { start: 16, end: 21 }, notes: 'untouched', tags: { unit: 'defense', coverage: 'Cover 3', custom: [] } },
       ],
       annotations: [], nextId: 3, currentPlayId: 1, clipNames: [], clipPaths: [], clipRefs: [], isMultiClip: false,
@@ -108,13 +108,13 @@ await page.evaluate(() => {
 before = await snapshot();
 await page.evaluate(() => {
   const app = window.app;
-  app.tagger.setTagValue('formation', 'Ace');
+  app.tagger.setTagValue('formationFamily', 'I-Form');
   app.storage.commitActive();
 });
 after = await snapshot();
-audit = auditSeasonOperation(before, after, ['games.diff-g2.plays.1.tags.formation']);
+audit = auditSeasonOperation(before, after, ['games.diff-g2.plays.1.tags.formationFamily']);
 ok(audit.unexpected.length === 0
-    && audit.changed.join('|') === 'games.diff-g2.plays.1.tags.formation',
+    && audit.changed.join('|') === 'games.diff-g2.plays.1.tags.formationFamily',
   'tag edit changes only the declared field on the target play', JSON.stringify(audit));
 ok(JSON.stringify(before.games.find(game => game.id === 'diff-g2').plays.find(play => play.id === 2))
     === JSON.stringify(after.games.find(game => game.id === 'diff-g2').plays.find(play => play.id === 2)),

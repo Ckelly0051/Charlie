@@ -35,7 +35,7 @@ async function seed() {
     const plays = [];
     for (let i = 1; i <= n; i++) {
       plays.push({ id: i, timestamp: { start: i * 3, end: i * 3 + 4 }, notes: '', annotations: [],
-        tags: { unit: 'offense', down: '1', distance: '10', formation: 'Ace', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} } });
+        tags: { unit: 'offense', down: '1', distance: '10', formationFamily: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} } });
     }
     g.plays = plays; g.nextId = n + 1;
     app.tagger.plays = g.plays; app.tagger.nextId = n + 1; app.tagger._emit('plays-loaded');

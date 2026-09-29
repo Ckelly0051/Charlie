@@ -181,7 +181,7 @@ test('tries stay out of player box scores while a fake rush remains eligible', (
 });
 
 test('generic scout tendencies exclude Special Teams classifiable plays', () => {
-  const offense = play(1, null, { unit: 'offense', playType: 'Run Inside', runPass: 'Run', down: '1', distance: '10', formation: 'Ace', yardage: '5' });
+  const offense = play(1, null, { unit: 'offense', playType: 'Run Inside', runPass: 'Run', down: '1', distance: '10', formationFamily: 'I-Form', yardage: '5' });
   delete offense.specialTeams;
   const punt = play(2, SpecialTeamsModel.normalize(special({
     unit: 'punt', result: undefined, events: undefined, attemptType: null,
@@ -258,20 +258,20 @@ test('isRunPassTry names Run/Pass and Fake tries on either side, never a kick', 
 });
 
 test('a run/pass try keeps its look; a kicked try is stripped', () => {
-  const look = { formation: 'Trips', personnel: '11', qbAlignment: 'Shotgun' };
+  const look = { formationFamily: 'Spread', receiverSet: '3x1', personnel: '11', qbAlignment: 'Shotgun' };
   const runPass = play(1, special(), { ...look });
   SeasonStore.stripStAlignment(runPass);
-  assert.deepEqual([runPass.tags.formation, runPass.tags.personnel, runPass.tags.qbAlignment], ['Trips', '11', 'Shotgun']);
+  assert.deepEqual([runPass.tags.formationFamily, runPass.tags.receiverSet, runPass.tags.personnel, runPass.tags.qbAlignment], ['Spread', '3x1', '11', 'Shotgun']);
   const kick = play(2, special({ attemptType: 'extraPoint' }), { ...look });
   SeasonStore.stripStAlignment(kick);
-  assert.deepEqual([kick.tags.formation, kick.tags.personnel, kick.tags.qbAlignment], ['', '', '']);
+  assert.deepEqual([kick.tags.formationFamily, kick.tags.receiverSet, kick.tags.personnel, kick.tags.qbAlignment], ['', '', '', '']);
 });
 
 test('a run/pass try is in no analytics cohort (coach: the ST report carries kick versus go)', () => {
-  const offense = play(1, null, { unit: 'offense', playType: 'Run Inside', runPass: 'Run', formation: 'Ace', down: '1', distance: '10', yardage: '5', result: 'Gain' });
+  const offense = play(1, null, { unit: 'offense', playType: 'Run Inside', runPass: 'Run', formationFamily: 'I-Form', down: '1', distance: '10', yardage: '5', result: 'Gain' });
   delete offense.specialTeams;
-  const tryRun = play(2, special(), { playType: 'Run Outside', runPass: 'Run', formation: 'Trips', yardage: '3', result: 'Touchdown', players: { ballCarrier: '2' } });
-  const fake = play(3, special({ isFake: true }), { playType: 'Short Pass', runPass: 'Pass', formation: 'Bunch', yardage: '3', result: 'Touchdown', players: { passer: '7' } });
+  const tryRun = play(2, special(), { playType: 'Run Outside', runPass: 'Run', formationFamily: 'Spread', yardage: '3', result: 'Touchdown', players: { ballCarrier: '2' } });
+  const fake = play(3, special({ isFake: true }), { playType: 'Short Pass', runPass: 'Pass', formationFamily: 'Wing-T', yardage: '3', result: 'Touchdown', players: { passer: '7' } });
   const engine = Object.create(StatsEngine.prototype);
   engine.tagger = { plays: [offense, tryRun, fake] };
   engine.filter = null;

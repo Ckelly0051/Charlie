@@ -6,6 +6,8 @@ import { groupPlaysByDrive, drivePossessionSide, driveLabel, driveNumberOf, coun
 import { ST_UNITS, ST_OUTCOMES, TRY_RESULT_LABELS } from './native-tagging.jsx';
 import { mountNativeBreakdownTheater, unmountNativeBreakdownTheater } from './native-breakdown-theater.jsx';
 
+const hasPlayType = (tags, type) => String(tags.playType || '').split(/\s*\+\s*/).includes(type);
+
 // The model's own score enum (SpecialTeamsModel.SCORES), given coach-facing
 // text. Not duplicated app vocabulary — these are the literal enum members,
 // and no other module already carries display labels for them.
@@ -273,16 +275,24 @@ export class BreakdownTheaterScreen {
       ] });
     } else {
       const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent offensive look' : 'Our offensive look', rows: [
-        row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation', tags.formation),
+        row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation family', tags.formationFamily),
+        row('Receiver set', tags.receiverSet),
         row('Personnel', tags.personnel), row('QB alignment', tags.qbAlignment), row('Backfield', tags.backfield),
         row('Strength', tags.strength), row('Motion', tags.motion),
+        // A detail is listed while the field that opens it is charted.
+        ...(tags.motion ? [row('Motion starts', tags.motionStart), row('Motion ends', tags.motionEnd)] : []),
       ] };
       const defense = { key: 'defense', title: unit === 'defense' ? (scout ? 'Opponent defensive call' : 'Our defensive call') : 'Defense faced', rows: [
         row('Front', tags.defFront), row('Coverage', tags.coverage), row('Coverage family', tags.coverageFamily), row('Blitz', tags.blitz),
       ] };
       groups.push(...(unit === 'defense' ? [defense, offense] : [offense, defense]));
       groups.push({ key: 'play', title: 'Play & result', rows: [
-        row('Run / pass', tags.runPass), row('Play type', tags.playType), row('Direction', tags.playDir), row('Result', chyron.result),
+        row('Run / pass', tags.runPass), row('Play type', tags.playType),
+        ...(hasPlayType(tags, 'RPO') ? [row('RPO read', tags.rpoRead), row('RPO defender', tags.rpoDefender), row('RPO decision', tags.rpoDecision)] : []),
+        ...(hasPlayType(tags, 'QB Run') ? [row('QB run type', tags.qbRun)] : []),
+        row('Direction', tags.playDir),
+        ...(tags.playDir || tags.gap ? [row('Gap', tags.gap)] : []),
+        row('Result', chyron.result),
       ] });
     }
     const LABELS = { ballCarrier: 'Ball carrier', passer: 'Passer', receiver: 'Receiver', tackler: 'Tackler', takeaway: 'Takeaway', kicker: 'Kicker', returner: 'Returner' };
@@ -346,11 +356,10 @@ export class BreakdownTheaterScreen {
     const hash = tags.hash || '—';
 
     const joined = (...values) => values.filter(Boolean).join(' · ') || '—';
-    // The offensive "look" composes qbAlignment + formation — the same
-    // canonical composition TagProjection.lookLabel already provides and this
-    // file already uses for play-strip card labels — so a legacy value like
-    // formation:'Under Center' (reprojected to qbAlignment by StatsEngine.proj,
-    // leaving formation blank) still reads as a real look instead of vanishing.
+    // The offensive "look" composes qbAlignment + formation family + receiver set
+    // — the same canonical composition TagProjection.lookLabel already provides
+    // and this file already uses for play-strip card labels — so a play charted
+    // with a QB alignment alone still reads as a real look instead of vanishing.
     const offenseLook = joined(TagProjection.lookLabel(tags), tags.playType);
     // The full defensive call is Front + Coverage Call + optional Coverage
     // Family + Blitz. Coverage Call and Coverage Family are independently

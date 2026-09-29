@@ -29,7 +29,7 @@ const mounted = await page.evaluate(async () => {
     tags: {
       unit: index === 6 ? 'defense' : 'offense',
       down: String(index % 4 + 1), distance: index % 3 === 0 ? '10' : '4',
-      formation: index === 0 ? 'Trips' : index % 2 ? 'Power-I' : 'Ace',
+      formationFamily: index === 0 ? 'Spread' : index % 2 ? 'Power-I' : 'I-Form',
       qbAlignment: index === 0 ? 'Shotgun' : '', personnel: '11', runPass: index % 2 ? 'Run' : 'Pass',
       playType: index % 2 ? 'Run Outside' : 'Short Pass',
       result: index === 5 ? 'Touchdown' : 'Gain', yardage: String(index + 1),
@@ -91,14 +91,14 @@ ok(mounted.subscribers === 2, 'Native subscriptions are scoped to the mounted ta
 ok(mounted.gridSubscribers === 1, 'The table and its controls share ONE grid subscription, so the shown-plays summary is built once per update', String(mounted.gridSubscribers));
 
 state = await page.evaluate(() => {
-  const cell = document.querySelector('[data-cell="1:formation"]');
+  const cell = document.querySelector('[data-cell="1:formationFamily"]');
   return {
     text: cell?.textContent.trim(),
-    expected: window.app.playGrid._cellText(window.app.tagger.getPlay(1), window.app.playGrid._visibleCols().find(col => col.key === 'formation')),
-    tendency: [...document.querySelectorAll('thead th')].find(th => th.querySelector('span')?.textContent === 'Formation')?.querySelector('small')?.textContent || '',
+    expected: window.app.playGrid._cellText(window.app.tagger.getPlay(1), window.app.playGrid._visibleCols().find(col => col.key === 'formationFamily')),
+    tendency: [...document.querySelectorAll('thead th')].find(th => th.querySelector('span')?.textContent === 'Family')?.querySelector('small')?.textContent || '',
   };
 });
-ok(state.text === state.expected && state.text === 'Trips', 'Formation cell text equals the canonical Film Room value', JSON.stringify(state));
+ok(state.text === state.expected && state.text === 'Spread', 'Formation cell text equals the canonical Film Room value', JSON.stringify(state));
 ok(!!state.tendency, 'Native header carries the canonical visible-pool tendency');
 
 console.log('\n== 2. Filters, selection, and exact Watch pool ==');
@@ -128,17 +128,17 @@ ok(JSON.stringify(state.call?.ids) === JSON.stringify(state.expected), 'Watch re
 
 await page.evaluate(() => window.app.playGrid.nativeClearFilters());
 await page.waitForFunction(() => document.querySelectorAll('.gi-film-table-wrap tbody tr').length === 8);
-await page.click('[data-cell="1:formation"]');
+await page.click('[data-cell="1:formationFamily"]');
 await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
 await page.keyboard.press('ArrowDown');
 await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
 await page.keyboard.press('ArrowDown');
 await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
 state = await page.evaluate(() => ({ current: window.app.tagger.currentPlayId, focused: document.activeElement?.dataset?.cell }));
-ok(state.current === 3 && state.focused === '3:formation', 'Vertical cell focus selects the same play the video follows', JSON.stringify(state));
+ok(state.current === 3 && state.focused === '3:formationFamily', 'Vertical cell focus selects the same play the video follows', JSON.stringify(state));
 
 console.log('\n== 3. Native inline edit and column preferences ==');
-await page.click('[data-cell="3:formation"]');
+await page.click('[data-cell="3:formationFamily"]');
 await page.waitForSelector('.gi-film-cell-editor');
 await page.evaluate(() => {
   const button = document.querySelector('.gi-film-option-chips button:not(.is-active)');
@@ -150,10 +150,10 @@ await page.evaluate(() => {
   [...document.querySelectorAll('.gi-film-cell-editor button')].find(item => item.textContent.trim() === 'Done')?.click();
 });
 await page.waitForFunction(() => !document.querySelector('.gi-film-cell-editor'));
-await page.waitForFunction(() => document.querySelector('[data-cell="3:formation"]')?.textContent.includes(window.__s5bEditChoice));
+await page.waitForFunction(() => document.querySelector('[data-cell="3:formationFamily"]')?.textContent.includes(window.__s5bEditChoice));
 state = await page.evaluate(() => ({
-  value: window.app.tagger.getPlay(3).tags.formation,
-  cell: document.querySelector('[data-cell="3:formation"]')?.textContent.trim(), choice: window.__s5bEditChoice,
+  value: window.app.tagger.getPlay(3).tags.formationFamily,
+  cell: document.querySelector('[data-cell="3:formationFamily"]')?.textContent.trim(), choice: window.__s5bEditChoice,
 }));
 ok(state.choice && state.value.includes(state.choice) && state.cell.includes(state.choice), 'Native multi-select commit uses canonical grid edit semantics', JSON.stringify(state));
 

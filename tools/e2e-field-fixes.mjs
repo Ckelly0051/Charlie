@@ -200,16 +200,16 @@ check('confirmed fumble recovery credits the Takeaway player', takeaway.p44 && t
 const carry = await page.evaluate(() => {
   const t = window.app.tagger;
   t.carryScheme = true;
-  const prev = { tags: { formation: 'Wing-T', personnel: '21', defFront: '', coverage: '', custom: [] } };
-  const next = { tags: { formation: '', personnel: '', defFront: '', coverage: '', custom: [] } };
+  const prev = { tags: { formationFamily: 'Wing-T', personnel: '21', defFront: '', coverage: '', custom: [] } };
+  const next = { tags: { formationFamily: '', personnel: '', defFront: '', coverage: '', custom: [] } };
   // applyCarryScheme reloads the form for the CURRENT play; next isn't current,
   // so just verify the data carry.
   t.applyCarryScheme(prev, next);
-  const blocked = { tags: { formation: 'Spread', personnel: '', custom: [] } };
+  const blocked = { tags: { formationFamily: 'Spread', personnel: '', custom: [] } };
   t.applyCarryScheme(prev, blocked);
-  return { f: next.tags.formation, p: next.tags.personnel, kept: blocked.tags.formation, filled: blocked.tags.personnel };
+  return { f: next.tags.formationFamily, p: next.tags.personnel, kept: blocked.tags.formationFamily, filled: blocked.tags.personnel };
 });
-check('carry-scheme fills blank formation/personnel', carry.f === 'Wing-T' && carry.p === '21', JSON.stringify(carry));
+check('carry-scheme fills blank formation family/personnel', carry.f === 'Wing-T' && carry.p === '21', JSON.stringify(carry));
 check('carry-scheme never overwrites a tagged look', carry.kept === 'Spread' && carry.filled === '21', JSON.stringify(carry));
 
 // Toggle exists and persists. Final Engine Independence: #carrySchemeToggle/

@@ -27,7 +27,7 @@ function buildSynthetic() {
   const games = [];
   for (let g = 0; g < 4; g++) {
     const plays = [];
-    for (let p = 0; p < 12; p++) plays.push({ id: p + 1, timestamp: { start: 0, end: 5 }, clipName: `g${g}_clip${p}`, notes: '', tags: { unit: ['offense', 'defense', 'special'][p % 3], down: String(1 + p % 4), distance: '10', formation: 'Shotgun + Trips', backfield: 'Single', strength: 'Right', playType: p % 3 === 0 ? 'Run Inside' : 'Short Pass', runPass: p % 3 === 0 ? 'Run' : 'Pass', result: 'Gain', yardage: String(p % 9), stType: p % 3 === 2 ? 'Punt' : '', defFront: p % 3 === 1 ? '4-3' : '', coverage: p % 3 === 1 ? 'Cover 3' : '', players: {}, grades: {}, custom: [] } });
+    for (let p = 0; p < 12; p++) plays.push({ id: p + 1, timestamp: { start: 0, end: 5 }, clipName: `g${g}_clip${p}`, notes: '', tags: { unit: ['offense', 'defense', 'special'][p % 3], down: String(1 + p % 4), distance: '10', formationFamily: 'Spread', backfield: 'Single', strength: 'Right', playType: p % 3 === 0 ? 'Run Inside' : 'Short Pass', runPass: p % 3 === 0 ? 'Run' : 'Pass', result: 'Gain', yardage: String(p % 9), stType: p % 3 === 2 ? 'Punt' : '', defFront: p % 3 === 1 ? '4-3' : '', coverage: p % 3 === 1 ? 'Cover 3' : '', players: {}, grades: {}, custom: [] } });
     games.push({ id: `synG${g}`, name: `Game ${g + 1}`, gameInfo: { opponent: `Team ${g + 1}` }, status: 'active', plays, annotations: [], nextId: 13, currentPlayId: null, videoFileName: '', clipNames: plays.map(p => p.clipName), isMultiClip: true });
   }
   return { version: 5, type: 'season', id: 'synthetic', seasonName: 'Synthetic Stress Season', games, activeGameId: 'synG0' };

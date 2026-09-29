@@ -100,7 +100,7 @@ const clickSaveNext = () => page.evaluate(() => {
 // never set) — that is season-store's normalize doing its job, not data loss.
 // Compare only the fields this proof is actually about, so an unrelated
 // schema-fill can't be mistaken for (or mask) a real projection regression.
-const RELEVANT = ['unit', 'formation', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
+const RELEVANT = ['unit', 'formationFamily', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
 const pick = (obj) => JSON.stringify(Object.fromEntries(RELEVANT.map(k => [k, obj[k] ?? ''])));
 
 console.log('\n== 1. Setup: team + a real (non-demo) season + one game ==');
@@ -120,13 +120,13 @@ await page.evaluate((ids) => {
   const t = window.app.tagger;
   const mk = (id, tags) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: Object.assign({ unit: 'offense', down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', players: {}, grades: {}, custom: [] }, tags) });
   t.plays.push(
-    mk(ids.formationClear, { formation: 'Trips', qbAlignment: 'Shotgun' }),
+    mk(ids.formationClear, { formationFamily: 'Spread', qbAlignment: 'Shotgun' }),
     mk(ids.coverageAdd, { unit: 'defense', coverage: '', coverageFamily: 'Man', playType: '', runPass: '', result: '' }),
-    mk(ids.pistolEmptyEdit, { formation: 'Ace', backfield: 'Empty', qbAlignment: 'Pistol' }),
-    mk(ids.pistolEmptySaveNext, { formation: 'Ace', backfield: 'Empty', qbAlignment: 'Pistol' }),
-    mk(ids.gridBackfield, { formation: 'Wing-T', backfield: 'Split' }),
-    mk(ids.qbClear, { formation: 'Wing-T', qbAlignment: 'Shotgun' }),
-    mk(ids.modern, { formation: 'Ace', qbAlignment: 'Under Center', backfield: 'I', coverage: 'Cover 2', coverageFamily: 'Zone' }),
+    mk(ids.pistolEmptyEdit, { formationFamily: 'I-Form', backfield: 'Empty', qbAlignment: 'Pistol' }),
+    mk(ids.pistolEmptySaveNext, { formationFamily: 'I-Form', backfield: 'Empty', qbAlignment: 'Pistol' }),
+    mk(ids.gridBackfield, { formationFamily: 'Wing-T', backfield: 'Split' }),
+    mk(ids.qbClear, { formationFamily: 'Wing-T', qbAlignment: 'Shotgun' }),
+    mk(ids.modern, { formationFamily: 'I-Form', qbAlignment: 'Under Center', backfield: 'I', coverage: 'Cover 2', coverageFamily: 'Zone' }),
   );
   t.nextId = 9400;
 }, IDS);
@@ -136,7 +136,7 @@ await mountNativeForm();
 
 // 2a. Turn off the only formation chip; the QB alignment is a separate field.
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.formationClear);
-await clickChip('formation', 'Trips');
+await clickChip('formationFamily', 'Spread');
 await frame();
 
 // 2b. Add a coverage call beside the stored family.
@@ -144,10 +144,9 @@ await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.coverageAdd);
 await clickChip('coverage', 'Cover 3');
 await frame();
 
-// 2c. Pistol + Empty, committed via an explicit Formation edit (adds a second
-// formation chip so the commit is genuine, not a no-op).
+// 2c. Pistol + Empty, committed via an explicit Formation edit (changes the family so the commit is genuine, not a no-op).
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptyEdit);
-await clickChip('formation', 'Trips');
+await clickChip('formationFamily', 'Spread');
 await frame();
 
 // 2d. Pistol + Empty, committed via Save & Next.
@@ -165,7 +164,7 @@ await sleep(150);
 // clicking once selects/focuses the cell, a second click (or Enter) opens the
 // editor's `.gi-film-option-chips button` picks (single-select commits on
 // click, no separate Done needed).
-// Backfield is not in PlayGrid.PRESETS.default (['sit','formation',
+// Backfield is not in PlayGrid.PRESETS.default (['sit','formationFamily',
 // 'qbAlignment','playType','result','yardage','penalty']) — add it, same as
 // e2e-film-room.mjs does when it needs a non-default column visible.
 await page.evaluate(() => {
@@ -240,7 +239,7 @@ const before = await page.evaluate(async (ids) => {
       // surface uses, reached through the live public service that owns it.
       projected: window.app.stats.constructor.proj(play),
       chips: {
-        formation: active('formation'),
+        formationFamily: active('formationFamily'),
         qbAlignment: active('qbAlignment'),
         backfield: active('backfield'),
         coverage: active('coverage'),
@@ -251,11 +250,11 @@ const before = await page.evaluate(async (ids) => {
   return { plays: out, playCount: t.plays.length };
 }, IDS);
 
-ok((before.plays.formationClear.tags.formation || '') === '' && before.plays.formationClear.tags.qbAlignment === 'Shotgun', 'pre-reload: clearing the formation leaves the QB alignment stored', JSON.stringify(before.plays.formationClear.tags));
+ok((before.plays.formationClear.tags.formationFamily || '') === '' && before.plays.formationClear.tags.qbAlignment === 'Shotgun', 'pre-reload: clearing the formation leaves the QB alignment stored', JSON.stringify(before.plays.formationClear.tags));
 ok(before.plays.coverageAdd.tags.coverage === 'Cover 3' && before.plays.coverageAdd.tags.coverageFamily === 'Man', 'pre-reload: a coverage call is stored beside the coverage family', JSON.stringify(before.plays.coverageAdd.tags));
-ok(before.plays.pistolEmptyEdit.tags.formation === 'Ace + Trips' && before.plays.pistolEmptyEdit.tags.qbAlignment === 'Pistol' && before.plays.pistolEmptyEdit.tags.backfield === 'Empty', 'pre-reload: a Formation edit keeps QB alignment Pistol and backfield Empty', JSON.stringify(before.plays.pistolEmptyEdit.tags));
-ok(before.plays.pistolEmptySaveNext.tags.formation === 'Ace' && before.plays.pistolEmptySaveNext.tags.qbAlignment === 'Pistol' && before.plays.pistolEmptySaveNext.tags.backfield === 'Empty', 'pre-reload: Save & Next keeps QB alignment Pistol and backfield Empty', JSON.stringify(before.plays.pistolEmptySaveNext.tags));
-ok((before.plays.qbClear.tags.qbAlignment || '') === '' && before.plays.qbClear.projected.qbAlignment === '' && before.plays.qbClear.tags.formation === 'Wing-T', 'pre-reload: a QB alignment clear is genuinely stored (not just hidden)', JSON.stringify(before.plays.qbClear.tags));
+ok(before.plays.pistolEmptyEdit.tags.formationFamily === 'Spread' && before.plays.pistolEmptyEdit.tags.qbAlignment === 'Pistol' && before.plays.pistolEmptyEdit.tags.backfield === 'Empty', 'pre-reload: a Formation edit keeps QB alignment Pistol and backfield Empty', JSON.stringify(before.plays.pistolEmptyEdit.tags));
+ok(before.plays.pistolEmptySaveNext.tags.formationFamily === 'I-Form' && before.plays.pistolEmptySaveNext.tags.qbAlignment === 'Pistol' && before.plays.pistolEmptySaveNext.tags.backfield === 'Empty', 'pre-reload: Save & Next keeps QB alignment Pistol and backfield Empty', JSON.stringify(before.plays.pistolEmptySaveNext.tags));
+ok((before.plays.qbClear.tags.qbAlignment || '') === '' && before.plays.qbClear.projected.qbAlignment === '' && before.plays.qbClear.tags.formationFamily === 'Wing-T', 'pre-reload: a QB alignment clear is genuinely stored (not just hidden)', JSON.stringify(before.plays.qbClear.tags));
 
 console.log('\n== 4. Persist through the REAL canonical path, then reload the page from nothing ==');
 await page.evaluate(() => { window.app.storage.commitActive(); return window.app.storage.seasonStore.persist(); });
@@ -302,7 +301,7 @@ const after = await page.evaluate(async (ids) => {
       tags: JSON.parse(JSON.stringify(play.tags)),
       projected: window.app.stats.constructor.proj(play),
       chips: {
-        formation: active('formation'),
+        formationFamily: active('formationFamily'),
         qbAlignment: active('qbAlignment'),
         backfield: active('backfield'),
         coverage: active('coverage'),
@@ -379,8 +378,8 @@ if (!realFiles.length) {
     const preClick = JSON.parse(JSON.stringify(t.getPlay(id).tags));
     // Apply one genuine legacy-shaped edit through the real UI so this proves
     // an actual WRITE survives, not just an untouched read-back.
-    const chip = [...document.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button')]
-      .find(b => b.textContent.trim() === 'Trips');
+    const chip = [...document.querySelectorAll('[data-native-field="formationFamily"] .gi-tag-chips button')]
+      .find(b => b.textContent.trim() === 'Spread');
     const chipFound = !!chip;
     if (chip) chip.click();
     return { id, playCount: t.plays.length, preClick, chipFound };

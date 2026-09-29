@@ -5,6 +5,7 @@ import { planClipMatch } from './clip-identity.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
 import { SeasonFormat } from './season-format.js';
+import { ChartingDetails } from './charting-details.js';
 // E3b: exportCsv reads the pre-snap look through the projection seam. No cycle —
 // stats-engine.js imports charts/heat-maps/metrics, never storage.js.
 import { StatsEngine } from './stats-engine.js';
@@ -1788,15 +1789,16 @@ export class StorageManager {
     const headers = [
       'Play #', 'Clip', 'Start', 'End', 'Unit', 'Quarter', 'Drive', 'Down', 'Distance',
       'Field Side', 'Yard Line',
-      // E3b: the pre-snap look exports PROJECTED (GRIDIRON-IQ-TAG-MODEL.md §20), so
-      // a CSV agrees with Film Room, Study, and analytics instead of re-publishing
-      // the legacy mixed field. Formation is STRUCTURE only; QB Alignment and
-      // Coverage Family are their own columns. There is deliberately NO fallback
-      // that puts Shotgun/Pistol/Under Center back in Formation, and a blank
-      // optional exports blank — "Unknown" would read as a real analytics category.
-      'Formation', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
+      // The pre-snap look exports through the one projection (GRIDIRON-IQ-TAG-MODEL.md
+      // §20), so a CSV agrees with Film Room, Study, and analytics. Formation
+      // Family and Receiver Set are their own columns, as are QB Alignment and
+      // Coverage Family; a blank exports blank ("Unknown" would read as a real
+      // analytics category). The run and motion details follow the field that
+      // opens them (ChartingDetails).
+      'Formation Family', 'Receiver Set', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
+      'Motion Starts', 'Motion Ends',
       'Play Call', 'Play Call ID', 'Play Concept',
-      'Run/Pass', 'Play Type', 'Play Dir', 'Def Front',
+      'Run/Pass', 'Play Type', 'Play Dir', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type', 'Def Front',
       'Coverage Call', 'Coverage Family', 'Blitz', 'Result', 'Fumble Recovery',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
       'Takeaway', 'Kicker', 'Returner',
@@ -1820,18 +1822,26 @@ export class StorageManager {
       p.tags.distance,
       p.tags.fieldSide || '',
       p.tags.yardLine || '',
-      look.formation ?? '',
+      look.formationFamily ?? '',
+      look.receiverSet ?? '',
       look.qbAlignment ?? '',
       look.backfield ?? '',
       look.strength ?? '',
       p.tags.personnel || '',
       p.tags.motion || '',
+      p.tags.motionStart || '',
+      p.tags.motionEnd || '',
       p.tags.playCall || '',
       p.tags.playCallId || '',
       p.tags.playConcept || '',
       p.tags.runPass || '',
       p.tags.playType,
       p.tags.playDir || '',
+      p.tags.gap || '',
+      p.tags.rpoRead || '',
+      p.tags.rpoDefender || '',
+      p.tags.rpoDecision || '',
+      p.tags.qbRun || '',
       p.tags.defFront,
       look.coverage ?? '',
       look.coverageFamily ?? '',
@@ -1944,11 +1954,15 @@ export class StorageManager {
       result: 'result', fumblerecovery: 'fumbleRecovery', recoveryowner: 'fumbleRecovery', gnls: 'yardage', yardage: 'yardage', yards: 'yardage', yds: 'yardage',
       down: 'down', dn: 'down',
       distance: 'distance', dist: 'distance', togo: 'distance',
-      formation: 'formation', form: 'formation', offform: 'formation', offenseformation: 'formation',
-      // E3b: the four split look dimensions. `qbalignment` etc. are the headers our
-      // own projected export writes; the legacy `coverage` alias below stays so a
-      // pre-E3b CSV (ours or Hudl's) still imports — projection then reads it
-      // honestly at read time, exactly as it does for a legacy stored play.
+      // The offense's look, each part its own column (the headers our export
+      // writes). There is no alias for a bare `Formation` column: one field mixed
+      // family, receiver and package words, and mapping it is the coach's decision
+      // (see the refusal below).
+      formationfamily: 'formationFamily', family: 'formationFamily',
+      receiverset: 'receiverSet', recset: 'receiverSet',
+      motionstarts: 'motionStart', motionstart: 'motionStart', motionends: 'motionEnd', motionend: 'motionEnd',
+      gap: 'gap', rporead: 'rpoRead', rpodefender: 'rpoDefender', rpodecision: 'rpoDecision',
+      qbruntype: 'qbRun', qbrun: 'qbRun',
       // `Unit` has been an EXPORT column all along but was never imported, so every
       // round-tripped defensive/ST play came back unit-less — and StatsEngine reads a
       // unit-less play as OFFENSE, silently corrupting every unit-partitioned metric
@@ -1986,6 +2000,14 @@ export class StorageManager {
     headers.forEach((h, i) => {
       if (aliases[h]) colMap[i] = aliases[h];
     });
+
+    // A bare Formation column is the retired one-field format (family, receiver
+    // and package words mixed): the file is refused whole, plainly. Renaming the
+    // header to Formation Family (or Receiver Set) is the coach's explicit choice.
+    const oldFormation = headers.some(h => ['formation', 'form', 'offform', 'offenseformation'].includes(h));
+    if (oldFormation && !headers.includes('formationfamily') && !headers.includes('family')) {
+      return { count: 0, error: SeasonFormat.MESSAGE };
+    }
 
     return { headers: parseLine(lines[0]), colMap, lines: lines.slice(1).map(parseLine), delim };
   }
@@ -2072,6 +2094,13 @@ export class StorageManager {
     if (pending.some(p => TagProjection.isCombined(p.tags))) {
       this.lastImportRefusal = SeasonFormat.MESSAGE;
       return 0;
+    }
+    // A detail with no opening field, a gap that disagrees with the direction, or
+    // a value the app does not offer: the file is refused with the first row's
+    // reason and nothing is added. Nothing is inferred or repaired.
+    for (let i = 0; i < pending.length; i++) {
+      const reason = [...ChartingDetails.problems(pending[i].tags), ...ChartingDetails.vocabularyProblems(pending[i].tags)][0];
+      if (reason) { this.lastImportRefusal = `Data row ${i + 1}: ${reason}. Nothing was imported.`; return 0; }
     }
     for (const play of pending) {
       play.id = this.tagger.nextId++;

@@ -6,7 +6,7 @@ const browser=await puppeteer.launch({args:['--no-sandbox'],protocolTimeout:1200
 await page.setViewport({width:1280,height:800});await page.evaluateOnNewDocument(()=>localStorage.clear());await page.goto(APP_URL,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.app?.settingsScreen&&window.app?.storage?.seasonStore);
 await page.evaluate(async()=>{
  const app=window.app,store=app.storage.seasonStore;await store.createSeason({name:'Recovery Season',team:'Mavericks',teamId:'recovery-team'});
- const play=(id,note)=>({id,timestamp:{start:id,end:id+1},tags:{unit:'offense',down:'1',distance:'10',formation:'Wing-T',playType:'Run Inside',result:'Gain',yardage:'5',players:{},grades:{},custom:[]},notes:note});
+ const play=(id,note)=>({id,timestamp:{start:id,end:id+1},tags:{unit:'offense',down:'1',distance:'10',formationFamily:'Wing-T',playType:'Run Inside',result:'Gain',yardage:'5',players:{},grades:{},custom:[]},notes:note});
  const a={...store.blankGame(),id:'g-a',name:'Week 1 vs A',gameInfo:{opponent:'A'},plays:[play(1,'baseline-a')],nextId:2,currentPlayId:1};
  const b={...store.blankGame(),id:'g-b',name:'Week 2 vs B',gameInfo:{opponent:'B'},plays:[play(1,'baseline-b')],nextId:2,currentPlayId:1};
  store.data.games=[a,b];store.data.activeGameId='g-a';await store.persist();app.storage._loadActiveGame();app.tagger._confirmDialog=async()=>true;

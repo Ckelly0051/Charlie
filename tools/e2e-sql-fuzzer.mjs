@@ -25,7 +25,7 @@ const SQL = await initSqlJs();
 // ---- fixtures ----
 const mkPlay = (id, clip, gid) => ({
   id, timestamp: { start: 0, end: 8 + (id % 20) }, clipId: id, clipName: clip, clipPath: `${gid}/${clip}`,
-  tags: { unit: ['offense', 'defense', 'special'][id % 3], down: String(1 + id % 4), distance: '10', formation: 'Shotgun', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(id % 9), players: {}, grades: {}, custom: [] },
+  tags: { unit: ['offense', 'defense', 'special'][id % 3], down: String(1 + id % 4), distance: '10', formationFamily: 'Spread', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(id % 9), players: {}, grades: {}, custom: [] },
   annotations: [], notes: id % 7 === 0 ? `n${id}` : '',
 });
 const mkClipRef = (clip, gid) => ({ id: `${gid}/${clip}`, originalName: `${clip}.MOV`, originalRelativePath: `${gid}/${clip}`, displayName: clip, duration: 11.1, importStatus: 'ready' });

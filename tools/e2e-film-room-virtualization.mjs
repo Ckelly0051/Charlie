@@ -36,7 +36,7 @@ await page.evaluate(async (n) => {
   for (let i = 1; i <= n; i++) {
     plays.push({
       id: i, timestamp: { start: i * 3, end: i * 3 + 4 }, notes: '',
-      tags: { unit: 'offense', down: '1', distance: '10', formation: 'Ace', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} },
+      tags: { unit: 'offense', down: '1', distance: '10', formationFamily: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} },
       annotations: [],
     });
   }
@@ -112,7 +112,7 @@ await page.evaluate(() => document.querySelector('[data-native-film-room] thead 
 
 console.log('\n== 5. A wholesale game switch never strands the window past the end of a shorter list ==');
 r = await page.evaluate(async () => {
-  const mk = id => ({ id, timestamp: { start: id * 3, end: id * 3 + 4 }, notes: '', tags: { unit: 'offense', down: '1', distance: '10', formation: 'Ace', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} }, annotations: [] });
+  const mk = id => ({ id, timestamp: { start: id * 3, end: id * 3 + 4 }, notes: '', tags: { unit: 'offense', down: '1', distance: '10', formationFamily: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} }, annotations: [] });
   const wrap = document.querySelector('.gi-film-table-wrap');
   wrap.scrollTop = wrap.scrollHeight * 0.8;
   wrap.dispatchEvent(new Event('scroll'));
@@ -139,7 +139,7 @@ await page.evaluate(async (n) => {
   for (let i = 1; i <= n; i++) {
     plays.push({
       id: i, timestamp: { start: i * 3, end: i * 3 + 4 }, notes: '',
-      tags: { unit: 'offense', down: '1', distance: '10', formation: 'Ace', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} },
+      tags: { unit: 'offense', down: '1', distance: '10', formationFamily: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} },
       annotations: [],
     });
   }

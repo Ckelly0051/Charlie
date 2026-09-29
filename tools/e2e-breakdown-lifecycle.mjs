@@ -27,9 +27,9 @@ let state = await page.evaluate(async () => {
   await app.storage.createSeason({ name: 'S5d Route', team: 'Mavericks', year: '2026' });
   const game = app.storage.seasonStore.activeGame();
   game.plays = [
-    { id: 1, timestamp: { start: 0, end: 6 }, tags: { unit: 'offense', down: '1', distance: '10', formation: 'I-Form', backfield: 'I', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
-    { id: 2, timestamp: { start: 8, end: 14 }, tags: { unit: 'defense', down: '2', distance: '4', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
-    { id: 3, timestamp: { start: 16, end: 22 }, tags: { unit: 'offense', down: '3', distance: '2', formation: 'Split Back', backfield: 'Split', runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '12', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
+    { id: 1, timestamp: { start: 0, end: 6 }, tags: { unit: 'offense', down: '1', distance: '10', formationFamily: 'I-Form', backfield: 'I', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
+    { id: 2, timestamp: { start: 8, end: 14 }, tags: { unit: 'defense', down: '2', distance: '4', formationFamily: 'Spread', qbAlignment: 'Shotgun', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
+    { id: 3, timestamp: { start: 16, end: 22 }, tags: { unit: 'offense', down: '3', distance: '2', formationFamily: 'Split Back', backfield: 'Split', runPass: 'Run', playType: 'Run Outside', result: 'Touchdown', yardage: '12', players: {}, grades: {}, custom: [] }, notes: '', analysis: null },
   ];
   app.tagger.plays = game.plays;
   app.tagger.nextId = 4;

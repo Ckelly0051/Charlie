@@ -3,9 +3,11 @@ import '../css/native-play-import.css';
 
 const FIELD_OPTIONS = [
   ['unit', 'Unit'], ['quarter', 'Quarter'], ['driveNumber', 'Drive'], ['down', 'Down'], ['distance', 'Distance'],
-  ['fieldSide', 'Field Side'], ['yardLine', 'Yard Line'], ['formation', 'Formation'], ['qbAlignment', 'QB Alignment'],
+  ['fieldSide', 'Field Side'], ['yardLine', 'Yard Line'], ['formationFamily', 'Formation Family'], ['receiverSet', 'Receiver Set'], ['qbAlignment', 'QB Alignment'],
   ['backfield', 'Backfield'], ['strength', 'Strength'], ['personnel', 'Personnel'], ['motion', 'Motion'],
-  ['runPass', 'Run / Pass'], ['playType', 'Play Type'], ['playDir', 'Play Direction'], ['defFront', 'Defensive Front'],
+  ['motionStart', 'Motion Starts'], ['motionEnd', 'Motion Ends'],
+  ['runPass', 'Run / Pass'], ['playType', 'Play Type'], ['playDir', 'Play Direction'], ['gap', 'Gap'],
+  ['rpoRead', 'RPO Read'], ['rpoDefender', 'RPO Defender'], ['rpoDecision', 'RPO Decision'], ['qbRun', 'QB Run Type'], ['defFront', 'Defensive Front'],
   ['coverage', 'Coverage Call'], ['coverageFamily', 'Coverage Family'], ['blitz', 'Blitz'], ['result', 'Result'],
   ['yardage', 'Yardage'], ['hash', 'Hash'], ['ballCarrier', 'Ball Carrier'], ['passer', 'Passer'],
   ['receiver', 'Receiver'], ['tackler', 'Tackler'], ['penaltiesJson', 'Structured Penalties'],

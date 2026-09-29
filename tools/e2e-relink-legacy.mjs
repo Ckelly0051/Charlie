@@ -38,7 +38,7 @@ const rep = await page.evaluate(async () => {
     const mkFile = rel => { const f = new File([new Uint8Array(16)], rel.split('/').pop(), { type: 'video/mp4' }); Object.defineProperty(f, 'webkitRelativePath', { value: rel }); return f; };
     const play = (row, i) => ({
       id: i + 1, timestamp: { start: i, end: i + 10 },
-      tags: { unit: 'offense', formation: `Saved ${i + 1}`, playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', custom: [] },
+      tags: { unit: 'offense', formationFamily: `Saved ${i + 1}`, playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', custom: [] },
       annotations: [], notes: `tagged-${i + 1}`, clipName: row.name || '', ...(row.path ? { clipPath: row.path } : {}), clipId: row.clipId ?? (900 + i)
     });
     const run = async (saved, files, choice = 'matched') => {

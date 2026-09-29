@@ -25,7 +25,7 @@ await page.setViewport({ width: 1440, height: 900 });
 // A coach arriving with a saved custom All plays set (the current per-program key).
 await page.evaluateOnNewDocument(() => {
   if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem('ffa_film_room_columns_default', JSON.stringify({ all: ['sit', 'formation', 'defFront', 'result'] }));
+    localStorage.setItem('ffa_film_room_columns_default', JSON.stringify({ all: ['sit', 'formationFamily', 'defFront', 'result'] }));
     sessionStorage.setItem('seeded', '1');
   }
 });
@@ -39,7 +39,7 @@ const seed = () => page.evaluate(async () => {
   const mk = (id, unit, extra) => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [],
     tags: Object.assign({ unit, down: '1', distance: '10', result: 'Gain', yardage: '4', custom: [], players: {}, grades: {} }, extra) });
   g.plays = [
-    mk(1, 'offense', { formation: 'Ace', playType: 'Run Inside', runPass: 'Run' }),
+    mk(1, 'offense', { formationFamily: 'I-Form', playType: 'Run Inside', runPass: 'Run' }),
     mk(2, 'defense', { defFront: '4-3', coverage: 'Cover 3', runPass: 'Pass', playType: 'Short Pass' }),
     mk(3, 'special', {}),
   ];
@@ -61,17 +61,17 @@ console.log('\n== 1. The unit filter picks the column set ==');
 await seed(); await settle(page);
 const PG = await page.evaluate(() => { const P = window.app.playGrid.constructor; return { default: P.PRESETS.default, offense: P.PRESETS.offense, defense: P.PRESETS.defense, special: P.PRESETS.special }; });
 let v = await view();
-ok(v.scope === 'all' && JSON.stringify(v.cols) === JSON.stringify(['sit', 'formation', 'defFront', 'result']),
+ok(v.scope === 'all' && JSON.stringify(v.cols) === JSON.stringify(['sit', 'formationFamily', 'defFront', 'result']),
   'All plays shows the saved custom column list', JSON.stringify(v));
 await filter('offense'); v = await view();
 ok(v.scope === 'offense' && JSON.stringify(v.cols) === JSON.stringify(PG.offense), 'Offense shows the offense set (seeded from its preset)', JSON.stringify(v.cols));
 await filter('defense'); v = await view();
-ok(v.scope === 'defense' && JSON.stringify(v.cols) === JSON.stringify(PG.defense) && v.heads.includes('Front') && !v.heads.includes('Formation'),
+ok(v.scope === 'defense' && JSON.stringify(v.cols) === JSON.stringify(PG.defense) && v.heads.includes('Front') && !v.heads.includes('Family'),
   'Defense shows the defense set', JSON.stringify(v.heads));
 await filter('special'); v = await view();
 ok(v.scope === 'special' && JSON.stringify(v.cols) === JSON.stringify(PG.special), 'Special Teams shows its own set', JSON.stringify(v.cols));
 await page.evaluate(() => window.app.nativeFilmRoom.clearFilters()); await settle(page); v = await view();
-ok(v.scope === 'all' && v.cols.includes('formation'), 'clearing the filter returns to All plays', JSON.stringify(v));
+ok(v.scope === 'all' && v.cols.includes('formationFamily'), 'clearing the filter returns to All plays', JSON.stringify(v));
 
 console.log('\n== 2. Editing columns changes only the set on screen ==');
 await filter('defense');
@@ -120,10 +120,10 @@ await page.evaluate(() => window.app.nativeFilmRoom.clearFilters()); await settl
 const mixed = await page.evaluate(() => {
   const cell = (id, k) => document.querySelector(`[data-cell="${id}:${k}"]`);
   return { frontOnOffense: cell(1, 'defFront')?.textContent.trim(), frontOnDefense: cell(2, 'defFront')?.textContent.trim(),
-    formationOnDefense: cell(2, 'formation')?.textContent.trim(), formationOnOffense: cell(1, 'formation')?.textContent.trim(),
-    frontOnSpecial: cell(3, 'defFront')?.textContent.trim(), formationOnSpecial: cell(3, 'formation')?.textContent.trim() };
+    formationOnDefense: cell(2, 'formationFamily')?.textContent.trim(), formationOnOffense: cell(1, 'formationFamily')?.textContent.trim(),
+    frontOnSpecial: cell(3, 'defFront')?.textContent.trim(), formationOnSpecial: cell(3, 'formationFamily')?.textContent.trim() };
 });
-ok(mixed.frontOnOffense === '--' && mixed.formationOnDefense === 'Not charted' && mixed.frontOnDefense === '4-3' && mixed.formationOnOffense === 'Ace'
+ok(mixed.frontOnOffense === '--' && mixed.formationOnDefense === 'Not charted' && mixed.frontOnDefense === '4-3' && mixed.formationOnOffense === 'I-Form'
   && mixed.frontOnSpecial === '' && mixed.formationOnSpecial === '',
   'look cells show on offense and defense rows (faced looks included) and are blank only on Special Teams rows', JSON.stringify(mixed));
 const opens = async id => {
@@ -163,12 +163,12 @@ ok(JSON.stringify(other.all) === JSON.stringify(PG.default),
 const bad = await page.evaluate(() => {
   const grid = window.app.playGrid, real = localStorage.getItem('ffa_active_team_id');
   localStorage.setItem('ffa_active_team_id', 'team-c');
-  localStorage.setItem('ffa_film_room_columns_team-c', JSON.stringify({ all: ['nope'], defense: 'x', offense: ['sit', 'bogus', 'formation'] }));
+  localStorage.setItem('ffa_film_room_columns_team-c', JSON.stringify({ all: ['nope'], defense: 'x', offense: ['sit', 'bogus', 'formationFamily'] }));
   const all = grid._colSets().all, off = grid._colSets().offense, def = grid._colSets().defense;
   if (real == null) localStorage.removeItem('ffa_active_team_id'); else localStorage.setItem('ffa_active_team_id', real);
   return { all, off, def };
 });
-ok(bad.off.join() === 'sit,formation' && bad.def.join() === PG.defense.join() && bad.all.length > 0,
+ok(bad.off.join() === 'sit,formationFamily' && bad.def.join() === PG.defense.join() && bad.all.length > 0,
   'unknown columns are dropped and an unusable set falls back', JSON.stringify(bad));
 
 ok(errors.length === 0, 'no page errors', errors.slice(0, 3).join(' | '));

@@ -330,7 +330,7 @@ r = await page.evaluate(() => {
   // The tendency line is a DISPLAY surface driven by grid.nativeSnapshot() --
   // read the exact same computed value the native table header renders,
   // rather than parsing a classic .pg-tend row that no longer exists.
-  const formTend = grid.nativeSnapshot().columns.find(c => c.key === 'formation')?.tendency || '';
+  const formTend = grid.nativeSnapshot().columns.find(c => c.key === 'formationFamily')?.tendency || '';
   const counts = {};
   let total = 0;
   // E3b: the tendency line is a DISPLAY surface and reads the PROJECTED formation,
@@ -339,7 +339,7 @@ r = await page.evaluate(() => {
   // omitted rather than counted as a "Shotgun" formation.
   const SE = window.app.stats.constructor;
   window.app.tagger.plays.forEach(p => {
-    const vals = String(SE.projField(p, 'formation') || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+    const vals = String(SE.projField(p, 'formationFamily') || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (!vals.length) return;
     total++;                                   // ONE per eligible play (§6.5)
     vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
@@ -352,18 +352,19 @@ r = await page.evaluate(() => {
   //   eligible plays = 3, Wing-T = 3  ->  "Wing-T 100%"
   // The token-counting bug yields 4 tokens -> "Wing-T 75%", so this case FAILS on
   // the old math and is the failing-first pin for the denominator.
-  const mk = (id, formation) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'offense', formation } });
-  const multi = [mk(1, 'Wing-T + Trips'), mk(2, 'Wing-T'), mk(3, 'Wing-T')];
-  const multiTend = grid._tendency({ key: 'formation', type: 'enum' }, multi);
+  // (Run on Play Type, the multi-select column left; a Family is one value.)
+  const mk = (id, playType) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'offense', playType } });
+  const multi = [mk(1, 'Run Inside + RPO'), mk(2, 'Run Inside'), mk(3, 'Run Inside')];
+  const multiTend = grid._tendency({ key: 'playType', type: 'enum' }, multi);
   // Top value on a SUBSET: Trips is on 2 of 3 eligible plays -> "Trips 67%".
   // (Token math would be 2/4 = 50%, so this also discriminates.)
-  const subset = [mk(1, 'Wing-T + Trips'), mk(2, 'Trips'), mk(3, 'Ace')];
-  const subsetTend = grid._tendency({ key: 'formation', type: 'enum' }, subset);
+  const subset = [mk(1, 'Run Inside + RPO'), mk(2, 'RPO'), mk(3, 'Screen')];
+  const subsetTend = grid._tendency({ key: 'playType', type: 'enum' }, subset);
   return { text: formTend, expected, multiTend, subsetTend };
 });
 ok(r.text === r.expected, 'formation tendency = top value + share', JSON.stringify(r));
-ok(r.multiTend === 'Wing-T 100%', 'tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)', JSON.stringify(r.multiTend));
-ok(r.subsetTend === 'Trips 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
+ok(r.multiTend === 'Run Inside 100%', 'tendency denominator counts ELIGIBLE PLAYS, not tokens (multi-value)', JSON.stringify(r.multiTend));
+ok(r.subsetTend === 'RPO 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
 console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across ALL SIX projected columns ==');
 // Review finding (E3b): the P3 contract says "the tendency line must use the
@@ -431,13 +432,13 @@ r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const mk = (id, tags) => ({ id, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
   const cell = (p, key) => grid._cellText(p, PG.COLUMNS.find(c => c.key === key));
-  const alignOnly = mk(1, { formation: '', qbAlignment: 'Under Center' });   // no formation charted
-  const structural = mk(2, { formation: 'Trips', qbAlignment: 'Shotgun' });
+  const alignOnly = mk(1, { formationFamily: '', qbAlignment: 'Under Center' });   // no formation charted
+  const structural = mk(2, { formationFamily: 'Spread', qbAlignment: 'Shotgun' });
   const defFam = mk(3, { unit: 'defense', coverage: 'Cover 3', coverageFamily: 'Zone' });
   return {
-    alignFormation: cell(alignOnly, 'formation'),
+    alignFormation: cell(alignOnly, 'formationFamily'),
     alignQb: cell(alignOnly, 'qbAlignment'),
-    structFormation: cell(structural, 'formation'),
+    structFormation: cell(structural, 'formationFamily'),
     structQb: cell(structural, 'qbAlignment'),
     covFamily: cell(defFam, 'coverageFamily'),
     // E4-2: these columns are now genuinely editable (behavior proven in the
@@ -451,7 +452,7 @@ r = await page.evaluate(() => {
 ok(/Not charted/.test(r.alignFormation) && !/Shotgun/.test(r.alignFormation) && !/Unknown/.test(r.alignFormation),
   'alignment-only play: Formation cell reads "Not charted" (never Shotgun/Unknown)', JSON.stringify(r.alignFormation));
 ok(/Under Center/.test(r.alignQb), 'QB Alignment column shows the stored alignment', JSON.stringify(r.alignQb));
-ok(/Trips/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
+ok(/Spread/.test(r.structFormation) && !/Shotgun/.test(r.structFormation),
   'Formation cell shows the formation only', JSON.stringify(r.structFormation));
 ok(/Shotgun/.test(r.structQb), 'QB Alignment column shows its own field beside the formation', JSON.stringify(r.structQb));
 ok(/Zone/.test(r.covFamily), 'Coverage Family column shows the stored family', JSON.stringify(r.covFamily));
@@ -522,7 +523,7 @@ r = await page.evaluate((id) => {
 ok(r.down === '3' && r.dist === '8' && /3rd & 8/.test(r.cell), 'Dn & Dist editor commits both fields', JSON.stringify(r));
 
 console.log('\n== 8d. v2: keyboard navigation ==');
-await page.evaluate(() => document.querySelector('[data-native-film-room] [data-cell$=":formation"]')?.click());
+await page.evaluate(() => document.querySelector('[data-native-film-room] [data-cell$=":formationFamily"]')?.click());
 await frame();
 r = await page.evaluate(async () => {
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
@@ -540,7 +541,7 @@ r = await page.evaluate(async () => {
   return { id0, f1, popOpen, popClosed: !document.querySelector('.gi-film-cell-editor'),
            selectedFollows: f1 ? window.app.tagger.currentPlayId === f1.playId : false };
 });
-ok(!!r.f1 && r.f1.playId !== r.id0 && r.f1.colKey === 'formation', 'ArrowDown moves focus to next play, same column', JSON.stringify(r.f1));
+ok(!!r.f1 && r.f1.playId !== r.id0 && r.f1.colKey === 'formationFamily', 'ArrowDown moves focus to next play, same column', JSON.stringify(r.f1));
 ok(r.selectedFollows, 'video selection follows vertical focus moves', JSON.stringify(r));
 ok(r.popOpen && r.popClosed, 'Enter opens editor, Esc closes', JSON.stringify(r));
 
@@ -798,7 +799,7 @@ if (r.skip) {
 console.log('\n== 8e. Formation editor seed; a Formation commit writes ONLY the formation ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid, PG = grid.constructor;
-  const col = PG.COLUMNS.find(c => c.key === 'formation');
+  const col = PG.COLUMNS.find(c => c.key === 'formationFamily');
   const mk = (tags) => ({ id: 9001, timestamp: { start: 0, end: 1 }, notes: '', tags: Object.assign({ unit: 'offense' }, tags) });
   const out = {};
 
@@ -806,14 +807,14 @@ r = await page.evaluate(() => {
   // exact non-UI function the JSX calls to construct the popover's initial state.
   const openOn = (formationValue) => {
     const real = grid.tagger.plays[0];
-    const saved = real.tags.formation;
-    real.tags.formation = formationValue;
-    const model = window.app.nativeFilmRoom.editor(real.id, 'formation');
+    const saved = real.tags.formationFamily;
+    real.tags.formationFamily = formationValue;
+    const model = window.app.nativeFilmRoom.editor(real.id, 'formationFamily');
     const active = model.col.multi
       ? String(model.value || '').split(/\s*\+\s*/).filter(Boolean)
       : (model.value ? [model.value] : []);
     const res = { opened: !!model, active, offered: model.options };
-    real.tags.formation = saved;
+    real.tags.formationFamily = saved;
     return res;
   };
   const blankOpen = openOn('');
@@ -821,31 +822,31 @@ r = await page.evaluate(() => {
   out.seedBlankActive = blankOpen.active;                  // must be EMPTY
   // A seen alignment value must still not reach the Formation picker.
   grid._optionCache = {};
-  out.optsHaveAlignment = blankOpen.offered.concat(grid._options(col, ['Shotgun', 'Trips'])).some(o => ['Under Center', 'Shotgun', 'Pistol'].includes(o));
-  out.seedMultiActive = openOn('Trips + Bunch').active;     // both values
+  out.optsHaveAlignment = blankOpen.offered.concat(grid._options(col, ['Shotgun', 'Spread'])).some(o => ['Under Center', 'Shotgun', 'Pistol'].includes(o));
+  out.seedMultiActive = openOn('Spread').active;     // both values
 
   // (b) a Formation commit leaves the stored QB alignment alone.
-  const p1 = mk({ formation: '', qbAlignment: 'Under Center' });
-  grid._applyEdit(p1, col, 'Trips');
-  out.kept = { formation: p1.tags.formation, qbAlignment: p1.tags.qbAlignment };
-  const p2 = mk({ formation: 'Trips', qbAlignment: 'Pistol' });
-  grid._applyEdit(p2, col, 'Bunch');
-  out.explicitWins = { formation: p2.tags.formation, qbAlignment: p2.tags.qbAlignment };
+  const p1 = mk({ formationFamily: '', qbAlignment: 'Under Center' });
+  grid._applyEdit(p1, col, 'Spread');
+  out.kept = { formationFamily: p1.tags.formationFamily, qbAlignment: p1.tags.qbAlignment };
+  const p2 = mk({ formationFamily: 'Spread', qbAlignment: 'Pistol' });
+  grid._applyEdit(p2, col, 'Wing-T');
+  out.explicitWins = { formationFamily: p2.tags.formationFamily, qbAlignment: p2.tags.qbAlignment };
   // (c) a play with no alignment gains none (no invention).
-  const p3 = mk({ formation: 'Ace' });
-  grid._applyEdit(p3, col, 'Trips');
-  out.noInvention = { formation: p3.tags.formation, qbAlignment: p3.tags.qbAlignment || '' };
+  const p3 = mk({ formationFamily: 'I-Form' });
+  grid._applyEdit(p3, col, 'Spread');
+  out.noInvention = { formationFamily: p3.tags.formationFamily, qbAlignment: p3.tags.qbAlignment || '' };
   // (d) editing a DIFFERENT field leaves the look alone.
-  const p4 = mk({ formation: 'Ace', qbAlignment: '', playType: '' });
+  const p4 = mk({ formationFamily: 'I-Form', qbAlignment: '', playType: '' });
   grid._applyEdit(p4, PG.COLUMNS.find(c => c.key === 'playType'), 'Run Inside');
-  out.otherField = { formation: p4.tags.formation, qbAlignment: p4.tags.qbAlignment || '' };
+  out.otherField = { formationFamily: p4.tags.formationFamily, qbAlignment: p4.tags.qbAlignment || '' };
 
   // (e) building the direct editor() model writes NOTHING.
   const real = grid.tagger.plays[0];
   if (real) {
     const selBefore = grid.tagger.currentPlayId;
     const before5 = JSON.stringify(real.tags);
-    const model = window.app.nativeFilmRoom.editor(real.id, 'formation');
+    const model = window.app.nativeFilmRoom.editor(real.id, 'formationFamily');
     out.editorOpened = !!model;
     out.openCancelUnchanged = JSON.stringify(real.tags) === before5;
     if (selBefore != null) grid.tagger.selectPlay(selBefore);
@@ -855,16 +856,16 @@ r = await page.evaluate(() => {
 ok(r.blankOpened, 'seed: the Formation editor model builds (seed assertions are not vacuous)', JSON.stringify(r.blankOpened));
 ok(Array.isArray(r.seedBlankActive) && r.seedBlankActive.length === 0,
   'seed: a play with no formation seeds the REAL editor model with NO active value', JSON.stringify(r.seedBlankActive));
-ok(JSON.stringify(r.seedMultiActive) === JSON.stringify(['Trips', 'Bunch']),
-  'seed: a multi-value formation activates each of its values in the real editor model', JSON.stringify(r.seedMultiActive));
+ok(JSON.stringify(r.seedMultiActive) === JSON.stringify(['Spread']),
+  'seed: a stored family is the one active value in the real editor model', JSON.stringify(r.seedMultiActive));
 ok(!r.optsHaveAlignment, 'the Formation picker offers NO QB alignments', JSON.stringify(r.optsHaveAlignment));
-ok(r.kept.formation === 'Trips' && r.kept.qbAlignment === 'Under Center',
+ok(r.kept.formationFamily === 'Spread' && r.kept.qbAlignment === 'Under Center',
   'a Formation commit writes the formation and leaves the QB alignment as stored', JSON.stringify(r.kept));
-ok(r.explicitWins.formation === 'Bunch' && r.explicitWins.qbAlignment === 'Pistol',
+ok(r.explicitWins.formationFamily === 'Wing-T' && r.explicitWins.qbAlignment === 'Pistol',
   'an explicit qbAlignment is never overwritten by a Formation commit', JSON.stringify(r.explicitWins));
-ok(r.noInvention.formation === 'Trips' && r.noInvention.qbAlignment === '',
+ok(r.noInvention.formationFamily === 'Spread' && r.noInvention.qbAlignment === '',
   'no alignment is INVENTED when the play never had one', JSON.stringify(r.noInvention));
-ok(r.otherField.formation === 'Ace' && r.otherField.qbAlignment === '',
+ok(r.otherField.formationFamily === 'I-Form' && r.otherField.qbAlignment === '',
   'editing a DIFFERENT field leaves the look alone', JSON.stringify(r.otherField));
 ok(r.editorOpened, 'the Formation editor model DOES build (so the no-write check is not vacuous)', JSON.stringify(r.editorOpened));
 ok(r.openCancelUnchanged, 'building the editor model writes NOTHING', JSON.stringify(r.openCancelUnchanged));
@@ -933,8 +934,8 @@ r = await page.evaluate(() => {
   };
   return {
     prereq,
-    formation: runField('formation', 'qbAlignment', 'Ace', 'Under Center', 'Trips', 'offense'),
-    qbAlignment: runField('qbAlignment', 'formation', 'Shotgun', 'Trips', 'Pistol', 'offense'),
+    formationFamily: runField('formationFamily', 'qbAlignment', 'I-Form', 'Under Center', 'Spread', 'offense'),
+    qbAlignment: runField('qbAlignment', 'formationFamily', 'Shotgun', 'Spread', 'Pistol', 'offense'),
     backfield: runField('backfield', 'qbAlignment', 'I', 'Pistol', 'Empty', 'offense'),
     coverage: runField('coverage', 'coverageFamily', 'Cover 1', 'Man', 'Cover 3', 'defense'),
     coverageFamily: runField('coverageFamily', 'coverage', 'Man', 'Cover 3', 'Zone', 'defense'),
@@ -943,8 +944,8 @@ r = await page.evaluate(() => {
 ok(r.prereq.hasHistory, '8g prereq: a real HistoryManager is present', JSON.stringify(r.prereq));
 ok(r.prereq.playCount > 0, '8g prereq: real plays exist to edit', JSON.stringify(r.prereq));
 for (const [name, c, oldVal, otherVal, pick] of [
-  ['Formation', r.formation, 'Ace', 'Under Center', 'Trips'],
-  ['QB Alignment', r.qbAlignment, 'Shotgun', 'Trips', 'Pistol'],
+  ['Formation', r.formationFamily, 'I-Form', 'Under Center', 'Spread'],
+  ['QB Alignment', r.qbAlignment, 'Shotgun', 'Spread', 'Pistol'],
   ['Backfield', r.backfield, 'I', 'Pistol', 'Empty'],
   ['Coverage', r.coverage, 'Cover 1', 'Man', 'Cover 3'],
   ['Coverage Family', r.coverageFamily, 'Man', 'Cover 3', 'Zone'],
@@ -1028,7 +1029,7 @@ r = await page.evaluate(async () => {
   const grid = window.app.playGrid, PG = grid.constructor;
   const tagger = window.app.tagger;
   const parityId = 9201;
-  const parityPlay = { id: parityId, timestamp: { start: parityId, end: parityId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formation: 'Wing-T', qbAlignment: '' } };
+  const parityPlay = { id: parityId, timestamp: { start: parityId, end: parityId + 5 }, notes: '', tags: { unit: 'offense', down: '', distance: '', playType: '', result: '', yardage: '', players: {}, grades: {}, custom: [], formationFamily: 'Wing-T', qbAlignment: '' } };
   tagger.plays.push(parityPlay);
   grid._applyEdit(parityPlay, PG.COLUMNS.find(c => c.key === 'qbAlignment'), 'Under Center');
   const realHost = document.querySelector('[data-breakdown-tagging-host]');
@@ -1091,13 +1092,13 @@ r = await page.evaluate(() => {
     return { shownBefore, entries, afterCommit, undone, redone, revisitCell };
   };
   return {
-    qbAlignment: runClear('qbAlignment', 'Shotgun', 'formation', 'Ace', 'offense', 9202),
-    backfield: runClear('backfield', 'Empty', 'formation', 'Wing-T', 'offense', 9203),
+    qbAlignment: runClear('qbAlignment', 'Shotgun', 'formationFamily', 'I-Form', 'offense', 9202),
+    backfield: runClear('backfield', 'Empty', 'formationFamily', 'Wing-T', 'offense', 9203),
     coverageFamily: runClear('coverageFamily', 'Man', 'coverage', 'Cover 1', 'defense', 9204),
   };
 });
 for (const [name, c, stored, otherVal] of [
-  ['QB Alignment', r.qbAlignment, 'Shotgun', 'Ace'],
+  ['QB Alignment', r.qbAlignment, 'Shotgun', 'I-Form'],
   ['Backfield', r.backfield, 'Empty', 'Wing-T'],
   ['Coverage Family', r.coverageFamily, 'Man', 'Cover 1'],
 ]) {
@@ -1135,12 +1136,12 @@ r = await page.evaluate(async () => {
   const mk = (id, unit, tags) => ({ id, timestamp: { start: id, end: id + 5 }, notes: '', tags: Object.assign({ unit }, tags), __gid: gameId });
   const plays = [
     // OFFENSE -- formation (incl. multi-value), qbAlignment, backfield, strength.
-    mk(9001, 'offense', { formation: 'Trips',              qbAlignment: 'Shotgun',      strength: 'Right',   playType: 'Short Pass' }),
-    mk(9002, 'offense', { formation: 'Bunch',              qbAlignment: 'Shotgun',                              playType: 'Deep Pass' }),
-    mk(9003, 'offense', { formation: 'Ace',                 qbAlignment: 'Under Center', backfield: 'I', strength: 'Balanced', playType: 'Run Inside' }),
-    mk(9004, 'offense', { formation: 'Ace',                                                              playType: 'Run Inside' }), // no alignment/backfield/strength charted -> INELIGIBLE for those three
-    mk(9009, 'offense', { formation: 'Trips + Bunch',                                     strength: 'Left',   playType: 'Screen' }),      // MULTI-structural: contributes to BOTH Trips and Bunch groups
-    mk(9010, 'offense', { formation: '',                                     backfield: 'Empty',             playType: 'Screen' }),       // formation "Not charted" but backfield still eligible
+    mk(9001, 'offense', { formationFamily: 'Spread',              qbAlignment: 'Shotgun',      strength: 'Right',   playType: 'Short Pass' }),
+    mk(9002, 'offense', { formationFamily: 'Wing-T',              qbAlignment: 'Shotgun',                              playType: 'Deep Pass' }),
+    mk(9003, 'offense', { formationFamily: 'I-Form',                 qbAlignment: 'Under Center', backfield: 'I', strength: 'Balanced', playType: 'Run Inside' }),
+    mk(9004, 'offense', { formationFamily: 'I-Form',                                                              playType: 'Run Inside' }), // no alignment/backfield/strength charted -> INELIGIBLE for those three
+    mk(9009, 'offense', { formationFamily: 'Spread',                                     strength: 'Left',   playType: 'Screen' }),      // MULTI-structural: contributes to BOTH Trips and Bunch groups
+    mk(9010, 'offense', { formationFamily: '',                                     backfield: 'Empty',             playType: 'Screen' }),       // formation "Not charted" but backfield still eligible
     // DEFENSE -- coverage (Coverage Call) + coverageFamily.
     mk(9005, 'defense', { coverage: '',         coverageFamily: 'Man', defFront: '4-3' }),                           // family only: Coverage Call ineligible
     mk(9006, 'defense', { coverage: 'Cover 2',  coverageFamily: 'Zone', defFront: '4-3' }),
@@ -1149,7 +1150,7 @@ r = await page.evaluate(async () => {
   ];
 
   tagger.plays = plays;
-  grid.cols = ['sit', 'formation', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily', 'playType'];
+  grid.cols = ['sit', 'formationFamily', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily', 'playType'];
   grid.selected.clear();
   grid._notifyNative();
   await raf2();
@@ -1181,7 +1182,7 @@ r = await page.evaluate(async () => {
   // through the rendered table, so a value the renderer silently DROPS still
   // shows up here and surfaces as a set mismatch instead of nothing to
   // compare against.
-  const OFF_COLS = new Set(['formation', 'qbAlignment', 'backfield', 'strength']);
+  const OFF_COLS = new Set(['formationFamily', 'qbAlignment', 'backfield', 'strength']);
   const isOff = p => (p.tags.unit || 'offense') === 'offense';
   const isDef = p => p.tags.unit === 'defense';
   const expectedValues = (colKey, multi) => {
@@ -1197,7 +1198,7 @@ r = await page.evaluate(async () => {
   };
 
   const COLS = [
-    { key: 'formation', cut: 'formation', multi: true },
+    { key: 'formationFamily', cut: 'formationFamily', multi: false },
     { key: 'qbAlignment', cut: 'qbAlignment', multi: false },
     { key: 'backfield', cut: 'backfield', multi: false },
     { key: 'strength', cut: 'strength', multi: false },
@@ -1249,7 +1250,7 @@ r = await page.evaluate(async () => {
 });
 
 const setEq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-for (const key of ['formation', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily']) {
+for (const key of ['formationFamily', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily']) {
   const c = r.perCol[key];
   ok(c.renderedValues.length > 0, `${key}: the synthetic fixture actually renders a non-empty group set (not a vacuous pass)`, JSON.stringify(c.rendered));
   ok(setEq(c.rendered, c.registry), `${key}: rendered row groups (composite refs) == AnalyticsRegistry.matchingRefs, per value`, JSON.stringify({ rendered: c.rendered, registry: c.registry }));
@@ -1257,9 +1258,9 @@ for (const key of ['formation', 'qbAlignment', 'backfield', 'strength', 'coverag
 }
 ok(setEq(r.perCol.qbAlignment.rendered['Shotgun'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9002']),
   'both Shotgun plays (9001, 9002) land in the SAME rendered Shotgun group -- composite refs', JSON.stringify(r.perCol.qbAlignment.rendered['Shotgun']));
-ok(setEq(r.perCol.formation.rendered['Trips'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9009']) &&
-   setEq(r.perCol.formation.rendered['Bunch'], ['e3b-p3-fixture::9002', 'e3b-p3-fixture::9009']),
-  'a MULTI-structural formation play (9009, "Trips + Bunch") lands in BOTH rendered groups, alongside their single-value siblings', JSON.stringify({ trips: r.perCol.formation.rendered['Trips'], bunch: r.perCol.formation.rendered['Bunch'] }));
+ok(setEq(r.perCol.formationFamily.rendered['Spread'], ['e3b-p3-fixture::9001', 'e3b-p3-fixture::9009']) &&
+   setEq(r.perCol.formationFamily.rendered['Wing-T'], ['e3b-p3-fixture::9002']),
+  'each family play lands in exactly its own rendered group (a single value: a play never appears in two)', JSON.stringify({ trips: r.perCol.formationFamily.rendered['Spread'], bunch: r.perCol.formationFamily.rendered['Wing-T'] }));
 ok(r.shotgunRefs.length > 0 && setEq(r.watchedRefs, r.shotgunRefs.slice().sort()), 'Watch receives EXACTLY the COMPOSITE refs of the selected rendered row group, no more, no fewer', JSON.stringify({ selected: r.shotgunRefs, watched: r.watchedRefs }));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

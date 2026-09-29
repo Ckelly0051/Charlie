@@ -67,7 +67,7 @@ await page.evaluate(async () => {
     return { id, timestamp: { start: id * 6, end: id * 6 + 5 }, notes: '',
       clipName: `IMG_${6600 + id}`, clipPath: `IMG_${6600 + id}`,
       tags: { unit, down: String((id % 4) + 1), distance: '10', quarter: `Q${(id % 4) + 1}`,
-        driveNumber: String(Math.ceil(id / 4)), formation: 'I-Form', backfield: 'I',
+        driveNumber: String(Math.ceil(id / 4)), formationFamily: 'I-Form', backfield: 'I',
         runPass: unit === 'offense' ? 'Run' : '', playType: unit === 'offense' ? 'Run Inside' : '',
         defFront: unit === 'defense' ? 'Maverick' : '', coverage: unit === 'defense' ? 'Cover 3' : '',
         stType: unit === 'special' ? 'Punt' : '', result: 'Gain', yardage: '6',

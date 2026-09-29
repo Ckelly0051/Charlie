@@ -23,8 +23,8 @@ const res = await page.evaluate(async () => {
 
   // --- Scenario 1: root mismatch + same basename in two subfolders ---
   const plays1 = [
-    { id: 1, timestamp: { start: 0, end: 5 }, clipName: '0001', clipPath: 'Game7/endzone/0001', clipId: 99, tags: { unit: 'offense', formation: 'ENDZONE', custom: [] } },
-    { id: 2, timestamp: { start: 0, end: 5 }, clipName: '0001', clipPath: 'Game7/sideline/0001', clipId: 98, tags: { unit: 'offense', formation: 'SIDELINE', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 5 }, clipName: '0001', clipPath: 'Game7/endzone/0001', clipId: 99, tags: { unit: 'offense', formationFamily: 'ENDZONE', custom: [] } },
+    { id: 2, timestamp: { start: 0, end: 5 }, clipName: '0001', clipPath: 'Game7/sideline/0001', clipId: 98, tags: { unit: 'offense', formationFamily: 'SIDELINE', custom: [] } },
   ];
   pl.reset();
   await pl.rehydrateFromDisk([
@@ -37,7 +37,7 @@ const res = await page.evaluate(async () => {
     clipCount: pl.clips.length,
     ezPlay: ez && ez.playId, slPlay: sl && sl.playId,
     p1Clip: plays1[0].clipId, p2Clip: plays1[1].clipId,
-    p1Form: plays1[0].tags.formation, p2Form: plays1[1].tags.formation,
+    p1Form: plays1[0].tags.formationFamily, p2Form: plays1[1].tags.formationFamily,
     p1Path: plays1[0].clipPath, p2Path: plays1[1].clipPath,
   };
 
@@ -57,13 +57,13 @@ const res = await page.evaluate(async () => {
 
   // --- Scenario 3: Windows renamed copy uses the shared normalized fallback ---
   const plays3 = [
-    { id: 1, timestamp: { start: 0, end: 5 }, clipName: 'Play 12', clipId: 77, tags: { unit: 'offense', formation: 'WING-T', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 5 }, clipName: 'Play 12', clipId: 77, tags: { unit: 'offense', formationFamily: 'WING-T', custom: [] } },
   ];
   pl.reset();
   await pl.rehydrateFromDisk([
     { name: 'Play 12 (1).mp4', path: 'Week 4/Play 12 (1).mp4', url: 'blob:s3' },
   ], plays3);
-  const s3 = { playId: pl.clips[0]?.playId, clipId: plays3[0].clipId, liveId: pl.clips[0]?.id, formation: plays3[0].tags.formation };
+  const s3 = { playId: pl.clips[0]?.playId, clipId: plays3[0].clipId, liveId: pl.clips[0]?.id, formationFamily: plays3[0].tags.formationFamily };
 
   // --- Scenario 4: multiple marked regions in one stale clip follow primary ---
   const plays4 = [
@@ -96,7 +96,7 @@ ok(s1.ezPlay === 1 && s1.slPlay === 2, 'root-mismatched same-basename clips reli
 ok(s1.p1Form === 'ENDZONE' && s1.p2Form === 'SIDELINE', 'tags are preserved through the relink', JSON.stringify(s1));
 ok(s1.p1Path === 'endzone/0001' && s1.p2Path === 'sideline/0001', 'plays adopt the linked-folder clipPaths', JSON.stringify(s1));
 ok(s2.ezPlay === 1 && s2.slPlay === 2 && s2.clipCount === 2, 'exact-path relink keeps same-basename subfolder clips distinct (Pass 1)', JSON.stringify(s2));
-ok(s3.playId === 1 && s3.clipId === s3.liveId && s3.formation === 'WING-T', 'linked Windows (n)-renamed copy relinks through the shared normalized matcher', JSON.stringify(s3));
+ok(s3.playId === 1 && s3.clipId === s3.liveId && s3.formationFamily === 'WING-T', 'linked Windows (n)-renamed copy relinks through the shared normalized matcher', JSON.stringify(s3));
 ok(s4.primary === s4.liveId && s4.marked === s4.liveId && s4.clipPlay === 1 && s4.result === 'Touchdown', 'every marked play sharing a stale clip id follows the linked primary', JSON.stringify(s4));
 ok(s5.count === 1 && s5.paths[0] === 'linked/Only' && s5.linked, 'linked rehydrate replaces an existing managed playlist instead of appending duplicates', JSON.stringify(s5));
 
