@@ -5366,8 +5366,9 @@ export class StatsEngine {
   /**
    * The run-gap hit chart: where the ball actually hit (ChartingDetails.GAPS), for
    * the run snaps of one cohort. Frequency and performance come from the same
-   * cells. The ELIGIBLE sample is the cohort's run snaps (the coach's explicit
-   * Run/Pass, never inferred from a gap); a run with no Gap charted is counted as
+   * cells. The ELIGIBLE sample is the cohort's run snaps by the Reports' one run rule
+   * (`isRun`: the explicit Run/Pass, else the plain run play types; QB Run and
+   * Reverse are never inferred; a gap never makes a run); a run with no Gap charted is counted as
    * missing, never as a hit, a zero or an "Other". A snap tagged with two play
    * types is attributed to each when the cohort is narrowed to one type. Strength
    * is read where charted: a sided gap against a Left/Right strength is toward or

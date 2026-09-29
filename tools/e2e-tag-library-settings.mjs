@@ -114,6 +114,17 @@ await page.type('[data-tag-add]','Bear "Zero"');await page.click('.gi-library-ad
 state=await page.evaluate(()=>{const value='Bear "Zero"';const row=[...document.querySelectorAll('[data-tag-value]')].find(el=>el.dataset.tagValue===value);const remove=[...(row?.querySelectorAll('button')||[])].find(button=>button.getAttribute('aria-label')===`Remove ${value}`);return{stored:window.app.customChips.library.group('front').custom.includes(value),row:!!row,aria:remove?.getAttribute('aria-label'),stray:!!row?.getAttribute('zero"')};});
 ok(state.stored&&state.row&&state.aria==='Remove Bear "Zero"'&&!state.stray,'Quoted custom names remain exact inert DOM data',JSON.stringify(state));
 
+// A custom entry from the retired Formation list is offered back in Families, by name,
+// and only the coach's click adds it.
+await page.evaluate(()=>{const lib=window.app.customChips.library,key=lib.key(),saved=JSON.parse(localStorage.getItem(key)||'{}');saved.retired={formation:{custom:['Beast'],enabled:['Beast'],order:['Beast']}};localStorage.setItem(key,JSON.stringify(saved));});
+await page.click('[data-chart-group="formationFamily"]');
+state=await page.evaluate(()=>({offered:[...document.querySelectorAll('[data-previous-formation]')].map(b=>b.dataset.previousFormation+'|'+b.textContent.trim()),listed:!!document.querySelector('[data-tag-value="Beast"]'),custom:window.app.customChips.library.group('formationFamily').custom.includes('Beast')}));
+ok(state.offered.join()==='Beast|Add Beast'&&!state.listed&&!state.custom,'Families offers the retired custom entry by name and adds nothing on its own',JSON.stringify(state));
+await page.click('[data-previous-formation="Beast"]');
+state=await page.evaluate(()=>{const row=document.querySelector('[data-tag-value="Beast"]');return{listed:!!row,shown:row?.querySelector('input')?.checked,custom:window.app.customChips.library.group('formationFamily').custom.includes('Beast'),offered:document.querySelectorAll('[data-previous-formation]').length,retired:!!JSON.parse(localStorage.getItem(window.app.customChips.library.key())).retired?.formation};});
+ok(state.listed&&state.shown&&state.custom&&state.offered===0&&state.retired,'Adding it makes Beast a shown Family, ends the offer and leaves the retired entry as stored',JSON.stringify(state));
+await page.click('[data-chart-group="front"]');
+
 for(const [group,value] of [['formationFamily','Trey Open'],['backfield','Ace Offset']]){await page.click(`[data-chart-group="${group}"]`);await page.type('[data-tag-add]',value);await page.click('.gi-library-add button');}
 await page.click('[data-overlay-action="done"]');await page.waitForFunction(()=>!document.querySelector('[data-overlay-id="team-film-settings"]'));
 // Clear the earlier hiding test's leftover Formation value first -- Formation

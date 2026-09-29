@@ -17,6 +17,21 @@ export class PlayCallModel {
       : { id: '', name: '', concept: '', defaults: {} });
   }
 
+  /**
+   * What applying `value` would take away: `[{ key, label, value }]` for each
+   * charted detail (Gap, motion path, RPO, QB run) the call's own defaults would
+   * clear, because the call replaces the Direction, Motion or Play Type that
+   * opened it. Asks by applying to a copy; `play` is not touched.
+   */
+  static losses(play, value, playbook, inferRunPass) {
+    if (!play?.tags) return [];
+    const probe = { ...play, tags: JSON.parse(JSON.stringify(play.tags)) };
+    this.apply(probe, value, playbook, inferRunPass);
+    return Object.keys(ChartingDetails.CHILD_LABELS)
+      .filter(key => String(play.tags[key] ?? '').trim() && !String(probe.tags[key] ?? '').trim())
+      .map(key => ({ key, label: ChartingDetails.CHILD_LABELS[key], value: String(play.tags[key]).trim() }));
+  }
+
   static apply(play, value, playbook, inferRunPass) {
     if (!play?.tags) return false;
     const next = this.resolve(value, playbook);
@@ -44,7 +59,8 @@ export class PlayCallModel {
       }
     }
     // A call's default direction or motion may leave a charted Gap or path
-    // disagreeing with it; the same settling every chart write makes.
+    // disagreeing with it; the same settling every chart write makes. Callers
+    // that write for a coach ask first (`losses`).
     ChartingDetails.settle(play.tags, 'playDir');
     play.tags.playCall = next.name;
     play.tags.playCallId = next.id;

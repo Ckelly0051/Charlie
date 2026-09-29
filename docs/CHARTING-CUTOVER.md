@@ -23,7 +23,9 @@ write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
   faced), with a Frequency / Performance switch, a play-type filter, the eligible
   sample ("22 of 26 runs charted with a gap"), Toward / Away strength where charted,
   and Watch on every cell for its exact clips. The Defense and game-report HTML
-  exports print the same numbers. Only explicit Run plays count; a run without a Gap
+  exports print the same numbers. A run is what the Reports count as one (an explicit Run/Pass,
+  or a blank one on a plain Run Inside / Run Outside; QB Run and Reverse only when
+  Run/Pass says Run), so the sample matches the neighboring tables. A run without a Gap
   stays visible as missing and is never counted into a cell.
 - Shortcuts: H charts QB Run and J charts Reverse (deck, Quick Chart, legend).
 
@@ -114,9 +116,12 @@ Give the answers as a mapping file (`tools/convert-charting-once.mjs` header):
 
 ## Browser stores
 
-- **Tag library**: the custom Formation `Beast` stays in storage (kept as
-  `retired`) and is not offered; add it as a Family in Settings if you keep it. The
-  Family group starts fully visible; `QB Run` and `Reverse` appear in Play Type
+- **Tag library**: the custom Formation `Beast` stays in storage exactly as stored
+  (kept as `retired`, through any later library edit) and is never added for you.
+  Settings > Charting > Families lists it under "Previous formations" with an
+  "Add Beast" button, so keeping it is one click and never a retyping; only words a
+  Family can hold are listed (no `+` compound, receiver distribution or alignment).
+  The Family group starts fully visible; `QB Run` and `Reverse` appear in Play Type
   with no conversion.
 - **Play calls**: the two calls' `Power-I` default is in the season (converted with
   it) and mirrored to the browser key when the season opens.
@@ -154,6 +159,7 @@ back; on any mismatch it stops and names the restore file.
 
 No old-shape reader, projection or dual write exists in `js/`: `SeasonFormat`
 refuses any `formation` key (play, play call default, template, CSV column), the
-projection reads the current fields only, and the library ignores its old
-Formation group. The converter lives in `tools/`, is imported by nothing in `js/`,
+projection reads the current fields only, and the library never offers its old
+Formation group as choices (Settings lists its custom names as "Previous formations",
+read only, and adds one only when you click it). The converter lives in `tools/`, is imported by nothing in `js/`,
 and is deleted after the live conversion.

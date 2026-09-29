@@ -4,6 +4,7 @@ import { countedUnit } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PlayCallModel } from './play-call-model.js';
+import { ChartingDetails } from './charting-details.js';
 import { PlayDiagram } from './play-diagram.js';
 
 /**
@@ -231,11 +232,18 @@ export class NativeTaggingScreen {
   selectPlayCall(value) {
     const play = this.tagger?.getCurrentPlay?.();
     if (!play) return false;
-    PlayCallModel.apply(play, value, this.app.playbook,
-      playType => this.tagger?.constructor?.runPassForPlayType?.(playType));
-    this.tagger._emit('play-updated', play);
-    this._queuePublish();
-    return true;
+    const infer = playType => this.tagger?.constructor?.runPassForPlayType?.(playType);
+    const write = () => {
+      PlayCallModel.apply(play, value, this.app.playbook, infer);
+      this.tagger._emit('play-updated', play);
+      this._queuePublish();
+      return true;
+    };
+    // A call that replaces the Direction, Motion or Play Type a charted Gap,
+    // path or RPO detail sits under says what it clears and waits.
+    const losses = PlayCallModel.losses(play, value, this.app.playbook, infer);
+    if (!losses.length) return write();
+    return this.tagger._confirmDialog(ChartingDetails.clearMessage(losses), 'Clear').then(ok => (ok ? write() : false));
   }
 
   editPlayCallLibrary(name = '') {

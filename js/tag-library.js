@@ -99,7 +99,9 @@ export class TagLibrary {
     }
     // A group this version no longer manages is kept exactly as stored and never
     // offered, so an unrelated library edit does not destroy the coach's entries.
-    const kept = {};
+    // (A saved library carries them under `retired` after its first edit, and
+    // under `groups` before it.)
+    const kept = raw?.retired && typeof raw.retired === 'object' && !Array.isArray(raw.retired) ? { ...raw.retired } : {};
     for (const [key, group] of Object.entries(raw?.groups || {})) if (!TagLibrary.DEFINITIONS[key]) kept[key] = group;
     if (Object.keys(kept).length) next.retired = kept;
     const presets = Array.isArray(raw?.presets) ? raw.presets : [];
@@ -133,6 +135,22 @@ export class TagLibrary {
     if (!group) return { values: [], custom: [], enabled: [] };
     const allowed = value => !TagLibrary.reservedOwner(key, value);
     return { values: group.order.filter(allowed), custom: group.custom.filter(allowed), enabled: group.enabled.filter(allowed) };
+  }
+  /** The custom entries of the coach's retired one-field Formation list that a
+   *  Family can hold and the Family library does not already list: what the
+   *  coach may choose to add back, by name. Read only; nothing is added, mapped
+   *  or rewritten, and the retired list stays exactly as stored. */
+  previousFormations() {
+    const retired = this.load().retired?.formation;
+    const have = new Set(this.group('formationFamily').values.map(value => value.toLowerCase()));
+    const out = [];
+    for (const raw of Array.isArray(retired?.custom) ? retired.custom : []) {
+      const value = String(raw).trim();
+      if (!value || value.includes('+') || TagLibrary.reservedOwner('formationFamily', value)) continue;
+      if (have.has(value.toLowerCase()) || out.some(item => item.toLowerCase() === value.toLowerCase())) continue;
+      out.push(value);
+    }
+    return out;
   }
   add(key, value) {
     const state = this.load(), group = state.groups[key], defaults = TagLibrary.DEFINITIONS[key], v = String(value || '').trim();

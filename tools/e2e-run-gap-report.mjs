@@ -21,6 +21,8 @@ await sleep(500);
 await page.evaluate(async () => { await window.app.storage.createSeason({ name: 'Run Gap QA', team: 'Mavericks', year: '2026', level: 'Varsity' }); });
 
 // The fixture: eleven runs by the coach's explicit Run/Pass, nine of them with a Gap.
+// The eligible sample is the Reports' own run rule (the explicit Run/Pass, else the plain
+// Run Inside / Run Outside reading), so the chart's count agrees with every neighboring table.
 const RUNS = [
   { id: 1, gap: 'L-A', playDir: 'Left', yardage: '4', strength: 'Left', playType: 'Run Inside' },
   { id: 2, gap: 'L-A', playDir: 'Left', yardage: '6', strength: 'Right', playType: 'Run Inside' },
@@ -68,6 +70,20 @@ const chart = await page.evaluate(() => {
 });
 ok(chart.runs === 11 && chart.charted === 9 && chart.missing === 2, 'the eligible sample is the explicit runs; a run with no Gap is missing, not a hit', JSON.stringify({ r: chart.runs, c: chart.charted, m: chart.missing }));
 ok(chart.cohortLine === '9 of 11 runs charted with a gap', 'the cohort sentence states charted of eligible', chart.cohortLine);
+{
+  const rule = await page.evaluate(() => {
+    const mk = (id, tags) => ({ id, tags: { unit: 'offense', gap: 'L-A', playDir: 'Left', yardage: '3', ...tags } });
+    const chart = window.app.stats.runGapChart([
+      mk(101, { runPass: '', playType: 'Run Inside' }),          // no Run/Pass, a plain run type: the Reports count it a run
+      mk(102, { runPass: '', playType: 'QB Run' }),              // never inferred
+      mk(103, { runPass: '', playType: 'Reverse' }),             // never inferred
+      mk(104, { runPass: 'Pass', playType: 'Run Inside' }),      // an explicit Pass wins
+      mk(105, { runPass: 'Run', playType: 'QB Run' }),           // explicit Run counts
+    ], { fallbackGameId: 'g-rule' });
+    return { runs: chart.runs, refs: chart.refs };
+  });
+  ok(rule.runs === 2 && same(rule.refs, ['g-rule::101', 'g-rule::105']), 'a blank Run/Pass reads as the Reports read it (Run Inside is a run, QB Run and Reverse are not) and an explicit Run/Pass always wins', JSON.stringify(rule));
+}
 ok(chart.by['L-A'].n === 2 && chart.by['R-B'].n === 2 && chart.by['Center'].n === 1 && chart.by['Other'].n === 1 && chart.by['R-D'].n === 1 && chart.by['L-C'].n === 1 && chart.by['L-B'].n === 1 && chart.by['L-D'].n === 0 && chart.by['R-A'].n === 0 && chart.by['R-C'].n === 0, 'each Gap counts its own runs; the pass and the unclassified QB Run are not in it', JSON.stringify(chart.by));
 ok(chart.by['L-A'].ypp === 5 && chart.by['R-B'].ypp === 7 && chart.by['Other'].ypp === null && chart.by['Other'].yardsMeasured === 0, 'yards per play counts only runs with charted yardage; none charted is a dash, not zero', JSON.stringify([chart.by['L-A'].ypp, chart.by['R-B'].ypp, chart.by['Other']]));
 ok(chart.by['L-A'].successRate === 50 && chart.by['R-B'].successRate === 50, 'success uses the established rule on the cell', JSON.stringify([chart.by['L-A'].successRate, chart.by['R-B'].successRate]));

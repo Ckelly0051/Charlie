@@ -228,6 +228,53 @@ console.log('\n== 7. Templates and carry ==');
   ok(['formationFamily', 'receiverSet', 'motionStart', 'motionEnd'].every(k => carry.keys.includes(k)) && !carry.keys.includes('gap') && !carry.keys.includes('formation'), 'Same as Last copies the look and the path, never the gap');
 }
 
+console.log('\n== 7b. Changing a Play Call asks before it clears charting ==');
+{
+  await page.evaluate(() => {
+    const pb = window.app.playbook;
+    pb.add({ name: 'Sweep Left', concept: '', defaults: { playDir: 'Left' } });
+    pb.add({ name: 'Sweep Right', concept: '', defaults: { playDir: 'Right' } });
+    // Earlier sections charted these plays; a call never replaces what the coach charted, so start blank.
+    for (const id of [2, 3]) window.app.tagger.getPlay(id).tags = window.app.tagger.constructor.blankTags({ unit: 'offense' });
+  });
+  const ask = expr => page.evaluate(expr => { window.__callResult = undefined; Promise.resolve(eval(expr)).then(r => { window.__callResult = r; }); }, expr);
+  const result = () => page.evaluate(() => window.__callResult);
+  // Chart.
+  await P.select(2);
+  await page.evaluate(() => { window.app.nativeTagging.selectPlayCall('Sweep Left'); window.app.nativeTagging.setField('gap', 'L-A'); });
+  await settle();
+  let t = await P.tags();
+  ok(t.playCall === 'Sweep Left' && t.playDir === 'Left' && t.gap === 'L-A', 'Chart: a call sets its Direction and a Gap charts under it', JSON.stringify([t.playCall, t.playDir, t.gap]));
+  await ask("window.app.nativeTagging.selectPlayCall('Sweep Right')"); await sleep(200);
+  ok(/Gap L-A/.test(await P.dialog() || ''), 'Chart: a call that would clear the Gap asks and names it', String(await P.dialog()));
+  await P.answer(false); await sleep(200);
+  t = await P.tags();
+  ok(await result() === false && t.playCall === 'Sweep Left' && t.playDir === 'Left' && t.gap === 'L-A', 'Chart: declining changes nothing', JSON.stringify([t.playCall, t.playDir, t.gap]));
+  await ask("window.app.nativeTagging.selectPlayCall('Sweep Right')"); await sleep(200);
+  await P.answer(true); await sleep(250);
+  t = await P.tags();
+  ok(t.playCall === 'Sweep Right' && t.playDir === 'Right' && t.gap === '', 'Chart: confirming applies the call and clears the Gap', JSON.stringify([t.playCall, t.playDir, t.gap]));
+  // A call with nothing to clear applies at once.
+  await page.evaluate(() => { window.app.nativeTagging.selectPlayCall('Sweep Left'); });
+  await settle();
+  ok(await page.evaluate(() => !document.querySelector('#ffaConfirmModal')) && (await P.tags()).playDir === 'Left', 'Chart: a call with nothing to clear applies without a prompt');
+  // Film Room.
+  await P.select(3);
+  await page.evaluate(() => { const g = window.app.playGrid; g.nativeCommitEdit(3, 'playCall', 'Sweep Left'); g.nativeCommitEdit(3, 'gap', 'L-B'); });
+  await settle();
+  t = await P.tags();
+  ok(t.playDir === 'Left' && t.gap === 'L-B', 'Film Room: the same call and Gap', JSON.stringify([t.playDir, t.gap]));
+  await ask("window.app.playGrid.nativeCommitEdit(3, 'playCall', 'Sweep Right')"); await sleep(200);
+  ok(/Gap L-B/.test(await P.dialog() || ''), 'Film Room: a call that would clear the Gap asks and names it', String(await P.dialog()));
+  await P.answer(false); await sleep(200);
+  t = await P.tags();
+  ok(await result() === false && t.playCall === 'Sweep Left' && t.gap === 'L-B', 'Film Room: declining changes nothing', JSON.stringify([t.playCall, t.gap]));
+  await ask("window.app.playGrid.nativeCommitEdit(3, 'playCall', 'Sweep Right')"); await sleep(200);
+  await P.answer(true); await sleep(250);
+  t = await P.tags();
+  ok(t.playCall === 'Sweep Right' && t.playDir === 'Right' && t.gap === '', 'Film Room: confirming applies the call and clears the Gap', JSON.stringify([t.playCall, t.playDir, t.gap]));
+}
+
 console.log('\n== 8. Film Room edits the same fields ==');
 {
   await page.evaluate(() => window.app.workspaceShell.show('breakdown'));

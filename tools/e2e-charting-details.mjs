@@ -161,5 +161,32 @@ console.log('\n== A play call and Special Teams keep the rules ==');
   SeasonStore.stripStAlignment(st);
   ok(st.tags.formationFamily === '' && st.tags.receiverSet === '', 'the strip clears them');
 }
+console.log('\n== Changing a Play Call says what it would clear ==');
+{
+  const calls = [
+    { id: 'c-left', name: 'Sweep Left', concept: '', defaults: { playDir: 'Left', motion: 'Jet' } },
+    { id: 'c-right', name: 'Sweep Right', concept: '', defaults: { playDir: 'Right' } },
+    { id: 'c-none', name: 'Plain', concept: '', defaults: {} },
+  ];
+  const playbook = { list: () => calls, constructor: { DEFAULT_KEYS: ['playDir', 'motion'] } };
+  const charted = () => {
+    const play = { tags: { playDir: '', motion: '', gap: '', playCallDefaults: {} } };
+    PlayCallModel.apply(play, 'Sweep Left', playbook, () => '');
+    play.tags.gap = 'L-A'; play.tags.motionStart = 'Left'; play.tags.motionEnd = 'Right';
+    return play;
+  };
+  const play = charted();
+  const before = JSON.stringify(play);
+  const lost = PlayCallModel.losses(play, 'Sweep Right', playbook, () => '');
+  ok(lost.map(item => item.key).sort().join() === 'gap,motionEnd,motionStart' && lost.find(item => item.key === 'gap').value === 'L-A',
+    'switching a call whose Direction and Motion the new call replaces lists the Gap and the path it would clear', JSON.stringify(lost));
+  ok(JSON.stringify(play) === before, 'asking changes nothing');
+  ok(PlayCallModel.losses(play, 'Sweep Left', playbook, () => '').length === 0, 'the same call clears nothing');
+  const plain = { tags: { playDir: 'Left', motion: '', gap: 'L-B', playCallDefaults: {} } };
+  ok(PlayCallModel.losses(plain, 'Sweep Left', playbook, () => '').length === 0, 'a call that agrees with what is charted clears nothing');
+  ok(PlayCallModel.losses(plain, 'Sweep Right', playbook, () => '').length === 0 && PlayCallModel.apply(plain, 'Sweep Right', playbook, () => '') && plain.tags.playDir === 'Left' && plain.tags.gap === 'L-B', 'a call never replaces a Direction the coach charted, so the Gap stays');
+  const free = { tags: { playDir: '', motion: '', gap: 'Other', playCallDefaults: {} } };
+  ok(PlayCallModel.losses(free, 'Sweep Right', playbook, () => '').length === 0, 'Other agrees with any direction');
+}
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

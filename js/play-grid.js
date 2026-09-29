@@ -643,7 +643,9 @@ export class PlayGrid {
     }
     const next = col.multi ? PlayTagger.normalizeMulti(col.key, value) : value;
     const removals = col.type === 'enum' || col.type === 'text-tag'
-      ? ChartingDetails.orphans(play.tags, col.key, next).filter(item => !item.coupled) : [];
+      ? ChartingDetails.orphans(play.tags, col.key, next).filter(item => !item.coupled)
+      : col.key === 'playCall'
+        ? PlayCallModel.losses(play, value, this.playbook, playType => PlayTagger.runPassForPlayType(playType)) : [];
     const commit = () => { this._applyEdit(play, col, value); this.refresh(); return true; };
     if (!removals.length) return commit();
     return this.tagger._confirmDialog(ChartingDetails.clearMessage(removals), 'Clear').then(ok => (ok ? commit() : false));

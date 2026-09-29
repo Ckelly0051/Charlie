@@ -102,7 +102,14 @@ function PlayCallField({screen, state}) {
     if (!seen.has(name.toLowerCase())) { seen.add(name.toLowerCase()); quick.push({name,favorite:false}); }
   }
   const applied = Object.entries(state.appliedCallDefaults || {});
-  const commit = candidate => screen.selectPlayCall(candidate ?? draft);
+  // A call that would clear charted details asks first; declining puts the field back.
+  const pick = (name, shown = name) => {
+    setDraft(shown);
+    const outcome = screen.selectPlayCall(name);
+    if (outcome && typeof outcome.then === 'function') outcome.then(ok => { if (!ok) setDraft(value); });
+    return outcome;
+  };
+  const commit = candidate => pick(candidate ?? draft);
   const collapsed = !!state.collapsed?.playCall;
   const label = state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play';
   return <section class={`gi-play-call${collapsed ? ' is-collapsed' : ''}`} data-native-play-call data-library-align="">
@@ -121,12 +128,12 @@ function PlayCallField({screen, state}) {
         <button type="button" onClick={() => commit(draft)}>{match ? 'Use call' : 'Use once'}</button>
         {!match && <button type="button" onClick={() => screen.editPlayCallLibrary(draft)}>Add to Playbook</button>}
         {value && <button type="button" class="gi-play-call-clear" aria-label="Clear play call"
-          onClick={() => { setDraft(''); screen.selectPlayCall(''); }}>Clear</button>}
+          onClick={() => pick('')}>Clear</button>}
       </div>}
     </div>
     {quick.length > 0 && <div class="gi-play-call-quick" aria-label="Favorite and recent play calls">
       {quick.slice(0,6).map(item => <button type="button" key={item.name} class={item.name === value ? 'is-active' : ''}
-        onClick={() => { setDraft(item.name); screen.selectPlayCall(item.name); }}>{item.favorite ? '★ ' : ''}{item.name}</button>)}
+        onClick={() => pick(item.name)}>{item.favorite ? '★ ' : ''}{item.name}</button>)}
     </div>}
     {applied.length > 0 && <div class="gi-play-call-defaults" aria-label="Defaults applied by this call">
       <span>Applied:</span>{applied.map(([key,fieldValue]) => <em key={key}>{CALL_DEFAULT_LABELS[key] || key}: {fieldValue}</em>)}

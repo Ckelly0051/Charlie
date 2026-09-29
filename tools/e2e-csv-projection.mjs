@@ -157,9 +157,12 @@ const res = await page.evaluate(async () => {
   const legacyPlay = sm.tagger.plays[0];
   // A bare Formation column (the retired one-field format) is refused whole.
   const oldColumn = sm.importPlaysFromText('Down,Distance,Formation,Play Type\n1,10,Trips,Short Pass');
+  // ...and it is refused even with a Formation Family column beside it: Trips would be dropped unread.
+  const oldBeside = sm.importPlaysFromText('Down,Distance,Formation,Formation Family,Play Type\n1,10,Trips,Spread,Short Pass');
+  const oldBesideAlias = sm.importPlaysFromText('Down,Distance,Family,Form,Play Type\n1,10,Spread,Trips,Short Pass');
 
   return {
-    oldColumn, detailMismatches, exportedDetails, importedDetails,
+    oldColumn, oldBeside, oldBesideAlias, detailMismatches, exportedDetails, importedDetails,
     headers, mismatches, formationLeak, imported, exportedLooks,
     exportedUnits, importedUnits, importedLooks, emptyRowResult,
     row1: { formation: cell(0, 'Formation Family'), set: cell(0, 'Receiver Set'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Strength') },
@@ -225,6 +228,8 @@ ok(res.legacy.coverage === 'Cover 3' && res.legacy.formation === 'Spread',
   'the plain "Coverage" header is still the coverage call', JSON.stringify(res.legacy));
 ok(res.oldColumn.count === 0 && /old GridIron IQ format/.test(res.oldColumn.error || ''),
   'a CSV with the retired bare Formation column is refused whole with the plain message', JSON.stringify(res.oldColumn));
+ok(res.oldBeside.count === 0 && /old GridIron IQ format/.test(res.oldBeside.error || '') && res.oldBesideAlias.count === 0 && /old GridIron IQ format/.test(res.oldBesideAlias.error || ''),
+  'the retired Formation column is refused even beside a Formation Family column', JSON.stringify([res.oldBeside, res.oldBesideAlias]));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

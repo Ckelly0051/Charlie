@@ -2002,10 +2002,10 @@ export class StorageManager {
     });
 
     // A bare Formation column is the retired one-field format (family, receiver
-    // and package words mixed): the file is refused whole, plainly. Renaming the
+    // and package words mixed): the file is refused whole, plainly, even beside a
+    // Formation Family column (its words would be dropped unread). Renaming the
     // header to Formation Family (or Receiver Set) is the coach's explicit choice.
-    const oldFormation = headers.some(h => ['formation', 'form', 'offform', 'offenseformation'].includes(h));
-    if (oldFormation && !headers.includes('formationfamily') && !headers.includes('family')) {
+    if (headers.some(h => ['formation', 'form', 'offform', 'offenseformation'].includes(h))) {
       return { count: 0, error: SeasonFormat.MESSAGE };
     }
 

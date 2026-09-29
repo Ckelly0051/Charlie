@@ -40,7 +40,15 @@ coach decides these words, which the converter will not infer: Ace (70 plays),
 Trips (51), Unbalanced (44), Doubles (37), Twins (36), Bunch (20), Beast (5),
 Victory (2). 198 of 496 Formation plays stay unresolved without those
 decisions; 76 restore points convert none until they are made. No installed
-acceptance is claimed and no gate has run for this change.
+acceptance is claimed and no gate has run for this change. Review of
+`19b2ed1..94fb5b8` (2026-09-29) found four defects, repaired with failing-first
+tests: a Play Call that replaces a Direction, Motion or Play Type now names the
+Gap, path or RPO detail it would clear and waits (Chart and Film Room); a CSV
+with a bare Formation column is refused even beside a Formation Family column;
+a custom entry in the retired Formation list is offered by name under
+"Previous formations" in Settings, added only on the coach's click, and the
+retired list now survives a second library edit (it was dropped on the next
+load); the run-gap sample uses the Reports' own run rule and says so.
 
 **BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and

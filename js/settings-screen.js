@@ -414,7 +414,8 @@ export class SettingsScreen {
       playType:{label:'Play Types',singular:'play type'}, blitz:{label:'Blitzes',singular:'blitz'},
     };
     const key = meta[group] ? group : 'formationFamily';
-    return { key, ...meta[key], ...this.app.customChips.library.group(key) };
+    const previous = key === 'formationFamily' ? this.app.customChips.library.previousFormations() : [];
+    return { key, ...meta[key], ...this.app.customChips.library.group(key), previous };
   }
   setTagEnabled(group, value, enabled) { this.app.customChips.setEnabled(group, value, enabled); return this.chartingSnapshot(group); }
   moveTagChoice(group, value, delta) { this.app.customChips.library.move(group, value, delta); this.app.customChips.reload(); return this.chartingSnapshot(group); }
