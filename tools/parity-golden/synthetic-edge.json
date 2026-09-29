@@ -196,13 +196,13 @@
    },
    "tendencies": {
     "formations": {
-     "Trips": 7,
+     "Spread": 7,
      "Wildcat": 1,
      "Flexbone": 1
     },
     "formationList": [
      {
-      "name": "Trips",
+      "name": "Spread",
       "count": 7,
       "runs": 6,
       "passes": 1,
@@ -746,7 +746,7 @@
     ],
     "byFormation": [
      {
-      "name": "Trips",
+      "name": "Spread",
       "total": 0,
       "count": 6,
       "perPlay": 0
@@ -1462,7 +1462,7 @@
      }
     ],
     "formations": {
-     "Middle|Trips": 6,
+     "Middle|Spread": 6,
      "Middle|Flexbone": 1
     },
     "hasData": true
@@ -1628,10 +1628,10 @@
      {
       "s": 602,
       "cut": [
-       "formation",
-       "Trips"
+       "formationFamily",
+       "Spread"
       ],
-      "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+      "text": "<strong>Spread</strong>: 86% success (7 plays, 4.3 avg)"
      },
      {
       "s": 500,
@@ -1658,10 +1658,10 @@
      {
       "s": 249.99999999999994,
       "cut": [
-       "formation",
-       "Trips"
+       "formationFamily",
+       "Spread"
       ],
-      "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+      "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
      },
      {
       "s": 200,
@@ -1683,10 +1683,10 @@
    }
   },
   "drill": {
-   "formation::Flexbone": [
+   "formationFamily::Flexbone": [
     "g2::5"
    ],
-   "formation::Trips": [
+   "formationFamily::Spread": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -1695,8 +1695,44 @@
     "g1::6",
     "g1::8"
    ],
-   "formation::Wildcat": [
+   "formationFamily::Wildcat": [
     "g1::9"
+   ],
+   "receiverSet::3x1": [
+    "g1::1",
+    "g1::2",
+    "g1::3",
+    "g1::4",
+    "g1::5",
+    "g1::6",
+    "g1::8"
+   ],
+   "gap::R-B": [
+    "g1::1",
+    "g1::2",
+    "g1::3",
+    "g1::4",
+    "g1::5",
+    "g1::6"
+   ],
+   "gap::R-C": [
+    "g1::9"
+   ],
+   "motionStart::Left": [
+    "g1::2",
+    "g1::4",
+    "g1::6"
+   ],
+   "motionEnd::Right": [
+    "g1::2",
+    "g1::4",
+    "g1::6"
+   ],
+   "rpoRead::Apex": [
+    "g1::8"
+   ],
+   "rpoDecision::Throw": [
+    "g1::8"
    ],
    "qbAlignment::Pistol": [
     "g2::1",
@@ -1994,7 +2030,7 @@
    "dd::3|Short": [
     "g2::6"
    ],
-   "comboFStr::Trips__Right": [
+   "comboFStr::Spread__Right": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -2005,7 +2041,7 @@
    "comboFD::Flexbone__1|Long": [
     "g2::5"
    ],
-   "comboFD::Trips__1|Long": [
+   "comboFD::Spread__1|Long": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -2013,7 +2049,7 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFD::Trips__3|Long": [
+   "comboFD::Spread__3|Long": [
     "g1::8"
    ],
    "comboFD::Wildcat__1|Long": [
@@ -2022,7 +2058,7 @@
    "comboFS::Flexbone__1": [
     "g2::5"
    ],
-   "comboFS::Trips__1": [
+   "comboFS::Spread__1": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -2030,7 +2066,7 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFS::Trips__3|Long": [
+   "comboFS::Spread__3|Long": [
     "g1::8"
    ],
    "comboFS::Wildcat__1": [
@@ -2042,17 +2078,17 @@
     "g2::3",
     "g2::4"
    ],
-   "bigCall::Shotgun|||Trips|||Single|||Right|||Jet|||Run Inside": [
+   "bigCall::Shotgun|||Spread|||Single|||Right|||Jet|||Run Inside": [
     "g1::2",
     "g1::4",
     "g1::6"
    ],
-   "bigCall::Shotgun|||Trips|||Single|||Right||||||Run Inside": [
+   "bigCall::Shotgun|||Spread|||Single|||Right||||||Run Inside": [
     "g1::1",
     "g1::3",
     "g1::5"
    ],
-   "bigCall::Shotgun|||Trips||||||||||||RPO + Short Pass": [
+   "bigCall::Shotgun|||Spread||||||||||||RPO + Short Pass": [
     "g1::8"
    ],
    "bigCall::Under Center|||||||||||||||Play Action": [
@@ -2131,7 +2167,7 @@
      },
      {
       "dim": "Formation × Down",
-      "label": "Trips on 1st & 7+",
+      "label": "Spread on 1st & 7+",
       "n": 6,
       "lean": "Run",
       "leanPct": 100,
@@ -2148,7 +2184,7 @@
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
       "cutType": "comboFD",
-      "cutVal": "Trips__1|Long",
+      "cutVal": "Spread__1|Long",
       "score": 180
      },
      {
@@ -2197,7 +2233,7 @@
      },
      {
       "dim": "Formation × Strength",
-      "label": "Trips Right",
+      "label": "Spread Right",
       "n": 6,
       "lean": "Run",
       "leanPct": 100,
@@ -2214,12 +2250,12 @@
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
       "cutType": "comboFStr",
-      "cutVal": "Trips__Right",
+      "cutVal": "Spread__Right",
       "score": 180
      },
      {
       "dim": "Formation",
-      "label": "From Trips",
+      "label": "From Spread",
       "n": 7,
       "lean": "Run",
       "leanPct": 86,
@@ -2235,8 +2271,8 @@
        "threat": "a DC keys run — loads the box and cheats a safety down",
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
-      "cutType": "formation",
-      "cutVal": "Trips",
+      "cutType": "formationFamily",
+      "cutVal": "Spread",
       "score": 151.2
      },
      {
@@ -2384,19 +2420,19 @@
       }
      ],
      "rows": [
-      "Trips",
+      "Spread",
       "Wildcat",
       "Flexbone"
      ],
      "cells": {
-      "Trips\u00011": {
+      "Spread\u00011": {
        "n": 6,
        "runs": 6,
        "passes": 0,
        "succ": 6,
        "yards": 30
       },
-      "Trips\u00013|Long": {
+      "Spread\u00013|Long": {
        "n": 1,
        "runs": 0,
        "passes": 1,
@@ -2419,14 +2455,14 @@
       }
      },
      "rowN": {
-      "Trips": 7,
+      "Spread": 7,
       "Wildcat": 1,
       "Flexbone": 1
      }
     },
     "formationRows": [
      {
-      "key": "Trips",
+      "key": "Spread",
       "n": 7,
       "runs": 6,
       "passes": 1,
@@ -2973,12 +3009,12 @@
       "personnel": "11",
       "n": 7,
       "uniqueFormations": 1,
-      "topFormation": "Trips",
+      "topFormation": "Spread",
       "topCount": 7,
       "topPct": 100,
       "formations": [
        {
-        "formation": "Trips",
+        "formation": "Spread",
         "count": 7,
         "pct": 100
        }
@@ -3002,7 +3038,7 @@
     ],
     "recommendations": [
      "<span class=\"ss-rec-label\">1st &amp; 7+</span>: your run lean (100%) is productive at 5.9 yds/88% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
-     "<span class=\"ss-rec-label\">Trips on 1st &amp; 7+</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Spread on 1st &amp; 7+</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "<span class=\"ss-rec-label\">From Single backfield</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "<span class=\"ss-rec-label ss-rec-strength\">Middle hash</span>: you run 100% and it's <strong>working</strong> — 6.3 yds, 100% success. Keep riding it. The tendency is a feature, not a bug.",
      "<span class=\"ss-rec-label ss-rec-strength\">21 personnel</span>: you run 100% and it's <strong>working</strong> — 6.2 yds, 80% success. Keep riding it. The tendency is a feature, not a bug.",
@@ -3012,16 +3048,16 @@
     "insights": [
      {
       "type": "direction",
-      "subject": "Trips",
+      "subject": "Spread",
       "priority": 360,
-      "text": "From <strong>Trips</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
+      "text": "From <strong>Spread</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
       "tag": "Direction Tell"
      },
      {
       "type": "personnel",
       "subject": "11",
       "priority": 315,
-      "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "text": "<strong>11 personnel</strong> lines up in <strong>Spread</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
      }
     ],
@@ -3354,13 +3390,13 @@
      },
      "tendencies": {
       "formations": {
-       "Trips": 7,
+       "Spread": 7,
        "Wildcat": 1,
        "Flexbone": 1
       },
       "formationList": [
        {
-        "name": "Trips",
+        "name": "Spread",
         "count": 7,
         "runs": 6,
         "passes": 1,
@@ -3891,7 +3927,7 @@
       ],
       "byFormation": [
        {
-        "name": "Trips",
+        "name": "Spread",
         "total": 0,
         "count": 6,
         "perPlay": 0
@@ -4557,7 +4593,7 @@
        }
       ],
       "formations": {
-       "Middle|Trips": 6,
+       "Middle|Spread": 6,
        "Middle|Flexbone": 1
       },
       "hasData": true
@@ -4723,10 +4759,10 @@
        {
         "s": 602,
         "cut": [
-         "formation",
-         "Trips"
+         "formationFamily",
+         "Spread"
         ],
-        "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+        "text": "<strong>Spread</strong>: 86% success (7 plays, 4.3 avg)"
        },
        {
         "s": 500,
@@ -4753,10 +4789,10 @@
        {
         "s": 249.99999999999994,
         "cut": [
-         "formation",
-         "Trips"
+         "formationFamily",
+         "Spread"
         ],
-        "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+        "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
        },
        {
         "s": 200,
@@ -4779,7 +4815,7 @@
     },
     "formationDetail": [
      {
-      "name": "Trips",
+      "name": "Spread",
       "total": 7,
       "runs": 6,
       "passes": 1,
@@ -5263,12 +5299,12 @@
    },
    "tendencies": {
     "formations": {
-     "Trips": 7,
+     "Spread": 7,
      "Wildcat": 1
     },
     "formationList": [
      {
-      "name": "Trips",
+      "name": "Spread",
       "count": 7,
       "runs": 6,
       "passes": 1,
@@ -5755,7 +5791,7 @@
     ],
     "byFormation": [
      {
-      "name": "Trips",
+      "name": "Spread",
       "total": 0,
       "count": 6,
       "perPlay": 0
@@ -6341,7 +6377,7 @@
      }
     ],
     "formations": {
-     "Middle|Trips": 6
+     "Middle|Spread": 6
     },
     "hasData": true
    },
@@ -6480,10 +6516,10 @@
      {
       "s": 602,
       "cut": [
-       "formation",
-       "Trips"
+       "formationFamily",
+       "Spread"
       ],
-      "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+      "text": "<strong>Spread</strong>: 86% success (7 plays, 4.3 avg)"
      },
      {
       "s": 500,
@@ -6518,10 +6554,10 @@
      {
       "s": 249.99999999999994,
       "cut": [
-       "formation",
-       "Trips"
+       "formationFamily",
+       "Spread"
       ],
-      "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+      "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
      },
      {
       "s": 170,
@@ -6531,7 +6567,7 @@
    }
   },
   "drill": {
-   "formation::Trips": [
+   "formationFamily::Spread": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -6540,8 +6576,44 @@
     "g1::6",
     "g1::8"
    ],
-   "formation::Wildcat": [
+   "formationFamily::Wildcat": [
     "g1::9"
+   ],
+   "receiverSet::3x1": [
+    "g1::1",
+    "g1::2",
+    "g1::3",
+    "g1::4",
+    "g1::5",
+    "g1::6",
+    "g1::8"
+   ],
+   "gap::R-B": [
+    "g1::1",
+    "g1::2",
+    "g1::3",
+    "g1::4",
+    "g1::5",
+    "g1::6"
+   ],
+   "gap::R-C": [
+    "g1::9"
+   ],
+   "motionStart::Left": [
+    "g1::2",
+    "g1::4",
+    "g1::6"
+   ],
+   "motionEnd::Right": [
+    "g1::2",
+    "g1::4",
+    "g1::6"
+   ],
+   "rpoRead::Apex": [
+    "g1::8"
+   ],
+   "rpoDecision::Throw": [
+    "g1::8"
    ],
    "qbAlignment::Shotgun": [
     "g1::1",
@@ -6747,7 +6819,7 @@
    "dd::3|Long": [
     "g1::8"
    ],
-   "comboFStr::Trips__Right": [
+   "comboFStr::Spread__Right": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -6755,7 +6827,7 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFD::Trips__1|Long": [
+   "comboFD::Spread__1|Long": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -6763,13 +6835,13 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFD::Trips__3|Long": [
+   "comboFD::Spread__3|Long": [
     "g1::8"
    ],
    "comboFD::Wildcat__1|Long": [
     "g1::9"
    ],
-   "comboFS::Trips__1": [
+   "comboFS::Spread__1": [
     "g1::1",
     "g1::2",
     "g1::3",
@@ -6777,23 +6849,23 @@
     "g1::5",
     "g1::6"
    ],
-   "comboFS::Trips__3|Long": [
+   "comboFS::Spread__3|Long": [
     "g1::8"
    ],
    "comboFS::Wildcat__1": [
     "g1::9"
    ],
-   "bigCall::Shotgun|||Trips|||Single|||Right|||Jet|||Run Inside": [
+   "bigCall::Shotgun|||Spread|||Single|||Right|||Jet|||Run Inside": [
     "g1::2",
     "g1::4",
     "g1::6"
    ],
-   "bigCall::Shotgun|||Trips|||Single|||Right||||||Run Inside": [
+   "bigCall::Shotgun|||Spread|||Single|||Right||||||Run Inside": [
     "g1::1",
     "g1::3",
     "g1::5"
    ],
-   "bigCall::Shotgun|||Trips||||||||||||RPO + Short Pass": [
+   "bigCall::Shotgun|||Spread||||||||||||RPO + Short Pass": [
     "g1::8"
    ],
    "bigCall::Under Center|||||||||||||||Play Action": [
@@ -6856,7 +6928,7 @@
      },
      {
       "dim": "Formation × Down",
-      "label": "Trips on 1st & 7+",
+      "label": "Spread on 1st & 7+",
       "n": 6,
       "lean": "Run",
       "leanPct": 100,
@@ -6873,7 +6945,7 @@
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
       "cutType": "comboFD",
-      "cutVal": "Trips__1|Long",
+      "cutVal": "Spread__1|Long",
       "score": 180
      },
      {
@@ -6944,7 +7016,7 @@
      },
      {
       "dim": "Formation × Strength",
-      "label": "Trips Right",
+      "label": "Spread Right",
       "n": 6,
       "lean": "Run",
       "leanPct": 100,
@@ -6961,12 +7033,12 @@
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
       "cutType": "comboFStr",
-      "cutVal": "Trips__Right",
+      "cutVal": "Spread__Right",
       "score": 180
      },
      {
       "dim": "Formation",
-      "label": "From Trips",
+      "label": "From Spread",
       "n": 7,
       "lean": "Run",
       "leanPct": 86,
@@ -6982,8 +7054,8 @@
        "threat": "a DC keys run — loads the box and cheats a safety down",
        "fix": "play-action, a quick throw, or a screen off the same look"
       },
-      "cutType": "formation",
-      "cutVal": "Trips",
+      "cutType": "formationFamily",
+      "cutVal": "Spread",
       "score": 151.2
      },
      {
@@ -7021,18 +7093,18 @@
       }
      ],
      "rows": [
-      "Trips",
+      "Spread",
       "Wildcat"
      ],
      "cells": {
-      "Trips\u00011": {
+      "Spread\u00011": {
        "n": 6,
        "runs": 6,
        "passes": 0,
        "succ": 6,
        "yards": 30
       },
-      "Trips\u00013|Long": {
+      "Spread\u00013|Long": {
        "n": 1,
        "runs": 0,
        "passes": 1,
@@ -7048,13 +7120,13 @@
       }
      },
      "rowN": {
-      "Trips": 7,
+      "Spread": 7,
       "Wildcat": 1
      }
     },
     "formationRows": [
      {
-      "key": "Trips",
+      "key": "Spread",
       "n": 7,
       "runs": 6,
       "passes": 1,
@@ -7509,12 +7581,12 @@
       "personnel": "11",
       "n": 7,
       "uniqueFormations": 1,
-      "topFormation": "Trips",
+      "topFormation": "Spread",
       "topCount": 7,
       "topPct": 100,
       "formations": [
        {
-        "formation": "Trips",
+        "formation": "Spread",
         "count": 7,
         "pct": 100
        }
@@ -7523,23 +7595,23 @@
     ],
     "recommendations": [
      "<span class=\"ss-rec-label\">1st &amp; 7+</span>: your run lean (100%) is adequate at 4.7 yds/86% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
-     "<span class=\"ss-rec-label\">Trips on 1st &amp; 7+</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
+     "<span class=\"ss-rec-label\">Spread on 1st &amp; 7+</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "<span class=\"ss-rec-label\">Middle hash</span>: your run lean (100%) is productive at 5 yds/100% success, but a DC keys run — loads the box and cheats a safety down. Carry one constraint (play-action, a quick throw, or a screen off the same look) per game to hold them honest.",
      "Your tendencies are all backed by strong production. No urgent fixes — just be aware that a DC who does the film work will see the leans."
     ],
     "insights": [
      {
       "type": "direction",
-      "subject": "Trips",
+      "subject": "Spread",
       "priority": 360,
-      "text": "From <strong>Trips</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
+      "text": "From <strong>Spread</strong>, you go <strong>right</strong> 100% of the time (6/6 plays). A DC with film will shade that direction.",
       "tag": "Direction Tell"
      },
      {
       "type": "personnel",
       "subject": "11",
       "priority": 315,
-      "text": "<strong>11 personnel</strong> lines up in <strong>Trips</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
+      "text": "<strong>11 personnel</strong> lines up in <strong>Spread</strong> 100% of the time (7/7 plays). A DC can read the grouping from the huddle and anticipate the formation before you break it.",
       "tag": "Personnel Tell"
      }
     ],
@@ -7732,12 +7804,12 @@
      },
      "tendencies": {
       "formations": {
-       "Trips": 7,
+       "Spread": 7,
        "Wildcat": 1
       },
       "formationList": [
        {
-        "name": "Trips",
+        "name": "Spread",
         "count": 7,
         "runs": 6,
         "passes": 1,
@@ -8211,7 +8283,7 @@
       ],
       "byFormation": [
        {
-        "name": "Trips",
+        "name": "Spread",
         "total": 0,
         "count": 6,
         "perPlay": 0
@@ -8747,7 +8819,7 @@
        }
       ],
       "formations": {
-       "Middle|Trips": 6
+       "Middle|Spread": 6
       },
       "hasData": true
      },
@@ -8886,10 +8958,10 @@
        {
         "s": 602,
         "cut": [
-         "formation",
-         "Trips"
+         "formationFamily",
+         "Spread"
         ],
-        "text": "<strong>Trips</strong>: 86% success (7 plays, 4.3 avg)"
+        "text": "<strong>Spread</strong>: 86% success (7 plays, 4.3 avg)"
        },
        {
         "s": 500,
@@ -8924,10 +8996,10 @@
        {
         "s": 249.99999999999994,
         "cut": [
-         "formation",
-         "Trips"
+         "formationFamily",
+         "Spread"
         ],
-        "text": "<strong>Trips</strong> is 86% run — add a pass concept to keep the defense honest"
+        "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
        },
        {
         "s": 170,
@@ -8938,7 +9010,7 @@
     },
     "formationDetail": [
      {
-      "name": "Trips",
+      "name": "Spread",
       "total": 7,
       "runs": 6,
       "passes": 1,
@@ -10090,7 +10162,7 @@
    }
   },
   "drill": {
-   "formation::Flexbone": [
+   "formationFamily::Flexbone": [
     "g2::5"
    ],
    "qbAlignment::Pistol": [

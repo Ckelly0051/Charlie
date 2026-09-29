@@ -14,15 +14,15 @@ const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${l
 // ---- 1. labels ---------------------------------------------------------------
 ok(StudyPlan.label({ groupValue: 'Wing-T', measureName: 'Success Rate', sampleSize: 18 }) === 'Wing-T — Success Rate (n=18)', 'group-scoped label reads "<group> — <measure> (n=…)"');
 ok(StudyPlan.label({ dimensionName: 'Formation', measureName: 'Success Rate', scopeLabel: 'full season' }) === 'Formation — Success Rate · full season', 'whole-query label reads "<dimension> — <measure> · <scope>"');
-ok(StudyPlan.label({ groupValue: 'Trips', measureName: 'YPP' }) === 'Trips — YPP', 'sample is omitted when absent');
+ok(StudyPlan.label({ groupValue: 'Spread', measureName: 'YPP' }) === 'Spread — YPP', 'sample is omitted when absent');
 ok(StudyPlan.label({ groupValue: '', dimensionName: 'Down', measureName: 'Conv' }) === 'Down — Conv', 'a blank group falls back to the dimension label');
 
 // ---- 2. finding payload ------------------------------------------------------
 {
-  const it = StudyPlan.finding({ dimensionName: 'Formation', measureName: 'Success Rate', scopeLabel: 'full season', groupValue: 'Wing-T', sampleSize: 18, dimension: 'formation', measure: 'successRate', scope: 'season', compare: 'prior', cohort: 'against', refs: ['g1::3', 9, 'g2::4'] });
+  const it = StudyPlan.finding({ dimensionName: 'Formation', measureName: 'Success Rate', scopeLabel: 'full season', groupValue: 'Wing-T', sampleSize: 18, dimension: 'formationFamily', measure: 'successRate', scope: 'season', compare: 'prior', cohort: 'against', refs: ['g1::3', 9, 'g2::4'] });
   ok(it.kind === 'finding' && it.label === 'Wing-T — Success Rate (n=18)', 'finding() carries kind + canonical label');
   ok(JSON.stringify(it.refs) === JSON.stringify(['g1::3', '9', 'g2::4']), 'finding() coerces refs to strings', JSON.stringify(it.refs));
-  ok(it.query.dimension === 'formation' && it.query.measure === 'successRate' && it.query.scope === 'season' && it.query.group === 'Wing-T', 'finding() preserves the query context (re-runnable)', JSON.stringify(it.query));
+  ok(it.query.dimension === 'formationFamily' && it.query.measure === 'successRate' && it.query.scope === 'season' && it.query.group === 'Wing-T', 'finding() preserves the query context (re-runnable)', JSON.stringify(it.query));
   ok(it.query.compare === 'prior' && it.query.cohort === 'against', 'finding() preserves the selected comparison cohort', JSON.stringify(it.query));
 }
 
@@ -48,14 +48,14 @@ ok(StudyPlan.label({ groupValue: '', dimensionName: 'Down', measureName: 'Conv' 
   const s = new SeasonStore({});   // stub backend — pure data
   s.data = s._normalize({ version: 5, type: 'season', games: [{ id: 'g1', plays: [], gameInfo: {} }], activeGameId: 'g1' });
   const plan = s.createPlan('3rd down attack');
-  const item = StudyPlan.finding({ dimensionName: 'Formation', measureName: 'Success Rate', groupValue: 'Wing-T', sampleSize: 12, dimension: 'formation', measure: 'successRate', scope: 'season', refs: ['g1::3', 'g2::9'] });
+  const item = StudyPlan.finding({ dimensionName: 'Formation', measureName: 'Success Rate', groupValue: 'Wing-T', sampleSize: 12, dimension: 'formationFamily', measure: 'successRate', scope: 'season', refs: ['g1::3', 'g2::9'] });
   const saved = s.addPlanItem(plan.id, item);
   ok(!!saved.id && !!saved.createdAt, 'the store normalizes a StudyPlan finding (adds id + createdAt)');
   // Round-trip through save→load (JSON), then flatten for the cross-game player.
   const reload = new SeasonStore({});
   reload.data = reload._normalize(JSON.parse(JSON.stringify(s.data)));
   const p2 = reload.getPlan(plan.id);
-  ok(p2 && p2.items.length === 1 && p2.items[0].query.dimension === 'formation', 'a saved finding round-trips through the plans contract');
+  ok(p2 && p2.items.length === 1 && p2.items[0].query.dimension === 'formationFamily', 'a saved finding round-trips through the plans contract');
   ok(JSON.stringify(StudyPlan.planRefs(p2)) === JSON.stringify(['g1::3', 'g2::9']), 'the reloaded plan flattens to the composite refs CrossGameCutup consumes', JSON.stringify(StudyPlan.planRefs(p2)));
 }
 

@@ -35,13 +35,13 @@ await page.evaluate(async () => {
   // omitted distance is exactly the "insufficient data" case the coaching
   // metrics are built to disclose, not a fixture convenience to skip.
   g1.plays = [
-    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10', custom: [] } },
-    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Ace', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', distance: '4', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formationFamily: 'Spread', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', distance: '4', custom: [] } },
     { id: 3, timestamp: { start: 10, end: 14 }, tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', distance: '7', custom: [] } },
   ];
   const g2 = store.addGame({ id: 'g-study-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
-    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', custom: [] } },
-    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formation: 'Wing-T', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', distance: '2', custom: [] } },
+    { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formationFamily: 'Wing-T', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', custom: [] } },
+    { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formationFamily: 'Wing-T', runPass: 'Run', playType: 'Run Inside', result: 'Touchdown', yardage: '12', down: '2', distance: '2', custom: [] } },
   ] });
   store.data.activeGameId = g1.id;
   app.storage._clearForNewGame();
@@ -56,7 +56,7 @@ let r = await page.evaluate(() => ({
   reportsHidden: document.querySelector('#wsReports')?.hidden,
   specialTeamsLabel: document.querySelector('#wsStudyUnit option[value="special"]')?.textContent,
 }));
-ok(r.visible && /2 matching plays/.test(r.summary) && r.groups.includes('Trips') && r.groups.includes('Ace') && !r.groups.includes('Unknown'), 'Study defaults to the active-game cohort', JSON.stringify(r));
+ok(r.visible && /2 matching plays/.test(r.summary) && r.groups.includes('Spread') && r.groups.includes('I-Form') && !r.groups.includes('Unknown'), 'Study defaults to the active-game cohort', JSON.stringify(r));
 ok(r.reportsHidden, 'Study does not silently open the native Reports destination');
 ok(r.specialTeamsLabel === 'Special Teams', 'Study unit selector capitalizes Special Teams consistently', JSON.stringify(r));
 await capture('study-game-1280x800');
@@ -212,13 +212,13 @@ console.log('\n== S6-3 Plan: grouped sections + bottom presentation strip ==');
 const planFixture = await page.evaluate(async () => {
   const app = window.app, store = app.storage.seasonStore, plan = store.plans()[0];
   const add = item => store.addPlanItem(plan.id, item);
-  add({ kind: 'finding', label: 'Trips — Success Rate', refs: ['g-study-1::1', 'g-study-1::2'], query: { dimension: 'formation', measure: 'successRate', scope: 'season', group: 'Trips' } });
-  add({ kind: 'finding', label: 'Wing-T — Success Rate', refs: ['g-study-1::2', 'g-study-2::1'], query: { dimension: 'formation', measure: 'successRate', scope: 'season', group: 'Wing-T' } });
+  add({ kind: 'finding', label: 'Spread — Success Rate', refs: ['g-study-1::1', 'g-study-1::2'], query: { dimension: 'formationFamily', measure: 'successRate', scope: 'season', group: 'Spread' } });
+  add({ kind: 'finding', label: 'Wing-T — Success Rate', refs: ['g-study-1::2', 'g-study-2::1'], query: { dimension: 'formationFamily', measure: 'successRate', scope: 'season', group: 'Wing-T' } });
   add({ kind: 'note', label: 'Boundary emphasis', refs: [] });
   add({ kind: 'finding', label: '3rd Down — Yards per Play', refs: ['g-study-1::3'], query: { dimension: 'down', measure: 'yardsPerPlay', scope: 'season', group: '3' } });
   ['A', 'B', 'C', 'D'].forEach((tag, i) => add({ kind: 'film', label: `Install clip ${tag}`, refs: [`g-study-2::${(i % 2) + 1}`] }));
   await store.persist(); app.planScreen.render();
-  return { items: store.getPlan(plan.id).items.length, planId: plan.id, formationName: app.analyticsRegistry.getDimension('formation')?.name, downName: app.analyticsRegistry.getDimension('down')?.name };
+  return { items: store.getPlan(plan.id).items.length, planId: plan.id, formationName: app.analyticsRegistry.getDimension('formationFamily')?.name, downName: app.analyticsRegistry.getDimension('down')?.name };
 });
 r = await page.evaluate(() => {
   const store = window.app.storage.seasonStore, plan = store.plans()[0];
@@ -633,7 +633,7 @@ r = await page.evaluate((n) => {
 ok(famClicked && JSON.stringify(r.refs) === JSON.stringify(r.registryRefs) && r.registryRefs.length > 0,
   'clicking Watch on the Coverage Family "Zone" row passes EXACTLY the registry-matching refs to the cut-up player', JSON.stringify(r));
 
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 
 console.log('\n== S8-2 Study Unit is context-aware for unit-specific dimensions ==');
 // Reproduce the exact reported dead end: Break Down By a Special-Teams-only
@@ -663,7 +663,7 @@ ok(r.unitValue === 'special' && r.unitDisabled && r.unitForced,
 ok(r.groups.includes('kickoff') && r.groups.includes('punt'),
   'The forced unit produces real results instead of the old silent zero-row dead end (Unit: Offense + a Special Teams dimension)', JSON.stringify(r));
 
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 r = await page.evaluate(() => ({
   unitValue: document.querySelector('#wsStudyUnit')?.value,
   unitDisabled: document.querySelector('#wsStudyUnit')?.disabled,
@@ -672,17 +672,17 @@ r = await page.evaluate(() => ({
 ok(r.unitValue === 'offense' && !r.unitDisabled && !r.unitForced,
   "Switching back to a cross-unit dimension immediately re-enables Unit and restores the coach's own prior choice", JSON.stringify(r));
 
-for (const crossUnitDim of ['formation', 'playType', 'defFront', 'coverage', 'blitz']) {
+for (const crossUnitDim of ['formationFamily', 'playType', 'defFront', 'coverage', 'blitz']) {
   await page.select('#wsStudyDimension', crossUnitDim);
   const state = await page.$eval('#wsStudyUnit', el => ({ disabled: el.disabled, forced: el.classList.contains('is-unit-forced') }));
   ok(!state.disabled && !state.forced, `"${crossUnitDim}" is meaningful from more than one unit and never locks Unit`, JSON.stringify(state));
 }
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 
 console.log('\n== S6-2 Study pivot: any dimension x any dimension, every cell a cut-up ==');
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyScope', 'season');
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 await page.select('#wsStudyColumn', 'down');
 await new Promise(res => setTimeout(res, 400));
 
@@ -781,7 +781,7 @@ r = await page.evaluate(async () => {
   const expected = [];
   games.forEach(game => (game.plays || []).forEach(play => {
     const stamped = { ...play, __gid: String(game.id) };
-    const rows = app.analyticsRegistry.values('formation', stamped).map(String);
+    const rows = app.analyticsRegistry.values('formationFamily', stamped).map(String);
     const cols = app.analyticsRegistry.values('down', stamped).map(String);
     if (rows.includes(rowValue) && cols.includes(colValue)) expected.push(`${game.id}::${play.id}`);
   }));
@@ -801,7 +801,7 @@ await page.select('#wsStudyMeasure', 'success');
 await page.select('#wsStudyUnit', 'offense');
 await page.select('#wsStudyCompare', '');
 await page.select('#wsStudyScope', 'season');
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 await page.select('#wsStudyColumn', 'down');
 await new Promise(res => setTimeout(res, 400));
 r = await page.evaluate(() => {
@@ -834,7 +834,7 @@ r = await page.evaluate(async () => {
   const games = app.storage.seasonStore.data.games;
   const plays = games.flatMap(g => (g.plays || []).map(p => ({ ...p, __gid: String(g.id) })));
   const independent = app.study.runMetrics({
-    plays, dimension: 'formation', metricIds: ['successRate'],
+    plays, dimension: 'formationFamily', metricIds: ['successRate'],
     filters: [{ dimension: 'unit', values: ['offense'] }, { dimension: 'down', values: [colValue] }],
   });
   const group = independent.groups.find(g => String(g.value) === rowValue);
@@ -900,7 +900,7 @@ const picker = await page.evaluate(() => {
 // Grouping reorders options, so "the first option" is no longer a stable
 // default — this is a real behaviour change that the harness caught, and the
 // default is now stated in code rather than inherited from list position.
-ok(picker.defaultDimension === 'formation' && picker.declaredDefault === 'formation',
+ok(picker.defaultDimension === 'formationFamily' && picker.declaredDefault === 'formationFamily',
   'Study still opens on Formation after the pickers were grouped',
   JSON.stringify({ selected: picker.defaultDimension, declared: picker.declaredDefault }));
 // Study expansion (2026-08-15): the lens grouping changed shape -- the picker
@@ -942,9 +942,9 @@ await page.evaluate(async () => {
   const store = app.storage.seasonStore;
   const g1 = store.activeGame();
   g1.id = 'g-recent-1'; g1.name = 'Week 1'; g1.gameInfo = { opponent: 'Foxes', date: '2026-08-01' };
-  const play = (id, down, distance, yardage, formation = 'Trips') => ({
+  const play = (id, down, distance, yardage, formationFamily = 'Spread') => ({
     id, timestamp: { start: 0, end: 4 },
-    tags: { unit: 'offense', formation, runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage, down, ...(distance != null ? { distance } : {}), custom: [] },
+    tags: { unit: 'offense', formationFamily, runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage, down, ...(distance != null ? { distance } : {}), custom: [] },
   });
   g1.plays = [play(1, '1', '10', '6')];
   store.addGame({ id: 'g-recent-2', name: 'Week 2', status: 'active', gameInfo: { opponent: 'Week 2', date: '2026-08-08' }, plays: [play(1, '2', '6', '4')] });
@@ -953,7 +953,7 @@ await page.evaluate(async () => {
   // A DISTINCT formation, appearing only here -- reproduces finding #2 (an
   // against-only group in a "Game vs prior games" comparison must never
   // leak into a "Watch current game" click).
-  store.addGame({ id: 'g-recent-5', name: 'Week 5', status: 'active', gameInfo: { opponent: 'Week 5', date: '2026-08-29' }, plays: [play(1, '1', '10', '5', 'Ace')] });
+  store.addGame({ id: 'g-recent-5', name: 'Week 5', status: 'active', gameInfo: { opponent: 'Week 5', date: '2026-08-29' }, plays: [play(1, '1', '10', '5', 'I-Form')] });
   // The ACTIVE game. Play 2 omits `distance` -- ineligible for successRate/
   // stopRate (reproduces finding #1: a grouped play the metric excludes must
   // not inflate Plays/Run-Pass or leak into Watch while still counting
@@ -970,17 +970,17 @@ await page.evaluate(async () => {
 await page.select('#wsStudyCompare', '');
 await page.select('#wsStudyUnit', 'offense');
 await page.select('#wsStudyMeasure', 'success');
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 await page.select('#wsStudyScope', 'game');
 r = await page.evaluate(() => {
-  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Trips');
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Spread');
   const cells = row ? [...row.querySelectorAll('span')].map(el => el.textContent.trim()) : [];
   return { plays: cells[0] || '', metric: cells[1] || '', runPass: cells[2] || '' };
 });
 ok(r.plays === '1 of 2', 'Finding #1: Plays discloses eligible-of-raw when a grouped play is ineligible for the selected metric', JSON.stringify(r));
 ok(r.runPass === '100% / 0%', 'Finding #1: Run/Pass is computed from the metric\'s own eligible cohort, not the group\'s broader raw sample', JSON.stringify(r));
 await page.evaluate(() => {
-  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Trips');
+  const row = [...document.querySelectorAll('.ws-study-row')].find(el => el.querySelector('strong')?.textContent === 'Spread');
   row?.querySelector('[data-study-row]')?.click();
 });
 r = await page.evaluate(() => window.__reviewWatchCalls.at(-1));
@@ -989,7 +989,7 @@ ok(r.refs.length === 1 && r.refs[0] === 'g-recent-6::1',
 
 await page.select('#wsStudyCompare', 'prior');
 r = await page.evaluate(() => [...document.querySelectorAll('.ws-study-row-compare > strong')].map(el => el.textContent));
-ok(r.includes('Ace'), 'Finding #2 fixture (rich path): "Game vs prior games" includes an against-only group (Ace)', JSON.stringify(r));
+ok(r.includes('I-Form'), 'Finding #2 fixture (rich path): "Game vs prior games" includes an against-only group (Ace)', JSON.stringify(r));
 await page.click('[data-study-action="watch-all"]');
 r = await page.evaluate(() => window.__reviewWatchCalls.at(-1));
 ok(!r.refs.includes('g-recent-5::1') && r.refs.includes('g-recent-6::1') && !r.refs.includes('g-recent-6::2'),
@@ -997,7 +997,7 @@ ok(!r.refs.includes('g-recent-5::1') && r.refs.includes('g-recent-6::1') && !r.r
 
 await page.select('#wsStudyMeasure', 'epaPerPlay');
 r = await page.evaluate(() => [...document.querySelectorAll('.ws-study-row-compare > strong')].map(el => el.textContent));
-ok(r.includes('Ace'), 'Finding #2 fixture (legacy flat-measure path): the against-only group exists there too', JSON.stringify(r));
+ok(r.includes('I-Form'), 'Finding #2 fixture (legacy flat-measure path): the against-only group exists there too', JSON.stringify(r));
 await page.click('[data-study-action="watch-all"]');
 r = await page.evaluate(() => window.__reviewWatchCalls.at(-1));
 ok(!r.refs.includes('g-recent-5::1') && r.refs.includes('g-recent-6::1') && r.refs.includes('g-recent-6::2'),
@@ -1007,9 +1007,9 @@ const legacyViewRaw = await page.evaluate(async () => {
   const key = 'ffa_study_views_v1';
   const before = JSON.parse(localStorage.getItem(key) || '[]');
   const legacyViews = [
-    { id: 'legacy-success-rate', name: 'Old formation view', state: { dimension: 'formation', column: '', scope: 'game', unit: 'offense', measure: 'successRate', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
-    { id: 'legacy-run-share', name: 'Old run share view', state: { dimension: 'formation', column: '', scope: 'season', unit: '', measure: 'runShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
-    { id: 'legacy-pass-share', name: 'Old pass share view', state: { dimension: 'formation', column: '', scope: 'season', unit: '', measure: 'passShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
+    { id: 'legacy-success-rate', name: 'Old formation view', state: { dimension: 'formationFamily', column: '', scope: 'game', unit: 'offense', measure: 'successRate', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
+    { id: 'legacy-run-share', name: 'Old run share view', state: { dimension: 'formationFamily', column: '', scope: 'season', unit: '', measure: 'runShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
+    { id: 'legacy-pass-share', name: 'Old pass share view', state: { dimension: 'formationFamily', column: '', scope: 'season', unit: '', measure: 'passShare', minSample: 0, compare: '', periodGames: 3, dateFrom: '', dateTo: '', filters: [] } },
   ];
   localStorage.setItem(key, JSON.stringify([...before, ...legacyViews]));
   window.app.studyScreen._native.refresh();
@@ -1039,7 +1039,7 @@ ok(r === legacyViewRaw, 'Finding #3: opening a legacy saved view never rewrites 
 // inherit it, the same way every other section in this file states its
 // own control values instead of relying on leftover state.
 await page.select('#wsStudyUnit', 'offense');
-await page.select('#wsStudyDimension', 'formation');
+await page.select('#wsStudyDimension', 'formationFamily');
 await page.select('#wsStudyMeasure', 'success');
 await page.select('#wsStudyCompare', 'recent');
 await page.select('#wsStudyPeriodGames', '2');

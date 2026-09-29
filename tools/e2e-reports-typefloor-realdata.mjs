@@ -70,9 +70,13 @@ const DEFENSE = {};
    heading, KPI and tile label, heat-map cell, lens and EPA sub-heading and
    column label at or above the floor: 115 -> 49 at 1440, minimum 9.5 -> 10.5.
    What remains is inside charts - matrix-cell splits, zone-strip and down
-   captions, EPA contribution bars - which that pass did not restyle. */
+   captions, EPA contribution bars - which that pass did not restyle.
+   2026-09-28: the charting cutover converted the canonical fixture's Formation to
+   a one-value Formation Family, so the matrix cells that split by formation
+   shrank: 10.5|SPAN 19 -> 18 and 12|DIV 6 -> 4 (49 -> 46 at 1440, 214 -> 211 at
+   1280). Every count fell or held; none rose. */
 const OFFENSE_BASE = {
-  '10.5|SMALL': 10, '10.5|SPAN': 19, '10.5|STRONG': 6, '11|SPAN': 8, '12|DIV': 6,
+  '10.5|SMALL': 10, '10.5|SPAN': 18, '10.5|STRONG': 6, '11|SPAN': 8, '12|DIV': 4,
 };
 /* The narrow-width exception, and the whole of it: the eight `gi-off-narrow-fit`
    modules contribute exactly 165 cells at 1280 (their forty column labels
@@ -293,7 +297,7 @@ for (const row of observed.filter(item => item.tab === 'offense')) {
    inferred from the buckets above. */
 const TOTALS = {
   'overview@1440': 35, 'overview@1280': 35,
-  'offense@1440': 49, 'offense@1280': 214,
+  'offense@1440': 46, 'offense@1280': 211,
   'defense@1440': 0, 'defense@1280': 0,
   'special@1440': 0, 'special@1280': 0,
   'players@1440': 0, 'players@1280': 0,

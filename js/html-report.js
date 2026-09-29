@@ -53,6 +53,28 @@ const downDistanceChartTable = (title, chart) => {
     ${body}</section>`;
 };
 
+/** The run-gap chart on paper: the ten gaps in football order through the SAME
+ *  engine formatters the board uses, with the eligible-sample sentence and the
+ *  strength read. A gap with no runs prints `-`. */
+const runGapChartTable = (title, chart) => {
+  if (!chart || !chart.cohortRuns) return '';
+  const fmt = StatsEngine.formatRunGapCell;
+  const defense = chart.side === 'defense';
+  const order = ['L-D', 'L-C', 'L-B', 'L-A', 'Center', 'R-A', 'R-B', 'R-C', 'R-D', 'Other'];
+  const rows = order.map(gap => chart.cells.find(cell => cell.gap === gap));
+  const head = ['Gap', 'Runs', 'Share', defense ? 'Yards / Play Allowed' : 'Yards / Play', defense ? 'Opponent success' : 'Success', 'Explosive'];
+  const body = `<div class="table-wrap"><table data-rg-export="${esc(chart.side)}"><thead><tr>${head.map(label => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows.map(cell => {
+    const text = fmt(cell);
+    return `<tr data-rg-row="${esc(cell.gap)}">${[cell.gap, text.plays, text.share, text.ypp, text.success, text.explosives].map(value => `<td>${esc(value)}</td>`).join('')}</tr>`;
+  }).join('')}</tbody></table></div>`;
+  const st = chart.strength;
+  const strength = row => row.n ? `${row.n} runs, ${row.ypp == null ? '-' : row.ypp.toFixed(1)} yards per play` : 'none charted';
+  return `<section class="report-section"><h2>${esc(title)}</h2>
+    <p class="dd-cohort" data-rg-cohort>${esc(StatsEngine.runGapCohortLine(chart))}. The gap is where the ball hit, as charted; a run with no gap is not counted in any row. Success counts only snaps whose down, distance and yardage (or scoring result) were charted; yards per play counts only snaps with charted yardage.</p>
+    ${body}
+    <p class="dd-cohort" data-rg-strength>Toward strength: ${esc(strength(st.toward))}. Away from strength: ${esc(strength(st.away))}. Strength is charted on ${st.charted} of ${st.sided} sided runs.</p></section>`;
+};
+
 const situationalTable = stats => table('Situational Offense', [
   { key: 'name', label: 'Situation' }, { key: 'total', label: 'Snaps' },
   { key: 'avg', label: 'Yards / Play' }, { key: 'success', label: 'Success' }, { key: 'tds', label: 'TD' },
@@ -165,7 +187,7 @@ const sharedBody = ({ stats, engine, gameLabels = null, rosterLabels = null, def
   return `${overview}
     <section class="chapter"><div class="chapter-title"><span>Offense</span><h1>Offensive Performance</h1></div>
       <div class="two-up">${compactRows('Rushing', view.rushingRows(stats))}${compactRows('Passing', view.passingRows(stats))}</div>
-      ${tendencyTable(stats)}${downDistanceChartTable('Down & Distance Chart', engine.downDistanceChart(stats.offPlays || [], { side: 'offense' }))}${dd}${situationalTable(stats)}${driveTable}${offenseVisuals(stats, engine)}
+      ${tendencyTable(stats)}${downDistanceChartTable('Down & Distance Chart', engine.downDistanceChart(stats.offPlays || [], { side: 'offense' }))}${runGapChartTable('Run Gaps', engine.runGapChart(stats.offPlays || [], { side: 'offense' }))}${dd}${situationalTable(stats)}${driveTable}${offenseVisuals(stats, engine)}
     </section>
     ${defenseTables(def, engine.downDistanceChart(stats.defPlays || [], { side: 'defense' }))}${specialTeams(stats, stSummary)}
     <section class="chapter"><div class="chapter-title"><span>Players</span><h1>Individual Performance</h1></div>${playerTables(stats, labeler) || '<p class="empty">No player attribution charted.</p>'}</section>`;
@@ -327,7 +349,7 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
     body: seasonLead + sharedBody({ stats, engine, gameLabels: model.gameLabels, rosterLabels: model.rosterLabels, defensiveReport: model.defenseReport, specialSummary: model.specialSummary }) });
 }
 
-export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, ddChart = null, generatedAt = new Date() }) {
+export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, ddChart = null, rgChart = null, generatedAt = new Date() }) {
   if (!dashboard?.total) return '';
   const shown = value => value === null || value === undefined || value === '' ? '-' : value;
   const fixed = (rows, count) => [...(rows || []).slice(0, count),
@@ -396,7 +418,7 @@ export function buildDefenseHtmlReport({ title, dashboard, scopeLabel, ddChart =
     { key: 'touchdowns', label: 'TD', value: row => shown(row.touchdowns) }], fixed(dashboard.playTypes, 7))}${table('Top 6 formations', formationColumns,
     fixed(dashboard.formationCalls, 6))}</div><div class="two-up">${table('Personnel faced', tendencyColumns,
     fixed(dashboard.personnel, 5))}${table('Backfield faced', tendencyColumns, fixed(dashboard.backfields, 5))}</div>${table('Attack direction', tendencyColumns,
-    dashboard.directions)}`;
+    dashboard.directions)}${runGapChartTable('Runs faced by gap', rgChart)}`;
   const calls = columns => [
     { key: 'name', label: 'Call', value: row => shown(row.name) }, ...columns.slice(1),
   ];

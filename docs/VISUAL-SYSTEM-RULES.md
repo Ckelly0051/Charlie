@@ -129,7 +129,7 @@ regression guard and say so.
 | Season | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
 | Matchup | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
-| Offense | 10.5px | 49 | 214 | Chart internals + narrow-width exception |
+| Offense | 10.5px | 46 | 211 | Chart internals + narrow-width exception |
 
 **Defense, Special Teams, Players, Self-Scout, Season and Matchup are the migrated boards.** Revision 2 renders nothing below the
 floor; its sort glyph is 12.5px in production (the `JUMP TO` label is retired
@@ -152,7 +152,7 @@ release width. Overview carries only its approved broadcast micro-labels.
 Offense was previously classified here as migrated; it is not. The 2026-09-24
 module-system pass (1.12.0-97 smoke S97-1) put every heading, module title,
 KPI and tile label, heat-map cell, lens and EPA sub-heading and column label at
-or above the floor (115 -> 49 at 1440, minimum 9.5 -> 10.5); what remains is
+or above the floor (115 -> 49 at 1440, minimum 9.5 -> 10.5; 46 and 211 since the charting cutover made Formation a one-value Family); what remains is
 inside charts: Formation x Play Type and Top 5 Tendencies cells, the zone-strip
 and down-chart captions, and the EPA contribution bars.
 
@@ -173,8 +173,8 @@ rather than the type.
 **The Offense narrow-width exception, scoped.** Eight five-column modules cannot
 hold a 379px band half at the floor, so at ≤1300px their cells keep a 12px body.
 They carry the explicit `gi-off-narrow-fit` class and the census pins their
-whole contribution: `12|TD: 165`, which is the difference between Offense's 49
-at 1440 and 214 at 1280. Their forty 11.5px column labels reached the floor in
+whole contribution: `12|TD: 165`, which is the difference between Offense's 46
+at 1440 and 211 at 1280. Their forty 11.5px column labels reached the floor in
 the 2026-09-24 module-system pass and still fit. (Both were three
 higher until 2026-09-23: the three 10.5px zone-rule notes left with the zone
 rules when the zones became pages. The census is taken over all six pages.)

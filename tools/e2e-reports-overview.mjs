@@ -337,20 +337,20 @@ const load = async (rushes, passes, defense, st = 3) => {
   await page.evaluate(async (R, P, D, stCount) => {
     const plays = [];
     let id = 0;
-    const FORMS = ['Wing-T', 'Trips', 'Ace'];
+    const FORMS = ['Wing-T', 'Spread', 'I-Form'];
     const push = (unit, tags) => plays.push({
       id: ++id, timestamp: { start: id * 8, end: id * 8 + 5 },
       notes: '', annotations: [], penalties: [],
       tags: { custom: [], players: {}, grades: {}, quarter: `Q${(id % 4) + 1}`, unit, ...tags },
     });
     R.forEach(([playType, down, distance, yardage, result], i) => push('offense', {
-      runPass: 'Run', playType, formation: FORMS[i % 3], personnel: i % 2 ? '21' : '11',
+      runPass: 'Run', playType, formationFamily: FORMS[i % 3], personnel: i % 2 ? '21' : '11',
       playCall: 'Inside Zone', playConcept: 'Inside Zone', down, distance,
       yardage: String(yardage), result, players: { ballCarrier: '22' },
       ...(result === 'Touchdown' ? { fieldSide: 'opp', yardLine: '6' } : {}),
     }));
     P.forEach(([playType, down, distance, yardage, result], i) => push('offense', {
-      runPass: 'Pass', playType, formation: FORMS[(i + 1) % 3], personnel: '11',
+      runPass: 'Pass', playType, formationFamily: FORMS[(i + 1) % 3], personnel: '11',
       playCall: 'Smash', playConcept: 'Smash', down, distance,
       yardage: String(yardage), result, players: { passer: '12', receiver: '84' },
       ...(result === 'Touchdown' ? { fieldSide: 'opp', yardLine: '8' } : {}),

@@ -1123,7 +1123,7 @@ const relevance = await page.evaluate(num => {
 ok(!relevance.rushing.includes('coverage') && !relevance.rushing.includes('defFront')
   && !relevance.rushing.includes('stUnit'),
   'a rushing cohort is never offered a defensive or Special Teams dimension', JSON.stringify(relevance.rushing));
-ok(!relevance.tackles.includes('formation') && !relevance.tackles.includes('personnel')
+ok(!relevance.tackles.includes('formationFamily') && !relevance.tackles.includes('personnel')
   && relevance.tackles.includes('coverage'),
   'a tackles cohort is offered the defense it played, not our own offensive structure',
   JSON.stringify(relevance.tackles));

@@ -2,16 +2,16 @@
    The behavioral tests (e2e-analytics-projection.mjs) are the primary, syntax-proof
    guarantee; this catches a raw read on a surface nobody wrote a behavioral probe
    for. A grep is insufficient — the analytics code already uses optional chaining
-   (`p?.tags?.formation`), computed brackets (`p?.tags?.[key]`), aliases
-   (`const t = p.tags; t.formation`) and destructuring, all of which evade a string
+   (`p?.tags?.formationFamily`), computed brackets (`p?.tags?.[key]`), aliases
+   (`const t = p.tags; t.formationFamily`) and destructuring, all of which evade a string
    match. So we PARSE each file and walk member expressions rooted at a `.tags`
    object.
 
-   For the six projected fields (formation/backfield/strength/coverage/qbAlignment/
+   For the six projected fields (formationFamily/receiverSet/backfield/strength/coverage/qbAlignment/
    coverageFamily) this FAILS on any resolvable raw read:
-     - dot / optional-chain:      X.tags.formation   X?.tags?.formation
-     - bracket string literal:    X.tags['formation']
-     - alias:                     const t = X.tags; … t.formation
+     - dot / optional-chain:      X.tags.formationFamily   X?.tags?.formationFamily
+     - bracket string literal:    X.tags['formationFamily']
+     - alias:                     const t = X.tags; … t.formationFamily
      - destructuring:             const { formation } = X.tags
    and FLAGS every computed `X.tags[expr]` (expr not a string literal) for manual
    classification — it can't be resolved statically, so a human must confirm it
@@ -29,7 +29,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FIELDS = new Set(['formation', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily']);
+const FIELDS = new Set(['formationFamily', 'receiverSet', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily']);
 const FILES = [
   'js/stats-engine.js', 'js/analytics-registry.js', 'tools/e2e-parity.mjs',
   // E3b: analytics DISPLAY/FILTER consumers, added as each is wired. A raw
@@ -42,7 +42,7 @@ const FILES = [
   // E3b: PRESENTATION exports/captions. These may compose alignment+formation into
   // one spoken-call STRING via TagProjection.lookLabel (see tag-projection.js) —
   // that composition is deliberate and lives inside lookLabel, not in these files.
-  // A raw `.tags.formation`/`.tags.coverage` etc. read here means the composition
+  // A raw `.tags.formationFamily`/`.tags.coverage` etc. read here means the composition
   // was bypassed and a legacy mixed value (e.g. "Shotgun + Trips") would print
   // literally instead of through the projected label.
   'js/call-sheet-builder.js', 'js/plan-export.js', 'js/cutup-exporter.js',
@@ -67,12 +67,12 @@ const ALLOW = [];
 // This is stable under benign edits (text + count unchanged) yet catches the exact
 // duplicate/move bypass R4 names — proven by the sensitivity self-test below.
 const ACK = [
-  { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — verified never called with any of the six fields (formation/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
+  { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — verified never called with any of the six fields (formationFamily/receiverSet/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
   { file: 'js/stats-engine.js', method: 'projField', code: 'p.tags[key]', count: 1, reason: "E3b: projField IS the sanctioned by-key projection seam — it returns proj(p)[key] for the six PROJECTED_FIELDS and reaches this raw read ONLY for non-projected keys. Method-scoped (E3b-P5): this same expression text is forbidden in a display method." },
   { file: 'js/advanced-metrics.js', method: 'summarize', code: 'x.play.tags[key]', count: 1, reason: "E3b: EPA groupBy() branches on StatsEngine.PROJECTED_FIELDS — the six go through projField(), and this raw read is reachable ONLY for non-projected keys (playType, down, …), which keep their existing 'Unknown' bucket." },
   // PlayGrid presentation reads and native editor seeds go through projField;
   // only the explicit edit commit may write the coach's stored value directly.
-  { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 1, reason: "EDITOR write: commits the coach's explicit choice to the stored tag. Raw by design — display never writes." },
+  { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 2, reason: "EDITOR writes (an enum column and a free-text detail column such as the RPO defender number): commit the coach's explicit choice to the stored tag. Raw by design — display never writes." },
   // E4-2: the former `_applyEdit` `play.tags[sibling]` ACK (count 2) is GONE on
   // purpose — the promote-then-strip logic moved into
   // TagProjection.reconcileSiblings (tag-projection.js, not a scanned file: it
@@ -206,7 +206,7 @@ console.log('\n== E3a raw-read audit (AST) ==');
 // source and the `|| {}` / `?? {}` probes were detected through THAT — the fixture
 // passed even with the LogicalExpression fix reverted (found by mutating it).
 const FIXTURE = `
-  export function probeA(p) { const ta = p.tags || {}; return ta.formation; }      // alias via || {}
+  export function probeA(p) { const ta = p.tags || {}; return ta.formationFamily; }      // alias via || {}
   export function probeB(p) { const tb = p?.tags ?? {}; return tb.coverage; }      // alias via ?? {}
   export function probeC(p) { const tc = p.tags; return tc.backfield; }            // bare alias
   export function probeD(p) { return p?.tags?.strength; }                          // optional chain
@@ -218,10 +218,10 @@ const fx = { findings: [], flags: [] };
 const fxRes = scanSource(FIXTURE, 'FIXTURE', fx);
 ok(!fxRes.parseError, 'detector fixture parses');
 const fxFields = fx.findings.map(f => f.field).sort();
-ok(JSON.stringify(fxFields) === JSON.stringify(['backfield', 'coverage', 'coverageFamily', 'formation', 'qbAlignment', 'strength']),
+ok(JSON.stringify(fxFields) === JSON.stringify(['backfield', 'coverage', 'coverageFamily', 'formationFamily', 'qbAlignment', 'strength']),
   'detector catches ALL six raw-read forms incl. the `|| {}` / `?? {}` alias idioms',
   JSON.stringify(fxFields));
-ok(fx.findings.some(f => f.form === 'alias ta.formation') && fx.findings.some(f => f.form === 'alias tb.coverage'),
+ok(fx.findings.some(f => f.form === 'alias ta.formationFamily') && fx.findings.some(f => f.form === 'alias tb.coverage'),
   'detector resolves `const t = X.tags || {}` and `?? {}` as tags ALIASES (the rev-1 blind spot)',
   JSON.stringify(fx.findings.map(f => f.form)));
 ok(!fxFields.includes('personnel'), 'detector does not over-report non-projected fields');

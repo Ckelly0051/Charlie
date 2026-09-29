@@ -87,17 +87,17 @@ const SCOUT_DEFENSE = [
 ];
 /* Their OFFENSE, charted on the same scout film. */
 const SCOUT_OFFENSE = [
-  ...rep(6, () => off({ personnel: '21', formation: 'Pro I', playCall: 'Inside Zone', runPass: 'Run',
+  ...rep(6, () => off({ personnel: '21', formationFamily: 'Pro I', playCall: 'Inside Zone', runPass: 'Run',
     playType: 'Run Inside', result: 'Gain', yardage: '5', down: '1', distance: '10' })),
-  ...rep(3, () => off({ personnel: '11', formation: 'Trips', playCall: 'Quick Game', runPass: 'Pass',
+  ...rep(3, () => off({ personnel: '11', formationFamily: 'Spread', playCall: 'Quick Game', runPass: 'Pass',
     playType: 'Quick Pass', result: 'Gain', yardage: '6', down: '1', distance: '10' })),
-  ...rep(3, () => off({ personnel: '11', formation: 'Doubles', playCall: 'Mesh', runPass: 'Pass',
+  ...rep(3, () => off({ personnel: '11', formationFamily: 'Doubles', playCall: 'Mesh', runPass: 'Pass',
     playType: 'Short Pass', result: 'Gain', yardage: '7', down: '2', distance: '8' })),
-  ...rep(2, () => off({ personnel: '22', formation: 'Pro I', playCall: 'Power', runPass: 'Run',
+  ...rep(2, () => off({ personnel: '22', formationFamily: 'Pro I', playCall: 'Power', runPass: 'Run',
     playType: 'Run Inside', result: 'Gain', yardage: '3', down: '3', distance: '2' })),
-  ...rep(2, () => off({ personnel: '10', formation: 'Empty', playCall: 'Four Verts', runPass: 'Pass',
+  ...rep(2, () => off({ personnel: '10', formationFamily: 'Empty', playCall: 'Four Verts', runPass: 'Pass',
     playType: 'Deep Pass', result: 'Gain', yardage: '12', down: '3', distance: '9' })),
-  ...rep(3, () => off({ personnel: '12', formation: 'Wing-T', playCall: 'Buck Sweep', runPass: 'Run',
+  ...rep(3, () => off({ personnel: '12', formationFamily: 'Wing-T', playCall: 'Buck Sweep', runPass: 'Run',
     playType: 'Run Outside', result: 'Gain', yardage: '4', down: '2', distance: '4', fieldSide: 'opp', yardLine: '8' })),
 ];
 
@@ -106,50 +106,50 @@ const SCOUT_OFFENSE = [
    offensive snap carries the defense we faced; every defensive snap carries
    the offense we faced. */
 const SEASON_OFFENSE = [
-  ...rep(5, i => off({ formation: 'Trips', personnel: '11', playCall: 'Inside Zone', runPass: 'Run',
+  ...rep(5, i => off({ formationFamily: 'Spread', personnel: '11', playCall: 'Inside Zone', runPass: 'Run',
     playType: 'Run Inside', result: 'Gain', yardage: ['3', '5', '7', '9', '13'][i], down: '1', distance: '10',
     defFront: '4-2-5', coverage: 'Cover 3' })),
-  ...rep(3, () => off({ formation: 'Doubles', personnel: '11', playCall: 'Stick', runPass: 'Pass',
+  ...rep(3, () => off({ formationFamily: 'Doubles', personnel: '11', playCall: 'Stick', runPass: 'Pass',
     playType: 'Quick Pass', result: 'Gain', yardage: '5', down: '1', distance: '10',
     defFront: '4-2-5', coverage: 'Cover 3' })),
   /* The SAME front and coverage, but blitzed: a displayed `No Blitz` must
      never admit these. */
-  ...rep(2, () => off({ formation: 'Trips', personnel: '11', playCall: 'Inside Zone', runPass: 'Run',
+  ...rep(2, () => off({ formationFamily: 'Spread', personnel: '11', playCall: 'Inside Zone', runPass: 'Run',
     playType: 'Run Inside', result: 'Gain', yardage: '9', down: '1', distance: '10',
     defFront: '4-2-5', coverage: 'Cover 3', blitz: 'Mike' })),
-  ...rep(4, i => off({ formation: 'Trips', personnel: '11', playCall: 'Mesh', runPass: 'Pass',
+  ...rep(4, i => off({ formationFamily: 'Spread', personnel: '11', playCall: 'Mesh', runPass: 'Pass',
     playType: 'Short Pass', result: 'Gain', yardage: i < 2 ? '8' : '3', down: '2', distance: '9',
     defFront: '3-3-5', coverage: 'Cover 2' })),
-  ...rep(3, () => off({ formation: 'Pro I', personnel: '21', playCall: 'Power', runPass: 'Run',
+  ...rep(3, () => off({ formationFamily: 'Pro I', personnel: '21', playCall: 'Power', runPass: 'Run',
     playType: 'Run Inside', result: 'Gain', yardage: '3', down: '3', distance: '2',
     defFront: 'Apex', coverage: 'Cover 0', blitz: 'Edge' })),
   /* 3rd & 7+ exists in our season, but never against Bear | Cover 6 | Field. */
-  ...rep(3, () => off({ formation: 'Empty', personnel: '10', playCall: 'Verts', runPass: 'Pass',
+  ...rep(3, () => off({ formationFamily: 'Empty', personnel: '10', playCall: 'Verts', runPass: 'Pass',
     playType: 'Deep Pass', result: 'Gain', yardage: '11', down: '3', distance: '10',
     defFront: 'Nickel', coverage: 'Cover 3', blitz: 'Sam' })),
-  ...rep(3, () => off({ formation: 'Wing-T', personnel: '12', playCall: 'Buck Sweep', runPass: 'Run',
+  ...rep(3, () => off({ formationFamily: 'Wing-T', personnel: '12', playCall: 'Buck Sweep', runPass: 'Run',
     playType: 'Run Outside', result: 'Gain', yardage: '4', down: '2', distance: '4',
     fieldSide: 'opp', yardLine: '8', defFront: '4-4', coverage: 'Cover 1' })),
 ];
 const SEASON_DEFENSE = [
-  ...rep(5, i => def({ defFront: '4-4', coverage: 'Cover 3', personnel: '21', formation: 'Pro I',
+  ...rep(5, i => def({ defFront: '4-4', coverage: 'Cover 3', personnel: '21', formationFamily: 'Pro I',
     playCall: 'Inside Zone', runPass: 'Run', playType: 'Run Inside',
     result: i === 4 ? 'Gain' : 'No Gain', yardage: i === 4 ? '7' : '2', down: '1', distance: '10' })),
-  ...rep(2, () => def({ defFront: 'Nickel', coverage: 'Cover 1', blitz: 'Sam', personnel: '21', formation: 'Pro I',
+  ...rep(2, () => def({ defFront: 'Nickel', coverage: 'Cover 1', blitz: 'Sam', personnel: '21', formationFamily: 'Pro I',
     playCall: 'Inside Zone', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6',
     down: '1', distance: '10' })),
-  ...rep(4, () => def({ defFront: 'Nickel', coverage: 'Cover 1', blitz: 'Sam', personnel: '11', formation: 'Doubles',
+  ...rep(4, () => def({ defFront: 'Nickel', coverage: 'Cover 1', blitz: 'Sam', personnel: '11', formationFamily: 'Doubles',
     playCall: 'Mesh', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '5',
     down: '2', distance: '8' })),
-  ...rep(3, () => def({ defFront: 'Bear', coverage: 'Cover 0', blitz: 'Mike', personnel: '22', formation: 'Pro I',
+  ...rep(3, () => def({ defFront: 'Bear', coverage: 'Cover 0', blitz: 'Mike', personnel: '22', formationFamily: 'Pro I',
     playCall: 'Power', runPass: 'Run', playType: 'Run Inside', result: 'No Gain', yardage: '1',
     down: '3', distance: '2' })),
   /* 3rd & 7+ exists, but never against 10 | Empty | Four Verts. */
-  ...rep(3, () => def({ defFront: 'Nickel', coverage: 'Cover 3', personnel: '10', formation: 'Empty',
+  ...rep(3, () => def({ defFront: 'Nickel', coverage: 'Cover 3', personnel: '10', formationFamily: 'Empty',
     playCall: 'Smash', runPass: 'Pass', playType: 'Deep Pass', result: 'Gain', yardage: '9',
     down: '3', distance: '9' })),
   /* Our own red-zone defensive reps: their offense on OUR 8. */
-  ...rep(3, () => def({ defFront: '4-4', coverage: 'Cover 1', personnel: '12', formation: 'Wing-T',
+  ...rep(3, () => def({ defFront: '4-4', coverage: 'Cover 1', personnel: '12', formationFamily: 'Wing-T',
     playCall: 'Buck Sweep', runPass: 'Run', playType: 'Run Outside', result: 'No Gain', yardage: '2',
     down: '2', distance: '4', fieldSide: 'own', yardLine: '8' })),
 ];
@@ -185,22 +185,22 @@ const PARTIAL = () => [
 const EDGE = () => [
   game('e-both', 'Northgate', 'self', [
     /* Our answer to their `4-2-5 + Nickel`, charted in the OTHER order. */
-    ...rep(3, () => off({ formation: 'Trips', personnel: '11', playCall: 'Inside Zone', playConcept: 'Zone',
+    ...rep(3, () => off({ formationFamily: 'Spread', personnel: '11', playCall: 'Inside Zone', playConcept: 'Zone',
       runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10',
       defFront: 'Nickel + 4-2-5', coverage: 'Cover 3' })),
-    ...rep(2, () => off({ formation: 'Trips', personnel: '11', playCall: 'Verts', runPass: 'Pass',
+    ...rep(2, () => off({ formationFamily: 'Spread', personnel: '11', playCall: 'Verts', runPass: 'Pass',
       playType: 'Deep Pass', result: 'Gain', yardage: '9', down: '3', distance: '9',
       defFront: 'Bear', coverage: 'Cover 6' })),
     /* Our answer to a concept-only opponent call: these carry BOTH a play call
        and that concept, so a matcher that re-derives `playCall || playConcept`
        misses them entirely. */
-    ...rep(3, () => def({ defFront: '4-4', coverage: 'Cover 3', personnel: '11', formation: 'Trips',
+    ...rep(3, () => def({ defFront: '4-4', coverage: 'Cover 3', personnel: '11', formationFamily: 'Spread',
       playCall: 'Inside Zone', playConcept: 'Zone', runPass: 'Run', playType: 'Run Inside',
       result: 'No Gain', yardage: '2', down: '1', distance: '10' })),
   ], 1),
   /* Charted on OFFENSE only: it contributes to the offensive sample and must
      not appear in the defensive one. */
-  game('e-off', 'Northgate', 'self', rep(3, () => off({ formation: 'Ace', personnel: '12', playCall: 'Power',
+  game('e-off', 'Northgate', 'self', rep(3, () => off({ formationFamily: 'I-Form', personnel: '12', playCall: 'Power',
     runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5', down: '1', distance: '10',
     defFront: 'Odd', coverage: 'Cover 1' })), 2),
   /* Their DEFENSE only. The same front is charted in both selection orders,
@@ -219,7 +219,7 @@ const EDGE = () => [
   ], 3),
   /* Their OFFENSE only, and their call is charted as a CONCEPT with no play
      call at all. */
-  game('e-scout-off', 'Riverside', 'scout', rep(3, () => off({ personnel: '11', formation: 'Trips',
+  game('e-scout-off', 'Riverside', 'scout', rep(3, () => off({ personnel: '11', formationFamily: 'Spread',
     playConcept: 'Zone', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5',
     down: '1', distance: '10' })), 4),
 ];
@@ -453,14 +453,14 @@ console.log('\n== 6. The season-side join is exact ==');
    five per game, gaining 3, 5, 7, 9 and 13. 74 yards / 10 = 7.4, and eight
    of the ten reach half the distance to go, so Success is 80%. The two
    snaps against the SAME front and coverage that were blitzed are excluded. */
-ok(first.season.label === 'Trips | Inside Zone' && first.season.n === 10,
+ok(first.season.label === 'Spread | Inside Zone' && first.season.n === 10,
   'the season answer is our most frequently charted formation and call against that exact look',
   JSON.stringify(first.season));
 ok(first.season.yardsPerPlay === 7.4 && first.season.successRate === 80,
   'the season metrics are measured over the exact displayed call cohort', JSON.stringify(first.season));
 ok(!first.season.refs.some(ref => ref === 'g1::9' || ref === 'g1::10'),
   'a blitzed snap never satisfies a displayed No Blitz call', JSON.stringify(first.season.refs));
-ok(situationRows[0][4] === 'Trips | Inside Zone' && situationRows[0][5] === '10'
+ok(situationRows[0][4] === 'Spread | Inside Zone' && situationRows[0][5] === '10'
   && situationRows[0][6] === '7.4' && situationRows[0][7] === '80%',
   'the rendered row prints exactly what the engine measured', JSON.stringify(situationRows[0]));
 
@@ -794,7 +794,7 @@ const edgeFirst = edge.offense.situations.find(row => row.key === 'first');
 ok(edgeFirst.opponent.label === '4-2-5 + Nickel | Cover 3 | No Blitz' && edgeFirst.opponent.n === 4,
   'a multi-select front charted in two selection orders groups as one call',
   JSON.stringify(edgeFirst.opponent));
-ok(edgeFirst.season && edgeFirst.season.label === 'Trips | Inside Zone' && edgeFirst.season.n === 3,
+ok(edgeFirst.season && edgeFirst.season.label === 'Spread | Inside Zone' && edgeFirst.season.n === 3,
   'a season snap charted in the other selection order still answers that call',
   JSON.stringify(edgeFirst.season));
 
@@ -802,7 +802,7 @@ ok(edgeFirst.season && edgeFirst.season.label === 'Trips | Inside Zone' && edgeF
    play call and that concept, so the join must compare the concept field the
    display came from. */
 const edgeDef = edge.defense.situations.find(row => row.key === 'first');
-ok(edgeDef.opponent.label === '11 | Trips | Zone',
+ok(edgeDef.opponent.label === '11 | Spread | Zone',
   'a concept-only opponent call displays the concept it was charted as', JSON.stringify(edgeDef.opponent));
 ok(edgeDef.season && edgeDef.season.label === '4-4 | Cover 3 | No Blitz' && edgeDef.season.n === 3
   && edgeDef.season.stopRate === 100,

@@ -11,6 +11,7 @@ import { countedUnit, gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './foot
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
+import { ChartingDetails } from './charting-details.js';
 import { SeasonStore } from './season-store.js';
 
 // Shown as a hover tooltip wherever Success Rate appears, so the metric is
@@ -48,7 +49,7 @@ export class StatsEngine {
    *  everything else, so one dynamic-key display projects the six and passes the
    *  rest through unchanged. EDITORS must never call this — they read and write the
    *  coach's stored value (§20). */
-  static PROJECTED_FIELDS = ['formation', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
+  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
     // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
     // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
@@ -130,14 +131,21 @@ export class StatsEngine {
     const rp = p && p.tags && p.tags.runPass;
     if (rp === 'Run') return true;
     if (rp === 'Pass') return false;
-    return !!(p && p.tags && p.tags.playType && p.tags.playType.toLowerCase().includes('run'));
+    return StatsEngine._inferredType(p).includes('run');
   }
   static isPass(p) {
     const rp = p && p.tags && p.tags.runPass;
     if (rp === 'Pass') return true;
     if (rp === 'Run') return false;
-    const t = (p && p.tags && p.tags.playType ? p.tags.playType.toLowerCase() : '');
+    const t = StatsEngine._inferredType(p);
     return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
+  }
+  /** The play type text Run/Pass may be inferred from when the coach set none.
+   *  QB Run and Reverse are left out: a scramble can start as a pass and a reverse
+   *  can throw, so neither says run or pass by its name and the coach sets Run/Pass. */
+  static _inferredType(p) {
+    const type = p && p.tags && p.tags.playType ? String(p.tags.playType) : '';
+    return type.split(/\s*\+\s*/).filter(part => part && part !== 'QB Run' && part !== 'Reverse').join(' + ').toLowerCase();
   }
 
   /** Canonical explosive play: a run of 12+ yards or a pass of 16+ yards. Two
@@ -798,7 +806,7 @@ export class StatsEngine {
           // rows that say nothing.
           yourDef.push(stamp(p));
           const proj = StatsEngine.proj(p);
-          if (rawOpp && (proj.formation || t.playType || t.runPass || proj.backfield || t.personnel)) {
+          if (rawOpp && (proj.formationFamily || t.playType || t.runPass || proj.backfield || t.personnel)) {
             (oppOffMap[rawOpp] = oppOffMap[rawOpp] || []).push({ ...p, __gid: g.id, __chartedUnit: u, tags: { ...t, unit: 'offense' } });
           }
         }
@@ -877,7 +885,7 @@ export class StatsEngine {
    *  never relabelled as a named play call. */
   static _matchupOffenseLook(play) {
     const personnel = String(play.tags.personnel || '').trim();
-    const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+    const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily));
     const { call, callField } = StatsEngine._matchupCall(play);
     const parts = [personnel, formation, call].filter(Boolean);
     return parts.length ? { label: parts.join(' | '), personnel, formation, call, callField } : null;
@@ -886,7 +894,7 @@ export class StatsEngine {
   /** Our own offensive answer: Formation | Call — the two components the comp
    *  displays for `Our Top Call vs Same Look` on the offense-facing tab. */
   static _matchupAnswerLook(play) {
-    const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+    const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily));
     const { call, callField } = StatsEngine._matchupCall(play);
     const parts = [formation, call].filter(Boolean);
     return parts.length ? { label: parts.join(' | '), formation, call, callField } : null;
@@ -961,7 +969,7 @@ export class StatsEngine {
    *  against a re-derived `playCall || playConcept`. */
   static _matchupMatchesOffenseLook(play, look) {
     if (look.personnel && String(play.tags.personnel || '').trim() !== look.personnel) return false;
-    if (look.formation && StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation)) !== look.formation) return false;
+    if (look.formation && StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily)) !== look.formation) return false;
     if (look.call && String(StatsEngine.projField(play, look.callField) || '').trim() !== look.call) return false;
     return true;
   }
@@ -1072,7 +1080,7 @@ export class StatsEngine {
   _matchupPersonnelRows(seasonPlays, oppPlays) {
     const same = play => {
       const personnel = String(play.tags.personnel || '').trim();
-      const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+      const formation = StatsEngine._matchupSet(StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily));
       return (personnel && formation) ? { label: `${personnel} | ${formation}`, personnel, formation } : null;
     };
     return StatsEngine._matchupRank(StatsEngine._matchupGroup(oppPlays, same)).map(group => {
@@ -1275,7 +1283,7 @@ export class StatsEngine {
     const fieldZone = play => this._fieldZone(play.tags);
     const dimensions = [
       { id: 'downDistance', label: 'Down & Distance', values: play => { const key = this._ddKey(play.tags); return key ? this._ddPretty(key) : ''; } },
-      { id: 'formation', label: 'Formation', values: play => StatsEngine.splitFormations(StatsEngine.proj(play).formation) },
+      { id: 'formationFamily', label: 'Formation Family', values: play => StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily) },
       { id: 'personnel', label: 'Personnel', values: play => play.tags.personnel || '' },
       { id: 'fieldPosition', label: 'Field Position', values: fieldZone },
       { id: 'directionStrength', label: 'Direction vs Strength', values: play => dirVsStrength ? dirVsStrength(play) : [] },
@@ -1793,15 +1801,14 @@ export class StatsEngine {
     const playTypes = detailOrder.map(name => summarize(name,
       source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))));
     // A coach reads the offensive look as one structure, even though the tag
-    // model stores QB alignment, backfield and receiver formation separately.
-    // Preserve that combination so I-Form + Twins does not dissolve into an
-    // unhelpful standalone Twins row.
+    // model stores QB alignment, backfield, formation family and receiver set
+    // separately. Preserve that combination so a receiver set does not dissolve
+    // into an unhelpful standalone row.
     const offensiveLook = play => {
       const projected = StatsEngine.proj(play);
       const qb = String(projected.qbAlignment || '').trim();
       const backfield = String(projected.backfield || '').trim();
-      const formations = [...new Set(StatsEngine.splitFormations(projected.formation))]
-        .sort(compareText);
+      const formations = [String(projected.formationFamily || '').trim(), String(projected.receiverSet || '').trim()].filter(Boolean);
       const underCenterBackfield = qb === 'Under Center' ? {
         I: 'I-Form', Power: 'Power-I', Single: 'Singleback', Split: 'Split Back',
       }[backfield] : null;
@@ -2955,7 +2962,7 @@ export class StatsEngine {
       const isRun = StatsEngine.isRun(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
-      StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
+      StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         formations[f] = (formations[f] || 0) + 1;
         if (!formationDetail[f]) formationDetail[f] = { name: f, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
         formationDetail[f].count++;
@@ -3139,7 +3146,7 @@ export class StatsEngine {
     const formations = {};
     plays.forEach(p => {
       if (!p.tags.hash) return;
-      StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
+      StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         const k = `${p.tags.hash}|${f}`;
         formations[k] = (formations[k] || 0) + 1;
       });
@@ -3244,7 +3251,7 @@ export class StatsEngine {
 
     const byFormation = {};
     paPlays.forEach(p => {
-      StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
+      StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         if (!byFormation[f]) byFormation[f] = { name: f, count: 0, yards: 0, successes: 0 };
         byFormation[f].count++;
         byFormation[f].yards += parseInt(p.tags.yardage) || 0;
@@ -3329,11 +3336,11 @@ export class StatsEngine {
       const runPct = f.count ? (f.runs / f.count) * 100 : 50;
       const succPct = parseFloat(f.successPct);
       if (succPct >= 55 && f.count >= 5)
-        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
+        working.push({ s: succPct * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
       if (runPct >= 75)
-        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
+        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
       else if (runPct <= 25)
-        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formation', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
+        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
     });
 
     // --- Down & distance buckets ---
@@ -3961,7 +3968,7 @@ export class StatsEngine {
     { key: 'runPass', label: 'Run / Pass', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
     { key: 'playType', label: 'Play type', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
     { key: 'playDir', label: 'Play direction', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
-    { key: 'formation', label: 'Formation', roles: ['rushing', 'passing', 'receiving'] },
+    { key: 'formationFamily', label: 'Formation Family', roles: ['rushing', 'passing', 'receiving'] },
     { key: 'personnel', label: 'Personnel', roles: ['rushing', 'passing', 'receiving'] },
     { key: 'defFront', label: 'Defensive front', roles: ['tackles'] },
     { key: 'coverage', label: 'Coverage', roles: ['tackles'] },
@@ -3989,7 +3996,7 @@ export class StatsEngine {
       case 'runPass': return StatsEngine.isRun(play) ? ['Run'] : StatsEngine.isPass(play) ? ['Pass'] : [];
       case 'playType': return StatsEngine.splitPlayTypes(tags.playType).filter(Boolean);
       case 'playDir': return one(tags.playDir);
-      case 'formation': return StatsEngine.splitFormations(projection.formation).filter(Boolean);
+      case 'formationFamily': return StatsEngine.splitFormations(projection.formationFamily).filter(Boolean);
       case 'personnel': return one(tags.personnel);
       case 'defFront': return StatsEngine.splitFronts(tags.defFront).filter(Boolean);
       case 'coverage': return one(projection.coverage);
@@ -4109,7 +4116,7 @@ export class StatsEngine {
       // The exact call is the full projected pre-snap look (§8a): a DC keys on QB
       // alignment and backfield too — "Under Center + Ace + I" and "…+ Offset" are
       // different calls and must not collapse.
-      const qb = (pr.qbAlignment || '').trim(), form = (pr.formation || '').trim();
+      const qb = (pr.qbAlignment || '').trim(), form = (pr.formationFamily || '').trim();
       const bf = (pr.backfield || '').trim(), str = (pr.strength || '').trim();
       const mot = (t.motion || '').trim(), pt = (t.playType || '').trim();
       const key = [qb, form, bf, str, mot, pt].join('|||');
@@ -4141,7 +4148,16 @@ export class StatsEngine {
     const absYL = p => this._absYardLine(p.tags);
     switch (type) {
       case 'qbAlignment': return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '') === val;
-      case 'formation': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formation).includes(val);
+      case 'formationFamily': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(val);
+      case 'receiverSet': return p => isOff(p) && (StatsEngine.proj(p).receiverSet || '') === val;
+      // The run and motion details (ChartingDetails): one stored value each, a
+      // blank is uncharted and never matches.
+      case 'gap': return p => isOff(p) && (p.tags.gap || '') === val;
+      case 'motionStart': return p => isOff(p) && (p.tags.motionStart || '') === val;
+      case 'motionEnd': return p => isOff(p) && (p.tags.motionEnd || '') === val;
+      case 'rpoRead': return p => isOff(p) && (p.tags.rpoRead || '') === val;
+      case 'rpoDecision': return p => isOff(p) && (p.tags.rpoDecision || '') === val;
+      case 'qbRun': return p => isOff(p) && (p.tags.qbRun || '') === val;
       case 'playCall':  return p => isOff(p) && (p.tags.playCall || '') === val;
       case 'playCallOrConcept': return p => isOff(p)
         && (p.tags.playCall || p.tags.playConcept || '') === val;
@@ -4150,11 +4166,11 @@ export class StatsEngine {
       case 'personnel': return p => isOff(p) && (p.tags.personnel || '') === val;
       case 'backfield': return p => isOff(p) && (StatsEngine.proj(p).backfield || '') === val;
       case 'strength':  return p => isOff(p) && (StatsEngine.proj(p).strength || '') === val;
-      case 'comboFStr': { const [form, str] = val.split('__'); return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formation).includes(form) && (StatsEngine.proj(p).strength || '') === str; }
+      case 'comboFStr': { const [form, str] = val.split('__'); return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(form) && (StatsEngine.proj(p).strength || '') === str; }
       case 'bigCall': {  // exact call: qbAlignment|||formation|||backfield|||strength|||motion|||playType (§8a)
         const [qb, form, bf, str, mot, pt] = val.split('|||');
         return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '').trim() === (qb || '')
-          && (StatsEngine.proj(p).formation || '').trim() === (form || '')
+          && (StatsEngine.proj(p).formationFamily || '').trim() === (form || '')
           && (StatsEngine.proj(p).backfield || '').trim() === (bf || '')
           && (StatsEngine.proj(p).strength || '').trim() === (str || '')
           && (p.tags.motion || '').trim() === (mot || '')
@@ -4185,14 +4201,14 @@ export class StatsEngine {
       case 'comboFD': { // formation on a down+distance bucket, e.g. "Shotgun__3|Long"
         const [form, dd] = val.split('__');
         const [down, bucket] = (dd || '').split('|');
-        return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formation).includes(form)
+        return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(form)
           && p.tags.down === down && (parseInt(p.tags.distance) || 0) > 0
           && StatsEngine._distBucket(parseInt(p.tags.distance)) === bucket;
       }
       case 'comboFS': { // formation on a heat-map situation, e.g. "Shotgun__3|Long" or "I-Form__1"
         const [form, sit] = val.split('__');
         const sp = this._situationPred(sit || '');
-        return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formation).includes(form) && sp(p);
+        return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(form) && sp(p);
       }
       case 'defFront':  return p => isDef(p) && StatsEngine.splitFronts(p.tags.defFront).includes(val);
       case 'coverage':  return p => isDef(p) && (StatsEngine.proj(p).coverage || '') === val;
@@ -4371,7 +4387,8 @@ export class StatsEngine {
   }
   static _matrixDimensions() {
     return [
-      { id: 'formation',  label: 'Formation',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formation) },
+      { id: 'formationFamily',  label: 'Formation Family',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily) },
+      { id: 'receiverSet', label: 'Receiver Set', extract: p => [StatsEngine.proj(p).receiverSet || ''].filter(Boolean) },
       { id: 'qbAlignment', label: 'QB Alignment', extract: p => [StatsEngine.proj(p).qbAlignment || ''].filter(Boolean) },
       { id: 'backfield',  label: 'Backfield',  extract: p => [StatsEngine.proj(p).backfield || ''].filter(Boolean) },
       { id: 'strength',   label: 'Strength',   extract: p => [StatsEngine.proj(p).strength || ''].filter(Boolean) },
@@ -4384,6 +4401,10 @@ export class StatsEngine {
       { id: 'coverageFamily', label: 'Coverage Family', extract: p => [StatsEngine.proj(p).coverageFamily || ''].filter(Boolean) },
       { id: 'hash',       label: 'Hash',        extract: p => [p.tags.hash || 'Unknown'] },
       { id: 'playDir',    label: 'Direction',   extract: p => [p.tags.playDir || ''].filter(Boolean) },
+      { id: 'gap',        label: 'Gap',         extract: p => [p.tags.gap || ''].filter(Boolean) },
+      { id: 'qbRun',      label: 'QB Run Type', extract: p => [p.tags.qbRun || ''].filter(Boolean) },
+      { id: 'rpoRead',    label: 'RPO Read',    extract: p => [p.tags.rpoRead || ''].filter(Boolean) },
+      { id: 'rpoDecision', label: 'RPO Decision', extract: p => [p.tags.rpoDecision || ''].filter(Boolean) },
       { id: 'motion',     label: 'Motion',      extract: p => [p.tags.motion || 'No Motion'] },
       { id: 'quarter',    label: 'Quarter',     extract: p => [p.tags.quarter || '?'] },
       { id: 'runPass',    label: 'Run / Pass',  extract: p => [StatsEngine.isRun(p) ? 'Run' : 'Pass'] },
@@ -4502,7 +4523,7 @@ export class StatsEngine {
       const yards = parseInt(p.tags.yardage) || 0;
       const isTd = StatsEngine.hasResult(p, 'Touchdown');
       // Multi-select formation: attribute the play to each component look.
-      StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
+      StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0, refs: [] };
         formationDetail[f].total++;
         if (isRun) formationDetail[f].runs++;
@@ -4820,7 +4841,7 @@ export class StatsEngine {
 
     const fronts = group(play => StatsEngine.splitFronts(play.tags.defFront).filter(front => front && !ourOnly.has(front)));
     const coverages = group(play => [StatsEngine.proj(play).coverage]);
-    const byOurLook = group(play => StatsEngine.splitFormations(StatsEngine.proj(play).formation));
+    const byOurLook = group(play => StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily));
     const bySituation = group(play => {
       const down = play.tags.down, distance = parseInt(play.tags.distance) || 0;
       const keys = [];
@@ -5342,6 +5363,98 @@ export class StatsEngine {
     return `${chart.placed} of ${chart.measured} ${noun} carry down and distance`;
   }
 
+  /**
+   * The run-gap hit chart: where the ball actually hit (ChartingDetails.GAPS), for
+   * the run snaps of one cohort. Frequency and performance come from the same
+   * cells. The ELIGIBLE sample is the cohort's run snaps (the coach's explicit
+   * Run/Pass, never inferred from a gap); a run with no Gap charted is counted as
+   * missing, never as a hit, a zero or an "Other". A snap tagged with two play
+   * types is attributed to each when the cohort is narrowed to one type. Strength
+   * is read where charted: a sided gap against a Left/Right strength is toward or
+   * away from it; Center, Other, a Balanced strength and a blank strength are
+   * counted apart. Every cell carries its exact composite film refs.
+   *
+   * `side` 'offense' measures our runs (success is the offense's); 'defense'
+   * measures the runs our defense faced (the opponent's success).
+   */
+  runGapChart(plays, { side = 'offense', playType = '', fallbackGameId = null } = {}) {
+    const S = StatsEngine;
+    const wantUnit = side === 'defense' ? 'defense' : 'offense';
+    const cohort = (plays || []).filter(p => p?.tags && countedUnit(p) === wantUnit && S.isRun(p)
+      && (side !== 'defense' || S._tryPenaltyResolved(p)));
+    const gapOf = p => { const g = String(p.tags.gap ?? '').trim(); return ChartingDetails.GAPS.includes(g) ? g : ''; };
+    const typesOf = p => [...new Set(S.splitPlayTypes(p.tags.playType))];
+    const inScope = playType
+      ? cohort.filter(p => typesOf(p).includes(playType === 'No play type' ? 'Unknown' : playType))
+      : cohort;
+    const charted = inScope.filter(gapOf);
+    const success = side === 'defense' ? S.isOpponentSuccess : S.isSuccessfulPlay;
+    const hasYardage = p => String(p.tags.yardage ?? '').trim() !== '' && Number.isFinite(parseInt(p.tags.yardage, 10));
+    const refOf = p => {
+      const gid = p.__gid ?? fallbackGameId;
+      return gid != null && p.id != null ? `${gid}::${p.id}` : null;
+    };
+    const measure = rows => {
+      const eligible = rows.filter(p => this._isSuccessfulPlayEligible(p));
+      const yardRows = rows.filter(hasYardage);
+      const yards = yardRows.reduce((sum, p) => sum + parseInt(p.tags.yardage, 10), 0);
+      return {
+        n: rows.length,
+        successEligible: eligible.length, successes: eligible.filter(success).length,
+        successRate: eligible.length ? eligible.filter(success).length / eligible.length * 100 : null,
+        yardsMeasured: yardRows.length, yards: yardRows.length ? yards : null,
+        ypp: yardRows.length ? yards / yardRows.length : null,
+        explosives: rows.filter(S.isExplosive).length,
+        refs: [...new Set(rows.map(refOf).filter(Boolean))].sort(),
+      };
+    };
+    const cells = ChartingDetails.GAPS.map(gap => {
+      const rows = charted.filter(p => gapOf(p) === gap);
+      return { key: gap, gap, held: rows.length === 0, share: charted.length ? rows.length / charted.length * 100 : null, ...measure(rows) };
+    });
+    const sided = charted.filter(p => ChartingDetails.gapDirection(gapOf(p)) === 'Left' || ChartingDetails.gapDirection(gapOf(p)) === 'Right');
+    const withStrength = sided.filter(p => ['Left', 'Right'].includes(S.proj(p).strength));
+    const toward = withStrength.filter(p => ChartingDetails.gapDirection(gapOf(p)) === S.proj(p).strength);
+    const away = withStrength.filter(p => ChartingDetails.gapDirection(gapOf(p)) !== S.proj(p).strength);
+    const typeCounts = new Map();
+    for (const p of cohort.filter(gapOf)) for (const name of typesOf(p)) {
+      const label = name === 'Unknown' ? 'No play type' : name;
+      typeCounts.set(label, (typeCounts.get(label) || 0) + 1);
+    }
+    return {
+      side, playType, runs: inScope.length, charted: charted.length, missing: inScope.length - charted.length,
+      cohortRuns: cohort.length,
+      cells,
+      strength: {
+        sided: sided.length, charted: withStrength.length, noStrength: sided.length - withStrength.length,
+        unsided: charted.length - sided.length,
+        toward: measure(toward), away: measure(away),
+      },
+      playTypes: [...typeCounts].map(([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)),
+      refs: [...new Set(charted.map(refOf).filter(Boolean))].sort(),
+    };
+  }
+
+  /** The chart's printed strings, one owner for the board and every export. */
+  static formatRunGapCell(cell) {
+    if (!cell || cell.held) return { plays: '-', share: '-', ypp: '-', success: '-', explosives: '-' };
+    return {
+      plays: String(cell.n),
+      share: cell.share == null ? '-' : `${Math.round(cell.share)}%`,
+      ypp: cell.ypp == null ? '-' : cell.ypp.toFixed(1),
+      success: cell.successRate == null ? '-' : `${Math.round(cell.successRate)}%`,
+      explosives: String(cell.explosives),
+    };
+  }
+
+  /** The chart's eligible-sample sentence: how many of the cohort's runs carry a Gap. */
+  static runGapCohortLine(chart) {
+    if (!chart) return '';
+    const noun = chart.side === 'defense' ? 'runs faced' : 'runs';
+    const scope = chart.playType ? ` (${chart.playType})` : '';
+    return `${chart.charted} of ${chart.runs} ${noun}${scope} charted with a gap`;
+  }
+
   /** What a defense does about a one-sided offensive tendency (the "so what")
    *  plus the constraint that breaks it (the "now what"). */
   static _offenseTellCounter(lean) {
@@ -5457,7 +5570,7 @@ export class StatsEngine {
       if (!isRun && !isPass) return;
       const sit = this._matrixSit(p.tags);
       if (!sit) return;
-      const forms = StatsEngine.splitFormations(StatsEngine.proj(p).formation).filter(Boolean);
+      const forms = StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).filter(Boolean);
       if (!forms.length) return;
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
@@ -5912,7 +6025,7 @@ export class StatsEngine {
     const overallSucc = classifiable.filter(p => this._isSuccessfulPlay(p)).length / classifiable.length * 100;
 
     // 1. Counter-tendency success: when you DO the rare thing, how well does it work?
-    const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(StatsEngine.proj(p).formation));
+    const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily));
     Object.values(byFormation).forEach(grp => {
       if (grp.n < min + 2) return;
       const runPct = grp.runs / grp.n * 100;
@@ -5957,7 +6070,7 @@ export class StatsEngine {
     if (playDirPlays.length >= min * 2) {
       const formDirGroup = {};
       playDirPlays.forEach(p => {
-        StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
+        StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
           if (!f) return;
           if (!formDirGroup[f]) formDirGroup[f] = {};
           const dir = p.tags.playDir;
@@ -5981,7 +6094,7 @@ export class StatsEngine {
     // 4. Formation-PlayType outliers: a specific combo that dramatically out/under-performs
     const formTypeGroup = {};
     classifiable.forEach(p => {
-      const forms = StatsEngine.splitFormations(StatsEngine.proj(p).formation);
+      const forms = StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily);
       const types = StatsEngine.splitPlayTypes(p.tags.playType);
       forms.forEach(f => { types.forEach(t => {
         if (!f || !t) return;
@@ -6116,7 +6229,7 @@ export class StatsEngine {
       if (!pers) return;
       if (!groups[pers]) groups[pers] = { formations: {}, n: 0 };
       groups[pers].n++;
-      StatsEngine.splitFormations(StatsEngine.proj(p).formation).forEach(f => {
+      StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         if (!f) return;
         groups[pers].formations[f] = (groups[pers].formations[f] || 0) + 1;
       });
@@ -6146,7 +6259,7 @@ export class StatsEngine {
     const classifiable = plays.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
     if (classifiable.length === 0) return null;
 
-    const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(StatsEngine.proj(p).formation));
+    const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily));
     const byDownDist = this._selfScoutGroup(plays, p => this._ddKey(p.tags));
     const byPersonnel = this._selfScoutGroup(plays, p => p.tags.personnel);
     const byHash = this._selfScoutGroup(plays, p => p.tags.hash);
@@ -6154,7 +6267,7 @@ export class StatsEngine {
     const byCombo = this._selfScoutGroup(plays, p => {
       const dd = this._ddKey(p.tags);
       if (!dd) return [];
-      return StatsEngine.splitFormations(StatsEngine.proj(p).formation).map(f => `${f}__${dd}`);
+      return StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).map(f => `${f}__${dd}`);
     });
     // Hudl-model dimensions: backfield, strength, and the high-value Formation ×
     // Strength grid (e.g. "Trips Right is 90% run" — what a DC keys on).
@@ -6163,14 +6276,14 @@ export class StatsEngine {
     const byFormStr = this._selfScoutGroup(plays, p => {
       const s = StatsEngine.proj(p).strength;
       if (!s) return [];
-      return StatsEngine.splitFormations(StatsEngine.proj(p).formation).map(f => `${f}__${s}`);
+      return StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).map(f => `${f}__${s}`);
     });
 
     let tells = [
       ...this._tellsFrom(byCombo, 'Formation × Down', k => {
         const [f, dd] = k.split('__'); return `${f} on ${this._ddPretty(dd)}`;
       }, k => ({ type: 'comboFD', val: k })),
-      ...this._tellsFrom(byFormation, 'Formation', k => `From ${k}`, k => ({ type: 'formation', val: k })),
+      ...this._tellsFrom(byFormation, 'Formation', k => `From ${k}`, k => ({ type: 'formationFamily', val: k })),
       ...this._tellsFrom(byDownDist, 'Down & Dist', k => this._ddPretty(k), k => ({ type: 'dd', val: k })),
       ...this._tellsFrom(byPersonnel, 'Personnel', k => `${k} personnel`, k => ({ type: 'personnel', val: k })),
       ...this._tellsFrom(byHash, 'Hash', k => `${k} hash`, k => ({ type: 'hash', val: k })),

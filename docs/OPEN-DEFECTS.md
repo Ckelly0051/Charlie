@@ -2,7 +2,8 @@
 
 ## Break Down next update (coach finding, 2026-09-28)
 
-**BD-UX-1 — OPEN. The populated Chart deck looks jagged beside the approved
+**BD-UX-1 — OPEN (source IMPLEMENTED_UNVERIFIED 2026-09-28; see Charting
+cutover below). The populated Chart deck looks jagged beside the approved
 comp.** In the coach's 1920x1080 Break Down capture (SJM JV 2026, Week 5,
 Play 24), the Situation grid is reasonably aligned, but Our Offensive Look
 becomes a wall of variable-width chip outlines. The full Formation catalog
@@ -28,6 +29,18 @@ under Play Direction (L-A through R-D, Center, Other) and requested Reverse
 as a Play Type. These are planned, not production repairs. The new charting
 schema has a one-time, confirmed migration checkpoint with no legacy reader
 or dual-write tail; see `GRIDIRON-IQ-PLAN-V2.md`.
+
+**Charting cutover, roadmap Step 1 (2026-09-28) — IMPLEMENTED_UNVERIFIED in
+source; live data NOT converted.** Family and Receiver Set, Gap under Play
+Direction, motion Starts/Ends, RPO read/defender/decision, QB Run and Reverse
+play types, the 27px chips, the Film Room and CSV columns, the run-gap report
+and the single-format refusals are in the branch (`docs/CHARTING-CUTOVER.md`
+has the counts, the field mapping and the rehearsal proof). Open until the
+coach decides these words, which the converter will not infer: Ace (70 plays),
+Trips (51), Unbalanced (44), Doubles (37), Twins (36), Bunch (20), Beast (5),
+Victory (2). 198 of 496 Formation plays stay unresolved without those
+decisions; 76 restore points convert none until they are made. No installed
+acceptance is claimed and no gate has run for this change.
 
 **BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and
@@ -2585,7 +2598,13 @@ Breakdown film-state defects above.
    - `tools/e2e-css-ownership.mjs` audits only `css/styles.css` and
      `css/redesign-stats.css`; dead rules in the other stylesheets are not
      detected.
-5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
+   - Logged 2026-09-28 (charting cutover): `js/stats-engine.js` still names the
+     single-value Formation Family `formation` in report-row properties and
+     still runs `splitFormations` (27 references) on it, which is inert now
+     that a Family cannot hold "+"; `js/native-report-tabs.jsx` and
+     `js/reports-view.js` read those row properties; `js/clip-analyzer.js:87`
+     names the QB-alignment result `formation`; `js/html-report.js:32,543`
+     still headline the Family table "Formation". Names only, no behavior.5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
    (a) Break Down was five mounted roots kept in step by events — rebuilt
    (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87
    call sites): the 5 MB quota already failed once, settings do not travel with

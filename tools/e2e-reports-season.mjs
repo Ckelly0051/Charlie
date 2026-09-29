@@ -33,7 +33,7 @@ function gamePlays({ runs, runYds, passes, passYds, comp, tds, ints, sacks, thir
     return Array.from({ length: n }, (_, i) => (i === 0 ? base + 10 : i % 3 === 1 ? Math.max(0, base - 4) : i % 4 === 2 ? -1 : base));
   };
   spread(runs, runYds).forEach((y, i) => plays.push({
-    unit: 'offense', runPass: 'Run', playType: 'Run Inside', formation: 'Power-I', personnel: '21',
+    unit: 'offense', runPass: 'Run', playType: 'Run Inside', formationFamily: 'Power-I', personnel: '21',
     playCall: i % 3 === 0 ? '26 Blast' : 'Iso', playConcept: i % 3 === 0 ? 'Inside Zone' : 'Iso',
     players: { ballCarrier: i % 2 ? '22' : '34' },
     result: i < tds ? 'Touchdown' : y < 0 ? 'Loss' : 'Gain', yardage: String(y), quarter: `Q${(i % 4) + 1}`,
@@ -41,7 +41,7 @@ function gamePlays({ runs, runYds, passes, passYds, comp, tds, ints, sacks, thir
     ...(i < tds ? { fieldSide: 'opp', yardLine: String(6 + i * 2) } : {}),
   }));
   spread(passes, passYds).forEach((y, i) => plays.push({
-    unit: 'offense', runPass: 'Pass', playType: 'Quick Pass', formation: 'Trips', personnel: '11',
+    unit: 'offense', runPass: 'Pass', playType: 'Quick Pass', formationFamily: 'Spread', personnel: '11',
     playCall: i % 2 ? 'Stick' : 'Smash', playConcept: i % 2 ? 'Stick' : 'Smash',
     players: { passer: '12', receiver: i % 2 ? '84' : '11' },
     result: i < ints ? 'Interception' : i < ints + (passes - comp) ? 'Incomplete' : 'Gain',

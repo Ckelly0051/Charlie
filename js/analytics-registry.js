@@ -90,7 +90,8 @@ export class AnalyticsRegistry {
       // StatsEngine.proj / GRIDIRON-IQ-TAG-MODEL.md §5. qbAlignment/coverageFamily
       // are single-value (multi:false) so a cross-tab places each play in one cell.
       ready('qbAlignment', 'QB Alignment', p => this._one(SE.proj(p).qbAlignment), 'TagProjection.project.qbAlignment'),
-      ready('formation', 'Formation', p => SE.splitFormations(SE.proj(p).formation), 'StatsEngine.splitFormations(proj.formation)', { multi: true }),
+      ready('formationFamily', 'Formation Family', p => this._one(SE.proj(p).formationFamily), 'TagProjection.project.formationFamily'),
+      ready('receiverSet', 'Receiver Set', p => this._one(SE.proj(p).receiverSet), 'TagProjection.project.receiverSet'),
       ready('backfield', 'Backfield', p => this._one(SE.proj(p).backfield), 'TagProjection.project.backfield'),
       ready('strength', 'Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
       ready('personnel', 'Personnel', tag('personnel'), 'play.tags.personnel'),
@@ -99,6 +100,14 @@ export class AnalyticsRegistry {
       ready('playConcept', 'Play Concept', tag('playConcept'), 'play.tags.playConcept'),
       ready('playType', 'Play Type', p => SE.splitPlayTypes(p?.tags?.playType), 'StatsEngine.splitPlayTypes', { multi: true }),
       ready('playDir', 'Play Direction', tag('playDir'), 'play.tags.playDir'),
+      // Run and motion details (ChartingDetails). A blank is uncharted and yields
+      // no value, never a zero or an "Unknown" bucket.
+      ready('gap', 'Gap', tag('gap'), 'play.tags.gap'),
+      ready('motionStart', 'Motion Starts', tag('motionStart'), 'play.tags.motionStart'),
+      ready('motionEnd', 'Motion Ends', tag('motionEnd'), 'play.tags.motionEnd'),
+      ready('rpoRead', 'RPO Read', tag('rpoRead'), 'play.tags.rpoRead'),
+      ready('rpoDecision', 'RPO Decision', tag('rpoDecision'), 'play.tags.rpoDecision'),
+      ready('qbRun', 'QB Run Type', tag('qbRun'), 'play.tags.qbRun'),
       ready('defFront', 'Defensive Front', p => SE.splitFronts(p?.tags?.defFront), 'StatsEngine.splitFronts', { multi: true }),
       ready('coverage', 'Coverage Call', p => this._one(SE.proj(p).coverage), 'TagProjection.project.coverage'),
       ready('coverageFamily', 'Coverage Family', p => this._one(SE.proj(p).coverageFamily), 'TagProjection.project.coverageFamily'),

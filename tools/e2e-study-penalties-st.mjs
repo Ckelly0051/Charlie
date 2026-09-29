@@ -45,18 +45,18 @@ await page.evaluate(async () => {
   const t = (start) => ({ start, end: start + 4 });
   g1.plays = [
     // -- Penalties: every disposition, every phase, both teams -------------
-    { id: 1, timestamp: t(0), tags: { unit: 'offense', formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '2', down: '1', distance: '10' },
+    { id: 1, timestamp: t(0), tags: { unit: 'offense', formationFamily: 'Spread', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '2', down: '1', distance: '10' },
       penalties: [{ team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 10, playCounts: false }] },
-    { id: 2, timestamp: t(4), tags: { unit: 'offense', formation: 'Ace', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', distance: '4' },
+    { id: 2, timestamp: t(4), tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', distance: '4' },
       penalties: [{ team: 'opponent', phase: 'defense', foul: 'Pass Interference', disposition: 'accepted', yards: 15, playCounts: true, automaticFirstDown: true }] },
     { id: 3, timestamp: t(8), tags: { unit: 'defense', defFront: '4-2-5', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '3', distance: '7' },
       penalties: [{ team: 'subject', phase: 'defense', foul: 'Facemask', disposition: 'declined', yards: 15 }] },
-    { id: 4, timestamp: t(12), tags: { unit: 'offense', formation: 'Ace', runPass: 'Run', playType: 'Run Inside', result: 'Penalty', yardage: '0', down: '1', distance: '10' },
+    { id: 4, timestamp: t(12), tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Run', playType: 'Run Inside', result: 'Penalty', yardage: '0', down: '1', distance: '10' },
       penalties: [
         { team: 'subject', phase: 'offense', foul: 'False Start', disposition: 'offsetting', yards: 5 },
         { team: 'opponent', phase: 'defense', foul: 'Offside', disposition: 'offsetting', yards: 5 },
       ] },
-    { id: 5, timestamp: t(16), tags: { unit: 'offense', formation: 'Trips', runPass: 'Pass', playType: 'Deep Pass', result: 'Incomplete', yardage: '0', down: '1', distance: '10' },
+    { id: 5, timestamp: t(16), tags: { unit: 'offense', formationFamily: 'Spread', runPass: 'Pass', playType: 'Deep Pass', result: 'Incomplete', yardage: '0', down: '1', distance: '10' },
       penalties: [{ team: 'unknown', phase: 'unknown', foul: '', disposition: 'unknown', yards: null }] },
     // -- Special Teams: every phase ------------------------------------------
     { id: 6, timestamp: t(20), tags: { unit: 'special' }, specialTeams: { unit: 'kickoff', kick: { distance: 55 }, outcome: { status: 'touchback' } } },
@@ -80,7 +80,7 @@ await page.evaluate(async () => {
     { id: 20, timestamp: t(76), tags: { unit: 'special' }, specialTeams: { unit: 'kickoff', kick: { distance: 10 }, isOnside: true, outcome: { status: 'recovered', recoveredBy: 'opponent' } } },
   ];
   const g2 = store.addGame({ id: 'g-pen-st-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
-    { id: 1, timestamp: t(0), tags: { unit: 'offense', formation: 'Ace', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' },
+    { id: 1, timestamp: t(0), tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' },
       penalties: [{ team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 10 }] },
     { id: 2, timestamp: t(4), tags: { unit: 'special' }, specialTeams: { unit: 'kickoff', kick: { distance: 50 }, outcome: { status: 'touchback' } } },
   ] });

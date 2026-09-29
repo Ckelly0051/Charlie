@@ -8,7 +8,7 @@
  * post-render DOM query/rebind pass.
  */
 import { useMemo, useState } from 'preact/hooks';
-import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar, DownDistanceChart } from './native-report-kit.jsx';
+import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar, DownDistanceChart, RunGapChart } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { Charts } from './charts.js';
@@ -296,7 +296,7 @@ function BigTwelve({ data, screen, cls = '', variant = 'legacy' }) {
    instead, so five rows always fit and the capacity named in the title is a
    constant rather than a property of the data. */
 const MATRIX_TITLE = 'Top 5 Tendencies';
-function TendencyMatrixPanel({ engine, plays, defaultRow = 'formation', defaultCol = 'down', title = MATRIX_TITLE }) {
+function TendencyMatrixPanel({ engine, plays, defaultRow = 'formationFamily', defaultCol = 'down', title = MATRIX_TITLE }) {
   const [rowId, setRowId] = useState(defaultRow);
   const [colId, setColId] = useState(defaultCol);
   const dims = engine.constructor._matrixDimensions();
@@ -375,7 +375,7 @@ function EpaContribution({ rows, screen }) {
  * top five play types are a stable 3 x 5 board; unavailable slots hold with a
  * dash rather than changing the module's dimensions. */
 function FormationPlayTypeMatrix({ engine, plays }) {
-  const raw = view.matrixData(engine, plays, 'formation', 'playType');
+  const raw = view.matrixData(engine, plays, 'formationFamily', 'playType');
   const rowKeys = raw.rowKeys.slice(0, OFFENSE_ROWS['Formation × Play Type']);
   const colKeys = raw.colKeys.slice(0, OFFENSE_MATRIX_COLS);
   while (rowKeys.length < OFFENSE_ROWS['Formation × Play Type']) rowKeys.push('');
@@ -821,6 +821,11 @@ export function OffenseTab({ stats, screen }) {
         <DataTable emptyText="Insufficient charted data" columns={breakdownColumns} rows={breakdownRows(fitRows(hash, OFFENSE_ROWS['Field hash']), screen)} />
       </Module>
     </div>
+    {/* Where the ball hit, under the direction tables above. Like the Defense
+        board's down-and-distance chart it is not a `gi-overview-module`, so the
+        approved module schema and its pinned geometry are unchanged. */}
+    <RunGapChart plays={stats.offPlays} engine={engine} screen={screen} side="offense" title="Run gaps"
+      fallbackGameId={screen.app?.storage?.seasonStore?.data?.activeGameId ?? null} />
     </>}
 
     {/* ── ZONE 4 — situational analysis ─────────────────────────────── */}
@@ -1404,7 +1409,8 @@ export function OpponentOffenseTab({ data, screen }) {
     ]} />
     <Module title="Formation tendencies" meta="each row opens exact film"><DataTable columns={columns} rows={formations} /></Module>
     <ShapePanels shape={engine._dataShape(report.stats, { plays: data.offPlays, cut: false, profile: false })} />
-    <TendencyMatrixPanel engine={engine} plays={data.offPlays} defaultRow="formation" defaultCol="dirVsStrength" title="Tendencies — pivot any two dimensions" />
+    <TendencyMatrixPanel engine={engine} plays={data.offPlays} defaultRow="formationFamily" defaultCol="dirVsStrength" title="Tendencies — pivot any two dimensions" />
+    <RunGapChart plays={data.offPlays} engine={engine} screen={screen} side="offense" title="Their run gaps" />
     {bigData && <BigTwelve data={bigData} screen={screen} />}
     <div class="gi-overview-band gi-overview-band-2">
       <Module title="By down"><DataTable columns={columns} rows={scoutRows(report.byDown, screen, 'Down')} /></Module>
@@ -2424,7 +2430,7 @@ function SsStructureSection({ report, screen }) {
   const bands = [];
   if (report.formationRows.length) bands.push(<SsBand key="forms"><SsModule title="By formation" phase="off">
     <SsTable columns={ssOutcomeColumns('Formation')}
-      rows={ssOutcomeRows(report.formationRows, screen, { cutType: 'formation' })} />
+      rows={ssOutcomeRows(report.formationRows, screen, { cutType: 'formationFamily' })} />
   </SsModule></SsBand>);
   if (report.personnelRows.length) bands.push(<SsBand key="pers"><SsModule title="By personnel" phase="off">
     <SsTable columns={ssOutcomeColumns('Personnel')}

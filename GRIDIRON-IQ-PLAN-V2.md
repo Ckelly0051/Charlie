@@ -1422,7 +1422,9 @@ V2-A through V2-H are complete baseline milestones. The current sequence is:
    Motion path, RPO and QB-run detail, and Reverse; coach-managed Family
    library, one-time verified conversion, and the first film-linked run-gap
    chart/report with eligible sample and export parity. No legacy reader or
-   writer shipped.
+   writer shipped. **Status 2026-09-28:** source IMPLEMENTED_UNVERIFIED on the
+   working branch; the live conversion awaits the coach's decisions on the words
+   in docs/CHARTING-CUTOVER.md.
 2. **Break Down visual finish:** resolve BD-UX-1 populated deck and BD-UX-2
    context selectors against real data; preserve existing choices and film.
 3. **Installed verification:** focused harnesses, one coach-authorized full

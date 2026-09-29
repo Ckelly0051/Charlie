@@ -10,9 +10,9 @@
  * refs the cross-game player already consumes. Node-tested; the Study/Plan screens
  * wire it up (e.g. `app.studyPlan`) when the UI lands.
  *
- *   const item = StudyPlan.finding({ dimensionName:'Formation', measureName:'Success Rate',
+ *   const item = StudyPlan.finding({ dimensionName:'Formation Family', measureName:'Success Rate',
  *       scopeLabel:'full season', groupValue:'Wing-T', sampleSize:18,
- *       dimension:'formation', measure:'successRate', scope:'season', refs:['g1::3','g2::9'] });
+ *       dimension:'formationFamily', measure:'successRate', scope:'season', refs:['g1::3','g2::9'] });
  *   seasonStore.addPlanItem(planId, item);              // normalized + persisted
  *   const refs = StudyPlan.planRefs(plan);              // -> CrossGameCutup.plan(refs, games)
  */

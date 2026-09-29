@@ -25,9 +25,8 @@ const result = await page.evaluate(() => {
     { id: 'p1', team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false },
     { id: 'p2', team: 'opponent', phase: 'defense', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true },
   ], tags: {
-    // QB alignment is its own field. The formation is a genuine MULTI-structure
-    // value so the splitter + 2-cell matrix cross-product stay exercised.
-    unit: 'offense', formation: 'Trips + Bunch', qbAlignment: 'Shotgun', playType: 'RPO + Short Pass',
+    // QB alignment, formation family and receiver set are each their own field.
+    unit: 'offense', formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun', playType: 'RPO + Short Pass',
     defFront: '4-3 + Jumbo Shift', blitz: 'A-Gap + Edge', result: 'Gain + Touchdown',
     down: '3', distance: '6', quarter: 'Q2', driveNumber: '4', motion: '',
     custom: ['Tempo'], customFields: { wristband: 'Blue' }, players: { passer: '12' },
@@ -50,12 +49,12 @@ const result = await page.evaluate(() => {
   const unresolvedMeasures = readyMeasureIds.filter(id => resolved[id] === undefined);
   const matrixDims = registry.stats.constructor._matrixDimensions();
   const matrixValues = Object.fromEntries(matrixDims.map(d => [d.id, d.extract(play)]));
-  const matrix = registry.stats._computeMatrix([play], 'formation', 'distBucket');
+  const matrix = registry.stats._computeMatrix([play], 'playType', 'distBucket');
   return {
     dimensions: ids(registry.listDimensions()),
     measures: ids(registry.listMeasures()),
     blocks: ids(registry.listBlocks()),
-    formation: registry.values('formation', play),
+    formationFamily: registry.values('formationFamily', play),
     qbAlignment: registry.values('qbAlignment', play),
     playType: registry.values('playType', play),
     fronts: registry.values('defFront', play),
@@ -103,9 +102,9 @@ const result = await page.evaluate(() => {
     blocksSelected: registry.readBlocks(stats, ['rushing', 'advanced']),
     allBlocksExact: registry.listBlocks().every(entry =>
       JSON.stringify(registry.readBlocks(stats, [entry.id])[entry.id]) === JSON.stringify(stats[entry.id])),
-    cutMatch: registry.matchingRefs([play], 'formation', 'Trips'),
+    cutMatch: registry.matchingRefs([play], 'formationFamily', 'Spread'),
     cutMatchAlign: registry.matchingRefs([play], 'qbAlignment', 'Shotgun'),
-    cutMatchRawFormation: registry.matchingRefs([play], 'formation', 'Shotgun'),
+    cutMatchRawFormation: registry.matchingRefs([play], 'formationFamily', 'Shotgun'),
     deferred: registry.getMeasure('frequency')?.availability,
     unknownDimensionThrows: (() => { try { registry.values('not-real', play); return false; } catch { return true; } })(),
     deferredThrows: (() => { try { registry.readMeasures(stats, ['frequency']); return false; } catch { return true; } })(),
@@ -117,13 +116,13 @@ const result = await page.evaluate(() => {
 
 ok(!result.missing, 'App exposes the P0-c analytics registry');
 if (!result.missing) {
-  const requiredDims = ['team','season','game','opponent','date','quarter','drive','unit','down','distance','fieldZone','hash','scoreSituation','formation','backfield','strength','personnel','motion','playType','playDir','defFront','coverage','blitz','playerRole','grade','specialTeamsPhase','customTag','customField','result','runPass'];
+  const requiredDims = ['team','season','game','opponent','date','quarter','drive','unit','down','distance','fieldZone','hash','scoreSituation','formationFamily','backfield','strength','personnel','motion','playType','playDir','defFront','coverage','blitz','playerRole','grade','specialTeamsPhase','customTag','customField','result','runPass'];
   const requiredMeasures = ['plays','frequency','runShare','passShare','yardsPerPlay','successRate','conversionRate','explosiveRate','negativeRate','turnovers','scoring','havocRate','stopRate','epaPerPlay','sampleSize','dataCompleteness'];
   const requiredBlocks = ['rushing','passing','scoring','downs','turnovers','tendencies','bigPlays','individuals','drives','situational','efficiency','personnel','advanced','defensive','gameFlow','conversions','specialTeams','scoreboard','hash','personnelSituation','frontCoverageCombos','playAction','dirMotion','takeaways'];
   ok(requiredDims.every(x => result.dimensions.includes(x)), 'Registry covers every minimum dimension', JSON.stringify(result.dimensions));
   ok(requiredMeasures.every(x => result.measures.includes(x)), 'Registry covers every minimum measure contract', JSON.stringify(result.measures));
   ok(requiredBlocks.every(x => result.blocks.includes(x)), 'Registry binds every canonical compute block', JSON.stringify(result.blocks));
-  ok(JSON.stringify(result.formation) === JSON.stringify(['Trips','Bunch']), 'Formation reads the formation field with the structural splitter');
+  ok(JSON.stringify(result.formationFamily) === JSON.stringify(['Spread']), 'Formation Family reads the family field as one value');
   ok(JSON.stringify(result.qbAlignment) === JSON.stringify(['Shotgun']), 'QB alignment dimension reads its own field');
   ok(JSON.stringify(result.playType) === JSON.stringify(['RPO','Short Pass']), 'Play type uses canonical multi-value splitter');
   ok(JSON.stringify(result.fronts) === JSON.stringify(['4-3','Jumbo Shift']) && JSON.stringify(result.blitzes) === JSON.stringify(['A-Gap','Edge']), 'Defense dimensions use canonical splitters');
@@ -161,12 +160,12 @@ if (!result.missing) {
   // H19 added dirVsStrength/dirVsHash as registered dimensions so the two reads
   // a defensive coordinator asks for pivot against everything else rather than
   // living in two hardcoded tables.
-  ok(result.matrixIds.length === 18 && result.matrixIds.includes('quarter') && result.matrixIds.includes('distBucket')
+  ok(result.matrixIds.length === 23 && result.matrixIds.includes('receiverSet') && result.matrixIds.includes('gap') && result.matrixIds.includes('quarter') && result.matrixIds.includes('distBucket')
     && result.matrixIds.includes('qbAlignment') && result.matrixIds.includes('coverageFamily')
     && result.matrixIds.includes('dirVsStrength') && result.matrixIds.includes('dirVsHash'),
-    'All 18 Matrix extractors are pinned (incl. direction-vs-strength and direction-vs-hash)');
+    'All 23 Matrix extractors are pinned (incl. receiver set, gap, direction-vs-strength and direction-vs-hash)');
   ok(result.matrixValues.distBucket[0] === 'Med (4-6)' && result.matrixValues.runPass[0] === 'Pass', 'Legacy Matrix distance/run-pass behavior is explicit');
-  ok(result.matrixCells.length === 2 && result.matrixCells.every(c => c.count === 1 && c.passes === 1), 'Representative multi-formation Matrix cross-product is pinned');
+  ok(result.matrixCells.length === 2 && result.matrixCells.every(c => c.count === 1 && c.passes === 1), 'Representative multi-value Matrix cross-product is pinned (a play with two play types lands in both cells)');
 }
 
 ok(errors.length === 0, 'No page errors', errors.join(' | '));

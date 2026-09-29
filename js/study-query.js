@@ -64,9 +64,10 @@ export class StudyQuery {
   static get DIMENSION_CUT() {
     return {
       playCall: 'playCall', playConcept: 'playConcept',
-      formation: 'formation', qbAlignment: 'qbAlignment', playType: 'playType',
+      formationFamily: 'formationFamily', receiverSet: 'receiverSet', qbAlignment: 'qbAlignment', playType: 'playType',
       personnel: 'personnel', backfield: 'backfield', strength: 'strength', down: 'down',
       playDir: 'playDir', motion: 'motion', hash: 'hash', coverage: 'coverage',
+      gap: 'gap', motionStart: 'motionStart', motionEnd: 'motionEnd', rpoRead: 'rpoRead', rpoDecision: 'rpoDecision', qbRun: 'qbRun',
       coverageFamily: 'coverageFamily', defFront: 'defFront', blitz: 'blitz', runPass: 'runpass',
     };
   }

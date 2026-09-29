@@ -50,13 +50,16 @@ This section is the one place release state is kept current.
 - Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
   modules and dead renderers deleted, the custom-field editor rebuilt on the
   overlay service, and Special Teams try charting.
-- The registered Break Down charting comp is a future build contract, not a
-  change in this installer. The coach reviewed the later Gap-row treatment
-  and requested Reverse; the supplemental visual-finish comp is not a blanket
-  approval. Formation Family needs its own coach-managed library group. New
-  charting storage requires an inventoried, coach-confirmed one-time cutover
-  with no legacy reader shipped. BD-UX-1 and BD-UX-2 remain open in
-  `docs/OPEN-DEFECTS.md`.
+- Break Down charting cutover (roadmap Step 1), on the working branch and in no
+  installer: IMPLEMENTED_UNVERIFIED in source. Formation Family and Receiver Set
+  (with a coach-managed Family library), Gap under Play Direction, motion
+  Starts/Ends, RPO and QB Run details, Reverse and QB Run play types, the
+  film-linked run-gap report, Film Room and CSV columns, and the single-format
+  refusal of the retired `formation` key. The supplemental visual-finish comp
+  supplied only the Gap interaction and spacing. Live coach data is NOT
+  converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
+  awaiting the coach's decision. No full gate, installer or installed approval
+  exists for it. BD-UX-1 and BD-UX-2 remain open in `docs/OPEN-DEFECTS.md`.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports

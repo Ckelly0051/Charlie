@@ -666,7 +666,7 @@ ok(zoneOf('Red Zone') + zoneOf('Goal Line') === leverage['Inside our 20 / snaps'
 ok(canonical.formationCalls.length >= 6
   && canonical.formationCalls.every(row => row.name && row.playTypes.length === 7
     && row.playTypes.every(item => item.pct === Math.round(item.n / row.n * 100)))
-  && canonical.formationCalls.some(row => row.name === 'I-Form + Twins'
+  && canonical.formationCalls.some(row => /I-Form/.test(row.name)
     && row.playTypes.some(item => item.name === 'Run Inside' && item.n > 0)),
   'combined offensive looks are preserved with every canonical play-type share',
   JSON.stringify(canonical.formationCalls));
@@ -700,7 +700,7 @@ const invariants = await page.evaluate(() => {
   const rates = window.app.stats.defenseDashboard(rateRows).downDistance.find(row => row.name === '1st & 7+');
   const lookRows = Array.from({ length: 10 }, (_, index) => ({
     ...base, id: `look-${index}`,
-    tags: { ...base.tags, qbAlignment: 'Under Center', backfield: 'I', formation: 'Twins',
+    tags: { ...base.tags, qbAlignment: 'Under Center', backfield: 'I', formationFamily: 'Split Back',
       playType: index < 7 ? 'Run Inside' : 'Run Outside' },
   }));
   const look = window.app.stats.defenseDashboard(lookRows).formationCalls[0];
@@ -724,7 +724,7 @@ ok(invariants.sameCall, 'defensive call identity is independent of multi-select 
 ok(invariants.conversionMade === 1, 'down conversions use line-to-gain ownership even when Result says No Good');
 ok(invariants.callPct === 67 && invariants.blitzPct === 33,
   'Call% and Blitz% exclude snaps with no charted defensive structure', JSON.stringify(invariants));
-ok(invariants.look.name === 'I-Form + Twins' && invariants.look.n === 10
+ok(invariants.look.name === 'I-Form + Split Back' && invariants.look.n === 10
   && invariants.look.playTypes.find(item => item.name === 'Run Inside')?.n === 7
   && invariants.look.playTypes.find(item => item.name === 'Run Inside')?.pct === 70
   && invariants.look.playTypes.find(item => item.name === 'Run Outside')?.n === 3

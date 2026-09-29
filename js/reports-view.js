@@ -329,7 +329,7 @@ export function offenseIdentity(stats, engine, calls = null) {
   const formation = (stats.tendencies?.formationList || [])[0];
   items.push(formation
     ? { label: 'Primary formation', value: formation.name, sub: `${formation.count} snaps, ${share(formation.count)}`,
-        cutType: 'formation', cutVal: formation.name, cutLabel: `${formation.name} — ${formation.count} plays` }
+        cutType: 'formationFamily', cutVal: formation.name, cutLabel: `${formation.name} — ${formation.count} plays` }
     : { label: 'Primary formation', value: '—', sub: 'none charted' });
 
   // QB alignment has a registered dimension and its own film cut type, but no
@@ -394,7 +394,7 @@ export function runPassByDown(stats, engine) {
 
 export function tendencyBreakdown(stats) {
   return {
-    formations: groupBreakdown(stats.tendencies.formationList || [], 'formation'),
+    formations: groupBreakdown(stats.tendencies.formationList || [], 'formationFamily'),
     playTypes: groupBreakdown(stats.tendencies.playTypeList || [], 'playType'),
     runPct: stats.tendencies.runPct, passPct: stats.tendencies.passPct,
   };
@@ -563,7 +563,7 @@ export function advancedData(stats, engine) {
   const epaClass = v => v > 0 ? 'epa-pos' : v < 0 ? 'epa-neg' : '';
   const playRow = x => {
     const t = x.play.tags || {};
-    const label = `${t.down || '?'}&${t.distance || '?'} ${engine.constructor.proj(x.play).formation || ''} ${t.playType || ''}`.trim();
+    const label = `${t.down || '?'}&${t.distance || '?'} ${engine.constructor.proj(x.play).formationFamily || ''} ${t.playType || ''}`.trim();
     return { id: x.play.id, label, yards: t.yardage || 0, epa: x.epa, epaText: fmt(x.epa), epaClass: epaClass(x.epa) };
   };
   const groupRows = rows => (rows || []).slice(0, 8).map(r => ({

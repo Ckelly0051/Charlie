@@ -34,7 +34,7 @@ await new Promise(r => setTimeout(r, 350));
 const results = await page.evaluate(() => {
   const eng = window.app?.stats;
   if (!eng) return { missing: true };
-  const tag = (o) => ({ down: '', distance: '', formation: '', backfield: '', strength: '',
+  const tag = (o) => ({ down: '', distance: '', formationFamily: '', backfield: '', strength: '',
     personnel: '', motion: '', runPass: '', playType: '', result: '', yardage: '',
     coverage: '', defFront: '', blitz: '', unit: 'offense', players: {}, grades: {}, ...o });
   const play = (id, t) => ({ id, timestamp: { start: 0, end: 1 }, tags: tag(t) });
@@ -46,11 +46,11 @@ const results = await page.evaluate(() => {
   // ============ COHORT A — qbAlignment × strength (dedicated game) ============
   // P1/P3 carry the alignment token INSIDE formation (projection must read it).
   const gameA = [
-    play(1, { unit: 'offense', qbAlignment: 'Under Center', formation: 'Ace', strength: 'Right' }), // (Under Center, Right)
-    play(2, { unit: 'offense', qbAlignment: 'Shotgun', formation: 'Ace', strength: 'Left' }), // (Shotgun, Left)
-    play(3, { unit: 'offense', qbAlignment: 'Pistol', formation: 'Trips', strength: 'Right' }), // (Pistol, Right)
-    play(4, { unit: 'offense', qbAlignment: 'Shotgun', formation: 'Trips', strength: '' }), // blank strength → omitted
-    play(5, { unit: 'offense', formation: 'Ace', strength: 'Balanced' }), // blank qbAlignment → omitted
+    play(1, { unit: 'offense', qbAlignment: 'Under Center', formationFamily: 'I-Form', strength: 'Right' }), // (Under Center, Right)
+    play(2, { unit: 'offense', qbAlignment: 'Shotgun', formationFamily: 'I-Form', strength: 'Left' }), // (Shotgun, Left)
+    play(3, { unit: 'offense', qbAlignment: 'Pistol', formationFamily: 'Spread', strength: 'Right' }), // (Pistol, Right)
+    play(4, { unit: 'offense', qbAlignment: 'Shotgun', formationFamily: 'Spread', strength: '' }), // blank strength → omitted
+    play(5, { unit: 'offense', formationFamily: 'I-Form', strength: 'Balanced' }), // blank qbAlignment → omitted
   ];
   const A = eng._computeMatrix(gameA, 'qbAlignment', 'strength');
   t('A total = 5 (game play count)', A.total === 5, `total=${A.total}`);

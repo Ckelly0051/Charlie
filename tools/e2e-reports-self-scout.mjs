@@ -58,24 +58,24 @@ const rep = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
    third-down quick game that does not, a balanced Trips base, and an Ace
    package carrying the one sack and the one giveaway. */
 const OFFENSE = [
-  ...rep(14, i => off({ formation: 'Power-I', personnel: '21', backfield: 'Power', strength: 'Right', hash: 'Middle',
+  ...rep(14, i => off({ formationFamily: 'Power-I', personnel: '21', backfield: 'Power', strength: 'Right', hash: 'Middle',
     runPass: 'Run', playType: 'Run Inside', playCall: '26 Blast', playConcept: 'Inside Zone',
     result: i % 5 === 0 ? 'Touchdown' : 'Gain', yardage: String(6 + (i % 5) * 3),
     down: String((i % 3) + 1), distance: i % 3 === 0 ? '10' : '5' })),
-  ...rep(12, i => off({ formation: 'Empty', personnel: '10', strength: 'Left', hash: 'Left',
+  ...rep(12, i => off({ formationFamily: 'Empty', personnel: '10', strength: 'Left', hash: 'Left',
     runPass: 'Pass', playType: 'Quick Pass', playCall: 'Stick', playConcept: 'Stick',
     result: i % 3 === 0 ? 'Incomplete' : 'Gain', yardage: i % 3 === 0 ? '0' : '4', down: '3', distance: '8' })),
-  ...rep(16, i => off({ formation: 'Trips', personnel: '11', strength: 'Right', hash: 'Right',
+  ...rep(16, i => off({ formationFamily: 'Spread', personnel: '11', strength: 'Right', hash: 'Right',
     runPass: i % 3 === 0 ? 'Run' : 'Pass', playType: i % 3 === 0 ? 'Run Outside' : 'Short Pass',
     playCall: i % 3 === 0 ? 'Outside Zone' : 'Smash', playConcept: i % 3 === 0 ? 'Outside Zone' : 'Smash',
     result: 'Gain', yardage: String(3 + (i % 6) * 2), down: String((i % 4) + 1), distance: String(3 + (i % 8)) })),
-  ...rep(10, i => off({ formation: 'Ace', personnel: '12', strength: 'Left', hash: 'Middle',
+  ...rep(10, i => off({ formationFamily: 'I-Form', personnel: '12', strength: 'Left', hash: 'Middle',
     runPass: i < 7 ? 'Run' : 'Pass', playType: i < 7 ? 'Run Inside' : 'Deep Pass',
     playCall: i < 7 ? 'Iso' : 'Four Verts', playConcept: i < 7 ? 'Iso' : 'Verticals',
     result: i === 9 ? 'Interception' : (i === 8 ? 'Sack' : 'Gain'),
     yardage: i === 9 ? '0' : (i === 8 ? '-7' : String(2 + i)), down: '1', distance: '10' })),
   /* Red-zone touchdowns and a third-down conversion the summary must count. */
-  ...rep(3, i => off({ formation: 'Power-I', personnel: '22', backfield: 'Power', strength: 'Right', hash: 'Middle',
+  ...rep(3, i => off({ formationFamily: 'Power-I', personnel: '22', backfield: 'Power', strength: 'Right', hash: 'Middle',
     runPass: 'Run', playType: 'Run Inside', playCall: 'Power G', playConcept: 'Power',
     result: 'Touchdown', yardage: '6', down: '3', distance: '4', fieldSide: 'opp', yardLine: '6' })),
 ];
@@ -111,10 +111,10 @@ const DEF_INSUFFICIENT = [...OFFENSE, ...rep(4, () => def({ defFront: '4-2-5', c
 const NO_OFFENSE = [...rep(6, () => off({ playType: 'Kneel', result: 'No Gain', yardage: '0', down: '1', distance: '10' })), ...DEFENSE];
 /* Sparse: two offensive groups, one call below the three-play qualification. */
 const SPARSE = [
-  ...rep(5, i => off({ formation: 'Trips', personnel: '11', strength: 'Right', hash: 'Right', runPass: 'Run',
+  ...rep(5, i => off({ formationFamily: 'Spread', personnel: '11', strength: 'Right', hash: 'Right', runPass: 'Run',
     playType: 'Run Outside', playCall: 'Outside Zone', playConcept: 'Outside Zone',
     result: 'Gain', yardage: String(5 + i), down: '1', distance: '10' })),
-  ...rep(2, i => off({ formation: 'Ace', personnel: '12', strength: 'Left', hash: 'Middle', runPass: 'Pass',
+  ...rep(2, i => off({ formationFamily: 'I-Form', personnel: '12', strength: 'Left', hash: 'Middle', runPass: 'Pass',
     playType: 'Short Pass', playCall: 'Stick', playConcept: 'Stick',
     result: i === 1 ? 'Incomplete' : 'Gain', yardage: i === 1 ? '0' : '7', down: '2', distance: '6' })),
   ...rep(7, i => def({ defFront: '4-2-5', coverage: 'Cover 3', blitz: i % 3 === 0 ? 'Mike' : '',
@@ -123,11 +123,11 @@ const SPARSE = [
 ];
 /* Imported labels longer than any panel can give them. */
 const LONG_LABELS = [
-  ...rep(9, i => off({ formation: 'Trips Right Wing Nasty Over', personnel: '11 Personnel (Base Spread)',
+  ...rep(9, i => off({ formationFamily: 'Trips Right Wing Nasty Over', personnel: '11 Personnel (Base Spread)',
     backfield: 'Offset Weak', strength: 'Right', hash: 'Right', runPass: 'Pass', playType: 'Play Action',
     playCall: 'Boot Right Y-Cross Deep Over Alert', playConcept: 'Play Action Crossers Deep Over',
     result: 'Gain', yardage: String(9 + i), down: '2', distance: '7' })),
-  ...rep(8, i => off({ formation: 'Empty Trey Bunch Left Tight', personnel: '10 Personnel (Empty Spread)',
+  ...rep(8, i => off({ formationFamily: 'Empty Trey Bunch Left Tight', personnel: '10 Personnel (Empty Spread)',
     strength: 'Left', hash: 'Left', runPass: 'Pass', playType: 'Quick Pass',
     playCall: 'Quick Game Stick Nod Alert Fade Now', playConcept: 'Quick Game Stick Concept Alert',
     result: i % 3 === 0 ? 'Incomplete' : 'Gain', yardage: i % 3 === 0 ? '0' : '5', down: '3', distance: '11' })),

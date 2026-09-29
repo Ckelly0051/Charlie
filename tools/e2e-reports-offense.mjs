@@ -41,7 +41,7 @@ const load = async (opts) => {
     const store = window.app.storage.seasonStore;
     const plays = o.plays.map((tags, i) => ({
       id: i + 1, timestamp: { start: i * 10, end: i * 10 + 6 }, notes: '', annotations: [],
-      tags: { custom: [], players: {}, grades: {}, unit: 'offense', formation: 'Ace',
+      tags: { custom: [], players: {}, grades: {}, unit: 'offense', formationFamily: 'I-Form',
         runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '5',
         down: '1', distance: '10', quarter: 'Q1', ...tags },
     }));
@@ -370,7 +370,7 @@ ok(overviewFacts.result === 'Win' && !overviewFacts.inFacts,
 console.log('\n== 10. Each full team name, quarters, and total share one aligned row ==');
 const geometry = [];
 for (const c of [
-  { teamName: 'Ace', opponent: 'Bay', scoreUs: 7, scoreThem: 3 },
+  { teamName: 'I-Form', opponent: 'Bay', scoreUs: 7, scoreThem: 3 },
   { teamName: 'Immaculate Heart of Mary Catholic Academy', opponent: 'Bay', scoreUs: 28, scoreThem: 21 },
   { teamName: 'Immaculate Heart of Mary Catholic Academy', opponent: 'Our Lady of Perpetual Help Prep', scoreUs: 118, scoreThem: 107 },
 ]) {
@@ -673,7 +673,7 @@ ok(populated.formType.rows === 3 && populated.formType.cols === 5 && populated.f
    is the empty state rather than a sparse one — the distinction the first
    version of this fixture missed. Every module must still be there. */
 await load({ plays: Array.from({ length: 4 }, () => ({
-  playCall: '', playConcept: '', formation: '', personnel: '', backfield: '',
+  playCall: '', playConcept: '', formationFamily: '', personnel: '', backfield: '',
   motion: '', strength: '', hash: '', fieldSide: '', yardLine: '',
   playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3',
 })) });
@@ -690,7 +690,7 @@ ok(sparse.absent.length > 0 && sparse.absent.every(t => SCHEMA_MODULES.includes(
 const OVER = Array.from({ length: 90 }, (_, i) => ({
   playCall: `Call ${String(i % 30).padStart(2, '0')}`,
   playConcept: `Concept ${i % 14}`,
-  formation: `Form ${i % 12}`,
+  formationFamily: `Form ${i % 12}`,
   personnel: `${10 + (i % 11)}`,
   backfield: `Back ${i % 9}`,
   motion: `Motion ${i % 7}`,

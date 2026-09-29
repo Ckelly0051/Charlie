@@ -24,7 +24,7 @@ const result = await page.evaluate(async () => {
   const store = window.app.storage.seasonStore;
   const play = (id, over) => ({ id, timestamp: { start: id, end: id + 5 }, tags: {
     unit: 'offense', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4',
-    down: '1', distance: '10', formation: 'Trips', quarter: 'Q1', hash: 'Middle',
+    down: '1', distance: '10', formationFamily: 'Spread', quarter: 'Q1', hash: 'Middle',
     players: {}, grades: {}, ...over,
   } });
   // The roster belongs to the SEASON, which is where a real season stores it.
@@ -41,7 +41,7 @@ const result = await page.evaluate(async () => {
       plays: [
         play(1, { players: { ballCarrier: '22' } }),
         play(2, { playType: 'Deep Pass', runPass: 'Pass', result: 'Incomplete', yardage: '0', down: '2' }),
-        play(3, { playType: 'Short Pass', runPass: 'Pass', result: 'Touchdown', yardage: '18', down: '3', distance: '4', formation: 'Ace', players: { passer: '7', receiver: '1' } }),
+        play(3, { playType: 'Short Pass', runPass: 'Pass', result: 'Touchdown', yardage: '18', down: '3', distance: '4', formationFamily: 'I-Form', players: { passer: '7', receiver: '1' } }),
         play(4, { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'Loss', yardage: '-3', defFront: 'Nickel', coverage: 'Cover 3', players: { tackler: '55' } }),
         play(5, { unit: 'defense', playType: 'Short Pass', runPass: 'Pass', result: 'Sack', yardage: '-7', defFront: 'Nickel', coverage: 'Cover 1', players: { tackler: '55' } }),
         play(6, { playType: 'Run Outside', result: 'Fumble', yardage: '-1' }),

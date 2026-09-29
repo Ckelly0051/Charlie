@@ -210,25 +210,25 @@ test('compositeRef throws for a DIRECT caller with no resolvable gameId (fail-lo
 });
 
 console.log('\n== Overlapping multi-value dimensions (cohortByCut delegation) ==');
-test('a play tagged with two formations ("Ace + Trips") appears in BOTH single-formation cohorts', () => {
+test('a play tagged with two play types ("RPO + Run Inside") appears in BOTH single-type cohorts', () => {
   const plays = [
-    play(1, 'gA', { formation: 'Ace + Trips' }),
-    play(2, 'gA', { formation: 'Trips' }),
-    play(3, 'gA', { formation: 'Ace' }),
+    play(1, 'gA', { playType: 'RPO + Run Inside' }),
+    play(2, 'gA', { playType: 'RPO' }),
+    play(3, 'gA', { playType: 'Run Inside' }),
   ];
-  const trips = metrics.cohortByCut(plays, 'formation', 'Trips');
-  const ace = metrics.cohortByCut(plays, 'formation', 'Ace');
-  assert.deepEqual(trips.map(p => p.id).sort(), [1, 2], 'play 1 must overlap into the Trips cohort, not just Ace');
-  assert.deepEqual(ace.map(p => p.id).sort(), [1, 3], 'play 1 must overlap into the Ace cohort, not just Trips');
+  const rpo = metrics.cohortByCut(plays, 'playType', 'RPO');
+  const inside = metrics.cohortByCut(plays, 'playType', 'Run Inside');
+  assert.deepEqual(rpo.map(p => p.id).sort(), [1, 2], 'play 1 must overlap into the RPO cohort, not just Run Inside');
+  assert.deepEqual(inside.map(p => p.id).sort(), [1, 3], 'play 1 must overlap into the Run Inside cohort, not just RPO');
 });
 test('overlap does not double-count a single play\'s stopRate cohort membership', () => {
   const plays = [
-    play(1, 'gA', { formation: 'Ace + Trips', result: 'Gain', yardage: '2' }), // fails 1st&10 success (needs 5+)
-    play(2, 'gA', { formation: 'Trips', result: 'Touchdown', yardage: '20' }),
+    play(1, 'gA', { playType: 'RPO + Run Inside', result: 'Gain', yardage: '2' }), // fails 1st&10 success (needs 5+)
+    play(2, 'gA', { playType: 'RPO', result: 'Touchdown', yardage: '20' }),
   ];
-  const trips = metrics.cohortByCut(plays, 'formation', 'Trips');
-  const result = metrics.metric(trips, 'stopRate', {}, { allowUnlinkedPlays: true });
-  assert.equal(result.denominator, 2, 'both plays belong to the Trips cohort exactly once');
+  const rpo = metrics.cohortByCut(plays, 'playType', 'RPO');
+  const result = metrics.metric(rpo, 'stopRate', {}, { allowUnlinkedPlays: true });
+  assert.equal(result.denominator, 2, 'both plays belong to the RPO cohort exactly once');
   assert.equal(result.count, 1, 'exactly one of the two is a stop (the non-TD, non-1st-down play)');
 });
 

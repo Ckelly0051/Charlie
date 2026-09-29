@@ -21,7 +21,7 @@
  * so a pair's top and bottom edges align; an unmatched module spans the row.
  */
 import { useState } from 'preact/hooks';
-import { Watchable, EmptyState, ReportSectionBar, DownDistanceChart } from './native-report-kit.jsx';
+import { Watchable, EmptyState, ReportSectionBar, DownDistanceChart, RunGapChart } from './native-report-kit.jsx';
 import '../css/native-defense-board.css';
 
 /* Module chrome: a 50px header, a 44px table header and two 1px borders. */
@@ -302,6 +302,11 @@ export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
             board's own owner (`defenseBoard().downDistanceChart`). It is not a
             `data-def2-module`, so the fixed module geometry contract and the
             pinned inventory are unchanged. */}
+        {/* The runs this defense faced, by the gap they hit. Like the chart below it,
+            not a `data-def2-module`: the fixed module geometry is unchanged. */}
+        {section.id === 'opponent'
+          ? <RunGapChart key="rg" plays={scoped} engine={screen.app.stats} screen={screen} side="defense" title="Runs faced by gap" />
+          : null}
         {section.id === 'situations' && board.downDistanceChart
           ? <DownDistanceChart key="dd" side="defense" title="Opponent down & distance" screen={screen} chart={board.downDistanceChart} />
           : null}

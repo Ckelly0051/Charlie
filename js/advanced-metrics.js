@@ -125,7 +125,7 @@ export class AdvancedMetrics {
     const total = withEpa.reduce((s, x) => s + x.epa, 0);
 
     // By play type. `multi` splits a " + "-joined value (e.g. the multi-select
-    // formation "Pistol + Spread") so EPA is attributed to each component.
+    // play type "RPO + Short Pass") so EPA is attributed to each component.
     const groupBy = (key, multi = false) => {
       const m = {};
       const projected = StatsEngine.PROJECTED_FIELDS.includes(key);
@@ -152,7 +152,7 @@ export class AdvancedMetrics {
     };
 
     const byType = groupBy('playType');
-    const byFormation = groupBy('formation', true);
+    const byFormation = groupBy('formationFamily');
     const byPersonnel = groupBy('personnel');
 
     // By down

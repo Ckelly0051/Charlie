@@ -44,8 +44,8 @@ await page.evaluate(async () => {
         // playCall is charted so the exact-call cohort exists: the composite-ref
         // assertion below reads a Play calls row, and _playCallAnalysis produces
         // nothing at all without an exact call on the play.
-        play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
-        play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
+        play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formationFamily: 'Spread', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
+        play(2, 'defense', { formationFamily: 'I-Form', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
         Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'kickoff', kick: { distance: 55 }, return: { attempted: true, yards: 18 }, outcome: { status: 'returned' } } }),
       ],
     },
@@ -53,7 +53,7 @@ await page.evaluate(async () => {
       id: 'g-scout', name: 'Wildcats vs Knights', nextId: 4,
       gameInfo: { opponent: 'Wildcats', perspective: 'scout' },
       plays: [
-        play(1, 'offense', { formation: 'Bunch', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
+        play(1, 'offense', { formationFamily: 'Wing-T', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
         play(2, 'defense', { defFront: '3-3-5', coverage: 'Cover 1', blitz: 'Edge' }),
         Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'punt', kick: { distance: 42 }, return: { attempted: true, yards: 6 }, outcome: { status: 'returned' } } }),
       ],
@@ -223,17 +223,17 @@ result = await page.evaluate(async () => {
   ]);
   // The mirrored case: an offense-only game with a real giveaway.
   const offenseOnly = await load('g-off-only', [
-    play(1, 'offense', { formation: 'Trips', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { passer: '12' } }),
-    play(2, 'offense', { formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' }),
+    play(1, 'offense', { formationFamily: 'Spread', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { passer: '12' } }),
+    play(2, 'offense', { formationFamily: 'Spread', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' }),
   ]);
   // Both units charted, with a genuine net margin -- 1 giveaway, 2 takeaways
   // -- plus the exact "O 2 · D 2 · ST 0" phrasing for Plays per Phase, which
   // replaces the "50O / 13D / 3ST" reading that looked like "500" at a glance.
   const both = await load('g-both', [
-    play(1, 'offense', { formation: 'Trips', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { passer: '12' } }),
+    play(1, 'offense', { formationFamily: 'Spread', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { passer: '12' } }),
     play(2, 'defense', { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '2', distance: '8', players: { tackler: '21' } }),
     play(3, 'defense', { defFront: '4-2-5', coverage: 'Cover 3', runPass: 'Pass', playType: 'Short Pass', result: 'Fumble', fumbleRecovery: 'subject', yardage: '2', down: '3', distance: '4', players: { tackler: '55' } }),
-    play(4, 'offense', { formation: 'Trips', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' }),
+    play(4, 'offense', { formationFamily: 'Spread', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '1', distance: '10' }),
   ]);
   return { defenseOnly, offenseOnly, both };
 });
@@ -271,8 +271,8 @@ await page.evaluate(async () => {
         // playCall is charted so the exact-call cohort exists: the composite-ref
         // assertion below reads a Play calls row, and _playCallAnalysis produces
         // nothing at all without an exact call on the play.
-        play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formation: 'Trips', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
-        play(2, 'defense', { formation: 'Ace', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
+        play(1, 'offense', { playCall: '26 Blast', playConcept: 'Inside Zone', formationFamily: 'Spread', qbAlignment: 'Shotgun', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '8', down: '1', distance: '10', players: { ballCarrier: '22' } }),
+        play(2, 'defense', { formationFamily: 'I-Form', qbAlignment: 'Under Center', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '4', down: '2', distance: '6', defFront: '4-2-5', coverage: 'Cover 3', players: { tackler: '44' } }),
         Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'kickoff', kick: { distance: 55 }, return: { attempted: true, yards: 18 }, outcome: { status: 'returned' } } }),
       ],
     },
@@ -280,7 +280,7 @@ await page.evaluate(async () => {
       id: 'g-scout', name: 'Wildcats vs Knights', nextId: 4,
       gameInfo: { opponent: 'Wildcats', perspective: 'scout' },
       plays: [
-        play(1, 'offense', { formation: 'Bunch', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
+        play(1, 'offense', { formationFamily: 'Wing-T', qbAlignment: 'Pistol', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '7', down: '3', distance: '5', players: { passer: '7', receiver: '2' } }),
         play(2, 'defense', { defFront: '3-3-5', coverage: 'Cover 1', blitz: 'Edge' }),
         Object.assign(play(3, 'special'), { specialTeams: { version: 1, unit: 'punt', kick: { distance: 42 }, return: { attempted: true, yards: 6 }, outcome: { status: 'returned' } } }),
       ],
@@ -343,7 +343,7 @@ await page.evaluate(() => {
   };
   const play = (yards, start) => ({ id: 1, timestamp: { start, end: start + 4 }, tags: {
     unit: 'offense', down: '1', distance: '10', quarter: 'Q1', playType: 'Run Inside', runPass: 'Run',
-    result: 'Gain', yardage: yards, driveNumber: '1', playCall: 'Power', formation: 'Ace', personnel: '11',
+    result: 'Gain', yardage: yards, driveNumber: '1', playCall: 'Power', formationFamily: 'I-Form', personnel: '11',
     players: { ballCarrier: '22' }, grades: {}, custom: [],
   }});
   app.storage.seasonStore.data.games = [
@@ -484,8 +484,8 @@ result = await page.evaluate(async () => {
   const def = (id, type) => play(id, 'defense', { defFront:'4-2-5', coverage:'Cover 3', runPass:type.includes('Run')?'Run':'Pass', playType:type, result:'Gain', yardage:'4' });
   app.filmNavigation.watch = refs => calls.push(refs);
   app.storage.seasonStore.data.games = [
-    { id:'match-self', gameInfo:{opponent:'Wildcats',perspective:'self'}, plays:[play(1,'offense',{formation:'Trips',runPass:'Run',playType:'Run Outside',result:'Gain',yardage:'8'}),play(2,'offense',{formation:'Trips'}),def(3,'Run Inside')] },
-    { id:'match-scout', gameInfo:{opponent:'Wildcats',perspective:'scout'}, plays:[play(1,'offense',{formation:'Bunch',runPass:'Pass',playType:'Short Pass',result:'Gain',yardage:'6'}),def(10,'Run Inside'),def(11,'Run Outside'),def(12,'Screen'),def(13,'Short Pass'),def(14,'Medium Pass'),def(15,'Deep Pass'),def(16,'Deep Pass'),def(17,'Deep Pass'),def(18,'Deep Pass'),def(19,'Deep Pass')] },
+    { id:'match-self', gameInfo:{opponent:'Wildcats',perspective:'self'}, plays:[play(1,'offense',{formationFamily:'Spread',runPass:'Run',playType:'Run Outside',result:'Gain',yardage:'8'}),play(2,'offense',{formationFamily:'Spread'}),def(3,'Run Inside')] },
+    { id:'match-scout', gameInfo:{opponent:'Wildcats',perspective:'scout'}, plays:[play(1,'offense',{formationFamily:'Wing-T',runPass:'Pass',playType:'Short Pass',result:'Gain',yardage:'6'}),def(10,'Run Inside'),def(11,'Run Outside'),def(12,'Screen'),def(13,'Short Pass'),def(14,'Medium Pass'),def(15,'Deep Pass'),def(16,'Deep Pass'),def(17,'Deep Pass'),def(18,'Deep Pass'),def(19,'Deep Pass')] },
   ];
   app.storage.seasonStore.data.activeGameId='match-self'; await app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.matchupTab='our-offense'; app.reportsScreen.selectTab('matchup');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
@@ -495,7 +495,7 @@ result = await page.evaluate(async () => {
   const types=[...(opponentDefense?.querySelectorAll('tbody tr')||[])].map(row=>row.children[0]?.textContent.trim());
   const refs=calls.at(-1)||[];
   app.storage.seasonStore.data.games=[
-    {id:'empty-self',gameInfo:{opponent:'Wildcats',perspective:'self'},plays:[play(1,'offense',{formation:'Trips'})]},
+    {id:'empty-self',gameInfo:{opponent:'Wildcats',perspective:'self'},plays:[play(1,'offense',{formationFamily:'Spread'})]},
     {id:'empty-scout',gameInfo:{opponent:'Wildcats',perspective:'scout'},plays:[def(1,'Run Inside')]},
   ];
   app.storage.seasonStore.data.activeGameId='empty-self'; await app.storage._loadActiveGame(); app.reportsScreen.matchupOpponent='Wildcats'; app.reportsScreen.selectTab('matchup');
@@ -1382,7 +1382,7 @@ await capture('mobile-overview');
 
 console.log('\n== CHARLIE GATE. Approved broadcast-density Overview composition ==');
 await page.setViewport({width:1400,height:860});
-await page.evaluate(async()=>{ const app=window.app,store=app.storage.seasonStore,looks=['Trips','Ace','Wing-T','Bunch','Empty','Doubles'],types=['Run Inside','Run Outside','Short Pass','Deep Pass','Screen','Play Action'],game=store.data.games.find(x=>x.id==='g-self'); game.plays=Array.from({length:64},(_,i)=>({id:i+1,timestamp:{start:i*5,end:i*5+4},notes:'',analysis:null,tags:{unit:i%5===4?'defense':'offense',formation:looks[i%looks.length],backfield:i%2?'I':'Single',personnel:i%2?'11':'21',runPass:i%2?'Run':'Pass',playType:types[i%types.length],result:i%9===0?'Touchdown':(i%7===0?'Loss':'Gain'),yardage:String(i%9===0?18:(i%7===0?-4:2+(i%14))),down:String((i%4)+1),distance:String(1+(i%12)),quarter:'Q'+((i%4)+1),defFront:'4-2-5',coverage:'Cover 3',custom:[],players:{ballCarrier:'22',tackler:'55'},grades:{}}})); game.nextId=65; store.data.activeGameId='g-self'; app.storage._loadActiveGame(); await app.workspaceShell.show('reports'); app.reportsScreen.selectTab('overview'); });
+await page.evaluate(async()=>{ const app=window.app,store=app.storage.seasonStore,looks=['Spread','I-Form','Wing-T','Wing-T','Empty','Doubles'],types=['Run Inside','Run Outside','Short Pass','Deep Pass','Screen','Play Action'],game=store.data.games.find(x=>x.id==='g-self'); game.plays=Array.from({length:64},(_,i)=>({id:i+1,timestamp:{start:i*5,end:i*5+4},notes:'',analysis:null,tags:{unit:i%5===4?'defense':'offense',formationFamily:looks[i%looks.length],backfield:i%2?'I':'Single',personnel:i%2?'11':'21',runPass:i%2?'Run':'Pass',playType:types[i%types.length],result:i%9===0?'Touchdown':(i%7===0?'Loss':'Gain'),yardage:String(i%9===0?18:(i%7===0?-4:2+(i%14))),down:String((i%4)+1),distance:String(1+(i%12)),quarter:'Q'+((i%4)+1),defFront:'4-2-5',coverage:'Cover 3',custom:[],players:{ballCarrier:'22',tackler:'55'},grades:{}}})); game.nextId=65; store.data.activeGameId='g-self'; app.storage._loadActiveGame(); await app.workspaceShell.show('reports'); app.reportsScreen.selectTab('overview'); });
 await new Promise(r=>setTimeout(r,450));
 const approvedOverview=await page.evaluate(()=>{ const app=window.app,stats=app.stats.compute(),board=document.querySelector('.gi-overview-board'),titles=[...(board?.querySelectorAll('.gi-overview-module>header>strong')||[])].map(n=>n.textContent.trim()),kpis=[...(board?.querySelectorAll('.gi-overview-kpi')||[])].map(n=>({label:n.querySelector('span')?.textContent.trim(),value:n.querySelector('strong')?.textContent.trim()})),rect=board?.getBoundingClientRect(); return {board:!!board,childCount:board?.children.length||0,titles,kpis,clickable:board?.querySelectorAll('.cut-row').length||0,overflow:rect?Math.max(0,Math.round(rect.right-document.documentElement.clientWidth)):-1,oldScoreboard:!!document.querySelector('.scoreboard-layout'),oldLensBoard:!!document.querySelector('.gi-lens-board'),allPlays:stats.allPlays,success:String(stats.efficiency.successRate)+'%',ypp:((stats.rushing.yards+stats.passing.yards)/stats.offPlays.length).toFixed(1)}; });
 ok(approvedOverview.board && approvedOverview.childCount===5,'Overview is the approved five-band broadcast-density board, not legacy cards',JSON.stringify(approvedOverview));

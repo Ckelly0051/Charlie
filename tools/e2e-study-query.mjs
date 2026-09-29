@@ -50,7 +50,7 @@ const result = await page.evaluate((fixture) => {
   // this list is maintained by hand and must be updated if a dimension's gate
   // changes; needed below so the INDEPENDENT enumeration doesn't count a value
   // from the wrong unit's plays and produce a false mismatch.
-  const OFF_DIMS = new Set(['formation', 'qbAlignment', 'playType', 'personnel', 'backfield',
+  const OFF_DIMS = new Set(['formationFamily', 'receiverSet', 'gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun', 'qbAlignment', 'playType', 'personnel', 'backfield',
     'strength', 'down', 'playDir', 'motion', 'hash', 'runPass']);
   const registry = window.app.analyticsRegistry;
   const isOff = p => (p.tags.unit || 'offense') === 'offense';
@@ -88,13 +88,13 @@ const result = await page.evaluate((fixture) => {
   // declared above, reused here — no second declaration.)
   const passRun = study.run({ plays, dimension: 'down', filters: [{ dimension: 'runPass', values: ['Run'] }] });
   const expectRun = plays.filter(p => window.app.stats.constructor.isRun(p)).length;
-  const andQ = study.run({ plays, dimension: 'formation', filters: [{ dimension: 'runPass', values: ['Run'] }, { dimension: 'down', values: ['2'] }] });
+  const andQ = study.run({ plays, dimension: 'formationFamily', filters: [{ dimension: 'runPass', values: ['Run'] }, { dimension: 'down', values: ['2'] }] });
   const expectAnd = plays.filter(p => window.app.stats.constructor.isRun(p) && (p.tags.down || '') === '2').length;
-  const orQ = study.run({ plays, dimension: 'formation', filters: [{ dimension: 'down', values: ['2', '3'] }] });
+  const orQ = study.run({ plays, dimension: 'formationFamily', filters: [{ dimension: 'down', values: ['2', '3'] }] });
   const expectOr = plays.filter(p => ['2', '3'].includes(p.tags.down || '')).length;
 
   // Min-sample warnings (Wildcat/Empty are single-play formations here).
-  const minQ = study.run({ plays, dimension: 'formation', minSample: 4 });
+  const minQ = study.run({ plays, dimension: 'formationFamily', minSample: 4 });
   const wild = minQ.groups.find(g => g.value === 'Wildcat');
 
   // Non-cut dimension (result has no _buildCutFilter cut) still groups + film-links.
@@ -103,11 +103,11 @@ const result = await page.evaluate((fixture) => {
 
   // Two-cohort comparison: game 1 (base) vs the whole season (against).
   const g1Plays = store.data.games[0].plays;
-  const cmp = study.compare({ base: g1Plays, against: plays, dimension: 'formation', measures: ['sampleSize', 'successRate', 'runShare'], labels: { base: 'Game 1', against: 'Season' } });
+  const cmp = study.compare({ base: g1Plays, against: plays, dimension: 'formationFamily', measures: ['sampleSize', 'successRate', 'runShare'], labels: { base: 'Game 1', against: 'Season' } });
   // Post-E3a projection: 'Shotgun'/'Pistol' are QB ALIGNMENT, not formations, so the
-  // surviving structural formations are used — 'Trips' (both games) and 'Flexbone'
+  // surviving structural formations are used — 'Spread' (both games) and 'Flexbone'
   // (g2-only), mirroring the base-present / base-empty cohort intent.
-  const cmpTrips = cmp.rows.find(r => r.value === 'Trips');
+  const cmpTrips = cmp.rows.find(r => r.value === 'Spread');
   const cmpFlexbone = cmp.rows.find(r => r.value === 'Flexbone'); // g2-only formation
   const cmpMeta = { aTotal: cmp.a.total, bTotal: cmp.b.total, aLabel: cmp.a.label, bLabel: cmp.b.label, valueCount: cmp.rows.length, g1PlayCount: g1Plays.length };
 
@@ -116,7 +116,7 @@ const result = await page.evaluate((fixture) => {
   // fieldZone graduated to 'ready' in the Study expansion (2026-08-15);
   // scoreSituation is the dimension that remains deliberately deferred now.
   const deferredThrows = (() => { try { study.run({ plays, dimension: 'scoreSituation' }); return false; } catch { return true; } })();
-  const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formation' }); return false; } catch { return true; } })();
+  const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formationFamily' }); return false; } catch { return true; } })();
 
   // Finding 1: the new dimensions must ROUTE THROUGH the report cut (film-link
   // parity), not registry membership. On this fixture both paths coincide, so pin
@@ -130,9 +130,9 @@ const result = await page.evaluate((fixture) => {
   // directions -- yardsPerPlay's own default flipped to 'higher' as part of
   // the Codex review repair (2026-08-14, finding #1: polarity is per unit),
   // so it can no longer stand in as "the lower-is-better metric" here.
-  const richQ = study.runMetrics({ plays, dimension: 'formation', metricIds: ['stopRate', 'yardsAllowedPerPlay'] });
-  const richFormationQ = study.run({ plays, dimension: 'formation', measures: ['sampleSize'] });
-  const richTrips = richQ.groups.find(g => g.value === 'Trips');
+  const richQ = study.runMetrics({ plays, dimension: 'formationFamily', metricIds: ['stopRate', 'yardsAllowedPerPlay'] });
+  const richFormationQ = study.run({ plays, dimension: 'formationFamily', measures: ['sampleSize'] });
+  const richTrips = richQ.groups.find(g => g.value === 'Spread');
 
   // Finding 5 repair: missingAsZero must be proven with STRICT inequality on
   // a fixture GUARANTEED to differ, not `<=` against whatever a shared
@@ -153,14 +153,14 @@ const result = await page.evaluate((fixture) => {
 
   // compareMetrics() — Study expansion (2026-08-15): the runMetrics() sibling
   // of compare(). Same game-1-vs-season cohorts as the existing compare()
-  // assertion below, so its 'Trips' row can be checked against the SAME
+  // assertion below, so its 'Spread' row can be checked against the SAME
   // per-scope golden drilldowns -- proving compareMetrics() is genuinely
   // additive (compare() is untouched) and film-linked exactly like compare().
   const cmpMetrics = study.compareMetrics({
-    base: g1Plays, against: plays, dimension: 'formation', metricIds: ['stopRate', 'yardsAllowedPerPlay'],
+    base: g1Plays, against: plays, dimension: 'formationFamily', metricIds: ['stopRate', 'yardsAllowedPerPlay'],
     labels: { base: 'Game 1', against: 'Season' },
   });
-  const cmpMetricsTrips = cmpMetrics.rows.find(r => r.value === 'Trips');
+  const cmpMetricsTrips = cmpMetrics.rows.find(r => r.value === 'Spread');
   // A metric whose value is genuinely missing on one side must not produce a
   // fabricated delta. 'Flexbone' is the SAME g2-only, base-empty formation
   // already used and verified below for compare()'s own cmpFlexbone case.
@@ -171,10 +171,10 @@ const result = await page.evaluate((fixture) => {
   // value is null anyway, so a naive `value != null` guard alone would still
   // pass). Only the explicit ok/partial-film state check can catch this.
   const cmpMetricsInsufficient = study.compareMetrics({
-    base: g1Plays, against: plays, dimension: 'formation', metricIds: ['stopRate'], minSample: 1000,
+    base: g1Plays, against: plays, dimension: 'formationFamily', metricIds: ['stopRate'], minSample: 1000,
     labels: { base: 'Game 1', against: 'Season' },
   });
-  const cmpMetricsTripsInsufficient = cmpMetricsInsufficient.rows.find(r => r.value === 'Trips');
+  const cmpMetricsTripsInsufficient = cmpMetricsInsufficient.rows.find(r => r.value === 'Spread');
 
   // fieldZone — Study expansion (2026-08-15): a real, ready, unit-agnostic
   // dimension. Query it directly (not through DIMENSION_CUT/golden parity,
@@ -280,8 +280,8 @@ if (!result.missing) {
   ok(!completenessMismatch, `Every Study dimension's group SET is complete — no value silently dropped (${dimsChecked} dimensions)`, completenessMismatch);
 
   // Golden coverage the other way: every report-backed formation drilldown is produced by a group.
-  const goldFormations = Object.keys(gd).filter(k => k.startsWith('formation::')).map(k => k.slice('formation::'.length)).sort();
-  const queryFormations = result.grouped.formation.groups.map(g => g.value).sort();
+  const goldFormations = Object.keys(gd).filter(k => k.startsWith('formationFamily::')).map(k => k.slice('formationFamily::'.length)).sort();
+  const queryFormations = result.grouped.formationFamily.groups.map(g => g.value).sort();
   ok(JSON.stringify(goldFormations) === JSON.stringify(queryFormations), 'Formation query values exactly cover the golden formation drilldowns', JSON.stringify({ goldFormations, queryFormations }));
 
   // 1b. The two new E3a dimensions map to their canonical cuts (film-link parity,
@@ -304,11 +304,11 @@ if (!result.missing) {
   const gm = result.cmpMeta;
   ok(gm.aTotal === gm.g1PlayCount && gm.bTotal === result.playCount && gm.aTotal < gm.bTotal && gm.aLabel === 'Game 1' && gm.bLabel === 'Season', 'compare() runs both cohorts with labels + independent totals', JSON.stringify(gm));
   // Both sides stay film-linked to their OWN scope's golden drilldown.
-  ok(JSON.stringify(result.cmpTrips.aIds) === JSON.stringify(golden['game:g1'].drill['formation::Trips']), 'compare base side film-links to the game-scope golden');
-  ok(JSON.stringify(result.cmpTrips.bIds) === JSON.stringify(golden.season.drill['formation::Trips']), 'compare against side film-links to the season-scope golden');
+  ok(JSON.stringify(result.cmpTrips.aIds) === JSON.stringify(golden['game:g1'].drill['formationFamily::Spread']), 'compare base side film-links to the game-scope golden');
+  ok(JSON.stringify(result.cmpTrips.bIds) === JSON.stringify(golden.season.drill['formationFamily::Spread']), 'compare against side film-links to the season-scope golden');
   ok(typeof result.cmpTrips.deltas.successRate === 'number' && typeof result.cmpTrips.deltas.runShare === 'number', 'compare emits numeric per-measure deltas', JSON.stringify(result.cmpTrips.deltas));
   // A formation present only in game 2 shows an empty base side + a negative sampleDelta.
-  ok(result.cmpFlexbone.aSample === 0 && result.cmpFlexbone.aIds.length === 0 && result.cmpFlexbone.sampleDelta < 0 && JSON.stringify(result.cmpFlexbone.bIds) === JSON.stringify(golden.season.drill['formation::Flexbone']), 'compare aligns a value missing from one cohort (Flexbone: base empty, against present)', JSON.stringify(result.cmpFlexbone));
+  ok(result.cmpFlexbone.aSample === 0 && result.cmpFlexbone.aIds.length === 0 && result.cmpFlexbone.sampleDelta < 0 && JSON.stringify(result.cmpFlexbone.bIds) === JSON.stringify(golden.season.drill['formationFamily::Flexbone']), 'compare aligns a value missing from one cohort (Flexbone: base empty, against present)', JSON.stringify(result.cmpFlexbone));
   ok(result.compareBadArgsThrows, 'compare() with a non-array cohort fails loudly');
 
   // 5. runMetrics() — additive AnalyticsMetrics seam, grouping parity with run().

@@ -50,7 +50,7 @@ await page.evaluate(() => {
     id: idc++, timestamp: { start: 0, end: 5 }, notes: '',
     tags: Object.assign({
       down: '', distance: '', quarter: '', fieldSide: 'own', yardLine: '',
-      formation: '', personnel: '', motion: '', runPass: '', playType: '',
+      formationFamily: '', personnel: '', motion: '', runPass: '', playType: '',
       result: '', yardage: '', hash: '', playDir: '', defFront: '', coverage: '',
       blitz: '', unit: 'offense', stType: '', players: {}, grades: {}, custom: []
     }, over)
@@ -101,7 +101,7 @@ r = await page.evaluate(async () => {
   const plays = [];
   // Offensive plays so the offensive self-scout (ssReport) is non-null.
   for (let i = 0; i < 6; i++) {
-    plays.push(mk({ unit: 'offense', down: '1', distance: '10', formation: 'Trips',
+    plays.push(mk({ unit: 'offense', down: '1', distance: '10', formationFamily: 'Spread',
       playType: i % 2 ? 'Short Pass' : 'Run Inside', runPass: i % 2 ? 'Pass' : 'Run',
       result: 'Gain', yardage: '6' }));
   }
@@ -191,7 +191,7 @@ r = await page.evaluate(async () => {
   const conceptMatches = stats.tagger.plays.filter(stats._buildCutFilter('playCallOrConcept', 'Counter')).length;
 
   stats.tagger.plays = Array.from({ length:5 }, () => mk({ unit:'offense', runPass:'Run',
-    playType:'Run Inside', formation:'Ace & Empty', result:'Gain', yardage:'8' }));
+    playType:'Run Inside', formationFamily:'Ace & Empty', result:'Gain', yardage:'8' }));
   const escapedReport = stats.generateSelfScout();
   window.app.reportsScreen.selectTab('selfscout');
   [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
@@ -204,7 +204,7 @@ r = await page.evaluate(async () => {
     runPassComputed,
     conceptKeys: conceptRows.map(row => row.key),
     conceptMatches,
-    rawTellLabel: escapedReport.tells.find(t => t.cutType === 'formation')?.label || '',
+    rawTellLabel: escapedReport.tells.find(t => t.cutType === 'formationFamily')?.label || '',
     tellText,
     cutRows: pane.querySelectorAll('.gi-ss-table tbody tr.cut-row').length,
     active: document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim(),
@@ -227,7 +227,7 @@ r = await page.evaluate(async () => {
   // ONLY emerges if exact distances are bucketed together.
   const plays = [];
   for (let i = 0; i < 10; i++) plays.push(mk({ unit: 'offense', down: '3',
-    distance: String(8 + (i % 5)), formation: 'Trips', playType: 'Short Pass',
+    distance: String(8 + (i % 5)), formationFamily: 'Spread', playType: 'Short Pass',
     runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
   window.app.tagger.plays = plays;
   window.app.stats.filter.active = false;
@@ -263,7 +263,7 @@ r = await page.evaluate(async () => {
     active: document.querySelector('[data-reports-secbar] .gi-selfscout-pages button.active')?.firstChild.textContent.trim(),
   };
 });
-ok(r.comboVal === 'Trips__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
+ok(r.comboVal === 'Spread__3|Long', 'Formation × Down tell uses the down|bucket key', JSON.stringify(r));
 ok(r.comboMatched === 10, 'exact distances 8-12 all bucket into "3rd & 7+" (n=10)', JSON.stringify(r));
 ok(r.deadLinks === 0, 'every clickable tell resolves to at least one play', JSON.stringify(r));
 ok(r.cutRows >= 1, 'tells render as clickable cut-rows', JSON.stringify(r));
@@ -277,17 +277,17 @@ r = await page.evaluate(async () => {
   const plays = [];
   // I-Form 1st = run-heavy; Trips 3rd & Long = pass-heavy; Singleback 2nd & Med = balanced.
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
-    formation: 'I-Form', playType: i < 7 ? 'Run Inside' : 'Short Pass', runPass: i < 7 ? 'Run' : 'Pass', result: 'Gain', yardage: '4' }));
+    formationFamily: 'I-Form', playType: i < 7 ? 'Run Inside' : 'Short Pass', runPass: i < 7 ? 'Run' : 'Pass', result: 'Gain', yardage: '4' }));
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '3', distance: String(8 + i % 4),
-    formation: 'Trips', playType: 'Short Pass', runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
+    formationFamily: 'Spread', playType: 'Short Pass', runPass: 'Pass', result: 'Incomplete', yardage: '2' }));
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '5',
-    formation: 'Singleback', playType: i % 2 ? 'Short Pass' : 'Run Inside', runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
+    formationFamily: 'Singleback', playType: i % 2 ? 'Short Pass' : 'Run Inside', runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
   window.app.tagger.plays = plays;
   window.app.stats.filter.active = false;
   const m = window.app.stats.generateSelfScout().matrix;
   // 1st & 4th collapse to the down; 2nd/3rd bucket by distance.
   const iformFirst = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'I-Form__1')).length;
-  const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Trips__3|Long')).length;
+  const shotgun3L = window.app.tagger.plays.filter(window.app.stats._buildCutFilter('comboFS', 'Spread__3|Long')).length;
   window.app.reportsScreen.show();
   window.app.reportsScreen.selectTab('selfscout');
   [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
@@ -305,7 +305,7 @@ ok(r.hasMap, 'Predictability Map section renders', JSON.stringify(r));
 ok(r.rows.length === 3 && r.cols.length === 3, 'matrix has 3 formations × 3 situations present in data', JSON.stringify(r));
 ok(r.cols.includes('1') && r.cols.includes('3|Long'), '1st collapses to the down; 3rd buckets by distance', JSON.stringify(r));
 ok(r.iformFirst === 8, 'I-Form × 1st cell cut resolves to its 8 plays', JSON.stringify(r));
-ok(r.shotgun3L === 8, 'Trips × 3rd & Long cell cut resolves to its 8 plays', JSON.stringify(r));
+ok(r.shotgun3L === 8, 'Spread × 3rd & Long cell cut resolves to its 8 plays', JSON.stringify(r));
 ok(r.clickableCells >= 3, 'populated cells are clickable to film', JSON.stringify(r));
 
 console.log('\n== 7. Personnel → Formation Diversity: locked/leaning tells, click-to-film ==');
@@ -314,16 +314,16 @@ r = await page.evaluate(async () => {
   const plays = [];
   // 11 personnel → always Trips (locked, 100%)
   for (let i = 0; i < 8; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
-    personnel: '11', formation: 'Trips', playType: i % 2 ? 'Short Pass' : 'Run Inside',
+    personnel: '11', formationFamily: 'Spread', playType: i % 2 ? 'Short Pass' : 'Run Inside',
     runPass: i % 2 ? 'Pass' : 'Run', result: 'Gain', yardage: '5' }));
   // 12 personnel → I-Form 6/8 (75%, leaning), Singleback 2/8
   for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', down: '1', distance: '10',
-    personnel: '12', formation: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4' }));
+    personnel: '12', formationFamily: 'I-Form', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4' }));
   for (let i = 0; i < 2; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '6',
-    personnel: '12', formation: 'Singleback', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' }));
+    personnel: '12', formationFamily: 'Singleback', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '6' }));
   // 21 personnel → diverse (no tell) — 3 formations roughly equal
   for (let i = 0; i < 6; i++) plays.push(mk({ unit: 'offense', down: '2', distance: '5',
-    personnel: '21', formation: ['I-Form', 'Singleback', 'Bunch'][i % 3],
+    personnel: '21', formationFamily: ['I-Form', 'Singleback', 'Wing-T'][i % 3],
     playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '3' }));
   window.app.tagger.plays = plays;
   window.app.stats.filter.active = false;
@@ -361,7 +361,7 @@ r = await page.evaluate(async () => {
     hasPersonnelTell: insightTags.includes('Personnel Tell'),
   };
 });
-ok(r.p11TopPct === 100 && r.p11TopForm === 'Trips', '11 personnel locked to Trips at 100%', JSON.stringify(r));
+ok(r.p11TopPct === 100 && r.p11TopForm === 'Spread', '11 personnel locked to Spread at 100%', JSON.stringify(r));
 ok(r.p12TopPct === 75 && r.p12TopForm === 'I-Form', '12 personnel leaning to I-Form at 75%', JSON.stringify(r));
 ok(r.p21TopPct <= 50, '21 personnel is diverse (no tell)', JSON.stringify(r));
 ok(r.hasSection, 'Personnel → Formation Diversity section renders', JSON.stringify(r));
@@ -445,7 +445,7 @@ r = await page.evaluate(() => {
   const engine = window.app.stats;
   // Six same-type findings and one of another type. Before AX-3 the flat top-6
   // cap let one class take every slot, so the other finding never appeared.
-  const many = ['Trips', 'Ace', 'Wing-T', 'Bunch', 'Empty', 'Doubles'].map((subject, index) => ({
+  const many = ['Spread', 'I-Form', 'Wing-T', 'Wing-T', 'Empty', 'Doubles'].map((subject, index) => ({
     type: 'direction', subject, priority: 100 - index, tag: 'Direction Tell',
     text: `From <strong>${subject}</strong>, you go <strong>left</strong> 100% of the time.`,
   }));

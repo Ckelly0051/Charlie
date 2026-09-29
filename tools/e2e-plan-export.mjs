@@ -13,11 +13,11 @@ const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${l
 const play = (id, tags, notes = '') => ({ id, timestamp: { start: 0, end: 5 }, tags, notes });
 const games = [
   { id: 'g1', name: 'Week 1 vs Central', gameInfo: { opponent: 'Central' }, plays: [
-    play(3, { down: '3', distance: '7', formation: 'Trips', playType: 'Deep Pass', result: 'Gain', yardage: '22' }, 'Y-cross'),
-    play(9, { down: '1', distance: '10', formation: 'Wing-T', playType: 'Run Inside', result: 'Gain', yardage: '4' }),
+    play(3, { down: '3', distance: '7', formationFamily: 'Spread', playType: 'Deep Pass', result: 'Gain', yardage: '22' }, 'Y-cross'),
+    play(9, { down: '1', distance: '10', formationFamily: 'Wing-T', playType: 'Run Inside', result: 'Gain', yardage: '4' }),
   ] },
   { id: 'g2', name: 'Week 2 vs North', gameInfo: {}, plays: [
-    play(4, { down: '2', distance: '3', formation: 'Goal Line', playType: 'Run Outside', result: 'Touchdown', yardage: '3' }),
+    play(4, { down: '2', distance: '3', formationFamily: 'Power-I', playType: 'Run Outside', result: 'Touchdown', yardage: '3' }),
   ] },
 ];
 
@@ -31,7 +31,7 @@ const games = [
   ok(exp.name === 'Third Down' && exp.itemCount === 2 && exp.playCount === 3 && exp.missingCount === 0, 'build summarizes name + item/play counts', JSON.stringify({ i: exp.itemCount, p: exp.playCount }));
   ok(exp.items[0].label === '3rd & long' && exp.items[1].label === 'Base runs', 'items stay in PLAN order');
   const p0 = exp.items[0].plays[0];
-  ok(p0.gameName === 'Week 1 vs Central' && p0.situation === '3rd & 7' && p0.look === 'Trips' && p0.result === 'Gain' && p0.yardage === '22', 'a ref resolves to its game + situation + context', JSON.stringify(p0));
+  ok(p0.gameName === 'Week 1 vs Central' && p0.situation === '3rd & 7' && p0.look === 'Spread' && p0.result === 'Gain' && p0.yardage === '22', 'a ref resolves to its game + situation + context', JSON.stringify(p0));
   ok(exp.items[0].plays[1].gameName === 'Week 2 vs North', 'a cross-game ref resolves to the other game');
 }
 
@@ -58,7 +58,7 @@ const games = [
 // ---- 4. XSS: every coach-entered string is escaped in html ------------------
 {
   const evil = '<img src=x onerror=alert(1)>';
-  const g = [{ id: 'g1', name: evil, plays: [play(1, { down: '1', distance: '10', formation: evil }, evil)] }];
+  const g = [{ id: 'g1', name: evil, plays: [play(1, { down: '1', distance: '10', formationFamily: evil }, evil)] }];
   const plan = { name: evil, notes: evil, items: [{ id: 'i', kind: 'film', label: evil, note: evil, refs: ['g1::1'] }] };
   const html = PlanExport.html(PlanExport.build(plan, g));
   ok(!html.includes('<img src=x'), 'raw payload never appears unescaped in the export html');
@@ -71,24 +71,24 @@ const games = [
   // under `look` (never `formation` — the label is not the formation field),
   // and never leaks a " + " join into the phrase.
   const g = [{ id: 'g1', name: 'Week 1', plays: [
-    play(3, { down: '3', distance: '7', formation: 'Trips', qbAlignment: 'Shotgun', playType: 'Deep Pass', result: 'Gain', yardage: '22' }),
-    play(4, { down: '1', distance: '10', formation: 'Trips', backfield: 'Empty', qbAlignment: 'Pistol', playType: 'Run Inside', result: 'Gain', yardage: '3' }),
-    // A multi-select formation is a " + "-joined string, which must not leak
+    play(3, { down: '3', distance: '7', formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun', playType: 'Deep Pass', result: 'Gain', yardage: '22' }),
+    play(4, { down: '1', distance: '10', formationFamily: 'Spread', receiverSet: '2x2', backfield: 'Empty', qbAlignment: 'Pistol', playType: 'Run Inside', result: 'Gain', yardage: '3' }),
+    // A composed look must not leak a " + " join
     // into the composed phrase.
-    play(5, { down: '2', distance: '5', formation: 'Flexbone + Trips', qbAlignment: 'Shotgun', playType: 'Screen', result: 'Gain', yardage: '6' }),
+    play(5, { down: '2', distance: '5', formationFamily: 'Flexbone', receiverSet: '3x1', qbAlignment: 'Shotgun', playType: 'Screen', result: 'Gain', yardage: '6' }),
   ] }];
   const plan = { name: 'P', items: [{ id: 'i', kind: 'film', label: 'x', refs: ['g1::3', 'g1::4', 'g1::5'] }] };
   const exp = PlanExport.build(plan, g);
   const plays = exp.items[0].plays;
   ok(!('formation' in plays[0]), 'the export field is named `look`, not `formation` — a combined phrase must never sit under a Formation-shaped key', JSON.stringify(Object.keys(plays[0])));
-  ok(plays[0].look === 'Shotgun Trips', 'QB alignment and formation export as one spoken label', JSON.stringify(plays[0].look));
+  ok(plays[0].look === 'Shotgun Spread 3x1', 'QB alignment, formation family and receiver set export as one spoken label', JSON.stringify(plays[0].look));
   ok(!plays[0].look.includes('+'), 'the export never leaks the " + " join artifact into a presentation label');
-  ok(plays[1].look === 'Pistol Trips', 'an Empty backfield stays out of the label; alignment and formation compose', JSON.stringify(plays[1].look));
-  ok(plays[2].look === 'Shotgun Flexbone Trips' && !plays[2].look.includes('+'), 'a MULTI-structure look (two structural tags at once) composes with plain spaces, no internal "+"', JSON.stringify(plays[2].look));
+  ok(plays[1].look === 'Pistol Spread 2x2', 'an Empty backfield stays out of the label; alignment, family and set compose', JSON.stringify(plays[1].look));
+  ok(plays[2].look === 'Shotgun Flexbone 3x1' && !plays[2].look.includes('+'), 'a family and a receiver set compose with plain spaces, no internal "+"', JSON.stringify(plays[2].look));
 
   const html = PlanExport.html(exp);
   ok(html.includes('<th>Look</th>') && !html.includes('<th>Formation</th>'), 'the printable table column is headed "Look", not "Formation"', html.match(/<th>[^<]*<\/th>/g)?.join(','));
-  ok(html.includes('Shotgun Flexbone Trips') && !/Shotgun Flexbone \+ Trips/.test(html), 'the rendered html shows the multi-structure look with no internal "+"');
+  ok(html.includes('Shotgun Flexbone 3x1') && !/Shotgun Flexbone \+ 3x1/.test(html), 'the rendered html shows the composed look with no internal "+"');
 }
 
 // ---- 6. null-safety ---------------------------------------------------------

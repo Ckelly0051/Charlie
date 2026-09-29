@@ -258,6 +258,96 @@ export function ReportSectionBar({ screen, ...props }) {
  * re-render keeps it; with none, the busiest cell opens (football order breaks
  * a tie).
  */
+/**
+ * The run-gap hit chart (design: this build; no comp). The ten gap positions in
+ * football order (L-D..L-A, Center, R-A..R-D, then Other), as columns whose bars
+ * show FREQUENCY (share of the charted runs) or PERFORMANCE (yards per play, with
+ * success rate). The header states the eligible sample ("N of M runs charted with
+ * a gap"); the Play Type control narrows the cohort, a two-type snap counting
+ * under each. Strength is read where charted. Selecting a column opens its
+ * detail and its exact contributing film (composite refs); nothing is inferred
+ * for a run with no Gap. Every string comes from StatsEngine.runGapChart and its
+ * formatters, which the HTML export prints too.
+ */
+const RG_ORDER = ['L-D', 'L-C', 'L-B', 'L-A', 'Center', 'R-A', 'R-B', 'R-C', 'R-D', 'Other'];
+export function RunGapChart({ plays, engine, screen, side = 'offense', title = 'Run gaps', fallbackGameId = null }) {
+  const store = screen && Object.isExtensible(screen) ? (screen.rgState ||= {}) : {};
+  const [view, setViewState] = useState(store[`${side}:view`] || 'frequency');
+  const [type, setTypeState] = useState(store[`${side}:type`] || '');
+  const [picked, setPicked] = useState(store[`${side}:gap`]);
+  const setView = value => { store[`${side}:view`] = value; setViewState(value); };
+  const setType = value => { store[`${side}:type`] = value; setTypeState(value); };
+  const choose = gap => { store[`${side}:gap`] = gap; setPicked(gap); };
+  const all = useMemo(() => engine.runGapChart(plays, { side, playType: '', fallbackGameId }), [plays, side]);
+  const activeType = all.playTypes.some(item => item.name === type) ? type : '';
+  const chart = useMemo(() => activeType ? engine.runGapChart(plays, { side, playType: activeType, fallbackGameId }) : all, [plays, side, activeType]);
+  const fmt = StatsEngine.formatRunGapCell;
+  const cells = RG_ORDER.map(gap => chart.cells.find(cell => cell.gap === gap));
+  const busiest = cells.filter(cell => !cell.held).reduce((best, cell) => (!best || cell.n > best.n ? cell : best), null);
+  const selected = cells.find(cell => cell.gap === picked && !cell.held) || busiest;
+  const maxN = Math.max(1, ...cells.map(cell => cell.n));
+  const maxY = Math.max(1, ...cells.map(cell => (cell.ypp == null ? 0 : Math.abs(cell.ypp))));
+  const height = cell => view === 'frequency' ? cell.n / maxN : (cell.ypp == null ? 0 : Math.max(0, cell.ypp) / maxY);
+  const successLabel = side === 'defense' ? 'Opponent success' : 'Success';
+  const yppLabel = side === 'defense' ? 'Yds/play allowed' : 'Yds/play';
+  const st = chart.strength;
+  const strengthText = row => row.n ? `${row.n} runs · ${row.ypp == null ? '-' : row.ypp.toFixed(1)} yds/play · ${row.successRate == null ? '-' : Math.round(row.successRate) + '%'} ${successLabel.toLowerCase()}` : 'none charted';
+  if (!all.cohortRuns) return <section class="gi-rg" data-rg-chart={side} aria-label={title}>
+    <header><strong>{title}</strong><span data-rg-cohort>No run snaps charted</span></header>
+  </section>;
+  return <section class="gi-rg" data-rg-chart={side} aria-label={title}>
+    <header>
+      <strong>{title}</strong>
+      <span data-rg-cohort>{StatsEngine.runGapCohortLine(chart)}</span>
+      <div class="gi-rg-controls">
+        <div class="gi-rg-view" role="group" aria-label="Chart view">{[['frequency', 'Frequency'], ['performance', 'Performance']].map(([id, label]) =>
+          <button key={id} type="button" data-rg-view={id} class={view === id ? 'is-selected' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</div>
+        {all.playTypes.length > 1 && <label class="gi-rg-type">Play type
+          <select data-rg-type value={activeType} onChange={event => setType(event.currentTarget.value)}>
+            <option value="">All runs</option>{all.playTypes.map(item => <option key={item.name} value={item.name}>{item.name} ({item.n})</option>)}
+          </select></label>}
+      </div>
+    </header>
+    <div class="gi-rg-body">
+      <div class="gi-rg-chart" role="group" aria-label={`${title}, ${view}`}>
+        {cells.map(cell => {
+          const text = fmt(cell), on = selected?.gap === cell.gap;
+          const label = cell.held ? `${cell.gap}: no runs` : `${cell.gap}: ${text.plays} runs, ${text.share} of charted, ${text.ypp} yards per play, ${text.success} ${successLabel.toLowerCase()}`;
+          return cell.held
+            ? <div key={cell.gap} class="gi-rg-col is-held" data-rg-cell={cell.gap} aria-label={label}>
+                <span class="gi-rg-value">-</span><i class="gi-rg-bar" style="--h:0" /><b>{cell.gap}</b></div>
+            : <button key={cell.gap} type="button" class={`gi-rg-col${on ? ' is-selected' : ''}${cell.gap === 'Other' ? ' is-other' : ''}`} data-rg-cell={cell.gap} data-rg-plays={cell.n}
+                aria-pressed={on} aria-label={label} onClick={() => choose(cell.gap)}>
+                <span class="gi-rg-value">{view === 'frequency' ? text.plays : text.ypp}</span>
+                <small>{view === 'frequency' ? text.share : text.success}</small>
+                <i class="gi-rg-bar" style={`--h:${height(cell).toFixed(3)}`} /><b>{cell.gap}</b></button>;
+        })}
+      </div>
+      <aside class="gi-rg-detail" data-rg-detail>
+        {selected ? <>
+          <h4>{selected.gap} <span>{selected.n} {selected.n === 1 ? 'run' : 'runs'}</span></h4>
+          <dl>
+            <div><dt>Share</dt><dd>{fmt(selected).share}</dd><small>of {chart.charted} charted</small></div>
+            <div><dt>{yppLabel}</dt><dd>{fmt(selected).ypp}</dd><small>{selected.yardsMeasured} of {selected.n} with yardage</small></div>
+            <div><dt>{successLabel}</dt><dd>{fmt(selected).success}</dd><small>{selected.successEligible} of {selected.n} measurable</small></div>
+          </dl>
+          <p>Explosive runs · {selected.explosives}</p>
+          {selected.refs.length
+            ? <button type="button" class="gi-rg-watch" data-rg-watch
+                onClick={() => screen?.watchRefs?.(selected.refs, `${selected.gap}${activeType ? ' · ' + activeType : ''} — ${title}`)}>Watch {selected.refs.length} plays</button>
+            : null}
+        </> : <p>No gap charted on these runs</p>}
+      </aside>
+    </div>
+    <footer class="gi-rg-strength" data-rg-strength>
+      <strong>Strength</strong>
+      <span data-rg-toward>Toward · {strengthText(st.toward)}</span>
+      <span data-rg-away>Away · {strengthText(st.away)}</span>
+      <small>{st.charted} of {st.sided} sided runs carry a Left or Right strength{st.unsided ? ` · ${st.unsided} Center or Other not sided` : ''}</small>
+    </footer>
+  </section>;
+}
+
 export function DownDistanceChart({ chart, screen, side, title }) {
   const store = screen && Object.isExtensible(screen) ? (screen.ddSelection ||= {}) : {};
   const busiest = (chart?.cells || []).filter(cell => !cell.held)

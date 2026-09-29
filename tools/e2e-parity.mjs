@@ -78,7 +78,14 @@ const capture = async (page, fixture) => {
       // E3a: capture the PROJECTED pre-snap look, matching production. Enumerating
       // raw values here would bake raw drilldown keys into the golden while
       // production emits projected ones — a green harness validating the wrong thing.
-      cap('formation', distinct(p => SE.splitFormations(SE.proj(p).formation)));
+      cap('formationFamily', distinct(p => SE.splitFormations(SE.proj(p).formationFamily)));
+      cap('receiverSet', single(p => SE.proj(p).receiverSet));
+      cap('gap', single(p => p.tags.gap));
+      cap('motionStart', single(p => p.tags.motionStart));
+      cap('motionEnd', single(p => p.tags.motionEnd));
+      cap('rpoRead', single(p => p.tags.rpoRead));
+      cap('rpoDecision', single(p => p.tags.rpoDecision));
+      cap('qbRun', single(p => p.tags.qbRun));
       cap('qbAlignment', single(p => SE.proj(p).qbAlignment));
       cap('playType', distinct(p => SE.splitPlayTypes(p.tags.playType || '')));
       cap('defFront', distinct(p => SE.splitFronts(p.tags.defFront || '')));
@@ -97,11 +104,11 @@ const capture = async (page, fixture) => {
       cap('dd', [...new Set(off.map(p => { const b = bucketOf(p.tags); return p.tags.down && b ? `${p.tags.down}|${b}` : null; }).filter(Boolean))].sort());
       // combo / tendency dimensions (self-scout + Big-12 + front×coverage film links)
       const set = (fn) => { const s = new Set(); for (const p of fn.src) fn.keys(p).forEach(v => v && s.add(v)); return [...s].sort(); };
-      cap('comboFStr', set({ src: off, keys: p => SE.proj(p).strength ? SE.splitFormations(SE.proj(p).formation).map(f => f && `${f}__${SE.proj(p).strength}`) : [] }));
-      cap('comboFD', set({ src: off, keys: p => { const b = bucketOf(p.tags); return (p.tags.down && b) ? SE.splitFormations(SE.proj(p).formation).map(f => f && `${f}__${p.tags.down}|${b}`) : []; } }));
-      cap('comboFS', set({ src: off, keys: p => { const sit = eng._matrixSit(p.tags); return sit ? SE.splitFormations(SE.proj(p).formation).map(f => f && `${f}__${sit}`) : []; } }));
+      cap('comboFStr', set({ src: off, keys: p => SE.proj(p).strength ? SE.splitFormations(SE.proj(p).formationFamily).map(f => f && `${f}__${SE.proj(p).strength}`) : [] }));
+      cap('comboFD', set({ src: off, keys: p => { const b = bucketOf(p.tags); return (p.tags.down && b) ? SE.splitFormations(SE.proj(p).formationFamily).map(f => f && `${f}__${p.tags.down}|${b}`) : []; } }));
+      cap('comboFS', set({ src: off, keys: p => { const sit = eng._matrixSit(p.tags); return sit ? SE.splitFormations(SE.proj(p).formationFamily).map(f => f && `${f}__${sit}`) : []; } }));
       // Six-field projected Big Call (§8a), matching _bigTwelveData's key exactly.
-      cap('bigCall', set({ src: off, keys: p => { const r = SE.proj(p); const key = [(r.qbAlignment || '').trim(), (r.formation || '').trim(), (r.backfield || '').trim(), (r.strength || '').trim(), (p.tags.motion || '').trim(), (p.tags.playType || '').trim()]; return key.some(Boolean) ? [key.join('|||')] : []; } }));
+      cap('bigCall', set({ src: off, keys: p => { const r = SE.proj(p); const key = [(r.qbAlignment || '').trim(), (r.formationFamily || '').trim(), (r.backfield || '').trim(), (r.strength || '').trim(), (p.tags.motion || '').trim(), (p.tags.playType || '').trim()]; return key.some(Boolean) ? [key.join('|||')] : []; } }));
       // frontCoverage on the PROJECTED coverage call (line ~2116 in prod reads proj).
       cap('frontCoverage', set({ src: def, keys: p => SE.proj(p).coverage ? SE.splitFronts(p.tags.defFront || '').map(f => f && `${f}|${SE.proj(p).coverage}`) : [] }));
       cap('ddDef', [...new Set(def.map(p => { const b = bucketOf(p.tags); return p.tags.down && b ? `${p.tags.down}|${b}` : null; }).filter(Boolean))].sort());
