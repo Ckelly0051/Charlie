@@ -215,7 +215,7 @@ r = await page.evaluate(() => {
     play.tags = {
       ...play.tags,
       unit: 'special',
-      formation: '', playType: '', runPass: '', result: '',
+      formationFamily: '', playType: '', runPass: '', result: '',
       defFront: '', coverage: '', blitz: '',
     };
     delete play.specialTeams;

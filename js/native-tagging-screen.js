@@ -170,7 +170,7 @@ export class NativeTaggingScreen {
       progress: this.tagger?.progressText?.() || '0 / 0 tagged',
       values: { ...raw, ...projected, yardage: raw.yardage === '' || raw.yardage == null ? '' : String(Math.abs(Number(raw.yardage) || 0)) },
       libraries: {
-        formation:library('formation'), backfield:library('backfield'), defFront:library('front'),
+        formationFamily:library('formationFamily'), backfield:library('backfield'), defFront:library('front'),
         coverage:library('coverage'), playType:library('playType'), blitz:library('blitz'),
       },
       chartingPresets: this.app.customChips?.library?.presets?.().filter(item => item.mode === (this.app.settingsScreen?.chartingPresetMode?.() || 'program')) || [],
@@ -199,7 +199,10 @@ export class NativeTaggingScreen {
     this._protectCallOverride(key);
     // Untoggling Fumble clears its recovery owner in the same write.
     if (key === 'result' && value === 'Fumble' && this.tagger.displayTagValue('result').split(/\s*\+\s*/).includes('Fumble')) play.tags.fumbleRecovery = '';
-    this.tagger.toggleTagValue(key, value); this._queuePublish(); return true;
+    // A tap that removes the Play Type opening populated details asks first.
+    const outcome = this.tagger.requestTagValue(key, value, { toggle: true, play });
+    if (outcome && typeof outcome.then === 'function') { outcome.then(() => this._queuePublish()); return outcome; }
+    this._queuePublish(); return true;
   }
   setFumbleRecovery(value) {
     const play = this.tagger?.getCurrentPlay?.();
@@ -211,9 +214,14 @@ export class NativeTaggingScreen {
     return true;
   }
   setField(key, value) {
-    if (!this.tagger?.getCurrentPlay?.()) return false;
+    const play = this.tagger?.getCurrentPlay?.();
+    if (!play) return false;
     this._protectCallOverride(key);
-    this.tagger.setTagValue(key, value); this._queuePublish(); return true;
+    // A change that removes the field opening populated details (Motion, or the
+    // Play Direction a Gap sits under) asks first; declining changes nothing.
+    const outcome = this.tagger.requestTagValue(key, value, { play });
+    if (outcome && typeof outcome.then === 'function') { outcome.then(() => this._queuePublish()); return outcome; }
+    this._queuePublish(); return true;
   }
 
   _protectCallOverride(key) {

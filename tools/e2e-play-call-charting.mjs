@@ -26,7 +26,7 @@ await page.evaluate(async () => {
     id, timestamp: { start: (id - 1) * 6, end: id * 6 - 1 }, notes: '',
     tags: {
       unit: 'offense', down: '', distance: '', quarter: '', fieldSide: 'own', yardLine: '',
-      formation: '', qbAlignment: '', backfield: '', strength: '', personnel: '', motion: '',
+      formationFamily: '', receiverSet: '', qbAlignment: '', backfield: '', strength: '', personnel: '', motion: '',
       runPass: '', playType: '', result: '', yardage: '', hash: '', playDir: '',
       defFront: '', coverage: '', coverageFamily: '', blitz: '', driveNumber: '',
       playCall: '', playCallId: '', playConcept: '', players: {}, grades: {}, custom: [], customFields: {},
@@ -34,9 +34,9 @@ await page.evaluate(async () => {
   }));
   app.playbook.replace({ version: 1, calls: [
     { id: 'call_26_blast', name: '26 Blast', concept: 'Blast', favorite: true,
-      defaults: { runPass: 'Run', playType: 'Run Inside', playDir: 'Right', formation: 'Power-I', backfield: 'I', strength: 'Right' } },
+      defaults: { runPass: 'Run', playType: 'Run Inside', playDir: 'Right', formationFamily: 'Power-I', backfield: 'I', strength: 'Right' } },
     { id: 'call_24_iso', name: '24 Iso', concept: 'Iso', favorite: false,
-      defaults: { playType: 'Run Inside', playDir: 'Left', formation: 'Ace', backfield: 'Single', strength: 'Balanced' } },
+      defaults: { playType: 'Run Inside', playDir: 'Left', formationFamily: 'I-Form', backfield: 'Single', strength: 'Balanced' } },
   ] });
   store.data.playbook = app.playbook.snapshot();
   store.setActive(game.id);
@@ -61,7 +61,7 @@ let state = await page.evaluate(async () => {
     favorite: [...field.querySelectorAll('.gi-play-call-quick button')].some(button => button.textContent.includes('26 Blast')),
     call: [play.tags.playCall, play.tags.playCallId, play.tags.playConcept],
     defaults: { ...play.tags.playCallDefaults },
-    values: { formation: play.tags.formation, backfield: play.tags.backfield, strength: play.tags.strength,
+    values: { formationFamily: play.tags.formationFamily, backfield: play.tags.backfield, strength: play.tags.strength,
       runPass: play.tags.runPass, playType: play.tags.playType, playDir: play.tags.playDir },
     appliedText: field.querySelector('.gi-play-call-defaults')?.textContent || '',
     history: app.history.stack.length,
@@ -69,10 +69,10 @@ let state = await page.evaluate(async () => {
 });
 ok(state.label === 'Play Call' && state.favorite, 'Self-scout offense shows Play Call with favorite access', JSON.stringify(state));
 ok(JSON.stringify(state.call) === JSON.stringify(['26 Blast', 'call_26_blast', 'Blast']), 'Library selection stores durable call and concept snapshots', JSON.stringify(state.call));
-ok(state.values.formation === 'Power-I' && state.values.backfield === 'I' && state.values.strength === 'Right'
+ok(state.values.formationFamily === 'Power-I' && state.values.backfield === 'I' && state.values.strength === 'Right'
   && state.values.runPass === 'Run' && state.values.playType === 'Run Inside' && state.values.playDir === 'Right',
   'Selecting a call applies its visible standardized defaults', JSON.stringify(state.values));
-ok(Object.keys(state.defaults).length === 6 && state.appliedText.includes('Formation: Power-I') && state.history === 1,
+ok(Object.keys(state.defaults).length === 6 && state.appliedText.includes('Formation Family: Power-I') && state.history === 1,
   'Applied defaults are disclosed and selection is one undoable action', JSON.stringify(state));
 
 await page.evaluate(() => {
@@ -90,7 +90,7 @@ state = await page.evaluate(() => {
   const redone = structuredClone(app.tagger.getCurrentPlay().tags);
   return { after, entries, undone, redone };
 });
-ok(state.after.playCall === '24 Iso' && state.after.formation === 'Ace' && state.after.backfield === 'Single'
+ok(state.after.playCall === '24 Iso' && state.after.formationFamily === 'I-Form' && state.after.backfield === 'Single'
   && state.after.strength === 'Balanced', 'Changing calls replaces only prior call-owned defaults', JSON.stringify(state.after));
 ok(state.after.playDir === 'Middle' && !Object.hasOwn(state.after.playCallDefaults, 'playDir'),
   'A coach override survives a later call change and leaves default provenance', JSON.stringify(state.after.playCallDefaults));
@@ -140,7 +140,7 @@ ok(state.columns.some(col => col.key === 'playCall' && col.label === 'Play Call'
   'Film Room exposes distinct Play Call, Concept, and Notes columns', JSON.stringify(state.columns));
 ok(state.presetDefault.includes('playCall'), 'The default Film Room preset shows Play Call', JSON.stringify(state.presetDefault));
 ok(state.after.playCall === '26 Blast' && state.after.playCallId === 'call_26_blast'
-  && state.after.playConcept === 'Blast' && state.after.formation === 'Power-I',
+  && state.after.playConcept === 'Blast' && state.after.formationFamily === 'Power-I',
   'Film Room selects a saved call through the same snapshot/default rules as Chart', JSON.stringify(state.after));
 ok(state.entries === 1 && state.undone.playCall === '' && state.redone.playCall === '26 Blast',
   'Film Room call selection is one complete undo/redo transaction', JSON.stringify(state));
@@ -174,10 +174,10 @@ state = await page.evaluate(async () => {
   const [first, second, third] = app.tagger.plays;
   Object.assign(first.tags, { playCall: '26 Blast', playCallId: 'call_26_blast', playConcept: 'Blast',
     runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10',
-    formation: 'Power-I', personnel: '21', fieldSide: 'own', yardLine: '20', strength: 'Right', playDir: 'Right' });
+    formationFamily: 'Power-I', personnel: '21', fieldSide: 'own', yardLine: '20', strength: 'Right', playDir: 'Right' });
   Object.assign(second.tags, { playCall: 'Counter GT', playConcept: 'Counter', runPass: 'Run',
     playType: 'Run Outside', result: 'Loss', yardage: '-2', down: '3', distance: '2',
-    formation: 'Ace', personnel: '11', fieldSide: 'opp', yardLine: '35', strength: 'Right', playDir: 'Left' });
+    formationFamily: 'I-Form', personnel: '11', fieldSide: 'opp', yardLine: '35', strength: 'Right', playDir: 'Left' });
   Object.assign(third.tags, { result: 'Touchdown', yardage: '15', down: '2', distance: '5',
     personnel: '22', fieldSide: 'opp', yardLine: '12' });
   app.storage.commitActive();

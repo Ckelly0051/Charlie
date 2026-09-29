@@ -37,13 +37,13 @@ const res = await page.evaluate(async () => {
   let id = 1;
   // 8 offensive plays, all the payload formation, dominant run → a self-scout tell,
   // plus payload hash/playDir/motion to hit those table rows.
-  for (let i = 0; i < 8; i++) plays.push(mkPlay(id++, 'offense', { formation: P, playType: 'Run Inside', runPass: 'Run', hash: P, playDir: P, motion: P, personnel: '11' }));
+  for (let i = 0; i < 8; i++) plays.push(mkPlay(id++, 'offense', { formationFamily: P, playType: 'Run Inside', runPass: 'Run', hash: P, playDir: P, motion: P, personnel: '11' }));
   // 6 defensive plays with payload front/coverage/blitz.
   for (let i = 0; i < 6; i++) plays.push(mkPlay(id++, 'defense', { defFront: P, coverage: P, blitz: P, playType: 'Short Pass', runPass: 'Pass' }));
   // one play carrying a payload custom tag.
-  plays.push(mkPlay(id++, 'offense', { formation: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', custom: [P] }));
+  plays.push(mkPlay(id++, 'offense', { formationFamily: 'Shotgun', playType: 'Short Pass', runPass: 'Pass', custom: [P] }));
   // a BIG play (high yardage/TD) with the payload formation → EPA/big-play tables.
-  plays.push(mkPlay(id++, 'offense', { formation: P, playType: 'Deep Pass', runPass: 'Pass', result: 'Touchdown', yardage: '55' }));
+  plays.push(mkPlay(id++, 'offense', { formationFamily: P, playType: 'Deep Pass', runPass: 'Pass', result: 'Touchdown', yardage: '55' }));
 
   store.data = store._normalize({
     version: 5, type: 'season', id: 'xss', seasonName: 'XSS', activeGameId: 'g1',

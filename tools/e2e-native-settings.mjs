@@ -204,14 +204,14 @@ await shot('settings-roster-populated-1280x800.png');
 
 // Cut-up filters must select the exact film set the exporter receives.
 await page.evaluate(() => {
-  const mk=(id,down,formation)=>({id,timestamp:{start:id,end:id+1},tags:{unit:'offense',down,formation,playType:'Run Inside',result:'Gain',custom:[]}});
+  const mk=(id,down,formation)=>({id,timestamp:{start:id,end:id+1},tags:{unit:'offense',down,formationFamily:formation,playType:'Run Inside',result:'Gain',custom:[]}});
   window.app.tagger.plays=[mk(1,'3','Wing-T'),mk(2,'1','Wing-T'),mk(3,'3','Trips')];
 });
 await page.click('[data-settings-tab="cutup"]');
 await page.evaluate(() => [...document.querySelectorAll('[data-settings-panel="cutup"] .gi-filter-group')].find(g => g.querySelector('legend')?.textContent === 'Down')?.querySelector('button:nth-child(3)')?.click());
 await page.select('[data-settings-panel="cutup"] .gi-filter-selects select', 'Wing-T');
 r = await page.evaluate(() => ({ criteria:window.app.filter.snapshot(), ids:window.app.filter.filter(window.app.tagger.plays).map(p=>p.id), active:document.querySelector('[data-settings-panel="cutup"] .gi-settings-status')?.textContent }));
-ok(JSON.stringify(r.ids) === '[1]' && r.criteria.downs[0] === '3' && r.criteria.formations[0] === 'Wing-T' && /2 active/.test(r.active),
+ok(JSON.stringify(r.ids) === '[1]' && r.criteria.downs[0] === '3' && r.criteria.formationFamilies[0] === 'Wing-T' && /2 active/.test(r.active),
   'Native Cut-ups passes the exact selected film set to the canonical filter', JSON.stringify(r));
 
 // Drawing configuration persists to the real canvas, then the sheet gets out of the film's way.

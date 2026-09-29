@@ -23,13 +23,14 @@
  */
 
 // Each look stored in its own fields (the same seven looks, in the same order,
-// so the seeded sample is unchanged).
+// so the seeded sample is unchanged; the sample's own choice of family and
+// receiver set is not a coach's data).
 const LOOKS = [
   { qbAlignment: 'Shotgun' },
-  { qbAlignment: 'Shotgun', formation: 'Trips' },
-  { formation: 'Singleback' },
-  { formation: 'I-Form' },
-  { qbAlignment: 'Pistol', formation: 'Spread' },
+  { qbAlignment: 'Shotgun', formationFamily: 'Spread', receiverSet: '3x1' },
+  { formationFamily: 'Singleback' },
+  { formationFamily: 'I-Form' },
+  { qbAlignment: 'Pistol', formationFamily: 'Spread', receiverSet: '2x2' },
   { backfield: 'Empty' },
   { qbAlignment: 'Under Center' },
 ];
@@ -165,7 +166,7 @@ export class DemoSeason {
           id: ++pid, timestamp: stamp(), clipId: null,
           tags: {
             down: String(down), distance: String(distance), quarter, fieldSide, yardLine: String(yardLine),
-            formation: '', qbAlignment: '', backfield: '', ...pick(LOOKS), personnel: pick(PERSONNEL),
+            formationFamily: '', receiverSet: '', qbAlignment: '', backfield: '', ...pick(LOOKS), personnel: pick(PERSONNEL),
             runPass: isRun ? 'Run' : 'Pass', playType, result, yardage: String(yardage),
             hash: pick(HASHES), defFront, ...coverageFields(coverage), blitz,
             driveNumber: String(drive), unit: 'offense',
@@ -224,7 +225,7 @@ export class DemoSeason {
           id: ++pid, timestamp: stamp(), clipId: null,
           tags: {
             down: String(down), distance: String(distance), quarter, fieldSide: 'own', yardLine: String(randInt(20, 45)),
-            formation: '', personnel: '',
+            formationFamily: '', receiverSet: '', personnel: '',
             runPass: isRun ? 'Run' : 'Pass', playType, result, yardage: String(yardage),
             hash: pick(HASHES), defFront, ...coverageFields(coverage), blitz,
             driveNumber: String(drive), unit: 'defense',

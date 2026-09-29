@@ -1,5 +1,6 @@
 import { h } from 'preact';
 import { NativeSettingsContent } from './native-settings.jsx';
+import { ChartingDetails } from './charting-details.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -71,7 +72,7 @@ export class SettingsScreen {
     return tab;
   }
 
-  open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formation', initialPlayCall = '' } = {}) {
+  open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formationFamily', initialPlayCall = '' } = {}) {
     // A sheet is ALREADY open. It is non-modal, so the coach can reach the
     // charting deck's `Edit library` and the play-call field's
     // `Add to Playbook` while it is up — and returning the existing result here
@@ -185,7 +186,8 @@ export class SettingsScreen {
       runPass:['Run','Pass'],
       playType:this.chartingSnapshot('playType').enabled,
       playDir:['Left','Middle','Right'],
-      formation:this.chartingSnapshot('formation').enabled,
+      formationFamily:this.chartingSnapshot('formationFamily').enabled,
+      receiverSet:[...ChartingDetails.RECEIVER_SETS],
       qbAlignment:['Under Center','Pistol','Shotgun'],
       backfield:this.chartingSnapshot('backfield').enabled,
       strength:['Left','Right','Balanced'],
@@ -405,13 +407,13 @@ export class SettingsScreen {
     return this.app.roster?.exportDepthChart?.();
   }
 
-  chartingSnapshot(group = 'formation') {
+  chartingSnapshot(group = 'formationFamily') {
     const meta = {
-      formation:{label:'Formations',singular:'formation'}, backfield:{label:'Backfields',singular:'backfield'},
+      formationFamily:{label:'Formation Families',singular:'formation family'}, backfield:{label:'Backfields',singular:'backfield'},
       front:{label:'Fronts',singular:'front'}, coverage:{label:'Coverages',singular:'coverage call'},
       playType:{label:'Play Types',singular:'play type'}, blitz:{label:'Blitzes',singular:'blitz'},
     };
-    const key = meta[group] ? group : 'formation';
+    const key = meta[group] ? group : 'formationFamily';
     return { key, ...meta[key], ...this.app.customChips.library.group(key) };
   }
   setTagEnabled(group, value, enabled) { this.app.customChips.setEnabled(group, value, enabled); return this.chartingSnapshot(group); }

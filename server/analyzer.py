@@ -10,7 +10,7 @@ Output shape is intentionally identical to js/clip-analyzer.js so the
 browser frontend treats this server as a drop-in replacement:
 
     {
-        "tags":       { qbAlignment | formation | backfield, playType, hash, result, yardage, personnel },
+        "tags":       { qbAlignment | formationFamily | backfield, playType, hash, result, yardage, personnel },
         "confidence": { ... },
         "reasons":    { ... },
         "extras":     { duration, player_count, ... }
@@ -36,7 +36,7 @@ def _look_field(value: str) -> str:
         return "qbAlignment"
     if value in BACKFIELD_VALUES:
         return "backfield"
-    return "formation"
+    return "formationFamily"
 
 try:
     from ultralytics import YOLO

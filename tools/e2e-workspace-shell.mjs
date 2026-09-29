@@ -971,7 +971,7 @@ r = await page.evaluate(async () => {
   const store = app.storage.seasonStore, game = store.activeGame();
   const mk = (id, unit, charted) => ({ id, timestamp: { start: id, end: id + 3 },
     tags: { unit, playType: charted ? 'Run Inside' : '', result: charted ? 'Gain' : '', yardage: charted ? '5' : '',
-      runPass: charted ? 'Run' : '', formation: '', players: {}, grades: {}, custom: [] }, notes: '' });
+      runPass: charted ? 'Run' : '', formationFamily: '', players: {}, grades: {}, custom: [] }, notes: '' });
   // offense 3 of 4, defense 1 of 3, special teams has NO plays at all
   game.plays = [mk(1,'offense',true), mk(2,'offense',true), mk(3,'offense',true), mk(4,'offense',false),
                 mk(5,'defense',true), mk(6,'defense',false), mk(7,'defense',false)];

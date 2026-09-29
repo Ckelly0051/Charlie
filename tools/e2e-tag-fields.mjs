@@ -28,9 +28,9 @@ const result = await page.evaluate(async () => {
     mk(2, { unit: 'defense', down: '2', distance: '13', defFront: 'Maverick', coverage: 'Cover 3', playType: 'Short Pass', runPass: 'Pass', result: 'Gain', yardage: '5' }),
     mk(3, { unit: 'defense', down: '3', distance: '8', defFront: 'Eagle + Jumbo Shift', coverage: 'Man', playType: 'Deep Pass', runPass: 'Pass', result: 'Incomplete', yardage: '0' }),
     // Offense plays with motion + direction
-    mk(4, { unit: 'offense', down: '1', distance: '10', formation: 'Wing-T', motion: 'Jet', playDir: 'Left', playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '7' }),
-    mk(5, { unit: 'offense', down: '2', distance: '3', formation: 'Wing-T + Unbalanced', motion: 'Jet', playDir: 'Left', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: ['1st Down'] }),
-    mk(6, { unit: 'offense', down: '1', distance: '10', formation: 'Flexbone', motion: '', playDir: 'Right', playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '12' }),
+    mk(4, { unit: 'offense', down: '1', distance: '10', formationFamily: 'Wing-T', motion: 'Jet', playDir: 'Left', playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '7' }),
+    mk(5, { unit: 'offense', down: '2', distance: '3', formationFamily: 'Wing-T + Unbalanced', motion: 'Jet', playDir: 'Left', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '4', custom: ['1st Down'] }),
+    mk(6, { unit: 'offense', down: '1', distance: '10', formationFamily: 'Flexbone', motion: '', playDir: 'Right', playType: 'Run Outside', runPass: 'Run', result: 'Gain', yardage: '12' }),
   ];
   tagger.plays = plays;
   const stats = app.stats.compute(plays);
@@ -56,7 +56,7 @@ const result = await page.evaluate(async () => {
   // rendered coach-visible chips in the native form, which also proves they
   // are genuinely reachable.
   const frontChips = app.customChips.library.group('front').values;
-  const formChips = app.customChips.library.group('formation').values;
+  const formChips = app.customChips.library.group('formationFamily').values;
   const frontIsMulti = tagger.constructor.MULTI_TAGS.includes('defFront');
 
   // Native republishing is queued as a microtask (NativeTaggingScreen._queuePublish),
@@ -114,7 +114,7 @@ const checks = [
   ['Front group is multi-select', result.frontIsMulti],
   // Coach-approved structural looks are standard Formation chips. Legacy plays
   // lacking a backfield property may still use the historical migration seam.
-  ['I-Form/Split Back and core structural looks are standard formation chips', ['I-Form','Split Back','Power-I','Ace','Victory','Wing-T','Flexbone','Double Wing','Bunch','Unbalanced'].every(f => result.formChips.includes(f))],
+  ['I-Form/Split Back and core structural looks are standard formation chips', ['I-Form','Split Back','Power-I','Spread','Wing-T','Flexbone','Double Wing'].every(f => result.formChips.includes(f))],
   ['Motion chips Jet/Orbit/Shift/Trade', ['Jet','Orbit','Shift','Trade'].every(m => result.motionChips.includes(m))],
   ['Direction chips L/M/R', ['Left','Middle','Right'].every(d => result.dirChips.includes(d))],
   ['Native form shows both front chips active for multi play', JSON.stringify([...result.activeFronts].sort()) === JSON.stringify(['Jumbo Shift','Maverick'])],

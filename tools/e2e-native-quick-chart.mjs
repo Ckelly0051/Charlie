@@ -76,6 +76,12 @@ state = await page.evaluate(() => ({
 }));
 ok(state.type === 'Run Inside' && state.result === 'Gain' && state.yards === '7' && state.down === '2nd',
   'Keyboard map renders the intended football entry before save', JSON.stringify(state));
+await page.keyboard.press('KeyH');
+const qbRunType = await page.evaluate(() => document.getElementById('qcPlayType')?.textContent);
+await page.keyboard.press('KeyJ');
+const reverseType = await page.evaluate(() => document.getElementById('qcPlayType')?.textContent);
+await page.keyboard.press('KeyR');
+ok(qbRunType === 'QB Run' && reverseType === 'Reverse', 'Quick Chart charts QB Run on H and Reverse on J', JSON.stringify({ qbRunType, reverseType }));
 
 // Quick Chart yardage accepted only two digits: a third keystroke silently
 // dropped the first, so a 100-yard kick return charted as 00. The native form

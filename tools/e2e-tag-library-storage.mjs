@@ -98,7 +98,7 @@ const after = await page.evaluate(() => {
 ok(after.dropped > 3 && after.probe === 'ok', 'localStorage has room once the version keys are gone', JSON.stringify(after));
 
 console.log('\n== 4. Adding choices works again, for all six library groups ==');
-const GROUPS = [['formation', 'formation', 'offense', 'Rhino Trips'], ['backfield', 'backfield', 'offense', 'Rhino Back'],
+const GROUPS = [['formationFamily', 'formationFamily', 'offense', 'Rhino Trips'], ['backfield', 'backfield', 'offense', 'Rhino Back'],
   ['playType', 'playType', 'offense', 'Rhino Run'], ['front', 'defFront', 'defense', 'Rhino'],
   ['coverage', 'coverage', 'defense', 'Rhino Cover'], ['blitz', 'blitz', 'defense', 'Rhino Blitz']];
 for (const [group, field, unit, value] of GROUPS) {
@@ -119,7 +119,7 @@ await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.customChips?.library);
 const persisted = await page.evaluate(() => {
   const lib = window.app.customChips.library;
-  return ['formation', 'backfield', 'playType', 'front', 'coverage', 'blitz'].map(g => lib.group(g).custom);
+  return ['formationFamily', 'backfield', 'playType', 'front', 'coverage', 'blitz'].map(g => lib.group(g).custom);
 });
 ok(persisted.every(list => list.some(v => v.startsWith('Rhino'))), 'every added choice survives a reload', JSON.stringify(persisted));
 const scoping = await page.evaluate(team => {

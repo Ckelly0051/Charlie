@@ -92,7 +92,7 @@ confirmation, toast timing — is `GRIDIRON-IQ-OVERLAY-SPEC.md`.
 `cross-game-cutup.js`, `film-navigation-service.js`, `game-thumbnail.js`
 
 **Football model**
-`play-tagger.js`, `tag-projection.js`, `tag-library.js`, `custom-chips.js`,
+`play-tagger.js`, `tag-projection.js`, `charting-details.js`, `tag-library.js`, `custom-chips.js`,
 `custom-fields.js`, `penalty-model.js`, `special-teams.js`,
 `play-call-model.js`, `playbook-library.js`, `football-rules.js`,
 `roster-manager.js`, `notes-manager.js`, `play-diagram.js`,

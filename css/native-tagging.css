@@ -58,6 +58,28 @@
 .gi-native-tagging button:hover:not(:disabled){border-color:var(--gi-9);color:var(--gi-12)}
 .gi-tag-chips button.is-active,.gi-player-quick button.is-active{border-color:var(--gi-bd-gold);background:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 .gi-tag-group:has([data-native-field="defFront"]) .gi-tag-chips button.is-active,.gi-tag-group:has([data-native-field="coverage"]) .gi-tag-chips button.is-active{border-color:var(--gi-bd-cyan);background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+/* Desktop chips are 27px (approved comp, 2026-09-28): 4px of vertical padding, the
+   same type and the same horizontal padding. The coarse-pointer 44px minimum
+   below is unchanged. */
+.gi-tag-chips button{min-height:27px;padding-block:4px;line-height:17px}
+/* A library field is four stable columns, so a long catalog reads as a grid and a
+   long custom name is cut with its full text in the title, never wrapped into a
+   ragged row. */
+.gi-tag-chips.is-library{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.gi-tag-chips.is-library button{overflow:hidden;text-overflow:ellipsis}
+@media(max-width:520px){.gi-tag-chips.is-library{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* A detail opened by the field above it (Motion path, RPO, QB run, Gap) sits
+   inline under that field, indented, never in a separate step. */
+.gi-tag-detail,.gi-tag-gap{display:grid;gap:6px;min-width:0;padding-left:8px;border-left:2px solid var(--gi-7)}
+.gi-tag-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* Gap: ten choices in one row under Play Direction; the four L chips give up a
+   little width so Center keeps usable padding. */
+.gi-tag-gap-row{display:grid;grid-template-columns:repeat(4,minmax(0,.9fr)) repeat(4,minmax(0,1fr)) auto auto;gap:3px}
+.gi-tag-gap-row button{width:100%;min-width:0;padding-inline:2px;white-space:nowrap}
+.gi-tag-gap-row button:nth-child(-n+4){padding-inline:0}
+.gi-tag-gap-row button:nth-child(n+9){padding-inline:6px}
+@media(max-width:520px){.gi-tag-gap-row{grid-template-columns:repeat(5,minmax(0,1fr))}.gi-tag-gap-row button:nth-child(-n+4),.gi-tag-gap-row button:nth-child(n+9){padding-inline:2px}}
+.gi-tag-warning button{justify-self:start;min-height:27px;padding:4px 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:inherit;font:600 12.5px var(--gi-sans)}
 .gi-tag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 /* Spot controls need 176px; the generic metric grid permits smaller tracks. */
 .gi-tag-special-metrics{grid-template-columns:repeat(auto-fit,minmax(min(182px,100%),1fr))}

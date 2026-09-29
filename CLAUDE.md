@@ -75,6 +75,7 @@ Change behavior at its owner, not at a consumer.
 | Analytics formulas | `js/stats-engine.js` |
 | Metric and dimension registry | `js/analytics-registry.js`, `js/analytics-metrics.js`, `js/study-query.js` |
 | Look vocabulary; old-format detection | `js/tag-projection.js`, `js/season-format.js` |
+| Gap, motion path, RPO, QB-run details | `js/charting-details.js` |
 | Penalties, Special Teams | `js/penalty-model.js`, `js/special-teams.js` |
 
 No test-only production API: nothing publishes engine classes on `globalThis`
@@ -137,10 +138,11 @@ roster (`SeasonManager._mergeRoster()`).
   consumer reads it: deck, grid, cut-up filters, Study, the vision analyzer's
   enum and validator, Quick Chart and the global shortcuts (each built-in has a
   key; the legend lists it). `TagLibrary.RESERVED` keeps an alignment out of
-  Formation and Backfield, `Empty` out of Formation and a family out of Coverage.
-  **A new built-in must be made visible to saved libraries**: a stored `enabled`
-  list predates it, so it stays hidden until a one-time conversion adds it to
-  `enabled` (visibility only, never a stored tag). `Option` was added this way.
+  the Formation Family and Backfield, `Empty` and a receiver distribution out of
+  the Family and a coverage family out of Coverage. A new built-in is visible in
+  a saved library with no conversion: a default the library's `order` has never
+  listed is shown (a value the coach hid stays listed and hidden), read-only
+  until the next library edit. `QB Run` and `Reverse` arrived this way.
   Approved fixed report schemas are not resized for a new value without the
   coach.
 - `SeasonStore.ST_ALIGNMENT_KEYS` is the one list of fields a Special Teams
@@ -149,8 +151,17 @@ roster (`SeasonManager._mergeRoster()`).
   (`SpecialTeamsModel.isRunPassTry`) charts its look like a scrimmage snap and
   is kept out of every analytics cohort (`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
   §4b.3d).
-- A formation is never rewritten; each look field is its own field and
-  `TagProjection.project` is a plain read.
+- The old one-field `formation` is retired (it mixed family, receiver and
+  package words): a play stores `formationFamily` and `receiverSet`, one value
+  each, and `SeasonFormat` refuses any `formation` key. Each look field is its
+  own field and `TagProjection.project` is a plain read; nothing infers a
+  family or set from another tag.
+- Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
+  `ChartingDetails`. A sided gap sets Play Direction, Center sets Middle, a
+  direction that contradicts the gap clears it; a detail is never stored without
+  the field that opens it (Motion, the RPO or QB Run Play Type, a Play
+  Direction), and removing that field clears its details in one undoable write
+  after the coach confirms. `QB Run` and `Reverse` never fill or imply Run/Pass.
 - Left/Right on `strength`, `playDir` and `hash` are always the offense's
   perspective; there is no stored perspective flag and no auto-flip.
 - Multi-value tags are `" + "`-joined strings; analytics split and credit each

@@ -70,7 +70,7 @@ const seedFn = (season, OUR) => {
   let stLeak = 0, mav = 0;
   for (const g of store.data.games) for (const p of (g.plays || [])) {
     const t = p.tags || {}, u = t.unit || 'offense';
-    if (u === 'special' && (t.formation || t.personnel || t.defFront || t.coverage || t.blitz)) stLeak++;
+    if (u === 'special' && (t.formationFamily || t.receiverSet || t.personnel || t.defFront || t.coverage || t.blitz)) stLeak++;
     if (u !== 'defense') for (const f of split(t.defFront)) if (OUR.includes(f)) mav++;
   }
   return { games: store.data.games.map(g => ({ id: g.id, opp: (g.gameInfo && g.gameInfo.opponent) || '(unnamed)', plays: (g.plays || []).length })), stLeak, mav };

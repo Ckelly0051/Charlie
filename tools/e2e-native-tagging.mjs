@@ -24,7 +24,7 @@ const fixture=await page.evaluate(async()=>{
   app.roster.loadFrom([{num:'7',name:'Miller',side:'O'},{num:'22',name:'Jones',side:'B'},{num:'55',name:'Reed',side:'D'}]);
   const store=app.storage.seasonStore,first=store.activeGame();
   first.gameInfo={...(first.gameInfo||{}),opponent:'Alpha',week:'1',gameType:'game',perspective:'scout',direction:'left'};
-  first.plays=Array.from({length:20},(_,i)=>({id:i+1,timestamp:{start:i*6,end:i*6+5},notes:'',diagram:i===0?[{t:'O',x:.5,y:.6}]:[],tags:{unit:'offense',down:'',distance:'',quarter:'',fieldSide:'own',yardLine:'',formation:'',qbAlignment:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',result:'',yardage:'',hash:'',playDir:'',defFront:'',coverage:'',coverageFamily:'',blitz:'',driveNumber:'',players:{},grades:{},custom:[],customFields:{}}}));
+  first.plays=Array.from({length:20},(_,i)=>({id:i+1,timestamp:{start:i*6,end:i*6+5},notes:'',diagram:i===0?[{t:'O',x:.5,y:.6}]:[],tags:{unit:'offense',down:'',distance:'',quarter:'',fieldSide:'own',yardLine:'',formationFamily:'',receiverSet:'',qbAlignment:'',backfield:'',strength:'',personnel:'',motion:'',runPass:'',playType:'',result:'',yardage:'',hash:'',playDir:'',defFront:'',coverage:'',coverageFamily:'',blitz:'',driveNumber:'',players:{},grades:{},custom:[],customFields:{}}}));
   const second=store.addGame();
   second.gameInfo={...(second.gameInfo||{}),opponent:'Beta',week:'2',gameType:'game',perspective:'defense',direction:'right'};
   second.plays=[{id:101,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',defFront:'4-2-5',coverage:'Cover 3',players:{},grades:{},custom:[]}}];
@@ -51,7 +51,7 @@ let state=await page.evaluate(()=>{
 });
 ok(fixture.mounted&&state.roots===1&&state.legacyFormAbsent,'One native owner mounts and the legacy .tag-section markup does not exist in the document at all',JSON.stringify(state));
 ok(state.proxy===0&&!state.ids.some(id=>id.startsWith('tag')||id.startsWith('btn')),'Visible markup is Preact-owned, not a legacy clone',JSON.stringify({ids:state.ids,proxy:state.proxy}));
-const expectedFields=['backfield','blitz','coverage','coverageFamily','defFront','distance','down','driveNumber','fieldSide','formation','hash','motion','personnel','playDir','playType','qbAlignment','quarter','result','runPass','strength','yardLine','yardage'];
+const expectedFields=['backfield','blitz','coverage','coverageFamily','defFront','distance','down','driveNumber','fieldSide','formationFamily','hash','motion','receiverSet','personnel','playDir','playType','qbAlignment','quarter','result','runPass','strength','yardLine','yardage'];
 ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard offense/defense/situation field has a native owner',JSON.stringify(state.fields));
 // F2 (coach smoke, 1.12.0-19): the charting header carries the UNIT and nothing
 // else. Perspective is derived — charting our own game the perspective IS the
@@ -76,7 +76,7 @@ state=await page.evaluate(async()=>{
   const playersGroup=[...root.querySelectorAll('.gi-tag-group')].find(node=>node.querySelector('summary strong')?.textContent.startsWith('Players'));
   return{unitOwners:root.querySelectorAll('[data-native-context=unit]').length,libraryCalls:calls,players:[...new Set([...offensePlayers,...defensePlayers])],notes:root.querySelectorAll('textarea').length,custom:text.includes('Edit custom fields'),penalties:text.includes('Penalties'),playersOpen:!!playersGroup?.open};
 });
-ok(state.unitOwners===1&&JSON.stringify(state.libraryCalls)===JSON.stringify(['formation','backfield','front','coverage','blitz','playType']),'Native route has one charting-unit owner and all six managed fields use the shared library editor seam',JSON.stringify(state));
+ok(state.unitOwners===1&&JSON.stringify(state.libraryCalls)===JSON.stringify(['formationFamily','backfield','front','coverage','blitz','playType']),'Native route has one charting-unit owner and all six managed fields use the shared library editor seam',JSON.stringify(state));
 const inference=await page.evaluate(()=>{
   const play=app.tagger.getCurrentPlay();
   app.customChips.library.add('playType','Fake Run Pass');app.customChips.reload();
@@ -100,7 +100,7 @@ state=await page.evaluate(()=>{
   const more=[...root.querySelectorAll('[aria-label="More results"] option')].map(option=>option.value).filter(Boolean);
   const yards=root.querySelector('[data-native-field="yardage"] input');
   const resultRow=root.querySelector('.gi-tag-result-row');
-  return{formations:values('formation'),backfields:values('backfield'),rows,primary,more,yardWidth:yards.getBoundingClientRect().width,resultOverflow:resultRow.scrollWidth-resultRow.clientWidth};
+  return{formations:values('formationFamily'),backfields:values('backfield'),rows,primary,more,yardWidth:yards.getBoundingClientRect().width,resultOverflow:resultRow.scrollWidth-resultRow.clientWidth};
 });
 ok(['I-Form','Split Back'].every(value=>state.formations.includes(value))&&['I','Split'].every(value=>state.backfields.includes(value))&&!state.backfields.includes('I-Form')&&!state.backfields.includes('Split Back'),'Formation and Backfield expose distinct football-correct I/Split vocabularies',JSON.stringify({formations:state.formations,backfields:state.backfields}));
 ok(JSON.stringify(state.rows)===JSON.stringify([{name:'primary',fields:['quarter','down','distance']},{name:'field',fields:['hash','fieldSide','yardLine']}]),'Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position',JSON.stringify(state.rows));
@@ -139,7 +139,7 @@ console.log('\n== 2. Context lifecycle and isolation ==');
 // stronger — it now checks what the PRESENTATION is derived from rather than
 // what a control happens to display.
 state=await page.evaluate(()=>({titles:[...document.querySelectorAll('[data-native-tagging] .gi-tag-group>summary strong')].map(n=>n.textContent.trim()),perspective:app.storage.gameInfo.perspective,unit:document.querySelector('[data-native-context="unit"] button.is-active')?.dataset.unit}));
-ok(state.perspective==='scout'&&state.unit==='offense'&&state.titles.includes('Opponent Offensive Look'),'Native presentation names the charted football subject from stored perspective and unit',JSON.stringify(state));
+ok(state.perspective==='scout'&&state.unit==='offense'&&state.titles.includes('Opponent Formation & Call'),'Native presentation names the charted football subject from stored perspective and unit',JSON.stringify(state));
 state=await page.evaluate(async secondId=>{await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:app.storage.gameInfo.perspective,direction:app.storage.gameInfo.direction,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit,control:!!root.querySelector('[data-native-context="direction"]')}},fixture.secondId);
 ok(state.perspective==='defense'&&state.direction==='right'&&state.opponent==='Beta'&&state.unit==='defense','Native context follows game switch without inheritance',JSON.stringify(state));
 // F2a: perspective is now written by CHANGING THE UNIT, which is the whole
@@ -177,31 +177,31 @@ state=await page.evaluate(async()=>{
   let firstConfirmed=false,firstFeedback={};
   for(let i=0;i<20;i++){
     if(app.tagger.currentPlayId!==i+1)throw new Error('Expected play '+(i+1)+', got '+app.tagger.currentPlayId);
-    click('formation',i%2?'Power-I':'Trips');click('formation','Unbalanced');click('qbAlignment',i%3?'Shotgun':'Under Center');
+    click('formationFamily',i%2?'Power-I':'Spread');click('receiverSet',i%2?'2x1':'3x1');click('qbAlignment',i%3?'Shotgun':'Under Center');
     click('playType',i%2?'Run Inside':'Run Outside');click('playType','RPO');click('result','Gain');
     await new Promise(r=>setTimeout(r,0));
-    const active=root().querySelectorAll('[data-native-field="formation"] button.is-active').length;
-    if(active!==2)throw new Error('Formation collapsed on play '+(i+1)+': '+active);
+    const active=root().querySelectorAll('[data-native-field="formationFamily"] button.is-active,[data-native-field="receiverSet"] button.is-active').length;
+    if(active!==2)throw new Error('Family and Receiver Set collapsed on play '+(i+1)+': '+active);
     if(i<19){command('Save & Next');await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(i===0){const saved=[...root().querySelectorAll('button')].find(b=>b.classList.contains('is-primary'));firstFeedback={controller:app.nativeTagging._saveConfirmed,text:saved?.textContent,cls:saved?.className};firstConfirmed=!!saved&&saved.textContent.trim()==='Saved'&&saved.classList.contains('is-confirmed')}}
   }
   const advancedTo=app.tagger.currentPlayId;
-  app.tagger.selectPlay(1);click('formation','I-Form');click('backfield','I');
-  app.tagger.selectPlay(2);click('formation','Split Back');click('backfield','Split');
+  app.tagger.selectPlay(1);click('formationFamily','I-Form');click('backfield','I');
+  app.tagger.selectPlay(2);click('formationFamily','Split Back');click('backfield','Split');
   app.tagger.selectPlay(3);const yards=root().querySelector('[data-native-field="yardage"] input');yards.value='100';yards.dispatchEvent(new Event('change',{bubbles:true}));
   app.storage.commitActive();await app.storage.seasonStore.persist();
-  return{current:advancedTo,firstConfirmed,firstFeedback,plays:app.tagger.plays.map(p=>({id:p.id,formation:p.tags.formation,qb:p.tags.qbAlignment,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage,players:p.tags.players,grades:p.tags.grades,notes:p.notes}))};
+  return{current:advancedTo,firstConfirmed,firstFeedback,plays:app.tagger.plays.map(p=>({id:p.id,formation:p.tags.formationFamily,set:p.tags.receiverSet,qb:p.tags.qbAlignment,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage,players:p.tags.players,grades:p.tags.grades,notes:p.notes}))};
 });
-ok(state.plays.length===20&&state.plays.every(p=>p.formation.includes('Unbalanced')&&(p.formation.includes('Power-I')||p.formation.includes('Trips'))),'All 20 plays retain both Formation selections',JSON.stringify(state.plays.slice(0,3)));
+ok(state.plays.length===20&&state.plays.every(p=>(p.formation==='Power-I'||p.formation==='Spread'||p.formation==='I-Form'||p.formation==='Split Back')&&['2x1','3x1'].includes(p.set)),'All 20 plays retain their Family and Receiver Set selections',JSON.stringify(state.plays.slice(0,3)));
 ok(state.plays.every(p=>p.playType.includes('RPO')&&(p.playType.includes('Run Inside')||p.playType.includes('Run Outside'))&&p.result==='Gain'),'All 20 plays retain multi-select Play Type and Result',JSON.stringify(state.plays.slice(0,3)));
 ok(state.current===20,'Save & Next advances chronologically without collapse',JSON.stringify(state.current));
 ok(state.firstConfirmed&&state.plays[0].players.tackler==='55, 22'&&Number(state.plays[0].grades.tackler)===2&&state.plays[0].notes==='Two tacklers preserved','Native Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback',JSON.stringify({firstConfirmed:state.firstConfirmed,feedback:state.firstFeedback,play:state.plays[0]}));
-ok(state.plays[0].formation.includes('I-Form')&&state.plays[0].backfield==='I'&&state.plays[1].formation.includes('Split Back')&&state.plays[1].backfield==='Split','I-Form/I and Split Back/Split can be charted together without collapsing dimensions',JSON.stringify(state.plays.slice(0,2)));
+ok(state.plays[0].formation==='I-Form'&&state.plays[0].backfield==='I'&&state.plays[1].formation==='Split Back'&&state.plays[1].backfield==='Split','I-Form/I and Split Back/Split can be charted together without collapsing dimensions',JSON.stringify(state.plays.slice(0,2)));
 ok(String(state.plays[2].yardage)==='100','Three-digit yardage is accepted without truncation',JSON.stringify(state.plays[2]));
 await page.evaluate(()=>{window.__s5cReload='must disappear'});
 await page.reload({waitUntil:'networkidle0'});await page.waitForFunction(()=>window.app?.nativeTagging);
-state=await page.evaluate(async fixture=>{await app.storage.openSeasonById(fixture.seasonId);const game=app.storage.seasonStore.data.games.find(g=>g.id===fixture.firstId);return{fresh:!('__s5cReload'in window),plays:game.plays.map(p=>({formation:p.tags.formation,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage})),other:app.storage.seasonStore.data.games.find(g=>g.id===fixture.secondId)?.plays?.[0]?.tags}},fixture);
-ok(state.fresh&&state.plays.length===20&&state.plays.every(p=>p.formation.includes('Unbalanced')&&p.playType.includes('RPO')&&p.result==='Gain'),'Canonical persist and relaunch preserve the 20-play session',JSON.stringify(state.plays.slice(0,2)));
-ok(state.plays[0].formation.includes('I-Form')&&state.plays[0].backfield==='I'&&state.plays[1].formation.includes('Split Back')&&state.plays[1].backfield==='Split'&&String(state.plays[2].yardage)==='100','Canonical reload preserves dual-dimension formations and three-digit yardage',JSON.stringify(state.plays.slice(0,3)));
+state=await page.evaluate(async fixture=>{await app.storage.openSeasonById(fixture.seasonId);const game=app.storage.seasonStore.data.games.find(g=>g.id===fixture.firstId);return{fresh:!('__s5cReload'in window),plays:game.plays.map(p=>({formation:p.tags.formationFamily,set:p.tags.receiverSet,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage})),other:app.storage.seasonStore.data.games.find(g=>g.id===fixture.secondId)?.plays?.[0]?.tags}},fixture);
+ok(state.fresh&&state.plays.length===20&&state.plays.every(p=>['Power-I','Spread','I-Form','Split Back'].includes(p.formation)&&p.playType.includes('RPO')&&p.result==='Gain'),'Canonical persist and relaunch preserve the 20-play session',JSON.stringify(state.plays.slice(0,2)));
+ok(state.plays[0].formation==='I-Form'&&state.plays[0].backfield==='I'&&state.plays[1].formation==='Split Back'&&state.plays[1].backfield==='Split'&&String(state.plays[2].yardage)==='100','Canonical reload preserves dual-dimension formations and three-digit yardage',JSON.stringify(state.plays.slice(0,3)));
 ok(state.other?.defFront==='4-2-5'&&state.other?.coverage==='Cover 3','Charting session leaves the other game byte-semantically isolated',JSON.stringify(state.other));
 
 console.log('\n== 4. Structured football workflows ==');
@@ -413,7 +413,7 @@ await page.evaluate(()=>{const t=window.app.tagger,cur=t.currentPlayId,next=t.pl
 await new Promise(r=>setTimeout(r,150));
 fold=await foldState();
 ok(fold.playCall.expanded==='false'&&fold.playType.expanded==='false','Folds persist across play changes',JSON.stringify(fold));
-state=await page.evaluate(()=>{const W=window.app.nativeTagging.constructor;return{junk:[...W.readCollapsed({getItem:()=>'{x'})],other:[...W.readCollapsed({getItem:()=>JSON.stringify(['formation','playType'])})]};});
+state=await page.evaluate(()=>{const W=window.app.nativeTagging.constructor;return{junk:[...W.readCollapsed({getItem:()=>'{x'})],other:[...W.readCollapsed({getItem:()=>JSON.stringify(['formationFamily','playType'])})]};});
 ok(state.junk.length===0&&JSON.stringify(state.other)==='["playType"]','An unreadable or foreign stored fold is ignored',JSON.stringify(state));
 await page.click('[data-native-field="playType"] .gi-tag-field-toggle');
 await page.click('[data-native-play-call] .gi-tag-field-toggle');
@@ -463,7 +463,7 @@ ok(state.calls.set===1&&state.calls.read===1&&state.auto,
 
 // --- Templates: a real save/apply round-trip through the native controls ---
 await page.evaluate(()=>{localStorage.removeItem('ffa_play_templates');
-  const play=window.app.tagger.getCurrentPlay();play.tags.formation='Power-I';
+  const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='Power-I';
   window.app.nativeTagging.refresh?.();});
 await nativeClick('Save Template');
 await page.waitForSelector('#ffaConfirmModal .ffa-confirm-input');
@@ -471,13 +471,13 @@ await page.type('#ffaConfirmModal .ffa-confirm-input','Goal Line');
 await page.keyboard.press('Enter');
 await page.waitForFunction(()=>!!window.app.tagger._templateStore()['Goal Line']);
 state=await page.evaluate(()=>{
-  const play=window.app.tagger.getCurrentPlay();play.tags.formation='';
+  const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='';
   window.app.nativeTagging.refresh?.();
   const root=document.querySelector('[data-native-tagging]');
   const select=[...root.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==='Goal Line'));
   select.value='Goal Line';select.dispatchEvent(new Event('change',{bubbles:true}));
-  return{stored:window.app.tagger._templateStore()['Goal Line']?.formation,
-         applied:window.app.tagger.getCurrentPlay().tags.formation};
+  return{stored:window.app.tagger._templateStore()['Goal Line']?.formationFamily,
+         applied:window.app.tagger.getCurrentPlay().tags.formationFamily};
 });
 await page.waitForFunction(()=>[...document.querySelectorAll('[data-native-tagging] select')]
   .some(select=>select.value==='Goal Line'));
@@ -608,11 +608,11 @@ let ad=await page.evaluate(()=>{
     app.detector.motionData=[{time:0,motion:0.4},{time:5,motion:0.9}];return fakePlays;};
   // The second detection reports a QB alignment, in its own field (the vision
 // analyzer reports qbAlignment separately from formation).
-app.clipAnalyzer.analyzePlays=()=>fakePlays.map((_,i)=>({tags:i===1?{qbAlignment:'Shotgun'}:{formation:'Ace'},confidence:{formation:0.8},reasons:{}}));
+app.clipAnalyzer.analyzePlays=()=>fakePlays.map((_,i)=>({tags:i===1?{qbAlignment:'Shotgun'}:{formationFamily:'Spread'},confidence:{formationFamily:0.8},reasons:{}}));
   app.detector.applyDetectedPlays=(plays)=>{window.__adCalls.apply++;
     const list=plays||app.detector.detectedPlays;
     list.forEach((dp,i)=>app.tagger.plays.push({id:900+i,timestamp:{start:dp.start,end:dp.end},notes:'',
-      tags:{unit:'offense',formation:'',players:{},grades:{},custom:[]}}));
+      tags:{unit:'offense',formationFamily:'',players:{},grades:{},custom:[]}}));
     app.tagger._updatePlaySelect?.();app.tagger._updateTimeline?.();
     return list.length;};
   return{hostExists:!!document.getElementById('giAutoDetectHost'),before:app.tagger.plays.length};
@@ -681,11 +681,11 @@ await page.waitForFunction(()=>window.__adCalls.apply===1);
 state=await page.evaluate(before=>{
   const added=window.app.tagger.plays.slice(-2);
   return{calls:window.__adCalls,after:window.app.tagger.plays.length,
-    starts:added.map(p=>p.timestamp.start),stampedFormation:added.map(p=>p.tags.formation),stampedQb:added.map(p=>p.tags.qbAlignment||'')};
+    starts:added.map(p=>p.timestamp.start),stampedFormation:added.map(p=>p.tags.formationFamily),stampedQb:added.map(p=>p.tags.qbAlignment||'')};
 },ad.before);
 ok(state.calls.apply===1&&state.after===ad.before+2&&state.starts[0]===200&&state.starts[1]===210,
   'Apply All reaches the real PlayDetector.applyDetectedPlays exactly once and the plays land in the tagger',JSON.stringify(state));
-ok(state.stampedFormation[0]==='Ace'&&state.stampedQb[0]===''&&state.stampedFormation[1]===''&&state.stampedQb[1]==='Shotgun',
+ok(state.stampedFormation[0]==='Spread'&&state.stampedQb[0]===''&&state.stampedFormation[1]===''&&state.stampedQb[1]==='Shotgun',
   'Applied plays are auto-tagged through the real stamping path, and an alignment read as a formation is stored as the QB alignment (no old-format combined look)',JSON.stringify(state));
 
 state=await page.evaluate(()=>{
@@ -765,7 +765,7 @@ state=await page.evaluate(async()=>{
   const before=app.tagger.plays.length;
   app.autoDetectScreen.applyAll();
   const t=app.tagger.plays[before]?.tags||{};
-  const out={batch:window.__adCalls.batch,added:app.tagger.plays.length-before,formation:t.formation||'',backfield:t.backfield||'',
+  const out={batch:window.__adCalls.batch,added:app.tagger.plays.length-before,formation:t.formationFamily||'',retired:'formation' in t,backfield:t.backfield||'',
     coverage:t.coverage||'',stType:'stType' in t,playType:t.playType||'',hash:t.hash||''};
   app.vision.apiKey=saved.key;app.backend.isAvailable=saved.avail;app.backend.analyzeBatch=saved.batch;app.vc.currentFile=saved.file;
   return out;
@@ -781,7 +781,7 @@ ok(state.playType==='Run Inside'&&state.hash==='Left','The same backend result s
 // routes every QB alignment and 'Empty' out of formation.
 {
   const py=fs.readFileSync(new URL('../server/analyzer.py',import.meta.url),'utf8');
-  const look=py.match(/def _look_field[\s\S]*?return "formation"/)?.[0]||'';
+  const look=py.match(/def _look_field[\s\S]*?return "formationFamily"/)?.[0]||'';
   ok(/QB_ALIGNMENTS = \("Under Center", "Shotgun", "Pistol"\)/.test(py)&&/BACKFIELD_VALUES = \("Empty",\)/.test(py)
      &&/return "qbAlignment"/.test(look)&&/return "backfield"/.test(look),
     'analyzer.py routes QB alignments to qbAlignment and Empty to backfield',look);

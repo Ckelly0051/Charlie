@@ -77,34 +77,34 @@ ok(await choose('Attempt', 'Kick XP'), 'Kick XP is chosen');
 let v = await view();
 ok(v.attempt.join('|') === 'Kick XP|Run/Pass|Fake', 'Attempt offers Kick XP, Run/Pass and Fake', JSON.stringify(v.attempt));
 ok(v.roles.join('|') === 'Kicker', 'a kicked try offers Kicker only, no Returner', JSON.stringify(v.roles));
-ok(!v.groups.includes('Our Offensive Look') && !v.groups.includes('Play & Result'), 'a kicked try shows no offensive options', JSON.stringify(v.groups));
+ok(!v.groups.includes('Formation & Call') && !v.groups.includes('Play & Result'), 'a kicked try shows no offensive options', JSON.stringify(v.groups));
 ok(v.locked.offense && v.locked.defense, 'Film Room locks the look cells on a kicked try', JSON.stringify(v.locked));
 
 console.log('\n== 2. Run/Pass: offensive options, look kept, 1 or 2 points ==');
 await choose('Attempt', 'Run/Pass');
 v = await view();
 ok(v.st.attemptType === 'twoPoint' && !v.st.isFake && v.active.join() === 'Run/Pass', 'Run/Pass stores a run/pass try', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake, active: v.active }));
-ok(['Our Offensive Look', 'Defense Faced', 'Play & Result'].every(g => v.groups.includes(g)), 'the offensive options of an offensive snap appear', JSON.stringify(v.groups));
+ok(['Formation & Call', 'Defense Faced', 'Play & Result'].every(g => v.groups.includes(g)), 'the offensive options of an offensive snap appear', JSON.stringify(v.groups));
 ok(v.roles.join('|') === 'Ball Carrier|Passer|Receiver', 'the roles are Ball Carrier, Passer and Receiver', JSON.stringify(v.roles));
 ok(!v.locked.offense && !v.locked.defense, 'Film Room locks no look cell on a run/pass try', JSON.stringify(v.locked));
-await chip('formation', 'Trips'); await chip('runPass', 'Run');
+await chip('formationFamily', 'Spread'); await chip('runPass', 'Run');
 await page.evaluate(() => window.app.nativeTagging.setPlayer('ballCarrier', '22'));
 await choose('Official result', 'Converted');
 await settle(page);
 v = await view();
-ok(v.tags.formation === 'Trips' && v.tags.runPass === 'Run' && v.tags.players.ballCarrier === '22', 'the formation, run/pass and ball carrier are kept, not stripped', JSON.stringify({ f: v.tags.formation, rp: v.tags.runPass, bc: v.tags.players.ballCarrier }));
+ok(v.tags.formationFamily === 'Spread' && v.tags.runPass === 'Run' && v.tags.players.ballCarrier === '22', 'the formation, run/pass and ball carrier are kept, not stripped', JSON.stringify({ f: v.tags.formationFamily, rp: v.tags.runPass, bc: v.tags.players.ballCarrier }));
 ok(v.points.join('|') === '1 Point|2 Points' && v.st.outcome.score === 'twoPoint', 'a converted run/pass try offers 1 or 2 points and defaults to 2', JSON.stringify({ points: v.points, score: v.st.outcome.score }));
 await choose('Points awarded', '1 Point');
 v = await view();
 ok(v.st.outcome.score === 'extraPoint', 'a run/pass try can be charted for 1 point', JSON.stringify(v.st.outcome));
-const saved = await page.evaluate(async () => { await window.app.storage.commitActive(); const g = window.app.storage.seasonStore.activeGame(); const p = g.plays.find(x => x.id === 1); return { formation: p.tags.formation, score: p.specialTeams.outcome.score }; });
-ok(saved.formation === 'Trips' && saved.score === 'extraPoint', 'the look and the 1 point survive a save', JSON.stringify(saved));
+const saved = await page.evaluate(async () => { await window.app.storage.commitActive(); const g = window.app.storage.seasonStore.activeGame(); const p = g.plays.find(x => x.id === 1); return { formationFamily: p.tags.formationFamily, score: p.specialTeams.outcome.score }; });
+ok(saved.formationFamily === 'Spread' && saved.score === 'extraPoint', 'the look and the 1 point survive a save', JSON.stringify(saved));
 
 console.log('\n== 3. Fake ==');
 await choose('Attempt', 'Fake');
 v = await view();
 ok(v.st.attemptType === 'twoPoint' && v.st.isFake === true && v.active.join() === 'Fake', 'Fake is a run/pass try marked fake', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake, active: v.active }));
-ok(v.groups.includes('Play & Result') && v.tags.formation === 'Trips', 'a Fake keeps the offensive options and the look', JSON.stringify({ groups: v.groups, f: v.tags.formation }));
+ok(v.groups.includes('Play & Result') && v.tags.formationFamily === 'Spread', 'a Fake keeps the offensive options and the look', JSON.stringify({ groups: v.groups, f: v.tags.formationFamily }));
 
 console.log('\n== 4. Back to Kick XP asks, then clears the run/pass detail ==');
 await choose('Attempt', 'Kick XP');
@@ -112,12 +112,12 @@ const asked = await page.evaluate(() => document.querySelector('#ffaConfirmModal
 ok(/Kick XP/.test(asked), 'a confirmation names the change', asked);
 await page.click('#ffaConfirmModal [data-act="cancel"]'); await settle(page);
 v = await view();
-ok(v.st.attemptType === 'twoPoint' && v.tags.formation === 'Trips', 'Cancel keeps the run/pass try untouched', JSON.stringify({ a: v.st.attemptType, f: v.tags.formation }));
+ok(v.st.attemptType === 'twoPoint' && v.tags.formationFamily === 'Spread', 'Cancel keeps the run/pass try untouched', JSON.stringify({ a: v.st.attemptType, f: v.tags.formationFamily }));
 await choose('Attempt', 'Kick XP');
 await page.click('#ffaConfirmModal [data-act="ok"]'); await settle(page);
 v = await view();
 ok(v.st.attemptType === 'extraPoint' && !v.st.isFake, 'confirming makes it a kicked try', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake }));
-ok(!v.tags.formation && !v.tags.runPass && !v.tags.players.ballCarrier, 'the look, run/pass and ball carrier are cleared', JSON.stringify({ f: v.tags.formation, rp: v.tags.runPass, bc: v.tags.players.ballCarrier }));
+ok(!v.tags.formationFamily && !v.tags.runPass && !v.tags.players.ballCarrier, 'the look, run/pass and ball carrier are cleared', JSON.stringify({ f: v.tags.formationFamily, rp: v.tags.runPass, bc: v.tags.players.ballCarrier }));
 ok(v.roles.join('|') === 'Kicker', 'the roles return to Kicker only', JSON.stringify(v.roles));
 
 console.log('\n== 5. Defending a Try ==');
@@ -156,21 +156,21 @@ v = await view();
 ok(v.st.isFake === false && v.st.outcome.score === 'extraPoint', 'Fake back to Run/Pass keeps it too', JSON.stringify(v.st.outcome));
 // P1: a play switch during the Kick XP confirmation changes only the play it asked about.
 await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
-await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await chip('formation', 'Bunch');
+await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await chip('formationFamily', 'Wing-T');
 await page.evaluate(() => window.app.tagger.selectPlay(3)); await settle(page);
-await chip('formation', 'Trips'); await chip('runPass', 'Pass');
+await chip('formationFamily', 'Spread'); await chip('runPass', 'Pass');
 await choose('Attempt', 'Kick XP');
 const askedFor = await page.evaluate(() => !!document.querySelector('#ffaConfirmModal'));
 await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
 await page.click('#ffaConfirmModal [data-act="ok"]'); await settle(page); await settle(page);
 const both = await page.evaluate(() => {
   const p = id => window.app.tagger.getPlay(id);
-  const pick = x => ({ attempt: x.specialTeams?.attemptType, formation: x.tags.formation, runPass: x.tags.runPass });
+  const pick = x => ({ attempt: x.specialTeams?.attemptType, formationFamily: x.tags.formationFamily, runPass: x.tags.runPass });
   return { three: pick(p(3)), four: pick(p(4)) };
 });
 ok(askedFor, 'the confirmation opened for play 3', String(askedFor));
-ok(both.three.attempt === 'extraPoint' && !both.three.formation && !both.three.runPass, 'the play the confirmation named becomes Kick XP and is cleared', JSON.stringify(both.three));
-ok(both.four.attempt === 'twoPoint' && both.four.formation === 'Bunch', 'the play selected during the confirmation is untouched', JSON.stringify(both.four));
+ok(both.three.attempt === 'extraPoint' && !both.three.formationFamily && !both.three.runPass, 'the play the confirmation named becomes Kick XP and is cleared', JSON.stringify(both.three));
+ok(both.four.attempt === 'twoPoint' && both.four.formationFamily === 'Wing-T', 'the play selected during the confirmation is untouched', JSON.stringify(both.four));
 
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();

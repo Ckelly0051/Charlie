@@ -27,7 +27,7 @@ import { TagLibrary } from './tag-library.js';
  */
 export class CustomChips {
   static GROUPS = [
-    { key: 'formation', field: 'formation', label: 'formation' },
+    { key: 'formationFamily', field: 'formationFamily', label: 'formation family' },
     { key: 'backfield', field: 'backfield', label: 'backfield' },
     { key: 'front', field: 'defFront', label: 'front' },
     { key: 'coverage', field: 'coverage', label: 'coverage call' },

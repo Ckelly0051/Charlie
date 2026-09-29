@@ -54,12 +54,12 @@ await page.evaluate(async () => {
   first.gameInfo = { opponent: 'Rivals', date: '2026-09-01', scoreUs: 28, scoreThem: 21 };
   // Enough real charting that every route renders populated content — an empty
   // route cannot overflow, so measuring one would prove nothing.
-  const looks = ['Trips', 'Ace', 'Wing-T', 'Bunch', 'Empty', 'Doubles'];
+  const looks = ['Spread', 'I-Form', 'Wing-T', 'Wing-T', 'Empty', 'Doubles'];
   first.plays = Array.from({ length: 36 }, (unused, index) => ({
     id: index + 1, timestamp: { start: index * 5, end: index * 5 + 4 },
     notes: 'Power right, pull the guard and kick out the edge defender',
     tags: {
-      unit: index % 4 === 3 ? 'defense' : 'offense', formation: looks[index % looks.length],
+      unit: index % 4 === 3 ? 'defense' : 'offense', formationFamily: looks[index % looks.length],
       backfield: index % 2 ? 'I' : 'Single', strength: index % 3 === 0 ? 'Right' : 'Left',
       personnel: index % 2 ? '11' : '21', runPass: index % 2 ? 'Run' : 'Pass',
       playType: index % 2 ? 'Run Inside' : 'Short Pass', result: index % 5 === 0 ? 'Touchdown' : 'Gain',
@@ -71,12 +71,12 @@ await page.evaluate(async () => {
   }));
   store.addGame({ id: 'rc-2', name: 'Week 2 vs Tigers', status: 'active',
     gameInfo: { opponent: 'Tigers', date: '2026-09-08' },
-    plays: [{ id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formation: 'Ace', runPass: 'Pass', playType: 'Deep Pass', result: 'Gain', yardage: '22', down: '1', custom: [] } }] });
+    plays: [{ id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Pass', playType: 'Deep Pass', result: 'Gain', yardage: '22', down: '1', custom: [] } }] });
   await store.persist();
   await app.openGame('rc-1');
   // A populated plan so the Plan route measures real content too.
   const plan = store.createPlan('Rival Week');
-  store.addPlanItem(plan.id, { kind: 'finding', label: 'Trips — Success Rate', refs: ['rc-1::1', 'rc-1::2'], query: { dimension: 'formation', measure: 'successRate', scope: 'season', group: 'Trips' } });
+  store.addPlanItem(plan.id, { kind: 'finding', label: 'Trips — Success Rate', refs: ['rc-1::1', 'rc-1::2'], query: { dimension: 'formationFamily', measure: 'successRate', scope: 'season', group: 'Spread' } });
   store.addPlanItem(plan.id, { kind: 'note', label: 'Boundary emphasis on early downs', refs: [] });
   await store.persist();
 });

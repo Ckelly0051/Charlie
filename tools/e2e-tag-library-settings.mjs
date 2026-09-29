@@ -29,7 +29,7 @@ await page.evaluate(()=>{window.app.tagger._confirmDialog=async()=>true;});
 await page.evaluate(async()=>{
   await window.app.storage.createSeason({name:'Settings library test',team:'Mavericks',year:'2026'});
   const game=window.app.storage.seasonStore.activeGame();
-  game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',formation:'',backfield:'',defFront:'',players:{},grades:{},custom:[]}}];
+  game.plays=[{id:1,timestamp:{start:0,end:5},notes:'',tags:{unit:'offense',formationFamily:'',backfield:'',defFront:'',players:{},grades:{},custom:[]}}];
   await window.app.storage._loadActiveGame();
   await window.app.workspaceShell.show('breakdown');
   window.app.tagger.selectPlay(1);
@@ -72,23 +72,27 @@ let state=await page.evaluate(()=>({
  legacy:!!document.getElementById('settingsDrawer')||!!document.getElementById('drawerScrim')||!!document.getElementById('tagLibraryDialog')||!!document.querySelector('.tag-section'),
  tabs:document.querySelectorAll('[data-settings-panel="charting"] [role="tab"]').length,
  rows:document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]').length,
- expectedRows:window.app.customChips.library.group('formation').values.length,
+ expectedRows:window.app.customChips.library.group('formationFamily').values.length,
  values:[...document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]')].map(row=>row.dataset.tagValue),
  promises:[...document.querySelectorAll('[data-settings-panel="charting"] .gi-settings-truth')].map(el=>el.textContent||''),
 }));
 ok(state.owners===1&&!state.legacy&&state.tabs===6&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting owns all six managed libraries, and no legacy chip markup exists',JSON.stringify(state));
 ok(state.promises.some(text=>/Hiding is not deleting/.test(text)&&/analytics stay unchanged/.test(text)),'Charting states the non-destructive visibility contract');
 
-await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='Wing-T';window.app.tagger._emit('play-updated',play);});
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='Wing-T';window.app.tagger._emit('play-updated',play);});
 await page.click('[data-tag-value="Wing-T"] input');
-const wingTChip = await nativeChipHandle('formation', 'Wing-T');
+const wingTChip = await nativeChipHandle('formationFamily', 'Wing-T');
 state = {
-  enabled: await page.evaluate(() => window.app.customChips.library.group('formation').enabled.includes('Wing-T')),
-  hiddenFromChart: await wingTChip.evaluate(el => el === null),
-  tag: await page.evaluate(() => window.app.tagger.getCurrentPlay().tags.formation),
+  enabled: await page.evaluate(() => window.app.customChips.library.group('formationFamily').enabled.includes('Wing-T')),
+  shownAsSelected: await wingTChip.evaluate(el => !!el && el.classList.contains('is-active')),
+  tag: await page.evaluate(() => window.app.tagger.getCurrentPlay().tags.formationFamily),
 };
-ok(!state.enabled&&state.hiddenFromChart,'Hiding a default removes it from future charting choices in the native form',JSON.stringify(state));
+ok(!state.enabled&&state.shownAsSelected,'A hidden default the play already holds still shows, selected',JSON.stringify(state));
 ok(state.tag==='Wing-T','Hiding a choice never rewrites historical play tags',JSON.stringify(state));
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='';window.app.tagger._emit('play-updated',play);});
+await new Promise(r=>setTimeout(r,120));
+state = { hiddenFromChart: await (await nativeChipHandle('formationFamily', 'Wing-T')).evaluate(el => el === null) };
+ok(state.hiddenFromChart,'Hiding a default removes it from future charting choices in the native form',JSON.stringify(state));
 
 await page.click('[data-chart-group="front"]');
 await page.type('[data-tag-add]','Bear');await page.click('.gi-library-add button');
@@ -110,18 +114,18 @@ await page.type('[data-tag-add]','Bear "Zero"');await page.click('.gi-library-ad
 state=await page.evaluate(()=>{const value='Bear "Zero"';const row=[...document.querySelectorAll('[data-tag-value]')].find(el=>el.dataset.tagValue===value);const remove=[...(row?.querySelectorAll('button')||[])].find(button=>button.getAttribute('aria-label')===`Remove ${value}`);return{stored:window.app.customChips.library.group('front').custom.includes(value),row:!!row,aria:remove?.getAttribute('aria-label'),stray:!!row?.getAttribute('zero"')};});
 ok(state.stored&&state.row&&state.aria==='Remove Bear "Zero"'&&!state.stray,'Quoted custom names remain exact inert DOM data',JSON.stringify(state));
 
-for(const [group,value] of [['formation','Trey Open'],['backfield','Ace Offset']]){await page.click(`[data-chart-group="${group}"]`);await page.type('[data-tag-add]',value);await page.click('.gi-library-add button');}
+for(const [group,value] of [['formationFamily','Trey Open'],['backfield','Ace Offset']]){await page.click(`[data-chart-group="${group}"]`);await page.type('[data-tag-add]',value);await page.click('.gi-library-add button');}
 await page.click('[data-overlay-action="done"]');await page.waitForFunction(()=>!document.querySelector('[data-overlay-id="team-film-settings"]'));
 // Clear the earlier hiding test's leftover Formation value first -- Formation
 // is multi-select, so clicking a fresh chip would otherwise ADD to it
 // ("Wing-T + Trey Open"), which is correct multi-select behavior but not
 // what this assertion means to check.
-await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formation='';window.app.tagger._emit('play-updated',play);});
-await clickNativeChip('formation', 'Trey Open');
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='';window.app.tagger._emit('play-updated',play);});
+await clickNativeChip('formationFamily', 'Trey Open');
 await clickNativeChip('backfield', 'Ace Offset');
 await clickNativeChip('defFront', 'Bear');
 state = { tags: await page.evaluate(() => ({ ...window.app.tagger.getCurrentPlay().tags })) };
-ok(state.tags.formation==='Trey Open'&&state.tags.backfield==='Ace Offset'&&state.tags.defFront==='Bear','Custom Formation, Backfield, and Front write through PlayTagger from the native form',JSON.stringify(state));
+ok(state.tags.formationFamily==='Trey Open'&&state.tags.backfield==='Ace Offset'&&state.tags.defFront==='Bear','Custom Formation, Backfield, and Front write through PlayTagger from the native form',JSON.stringify(state));
 
 await page.evaluate(()=>window.app.nativeTagging.setUnit('defense'));
 bearChip = await nativeChipHandle('defFront', 'Bear');
@@ -141,9 +145,9 @@ ok(state.visible&&state.value==='Bear','Custom Front remains chartable in Defens
 state=await page.evaluate(async(realTeamId)=>{
   localStorage.setItem('ffa_active_team_id','settings-other-team');window.app.customChips.reload();
   const absentValues=['Trey Open','Ace Offset','Bear'];
-  const absent=absentValues.every(value=>!window.app.customChips.library.group(value==='Bear'?'front':value==='Ace Offset'?'backfield':'formation').custom.includes(value));
+  const absent=absentValues.every(value=>!window.app.customChips.library.group(value==='Bear'?'front':value==='Ace Offset'?'backfield':'formationFamily').custom.includes(value));
   localStorage.setItem('ffa_active_team_id',realTeamId);window.app.customChips.reload();
-  const restored=absentValues.every(value=>window.app.customChips.library.group(value==='Bear'?'front':value==='Ace Offset'?'backfield':'formation').custom.includes(value));
+  const restored=absentValues.every(value=>window.app.customChips.library.group(value==='Bear'?'front':value==='Ace Offset'?'backfield':'formationFamily').custom.includes(value));
   return{absent,restored};
 },teamId);
 ok(state.absent&&state.restored,'Switching teams isolates and restores each staff vocabulary',JSON.stringify(state));
@@ -153,8 +157,11 @@ await page.waitForSelector('[data-settings-panel="charting"] [data-chart-group="
 await page.click('[data-tag-value="Bear"] [aria-label="Remove Bear"]');await page.waitForSelector('[data-overlay-action="remove"]');await page.click('[data-overlay-action="remove"]');
 await page.waitForFunction(()=>!document.querySelector('[data-tag-value="Bear"]'));
 bearChip = await nativeChipHandle('defFront', 'Bear');
-state={stored: await page.evaluate(()=>window.app.customChips.library.group('front').custom.includes('Bear')), chip: await bearChip.evaluate(el=>!!el)};
-ok(!state.stored&&!state.chip,'Removing a custom choice updates both native Settings and the native charting form',JSON.stringify(state));
+state={stored: await page.evaluate(()=>window.app.customChips.library.group('front').custom.includes('Bear')), chip: await bearChip.evaluate(el=>!!el&&el.classList.contains('is-active'))};
+ok(!state.stored&&state.chip,'Removing a custom choice drops it from Settings and the library; a play that holds it still shows it, selected',JSON.stringify(state));
+await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.defFront='';window.app.tagger._emit('play-updated',play);});
+await new Promise(r=>setTimeout(r,120));
+ok(await (await nativeChipHandle('defFront', 'Bear')).evaluate(el=>el===null),'and once the play no longer holds it the choice is gone from the native charting form');
 
 // A value that belongs to ANOTHER field is never a library choice: charting it
 // would store the old combined shape the format guard refuses. Adding one is
@@ -162,19 +169,19 @@ ok(!state.stored&&!state.chip,'Removing a custom choice updates both native Sett
 // untouched and is simply never offered by the deck or Film Room.
 state=await page.evaluate(()=>{
   const lib=window.app.customChips.library;
-  const add=['formation:Shotgun','formation:empty','backfield:Pistol','coverage:Man'].map(pair=>{const [g,v]=pair.split(':');return window.app.settingsScreen.addTagChoice(g,v);});
+  const add=['formationFamily:Shotgun','formationFamily:empty','backfield:Pistol','coverage:Man'].map(pair=>{const [g,v]=pair.split(':');return window.app.settingsScreen.addTagChoice(g,v);});
   const raw=JSON.parse(localStorage.getItem(lib.key()));
-  raw.groups.formation.custom.push('Shotgun');raw.groups.formation.enabled.push('Shotgun');raw.groups.formation.order.push('Shotgun');
+  raw.groups.formationFamily.custom.push('Shotgun');raw.groups.formationFamily.enabled.push('Shotgun');raw.groups.formationFamily.order.push('Shotgun');
   localStorage.setItem(lib.key(),JSON.stringify(raw));
   window.app.customChips.reload();
   const play=window.app.tagger.getCurrentPlay();play.tags.unit='offense';window.app.tagger._emit('play-updated',play);
-  return{add:add.map(r=>({ok:r.ok,message:r.message})),group:lib.group('formation').values.includes('Shotgun'),
-    stored:JSON.parse(localStorage.getItem(lib.key())).groups.formation.custom.includes('Shotgun'),
-    gridOffered:window.app.playGrid._options(window.app.playGrid.constructor.COLUMNS.find(c=>c.key==='formation'),[]).includes('Shotgun')};
+  return{add:add.map(r=>({ok:r.ok,message:r.message})),group:lib.group('formationFamily').values.includes('Shotgun'),
+    stored:JSON.parse(localStorage.getItem(lib.key())).groups.formationFamily.custom.includes('Shotgun'),
+    gridOffered:window.app.playGrid._options(window.app.playGrid.constructor.COLUMNS.find(c=>c.key==='formationFamily'),[]).includes('Shotgun')};
 });
 await new Promise(r=>setTimeout(r,50));
-state.deckOffered=await page.evaluate(()=>[...document.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button')].some(b=>b.textContent.trim()==='Shotgun'));
-state.deckRendered=await page.evaluate(()=>document.querySelectorAll('[data-native-field="formation"] .gi-tag-chips button').length);
+state.deckOffered=await page.evaluate(()=>[...document.querySelectorAll('[data-native-field="formationFamily"] .gi-tag-chips button')].some(b=>b.textContent.trim()==='Shotgun'));
+state.deckRendered=await page.evaluate(()=>document.querySelectorAll('[data-native-field="formationFamily"] .gi-tag-chips button').length);
 ok(state.add.every(r=>!r.ok)&&state.add[0].message==='Shotgun is a QB Alignment value. Chart it under QB Alignment.'
    &&state.add[1].message==='empty is a Backfield value. Chart it under Backfield.'&&/Coverage Family/.test(state.add[3].message),
   'a library choice reserved for another field is refused with a literal message (case-insensitive)',JSON.stringify(state.add));
@@ -182,8 +189,8 @@ ok(state.stored&&!state.group&&!state.gridOffered&&state.deckRendered>0&&!state.
   'a reserved choice saved before the rule stays in storage but is offered by neither the deck nor Film Room',JSON.stringify(state));
 
 await page.click('[data-settings-panel="charting"] .gi-settings-section>header button');await page.waitForSelector('[data-overlay-action="restore"]');await page.click('[data-overlay-action="restore"]');
-await page.waitForFunction(()=>window.app.customChips.library.group('formation').enabled.includes('Wing-T'));
-state=await page.evaluate(()=>({wingT:window.app.customChips.library.group('formation').enabled.includes('Wing-T'),custom:Object.values(window.app.customChips.library.load().groups).some(group=>group.custom.length)}));
+await page.waitForFunction(()=>window.app.customChips.library.group('formationFamily').enabled.includes('Wing-T'));
+state=await page.evaluate(()=>({wingT:window.app.customChips.library.group('formationFamily').enabled.includes('Wing-T'),custom:Object.values(window.app.customChips.library.load().groups).some(group=>group.custom.length)}));
 ok(state.wingT&&!state.custom,'Restore defaults reenables built-ins and clears custom choices',JSON.stringify(state));
 
 await page.setViewport({width:390,height:844});

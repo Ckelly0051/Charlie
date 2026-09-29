@@ -45,11 +45,11 @@ await page.evaluate(async () => {
   g.plays = [
     // The coach's legacy shape: the opponent formation stored combined, with an
     // empty backfield, on a defensive snap.
-    mk(1, { unit: 'defense', formation: 'Flexbone', qbAlignment: 'Under Center', backfield: '', personnel: '11', defFront: 'Maverick', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '4' }),
-    mk(2, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun', defFront: '5-2', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '6' }),
+    mk(1, { unit: 'defense', formationFamily: 'Flexbone', qbAlignment: 'Under Center', backfield: '', personnel: '11', defFront: 'Maverick', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '4' }),
+    mk(2, { unit: 'offense', formationFamily: 'Spread', qbAlignment: 'Shotgun', defFront: '5-2', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '6' }),
     mk(3, { unit: 'special', stType: 'Punt' }),
     // No unit stored at all (legacy); every report counts it as offense.
-    mk(4, { formation: 'Ace', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '2' }),
+    mk(4, { formationFamily: 'I-Form', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '2' }),
   ];
   g.nextId = 5;
   app.tagger.plays = g.plays; app.tagger.nextId = 5; app.tagger._emit('plays-loaded');
@@ -63,30 +63,30 @@ let r = await page.evaluate(async () => {
   const app = window.app;
   app.breakdownWorkspace._setView('film-room');
   app.nativeFilmRoom.clearFilters();
-  app.playGrid.cols = ['sit', 'formation', 'qbAlignment', 'personnel', 'defFront', 'coverage', 'stUnit'];
+  app.playGrid.cols = ['sit', 'formationFamily', 'qbAlignment', 'personnel', 'defFront', 'coverage', 'stUnit'];
   app.playGrid.refresh();
   await new Promise(res => setTimeout(res, 120));
   const snap = app.nativeFilmRoom.snapshot();
   const row = id => snap.rows.find(x => x.id === id);
   const cell = (id, key) => document.querySelector(`[data-cell="${id}:${key}"]`)?.textContent.trim() ?? null;
   return {
-    def: { na: row(1).na, formation: row(1).cells.formation, dom: cell(1, 'formation'), personnel: cell(1, 'personnel') },
+    def: { na: row(1).na, formationFamily: row(1).cells.formationFamily, dom: cell(1, 'formationFamily'), personnel: cell(1, 'personnel') },
     off: { na: row(2).na, front: row(2).cells.defFront, dom: cell(2, 'defFront') },
     st: { na: row(3).na },
   };
 });
-ok(!r.def.na.includes('formation') && !r.def.na.includes('qbAlignment') && !r.def.na.includes('personnel'),
+ok(!r.def.na.includes('formationFamily') && !r.def.na.includes('qbAlignment') && !r.def.na.includes('personnel'),
   'a defensive row does not blank the offense-faced columns', JSON.stringify(r.def));
-ok(r.def.formation === 'Flexbone' && r.def.dom === 'Flexbone' && r.def.personnel === '11',
+ok(r.def.formationFamily === 'Flexbone' && r.def.dom === 'Flexbone' && r.def.personnel === '11',
   'a defensive row shows the formation it faced, as the play card does', JSON.stringify(r.def));
 ok(!r.off.na.includes('defFront') && !r.off.na.includes('coverage') && r.off.dom === '5-2',
   'an offensive row shows the front it faced', JSON.stringify(r.off));
 ok(r.off.na.includes('stUnit') && r.def.na.includes('stUnit'), 'offense and defense rows blank the Special Teams columns', JSON.stringify([r.off.na, r.def.na]));
-ok(['formation', 'qbAlignment', 'personnel', 'defFront', 'coverage'].every(k => r.st.na.includes(k)) && !r.st.na.includes('stUnit'),
+ok(['formationFamily', 'qbAlignment', 'personnel', 'defFront', 'coverage'].every(k => r.st.na.includes(k)) && !r.st.na.includes('stUnit'),
   'a Special Teams row blanks the alignment columns and keeps its own', JSON.stringify(r.st));
 
 r = await page.evaluate(async () => {
-  const button = document.querySelector('[data-cell="1:formation"]');
+  const button = document.querySelector('[data-cell="1:formationFamily"]');
   button.click(); await new Promise(res => setTimeout(res, 60));
   button.click(); await new Promise(res => setTimeout(res, 120));
   const editor = document.querySelector('.gi-film-editor, [data-film-editor], .gi-film-cell-editor');
@@ -168,8 +168,8 @@ r = await page.evaluate(async () => {
 });
 ok(r.stored === 'offense' && await unitCell(2) === 'Offense' && r.filter === '', 'a later choice in Chart wins, and the Unit cell shows it; the filter stays put', JSON.stringify(r));
 const e2 = await editUnit(4, 'Special Teams');
-r = await page.evaluate(() => ({ stored: window.app.tagger.getPlay(4).tags.unit, formation: window.app.tagger.getPlay(4).tags.formation }));
-ok(r.stored === 'special' && r.formation === '', 'setting Special Teams in the table strips the look fields, as Chart does', JSON.stringify(r));
+r = await page.evaluate(() => ({ stored: window.app.tagger.getPlay(4).tags.unit, formationFamily: window.app.tagger.getPlay(4).tags.formationFamily }));
+ok(r.stored === 'special' && r.formationFamily === '', 'setting Special Teams in the table strips the look fields, as Chart does', JSON.stringify(r));
 
 console.log('\n== 4. Filters are labeled filters, and a filter never writes ==');
 r = await page.evaluate(async () => {
@@ -207,7 +207,7 @@ r = await page.evaluate(async () => {
   // ST Type column is retired with the legacy stType field).
   const special = { id: 9501, timestamp: { start: 0, end: 1 }, notes: '', annotations: [], tags: { ...app.tagger.constructor.blankTags({ unit: 'special' }) } };
   app.tagger.plays.push(special);
-  const editor = app.playGrid.nativeEditor(9501, 'formation');
+  const editor = app.playGrid.nativeEditor(9501, 'formationFamily');
   app.tagger.plays = app.tagger.plays.filter(p => p.id !== 9501);
   app.playGrid.cols = saved; app.playGrid._saveCols();
   app.nativeFilmRoom.clearFilters();
@@ -243,7 +243,7 @@ ok(r.stored === 'defense' && r.calls.some(([id, unit]) => id === 90 && unit === 
 console.log('\n== 7. Every path acts on the unit on screen, not the carried one (code review CR-1..3) ==');
 // A play with no stored unit is shown, and counted, as offense; the carried
 // unit (the last one chosen) must never stand in for it.
-const noUnit = id => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [], tags: { formation: 'Ace', defFront: '4-3', custom: [], players: {}, grades: {} } });
+const noUnit = id => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [], tags: { formationFamily: 'I-Form', defFront: '4-3', custom: [], players: {}, grades: {} } });
 r = await page.evaluate(async play => {
   const app = window.app, t = app.tagger;
   t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'defense';
@@ -251,11 +251,11 @@ r = await page.evaluate(async play => {
   document.activeElement?.blur?.();
   const handled = document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', key: 'c', bubbles: true, cancelable: true }));
   await new Promise(res => setTimeout(res, 40));
-  const out = { handled, stored: t.getPlay(play.id).tags.unit, formation: t.getPlay(play.id).tags.formation };
+  const out = { handled, stored: t.getPlay(play.id).tags.unit, formationFamily: t.getPlay(play.id).tags.formationFamily };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
 }, noUnit(91));
-ok(r.stored === 'defense' && r.formation === 'Ace', 'CR-1: C on a play shown as Offense moves it to Defense, not Special Teams, and keeps its formation', JSON.stringify(r));
+ok(r.stored === 'defense' && r.formationFamily === 'I-Form', 'CR-1: C on a play shown as Offense moves it to Defense, not Special Teams, and keeps its formation', JSON.stringify(r));
 r = await page.evaluate(async play => {
   const app = window.app, t = app.tagger;
   t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'special';
@@ -281,7 +281,7 @@ r = await page.evaluate(async play => {
 ok(r.stored === 'offense', 'CR-2: Clear Tags keeps the unit on screen (Offense), not the carried Defense', JSON.stringify(r));
 r = await page.evaluate(async ([prev, next]) => {
   const app = window.app, t = app.tagger;
-  next.tags = { unit: 'offense', formation: '', custom: [], players: {}, grades: {} };
+  next.tags = { unit: 'offense', formationFamily: '', custom: [], players: {}, grades: {} };
   t.plays.push(prev, next); t.selectPlay(prev.id); t.defaultUnit = 'special';
   t.nextPlayWithSituation();
   const out = { current: t.currentPlayId, stored: t.getPlay(next.id).tags.unit };
@@ -294,11 +294,11 @@ r = await page.evaluate(async play => {
   const app = window.app, t = app.tagger;
   t.plays.push(play); t.selectPlay(play.id); t.defaultUnit = 'special';
   const done = t.setChartingUnit('');
-  const out = { done, stored: t.getPlay(play.id).tags.unit, formation: t.getPlay(play.id).tags.formation, carried: t.defaultUnit };
+  const out = { done, stored: t.getPlay(play.id).tags.unit, formationFamily: t.getPlay(play.id).tags.formationFamily, carried: t.defaultUnit };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
 }, noUnit(96));
-ok(r.done === false && r.stored === undefined && r.formation === 'Ace' && r.carried === 'special', 'a blank unit is refused: nothing is written and the carried unit is unchanged', JSON.stringify(r));
+ok(r.done === false && r.stored === undefined && r.formationFamily === 'I-Form' && r.carried === 'special', 'a blank unit is refused: nothing is written and the carried unit is unchanged', JSON.stringify(r));
 console.log('\n== 8. Every new play is born with the full blank tag schema and a unit (LG-1) ==');
 r = await page.evaluate(async () => {
   const app = window.app, t = app.tagger;

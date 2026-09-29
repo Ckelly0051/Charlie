@@ -32,10 +32,10 @@ const r = await page.evaluate(async () => {
   const out = {};
 
   // --- 1. Rules, explicit values ---
-  t.plays = [mk(1, { formation: 'Flexbone', qbAlignment: 'Under Center', backfield: '' })]; t.selectPlay(1);
-  out.display = { formation: t.displayTagValue('formation'), qb: t.displayTagValue('qbAlignment') };
-  t.setTagValue('formation', 'Wing-T');
-  out.promote = { formation: t.getPlay(1).tags.formation, qb: t.getPlay(1).tags.qbAlignment };
+  t.plays = [mk(1, { formationFamily: 'Flexbone', qbAlignment: 'Under Center', backfield: '' })]; t.selectPlay(1);
+  out.display = { formationFamily: t.displayTagValue('formationFamily'), qb: t.displayTagValue('qbAlignment') };
+  t.setTagValue('formationFamily', 'Wing-T');
+  out.promote = { formationFamily: t.getPlay(1).tags.formationFamily, qb: t.getPlay(1).tags.qbAlignment };
 
   t.plays = [mk(2, {})]; t.selectPlay(2);
   t.setTagValue('playType', 'Run Inside');
@@ -62,8 +62,8 @@ const r = await page.evaluate(async () => {
 });
 
 console.log('\n== 1. The write rules ==');
-ok(r.display.formation === 'Flexbone' && r.display.qb === 'Under Center', 'formation and QB alignment show as stored', JSON.stringify(r.display));
-ok(r.promote.formation === 'Wing-T' && r.promote.qb === 'Under Center', 'writing the formation writes only the formation; the QB alignment is untouched', JSON.stringify(r.promote));
+ok(r.display.formationFamily === 'Flexbone' && r.display.qb === 'Under Center', 'formation and QB alignment show as stored', JSON.stringify(r.display));
+ok(r.promote.formationFamily === 'Wing-T' && r.promote.qb === 'Under Center', 'writing the formation writes only the formation; the QB alignment is untouched', JSON.stringify(r.promote));
 ok(r.runPass === 'Run', 'an unambiguous play type fills Run/Pass', r.runPass);
 ok(r.gain.result === 'Gain' && r.gain.yardage === '7', 'positive yardage with no result fills Gain', JSON.stringify(r.gain));
 ok(r.sign.result === 'Loss' && r.sign.yardage === '-7' && r.sign.shown === '7', 'Loss replaces its rival Gain, signs the stored yardage, and shows the magnitude', JSON.stringify(r.sign));

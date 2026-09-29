@@ -28,14 +28,15 @@ const ok = (c, label, d = '') => c ? (pass++, console.log('  PASS  ' + label)) :
 
 const play = (id, tags, extra = {}) => ({ id, timestamp: { start: id, end: id + 1 }, notes: '', annotations: [], tags: { unit: 'offense', players: {}, grades: {}, custom: [], ...tags }, ...extra });
 const season = (id, plays, gameExtra = {}) => ({ id, seasonName: id, roster: [], games: [{ id: `${id}-g`, name: 'Week 1', plays, ...gameExtra }] });
-const CURRENT = season('current', [play(1, { formation: 'Flexbone', qbAlignment: 'Under Center', playType: 'Run Inside' })]);
+const CURRENT = season('current', [play(1, { formationFamily: 'Flexbone', qbAlignment: 'Under Center', playType: 'Run Inside' })]);
 
 console.log('\n== 1. SeasonFormat detects every retired shape ==');
 const kinds = s => SeasonFormat.seasonProblems(s).map(p => p.problem);
 ok(SeasonFormat.isCurrentSeason(CURRENT), 'a current season passes', JSON.stringify(kinds(CURRENT)));
 ok(kinds(season('a', [play(1, { unit: '' , playType: 'Run Inside' })])).includes('no unit'), 'a charted play with no unit');
-ok(kinds(season('a', [play(1, { formation: 'Under Center + Flexbone' })])).includes('combined look'), 'an alignment inside Formation');
-ok(kinds(season('a', [play(1, { coverage: 'Man' })])).includes('combined look') || kinds(season('a', [play(1, { formation: 'Empty' })])).includes('combined look'), 'a family in Coverage or Empty in Formation');
+ok(kinds(season('a', [play(1, { formationFamily: 'Under Center + Flexbone' })])).includes('combined look'), 'an alignment inside the Formation Family');
+ok(kinds(season('a', [play(1, { coverage: 'Man' })])).includes('combined look') || kinds(season('a', [play(1, { formationFamily: 'Empty' })])).includes('combined look'), 'a family in Coverage or Empty in the Formation Family');
+ok(kinds(season('a', [play(1, { formation: 'Trips' })])).includes('retired Formation field') && kinds(season('a', [play(1, { formation: '' })])).includes('retired Formation field'), 'the retired Formation field, filled or blank');
 ok(kinds(season('a', [play(1, { unit: 'special', stType: 'Punt' })])).includes('retired Special Teams tag'), 'a retired Special Teams tag (stType)');
 ok(kinds(season('a', [play(1, { unit: 'special', stType: '' })])).includes('retired Special Teams tag'), 'even an empty retired key');
 ok(kinds(season('a', [play(1, { unit: 'special' }, { specialTeams: { unit: 'fieldGoal', attemptType: 'extraPoint', outcome: { status: 'good' } } })])).includes('extra point on a Field Goal unit'), 'an extra point on the Field Goal unit');
@@ -54,7 +55,8 @@ ok(kinds({ games: [{}] }).includes('no plays list') && kinds({ games: [null] }).
   'a season whose game has no plays list, a null game, or no games array', JSON.stringify([kinds({ games: [{}] }), kinds({ games: [null] }), kinds({})]));
 ok(SeasonFormat.isCurrentSeason(season('empty', [])), 'a season whose game has an empty plays list is current');
 ok(!SeasonFormat.isCurrentGame({}) && SeasonFormat.gameProblems({})[0]?.problem === 'no plays list', 'a game version {} is refused (restoring it would empty the game)', JSON.stringify(SeasonFormat.gameProblems({})));
-ok(SeasonFormat.isCurrentGame({ plays: [] }) && SeasonFormat.isCurrentGame({ plays: [play(1, { formation: 'Trips' })] }), 'a game version with plays (or an empty list) is current');
+ok(SeasonFormat.isCurrentGame({ plays: [] }) && SeasonFormat.isCurrentGame({ plays: [play(1, { formationFamily: 'Spread', receiverSet: '3x1' })] }), 'a game version with plays (or an empty list) is current');
+ok(!SeasonFormat.isCurrentGame({ plays: [play(1, { formation: 'Trips' })] }), 'a game version carrying the retired Formation is refused');
 
 console.log('\n== 2. Mirror recovery and first-run import refuse old seasons ==');
 {
@@ -85,7 +87,7 @@ console.log('\n== 2. Mirror recovery and first-run import refuse old seasons =='
   let writes = 0;
   const cp = new CatalogPersistence({ catalog: cat, fs: {
     readDb: async () => null, writeDb: async () => { writes++; },
-    readJson: async id => id === 'old' ? season('old', [play(1, { stType: 'Punt', unit: 'special' })]) : season('fresh', [play(1, { formation: 'Trips' })]),
+    readJson: async id => id === 'old' ? season('old', [play(1, { stType: 'Punt', unit: 'special' })]) : season('fresh', [play(1, { formationFamily: 'Spread' })]),
   } });
   const migrated = await cp.migrateJsonSeasons(['old', 'fresh']);
   ok(migrated === 1 && !cat.loadSeason('old') && !!cat.loadSeason('fresh'), 'first-run JSON import skips an old season and imports a current one', JSON.stringify({ migrated, writes }));
@@ -169,10 +171,10 @@ const r = await page.evaluate(async ({ CURRENT, MESSAGE, RESTORE }) => {
   if (!app.tagger.plays.length) app.tagger.plays.push({ id: 900, timestamp: { start: 0, end: 1 }, notes: '', annotations: [], tags: app.tagger.constructor.blankTags({ unit: 'offense' }) });
   app.tagger.selectPlay(app.tagger.plays[0].id);
   const tplBefore = app.tagger.getCurrentPlay().tags;
-  const before = { formation: tplBefore.formation, qb: tplBefore.qbAlignment };
+  const before = { family: tplBefore.formationFamily, qb: tplBefore.qbAlignment };
   app.tagger.applyTemplate('Old tpl');
   const t = app.tagger.getCurrentPlay().tags;
-  out.template = { stType: 'stType' in t, kickOutcome: 'kickOutcome' in t, formation: t.formation, qb: t.qbAlignment, playType: t.playType, before };
+  out.template = { stType: 'stType' in t, kickOutcome: 'kickOutcome' in t, formationKey: 'formation' in t, family: t.formationFamily, qb: t.qbAlignment, playType: t.playType, before };
 
   app.tagger.toast = origToast; app.settingsScreen._toast = origSettingsToast;
   return out;
@@ -191,8 +193,8 @@ ok(r.emptyVersion.ve === false && !r.emptyVersion.confirmAsked && r.emptyVersion
 ok(r.firstRun.firstToasts.length === 1 && /1 season file uses an old GridIron IQ format and was not opened: Old Season\. Export it again/.test(r.firstRun.firstToasts[0]) && r.firstRun.secondToasts.length === 0,
   'a season the first-run import refused is named to the coach once', JSON.stringify(r.firstRun));
 ok(!r.template.stType && !r.template.kickOutcome && r.template.playType === 'Short Pass'
-  && r.template.formation === r.template.before.formation && r.template.qb === r.template.before.qb && !String(r.template.formation || '').includes('+'),
-  'an old template applies its current values only; its combined look is not applied', JSON.stringify(r.template));
+  && !r.template.formationKey && r.template.family === r.template.before.family && r.template.qb === r.template.before.qb,
+  'an old template applies its current values only; its retired Formation is not applied', JSON.stringify(r.template));
 // A STORED payload that is not a season (a single-game save written into the
 // library slot, or any other shape) is refused on open and on reload, never
 // opened as an empty season a later save would write over. Only no stored

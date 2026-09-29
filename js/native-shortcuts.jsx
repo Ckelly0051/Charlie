@@ -8,7 +8,7 @@ const groups = [
     [['[', ']'], 'Mark play start / end'],
   ]],
   ['Tagging · play selected', [
-    [['R O S P M D A Q B X'], 'Play type shortcuts'],
+    [['R O S P M D A Q B X H J'], 'Play type shortcuts'],
     [['G L N I T W U F E K'], 'Result shortcuts'],
     [['Shift + 1–4'], 'Down number'],
     [['Y'], 'Jump to yardage'],

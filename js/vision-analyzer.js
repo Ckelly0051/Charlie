@@ -196,7 +196,7 @@ ANALYSIS METHOD — follow this sequence carefully using the provided frames:
    - Count wide receivers (WRs): players split wide toward the sidelines.
    - Personnel = (#RBs)(#TEs): 1 RB + 1 TE = "11"; 1 RB + 2 TE = "12"; 2 RB + 1 TE = "21"; etc.
    - Backfield: "Empty" = 0 RBs in the backfield (its own field, never the formation).
-   - Formation: "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Split Back" = 2 RBs side by side behind QB; "Single Wing" = unbalanced line, direct snap to wingback; "Wildcat" = direct snap to non-QB.
+   - Formation family (the offense's structure; receiver counts are a separate field): "I-Form" = QB under center with FB ahead of TB; "Singleback" = 1 RB, QB under center, no fullback; "Split Back" = 2 RBs side by side behind QB; "Single Wing" = unbalanced line, direct snap to wingback; "Wildcat" = direct snap to non-QB.
 
 2. DEFENSIVE READ (pre-snap and early frames):
    - Count down linemen (DL): players in 3- or 4-point stance at the line. Count standing linebackers (LBs) behind them.
@@ -227,7 +227,7 @@ Return ONLY valid JSON with these fields (use ONLY the listed enum values, or ""
 
 {
   "qbAlignment": "Under Center"|"Shotgun"|"Pistol"|"",
-  "formation": "I-Form"|"Singleback"|"Split Back"|"Single Wing"|"Wildcat"|"Goal Line"|"",
+  "formationFamily": ${VisionAnalyzer.ALLOWED.formationFamily.map(v => `"${v}"`).join('|')}|"",
   "backfield": "Empty"|"",
   "personnel": "00"|"10"|"11"|"12"|"13"|"20"|"21"|"22"|"23"|"Jumbo"|"Goal Line"|"",
   "playType": ${VisionAnalyzer.ALLOWED.playType.map(v => `"${v}"`).join('|')}|"",
@@ -297,10 +297,10 @@ IMPORTANT:
    */
   static get ALLOWED() {
     return {
-      // Each look field on its own: an alignment is never a formation, 'Empty'
+      // Each look field on its own: an alignment is never a formation family, 'Empty'
       // is a backfield, and Man / Zone are coverage families.
       qbAlignment: ['Under Center', 'Shotgun', 'Pistol'],
-      formation: ['I-Form', 'Singleback', 'Split Back', 'Single Wing', 'Wildcat', 'Goal Line', 'Wing-T', 'Flexbone', 'Double Wing', 'Power-I', 'Bunch', 'Unbalanced'],
+      formationFamily: [...TagLibrary.DEFINITIONS.formationFamily],
       backfield: ['Empty'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
       // The charting vocabulary has ONE owner. Carrying a copy here meant a new
@@ -342,7 +342,7 @@ IMPORTANT:
 
     const tags = {};
     const tagFields = [
-      'qbAlignment', 'formation', 'backfield', 'personnel', 'playType', 'result', 'yardage',
+      'qbAlignment', 'formationFamily', 'backfield', 'personnel', 'playType', 'result', 'yardage',
       'hash', 'defFront', 'coverage', 'coverageFamily', 'blitz',
       'fieldSide', 'yardLine', 'down', 'distance', 'quarter',
     ];

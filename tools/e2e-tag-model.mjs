@@ -17,7 +17,7 @@ const test = (label, fn) => {
 };
 
 const tags = (o = {}) => ({
-  down: '', distance: '', formation: '', backfield: '', strength: '', personnel: '',
+  down: '', distance: '', formationFamily: '', receiverSet: '', backfield: '', strength: '', personnel: '',
   motion: '', runPass: '', playType: '', result: '', yardage: '', coverage: '',
   defFront: '', blitz: '', unit: 'offense', players: {}, grades: {}, ...o,
 });
@@ -41,10 +41,11 @@ test('1 · a newly created play is born with qbAlignment & coverageFamily = ""',
 });
 
 test('2 · project() reads each look field as stored and never mutates its input', () => {
-  const input = tags({ formation: 'Flexbone + Trips', qbAlignment: 'Under Center', backfield: 'Empty', coverage: 'Cover 3', coverageFamily: 'Zone' });
+  const input = tags({ formationFamily: 'Flexbone', receiverSet: '3x1', qbAlignment: 'Under Center', backfield: 'Empty', coverage: 'Cover 3', coverageFamily: 'Zone' });
   const before = JSON.stringify(input);
   const p = TagProjection.project(input);
-  assert.equal(p.formation, 'Flexbone + Trips');
+  assert.equal(p.formationFamily, 'Flexbone');
+  assert.equal(p.receiverSet, '3x1');
   assert.equal(p.qbAlignment, 'Under Center');
   assert.equal(p.backfield, 'Empty');
   assert.equal(p.coverage, 'Cover 3');
@@ -67,15 +68,15 @@ test('4 · project() is defensive: tags lacking the property read as blank strin
 });
 
 test('5 · isCombined names every old combined shape (the refusal predicate)', () => {
-  for (const old of [{ formation: 'Shotgun + Trips' }, { formation: 'Under Center' }, { formation: 'Trips + Empty' },
+  for (const old of [{ formationFamily: 'Shotgun + Spread' }, { formationFamily: 'Under Center' }, { formationFamily: 'Spread + Empty' },
     { backfield: 'Pistol' }, { backfield: 'Pistol + Diamond' }, { coverage: 'Man' }, { coverage: 'Match' }]) {
     assert.equal(TagProjection.isCombined(tags(old)), true, JSON.stringify(old));
   }
 });
 
-test('6 · isCombined passes every current look, multi-value formations included', () => {
-  for (const cur of [{ formation: 'Flexbone + Trips', qbAlignment: 'Shotgun' }, { backfield: 'Empty', qbAlignment: 'Pistol' },
-    { coverage: 'Cover 3 Match', coverageFamily: 'Man' }, { formation: 'Power-I' }, {}]) {
+test('6 · isCombined passes every current look, a family and a receiver set included', () => {
+  for (const cur of [{ formationFamily: 'Flexbone', receiverSet: '3x1', qbAlignment: 'Shotgun' }, { backfield: 'Empty', qbAlignment: 'Pistol' },
+    { coverage: 'Cover 3 Match', coverageFamily: 'Man' }, { formationFamily: 'Power-I' }, {}]) {
     assert.equal(TagProjection.isCombined(tags(cur)), false, JSON.stringify(cur));
   }
 });
@@ -85,7 +86,7 @@ test('6 · isCombined passes every current look, multi-value formations included
 test('16 · (E1-R9) ST invariant: any op ending unit:special leaves ST keys blank', () => {
   // liveness: forbidden values are PRESENT first, then stripped by the op.
   const st = legacyPlay(1, {
-    unit: 'special', formation: 'Under Center', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverageFamily: 'Zone', coverage: 'Cover 3',
   });
   // prove they are present before the op
@@ -102,11 +103,11 @@ test('16 · (E1-R9) ST invariant: any op ending unit:special leaves ST keys blan
 });
 
 test('16b · (E1-R9) an offensive source retains its look — strip is unit-conditional', () => {
-  const off = legacyPlay(3, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun', backfield: 'Power' });
+  const off = legacyPlay(3, { unit: 'offense', formationFamily: 'Spread', qbAlignment: 'Shotgun', backfield: 'Power' });
   const pt = Object.create(PlayTagger.prototype);
   const changed = pt._stripStAlignment(off);
   assert.equal(changed, false, 'offense play must not be stripped');
-  assert.equal(off.tags.formation, 'Trips');
+  assert.equal(off.tags.formationFamily, 'Spread');
   assert.equal(off.tags.backfield, 'Power');
 });
 
@@ -124,7 +125,7 @@ test('16d · (E2-R1) Same-as-Last onto an ST result strips forbidden fields', ()
   // A legacy ST source carrying forbidden alignment. Copying it forward must not
   // reproduce those values on the resulting ST play (E1-R9 invariant, any op).
   const src = legacyPlay(40, {
-    unit: 'special', formation: 'Trips', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   });
   const cur = legacyPlay(41, { unit: 'offense' });
@@ -143,7 +144,7 @@ test('16e · (E2-R1) template application onto an ST result strips forbidden fie
   const pt = Object.create(PlayTagger.prototype);
   pt.getCurrentPlay = () => cur;
   pt._templateStore = () => ({ leaky: {
-    unit: 'special', formation: 'Trips', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   } });
   pt._updateTimeline = () => {}; pt._emit = () => {};
@@ -153,7 +154,7 @@ test('16e · (E2-R1) template application onto an ST result strips forbidden fie
 });
 
 test('16f · (E2-R1) an OFFENSE Same-as-Last keeps its look (strip is unit-conditional)', () => {
-  const src = legacyPlay(43, { unit: 'offense', formation: 'Trips', qbAlignment: 'Shotgun', backfield: 'Power' });
+  const src = legacyPlay(43, { unit: 'offense', formationFamily: 'Spread', qbAlignment: 'Shotgun', backfield: 'Power' });
   const cur = legacyPlay(44, { unit: 'special' });
   const pt = Object.create(PlayTagger.prototype);
   pt.plays = [src, cur];
@@ -161,7 +162,7 @@ test('16f · (E2-R1) an OFFENSE Same-as-Last keeps its look (strip is unit-condi
   pt._updateTimeline = () => {}; pt._emit = () => {};
   pt.copyFromPrevious();
   assert.equal(cur.tags.unit, 'offense', 'copy carried the offense unit');
-  assert.equal(cur.tags.formation, 'Trips', 'offense look must survive');
+  assert.equal(cur.tags.formationFamily, 'Spread', 'offense look must survive');
   assert.equal(cur.tags.backfield, 'Power');
 });
 
@@ -173,7 +174,7 @@ test('17 · (E1-R6) carry fills the four pre-snap fields on a blank offensive ta
     assert.ok(PlayTagger.SCHEME_KEYS.includes(k), `SCHEME_KEYS missing ${k}`);
   }
   assert.ok(PlayTagger.CARRY_SCHEME_KEYS.includes('coverageFamily'));
-  const prev = legacyPlay(10, { unit: 'offense', qbAlignment: 'Shotgun', backfield: 'Power', strength: 'Right', formation: 'Trips' });
+  const prev = legacyPlay(10, { unit: 'offense', qbAlignment: 'Shotgun', backfield: 'Power', strength: 'Right', formationFamily: 'Spread' });
   const next = legacyPlay(11, { unit: 'offense' });
   const pt = Object.create(PlayTagger.prototype);
   pt._emit = () => {};
@@ -257,19 +258,19 @@ test('18c · (E2-R3) persist() strips ST alignment before saving — structural 
   store.currentSeasonId = 's1';
   store.data = { version: 5, type: 'season', activeGameId: 'g1', games: [{ id: 'g1', plays: [
     // a special play a grid/AI/suggestion edit has leaked onto (liveness: values present)
-    { id: 1, tags: { unit: 'special', formation: 'Trips', coverage: 'Cover 3',
+    { id: 1, tags: { unit: 'special', formationFamily: 'Spread', coverage: 'Cover 3',
       backfield: 'Power', strength: 'Right', qbAlignment: 'Shotgun', coverageFamily: 'Zone',
       players: {}, grades: {} } },
     // an offense play whose look must survive the strip
-    { id: 2, tags: { unit: 'offense', formation: 'Trips', backfield: 'Power', players: {}, grades: {} } },
+    { id: 2, tags: { unit: 'offense', formationFamily: 'Spread', backfield: 'Power', players: {}, grades: {} } },
   ] }] };
-  assert.equal(store.data.games[0].plays[0].tags.formation, 'Trips', 'liveness: leak present pre-persist');
+  assert.equal(store.data.games[0].plays[0].tags.formationFamily, 'Spread', 'liveness: leak present pre-persist');
   store.persist();
   assert.equal(saved.length, 1, 'saveSeason was not called');
   const st = saved[0].games[0].plays.find(p => p.id === 1);
   const off = saved[0].games[0].plays.find(p => p.id === 2);
   for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(st.tags[k] || '', '', `${k} reached disk on a special play`);
-  assert.equal(off.tags.formation, 'Trips', 'offense look must survive the persist strip');
+  assert.equal(off.tags.formationFamily, 'Spread', 'offense look must survive the persist strip');
   assert.equal(off.tags.backfield, 'Power');
 });
 
@@ -281,20 +282,20 @@ test('18d · (E2-R3b) _emit sanitizes a special play before listeners see it (LI
   pt.listeners = {};
   let seen = null;
   pt.on('play-updated', p => { seen = { ...p.tags }; });
-  const play = legacyPlay(50, { unit: 'special', formation: 'Trips', backfield: 'Power', coverage: 'Cover 3', strength: 'Right' });
-  assert.equal(play.tags.formation, 'Trips', 'liveness: leak present pre-emit');
+  const play = legacyPlay(50, { unit: 'special', formationFamily: 'Spread', backfield: 'Power', coverage: 'Cover 3', strength: 'Right' });
+  assert.equal(play.tags.formationFamily, 'Spread', 'liveness: leak present pre-emit');
   pt._emit('play-updated', play);
   for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(play.tags[k] || '', '', `${k} not stripped on live object`);
-  assert.equal(seen.formation || '', '', 'listener saw a dirty play');
+  assert.equal(seen.formationFamily || '', '', 'listener saw a dirty play');
   assert.equal(seen.backfield || '', '');
 });
 
 test('18d-2 · (E2-R3b) _emit leaves an OFFENSE play untouched', () => {
   const pt = Object.create(PlayTagger.prototype);
   pt.listeners = {};
-  const play = legacyPlay(51, { unit: 'offense', formation: 'Trips', backfield: 'Power' });
+  const play = legacyPlay(51, { unit: 'offense', formationFamily: 'Spread', backfield: 'Power' });
   pt._emit('play-updated', play);
-  assert.equal(play.tags.formation, 'Trips');
+  assert.equal(play.tags.formationFamily, 'Spread');
   assert.equal(play.tags.backfield, 'Power');
 });
 
@@ -310,28 +311,29 @@ test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapsho
   const store = new SeasonStore(backend);
   store.currentSeasonId = 's1';
   const leak = () => ({ version: 5, type: 'season', activeGameId: 'g1', games: [{ id: 'g1', plays: [
-    { id: 1, tags: { unit: 'special', formation: 'Trips', backfield: 'Power', players: {}, grades: {} } },
+    { id: 1, tags: { unit: 'special', formationFamily: 'Spread', backfield: 'Power', players: {}, grades: {} } },
   ] }] });
   // json() — synchronous, returns sanitized text (the Save Season download path)
   store.data = leak();
-  assert.equal(JSON.parse(store.json()).games[0].plays[0].tags.formation || '', '', 'json() leaked formation');
+  assert.equal(JSON.parse(store.json()).games[0].plays[0].tags.formationFamily || '', '', 'json() leaked formation family');
   // snapshot / saveNow / bindDisk sanitize this.data synchronously before any await
   for (const method of ['snapshot', 'saveNow', 'bindDisk']) {
     store.data = leak();
     store[method]('x');   // fire; the sanitize is the synchronous first line
     const st = store.data.games[0].plays[0].tags;
-    assert.equal(st.formation || '', '', `${method}() did not sanitize this.data`);
+    assert.equal(st.formationFamily || '', '', `${method}() did not sanitize this.data`);
     assert.equal(st.backfield || '', '', `${method}() left backfield`);
   }
 });
 
 /* ---- §4 the formation is read as charted (the v1.9.15 backfield migration is deleted) ---- */
 
-test('19 · a formation is never rewritten into Backfield, with or without a backfield key', () => {
-  for (const tags of [{ unit: 'offense', formation: 'Power-I', backfield: '' }, { unit: 'offense', formation: 'Power-I + Trips' }]) {
+test('19 · a formation family is never rewritten into Backfield, with or without a backfield key', () => {
+  for (const tags of [{ unit: 'offense', formationFamily: 'Power-I', backfield: '' }, { unit: 'offense', formationFamily: 'Power-I', receiverSet: '3x1' }]) {
     const p = { id: 30, timestamp: { start: 0, end: 1 }, tags: { ...tags } };
     SeasonStore.coerceLookFields(p);
-    assert.equal(p.tags.formation, tags.formation, 'formation kept as charted');
+    assert.equal(p.tags.formationFamily, tags.formationFamily, 'formation family kept as charted');
+    assert.equal(p.tags.receiverSet ?? '', tags.receiverSet ?? '', 'receiver set kept as charted');
     assert.equal(p.tags.backfield, '', 'a missing backfield is a blank string, never inferred');
     assert.equal(p.tags.strength, '');
   }
@@ -339,29 +341,27 @@ test('19 · a formation is never rewritten into Backfield, with or without a bac
 });
 /* ---- §20 E3b: lookLabel — the deliberate presentation composition ---- */
 
-test('26 · lookLabel joins alignment + structure for a MODERN split play', () => {
-  const t = tags({ unit: 'offense', qbAlignment: 'Shotgun', formation: 'Trips' });
-  assert.equal(TagProjection.lookLabel(t), 'Shotgun Trips');
+test('26 · lookLabel joins alignment, family and receiver set for a current play', () => {
+  const t = tags({ unit: 'offense', qbAlignment: 'Shotgun', formationFamily: 'Spread', receiverSet: '3x1' });
+  assert.equal(TagProjection.lookLabel(t), 'Shotgun Spread 3x1');
 });
 
-test('26b · lookLabel strips the internal "+" from a MULTI-structure formation', () => {
-  // A coach charting TWO structural tags at once ("Flexbone + Trips") stores a
-  // " + "-joined formation; the composed phrase strips every internal "+".
-  const t = tags({ unit: 'offense', qbAlignment: 'Shotgun', formation: 'Flexbone + Trips' });
-  assert.equal(TagProjection.lookLabel(t), 'Shotgun Flexbone Trips');
+test('26b · lookLabel composes with plain spaces and no "+"', () => {
+  const t = tags({ unit: 'offense', qbAlignment: 'Shotgun', formationFamily: 'Flexbone', receiverSet: '2x2' });
+  assert.equal(TagProjection.lookLabel(t), 'Shotgun Flexbone 2x2');
   assert.ok(!TagProjection.lookLabel(t).includes('+'));
-  const t2 = tags({ unit: 'offense', formation: 'Flexbone + Trips' });
-  assert.equal(TagProjection.lookLabel(t2), 'Flexbone Trips');
+  assert.equal(TagProjection.lookLabel(tags({ unit: 'offense', formationFamily: 'Flexbone', receiverSet: '2x2' })), 'Flexbone 2x2');
 });
 
 test('26c · lookLabel omits the missing half instead of inventing a placeholder', () => {
-  assert.equal(TagProjection.lookLabel(tags({ formation: 'Trips' })), 'Trips', 'structure only, no alignment');
+  assert.equal(TagProjection.lookLabel(tags({ formationFamily: 'Spread' })), 'Spread', 'family only, no alignment');
+  assert.equal(TagProjection.lookLabel(tags({ receiverSet: '3x1' })), '3x1', 'receiver set only');
   assert.equal(TagProjection.lookLabel(tags({ qbAlignment: 'Pistol' })), 'Pistol', 'alignment only, no structure');
   assert.equal(TagProjection.lookLabel(tags({})), '', 'nothing charted -> empty string, never "Unknown"');
 });
 
 test('26e · lookLabel is a display seam only — it never mutates the input', () => {
-  const t = tags({ formation: 'Trips', qbAlignment: 'Shotgun' });
+  const t = tags({ formationFamily: 'Spread', qbAlignment: 'Shotgun' });
   const before = JSON.stringify(t);
   TagProjection.lookLabel(t);
   assert.equal(JSON.stringify(t), before, 'lookLabel must not write back to the stored tags');

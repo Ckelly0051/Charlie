@@ -7,7 +7,9 @@ export class TagLibrary {
   // formation, a family is never a coverage call. Charting one would store the
   // old combined shape (TagProjection.isCombined). Matched case-insensitively.
   static RESERVED = Object.freeze({
-    formation: { values: TagProjection.PICKER_EXCLUDE.formation, owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : 'Backfield' },
+    formationFamily: { values: TagProjection.PICKER_EXCLUDE.formationFamily, owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : 'Backfield',
+      // A receiver distribution ("3x1") is the Receiver Set, never a Family.
+      pattern: /^\d+\s*x\s*\d+$/i, patternOwner: 'Receiver Set' },
     backfield: { values: TagProjection.PICKER_EXCLUDE.backfield, owner: () => 'QB Alignment' },
     coverage: { values: TagProjection.PICKER_EXCLUDE.coverage, owner: () => 'Coverage Family' },
   });
@@ -21,14 +23,19 @@ export class TagLibrary {
     for (const token of String(value || '').split('+').map(part => part.trim().toLowerCase()).filter(Boolean)) {
       const match = rule.values.find(item => item.toLowerCase() === token);
       if (match) return rule.owner(match);
+      if (rule.pattern && rule.pattern.test(token)) return rule.patternOwner;
     }
     return null;
   }
-  static VERSION = 4;
+  static VERSION = 5;
   static DEFINITIONS = {
     // Classification-critical fields (down, result, run/pass, QB alignment,
-    // coverage family, strength and direction) intentionally remain fixed.
-    formation: ['Single Wing','Double Wing','Wing-T','Flexbone','Wishbone','Spread','Wildcat','Unbalanced','Goal Line','I-Form','Split Back','Power-I','Ace','Victory','Trips','Twins','Doubles','Bunch'],
+    // coverage family, strength and direction) intentionally remain fixed, and so
+    // does the Receiver Set (a numeric distribution, ChartingDetails.RECEIVER_SETS).
+    // The Formation Family is the offense's structure, one value per play; the
+    // package and receiver words the old Formation field mixed in (Trips, Twins,
+    // Bunch, Goal Line...) are not built in here.
+    formationFamily: ['Spread','Power-I','I-Form','Split Back','Singleback','Wing-T','Flexbone','Wishbone','Wildcat','Double Wing','Single Wing'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
     coverage: ['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
@@ -36,9 +43,10 @@ export class TagLibrary {
     // ball-carrier decision after the snap, an RPO a pass-or-run read. Both are
     // AMBIGUOUS for run/pass classification (PlayTagger.runPassForPlayType) and
     // neither joins the run/pass-depth exclusive group, so `Option + Run Outside`
-    // is chartable. Added as a default at VERSION 4; it was made visible in every
-    // library saved before that by a one-time conversion (legacy excision Pass 2b).
-    playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Option','Trick Play'],
+    // is chartable. `QB Run` and `Reverse` are ambiguous the same way (a scramble
+    // can begin as a pass, a reverse can throw), so the coach sets Run/Pass. A
+    // default a saved library has never listed is shown (see _normalize).
+    playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Option','QB Run','Reverse','Trick Play'],
     blitz: ['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   };
 
@@ -79,11 +87,21 @@ export class TagLibrary {
       const custom = [...new Set((Array.isArray(source.custom) ? source.custom : []).map(value => String(value).trim()).filter(value => value && !defaults.includes(value)))];
       const values = [...defaults, ...custom];
       const enabledSource = Array.isArray(source.enabled) ? source.enabled : values;
-      const enabled = [...new Set(enabledSource.map(String).filter(value => values.includes(value)))];
-      const savedOrder = Array.isArray(source.order) ? source.order.map(String).filter(value => values.includes(value)) : [];
-      const order = [...new Set([...savedOrder, ...values])];
+      const savedOrder = Array.isArray(source.order) ? source.order.map(String) : [];
+      // `order` lists every value the library has ever offered, hidden or not, so
+      // a default it has never listed is new to this coach's library and is shown
+      // (a value the coach hid stays listed, and stays hidden). Read only; nothing
+      // is written until the next library edit.
+      const neverListed = Array.isArray(source.order) ? values.filter(value => !savedOrder.includes(value)) : [];
+      const enabled = [...new Set([...enabledSource.map(String), ...neverListed].filter(value => values.includes(value)))];
+      const order = [...new Set([...savedOrder.filter(value => values.includes(value)), ...values])];
       next.groups[key] = { custom, enabled, order };
     }
+    // A group this version no longer manages is kept exactly as stored and never
+    // offered, so an unrelated library edit does not destroy the coach's entries.
+    const kept = {};
+    for (const [key, group] of Object.entries(raw?.groups || {})) if (!TagLibrary.DEFINITIONS[key]) kept[key] = group;
+    if (Object.keys(kept).length) next.retired = kept;
     const presets = Array.isArray(raw?.presets) ? raw.presets : [];
     next.presets = presets.map((preset, index) => {
       const enabled = {};
@@ -105,8 +123,7 @@ export class TagLibrary {
   load() {
     const current = this._read(this.key());
     if (current) return this._normalize(current);
-    // An old chips key or a library below the current version is converted
-    // once (legacy excision Pass 2b); nothing is written on read.
+    // Nothing is written on read.
     return this._normalize(this._blank());
   }
   /** A saved custom value reserved for another field (added before the rule
@@ -122,6 +139,8 @@ export class TagLibrary {
     this.lastError = null;
     const owner = TagLibrary.reservedOwner(key, v);
     if (owner) { this.lastError = { name: 'ReservedValue', message: `${v} is a ${owner} value.`, owner }; return false; }
+    // A Formation Family is one value: "+" joins the values of a multi-select field.
+    if (key === 'formationFamily' && v.includes('+')) { this.lastError = { name: 'MultiValue', message: 'A Formation Family is one value; "+" combines values.' }; return false; }
     if (!group || !defaults || !v || defaults.includes(v) || group.custom.includes(v)) return false;
     group.custom.push(v); group.enabled.push(v); group.order.push(v);
     if (!this._write(state)) return false;

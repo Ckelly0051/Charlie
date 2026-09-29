@@ -1,0 +1,14 @@
+{
+  "_note": "TEST FIXTURE ONLY. These assignments make the canonical 2025 JV test copy populated for the Reports and Film Room harnesses. They are the builder's stand-ins, NOT the coach's decisions, and are never applied to coach data. The live mapping is the coach's, in docs/CHARTING-CUTOVER.md.",
+  "tokens": {
+    "Trips":      { "receiverSet": "3x1" },
+    "Doubles":    { "receiverSet": "2x2" },
+    "Twins":      { "receiverSet": "2x1" },
+    "Ace":        { "formationFamily": "Ace" },
+    "Beast":      { "formationFamily": "Beast" },
+    "Victory":    { "formationFamily": "Victory" },
+    "Bunch":      { "blank": true },
+    "Unbalanced": { "formationFamily": "Spread" }
+  },
+  "plays": {}
+}

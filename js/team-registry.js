@@ -322,7 +322,7 @@ export class TeamRegistry {
     // Season-meta play counts lag a debounced autosave, so also consult the
     // live tagger when a real season is open (a play tagged seconds ago counts).
     const store = storage?.seasonStore;
-    const hasRealTag = p => p?.tags && (p.tags.playType || p.tags.runPass || p.tags.result || p.tags.formation);
+    const hasRealTag = p => p?.tags && (p.tags.playType || p.tags.runPass || p.tags.result || p.tags.formationFamily);
     const liveTagged = store?.hasCurrent() && !storage.isDemoSeason(store.currentSeasonId)
       && (app?.tagger?.plays || []).some(hasRealTag);
     const taggedAnywhere = liveTagged || realSeasons.some(s => (s.plays || 0) > 0 && s.id !== store?.currentSeasonId);

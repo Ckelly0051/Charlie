@@ -13,8 +13,11 @@ import { TagProjection } from './tag-projection.js';
  *
  * It detects; it never converts. The checks are the conversion's own:
  *   - a charted play with no unit
- *   - a combined look (an alignment inside Formation, Empty inside Formation, a
- *     family inside Coverage): the look commit would still change it
+ *   - a combined look (an alignment inside the Formation Family, Empty inside
+ *     it, a family inside Coverage): the look commit would still change it
+ *   - the retired Formation field (one field that mixed family, receiver and
+ *     package words; converted once into Formation Family and Receiver Set), on a
+ *     play or as a play call's saved default
  *   - a retired Special Teams tag (stType, kickOutcome, scoreFor, kickDistance,
  *     returnYards, hangTime, kickedTo)
  *   - an extra point stored on a Field Goal unit
@@ -45,6 +48,7 @@ export class SeasonFormat {
     else {
       if (!this.UNITS.includes(tags.unit)) out.push('no unit');
       if (TagProjection.isCombined(tags)) out.push('combined look');
+      if (Object.prototype.hasOwnProperty.call(tags, 'formation')) out.push('retired Formation field');
       if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
       if (tags.custom != null && !Array.isArray(tags.custom)) out.push('custom tags not a list');
     }
@@ -70,6 +74,13 @@ export class SeasonFormat {
       return [{ where: '', problem: Array.isArray(data.plays) ? 'single-game save' : 'not a GridIron IQ season' }];
     }
     const out = [];
+    // A play call whose saved defaults name the retired Formation field.
+    const calls = this._isObject(data.playbook) && Array.isArray(data.playbook.calls) ? data.playbook.calls : [];
+    calls.forEach((call, ci) => {
+      if (this._isObject(call) && this._isObject(call.defaults) && Object.prototype.hasOwnProperty.call(call.defaults, 'formation')) {
+        out.push({ where: `play call ${call.name || ci + 1}`, problem: 'retired Formation default' });
+      }
+    });
     data.games.forEach((g, gi) => {
       const label = (this._isObject(g) && g.name) || `game ${gi + 1}`;
       if (!this._isObject(g)) { out.push({ where: label, problem: 'malformed game' }); return; }
@@ -96,12 +107,13 @@ export class SeasonFormat {
   static isCurrentGame(data) { return this.gameProblems(data).length === 0; }
 
   /** Template values minus anything retired or combined, so applying one
-   *  writes no old shape. */
+   *  writes no old shape. A template saved with the old Formation field applies
+   *  everything else; the coach re-saves it. */
   static currentTagValues(values) {
     const out = {};
     for (const [k, v] of Object.entries(values || {})) {
-      if (this.RETIRED_TAG_KEYS.includes(k)) continue;
-      if (['formation', 'backfield', 'coverage'].includes(k) && TagProjection.isCombined({ [k]: v })) continue;
+      if (this.RETIRED_TAG_KEYS.includes(k) || k === 'formation') continue;
+      if (['formationFamily', 'backfield', 'coverage'].includes(k) && TagProjection.isCombined({ [k]: v })) continue;
       out[k] = v;
     }
     return out;

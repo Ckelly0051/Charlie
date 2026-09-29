@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { TagLibrary } from './tag-library.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { ChartingDetails } from './charting-details.js';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -27,8 +28,13 @@ export const OPTIONS = {
   coverage:['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
   coverageFamily:['Man','Zone','Match'], blitz:['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
   hash:['Left','Middle','Right'], quarter:['Q1','Q2','Q3','Q4','OT'],
+  // Owned by ChartingDetails, the one home of the run and motion detail vocabularies.
+  receiverSet:ChartingDetails.RECEIVER_SETS.slice(), gap:ChartingDetails.GAPS.slice(),
+  motionStart:ChartingDetails.PATH_POINTS.slice(), motionEnd:ChartingDetails.PATH_POINTS.slice(),
+  rpoRead:ChartingDetails.RPO_READS.slice(), rpoDecision:ChartingDetails.RPO_DECISIONS.slice(), qbRun:ChartingDetails.QB_RUNS.slice(),
 };
-const MULTI = new Set(['formation','playType','result','defFront','blitz']);
+const MULTI = new Set(['playType','result','defFront','blitz']);
+const typeSelected = (value, type) => String(value || '').split(' + ').includes(type);
 const selected = (value, option) => String(value || '').split(' + ').includes(option);
 
 /* A collapsible field's label is its disclosure control. Folded, the field
@@ -46,14 +52,19 @@ function FieldLabel({screen, field, label, hint, collapsible, collapsed, summary
 
 function Chips({screen, field, label, options, value, hint, library, collapsible = false, collapsed = false}) {
   const choices = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
+  // A stored value the library does not offer (a hidden or removed custom choice)
+  // is still shown, selected, at the end of the list.
+  if (library) for (const item of String(value || '').split(' + ').filter(Boolean)) {
+    if (!choices.some(option => option.value === item)) choices.push({ value: item, label: item });
+  }
   const summary = String(value || '').split(' + ').filter(Boolean).map(item => choices.find(option => option.value === item)?.label || item).join(' + ');
   return <div class={`gi-tag-field gi-tag-field-${field}${collapsed ? ' is-collapsed' : ''}`} data-native-field={field} data-library-align={library ? '' : undefined}>
     <FieldLabel screen={screen} field={field} label={label} hint={hint} collapsible={collapsible} collapsed={collapsed} summary={summary}>
       {library && <button type="button" class="gi-tag-library" onClick={() => screen.openLibrary(library)}>Edit library</button>}
     </FieldLabel>
-    {!collapsed && <div class="gi-tag-chips" id={collapsible ? `giTagField-${field}` : undefined}>{choices.map(option =>
+    {!collapsed && <div class={`gi-tag-chips${library ? ' is-library' : ''}`} id={collapsible ? `giTagField-${field}` : undefined}>{choices.map(option =>
       <button type="button" key={option.value} class={selected(value, option.value) ? 'is-active' : ''}
-        aria-pressed={selected(value, option.value)}
+        aria-pressed={selected(value, option.value)} title={option.label}
         onClick={() => MULTI.has(field) ? screen.toggleField(field, option.value) : screen.setField(field, selected(value, option.value) ? '' : option.value)}>
         {option.label}
       </button>)}
@@ -71,7 +82,7 @@ function Field({screen, field, label, value, type='number', min, max, step, plac
 }
 
 const CALL_DEFAULT_LABELS = {
-  runPass:'Run / Pass', playType:'Play Type', playDir:'Direction', formation:'Formation',
+  runPass:'Run / Pass', playType:'Play Type', playDir:'Direction', formationFamily:'Formation Family', receiverSet:'Receiver Set',
   qbAlignment:'QB Alignment', backfield:'Backfield', strength:'Strength',
   personnel:'Personnel', motion:'Motion',
 };
@@ -152,6 +163,31 @@ function ResultField({screen, state}) {
     {selected(value, 'Fumble') && <Choice label="Fumble recovery" value={state.values.fumbleRecovery || 'unknown'}
       options={[[ 'subject', state.perspective === 'scout' ? 'Scouted team' : 'Our team' ],[ 'opponent', state.perspective === 'scout' ? 'Other team' : 'Opponent' ],['unknown','Unknown']]}
       choose={value => screen.setFumbleRecovery(value)}/>}
+  </div>;
+}
+
+/** Gap sits directly under Play Direction and opens with it: a direction, or a
+ *  stored gap, shows the ten choices in one row (ChartingDetails.GAPS). */
+function GapField({screen, state}) {
+  const gap = state.values.gap || '';
+  if (!state.values.playDir && !gap) return null;
+  return <div class="gi-tag-field gi-tag-gap" data-native-field="gap">
+    <div class="gi-tag-field-label"><span>Gap</span></div>
+    <div class="gi-tag-chips gi-tag-gap-row">{ChartingDetails.GAPS.map(option =>
+      <button type="button" key={option} class={gap === option ? 'is-active' : ''} aria-pressed={gap === option}
+        onClick={() => screen.setField('gap', gap === option ? '' : option)}>{option}</button>)}</div>
+  </div>;
+}
+
+/** The RPO decision read against Run/Pass: Give and Keep are runs, Throw a pass.
+ *  A disagreement is shown with the one-tap correction; nothing is overwritten. */
+function RpoConflict({screen, state}) {
+  const expected = ChartingDetails.rpoDecisionRunPass(state.values.rpoDecision);
+  const current = state.values.runPass;
+  if (!expected || !current || current === expected) return null;
+  return <div class="gi-tag-warning" role="status" data-rpo-conflict>
+    <p>{state.values.rpoDecision} is a {expected === 'Run' ? 'run' : 'pass'}; Run / Pass is {current}.</p>
+    <button type="button" onClick={() => screen.setField('runPass', expected)}>Set {expected}</button>
   </div>;
 }
 
@@ -268,7 +304,7 @@ function TryEditor({screen, state, st}) {
     <Choice label="Attempt" value={st.attemptType === 'twoPoint' && st.isFake ? 'fake' : st.attemptType}
       options={[['extraPoint','Kick XP'],['twoPoint','Run/Pass'],['fake','Fake']]} choose={v => screen.specialAction('tryAttempt',v)}/>
     <Choice label="Official result" value={st.result} options={Object.entries(TRY_RESULT_LABELS)} choose={v => screen.specialAction('tryResult',v)}/>
-    <div class="gi-tag-field"><div class="gi-tag-field-label"><span>What happened</span><small>optional</small></div><div class="gi-tag-chips">
+    <div class="gi-tag-field"><div class="gi-tag-field-label"><span>What happened</span></div><div class="gi-tag-chips">
       {[['badSnap','Bad Snap'],['blocked','Blocked'],['defensiveReturn','Defensive Return']].map(([v,l]) =>
         <button type="button" key={v} class={st.events[v] ? 'is-active' : ''} onClick={() => screen.specialAction('tryEvent',v)}>{l}</button>)}
       {[['interception','Interception'],['fumble','Fumble']].map(([v,l]) =>
@@ -381,6 +417,7 @@ export function NativeTagging({screen}) {
     return () => screen.detachHost(host);
   }, [screen]);
   const chips = (field,label,options,hint,library) => <Chips screen={screen} field={field} label={label} options={options} value={state.values[field]} hint={hint} library={library}/>;
+  const playTypeValue = state.values.playType;
   return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging ref={root}>
     <header class="gi-tag-context">
       <div class="gi-tag-title">
@@ -427,20 +464,33 @@ export function NativeTagging({screen}) {
         // second. The group a coach is actually charting leads. A run/pass or
         // Fake try shows the attempting or defending side's groups.
         const side = lookSide(state);
-        const offense = <Group key="off" title={side === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Offensive Look' : 'Our Offensive Look'} open={side !== 'defense'} syncOpen>
+        const offense = <Group key="off" title={side === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Formation & Call' : 'Formation & Call'} open={side !== 'defense'} syncOpen>
           <PlayCallField screen={screen} state={{ ...state, unit: side }}/>
-          {chips('formation','Formation',state.libraries.formation,'select all','formation')}
-          {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment,'optional')}
-          {chips('backfield','Backfield',state.libraries.backfield,'optional','backfield')}
+          {chips('formationFamily','Formation Family',state.libraries.formationFamily,'','formationFamily')}
+          {chips('receiverSet','Receiver Set',OPTIONS.receiverSet)}
+          {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment)}
+          {chips('backfield','Backfield',state.libraries.backfield,'','backfield')}
           {chips('strength','Strength',OPTIONS.strength)}{chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
+          {state.values.motion && <div class="gi-tag-detail gi-tag-pair" data-native-detail="motion">
+            {chips('motionStart','Starts',OPTIONS.motionStart)}{chips('motionEnd','Ends',OPTIONS.motionEnd)}
+          </div>}
         </Group>;
         const defense = <Group key="def" title={side === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} open={side === 'defense'} syncOpen>
-          {chips('defFront','Front',state.libraries.defFront,'select all','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
-          {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily,'optional')}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
+          {chips('defFront','Front',state.libraries.defFront,'','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
+          {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily)}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
         const playResult = <Group key="pr" title="Play &amp; Result" open>
-          {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={state.values.playType} library="playType" collapsible collapsed={!!state.collapsed?.playType}/>
-          {chips('playDir','Direction',OPTIONS.playDir)}<ResultField screen={screen} state={state}/>
+          {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={playTypeValue} library="playType" collapsible collapsed={!!state.collapsed?.playType}/>
+          {typeSelected(playTypeValue,'RPO') && <div class="gi-tag-detail" data-native-detail="rpo">
+            {chips('rpoRead','Read defender',OPTIONS.rpoRead)}
+            <Field screen={screen} field="rpoDefender" label="Defender #" value={state.values.rpoDefender} min="0" max="99" placeholder="Jersey number"/>
+            {chips('rpoDecision','Decision',OPTIONS.rpoDecision)}
+            <RpoConflict screen={screen} state={state}/>
+          </div>}
+          {typeSelected(playTypeValue,'QB Run') && <div class="gi-tag-detail" data-native-detail="qbRun">
+            {chips('qbRun','QB run type',OPTIONS.qbRun)}
+          </div>}
+          {chips('playDir','Play Direction',OPTIONS.playDir)}<GapField screen={screen} state={state}/><ResultField screen={screen} state={state}/>
           <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
         </Group>;
         return <>{side === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;

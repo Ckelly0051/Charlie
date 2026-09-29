@@ -1,5 +1,26 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
+> **Revision 2026-09-28 (charting cutover, Step 1) — the `formation` field is
+> retired.** The old multi-select mixed family, receiver and package words
+> ("Spread + Doubles", "Trips + Unbalanced"). The current format stores
+> `formationFamily` (one value, a coach-managed library group seeded with Spread,
+> Power-I, I-Form, Split Back, Singleback, Wing-T, Flexbone, Wishbone, Wildcat,
+> Double Wing, Single Wing) and `receiverSet` (one value from
+> `ChartingDetails.RECEIVER_SETS`), and has no `formation` key at all:
+> `SeasonFormat` refuses a play, a play call default or a template that carries
+> it. Wherever this document says "formation", read Formation Family; the
+> multi-value and "Trips / Bunch" passages are history. New owned fields, all in
+> `js/charting-details.js`: `gap` (L-A..L-D, R-A..R-D, Center, Other; a sided gap
+> sets Play Direction, Center sets Middle, a direction that contradicts the gap
+> clears it), `motionStart` / `motionEnd` (offense left / middle / right, opened by
+> Motion), `rpoRead` / `rpoDefender` / `rpoDecision` (opened by the RPO Play Type)
+> and `qbRun` (Designed / Scramble / RPO Keeper, opened by the QB Run Play Type).
+> `QB Run` and `Reverse` are Play Types that never fill or imply Run/Pass. A
+> detail is never stored without the field that opens it; removing that field
+> clears its details in the same write, after the coach confirms. Nothing here is
+> inferred from the call, the result or another tag; blank is uncharted. The
+> conversion of stored data is recorded in `docs/CHARTING-CUTOVER.md`.
+
 > **Revision 2026-09-26 (legacy excision Pass 2, step 7) — supersedes the
 > read-time projection.** Each look field (formation, QB alignment, backfield,
 > strength, coverage call, coverage family) is stored in its own field and read

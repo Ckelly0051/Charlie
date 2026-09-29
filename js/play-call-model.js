@@ -1,4 +1,5 @@
 import { StatsEngine } from './stats-engine.js';
+import { ChartingDetails } from './charting-details.js';
 
 /** DOM-free play-call application rules shared by Chart and Film Room. */
 export class PlayCallModel {
@@ -42,6 +43,9 @@ export class PlayCallModel {
         applied.runPass = inferred;
       }
     }
+    // A call's default direction or motion may leave a charted Gap or path
+    // disagreeing with it; the same settling every chart write makes.
+    ChartingDetails.settle(play.tags, 'playDir');
     play.tags.playCall = next.name;
     play.tags.playCallId = next.id;
     play.tags.playConcept = next.concept;

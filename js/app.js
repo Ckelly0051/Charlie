@@ -1302,6 +1302,8 @@ class App {
       'KeyQ': ['playType', 'RPO'],
       'KeyB': ['playType', 'Option'],
       'KeyX': ['playType', 'Trick Play'],
+      'KeyH': ['playType', 'QB Run'],
+      'KeyJ': ['playType', 'Reverse'],
       'KeyG': ['result', 'Gain'],
       'KeyL': ['result', 'Loss'],
       'KeyN': ['result', 'No Gain'],

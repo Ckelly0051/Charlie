@@ -4,6 +4,7 @@ import { SeasonStore } from './season-store.js';
 import { TagProjection } from './tag-projection.js';
 import { SeasonFormat } from './season-format.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { ChartingDetails } from './charting-details.js';
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
 
@@ -32,8 +33,8 @@ export class PlayTagger {
     this.autoDD = (typeof localStorage === 'undefined')
       || localStorage.getItem('ffa_auto_dd') !== '0';
 
-    // Carry scheme: pre-fill the next play's alignment fields (formation,
-    // personnel, def front, coverage) from the previous play. Opt-in — teams
+    // Carry scheme: pre-fill the next play's alignment fields (formation family,
+    // receiver set, personnel, def front, coverage) from the previous play. Opt-in — teams
     // that rarely change looks save four taps a snap. Default OFF.
     this.carryScheme = (typeof localStorage !== 'undefined')
       && localStorage.getItem('ffa_carry_scheme') === '1';
@@ -55,10 +56,12 @@ export class PlayTagger {
    */
   static blankTags({ unit = 'offense', driveNumber = '' } = {}) {
     return {
-      down: '', distance: '', formation: '', qbAlignment: '', backfield: '', strength: '',
+      down: '', distance: '', formationFamily: '', receiverSet: '', qbAlignment: '', backfield: '', strength: '',
       playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
       defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '',
       hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
+      // Details opened by the fields above (ChartingDetails): blank is uncharted.
+      motionStart: '', motionEnd: '', gap: '', rpoRead: '', rpoDefender: '', rpoDecision: '', qbRun: '',
       driveNumber: String(driveNumber ?? ''), unit,
       players: {}, grades: {}, custom: [], customFields: {},
     };
@@ -109,7 +112,7 @@ export class PlayTagger {
     const p = this.plays[0];
     if (!p.autoFull) return null;
     const t = p.tags || {};
-    const untouched = !t.playType && !t.result && !t.formation && !t.runPass &&
+    const untouched = !t.playType && !t.result && !t.formationFamily && !t.runPass &&
       !t.yardage && !(p.notes || '').trim();
     return untouched ? p : null;
   }
@@ -290,8 +293,8 @@ export class PlayTagger {
   // play concept). Play-specific fields (result, yardage, players, notes,
   // down/distance — owned by Auto D&D) are intentionally NOT copied.
   static get SCHEME_KEYS() {
-    return ['unit', 'qbAlignment', 'formation', 'backfield', 'strength', 'personnel',
-            'motion', 'runPass', 'playType', 'defFront', 'coverage', 'coverageFamily',
+    return ['unit', 'qbAlignment', 'formationFamily', 'receiverSet', 'backfield', 'strength', 'personnel',
+            'motion', 'motionStart', 'motionEnd', 'runPass', 'playType', 'defFront', 'coverage', 'coverageFamily',
             'blitz', 'hash'];
   }
 
@@ -575,6 +578,11 @@ export class PlayTagger {
       }
     }
 
+    // A gap sets its direction, a direction that contradicts the gap clears it,
+    // and a detail whose opening field is gone is cleared, all in this one write
+    // (ChartingDetails). Chart and Film Room both come through here.
+    ChartingDetails.settle(play.tags, key);
+
     // Entering positive yardage with no result yet means a gain — fill the
     // chip so the coach doesn't tap "Gain" on every routine play. Any explicit
     // result (or a later edit) still wins.
@@ -592,6 +600,40 @@ export class PlayTagger {
       this._applyYardageSign(play);
     }
     this._emit('play-updated', play);
+  }
+
+  /**
+   * The chart write with its confirmation: what Chart and Film Room call. A
+   * write that removes the field opening populated details (Motion, the RPO or
+   * QB Run Play Type, or the Play Direction a Gap sits under) says what it
+   * clears and waits for the coach; declining changes nothing. Everything else
+   * writes at once. Returns a boolean, or a promise of one when it asked.
+   * `toggle` treats `value` as a chip tap (see toggleTagValue).
+   */
+  requestTagValue(key, value, { toggle = false, play = this.getCurrentPlay() } = {}) {
+    if (!play) return false;
+    const next = toggle ? this.toggledTagValue(key, value, play) : (value == null ? '' : value);
+    const removals = ChartingDetails.orphans(play.tags, key, next).filter(item => !item.coupled);
+    const write = () => (toggle ? this.toggleTagValue(key, value, play) : this.setTagValue(key, value, play));
+    if (!removals.length) return write();
+    return this._confirmDialog(ChartingDetails.clearMessage(removals), 'Clear').then(ok => (ok ? write() : false));
+  }
+
+  /** The value a chip tap on `key` would store: the toggled multi-select
+   *  string, or the value itself (blank when already set) for a single-select. */
+  toggledTagValue(key, value, play = this.getCurrentPlay()) {
+    if (!play) return '';
+    const current = this.displayTagValue(key, play);
+    if (!PlayTagger.MULTI_TAGS.includes(key)) return current === value ? '' : value;
+    let parts = current.split(/\s*\+\s*/).map(v => v.trim()).filter(Boolean);
+    if (parts.includes(value)) parts = parts.filter(v => v !== value);
+    else {
+      for (const group of PlayTagger.EXCLUSIVE_GROUPS[key] || []) {
+        if (group.includes(value)) parts = parts.filter(v => !group.includes(v));
+      }
+      parts.push(value);
+    }
+    return parts.join(' + ');
   }
 
   /** The value Chart shows for a tag: the projected value for the look fields,
@@ -613,26 +655,11 @@ export class PlayTagger {
    *  when it is already set. Then the one write. */
   toggleTagValue(key, value, play = this.getCurrentPlay()) {
     if (!play) return false;
-    const current = this.displayTagValue(key, play);
-    let next;
-    if (PlayTagger.MULTI_TAGS.includes(key)) {
-      let parts = current.split(/\s*\+\s*/).map(v => v.trim()).filter(Boolean);
-      if (parts.includes(value)) parts = parts.filter(v => v !== value);
-      else {
-        for (const group of PlayTagger.EXCLUSIVE_GROUPS[key] || []) {
-          if (group.includes(value)) parts = parts.filter(v => !group.includes(v));
-        }
-        parts.push(value);
-      }
-      next = parts.join(' + ');
-    } else {
-      next = current === value ? '' : value;
-    }
-    return this.setTagValue(key, next, play);
+    return this.setTagValue(key, this.toggledTagValue(key, value, play), play);
   }
 
   /** Multi-select tags, stored as " + "-joined strings. */
-  static MULTI_TAGS = Object.freeze(['formation', 'playType', 'result', 'blitz', 'defFront']);
+  static MULTI_TAGS = Object.freeze(['playType', 'result', 'blitz', 'defFront']);
 
   /** Player attribution (jersey #) by role; blank removes it. */
   setPlayerValue(role, value, play = this.getCurrentPlay()) {
@@ -701,7 +728,7 @@ export class PlayTagger {
 
   /**
    * Map a play type to Run/Pass when it's unambiguous, else '' (ambiguous:
-   * RPO, Option, Play Action, Trick Play — coach picks). `Option` is ambiguous
+   * RPO, Option, QB Run, Reverse, Play Action, Trick Play — coach picks). `Option` is ambiguous
    * for the same reason RPO is and for a different football reason: the read
    * happens after the snap, so the realized play can be either. It is NOT in
    * EXCLUSIVE_GROUPS.playType, so `Option + Run Outside` charts the call and the
@@ -710,7 +737,7 @@ export class PlayTagger {
   static runPassForPlayType(playType) {
     const runTypes = new Set(['Run Inside','Run Outside']);
     const passTypes = new Set(['Screen','Short Pass','Medium Pass','Deep Pass']);
-    const ambiguousTypes = new Set(['RPO','Option','Play Action','Trick Play']);
+    const ambiguousTypes = new Set(['RPO','Option','QB Run','Reverse','Play Action','Trick Play']);
     const types = StatsEngine.splitPlayTypes(playType);
     if (types.some(type => !runTypes.has(type) && !passTypes.has(type) && !ambiguousTypes.has(type))) return '';
     const classified = new Set(types.map(type =>
@@ -839,7 +866,7 @@ export class PlayTagger {
   /** Alignment fields the carry-scheme toggle copies forward — pre-snap looks
    *  only, never what happened on the snap (play type / result / yardage). */
   static get CARRY_SCHEME_KEYS() {
-    return ['qbAlignment', 'formation', 'backfield', 'strength', 'personnel',
+    return ['qbAlignment', 'formationFamily', 'receiverSet', 'backfield', 'strength', 'personnel',
             'defFront', 'coverage', 'coverageFamily'];
   }
 
