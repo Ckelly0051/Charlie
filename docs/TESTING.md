@@ -92,6 +92,13 @@ the supplemental comp at 1920, 1440, 1280 and 390 on an isolated canonical
 fixture copy; receiver selections are illustrative, and source hashes are
 verified unchanged. Evidence is under `artifacts/receiver-look-review/`.
 
+Adversarial follow-up (2026-09-29): `e2e-receiver-look` also rejects non-string
+Receiver Alignment on plays, game snapshots and call defaults.
+`e2e-charting-convert` pins pre-stage refusal of invalid converted seasons and
+failed catalog round-trip proofs, plus exact approved strength mappings and
+refusal of unapproved/wrong strength changes. The new regressions failed on the
+unfixed source. Build and seven affected suites passed; no full gate or live write.
+
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.
 

@@ -6,6 +6,18 @@ been written, no full gate has run and no installer exists.** The live conversio
 coach's answers in "Decisions needed" and an explicit yes immediately before the
 write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
 
+Adversarial-review repairs, 2026-09-29: the three findings in
+843154e8..c4940657 are repaired in source. Before staging, the conversion now
+requires passing identity, film, unrelated-tag, other-play-field, game-field
+and catalog round-trip proofs, zero current-format problems and zero unexpected
+analytics differences. A strength change is permitted only when the exact
+play's mapping authorizes that exact value; analytics comparisons account for
+that approved value without allowing arbitrary strength changes. Fixed-vocabulary
+details, including Receiver Alignment, reject non-string values rather than
+stringifying arrays. Regression tests failed before the fixes and pass after.
+Build and seven focused suites passed, including parity. No live conversion,
+full gate, installer or installed approval was performed.
+
 Formation-model checkpoint, 2026-09-29: **built in source, IMPLEMENTED_UNVERIFIED.**
 Coach-named Formation (stored as `formationFamily`) accepts Trips, Twins,
 Bunch, Tight Bunch, Ace, Doubles, Beast and Victory, plus existing and custom

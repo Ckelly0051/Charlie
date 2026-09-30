@@ -1,5 +1,21 @@
 # GridIron IQ Open Defects
 
+## Charting adversarial review, 2026-09-29
+
+Three findings from 843154e8..c4940657 are **REPAIRED IN SOURCE**, not installed:
+
+- P2: conversion could swap a catalog whose season failed current-format checks.
+  The write now refuses failed format or preservation proofs before staging.
+- P2: Receiver Alignment arrays could pass validation and then display blank.
+  Fixed-vocabulary details now require string values (null/missing remain blank).
+- P3: explicitly approved strength mappings falsely failed the unrelated-tag
+  proof. The proof now permits only the exact mapped strength for the exact play;
+  unapproved and wrong-value changes still fail.
+
+Failing-first regression checks and seven focused suites passed, including
+analytics parity. No coach data was touched. No full gate, package or smoke;
+BD-UX-1/2 and the live cutover remain pending their existing checkpoints.
+
 ## Break Down next update (coach finding, 2026-09-28)
 
 **BD-UX-1 — OPEN (source IMPLEMENTED_UNVERIFIED 2026-09-28; see Charting
