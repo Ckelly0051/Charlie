@@ -64,13 +64,11 @@ Coach smoke feedback, 2026-09-30: the coach reports re-charting plays 3, 4,
 23 and 60 listed above. This is a coach report, not a new catalog audit; the
 pre-smoke catalog hash is historical after these edits.
 
-**S107-1 - Formation vocabulary, open.** Bunch is a modifier of Trips. Separate
-Trips and Bunch chips cannot represent that combination with the current
-single-select Formation field. The coach raised either multiple selection or
-distinct Bunch / Tight Bunch selections. Those two names already exist as
-standalone Formations; the unresolved issue is representing the complete Trips
-formation unambiguously. Recommendation, not yet approved: distinct complete
-names Trips Bunch and Trips Tight Bunch, keeping Formation single-select.
-No repair or coach-data rewrite while smoke findings are being collected.
+**S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
+reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are
+acceptable as separate formations for now. Keep the current single-select
+Formation model and vocabulary. No multi-select or new compound names requested;
+no repair or coach-data rewrite required. This resolves only this finding, not
+the overall smoke acceptance.
 
 Overall smoke approval pending. No push, tag, publication or auto-installation.

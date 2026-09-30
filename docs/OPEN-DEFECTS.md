@@ -2,13 +2,11 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
-**S107-1 - Formation vocabulary, OPEN.** Coach identifies Bunch as a modifier
-of Trips: separate Trips and Bunch chips cannot be combined with the current
-single-select Formation field. Bunch and Tight Bunch already exist as standalone
-choices; clarify complete formation names rather than treating their presence
-as a resolution. Coach proposed multi-select or distinct choices. Recommended,
-not approved: Trips Bunch and Trips Tight Bunch as complete single selections.
-Record only during smoke; no code repair or data migration yet.
+**S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** Coach
+reviewed the existing controls and confirmed Bunch and Tight Bunch are acceptable
+as separate formations for now. Retain the current single-select model and
+vocabulary. No multi-select, new compound names, code repair or data migration
+requested. This is not an open defect or future work item.
 
 Coach reports completing the four requested re-charts (2025 JV, Week 6 vs Holy
 Family Wildcats, plays 3, 4, 23, 60). No independent audit of those edits; the
