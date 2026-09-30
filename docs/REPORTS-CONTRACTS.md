@@ -17,10 +17,11 @@ a separate, evidenced step.
 ## Cross-cutting
 
 - **College sack accounting (coach ruling, 2026-09-30).** A sack counts once as
-  a team/QB rushing attempt and its signed yardage belongs to rushing, never
+  a team/passer rushing attempt and its signed yardage belongs to rushing, never
   passing yards or passing attempts. Use `StatsEngine.isRushingAttempt` and
-  `rushingPlayer` for statistical rushing. Credit only the charted QB; never
-  infer an identity. Called Run/Pass stays unchanged for tendencies, dropback
+  `rushingPlayer` for statistical rushing. Credit only the charted Passer,
+  regardless of roster position; never infer an identity or fall back to Ball
+  Carrier on a sack. Called Run/Pass stays unchanged for tendencies, dropback
   performance and film. Passer grades remain on the passer role, not duplicated
   into rushing grades. Team, opponent, Defense, Players, Study and exports must
   agree on these statistical lines; called-play yards/play still measures the

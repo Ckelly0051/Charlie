@@ -116,7 +116,7 @@ export class StatsEngine {
 
   static rushingPlayer(p) {
     const players = StatsEngine.effectivePlayers(p);
-    return StatsEngine.hasResult(p, 'Sack') ? (players.passer || players.ballCarrier) : players.ballCarrier;
+    return StatsEngine.hasResult(p, 'Sack') ? players.passer : players.ballCarrier;
   }
 
   /** Team turnovers across charted phases, not net margin or routine kicks. */

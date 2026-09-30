@@ -86,10 +86,11 @@ module or goes through `window.app`.
 
 ## Binding data rules
 
-**Football accounting:** sacks are QB/team rushing attempts and signed rushing
+**Football accounting:** sacks are passer/team rushing attempts and signed rushing
 losses (college convention, coach ruling 2026-09-30), never passing attempts or
 passing yards. Keep called Run/Pass unchanged for tendencies and film. Use the
-StatsEngine rushing owners; never guess an uncharted QB or rewrite coach tags.
+StatsEngine rushing owners; credit the charted Passer regardless of position,
+never fall back to Ball Carrier on a sack or rewrite coach tags.
 
 **Coach data**
 - Never migrate, clear or rewrite known-bad data. Cleanup needs an impact report

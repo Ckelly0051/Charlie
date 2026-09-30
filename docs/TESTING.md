@@ -1,9 +1,13 @@
 # Testing
 
-S107-6 college sack convention: charting-details 94/94, Study players 39/39,
+S107-6 college sack convention: charting-details additionally pins attribution
+to Passer regardless of position and no Ball Carrier fallback when Passer is blank
+(96/96). Study players remains 39/39; parity 2/2, with additional canonical changes
+confined to rushing player rows/refs, no team-total or other metric changes.
+The prior focused checkpoint was charting-details 94/94, Study players 39/39,
 Defense board 60/60 and canonical Defense real-data 95/95. Season 100/100,
 Players 239/239 and Overview 118/118 also passed during the focused repair run.
-The independent raw-field audit compares team/opponent/QB production across
+The independent raw-field audit compares team/opponent/passer production across
 every game and season in the three live seasons plus the canonical fixture:
 437/437, coach catalog hash unchanged. Receipt:
 `docs/sack-accounting-verification-2026-09-30.json`. Canonical parity changes are

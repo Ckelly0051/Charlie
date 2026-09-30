@@ -23,15 +23,17 @@ found passing totals net of sacks in `_passingStats`, versus sacks excluded
 from passing attempts/YPA in the Defense board. Coach ruling 2026-09-30:
 sacks are not pass attempts and their losses belong in rushing yards, not
 passing yards. Coach further confirmed college-style treatment: each sack is
-one QB/team rushing attempt and negative QB/team rushing yards. Keep dropback
+one passer/team rushing attempt and negative passer/team rushing yards. Keep dropback
 and called-play classifications unchanged for tendency analysis.
 The prior audit's 164 passing yards / 6.8 YPA followed the old net-of-sacks
 formula; it verified arithmetic but not the now-settled football convention.
 Those values must not be described as the correct post-repair convention.
-Team/opponent production, Defense yard columns, QB rushing credits, Study's
+Team/opponent production, Defense yard columns, passer rushing credits, Study's
 rushing player cohort and passing/Play Action averages now use that convention.
 Sack film stays in the called-pass cohort; passer grades are not copied into
-rushing grades. Missing QB attribution is not guessed. Live 2025 JV: 191 passing
+rushing grades. Coach clarified that Passer is a charted role, not necessarily
+the QB position: only Passer receives a sack loss, with no Ball Carrier fallback.
+Missing passer attribution is not guessed. Live 2025 JV: 191 passing
 yards / 24 attempts / 8.0 YPA; 866 rushing yards / 148 attempts. The three
 called-pass sacks move 27 yards into rushing. Other plays already tagged Run
 with Sack stay Run; no charted classification is rewritten.

@@ -27,7 +27,7 @@ console.log('\n== Vocabulary ==');
   ok(stats.rushing.attempts === 1 && stats.rushing.yards === -7, 'a sack is a team rushing attempt and lost rushing yards');
   ok(stats.rushing.yards + stats.passing.yards === 13, 'reassigning sack yards preserves total offense');
   const qb = stats.individuals.rushers.find(p => p.num === '12');
-  ok(qb?.attempts === 1 && qb.yards === -7, 'the charted QB receives the sack rushing attempt and loss');
+  ok(qb?.attempts === 1 && qb.yards === -7, 'the charted passer receives the sack rushing attempt and loss');
   ok(stats.individuals.passers[0].attempts === 1 && stats.individuals.passers[0].yards === 20 && stats.individuals.passers[0].sacks === 1, 'QB passing line excludes sack yards and still records sacks');
   ok(StatsEngine.isPass(sack) && !StatsEngine.isRun(sack), 'a sack retains its called-pass classification');
   const faced = [completion, sack].map(p => ({ ...p, tags: { ...p.tags, unit: 'defense' } }));
@@ -36,7 +36,13 @@ console.log('\n== Vocabulary ==');
   const defense = engine.defenseDashboard(faced).summary;
   ok(defense.runYards === -7 && defense.passYards === 20 && defense.yards === 13, 'Defense board reallocates sack losses without changing total yards');
   const unknown = engine.compute([{ ...sack, tags: { ...sack.tags, players: {} } }]);
-  ok(unknown.rushing.attempts === 1 && unknown.individuals.rushers.length === 0, 'an uncharted QB is not guessed; the team still receives the sack loss');
+  ok(unknown.rushing.attempts === 1 && unknown.individuals.rushers.length === 0, 'an uncharted passer is not guessed; the team still receives the sack loss');
+  const nonQb = engine.compute([{ ...sack, tags: { ...sack.tags, players: { passer: '88', ballCarrier: '12' } } }]);
+  ok(nonQb.individuals.rushers.length === 1 && nonQb.individuals.rushers[0].num === '88' && nonQb.individuals.rushers[0].yards === -7,
+    'sack loss belongs to the passer regardless of position or a different ball carrier');
+  const carrierOnly = engine.compute([{ ...sack, tags: { ...sack.tags, players: { ballCarrier: '12' } } }]);
+  ok(carrierOnly.rushing.attempts === 1 && carrierOnly.individuals.rushers.length === 0,
+    'blank Passer never falls back to Ball Carrier on a sack');
   const overlap = engine.compute([{ ...sack, tags: { ...sack.tags, result: 'Sack + Gain' } }]);
   ok(overlap.passing.attempts === 0 && overlap.passing.yards === 0 && overlap.individuals.passers[0].attempts === 0, 'Sack excludes passing credit even with another result chip');
 }

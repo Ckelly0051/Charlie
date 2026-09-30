@@ -1,6 +1,6 @@
 {
   "date": "2026-09-30",
-  "rule": "College: sacks are QB/team rushing attempts and losses, never pass attempts or passing yards",
+  "rule": "College: sacks are charted passer/team rushing attempts and losses, never pass attempts or passing yards; no Ball Carrier fallback",
   "checks": 437,
   "catalogHashBefore": "745af736c30ede2cf9d75ea1f3b952cb8965ec0c1dc5a4b59edf21101d8de509",
   "catalogHashAfter": "745af736c30ede2cf9d75ea1f3b952cb8965ec0c1dc5a4b59edf21101d8de509",

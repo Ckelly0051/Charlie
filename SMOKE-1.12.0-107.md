@@ -5,7 +5,7 @@
 Additional source repair S107-5: Overview Turnovers counts total team losses,
 including explicit Special Teams losses; NDP reads 1, with no subtext. Not in
 this installer. S107-6 is also repaired in source: college convention credits
-each sack as a QB/team rushing attempt and loss, never a passing attempt or yards.
+each sack as a passer/team rushing attempt and loss, never a passing attempt or yards.
 Independent audit 437/437, catalog unchanged. Live 2025 JV now has 191 passing
 yards / 24 attempts / 8.0 YPA, and 866 rushing yards / 148 attempts. Neither
 repair is in this installer; focused checks do not replace a new gate and smoke.
