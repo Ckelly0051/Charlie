@@ -61,8 +61,27 @@ not before packaging; the verified backup remains unchanged.
 ## Result
 
 Coach smoke feedback, 2026-09-30: the coach reports re-charting plays 3, 4,
-23 and 60 listed above. This is a coach report, not a new catalog audit; the
-pre-smoke catalog hash is historical after these edits.
+23 and 60 listed above. Independently verified from the live catalog on
+2026-09-30: play 3 Trips / 3x0 / Unbalanced Right; play 4 Tight Bunch / 3x0 /
+Unbalanced Left; play 23 Split Back / 1x1 / Left; play 60 Bunch / 3x0 /
+Unbalanced Left (Formation / Receiver Alignment / Offensive Line Strength).
+The pre-smoke catalog hash is historical after these edits.
+
+Read-only data/browser audit: **1,529 checks passed, zero failures**. Evidence:
+`docs/smoke-data-verification-1.12.0-107-2026-09-30.json`. All three seasons
+(919 live plays), retained backups and versions pass current-format checks.
+Independent run-gap cohort/count/yardage/film-reference checks cover all games
+on offense and defense. Actual Offense Structure screens and HTML exports were
+checked for the 11 games with classified offensive snaps; four Varsity games
+have no classified offensive snaps and were not exercised as populated screens.
+No live Gap values or RPO read/decision details are charted, so their absence
+is expected. A disposable 2025 JV Week 6 copy with five assigned gaps verifies
+populated counts, average yardage and film references without altering coach data.
+Live catalog SHA-256 before and after the audit:
+`345842261d59ab2545275dcfb2fa06931522eb9c2be58feb198aa2e32eaa6e3f`.
+This is not an independent recalculation of every report statistic or proof of
+native desktop film playback, filesystem behavior or persistence after restart.
+Overall installed smoke remains pending.
 
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
 reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are

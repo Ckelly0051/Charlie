@@ -9,8 +9,10 @@ vocabulary. No multi-select, new compound names, code repair or data migration
 requested. This is not an open defect or future work item.
 
 Coach reports completing the four requested re-charts (2025 JV, Week 6 vs Holy
-Family Wildcats, plays 3, 4, 23, 60). No independent audit of those edits; the
-pre-smoke hash is not asserted as the current catalog hash. Overall smoke
+Family Wildcats, plays 3, 4, 23, 60). A read-only live-catalog/browser audit now
+verifies those edits: 1,529 checks passed, no defects in the tested scope.
+Evidence and limits: `docs/smoke-data-verification-1.12.0-107-2026-09-30.json`
+and `SMOKE-1.12.0-107.md`. The pre-smoke hash is historical. Overall smoke
 acceptance remains pending. Checklist/feedback: `SMOKE-1.12.0-107.md`.
 
 ## Charting adversarial review, 2026-09-29

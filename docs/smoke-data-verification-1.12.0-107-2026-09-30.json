@@ -1,0 +1,427 @@
+{
+  "date": "2026-09-30T17:00:56.797Z",
+  "sourceHash": "345842261d59ab2545275dcfb2fa06931522eb9c2be58feb198aa2e32eaa6e3f",
+  "sourceHashAfter": "345842261d59ab2545275dcfb2fa06931522eb9c2be58feb198aa2e32eaa6e3f",
+  "checks": 1529,
+  "failed": 0,
+  "findings": [],
+  "rechart": [
+    {
+      "play": 3,
+      "formation": "Trips",
+      "receiverAlignment": "3x0",
+      "lineStrength": "Unbalanced Right",
+      "gap": ""
+    },
+    {
+      "play": 4,
+      "formation": "Tight Bunch",
+      "receiverAlignment": "3x0",
+      "lineStrength": "Unbalanced Left",
+      "gap": ""
+    },
+    {
+      "play": 23,
+      "formation": "Split Back",
+      "receiverAlignment": "1x1",
+      "lineStrength": "Left",
+      "gap": ""
+    },
+    {
+      "play": 60,
+      "formation": "Bunch",
+      "receiverAlignment": "3x0",
+      "lineStrength": "Unbalanced Left",
+      "gap": ""
+    }
+  ],
+  "coverage": [
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "plays": 440,
+      "fields": {
+        "formationFamily": 345,
+        "receiverSet": 5,
+        "strength": 298,
+        "gap": 0,
+        "motionStart": 1,
+        "motionEnd": 1,
+        "rpoRead": 0,
+        "rpoDecision": 0,
+        "qbRun": 1
+      }
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "plays": 293,
+      "fields": {
+        "formationFamily": 87,
+        "receiverSet": 0,
+        "strength": 113,
+        "gap": 0,
+        "motionStart": 0,
+        "motionEnd": 0,
+        "rpoRead": 0,
+        "rpoDecision": 0,
+        "qbRun": 0
+      }
+    },
+    {
+      "season": "SJM JV 2026",
+      "plays": 186,
+      "fields": {
+        "formationFamily": 64,
+        "receiverSet": 0,
+        "strength": 60,
+        "gap": 0,
+        "motionStart": 0,
+        "motionEnd": 0,
+        "rpoRead": 0,
+        "rpoDecision": 0,
+        "qbRun": 0
+      }
+    }
+  ],
+  "changesSinceVerifiedConversion": [
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 3,
+      "fields": {
+        "strength": {
+          "before": "Right",
+          "after": "Unbalanced Right"
+        },
+        "unit": {
+          "before": "defense",
+          "after": "offense"
+        },
+        "formationFamily": {
+          "before": "",
+          "after": "Trips"
+        },
+        "receiverSet": {
+          "before": "",
+          "after": "3x0"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 4,
+      "fields": {
+        "playType": {
+          "before": "Run Outside + RPO",
+          "after": "Run Outside + QB Run"
+        },
+        "strength": {
+          "before": "Left",
+          "after": "Unbalanced Left"
+        },
+        "formationFamily": {
+          "before": "",
+          "after": "Tight Bunch"
+        },
+        "receiverSet": {
+          "before": "",
+          "after": "3x0"
+        },
+        "motionStart": {
+          "before": "",
+          "after": "Right"
+        },
+        "motionEnd": {
+          "before": "",
+          "after": "Left"
+        },
+        "qbRun": {
+          "before": "",
+          "after": "Designed"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 5,
+      "fields": {
+        "playType": {
+          "before": "Run Outside + RPO",
+          "after": "Medium Pass"
+        },
+        "runPass": {
+          "before": "Run",
+          "after": "Pass"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 13,
+      "fields": {
+        "playType": {
+          "before": "RPO",
+          "after": "Medium Pass"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 23,
+      "fields": {
+        "formationFamily": {
+          "before": "",
+          "after": "Split Back"
+        },
+        "receiverSet": {
+          "before": "",
+          "after": "1x1"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 60,
+      "fields": {
+        "coverage": {
+          "before": "",
+          "after": "Cover 3"
+        },
+        "backfield": {
+          "before": "Beast",
+          "after": "Empty"
+        },
+        "strength": {
+          "before": "Left",
+          "after": "Unbalanced Left"
+        },
+        "personnel": {
+          "before": "",
+          "after": "02"
+        },
+        "formationFamily": {
+          "before": "",
+          "after": "Bunch"
+        },
+        "receiverSet": {
+          "before": "",
+          "after": "3x0"
+        },
+        "coverageFamily": {
+          "before": null,
+          "after": "Zone"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 61,
+      "fields": {
+        "receiverSet": {
+          "before": "",
+          "after": "3x0"
+        },
+        "personnel": {
+          "before": null,
+          "after": "02"
+        },
+        "coverageFamily": {
+          "before": null,
+          "after": "Zone"
+        }
+      }
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 62,
+      "fields": {
+        "coverageFamily": {
+          "before": null,
+          "after": "Zone"
+        }
+      }
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "Week 5 vs St. George Dragon Slayers",
+      "play": 15,
+      "fields": {
+        "unit": {
+          "before": "special",
+          "after": "offense"
+        }
+      }
+    }
+  ],
+  "reportChecks": [
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "cohort": "0 of 24 runs charted with a gap"
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 2 vs ND Prep Fighting Irish",
+      "cohort": "0 of 23 runs charted with a gap"
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 3 vs OL Refuge Ravens",
+      "cohort": "0 of 27 runs charted with a gap"
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 4 vs OL Sorrows Lancers",
+      "cohort": "0 of 21 runs charted with a gap"
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 5 vs OL Lakes Lakers",
+      "cohort": "0 of 20 runs charted with a gap"
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "cohort": "0 of 31 runs charted with a gap"
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "vs Notre Dame Prep Fighting Irish",
+      "offenseScreen": "Not tested: no classified offensive snaps"
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "vs Romeo Bulldogs",
+      "offenseScreen": "Not tested: no classified offensive snaps"
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "Week 1 vs Holy Family Wildcats",
+      "cohort": "0 of 1 runs charted with a gap"
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "Week 3 vs St. Charles Bulldogs",
+      "cohort": "0 of 18 runs charted with a gap"
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "Week 4 vs Oakland Christian Lancers",
+      "offenseScreen": "Not tested: no classified offensive snaps"
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "Week 5 vs St. George Dragon Slayers",
+      "offenseScreen": "Not tested: no classified offensive snaps"
+    },
+    {
+      "season": "SJM JV 2026",
+      "game": "Week 1 vs Notre Dame Prep",
+      "cohort": "0 of 3 runs charted with a gap"
+    },
+    {
+      "season": "SJM JV 2026",
+      "game": "Week 2 vs Our Lady of the Lakes Lakers",
+      "cohort": "0 of 17 runs charted with a gap"
+    },
+    {
+      "season": "SJM JV 2026",
+      "game": "Week 5 vs St. George Dragon Slayers",
+      "cohort": "0 of 14 runs charted with a gap"
+    },
+    {
+      "disposablePopulatedGapTest": {
+        "charted": 5,
+        "cells": [
+          {
+            "gap": "L-A",
+            "n": 2,
+            "ypp": 1.5,
+            "refs": [
+              "gmqptqoprzli2r::3",
+              "gmqptqoprzli2r::6"
+            ]
+          },
+          {
+            "gap": "L-B",
+            "n": 0,
+            "ypp": null,
+            "refs": []
+          },
+          {
+            "gap": "L-C",
+            "n": 0,
+            "ypp": null,
+            "refs": []
+          },
+          {
+            "gap": "L-D",
+            "n": 0,
+            "ypp": null,
+            "refs": []
+          },
+          {
+            "gap": "R-A",
+            "n": 0,
+            "ypp": null,
+            "refs": []
+          },
+          {
+            "gap": "R-B",
+            "n": 1,
+            "ypp": -1,
+            "refs": [
+              "gmqptqoprzli2r::7"
+            ]
+          },
+          {
+            "gap": "R-C",
+            "n": 0,
+            "ypp": null,
+            "refs": []
+          },
+          {
+            "gap": "R-D",
+            "n": 0,
+            "ypp": null,
+            "refs": []
+          },
+          {
+            "gap": "Center",
+            "n": 1,
+            "ypp": 14,
+            "refs": [
+              "gmqptqoprzli2r::8"
+            ]
+          },
+          {
+            "gap": "Other",
+            "n": 1,
+            "ypp": 7,
+            "refs": [
+              "gmqptqoprzli2r::9"
+            ]
+          }
+        ],
+        "ui": {
+          "L-D": "-",
+          "L-C": "-",
+          "L-B": "-",
+          "L-A": "2",
+          "Center": "1",
+          "R-A": "-",
+          "R-B": "1",
+          "R-C": "-",
+          "R-D": "-",
+          "Other": "1"
+        }
+      }
+    }
+  ]
+}
