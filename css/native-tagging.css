@@ -49,7 +49,7 @@
 /* A collapsible field's label is its disclosure; folded, it states the selection. */
 .gi-tag-field-label .gi-tag-field-toggle{position:relative;display:inline-flex;align-items:center;min-height:24px;margin:-1px 0;padding:0 4px 0 0;border:0;background:transparent;color:var(--gi-bd-copy);font:inherit;white-space:nowrap}
 /* Disclosure arrows occupy the existing group gutter, not the label column. */
-.gi-tag-field-toggle i{position:absolute;left:-10px;width:8px;text-align:center;font-style:normal;transition:transform .12s}
+.gi-tag-field-toggle i{position:absolute;left:-12px;width:12px;text-align:center;font-style:normal;transition:transform .12s}
 .is-collapsed>.gi-tag-field-label .gi-tag-field-toggle i{transform:rotate(-90deg)}
 .gi-native-tagging .gi-tag-field-toggle:hover{color:var(--gi-12)}
 .gi-tag-field-label .gi-tag-field-summary{min-width:0;overflow:hidden;color:var(--gi-12);font-weight:600;text-overflow:ellipsis;white-space:nowrap}

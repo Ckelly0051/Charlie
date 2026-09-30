@@ -2,6 +2,13 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Gate follow-up: the first run at 9da74967 was stopped on coach instruction
+after `e2e-breakdown-viewport` found eight disclosure-arrow overflow failures.
+The glyph needed 12px but its box was 8px. Its box now occupies the existing
+12px group gutter; text size and label alignment are unchanged. Viewport
+167/167 and charting deck 94/94 pass without assertion changes. Full gate
+rerun pending; no installer or coach-data write.
+
 Three findings from 843154e8..c4940657 are **REPAIRED IN SOURCE**, not installed:
 
 - P2: conversion could swap a catalog whose season failed current-format checks.
