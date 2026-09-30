@@ -1,0 +1,51 @@
+{
+ "sourceHash": "948d6b22312a65c2eeefbc2670504880215d529a402ed77a7de3a2d7aea3e966",
+ "mappingHash": "57d10aa1f03d8ea72ef30b3e41c9da7e3f93e0ae60a25e4e59da8e3431e1bbdb",
+ "seasons": {
+  "sjm-varsity-2026": {
+   "name": "SJM Varsity 2026",
+   "plays": 293,
+   "withFormation": 87,
+   "converted": 87,
+   "unresolved": 0,
+   "old": 0,
+   "dropped": 0
+  },
+  "sjm-jv-2026": {
+   "name": "SJM JV 2026",
+   "plays": 186,
+   "withFormation": 64,
+   "converted": 64,
+   "unresolved": 0,
+   "old": 0,
+   "dropped": 0
+  },
+  "2026-varsity-demo": {
+   "name": "2025 St. Joseph Mavericks - JV",
+   "plays": 440,
+   "withFormation": 345,
+   "converted": 345,
+   "unresolved": 0,
+   "old": 0,
+   "dropped": 4
+  }
+ },
+ "copies": {
+  "backups": {
+   "total": 42,
+   "converted": 42,
+   "current": 0,
+   "leftUnresolved": 0,
+   "leftOldFormat": 0,
+   "leftOtherProblems": 0
+  },
+  "versions": {
+   "total": 52,
+   "converted": 52,
+   "current": 0,
+   "leftUnresolved": 0,
+   "leftOldFormat": 0,
+   "leftOtherProblems": 0
+  }
+ }
+}

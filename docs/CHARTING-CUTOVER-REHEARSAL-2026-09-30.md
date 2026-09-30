@@ -1,5 +1,10 @@
 # Charting Cutover Rehearsal - 2026-09-30
 
+Historical checkpoint record. For the completed takeaway proof, verified
+history retirement, latest counts and prepared re-chart checklist, use
+`docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`. It supersedes pending
+receipt/blocker statements below; live charting conversion remains unrun.
+
 Copy-only checkpoint 1. No live data, settings, mirror, film or restore point
 was changed. No write approval requested or granted. Source SHA-256 before and
 after: `67780703e0e2bff34c0f5672af5f6e13887d980bdf2c3ee93584849ca2b6c696`.

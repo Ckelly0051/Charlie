@@ -1,0 +1,15 @@
+{
+  "status": "REMOVED_AND_VERIFIED",
+  "sourceHash": "67780703e0e2bff34c0f5672af5f6e13887d980bdf2c3ee93584849ca2b6c696",
+  "liveHash": "948d6b22312a65c2eeefbc2670504880215d529a402ed77a7de3a2d7aea3e966",
+  "counts": {
+    "backups": 34,
+    "versions": 94
+  },
+  "kept": {
+    "backups": 42,
+    "versions": 52
+  },
+  "manifestHash": "f9d618b7ef5d6ad1227c18b594ec05a2cb4126df0df4a17aa96f07b5abbf31c3",
+  "completedAt": "2026-09-30T12:56:33.931Z"
+}

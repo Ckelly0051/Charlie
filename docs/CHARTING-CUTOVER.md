@@ -273,6 +273,13 @@ point equals the pre-write catalog by hash; no staged file remains.
 
 ### Remaining Smoke-Readiness Checkpoints (2026-09-30)
 
+Current checkpoint: takeaway proof complete; incompatible history archived,
+verified and retired on coach authorization. Final scratch rehearsal passes
+for all three seasons, 42 retained restore points and 52 retained versions.
+`docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md` supersedes the earlier
+takeaway blockers and history counts. Live charting conversion is still
+unapproved/unrun; browser-settings disposition still needs final verification.
+
 Coach mapping now recorded in `tools/charting-coach-mapping-2026-09-30.json`.
 Its scratch rerun resolves all 496 old Formation values, with four explicitly
 blanked. Current-format and preservation checks pass; takeaway-proof and

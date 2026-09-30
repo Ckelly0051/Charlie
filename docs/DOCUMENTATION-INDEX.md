@@ -65,9 +65,11 @@ This section is the one place release state is kept current.
   converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
   awaiting final impact/write approval. The coach's 2026-09-30 mapping resolves
   all 496 nonblank formations; four are deliberately blanked for re-charting.
-  Exact preservation and current-format checks pass; generated-takeaway proof
-  and historical-snapshot handling
-  remain (`docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`).
+  Exact preservation, current-format and takeaway proofs pass in the final
+  copy rehearsal. Incompatible history was archived, independently verified
+  and removed on coach authorization: 34 backups / 94 versions; 42/52 kept.
+  Live seasons remain unconverted. Current impact and re-chart checklist:
+  `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
   Source verification: full build and gate
   141/141, zero skipped and zero failed at `d5b27c10` on 2026-09-29.
   No installer or installed approval exists for it. BD-UX-1 and BD-UX-2 remain
