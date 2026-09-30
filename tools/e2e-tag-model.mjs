@@ -17,7 +17,7 @@ const test = (label, fn) => {
 };
 
 const tags = (o = {}) => ({
-  down: '', distance: '', formationFamily: '', receiverSet: '', backfield: '', strength: '', personnel: '',
+  down: '', distance: '', formationFamily: '', receiverSet: '', receiverStrength: '', lineBalance: '', backfield: '', strength: '', personnel: '',
   motion: '', runPass: '', playType: '', result: '', yardage: '', coverage: '',
   defFront: '', blitz: '', unit: 'offense', players: {}, grades: {}, ...o,
 });
@@ -86,7 +86,7 @@ test('6 · isCombined passes every current look, a family and a receiver set inc
 test('16 · (E1-R9) ST invariant: any op ending unit:special leaves ST keys blank', () => {
   // liveness: forbidden values are PRESENT first, then stripped by the op.
   const st = legacyPlay(1, {
-    unit: 'special', formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', receiverSet: '3x1', receiverStrength: 'Left', lineBalance: 'Unbalanced', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverageFamily: 'Zone', coverage: 'Cover 3',
   });
   // prove they are present before the op
@@ -125,7 +125,7 @@ test('16d · (E2-R1) Same-as-Last onto an ST result strips forbidden fields', ()
   // A legacy ST source carrying forbidden alignment. Copying it forward must not
   // reproduce those values on the resulting ST play (E1-R9 invariant, any op).
   const src = legacyPlay(40, {
-    unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', receiverStrength: 'Left', lineBalance: 'Unbalanced', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   });
   const cur = legacyPlay(41, { unit: 'offense' });
@@ -144,7 +144,7 @@ test('16e · (E2-R1) template application onto an ST result strips forbidden fie
   const pt = Object.create(PlayTagger.prototype);
   pt.getCurrentPlay = () => cur;
   pt._templateStore = () => ({ leaky: {
-    unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', receiverStrength: 'Left', lineBalance: 'Unbalanced', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   } });
   pt._updateTimeline = () => {}; pt._emit = () => {};
@@ -315,7 +315,7 @@ test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapsho
   ] }] });
   // json() — synchronous, returns sanitized text (the Save Season download path)
   store.data = leak();
-  assert.equal(JSON.parse(store.json()).games[0].plays[0].tags.formationFamily || '', '', 'json() leaked formation family');
+  assert.equal(JSON.parse(store.json()).games[0].plays[0].tags.formationFamily || '', '', 'json() leaked formation');
   // snapshot / saveNow / bindDisk sanitize this.data synchronously before any await
   for (const method of ['snapshot', 'saveNow', 'bindDisk']) {
     store.data = leak();
@@ -328,11 +328,11 @@ test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapsho
 
 /* ---- §4 the formation is read as charted (the v1.9.15 backfield migration is deleted) ---- */
 
-test('19 · a formation family is never rewritten into Backfield, with or without a backfield key', () => {
+test('19 · a formation is never rewritten into Backfield, with or without a backfield key', () => {
   for (const tags of [{ unit: 'offense', formationFamily: 'Power-I', backfield: '' }, { unit: 'offense', formationFamily: 'Power-I', receiverSet: '3x1' }]) {
     const p = { id: 30, timestamp: { start: 0, end: 1 }, tags: { ...tags } };
     SeasonStore.coerceLookFields(p);
-    assert.equal(p.tags.formationFamily, tags.formationFamily, 'formation family kept as charted');
+    assert.equal(p.tags.formationFamily, tags.formationFamily, 'formation kept as charted');
     assert.equal(p.tags.receiverSet ?? '', tags.receiverSet ?? '', 'receiver set kept as charted');
     assert.equal(p.tags.backfield, '', 'a missing backfield is a blank string, never inferred');
     assert.equal(p.tags.strength, '');

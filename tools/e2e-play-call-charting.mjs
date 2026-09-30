@@ -72,7 +72,7 @@ ok(JSON.stringify(state.call) === JSON.stringify(['26 Blast', 'call_26_blast', '
 ok(state.values.formationFamily === 'Power-I' && state.values.backfield === 'I' && state.values.strength === 'Right'
   && state.values.runPass === 'Run' && state.values.playType === 'Run Inside' && state.values.playDir === 'Right',
   'Selecting a call applies its visible standardized defaults', JSON.stringify(state.values));
-ok(Object.keys(state.defaults).length === 6 && state.appliedText.includes('Formation Family: Power-I') && state.history === 1,
+ok(Object.keys(state.defaults).length === 6 && state.appliedText.includes('Formation: Power-I') && state.history === 1,
   'Applied defaults are disclosed and selection is one undoable action', JSON.stringify(state));
 
 await page.evaluate(() => {

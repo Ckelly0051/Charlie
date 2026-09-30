@@ -13,7 +13,7 @@ export class StudyScreen {
     // scoreSituation is NOT added: it remains deliberately deferred (no
     // per-play score-at-snap reconstruction exists), so it is honestly absent
     // rather than offered and silently unusable.
-    return ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
+    return ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion', 'motionStart', 'motionEnd',
       'playDir', 'gap', 'rpoRead', 'rpoDecision', 'qbRun', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier',
@@ -228,7 +228,7 @@ export class StudyScreen {
   static get DIMENSION_GROUPS() {
     return [
       { name: 'Situation', ids: ['down', 'distance', 'fieldZone', 'quarter', 'drive', 'hash'] },
-      { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'motionStart', 'motionEnd', 'playDir', 'gap', 'playType', 'runPass', 'rpoRead', 'rpoDecision', 'qbRun'] },
+      { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'motionStart', 'motionEnd', 'playDir', 'gap', 'playType', 'runPass', 'rpoRead', 'rpoDecision', 'qbRun'] },
       { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
       { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
       { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier'] },

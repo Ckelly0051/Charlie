@@ -275,13 +275,12 @@ export class BreakdownTheaterScreen {
       ] });
     } else {
       const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent offensive look' : 'Our offensive look', rows: [
-        row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation family', tags.formationFamily),
-        row('Receiver set', tags.receiverSet),
-        row('Receiver look', tags.receiverLook),
-        row('Receiver side', tags.receiverSide),
+        row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation', tags.formationFamily),
+        row('Receiver distribution', tags.receiverSet),
+        row('Receiver strength', tags.receiverStrength),
         row('Line balance', tags.lineBalance),
         row('Personnel', tags.personnel), row('QB alignment', tags.qbAlignment), row('Backfield', tags.backfield),
-        row('Strength', tags.strength), row('Motion', tags.motion),
+        row('Offensive strength', tags.strength), row('Motion', tags.motion),
         // A detail is listed while the field that opens it is charted.
         ...(tags.motion ? [row('Motion starts', tags.motionStart), row('Motion ends', tags.motionEnd)] : []),
       ] };
@@ -359,7 +358,7 @@ export class BreakdownTheaterScreen {
     const hash = tags.hash || '—';
 
     const joined = (...values) => values.filter(Boolean).join(' · ') || '—';
-    // The offensive "look" composes qbAlignment + formation family + receiver set
+    // The offensive "look" composes qbAlignment + formation + receiver set
     // — the same canonical composition TagProjection.lookLabel already provides
     // and this file already uses for play-strip card labels — so a play charted
     // with a QB alignment alone still reads as a real look instead of vanishing.

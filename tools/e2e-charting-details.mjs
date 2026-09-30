@@ -1,4 +1,4 @@
-/* Charting cutover, Step 1 model contract: Formation Family / Receiver Set, Gap, motion
+/* Charting cutover, Step 1 model contract: Formation / Receiver Distribution, Gap, motion
    path, RPO, QB run and Reverse (GRIDIRON-IQ-PLAN-V2.md, "Approved Break Down
    charting comp - build contract"). Pure model checks; the deck, Film Room and CSV
    have their own harnesses. Run: node tools/e2e-charting-details.mjs */
@@ -73,23 +73,23 @@ console.log('\n== Details need the field that opens them ==');
 }
 ok(ChartingDetails.rpoDecisionRunPass('Give') === 'Run' && ChartingDetails.rpoDecisionRunPass('Keep') === 'Run' && ChartingDetails.rpoDecisionRunPass('Throw') === 'Pass' && ChartingDetails.rpoDecisionRunPass('') === '', 'an RPO decision reads as run or pass');
 
-console.log('\n== Formation Family library ==');
+console.log('\n== Formation library ==');
 {
   const storage = new MemoryStorage();
   const library = new TagLibrary({ storage, teamId: 'a' });
   const family = library.group('formationFamily');
   ok(['Power-I', 'Split Back', 'Spread', 'Wing-T', 'Flexbone', 'Single Wing'].every(v => family.values.includes(v)), 'the seeded Family vocabulary includes Power-I and Split Back');
-  ok(!family.values.some(v => ['Trips', 'Twins', 'Bunch', 'Goal Line', 'Victory', 'Doubles', 'Unbalanced', 'Ace'].includes(v)), 'the old package and receiver words are not built in as Families');
+  ok(['Trips','Twins','Bunch','Tight Bunch','Victory','Doubles','Ace'].every(v=>family.values.includes(v)) && !family.values.includes('Unbalanced'), 'coach-named receiver formations are built in; line balance stays separate');
   ok(family.values.includes('Power-I') && library.group('backfield').values.includes('Power'), 'the Power backfield stays separate from the Power-I Family');
   ok(library.group('formation').values.length === 0 && !library.add('formation', 'Trey'), 'there is no Formation library group any more');
-  ok(library.add('formationFamily', 'Beast') && library.group('formationFamily').custom.join() === 'Beast', 'a coach adds a custom Family');
+  ok(library.add('formationFamily', 'Coach Beast') && library.group('formationFamily').custom.join() === 'Coach Beast', 'a coach adds a custom Family');
   ok(library.setEnabled('formationFamily', 'Wing-T', false) && !library.group('formationFamily').enabled.includes('Wing-T') && library.group('formationFamily').values.includes('Wing-T'), 'a Family can be hidden without being removed');
   const first = library.group('formationFamily').values[0];
   ok(library.move('formationFamily', first, 1) && library.group('formationFamily').values[1] === first, 'Families can be reordered');
-  ok(library.remove('formationFamily', 'Beast') && !library.group('formationFamily').values.includes('Beast'), 'a custom Family can be removed');
+  ok(library.remove('formationFamily', 'Coach Beast') && !library.group('formationFamily').values.includes('Coach Beast'), 'a custom Family can be removed');
   ok(!library.remove('formationFamily', 'Power-I'), 'a built-in Family cannot be removed');
   ok(!library.add('formationFamily', 'Shotgun') && library.lastError?.owner === 'QB Alignment', 'an alignment is not a Family');
-  ok(!library.add('formationFamily', '3x1') && library.lastError?.owner === 'Receiver Set' && !library.add('formationFamily', '2 x 2'), 'a receiver distribution is not a Family');
+  ok(!library.add('formationFamily', '3x1') && library.lastError?.owner === 'Receiver Distribution' && !library.add('formationFamily', '2 x 2'), 'a receiver distribution is not a Family');
   ok(!library.add('formationFamily', 'Empty') && library.lastError?.owner === 'Backfield', 'Empty is not a Family');
   ok(library.add('formationFamily', 'Trips Right'), 'a value that only contains a receiver word is allowed');
 }
@@ -100,7 +100,7 @@ console.log('\n== A saved library learns the new built-ins without a conversion 
     playType: { custom: [], enabled: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play', 'Option'],
       order: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play', 'Option'] },
     blitz: { custom: [], enabled: ['A-Gap', 'B-Gap', 'C-Gap', 'Edge', 'DB Blitz'], order: ['A-Gap', 'B-Gap', 'C-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'] },
-    formation: { custom: ['Beast'], enabled: ['Beast', 'Trips'], order: ['Trips', 'Beast'] },
+    formation: { custom: ['Coach Beast'], enabled: ['Coach Beast', 'Trips'], order: ['Trips', 'Coach Beast'] },
   }, presets: [] };
   const raw = JSON.stringify(saved);
   const storage = new MemoryStorage({ ffa_tag_libraries_t: raw });
@@ -112,7 +112,7 @@ console.log('\n== A saved library learns the new built-ins without a conversion 
   ok(library.group('formationFamily').enabled.length === TagLibrary.DEFINITIONS.formationFamily.length, 'the new Family group starts fully visible');
   ok(library.setEnabled('playType', 'Reverse', false) && !new TagLibrary({ storage, teamId: 't' }).group('playType').enabled.includes('Reverse'), 'a coach can hide a new built-in and it stays hidden after a reload');
   const written = JSON.parse(storage.getItem('ffa_tag_libraries_t'));
-  ok(written.retired?.formation?.custom?.[0] === 'Beast', 'the retired Formation group is kept as stored through an unrelated edit');
+  ok(written.retired?.formation?.custom?.[0] === 'Coach Beast', 'the retired Formation group is kept as stored through an unrelated edit');
   ok(library.group('formation').values.length === 0, 'and is never offered');
 }
 
@@ -120,7 +120,7 @@ console.log('\n== Projection and format ==');
 {
   const tags = { formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun' };
   const p = TagProjection.project(tags);
-  ok(p.formationFamily === 'Spread' && p.receiverSet === '3x1', 'project reads Family and Receiver Set as stored');
+  ok(p.formationFamily === 'Spread' && p.receiverSet === '3x1', 'project reads Family and Receiver Distribution as stored');
   ok(TagProjection.project({}).receiverSet === '' && TagProjection.project({}).formationFamily === '', 'a blank play reads blank');
   ok(TagProjection.lookLabel(tags) === 'Shotgun Spread 3x1', 'the look label composes alignment, family and set', TagProjection.lookLabel(tags));
   ok(!('formation' in TagProjection.project({ formationFamily: 'Spread' })), 'projection publishes no formation field');
@@ -156,7 +156,7 @@ console.log('\n== A play call and Special Teams keep the rules ==');
   const kept = { tags: { playDir: '', gap: 'R-A', playCallDefaults: {} } };
   PlayCallModel.apply(kept, 'Sweep', playbook, () => '');
   ok(kept.tags.playDir === 'Right' && kept.tags.gap === 'R-A', 'a call whose default agrees keeps it');
-  ok(['formationFamily', 'receiverSet'].every(k => SeasonStore.ST_ALIGNMENT_KEYS.includes(k)) && !SeasonStore.ST_ALIGNMENT_KEYS.includes('formation'), 'a Special Teams play may hold no Family or Receiver Set, and no retired Formation');
+  ok(['formationFamily', 'receiverSet'].every(k => SeasonStore.ST_ALIGNMENT_KEYS.includes(k)) && !SeasonStore.ST_ALIGNMENT_KEYS.includes('formation'), 'a Special Teams play may hold no Family or Receiver Distribution, and no retired Formation');
   const st = { id: 1, tags: { unit: 'special', formationFamily: 'Spread', receiverSet: '3x1' } };
   SeasonStore.stripStAlignment(st);
   ok(st.tags.formationFamily === '' && st.tags.receiverSet === '', 'the strip clears them');

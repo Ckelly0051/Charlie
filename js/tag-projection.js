@@ -1,11 +1,9 @@
-import { ChartingDetails } from './charting-details.js';
-
 /**
  * The pre-snap look vocabulary and its one read (GRIDIRON-IQ-TAG-MODEL.md §5).
  *
  * A look is stored in its own fields: formationFamily (the offense's structure,
- * one value), receiverSet (its receiver distribution, one value), receiverLook,
- * receiverSide, lineBalance, qbAlignment,
+ * one value), receiverSet (its receiver distribution, one value),
+ * receiverStrength, lineBalance, qbAlignment,
  * backfield, strength, coverage (the call) and coverageFamily. The old model
  * packed an alignment into formation ("Under Center + Flexbone"), 'Empty' into
  * formation and a family into coverage, and its single Formation field mixed
@@ -16,18 +14,18 @@ import { ChartingDetails } from './charting-details.js';
  * Pure, DOM-free, Node-testable.
  */
 export class TagProjection {
-  // QB alignments: their own field, never a Formation Family or Backfield value.
+  // QB alignments: their own field, never a Formation or Backfield value.
   static QB_ALIGNMENTS = ['Under Center', 'Shotgun', 'Pistol'];
   // Coverage families: their own field, never a Coverage call.
   static COVERAGE_FAMILIES = ['Man', 'Zone', 'Match'];
-  // 'Empty' is a Backfield value, never a Formation Family value.
+  // 'Empty' is a Backfield value, never a Formation value.
   static FORMATION_BACKFIELD_TOKENS = ['Empty'];
 
   /** Values a field's picker must never offer, because they belong to another
-   *  field: the Formation Family offers no alignment and no 'Empty', Backfield
+   *  field: the Formation offers no alignment and no 'Empty', Backfield
    *  no alignment, the Coverage call no family. */
   static PICKER_EXCLUDE = Object.freeze({
-    formationFamily: [...TagProjection.QB_ALIGNMENTS, ...TagProjection.FORMATION_BACKFIELD_TOKENS, ...ChartingDetails.RECEIVER_LOOKS, 'Unbalanced'],
+    formationFamily: [...TagProjection.QB_ALIGNMENTS, ...TagProjection.FORMATION_BACKFIELD_TOKENS, 'Unbalanced'],
     backfield: [...TagProjection.QB_ALIGNMENTS],
     coverage: [...TagProjection.COVERAGE_FAMILIES],
   });
@@ -41,7 +39,7 @@ export class TagProjection {
   static isCombined(tags) {
     const t = tags && typeof tags === 'object' ? tags : {};
     const f = this._split(t.formationFamily), b = this._split(t.backfield);
-    return f.some(p => this.PICKER_EXCLUDE.formationFamily.includes(p))
+    return (typeof t.formationFamily === 'string' && t.formationFamily.includes('+')) || f.some(p => this.PICKER_EXCLUDE.formationFamily.includes(p))
       || b.some(p => this.PICKER_EXCLUDE.backfield.includes(p))
       || this.PICKER_EXCLUDE.coverage.includes(typeof t.coverage === 'string' ? t.coverage : '');
   }
@@ -51,7 +49,7 @@ export class TagProjection {
     const t = tags && typeof tags === 'object' ? tags : {};
     const s = v => (typeof v === 'string' ? v : '');
     return { ...t, qbAlignment: s(t.qbAlignment), formationFamily: s(t.formationFamily), receiverSet: s(t.receiverSet),
-      receiverLook: s(t.receiverLook), receiverSide: s(t.receiverSide), lineBalance: s(t.lineBalance),
+      receiverStrength: s(t.receiverStrength), lineBalance: s(t.lineBalance),
       backfield: s(t.backfield), coverage: s(t.coverage), coverageFamily: s(t.coverageFamily) };
   }
 
@@ -63,7 +61,6 @@ export class TagProjection {
    */
   static lookLabel(tags) {
     const p = this.project(tags);
-    const receivers = [p.receiverLook, p.receiverSide].filter(Boolean).join(' ');
-    return [p.qbAlignment, p.formationFamily, p.lineBalance, receivers, p.receiverSet].filter(Boolean).join(' ');
+    return [p.qbAlignment, p.formationFamily, p.receiverStrength && `Receivers ${p.receiverStrength}`, p.lineBalance, p.receiverSet].filter(Boolean).join(' ');
   }
 }

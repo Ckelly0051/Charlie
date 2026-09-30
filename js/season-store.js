@@ -313,7 +313,7 @@ export class SeasonStore {
   // coach-approved, bounded cleanup: on the real six-game season it clears
   // exactly 12 backfield values (1 of which also has strength) — leaked pre-snap
   // looks the ST form could never legitimately set (§7b).
-  static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'backfield', 'strength',
+  static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'backfield', 'strength',
     'personnel', 'defFront', 'coverage', 'coverageFamily', 'blitz'];
   static stripStAlignment(p) {
     if (!p || !p.tags || countedUnit(p) !== 'special' || SpecialTeamsModel.isRunPassTry(p)) return;

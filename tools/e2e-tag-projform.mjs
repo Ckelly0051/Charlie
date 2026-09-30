@@ -173,13 +173,13 @@ ok(JSON.stringify(r.qbAlignmentValues) === JSON.stringify(['Under Center', 'Pist
 ok(!r.coverageValues.some(v => ['Man', 'Zone', 'Match'].includes(v)), 'Coverage (the call) offers NO family values', JSON.stringify(r.coverageValues));
 ok(JSON.stringify(r.coverageFamilyValues) === JSON.stringify(['Man', 'Zone', 'Match']), 'Coverage Family offers exactly the three family values');
 
-console.log('\n== 4. A Formation Family commit writes ONLY the family, ONE undoable transaction (single-select) ==');
+console.log('\n== 4. A Formation commit writes ONLY the family, ONE undoable transaction (single-select) ==');
 await page.evaluate((ids) => {
   const t = window.app.tagger, hist = window.app.history;
   t.selectPlay(ids.lookPlay);
   hist.reset();
 }, IDS);
-// The Formation Family is single-select. Turning the ONLY active chip ('Spread') off is a
+// The Formation is single-select. Turning the ONLY active chip ('Spread') off is a
 // genuine, single explicit commit.
 await clickChip('formationFamily', 'Spread');
 r = await page.evaluate((ids) => {
@@ -226,7 +226,7 @@ r = await page.evaluate((ids, before) => {
   const untouchedKeys = Object.keys(before).every(k => k === 'formationFamily' || JSON.stringify(play.tags[k]) === JSON.stringify(before[k]));
   return { formationFamily: play.tags.formationFamily, qbAlignment: play.tags.qbAlignment, untouchedKeys };
 }, IDS, before6);
-ok(r.formationFamily === 'Spread' && r.qbAlignment === 'Pistol', 'choosing another formation family on a play with an EXPLICIT qbAlignment leaves that value alone — never overwritten', JSON.stringify(r));
+ok(r.formationFamily === 'Spread' && r.qbAlignment === 'Pistol', 'choosing another formation on a play with an EXPLICIT qbAlignment leaves that value alone — never overwritten', JSON.stringify(r));
 ok(r.untouchedKeys, 'no field OTHER than formation changed — a genuine field-level merge, not a bulk rewrite', JSON.stringify(r));
 
 console.log('\n== 7. Clearing a value is INTENTIONAL, not a silent revert (requirement #5) ==');

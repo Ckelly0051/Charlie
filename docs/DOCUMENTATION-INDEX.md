@@ -51,8 +51,8 @@ This section is the one place release state is kept current.
   modules and dead renderers deleted, the custom-field editor rebuilt on the
   overlay service, and Special Teams try charting.
 - Break Down charting cutover (roadmap Step 1), on the working branch and in no
-  installer: IMPLEMENTED_UNVERIFIED in source. Formation Family and Receiver Set
-  (with a coach-managed Family library), Gap under Play Direction, motion
+  installer: IMPLEMENTED_UNVERIFIED in source. Formation and Receiver Set
+  (with a coach-managed Formation library), Gap under Play Direction, motion
   Starts/Ends, RPO and QB Run details, Reverse and QB Run play types, the
   film-linked run-gap report, Film Room and CSV columns, and the single-format
   refusal of the retired `formation` key. The supplemental visual-finish comp
@@ -60,10 +60,12 @@ This section is the one place release state is kept current.
   converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
   awaiting the coach's decision. No full gate, installer or installed approval
   exists for it. BD-UX-1 and BD-UX-2 remain open in `docs/OPEN-DEFECTS.md`.
-  The 2026-09-29 receiver-look follow-up is also built in source: Twins, Trips,
-  Bunch, Tight Bunch, local Left/Right, and independent Line Balance. Focused
-  checks and canonical-fixture captures pass; live data and installed acceptance
-  are unchanged. The fresh copy-only inventory is recorded in CHARTING-CUTOVER.
+  The coach's 2026-09-29 correction supersedes the receiver-look follow-up:
+  Formation accepts Twins, Trips, Bunch and Tight Bunch; Backfield and QB
+  Alignment stay separate. Offensive Strength and Receiver Strength are
+  independent. Receiver Distribution and Line Balance remain separate.
+  No receiver-look reader remains. Copy-only impact counts need refreshing
+  before approval; live data and installed acceptance are unchanged.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports

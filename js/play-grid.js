@@ -31,17 +31,16 @@ export class PlayGrid {
     { key: 'sit',       label: 'Dn & Dist', type: 'sit' },
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
-    { key: 'formationFamily', label: 'Family', type: 'enum', src: 'tagFormationFamily',       unit: 'offense' },
+    { key: 'formationFamily', label: 'Formation', type: 'enum', src: 'tagFormationFamily',       unit: 'offense' },
     { key: 'receiverSet', label: 'Rec Set',   type: 'enum', src: 'tagReceiverSet',             unit: 'offense' },
-    { key: 'receiverLook', label: 'Rec Look', type: 'enum', src: 'tagReceiverLook', unit: 'offense' },
-    { key: 'receiverSide', label: 'Rec Side', type: 'enum', src: 'tagReceiverSide', unit: 'offense' },
+    { key: 'receiverStrength', label: 'Rec Strength', type: 'enum', src: 'tagReceiverStrength', unit: 'offense' },
     { key: 'lineBalance', label: 'Line Balance', type: 'enum', src: 'tagLineBalance', unit: 'offense' },
     // QB Alignment, Backfield, Strength and Coverage Family are single-select
     // look fields, edited inline with the plain `enum` editor. Not in any
     // default preset, but available in the Columns menu like any other column.
     { key: 'qbAlignment', label: 'QB Align', type: 'enum', src: 'tagQbAlignment',              unit: 'offense' },
     { key: 'backfield', label: 'Backfield', type: 'enum', src: 'tagBackfield',                 unit: 'offense' },
-    { key: 'strength',  label: 'Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
+    { key: 'strength',  label: 'Off Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     // A motion's path opens with the motion (ChartingDetails.TRIGGERS): a cell is

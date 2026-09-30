@@ -11,88 +11,77 @@ import { decide, convertPlay, convertSeason, mappingProblems } from './charting-
 
 let checks = 0;
 function test(name, fn) { fn(); checks++; console.log('PASS ' + name); }
-test('four distinct receiver looks', () => assert.deepEqual(ChartingDetails.RECEIVER_LOOKS, ['Twins', 'Trips', 'Bunch', 'Tight Bunch']));
-test('a look does not invent side or distribution', () => {
-  const tags = { receiverLook: 'Trips', formationFamily: 'I-Form', receiverSet: '' };
-  ChartingDetails.settle(tags, 'receiverLook');
-  assert.equal(tags.receiverSide, undefined); assert.equal(tags.receiverSet, ''); assert.equal(tags.formationFamily, 'I-Form');
+test('formation library accepts receiver formation names', () => {
+  for (const name of ['Twins','Trips','Bunch','Tight Bunch','Ace','Beast','Victory']) {
+    assert.ok(TagLibrary.DEFINITIONS.formationFamily.includes(name));
+    assert.ok(!TagLibrary.reservedOwner('formationFamily', name));
+    assert.equal(TagProjection.isCombined({ formationFamily: name }), false);
+  }
 });
-test('changing look preserves charted side and line balance', () => {
-  const tags = { receiverLook: 'Tight Bunch', receiverSide: 'Right', lineBalance: 'Unbalanced' };
-  ChartingDetails.settle(tags, 'receiverLook'); assert.equal(tags.receiverSide, 'Right'); assert.equal(tags.lineBalance, 'Unbalanced');
+test('Receiver Strength is independent and never inferred', () => {
+  const t = { formationFamily: 'Trips', receiverSet: '', receiverStrength: 'Left', strength: 'Right' };
+  assert.deepEqual(ChartingDetails.orphans(t, 'formationFamily', ''), []);
+  t.formationFamily = ''; ChartingDetails.settle(t, 'formationFamily');
+  assert.equal(t.receiverStrength, 'Left'); assert.equal(t.strength, 'Right'); assert.equal(t.receiverSet, '');
+  assert.equal(TagProjection.project({ formationFamily: 'Trips' }).receiverStrength, '');
 });
-test('removing look names side for confirmation and clears only side', () => {
-  const tags = { receiverLook: 'Trips', receiverSide: 'Left', receiverSet: '3x1', lineBalance: 'Unbalanced' };
-  assert.deepEqual(ChartingDetails.orphans(tags, 'receiverLook', '').map(o => o.key), ['receiverSide']);
-  tags.receiverLook = ''; ChartingDetails.settle(tags, 'receiverLook');
-  assert.equal(tags.receiverSide, ''); assert.equal(tags.receiverSet, '3x1'); assert.equal(tags.lineBalance, 'Unbalanced');
+test('Left, Right and Balanced work without a formation', () => {
+  assert.deepEqual(ChartingDetails.RECEIVER_STRENGTHS, ['Left','Right','Balanced']);
+  for (const v of ChartingDetails.RECEIVER_STRENGTHS) assert.deepEqual(SeasonFormat.playProblems({ tags: { unit: 'offense', receiverStrength: v } }), []);
+  assert.equal(ChartingDetails.vocabularyProblems({ receiverStrength: 'Middle', lineBalance: 'Yes' }).length, 2);
 });
-test('imports reject side without look and invalid vocabulary', () => {
-  assert.match(ChartingDetails.problems({ receiverSide: 'Left' }).join(), /Receiver Look/);
-  assert.equal(ChartingDetails.vocabularyProblems({ receiverLook: 'Trips + Bunch', receiverSide: 'Middle', lineBalance: 'Yes' }).length, 3);
-  assert.ok(SeasonFormat.playProblems({ tags: { unit: 'offense', receiverSide: 'Left' } }).some(p => p.includes('Receiver Look')));
-  assert.equal(SeasonFormat.playProblems({ tags: { unit: 'offense', receiverLook: 'Bunch', receiverSide: '', lineBalance: 'Unbalanced' } }).length, 0);
-  assert.ok(SeasonFormat.seasonProblems({ games: [], playbook: { calls: [{ name: 'Invalid look', defaults: { receiverSide: 'Left' } }] } }).length);
+test('superseded receiver schema is refused, not interpreted', () => {
+  for (const key of ['receiverLook','receiverSide']) {
+    assert.ok(SeasonFormat.playProblems({ tags: { unit: 'offense', [key]: '' } }).length);
+    assert.ok(SeasonFormat.seasonProblems({ games: [], playbook: { calls: [{ defaults: { [key]: 'Trips' } }] } }).length);
+    assert.equal(key in SeasonFormat.currentTagValues({ [key]: 'Trips' }), false);
+    assert.equal(key in PlayTagger.blankTags({ unit: 'offense' }), false);
+  }
 });
-test('new plays and ST clearing include all fields', () => {
-  const tags = PlayTagger.blankTags({ unit: 'offense' });
-  for (const k of ['receiverLook', 'receiverSide', 'lineBalance']) { assert.equal(tags[k], ''); assert.ok(SeasonStore.ST_ALIGNMENT_KEYS.includes(k)); }
+test('schema and ST clearing own current fields', () => {
+  const t = PlayTagger.blankTags({ unit: 'offense' });
+  for (const key of ['formationFamily','receiverStrength','receiverSet','lineBalance']) { assert.equal(t[key], ''); assert.ok(SeasonStore.ST_ALIGNMENT_KEYS.includes(key)); }
 });
-test('presentation preserves distinct meanings', () => {
-  assert.equal(TagProjection.lookLabel({ qbAlignment: 'Shotgun', formationFamily: 'Spread', receiverLook: 'Tight Bunch', receiverSide: 'Left', lineBalance: 'Unbalanced', receiverSet: '3x1' }), 'Shotgun Spread Unbalanced Tight Bunch Left 3x1');
-  assert.equal(TagProjection.project({}).receiverSide, '');
+test('presentation names formation and Receiver Strength without merging the stored fields', () => {
+  assert.equal(TagProjection.lookLabel({ qbAlignment: 'Shotgun', backfield: 'Single', formationFamily: 'Tight Bunch', strength: 'Right', receiverStrength: 'Left', receiverSet: '3x1' }), 'Shotgun Tight Bunch Receivers Left 3x1');
 });
-test('receiver and line words cannot be added as exact Family choices', () => {
-  for (const name of ChartingDetails.RECEIVER_LOOKS) assert.equal(TagLibrary.reservedOwner('formationFamily', name), 'Receiver Look');
+test('single-value formation still rejects combined fields', () => {
   assert.equal(TagLibrary.reservedOwner('formationFamily', 'Unbalanced'), 'Line Balance');
-  assert.ok(TagProjection.isCombined({ formationFamily: 'Bunch' }));
-  assert.ok(SeasonFormat.playProblems({ tags: { unit: 'offense', formationFamily: 'Unbalanced' } }).includes('combined look'));
+  assert.ok(TagProjection.isCombined({ formationFamily: 'Trips + Bunch' }));
+  assert.ok(TagProjection.isCombined({ formationFamily: 'Trips+Bunch' }));
+  assert.ok(TagProjection.isCombined({ formationFamily: 'Shotgun' }));
 });
-test('explicit mapping preserves look with uncharted side and set', () => {
-  const d = decide('Trips + Unbalanced', { tokens: { Trips: { receiverLook: 'Trips' }, Unbalanced: { lineBalance: 'Unbalanced' } } });
-  assert.equal(d.status, 'convert'); assert.equal(d.receiverLook, 'Trips'); assert.equal(d.lineBalance, 'Unbalanced');
-  assert.equal(d.receiverSet, ''); assert.equal(d.receiverSide, undefined);
+test('exact conversion invents no strength or distribution', () => {
+  const d = decide('Trips', {});
+  assert.equal(d.status, 'convert'); assert.equal(d.formationFamily, 'Trips'); assert.equal(d.receiverSet, ''); assert.equal(d.receiverStrength, undefined);
 });
-test('compound receiver names require an explicit play decision', () => {
-  const mapping = { tokens: { Trips: { receiverLook: 'Trips' }, Bunch: { receiverLook: 'Bunch' } }, plays: {} };
-  assert.equal(decide('Trips + Bunch', mapping).status, 'unresolved');
-  mapping.plays['s|g|1'] = { receiverLook: 'Bunch', receiverSide: 'Right' };
-  assert.equal(decide('Trips + Bunch', mapping, 's|g|1').receiverSide, 'Right');
+test('compound names need explicit decisions', () => {
+  assert.equal(decide('Trips + Bunch', {}).status, 'unresolved');
+  const d = decide('Unbalanced + Bunch + Trips', { combinations: { 'Trips + Bunch + Unbalanced': { formationFamily: 'Bunch', lineBalance: 'Unbalanced' } } });
+  assert.equal(d.formationFamily, 'Bunch'); assert.equal(d.lineBalance, 'Unbalanced'); assert.equal(d.receiverStrength, undefined);
 });
-test('one explicit combination decision applies regardless of token order', () => {
-  const mapping = { combinations: { 'Trips + Bunch + Unbalanced': { receiverLook: 'Bunch', lineBalance: 'Unbalanced' } } };
-  const d = decide('Unbalanced + Bunch + Trips', mapping);
-  assert.equal(d.receiverLook, 'Bunch'); assert.equal(d.receiverSet, ''); assert.equal(d.receiverSide, undefined);
-  assert.equal(decide('Trips + Bunch', mapping).status, 'unresolved');
-});
-test('contradictory combination decisions are refused', () => {
-  const mapping = { combinations: { 'Trips + Bunch': { receiverLook: 'Bunch' }, 'Bunch + Trips': { receiverLook: 'Trips' } } };
-  assert.ok(mappingProblems(mapping).length); assert.equal(decide('Trips + Bunch', mapping).status, 'unresolved');
-});
-test('invalid mapping fields and values are refused', () => {
-  assert.ok(mappingProblems({ tokens: { Trips: { receiverLook: 'Trips', receiverSide: 'Middle' } } }).length);
-  assert.ok(mappingProblems({ tokens: { Trips: { receiverLook: 'Trips', bunch: true } } }).length);
-  assert.equal(decide('Trips', { tokens: { Trips: { receiverLook: 'Trips', bunch: true } } }).status, 'unresolved');
+test('invalid and contradictory mappings are refused', () => {
+  assert.ok(mappingProblems({ tokens: { Trips: { receiverStrength: 'Middle' } } }).length);
+  assert.ok(mappingProblems({ tokens: { Trips: { receiverLook: 'Trips' } } }).length);
   assert.ok(mappingProblems({ tokens: { Trips: { formationFamily: 'Power-I + Flexbone' } } }).length);
+  assert.ok(mappingProblems({ combinations: { 'Trips + Bunch': { formationFamily: 'Bunch' }, 'Bunch + Trips': { formationFamily: 'Trips' } } }).length);
 });
-test('a conflict leaves the entire source play unchanged', () => {
-  const p = { id: 1, tags: { unit: 'offense', formation: 'Trips', receiverLook: 'Twins' } };
-  const before = structuredClone(p);
-  assert.equal(convertPlay(p, { tokens: { Trips: { receiverLook: 'Trips' } } }, 's|g|1').status, 'unresolved'); assert.deepEqual(p, before);
+test('conversion conflicts preserve the entire source', () => {
+  const p = { id: 1, tags: { unit: 'offense', formation: 'Trips', formationFamily: 'Twins' } }, before = structuredClone(p);
+  assert.equal(convertPlay(p, {}, 's|g|1').status, 'unresolved'); assert.deepEqual(p, before);
 });
-test('combination inventory carries exact composite identities', () => {
+test('combination inventory retains composite identity', () => {
   const s = { id: 's', games: [{ id: 'g', plays: [{ id: 1, tags: { unit: 'offense', formation: 'Trips + Unbalanced' } }] }] };
-  const r = convertSeason(s, { tokens: {}, plays: {} });
+  const r = convertSeason(s, {});
   assert.equal(r.combinations['Trips + Unbalanced'][0].ref, 's|g|1'); assert.equal(r.unresolved.length, 1);
-  assert.equal(s.games[0].plays[0].tags.formation, 'Trips + Unbalanced');
 });
-test('analytics reads each new dimension and its film filter without inference', () => {
+test('analytics and film links read independent dimensions', () => {
   const engine = new StatsEngine(null), registry = new AnalyticsRegistry(engine);
-  const a = { id: 1, __gid: 'g1', tags: { unit: 'offense', receiverLook: 'Tight Bunch', receiverSide: 'Left', lineBalance: 'Unbalanced' } };
-  const b = { id: 1, __gid: 'g2', tags: { unit: 'offense', receiverLook: 'Trips', receiverSide: 'Right', lineBalance: 'Balanced' } };
-  for (const [key, value] of Object.entries({ receiverLook: 'Tight Bunch', receiverSide: 'Left', lineBalance: 'Unbalanced' })) {
+  const a = { id: 1, __gid: 'g1', tags: { unit: 'offense', formationFamily: 'Tight Bunch', receiverStrength: 'Left', lineBalance: 'Unbalanced' } };
+  const b = { id: 1, __gid: 'g2', tags: { unit: 'offense', formationFamily: 'Trips', receiverStrength: 'Right', lineBalance: 'Balanced' } };
+  for (const [key, value] of Object.entries({ formationFamily: 'Tight Bunch', receiverStrength: 'Left', lineBalance: 'Unbalanced' })) {
     assert.deepEqual(registry.values(key, a), [value]);
     assert.deepEqual([a,b].filter(engine._buildCutFilter(key, value)).map(p => `${p.__gid}::${p.id}`), ['g1::1']);
   }
 });
-console.log(`${checks}/${checks} receiver-look checks passed`);
+console.log(`${checks}/${checks} formation-model checks passed`);

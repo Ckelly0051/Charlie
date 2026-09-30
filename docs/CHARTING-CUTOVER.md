@@ -6,15 +6,32 @@ been written, no full gate has run and no installer exists.** The live conversio
 coach's answers in "Decisions needed" and an explicit yes immediately before the
 write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
 
-Receiver-look checkpoint, 2026-09-29 (`1cace291`): **built in source, IMPLEMENTED_UNVERIFIED.**
-`receiverLook` offers Twins, Trips, Bunch and Tight Bunch as distinct choices;
-`receiverSide` offers Left/Right directly below it. A side is never inferred;
-clearing a look confirms clearing its populated side. `lineBalance` independently
-offers Balanced/Unbalanced. Numeric Receiver Set stays separate. All three
-fields carry through templates, carry-forward, Film Room, CSV, play detail,
-Study and presentation look labels. There is no new read-time conversion.
+Formation-model checkpoint, 2026-09-29: **built in source, IMPLEMENTED_UNVERIFIED.**
+Coach-named Formation (stored as `formationFamily`) accepts Trips, Twins,
+Bunch, Tight Bunch, Ace, Doubles, Beast and Victory, plus existing and custom
+formations. QB Alignment and Backfield are separate. Offensive Strength
+(`strength`) and Receiver Strength (`receiverStrength`, Left/Right/Balanced)
+are independent. Receiver Distribution (`receiverSet`) stays numeric; Line
+Balance stays independent. Changing or clearing Formation never clears strength.
+The receiverLook/receiverSide checkpoint in 1cace291 is superseded and its
+schema is refused, with no old reader. All consumers and the supplemental comp
+use the current model. No coach data was touched.
 
-Fresh read-only copy inventory: source SHA-256
+The inventory/rehearsal below predates this correction. Its 298/198 result is
+historical, NOT the current conversion impact. Exact single names now keep
+their names as Formation; compound words still require explicit decisions.
+Refresh the full copy-only rehearsal and impact report before any live approval.
+
+Current verification: build and 21 focused harnesses pass (Formation model
+13/13, deck/Film Room/CSV 88/88, scratch conversion 37/37, tag model 26/26).
+Both analytics goldens remain unchanged. Reintroducing the Tight Bunch
+restriction fails the formation regression; the mutation was restored.
+Populated app and supplemental comp were inspected at 1920, 1440, 1280 and
+390; desktop chips remain 27px with no clipped labels or page overflow.
+The canonical fixture's hash is unchanged. No full gate, installer or live
+write was run. Preview: http://127.0.0.1:5192 while the local server is running.
+
+Historical read-only copy inventory (before the Formation correction): source SHA-256
 `67780703e0e2bff34c0f5672af5f6e13887d980bdf2c3ee93584849ca2b6c696`.
 919 plays: SJM Varsity 293, SJM JV 186, 2025 JV 440. Of the 496 plays carrying
 Formation, exact Family names convert 298 and 198 remain unresolved with an
@@ -29,7 +46,7 @@ takeaway text changes (`takeaways.fix` on SJM JV, `takeaways.fix` and
 `takeaways.working` on 2025 JV); these must be reviewed before a live write,
 not silently rebaselined. No live write, full gate or installer was run.
 
-Focused verification: build passed; 14 affected harnesses passed, including
+Historical receiver-look verification (superseded checkpoint): build passed; 14 affected harnesses passed, including
 receiver-look 16/16, real deck/Film Room/CSV 86/86, scratch conversion 37/37,
 season-format 45/45, and unchanged analytics parity on both goldens. Removing
 the receiver-side opener made its regression fail; the mutation was restored.
@@ -41,10 +58,11 @@ local preview server is running; this is source, not an installed release.
 
 ## What the coach will see
 
-- **Formation Family** and **Receiver Set** replace the one Formation field. The
-  Family is a library group (Settings > Charting > Families: add, hide, reorder,
+- **Formation** and **Receiver Distribution** replace the mixed Formation field. The
+  Formation library (Settings > Charting > Formations: add, hide, reorder,
   remove a custom one) seeded with Spread, Power-I, I-Form, Split Back, Singleback,
-  Wing-T, Flexbone, Wishbone, Wildcat, Double Wing, Single Wing. The Receiver Set
+  Wing-T, Flexbone, Wishbone, Wildcat, Double Wing, Single Wing, Ace, Twins,
+  Trips, Doubles, Bunch, Tight Bunch, Beast and Victory. Receiver Distribution
   is 2x2, 3x1, 2x1, 3x2, 1x1, 4x1, 2x0, 3x0. A play holds one of each.
 - **Gap** (L-A..L-D, R-A..R-D, Center, Other) opens directly under Play Direction.
   **Motion Starts/Ends** open under Motion. **RPO** (read, defender number,
@@ -123,17 +141,19 @@ Power-I, Double Wing, I-Form, Flexbone, Single Wing, Spread, Split Back, Wing-T.
 example `Trips + Unbalanced` 18 plays, `Spread + Doubles` 13, `I-Form + Twins` 13)
 are listed by `node tools/charting-decision-support.mjs`.
 
-With the exact names alone, **298 of the 496 plays convert and 198 stay exactly as
-stored and unresolved** (SJM Varsity 43, SJM JV 23, 2025 JV 132).
+Before the Formation correction, exact names converted 298 of 496 plays,
+with 198 unresolved (SJM Varsity 43, SJM JV 23, 2025 JV 132). These are
+historical counts; do not use them as the current impact or approval report.
 
 ## Decisions needed (nothing is guessed or assigned for you)
 
 1. **Approve the historical mapping, by exact combination.** The table below
-   supersedes the old Family-or-numeric-Set question. Receiver names now have
-   their own field, and Unbalanced has Line Balance. Side and numeric Set may
+   supersedes the old Family-or-numeric-Set question. Exact single names now
+   become Formation, and Unbalanced has Line Balance only when explicitly mapped.
+   Receiver Strength and numeric Distribution may
    remain blank and can be charted later; missing information is not invented.
 2. **Resolve conflicts explicitly.** A combination such as Trips + Bunch needs
-   one selected receiver look. A single confirmed combination rule can cover
+   one coach-named Formation (for example Bunch, or a custom name). A single confirmed combination rule can cover
    every matching record regardless of token order; per-play overrides handle
    actual exceptions. The tool refuses conflicting rules or populated current
    fields that disagree and leaves that source record intact.
@@ -143,30 +163,30 @@ stored and unresolved** (SJM Varsity 43, SJM JV 23, 2025 JV 132).
 4. **Browser stores** (below).
 
 Give the answers as a mapping file (`tools/convert-charting-once.mjs` header):
-`{ "tokens": { "Trips": { "receiverLook": "Trips" } }, "combinations": {
-"Trips + Bunch + Unbalanced": { "receiverLook": "Bunch", "lineBalance": "Unbalanced" }
+`{ "tokens": { "Trips": { "formationFamily": "Trips" } }, "combinations": {
+"Trips + Bunch + Unbalanced": { "formationFamily": "Bunch", "lineBalance": "Unbalanced" }
 }, "plays": {} }`. This is an example, not an approved mapping.
 
-| Exact historical combination | Live plays | Proposed meaning / decision |
-|---|---:|---|
-| Ace | 63 | Decide Family name; do not infer receiver count |
-| Ace + Twins | 7 | Same Ace decision plus Twins; side blank |
-| Doubles | 24 | Decide whether to keep a custom Family or explicitly assign a numeric Set |
-| Doubles + Spread | 13 | Spread plus the Doubles decision; two Families would conflict |
-| Beast | 5 | Decide whether to preserve Beast as a custom Family |
-| Victory | 2 | Decide whether to preserve Victory as a custom Family |
-| Trips | 9 | Trips; side and numeric Set blank |
-| Trips + Unbalanced | 22 | Trips plus Unbalanced; side and Set blank |
-| Bunch + Trips + Unbalanced | 16 | Confirm Bunch plus Unbalanced, or provide exceptions |
-| Bunch + Trips | 1 | Confirm Bunch, or choose Trips |
-| Bunch + Single Wing + Trips + Unbalanced | 1 | Single Wing plus Unbalanced; confirm Bunch vs Trips |
-| Bunch + Spread + Trips | 2 | Spread; confirm Bunch vs Trips |
-| Twins | 7 | Twins; side and Set blank |
-| I-Form + Twins | 19 | I-Form plus Twins; side and Set blank |
-| Split Back + Twins | 1 | Split Back plus Twins; side and Set blank |
-| Twins + Unbalanced | 1 | Twins plus Unbalanced; side and Set blank |
-| Spread + Twins | 1 | Spread plus Twins; side and Set blank |
-| Unbalanced | 4 | Line Balance only; Family, receiver look and side blank |
+| Exact historical combination | Recorded plays |
+|---|---:|
+| Ace | 63  |
+| Ace + Twins | 7  |
+| Doubles | 24  |
+| Doubles + Spread | 13  |
+| Beast | 5  |
+| Victory | 2  |
+| Trips | 9  |
+| Trips + Unbalanced | 22  |
+| Bunch + Trips + Unbalanced | 16  |
+| Bunch + Trips | 1  |
+| Bunch + Single Wing + Trips + Unbalanced | 1  |
+| Bunch + Spread + Trips | 2  |
+| Twins | 7  |
+| I-Form + Twins | 19  |
+| Split Back + Twins | 1  |
+| Twins + Unbalanced | 1  |
+| Spread + Twins | 1  |
+| Unbalanced | 4  |
 
 Total: 198 distinct live plays. The rehearsal inventory contains every affected
 season/game/play ID and old value, grouped by normalized combination. It is in

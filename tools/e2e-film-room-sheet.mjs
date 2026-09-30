@@ -82,7 +82,7 @@ ok(g('grades').rows.Passer === '+1' && g('custom').rows.Pressure === 'Edge' && g
   'grades, custom fields and custom tags are on the sheet', JSON.stringify({ grades: g('grades'), custom: g('custom') }));
 ok(g('situation').rows.Quarter === 'Q1' && g('situation').rows['Down & distance'] === '1st & 10' && g('situation').rows['Field position'] === 'Own 25' && g('situation').rows.Hash === 'Left',
   'situation values are the charted ones', JSON.stringify(g('situation').rows));
-ok(g('offense').title === 'Our offensive look' && g('offense').rows['Formation family'] === 'Spread' && g('offense').rows.Personnel === '11' && g('offense').rows['Play call'] === 'Not charted',
+ok(g('offense').title === 'Our offensive look' && g('offense').rows['Formation'] === 'Spread' && g('offense').rows.Personnel === '11' && g('offense').rows['Play call'] === 'Not charted',
   'the unit\'s look is filled where charted and says Not charted where not', JSON.stringify(g('offense')));
 ok(g('defense').title === 'Defense faced' && Object.values(g('defense').rows).every(v => v === 'Not charted'), 'the faced side is listed, uncharted', JSON.stringify(g('defense')));
 ok(g('play').rows['Run / pass'] === 'Pass' && g('play').rows['Play type'] === 'Short Pass' && /Gain/.test(g('play').rows.Result),

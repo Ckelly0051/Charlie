@@ -14,10 +14,10 @@ import { ChartingDetails } from './charting-details.js';
  *
  * It detects; it never converts. The checks are the conversion's own:
  *   - a charted play with no unit
- *   - a combined look (an alignment inside the Formation Family, Empty inside
+ *   - a combined look (an alignment inside the Formation, Empty inside
  *     it, a family inside Coverage): the look commit would still change it
  *   - the retired Formation field (one field that mixed family, receiver and
- *     package words; converted once into Formation Family and Receiver Set), on a
+ *     package words; converted once into Formation and Receiver Distribution), on a
  *     play or as a play call's saved default
  *   - a retired Special Teams tag (stType, kickOutcome, scoreFor, kickDistance,
  *     returnYards, hangTime, kickedTo)
@@ -28,6 +28,7 @@ import { ChartingDetails } from './charting-details.js';
  */
 export class SeasonFormat {
   static RETIRED_TAG_KEYS = Object.freeze(['stType', 'kickOutcome', 'scoreFor', 'kickDistance', 'returnYards', 'hangTime', 'kickedTo']);
+  static RETIRED_LOOK_KEYS = Object.freeze(['receiverLook', 'receiverSide']);
 
   static MESSAGE = 'This file uses an old GridIron IQ format and was not opened. Export it again from the current app.';
   static RESTORE_MESSAGE = 'This restore point was saved in an old format and cannot be restored. Nothing was changed.';
@@ -50,9 +51,10 @@ export class SeasonFormat {
       if (!this.UNITS.includes(tags.unit)) out.push('no unit');
       if (TagProjection.isCombined(tags)) out.push('combined look');
       if (Object.prototype.hasOwnProperty.call(tags, 'formation')) out.push('retired Formation field');
+      if (this.RETIRED_LOOK_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired receiver look field');
       if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
       if (tags.custom != null && !Array.isArray(tags.custom)) out.push('custom tags not a list');
-      const receiver = { receiverLook: tags.receiverLook, receiverSide: tags.receiverSide, lineBalance: tags.lineBalance };
+      const receiver = { receiverStrength: tags.receiverStrength, lineBalance: tags.lineBalance };
       out.push(...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver));
     }
     // Checked whether or not the tags are usable.
@@ -85,8 +87,9 @@ export class SeasonFormat {
       }
       if (this._isObject(call?.defaults)) {
         const d = call.defaults, where = `play call ${call.name || ci + 1}`;
+        if (this.RETIRED_LOOK_KEYS.some(k => Object.prototype.hasOwnProperty.call(d, k))) out.push({ where, problem: 'retired receiver look default' });
         if (TagProjection.isCombined(d)) out.push({ where, problem: 'combined look default' });
-        const receiver = { receiverLook: d.receiverLook, receiverSide: d.receiverSide, lineBalance: d.lineBalance };
+        const receiver = { receiverStrength: d.receiverStrength, lineBalance: d.lineBalance };
         for (const problem of [...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver)]) out.push({ where, problem });
       }
     });
@@ -121,7 +124,7 @@ export class SeasonFormat {
   static currentTagValues(values) {
     const out = {};
     for (const [k, v] of Object.entries(values || {})) {
-      if (this.RETIRED_TAG_KEYS.includes(k) || k === 'formation') continue;
+      if (this.RETIRED_TAG_KEYS.includes(k) || this.RETIRED_LOOK_KEYS.includes(k) || k === 'formation') continue;
       if (['formationFamily', 'backfield', 'coverage'].includes(k) && TagProjection.isCombined({ [k]: v })) continue;
       out[k] = v;
     }

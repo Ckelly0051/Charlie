@@ -1,7 +1,7 @@
 /** Compatibility entry point for the native Charting settings surface. */
 export class TagLibrarySettings {
   static GROUPS = [
-    { key: 'formationFamily', label: 'Formation Families', singular: 'formation family', placeholder: 'e.g. Wing-T' },
+    { key: 'formationFamily', label: 'Formations', singular: 'formation', placeholder: 'e.g. Tight Bunch' },
     { key: 'backfield', label: 'Backfields', singular: 'backfield', placeholder: 'e.g. Ace' },
     { key: 'front', label: 'Fronts', singular: 'front', placeholder: 'e.g. Bear' },
     { key: 'coverage', label: 'Coverages', singular: 'coverage call', placeholder: 'e.g. Cover 7' },

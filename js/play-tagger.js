@@ -33,7 +33,7 @@ export class PlayTagger {
     this.autoDD = (typeof localStorage === 'undefined')
       || localStorage.getItem('ffa_auto_dd') !== '0';
 
-    // Carry scheme: pre-fill the next play's alignment fields (formation family,
+    // Carry scheme: pre-fill the next play's alignment fields (formation,
     // receiver set, personnel, def front, coverage) from the previous play. Opt-in — teams
     // that rarely change looks save four taps a snap. Default OFF.
     this.carryScheme = (typeof localStorage !== 'undefined')
@@ -56,7 +56,7 @@ export class PlayTagger {
    */
   static blankTags({ unit = 'offense', driveNumber = '' } = {}) {
     return {
-      down: '', distance: '', formationFamily: '', receiverSet: '', receiverLook: '', receiverSide: '', lineBalance: '', qbAlignment: '', backfield: '', strength: '',
+      down: '', distance: '', formationFamily: '', receiverSet: '', receiverStrength: '', lineBalance: '', qbAlignment: '', backfield: '', strength: '',
       playCall: '', playCallId: '', playConcept: '', playType: '', runPass: '',
       defFront: '', coverage: '', coverageFamily: '', blitz: '', result: '', fumbleRecovery: '', yardage: '',
       hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
@@ -293,7 +293,7 @@ export class PlayTagger {
   // play concept). Play-specific fields (result, yardage, players, notes,
   // down/distance — owned by Auto D&D) are intentionally NOT copied.
   static get SCHEME_KEYS() {
-    return ['unit', 'qbAlignment', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'backfield', 'strength', 'personnel',
+    return ['unit', 'qbAlignment', 'formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'backfield', 'strength', 'personnel',
             'motion', 'motionStart', 'motionEnd', 'runPass', 'playType', 'defFront', 'coverage', 'coverageFamily',
             'blitz', 'hash'];
   }
@@ -866,7 +866,7 @@ export class PlayTagger {
   /** Alignment fields the carry-scheme toggle copies forward — pre-snap looks
    *  only, never what happened on the snap (play type / result / yardage). */
   static get CARRY_SCHEME_KEYS() {
-    return ['qbAlignment', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'backfield', 'strength', 'personnel',
+    return ['qbAlignment', 'formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'backfield', 'strength', 'personnel',
             'defFront', 'coverage', 'coverageFamily'];
   }
 

@@ -25,7 +25,7 @@ const result = await page.evaluate(() => {
     { id: 'p1', team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 8, playCounts: false },
     { id: 'p2', team: 'opponent', phase: 'defense', foul: 'Facemask', disposition: 'declined', yards: null, playCounts: true },
   ], tags: {
-    // QB alignment, formation family and receiver set are each their own field.
+    // QB alignment, formation and receiver set are each their own field.
     unit: 'offense', formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun', playType: 'RPO + Short Pass',
     defFront: '4-3 + Jumbo Shift', blitz: 'A-Gap + Edge', result: 'Gain + Touchdown',
     down: '3', distance: '6', quarter: 'Q2', driveNumber: '4', motion: '',
@@ -122,7 +122,7 @@ if (!result.missing) {
   ok(requiredDims.every(x => result.dimensions.includes(x)), 'Registry covers every minimum dimension', JSON.stringify(result.dimensions));
   ok(requiredMeasures.every(x => result.measures.includes(x)), 'Registry covers every minimum measure contract', JSON.stringify(result.measures));
   ok(requiredBlocks.every(x => result.blocks.includes(x)), 'Registry binds every canonical compute block', JSON.stringify(result.blocks));
-  ok(JSON.stringify(result.formationFamily) === JSON.stringify(['Spread']), 'Formation Family reads the family field as one value');
+  ok(JSON.stringify(result.formationFamily) === JSON.stringify(['Spread']), 'Formation reads the family field as one value');
   ok(JSON.stringify(result.qbAlignment) === JSON.stringify(['Shotgun']), 'QB alignment dimension reads its own field');
   ok(JSON.stringify(result.playType) === JSON.stringify(['RPO','Short Pass']), 'Play type uses canonical multi-value splitter');
   ok(JSON.stringify(result.fronts) === JSON.stringify(['4-3','Jumbo Shift']) && JSON.stringify(result.blitzes) === JSON.stringify(['A-Gap','Edge']), 'Defense dimensions use canonical splitters');
@@ -160,10 +160,9 @@ if (!result.missing) {
   // H19 added dirVsStrength/dirVsHash as registered dimensions so the two reads
   // a defensive coordinator asks for pivot against everything else rather than
   // living in two hardcoded tables.
-  ok(result.matrixIds.length === 23 && result.matrixIds.includes('receiverSet') && result.matrixIds.includes('gap') && result.matrixIds.includes('quarter') && result.matrixIds.includes('distBucket')
-    && result.matrixIds.includes('qbAlignment') && result.matrixIds.includes('coverageFamily')
-    && result.matrixIds.includes('dirVsStrength') && result.matrixIds.includes('dirVsHash'),
-    'All 23 Matrix extractors are pinned (incl. receiver set, gap, direction-vs-strength and direction-vs-hash)');
+  const expectedMatrix = ['formationFamily','receiverSet','receiverStrength','lineBalance','qbAlignment','backfield','strength','playType','down','distBucket','personnel','defFront','coverage','coverageFamily','hash','playDir','gap','qbRun','rpoRead','rpoDecision','motion','quarter','runPass','dirVsStrength','dirVsHash'];
+  ok(JSON.stringify([...result.matrixIds].sort()) === JSON.stringify(expectedMatrix.sort()),
+    'every current Matrix dimension is pinned exactly, with no retired receiver dimension');
   ok(result.matrixValues.distBucket[0] === 'Med (4-6)' && result.matrixValues.runPass[0] === 'Pass', 'Legacy Matrix distance/run-pass behavior is explicit');
   ok(result.matrixCells.length === 2 && result.matrixCells.every(c => c.count === 1 && c.passes === 1), 'Representative multi-value Matrix cross-product is pinned (a play with two play types lands in both cells)');
 }

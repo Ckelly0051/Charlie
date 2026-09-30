@@ -99,7 +99,7 @@ console.log('\n== 5. isPlayTagged — one canonical "is this play tagged?" rule 
   };
 }
 ok(r.offense && r.stKickReturn && r.defenseScheme, 'offense, special-teams (Kick Return), and defense plays all read as TAGGED', JSON.stringify(r));
-ok(r.runPassOnly && r.formationOnly, 'a run/pass call or a formation family alone counts as tagged', JSON.stringify(r));
+ok(r.runPassOnly && r.formationOnly, 'a run/pass call or a formation alone counts as tagged', JSON.stringify(r));
 ok(!r.ddOnly && !r.blank, 'down/distance pre-fill alone (or nothing) is NOT tagged', JSON.stringify(r));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

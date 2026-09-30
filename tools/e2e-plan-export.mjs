@@ -81,7 +81,7 @@ const games = [
   const exp = PlanExport.build(plan, g);
   const plays = exp.items[0].plays;
   ok(!('formation' in plays[0]), 'the export field is named `look`, not `formation` — a combined phrase must never sit under a Formation-shaped key', JSON.stringify(Object.keys(plays[0])));
-  ok(plays[0].look === 'Shotgun Spread 3x1', 'QB alignment, formation family and receiver set export as one spoken label', JSON.stringify(plays[0].look));
+  ok(plays[0].look === 'Shotgun Spread 3x1', 'QB alignment, formation and receiver set export as one spoken label', JSON.stringify(plays[0].look));
   ok(!plays[0].look.includes('+'), 'the export never leaks the " + " join artifact into a presentation label');
   ok(plays[1].look === 'Pistol Spread 2x2', 'an Empty backfield stays out of the label; alignment, family and set compose', JSON.stringify(plays[1].look));
   ok(plays[2].look === 'Shotgun Flexbone 3x1' && !plays[2].look.includes('+'), 'a family and a receiver set compose with plain spaces, no internal "+"', JSON.stringify(plays[2].look));

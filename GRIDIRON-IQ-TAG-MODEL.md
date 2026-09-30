@@ -1,14 +1,15 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
-> **Receiver-look revision, 2026-09-29:** `receiverLook` is one of Twins,
-> Trips, Bunch or Tight Bunch. `receiverSide` is Left/Right, charted from the
-> offense's perspective, with blank valid. The side opens under the look;
-> removing a populated look confirms clearing its side in the same undo step.
-> Changing between looks preserves the side. `lineBalance` is independently
-> Balanced/Unbalanced, blank when uncharted. Numeric `receiverSet` stores the
-> distribution and never implies a side. These fields travel through the deck,
-> templates, carry-forward, Film Room, CSV, play detail, Study and look labels.
-> Kicking plays strip them under the existing run/pass-try exemption.
+> **Formation revision, 2026-09-29 (coach direction):** Formation is one
+> coach-managed name, stored as `formationFamily`. Trips, Bunch, Tight Bunch,
+> Ace, Twins, Doubles, Beast and Victory are valid formation choices, alongside
+> I-Form, Wing-T and the existing catalog. QB Alignment and Backfield remain
+> separate. `strength` is Offensive Strength; `receiverStrength` is independent
+> Left/Right/Balanced and can be charted without Formation. `receiverSet` is
+> numeric Receiver Distribution. `lineBalance` is independently Balanced/Unbalanced.
+> No field infers another. The separate receiverLook/receiverSide schema is
+> superseded and refused, not converted at read time. Kicking plays strip the
+> current look fields under the existing run/pass-try exemption.
 
 > **Revision 2026-09-28 (charting cutover, Step 1) — the `formation` field is
 > retired.** The old multi-select mixed family, receiver and package words
@@ -18,7 +19,7 @@
 > Double Wing, Single Wing) and `receiverSet` (one value from
 > `ChartingDetails.RECEIVER_SETS`), and has no `formation` key at all:
 > `SeasonFormat` refuses a play, a play call default or a template that carries
-> it. Wherever this document says "formation", read Formation Family; the
+> it. Wherever this document says "formation", read Formation; the
 > multi-value and "Trips / Bunch" passages are history. New owned fields, all in
 > `js/charting-details.js`: `gap` (L-A..L-D, R-A..R-D, Center, Other; a sided gap
 > sets Play Direction, Center sets Middle, a direction that contradicts the gap

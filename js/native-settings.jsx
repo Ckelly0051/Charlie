@@ -3,7 +3,7 @@ import { TagLibrary } from './tag-library.js';
 import '../css/native-settings.css';
 
 const JERSEY_COLORS = ['white','black','red','blue','navy','green','yellow','orange','purple','maroon','gray','teal'];
-const CHART_GROUPS = [['formationFamily','Families'],['backfield','Backfields'],['front','Fronts'],['coverage','Coverages'],['playType','Play Types'],['blitz','Blitzes']];
+const CHART_GROUPS = [['formationFamily','Formations'],['backfield','Backfields'],['front','Fronts'],['coverage','Coverages'],['playType','Play Types'],['blitz','Blitzes']];
 const DRAW_TOOLS = [['line','Line'],['arrow','Arrow'],['circle','Circle'],['rect','Rectangle'],['freehand','Draw'],['text','Text']];
 const DRAW_COLORS = ['#ffffff','#ffff00','#ff4444','#4488ff','#44ff44','#ff8800'];
 const FILTERS = {
@@ -87,8 +87,8 @@ function FilmSettings({ screen, required, finish }) {
 
 const PLAY_CALL_DEFAULTS = [
   ['runPass','Run / Pass'],['playType','Play type'],['playDir','Direction'],
-  ['formationFamily','Formation family'],['receiverSet','Receiver set'],['receiverLook','Receiver look'],['receiverSide','Receiver side'],['lineBalance','Line balance'],['qbAlignment','QB alignment'],['backfield','Backfield'],
-  ['strength','Strength'],['personnel','Personnel'],['motion','Motion'],
+  ['formationFamily','Formation'],['receiverSet','Receiver distribution'],['receiverStrength','Receiver strength'],['lineBalance','Line balance'],['qbAlignment','QB alignment'],['backfield','Backfield'],
+  ['strength','Offensive strength'],['personnel','Personnel'],['motion','Motion'],
 ];
 const blankCall = () => ({ id:'', name:'', concept:'', favorite:false, defaults:{} });
 
@@ -242,7 +242,7 @@ function CutupSettings({ screen }) {
   return <div data-settings-panel="cutup"><section class="gi-settings-section"><header><div><span class="gi-settings-kicker">Cut-up export</span><h3>Choose the plays to include</h3></div><span class="gi-settings-status">{count ? `${count} active` : 'All plays'}</span></header><div class="gi-settings-section-body">
     <p class="gi-settings-truth">Filters combine across rows. Choices within one row are alternatives. The export uses exactly the resulting film set.</p>
     <ToggleGroup label="Down" values={FILTERS.downs} selected={criteria.downs||[]} onChange={values=>apply({...criteria,downs:values})}/><ToggleGroup label="Quarter" values={FILTERS.quarters} selected={criteria.quarters||[]} onChange={values=>apply({...criteria,quarters:values})}/><ToggleGroup label="Play type" values={FILTERS.playTypes} selected={criteria.playTypes||[]} onChange={values=>apply({...criteria,playTypes:values})}/><ToggleGroup label="Result" values={FILTERS.results} selected={criteria.results||[]} onChange={values=>apply({...criteria,results:values})}/>
-    <div class="gi-filter-selects"><label>Formation family<select value={criteria.formationFamilies?.[0]||''} onChange={e=>apply({...criteria,formationFamilies:e.currentTarget.value?[e.currentTarget.value]:[]})}><option value="">All</option>{formations.map(v=><option key={v}>{v}</option>)}</select></label><label>Personnel<select value={criteria.personnel?.[0]||''} onChange={e=>apply({...criteria,personnel:e.currentTarget.value?[e.currentTarget.value]:[]})}><option value="">All</option>{FILTERS.personnel.map(v=><option key={v}>{v}</option>)}</select></label><label>Situation<select value={criteria.situation||''} onChange={e=>apply({...criteria,situation:e.currentTarget.value})}><option value="">All</option><option value="redzone">Red zone</option><option value="goalline">Goal line</option><option value="backed-up">Backed up</option><option value="3rd-long">3rd & long</option><option value="3rd-short">3rd & short</option></select></label></div>
+    <div class="gi-filter-selects"><label>Formation<select value={criteria.formationFamilies?.[0]||''} onChange={e=>apply({...criteria,formationFamilies:e.currentTarget.value?[e.currentTarget.value]:[]})}><option value="">All</option>{formations.map(v=><option key={v}>{v}</option>)}</select></label><label>Personnel<select value={criteria.personnel?.[0]||''} onChange={e=>apply({...criteria,personnel:e.currentTarget.value?[e.currentTarget.value]:[]})}><option value="">All</option>{FILTERS.personnel.map(v=><option key={v}>{v}</option>)}</select></label><label>Situation<select value={criteria.situation||''} onChange={e=>apply({...criteria,situation:e.currentTarget.value})}><option value="">All</option><option value="redzone">Red zone</option><option value="goalline">Goal line</option><option value="backed-up">Backed up</option><option value="3rd-long">3rd & long</option><option value="3rd-short">3rd & short</option></select></label></div>
     <div class="gi-settings-command-row"><button type="button" onClick={()=>{const next={quarters:[],downs:[],playTypes:[],formationFamilies:[],personnel:[],results:[],situation:''};apply(next);}}>Clear filters</button><button type="button" class="gi-settings-primary" onClick={()=>screen.exportCutup(criteria)}>Export filtered cut-up</button></div>
   </div></section></div>;
 }

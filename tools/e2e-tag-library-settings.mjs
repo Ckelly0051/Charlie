@@ -116,12 +116,12 @@ ok(state.stored&&state.row&&state.aria==='Remove Bear "Zero"'&&!state.stray,'Quo
 
 // A custom entry from the retired Formation list is offered back in Families, by name,
 // and only the coach's click adds it.
-await page.evaluate(()=>{const lib=window.app.customChips.library,key=lib.key(),saved=JSON.parse(localStorage.getItem(key)||'{}');saved.retired={formation:{custom:['Beast'],enabled:['Beast'],order:['Beast']}};localStorage.setItem(key,JSON.stringify(saved));});
+await page.evaluate(()=>{const lib=window.app.customChips.library,key=lib.key(),saved=JSON.parse(localStorage.getItem(key)||'{}');saved.retired={formation:{custom:['Coach Beast'],enabled:['Coach Beast'],order:['Coach Beast']}};localStorage.setItem(key,JSON.stringify(saved));});
 await page.click('[data-chart-group="formationFamily"]');
-state=await page.evaluate(()=>({offered:[...document.querySelectorAll('[data-previous-formation]')].map(b=>b.dataset.previousFormation+'|'+b.textContent.trim()),listed:!!document.querySelector('[data-tag-value="Beast"]'),custom:window.app.customChips.library.group('formationFamily').custom.includes('Beast')}));
-ok(state.offered.join()==='Beast|Add Beast'&&!state.listed&&!state.custom,'Families offers the retired custom entry by name and adds nothing on its own',JSON.stringify(state));
-await page.click('[data-previous-formation="Beast"]');
-state=await page.evaluate(()=>{const row=document.querySelector('[data-tag-value="Beast"]');return{listed:!!row,shown:row?.querySelector('input')?.checked,custom:window.app.customChips.library.group('formationFamily').custom.includes('Beast'),offered:document.querySelectorAll('[data-previous-formation]').length,retired:!!JSON.parse(localStorage.getItem(window.app.customChips.library.key())).retired?.formation};});
+state=await page.evaluate(()=>({offered:[...document.querySelectorAll('[data-previous-formation]')].map(b=>b.dataset.previousFormation+'|'+b.textContent.trim()),listed:!!document.querySelector('[data-tag-value="Coach Beast"]'),custom:window.app.customChips.library.group('formationFamily').custom.includes('Coach Beast')}));
+ok(state.offered.join()==='Coach Beast|Add Coach Beast'&&!state.listed&&!state.custom,'Families offers the retired custom entry by name and adds nothing on its own',JSON.stringify(state));
+await page.click('[data-previous-formation="Coach Beast"]');
+state=await page.evaluate(()=>{const row=document.querySelector('[data-tag-value="Coach Beast"]');return{listed:!!row,shown:row?.querySelector('input')?.checked,custom:window.app.customChips.library.group('formationFamily').custom.includes('Coach Beast'),offered:document.querySelectorAll('[data-previous-formation]').length,retired:!!JSON.parse(localStorage.getItem(window.app.customChips.library.key())).retired?.formation};});
 ok(state.listed&&state.shown&&state.custom&&state.offered===0&&state.retired,'Adding it makes Beast a shown Family, ends the offer and leaves the retired entry as stored',JSON.stringify(state));
 await page.click('[data-chart-group="front"]');
 

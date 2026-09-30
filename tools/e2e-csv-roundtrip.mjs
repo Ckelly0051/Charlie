@@ -56,7 +56,7 @@ const res = await page.evaluate(async () => {
     blankCallFields: penaltyOnly ? [penaltyOnly.tags.playCall, penaltyOnly.tags.playCallId, penaltyOnly.tags.playConcept] : null };
 });
 
-ok(res.csv.includes('"A""B"'), 'embedded quote in a formation family is escaped ("→"") on export', JSON.stringify(res.csv.split('\n')[1]?.slice(0, 60)));
+ok(res.csv.includes('"A""B"'), 'embedded quote in a formation is escaped ("→"") on export', JSON.stringify(res.csv.split('\n')[1]?.slice(0, 60)));
 ok(res.csv.includes('"said ""hi"", ok"'), 'notes with quote AND comma exported as one escaped cell');
 ok(res.csv.includes(`"'=EVIL"`), 'formula-injection cell (=EVIL) is neutralized with a leading apostrophe');
 ok(res.csv.includes('"-5"') && !res.csv.includes(`"'-5"`), 'signed number -5 stays numeric (NOT formula-guarded)');
@@ -71,13 +71,13 @@ ok(JSON.stringify(res.callFields) === JSON.stringify(['26 Blast', 'call_26_blast
 ok(JSON.stringify(res.blankCallFields) === JSON.stringify(['', '', '']),
   'CSV-imported plays without call data retain backward-compatible blank fields');
 
-// A CSV from an older export can carry a combined look in the Formation Family column. The whole
+// A CSV from an older export can carry a combined look in the Formation column. The whole
 // import is refused with the plain old-format message and adds no play (no
 // old-format play is created), and the export no longer carries the retired
 // ST Type column.
 const look = await page.evaluate(() => {
   const sm = window.app.storage;
-  const csv = 'Unit,Formation Family,Play Type,Result\noffense,Spread,Run Inside,Gain\noffense,Shotgun + Spread,Short Pass,Gain\n';
+  const csv = 'Unit,Formation,Play Type,Result\noffense,Spread,Run Inside,Gain\noffense,Shotgun + Spread,Short Pass,Gain\n';
   sm.tagger.plays = []; sm.tagger.nextId = 1; sm.lastImportRefusal = null;
   const added = sm.applyPlayImport(sm.importPlaysFromText(csv));
   return { added, plays: sm.tagger.plays.length, refusal: sm.lastImportRefusal };

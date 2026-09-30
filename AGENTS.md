@@ -139,7 +139,7 @@ play   { id, timestamp{start,end}, clipId, catalogClipId, notes, diagram,
 
 `play.tags` carries the football model: situation (`down`, `distance`,
 `quarter`, `fieldSide`, `yardLine`, `hash`), offensive look (`formationFamily`,
-`receiverSet`, `receiverLook`, `receiverSide`, `lineBalance`,
+`receiverSet`, `receiverStrength`, `lineBalance`,
 `backfield`, `strength`, `qbAlignment`, `personnel`, `motion`), the call
 (`playCall`, `playCallId`, `playConcept`), outcome (`runPass`, `playType`,
 `result`, `yardage`, `playDir`), defense (`defFront`, `coverage`,

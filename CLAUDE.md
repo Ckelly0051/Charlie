@@ -138,7 +138,7 @@ roster (`SeasonManager._mergeRoster()`).
   consumer reads it: deck, grid, cut-up filters, Study, the vision analyzer's
   enum and validator, Quick Chart and the global shortcuts (each built-in has a
   key; the legend lists it). `TagLibrary.RESERVED` keeps an alignment out of
-  the Formation Family and Backfield, `Empty` and a receiver distribution out of
+  Formation and Backfield, `Empty` and a receiver distribution out of
   the Family and a coverage family out of Coverage. A new built-in is visible in
   a saved library with no conversion: a default the library's `order` has never
   listed is shown (a value the coach hid stays listed and hidden), read-only
@@ -151,15 +151,14 @@ roster (`SeasonManager._mergeRoster()`).
   (`SpecialTeamsModel.isRunPassTry`) charts its look like a scrimmage snap and
   is kept out of every analytics cohort (`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
   §4b.3d).
-- The old one-field `formation` is retired (it mixed family, receiver and
-  package words): a play stores `formationFamily` and `receiverSet`, one value
-  each, and `SeasonFormat` refuses any `formation` key. Each look field is its
-  own field and `TagProjection.project` is a plain read; nothing infers a
-  family or set from another tag.
-  `receiverLook` is Twins, Trips, Bunch or Tight Bunch; `receiverSide` is Left
-  or Right and stays blank until charted. Clearing the look confirms removal
-  of its side. `lineBalance` is an independent Balanced/Unbalanced choice.
-  Numeric Receiver Set never supplies receiver side.
+- Formation is one coach-named value in the library (stored as
+  `formationFamily`): Trips, Bunch and Tight Bunch are formations, not a
+  separate receiver-look taxonomy. QB Alignment and Backfield stay separate.
+  `strength` is Offensive Strength; `receiverStrength` is independently
+  Left/Right/Balanced. Neither is inferred or cleared by changing Formation.
+  `receiverSet` is numeric Receiver Distribution; `lineBalance` is independent.
+  The old `formation`, `receiverLook` and `receiverSide` shapes are refused,
+  never interpreted. One confirmed tools-only conversion, no compatibility tail.
 - Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
   `ChartingDetails`. A sided gap sets Play Direction, Center sets Middle, a
   direction that contradicts the gap clears it; a detail is never stored without

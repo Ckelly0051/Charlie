@@ -68,7 +68,7 @@ season, game, or coach data while reviewing the design.
 No explanatory prose or `optional` subtext is added to the on-screen deck.
 The coach's later Gap and Reverse decisions are recorded in the current build
 contract in `GRIDIRON-IQ-PLAN-V2.md`; the registered canonical artifact remains
-the earlier comp. Formation Family uses the existing coach-managed library
+the earlier comp. Formation uses the existing coach-managed library
 workflow, extended to its own field: add, show/hide, reorder, and remove a
 custom choice without shrinking this deck or silently changing stored plays.
 Power-I and Split Back must be available. Historical mixed Formation values
@@ -77,6 +77,18 @@ verified cutover with no old-format reader or dual-write path left in the app;
 that migration needs a separate impact report and live-write confirmation.
 
 ## Review evidence
+
+2026-09-29 coach correction: follow the Hudl Formation / Backfield / separate
+strength model. Formation accepts coach-named Trips, Twins, Bunch and Tight
+Bunch; the earlier Family/Receiver Look split is superseded. QB Alignment stays
+separate. Offensive Strength and Receiver Strength (Left/Right/Balanced) are
+independent; numeric Receiver Distribution and Line Balance remain separate.
+Changing Formation clears no strength. The supplemental comp and source now
+show this model using the existing 27px chips and readable type. No registry
+approval, live conversion or installed acceptance is implied. Hudl reference:
+https://www.hudl.com/blog/tips-from-an-assist-expert-formation-backfield
+
+The capture record below is historical, from before the Formation correction.
 
 Captured `#library` at 1920x1080, 1440x900, 1280x800 and 390x844;
 `#formation` at 1440x900; collapsed library at 1440x900 and 390x844; and

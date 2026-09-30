@@ -21,7 +21,7 @@ the real deck width, plus a narrow view. No source repair or installed
 acceptance is claimed here. The supplemental
 `design-comps/breakdown-visual-finish-2026-09-28/` shows the full old Formation
 library at the real deck width; it is not a blanket-approved replacement for
-the registered charting comp. The new Formation Family must get its own
+the registered charting comp. The new Formation must get its own
 coach-managed library group, with Power-I and Split Back available and
 add/show/hide/reorder/remove-custom behavior. No extra comp is required for
 that library workflow. The coach also reviewed Gap as ten chips in one row
@@ -36,30 +36,31 @@ Direction, motion Starts/Ends, RPO read/defender/decision, QB Run and Reverse
 play types, the 27px chips, the Film Room and CSV columns, the run-gap report
 and the single-format refusals are in the branch (`docs/CHARTING-CUTOVER.md`
 has the counts, the field mapping and the rehearsal proof). Open until the
-coach decides these words, which the converter will not infer: Ace (70 plays),
-Trips (51), Unbalanced (44), Doubles (37), Twins (36), Bunch (20), Beast (5),
-Victory (2). 198 of 496 Formation plays stay unresolved without those
-decisions; 76 restore points convert none until they are made. No installed
+coach decides compound mappings. Exact single names remain coach-named
+Formation choices under the 2026-09-29 correction. The full live/snapshot
+impact report must be refreshed with current rules before approval. No installed
 acceptance is claimed and no gate has run for this change. Review of
 `19b2ed1..94fb5b8` (2026-09-29) found four defects, repaired with failing-first
 tests: a Play Call that replaces a Direction, Motion or Play Type now names the
 Gap, path or RPO detail it would clear and waits (Chart and Film Room); a CSV
-with a bare Formation column is refused even beside a Formation Family column;
+with a combined Formation value is refused without writing any rows;
 a custom entry in the retired Formation list is offered by name under
 "Previous formations" in Settings, added only on the coach's click, and the
 retired list now survives a second library edit (it was dropped on the next
 load); the run-gap sample uses the Reports' own run rule and says so.
 
-Receiver-look follow-up, 2026-09-29: built in source, IMPLEMENTED_UNVERIFIED.
-Twins, Trips, Bunch and Tight Bunch are distinct Receiver Look selections;
-Left/Right opens locally, Line Balance is independent, and Receiver Set stays
-numeric. Film Room, play detail, CSV, templates/carry and Study carry the fields.
-Fresh catalog-copy rehearsal: 919 plays, 496 with Formation, 298 exact-name
-conversions and 198 unresolved. Original catalog hash stayed unchanged.
-The existing rehearsal flags `takeaways.fix`/`takeaways.working` text changes
-on SJM JV and 2025 JV; these need explicit review before live-write approval.
-The Previous formations bridge remains temporary and must be removed after
-the approved conversion and before packaging. No live write, gate or installer.
+Formation-model correction, 2026-09-29: built in source, IMPLEMENTED_UNVERIFIED.
+The coach rejected the rigid Family/Receiver Look split. Formation now accepts
+Twins, Trips, Bunch and Tight Bunch as whole coach-managed names. QB Alignment,
+Backfield, Offensive Strength, independent Receiver Strength, numeric Receiver
+Distribution and Line Balance stay separate. receiverLook/receiverSide are
+removed from authoring/readers and refused on import. All deck, grid, CSV,
+template, carry, Study and detail consumers use the one current model.
+Earlier 298/198 conversion counts are superseded; the full impact must be
+rehearsed again before coach approval. Compound mappings and the existing
+rehearsal takeaway-text differences still need review. The Previous formations
+bridge remains tools-cutover work: remove after conversion before packaging.
+No live write, gate, installer or installed acceptance.
 
 **BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and
@@ -2618,7 +2619,7 @@ Breakdown film-state defects above.
      `css/redesign-stats.css`; dead rules in the other stylesheets are not
      detected.
    - Logged 2026-09-28 (charting cutover): `js/stats-engine.js` still names the
-     single-value Formation Family `formation` in report-row properties and
+     single-value Formation `formation` in report-row properties and
      still runs `splitFormations` (27 references) on it, which is inert now
      that a Family cannot hold "+"; `js/native-report-tabs.jsx` and
      `js/reports-view.js` read those row properties; `js/clip-analyzer.js:87`

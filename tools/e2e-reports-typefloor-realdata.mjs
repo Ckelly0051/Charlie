@@ -72,7 +72,7 @@ const DEFENSE = {};
    What remains is inside charts - matrix-cell splits, zone-strip and down
    captions, EPA contribution bars - which that pass did not restyle.
    2026-09-28: the charting cutover converted the canonical fixture's Formation to
-   a one-value Formation Family, so the matrix cells that split by formation
+   a one-value Formation, so the matrix cells that split by formation
    shrank: 10.5|SPAN 19 -> 18 and 12|DIV 6 -> 4 (49 -> 46 at 1440, 214 -> 211 at
    1280). Every count fell or held; none rose. */
 const OFFENSE_BASE = {

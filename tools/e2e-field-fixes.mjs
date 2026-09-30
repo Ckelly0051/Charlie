@@ -209,7 +209,7 @@ const carry = await page.evaluate(() => {
   t.applyCarryScheme(prev, blocked);
   return { f: next.tags.formationFamily, p: next.tags.personnel, kept: blocked.tags.formationFamily, filled: blocked.tags.personnel };
 });
-check('carry-scheme fills blank formation family/personnel', carry.f === 'Wing-T' && carry.p === '21', JSON.stringify(carry));
+check('carry-scheme fills blank formation/personnel', carry.f === 'Wing-T' && carry.p === '21', JSON.stringify(carry));
 check('carry-scheme never overwrites a tagged look', carry.kept === 'Spread' && carry.filled === '21', JSON.stringify(carry));
 
 // Toggle exists and persists. Final Engine Independence: #carrySchemeToggle/

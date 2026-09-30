@@ -188,7 +188,7 @@ export class SettingsScreen {
       playDir:['Left','Middle','Right'],
       formationFamily:this.chartingSnapshot('formationFamily').enabled,
       receiverSet:[...ChartingDetails.RECEIVER_SETS],
-      receiverLook:[...ChartingDetails.RECEIVER_LOOKS], receiverSide:[...ChartingDetails.RECEIVER_SIDES], lineBalance:[...ChartingDetails.LINE_BALANCES],
+      receiverStrength:[...ChartingDetails.RECEIVER_STRENGTHS], lineBalance:[...ChartingDetails.LINE_BALANCES],
       qbAlignment:['Under Center','Pistol','Shotgun'],
       backfield:this.chartingSnapshot('backfield').enabled,
       strength:['Left','Right','Balanced'],
@@ -410,7 +410,7 @@ export class SettingsScreen {
 
   chartingSnapshot(group = 'formationFamily') {
     const meta = {
-      formationFamily:{label:'Formation Families',singular:'formation family'}, backfield:{label:'Backfields',singular:'backfield'},
+      formationFamily:{label:'Formation Families',singular:'formation'}, backfield:{label:'Backfields',singular:'backfield'},
       front:{label:'Fronts',singular:'front'}, coverage:{label:'Coverages',singular:'coverage call'},
       playType:{label:'Play Types',singular:'play type'}, blitz:{label:'Blitzes',singular:'blitz'},
     };

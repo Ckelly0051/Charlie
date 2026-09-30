@@ -1791,11 +1791,11 @@ export class StorageManager {
       'Field Side', 'Yard Line',
       // The pre-snap look exports through the one projection (GRIDIRON-IQ-TAG-MODEL.md
       // §20), so a CSV agrees with Film Room, Study, and analytics. Formation
-      // Family and Receiver Set are their own columns, as are QB Alignment and
+      // and Receiver Distribution are their own columns, as are QB Alignment and
       // Coverage Family; a blank exports blank ("Unknown" would read as a real
       // analytics category). The run and motion details follow the field that
       // opens them (ChartingDetails).
-      'Formation Family', 'Receiver Set', 'Receiver Look', 'Receiver Side', 'Line Balance', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
+      'Formation', 'Receiver Distribution', 'Receiver Strength', 'Line Balance', 'QB Alignment', 'Backfield', 'Offensive Strength', 'Personnel', 'Motion',
       'Motion Starts', 'Motion Ends',
       'Play Call', 'Play Call ID', 'Play Concept',
       'Run/Pass', 'Play Type', 'Play Dir', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type', 'Def Front',
@@ -1824,8 +1824,7 @@ export class StorageManager {
       p.tags.yardLine || '',
       look.formationFamily ?? '',
       look.receiverSet ?? '',
-      look.receiverLook ?? '',
-      look.receiverSide ?? '',
+      look.receiverStrength ?? '',
       look.lineBalance ?? '',
       look.qbAlignment ?? '',
       look.backfield ?? '',
@@ -1958,13 +1957,11 @@ export class StorageManager {
       down: 'down', dn: 'down',
       distance: 'distance', dist: 'distance', togo: 'distance',
       // The offense's look, each part its own column (the headers our export
-      // writes). There is no alias for a bare `Formation` column: one field mixed
-      // family, receiver and package words, and mapping it is the coach's decision
-      // (see the refusal below).
-      formationfamily: 'formationFamily', family: 'formationFamily',
-      receiverset: 'receiverSet', recset: 'receiverSet',
-      receiverlook: 'receiverLook', reclook: 'receiverLook',
-      receiverside: 'receiverSide', recside: 'receiverSide', linebalance: 'lineBalance',
+      // writes). Formation is a single coach-named value; combined look values
+      // are refused during row validation, never split by an import reader.
+      formation: 'formationFamily', formationfamily: 'formationFamily', family: 'formationFamily',
+      receiverdistribution: 'receiverSet', receiverset: 'receiverSet', recset: 'receiverSet',
+      receiverstrength: 'receiverStrength', linebalance: 'lineBalance', offensivestrength: 'strength',
       motionstarts: 'motionStart', motionstart: 'motionStart', motionends: 'motionEnd', motionend: 'motionEnd',
       gap: 'gap', rporead: 'rpoRead', rpodefender: 'rpoDefender', rpodecision: 'rpoDecision',
       qbruntype: 'qbRun', qbrun: 'qbRun',
@@ -2006,11 +2003,8 @@ export class StorageManager {
       if (aliases[h]) colMap[i] = aliases[h];
     });
 
-    // A bare Formation column is the retired one-field format (family, receiver
-    // and package words mixed): the file is refused whole, plainly, even beside a
-    // Formation Family column (its words would be dropped unread). Renaming the
-    // header to Formation Family (or Receiver Set) is the coach's explicit choice.
-    if (headers.some(h => ['formation', 'form', 'offform', 'offenseformation'].includes(h))) {
+    // Never silently drop fields from the superseded receiver-look schema.
+    if (headers.some(h => ['form', 'offform', 'offenseformation', 'receiverlook', 'reclook', 'receiverside', 'recside'].includes(h))) {
       return { count: 0, error: SeasonFormat.MESSAGE };
     }
 

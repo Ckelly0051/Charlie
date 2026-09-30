@@ -123,7 +123,7 @@ export function groupPlaysByDrive(plays, { project = play => play, mode = 'persp
  * grid (they used to disagree — some checked playType ONLY, so a Kick Return or a
  * defensive snap that the coach fully tagged still read as "Untagged"). A play
  * counts as tagged if it carries an offensive play type, a result, a
- * special-teams type, a run/pass call, a formation family or receiver set, or any defensive scheme tag.
+ * special-teams type, a run/pass call, a formation or receiver set, or any defensive scheme tag.
  */
 export function isPlayTagged(play) {
   const t = (play && play.tags) || {};
@@ -136,5 +136,5 @@ export function isPlayTagged(play) {
       && (!special.events.defensiveReturn || special.outcome.returnAward != null));
   }
   return !!special || !!(t.playType || t.result || t.runPass
-    || t.formationFamily || t.receiverSet || t.receiverLook || t.receiverSide || t.lineBalance || t.defFront || t.coverage || t.blitz);
+    || t.formationFamily || t.receiverSet || t.receiverStrength || t.lineBalance || t.defFront || t.coverage || t.blitz);
 }

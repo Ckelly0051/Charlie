@@ -90,13 +90,12 @@ export class AnalyticsRegistry {
       // StatsEngine.proj / GRIDIRON-IQ-TAG-MODEL.md §5. qbAlignment/coverageFamily
       // are single-value (multi:false) so a cross-tab places each play in one cell.
       ready('qbAlignment', 'QB Alignment', p => this._one(SE.proj(p).qbAlignment), 'TagProjection.project.qbAlignment'),
-      ready('formationFamily', 'Formation Family', p => this._one(SE.proj(p).formationFamily), 'TagProjection.project.formationFamily'),
-      ready('receiverSet', 'Receiver Set', p => this._one(SE.proj(p).receiverSet), 'TagProjection.project.receiverSet'),
-      ready('receiverLook', 'Receiver Look', p => this._one(SE.proj(p).receiverLook), 'TagProjection.project.receiverLook'),
-      ready('receiverSide', 'Receiver Side', p => this._one(SE.proj(p).receiverSide), 'TagProjection.project.receiverSide'),
+      ready('formationFamily', 'Formation', p => this._one(SE.proj(p).formationFamily), 'TagProjection.project.formationFamily'),
+      ready('receiverSet', 'Receiver Distribution', p => this._one(SE.proj(p).receiverSet), 'TagProjection.project.receiverSet'),
+      ready('receiverStrength', 'Receiver Strength', p => this._one(SE.proj(p).receiverStrength), 'TagProjection.project.receiverStrength'),
       ready('lineBalance', 'Line Balance', p => this._one(SE.proj(p).lineBalance), 'TagProjection.project.lineBalance'),
       ready('backfield', 'Backfield', p => this._one(SE.proj(p).backfield), 'TagProjection.project.backfield'),
-      ready('strength', 'Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
+      ready('strength', 'Offensive Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
       ready('personnel', 'Personnel', tag('personnel'), 'play.tags.personnel'),
       ready('motion', 'Motion', p => [p?.tags?.motion || 'No Motion'], 'play.tags.motion | No Motion'),
       ready('playCall', 'Play Call', tag('playCall'), 'play.tags.playCall'),

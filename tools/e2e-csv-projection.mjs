@@ -1,6 +1,6 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* CSV EXPORT/IMPORT of the look fields (GRIDIRON-IQ-TAG-MODEL.md §20, coach
-   contract). Every look field is its own column: Formation Family, Receiver Set,
+   contract). Every look field is its own column: Formation, Receiver Distribution,
    QB Alignment, Backfield, Strength, Coverage Call, Coverage Family, and the run
    and motion details (Motion Starts/Ends, Gap, RPO Read/Defender/Decision, QB Run
    Type). Export writes the stored field; import stores each column in its own
@@ -100,7 +100,7 @@ const res = await page.evaluate(async () => {
     return i < 0 ? null : (parsed.lines[rowIdx][i] ?? '');
   };
 
-  const COLS = ['Formation Family', 'Receiver Set', 'QB Alignment', 'Backfield', 'Strength', 'Coverage Call', 'Coverage Family'];
+  const COLS = ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Strength', 'Coverage Call', 'Coverage Family'];
   const KEYS = ['formationFamily', 'receiverSet', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
   const DETAIL_COLS = ['Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type'];
 
@@ -120,10 +120,10 @@ const res = await page.evaluate(async () => {
   const detailMismatches = [];
   sm.tagger.plays.forEach((p, r) => DETAIL_COLS.forEach((col, k) => { const got = cell(r, col), want = detailOf(p)[k]; if (got !== want) detailMismatches.push({ play: p.id, col, got, want }); }));
 
-  // No alignment token may appear in ANY Formation Family cell, on any row.
+  // No alignment token may appear in ANY Formation cell, on any row.
   const align = ['Under Center', 'Shotgun', 'Pistol'];
   const formationLeak = parsed.lines
-    .map((_, r) => cell(r, 'Formation Family'))
+    .map((_, r) => cell(r, 'Formation'))
     .filter(v => align.some(a => String(v).split(' + ').map(s => s.trim()).includes(a)));
 
   // Round trip: import the exported CSV into a clean play list, then re-project.
@@ -141,7 +141,7 @@ const res = await page.evaluate(async () => {
 
   // A row with genuinely nothing charted must STILL be skipped — the fix for the
   // minimal-play drop must not widen into "import every blank line".
-  const emptyRowCsv = 'Play #,Unit,Formation Family,Coverage Call,Play Type,Result\n7,offense,,,,\n8,offense,Spread,,,';
+  const emptyRowCsv = 'Play #,Unit,Formation,Coverage Call,Play Type,Result\n7,offense,,,,\n8,offense,Spread,,,';
   const emptyParsed = sm.importPlaysFromText(emptyRowCsv);
   sm.tagger.plays = [];
   sm.tagger.nextId = 1;
@@ -149,39 +149,39 @@ const res = await page.evaluate(async () => {
   const emptyRowResult = { count: sm.tagger.plays.length, formations: sm.tagger.plays.map(p => p.tags.formationFamily) };
 
   // The plain `Coverage` header is still the coverage call.
-  const legacyCsv = 'Down,Distance,Formation Family,Coverage,Play Type,Result,Yardage\n1,10,Spread,Cover 3,Short Pass,Gain,6';
+  const legacyCsv = 'Down,Distance,Formation,Coverage,Play Type,Result,Yardage\n1,10,Spread,Cover 3,Short Pass,Gain,6';
   const legacyParsed = sm.importPlaysFromText(legacyCsv);
   sm.tagger.plays = [];
   sm.tagger.nextId = 1;
   sm.applyPlayImport(legacyParsed);
   const legacyPlay = sm.tagger.plays[0];
-  // A bare Formation column (the retired one-field format) is refused whole.
-  const oldColumn = sm.importPlaysFromText('Down,Distance,Formation,Play Type\n1,10,Trips,Short Pass');
-  // ...and it is refused even with a Formation Family column beside it: Trips would be dropped unread.
-  const oldBeside = sm.importPlaysFromText('Down,Distance,Formation,Formation Family,Play Type\n1,10,Trips,Spread,Short Pass');
+  // The superseded Receiver Look column is refused whole.
+  const oldColumn = sm.importPlaysFromText('Down,Distance,Receiver Look,Play Type\n1,10,Trips,Short Pass');
+  // ...even beside a current Formation column: never drop a supplied Receiver Look silently.
+  const oldBeside = sm.importPlaysFromText('Down,Distance,Receiver Look,Formation,Play Type\n1,10,Trips,Spread,Short Pass');
   const oldBesideAlias = sm.importPlaysFromText('Down,Distance,Family,Form,Play Type\n1,10,Spread,Trips,Short Pass');
 
   return {
     oldColumn, oldBeside, oldBesideAlias, detailMismatches, exportedDetails, importedDetails,
     headers, mismatches, formationLeak, imported, exportedLooks,
     exportedUnits, importedUnits, importedLooks, emptyRowResult,
-    row1: { formation: cell(0, 'Formation Family'), set: cell(0, 'Receiver Set'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Strength') },
+    row1: { formation: cell(0, 'Formation'), set: cell(0, 'Receiver Distribution'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Offensive Strength') },
     row2: { call: cell(1, 'Coverage Call'), family: cell(1, 'Coverage Family') },
     row3: { call: cell(2, 'Coverage Call'), family: cell(2, 'Coverage Family') },
-    row4: { formation: cell(3, 'Formation Family'), set: cell(3, 'Receiver Set'), qb: cell(3, 'QB Alignment'), backfield: cell(3, 'Backfield') },
+    row4: { formation: cell(3, 'Formation'), set: cell(3, 'Receiver Distribution'), qb: cell(3, 'QB Alignment'), backfield: cell(3, 'Backfield') },
     row6: COLS.map(c => cell(5, c)),
     legacy: { coverage: legacyPlay?.tags?.coverage, formation: legacyPlay?.tags?.formationFamily },
   };
 });
 
 // --- Column contract ---
-for (const col of ['Formation Family', 'Receiver Set', 'QB Alignment', 'Backfield', 'Strength', 'Coverage Call', 'Coverage Family', 'Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type']) {
+for (const col of ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Strength', 'Coverage Call', 'Coverage Family', 'Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type']) {
   ok(res.headers.includes(col), `CSV header carries the "${col}" column`, JSON.stringify(res.headers));
 }
 
 // --- Projection, per column semantic ---
 ok(res.row1.formation === 'Spread' && res.row1.set === '3x1' && res.row1.qb === 'Shotgun',
-  'Formation Family, Receiver Set and QB Alignment export in their own columns',
+  'Formation, Receiver Distribution and QB Alignment export in their own columns',
   JSON.stringify(res.row1));
 ok(res.row1.strength === 'Right', 'Strength exports the coach\'s stored value');
 ok(res.row2.call === '' && res.row2.family === 'Man',
@@ -227,9 +227,9 @@ ok(JSON.stringify(res.importedDetails) === JSON.stringify(res.exportedDetails),
 ok(res.legacy.coverage === 'Cover 3' && res.legacy.formation === 'Spread',
   'the plain "Coverage" header is still the coverage call', JSON.stringify(res.legacy));
 ok(res.oldColumn.count === 0 && /old GridIron IQ format/.test(res.oldColumn.error || ''),
-  'a CSV with the retired bare Formation column is refused whole with the plain message', JSON.stringify(res.oldColumn));
+  'a CSV with the retired Receiver Look column is refused whole with the plain message', JSON.stringify(res.oldColumn));
 ok(res.oldBeside.count === 0 && /old GridIron IQ format/.test(res.oldBeside.error || '') && res.oldBesideAlias.count === 0 && /old GridIron IQ format/.test(res.oldBesideAlias.error || ''),
-  'the retired Formation column is refused even beside a Formation Family column', JSON.stringify([res.oldBeside, res.oldBesideAlias]));
+  'a retired receiver-look header or Form alias is refused even beside current Formation', JSON.stringify([res.oldBeside, res.oldBesideAlias]));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

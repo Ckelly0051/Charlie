@@ -49,7 +49,7 @@ export class StatsEngine {
    *  everything else, so one dynamic-key display projects the six and passes the
    *  rest through unchanged. EDITORS must never call this — they read and write the
    *  coach's stored value (§20). */
-  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
+  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
     // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
     // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
@@ -1283,7 +1283,7 @@ export class StatsEngine {
     const fieldZone = play => this._fieldZone(play.tags);
     const dimensions = [
       { id: 'downDistance', label: 'Down & Distance', values: play => { const key = this._ddKey(play.tags); return key ? this._ddPretty(key) : ''; } },
-      { id: 'formationFamily', label: 'Formation Family', values: play => StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily) },
+      { id: 'formationFamily', label: 'Formation', values: play => StatsEngine.splitFormations(StatsEngine.proj(play).formationFamily) },
       { id: 'personnel', label: 'Personnel', values: play => play.tags.personnel || '' },
       { id: 'fieldPosition', label: 'Field Position', values: fieldZone },
       { id: 'directionStrength', label: 'Direction vs Strength', values: play => dirVsStrength ? dirVsStrength(play) : [] },
@@ -1801,7 +1801,7 @@ export class StatsEngine {
     const playTypes = detailOrder.map(name => summarize(name,
       source.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes(name))));
     // A coach reads the offensive look as one structure, even though the tag
-    // model stores QB alignment, backfield, formation family and receiver set
+    // model stores QB alignment, backfield, formation and receiver set
     // separately. Preserve that combination so a receiver set does not dissolve
     // into an unhelpful standalone row.
     const offensiveLook = play => {
@@ -3968,7 +3968,7 @@ export class StatsEngine {
     { key: 'runPass', label: 'Run / Pass', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
     { key: 'playType', label: 'Play type', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
     { key: 'playDir', label: 'Play direction', roles: ['rushing', 'passing', 'receiving', 'tackles'] },
-    { key: 'formationFamily', label: 'Formation Family', roles: ['rushing', 'passing', 'receiving'] },
+    { key: 'formationFamily', label: 'Formation', roles: ['rushing', 'passing', 'receiving'] },
     { key: 'personnel', label: 'Personnel', roles: ['rushing', 'passing', 'receiving'] },
     { key: 'defFront', label: 'Defensive front', roles: ['tackles'] },
     { key: 'coverage', label: 'Coverage', roles: ['tackles'] },
@@ -4150,8 +4150,7 @@ export class StatsEngine {
       case 'qbAlignment': return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '') === val;
       case 'formationFamily': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(val);
       case 'receiverSet': return p => isOff(p) && (StatsEngine.proj(p).receiverSet || '') === val;
-      case 'receiverLook': return p => isOff(p) && (StatsEngine.proj(p).receiverLook || '') === val;
-      case 'receiverSide': return p => isOff(p) && (StatsEngine.proj(p).receiverSide || '') === val;
+      case 'receiverStrength': return p => isOff(p) && (StatsEngine.proj(p).receiverStrength || '') === val;
       case 'lineBalance': return p => isOff(p) && (StatsEngine.proj(p).lineBalance || '') === val;
       // The run and motion details (ChartingDetails): one stored value each, a
       // blank is uncharted and never matches.
@@ -4390,10 +4389,9 @@ export class StatsEngine {
   }
   static _matrixDimensions() {
     return [
-      { id: 'formationFamily',  label: 'Formation Family',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily) },
-      { id: 'receiverSet', label: 'Receiver Set', extract: p => [StatsEngine.proj(p).receiverSet || ''].filter(Boolean) },
-      { id: 'receiverLook', label: 'Receiver Look', extract: p => [StatsEngine.proj(p).receiverLook || ''].filter(Boolean) },
-      { id: 'receiverSide', label: 'Receiver Side', extract: p => [StatsEngine.proj(p).receiverSide || ''].filter(Boolean) },
+      { id: 'formationFamily',  label: 'Formation',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily) },
+      { id: 'receiverSet', label: 'Receiver Distribution', extract: p => [StatsEngine.proj(p).receiverSet || ''].filter(Boolean) },
+      { id: 'receiverStrength', label: 'Receiver Strength', extract: p => [StatsEngine.proj(p).receiverStrength || ''].filter(Boolean) },
       { id: 'lineBalance', label: 'Line Balance', extract: p => [StatsEngine.proj(p).lineBalance || ''].filter(Boolean) },
       { id: 'qbAlignment', label: 'QB Alignment', extract: p => [StatsEngine.proj(p).qbAlignment || ''].filter(Boolean) },
       { id: 'backfield',  label: 'Backfield',  extract: p => [StatsEngine.proj(p).backfield || ''].filter(Boolean) },

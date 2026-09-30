@@ -65,7 +65,7 @@ finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
    repeat the completed composition package as new work.
 2. **Break Down charting — next build.** The library-save repair, tighter
    desktop spacing without smaller type, and independent Play Call/Play Type
-   folds are in shipped source. Add explicit Formation Family/Receiver Set,
+   folds are in shipped source. Add explicit Formation/Receiver Set,
    Gap, motion path, RPO read/decision, QB-run classification, and Reverse.
    Carry them through Film Room, export, and relevant reporting. The comp at
    `design-comps/breakdown-charting-2026-09-27/` is coach-approved, including
@@ -100,10 +100,10 @@ below that field, with no scroll jump or separate side control. Keep the
 existing Chart/Film Room layout and Save & Next; do not copy illustrative film
 or game data.
 
-1. **Owned tags and libraries.** Add explicit Formation Family and Receiver Set
+1. **Owned tags and libraries.** Add explicit Formation and Receiver Set
    single-value selections (the comp shows Spread + 3x1), leaving QB
    Alignment, Backfield, Strength, Personnel, Motion type, and Play Call
-   separate. Formation Family
+   separate. Formation
    must be its own coach-managed library group, with the existing add,
    show/hide, reorder, and remove-custom-choice behavior in Settings and the
    deck. Seed a useful editable vocabulary that includes Power-I and Split
@@ -115,15 +115,17 @@ or game data.
    or projected into Family/Receiver Set at read time. Keep Motion's Trade
    choice and existing coach-defined library entries available. New plays
    write only the separated current structure.
-   Receiver-look follow-up (coach direction 2026-09-29): add distinct Twins,
-   Trips, Bunch and Tight Bunch selections, each with a local Left/Right
-   control. Bunch and Tight Bunch are whole selections, not modifier chains.
-   Add an independent Balanced/Unbalanced Line Balance field. Keep numeric
-   Receiver Set separate; neither it nor an old Formation word implies side.
-   This follow-up is built in source, IMPLEMENTED_UNVERIFIED; comp and app
-   captures are in `artifacts/receiver-look-review/`. Live conversion still
-   waits for the decisions in `docs/CHARTING-CUTOVER.md`, followed by the
-   required impact approval. No gate or installer has run for this batch.
+   Formation-model correction (coach direction 2026-09-29): use Hudl's
+   coach-named Formation / Backfield / separate strength approach. Formation
+   (stored as formationFamily) accepts Trips, Bunch, Tight Bunch and custom
+   names. Remove the separate Receiver Look row and taxonomy. Keep QB Alignment,
+   Offensive Strength and independent Receiver Strength (Left/Right/Balanced).
+   Numeric Receiver Distribution and Line Balance remain separate, with no
+   inference. Changing Formation never clears strength. All consumers use this
+   one schema; old receiverLook/receiverSide shapes are refused. Built in source,
+   IMPLEMENTED_UNVERIFIED; app/comp captures are in artifacts/receiver-look-review/.
+   No live write, gate or installer. The prior 298/198 rehearsal counts are
+   superseded; refresh the impact report with current rules before approval.
 2. **New play details.** Gap records the actual lane hit. Under Play Direction,
    show one desktop row of L-A through L-D, R-A through R-D, Center, and Other
    at the approved text size; the L chips surrender a little width so Center
@@ -1427,7 +1429,7 @@ future products and are not implied by Plan V2.
 
 V2-A through V2-H are complete baseline milestones. The current sequence is:
 
-1. **Break Down charting cutover:** Formation Family/Receiver Set, Gap,
+1. **Break Down charting cutover:** Formation/Receiver Set, Gap,
    Motion path, RPO and QB-run detail, and Reverse; coach-managed Family
    library, one-time verified conversion, and the first film-linked run-gap
    chart/report with eligible sample and export parity. No legacy reader or

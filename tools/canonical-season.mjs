@@ -7,8 +7,8 @@
  * (legacy excision step 7). Read-only; never the coach's own file. Its Special
  * Teams values were old format and are blank until the coach retags them.
  *
- * Charting cutover (2026-09-28): its Formation is converted to Formation Family
- * and Receiver Set by tools/convert-charting-once.mjs with
+ * Charting cutover (2026-09-28): its Formation is converted to Formation
+ * and Receiver Distribution by tools/convert-charting-once.mjs with
  * tools/charting-fixture-mapping.json, whose assignments are TEST stand-ins and
  * not the coach's decisions. The pre-cutover copy sits beside it as
  * season.pre-charting-cutover.json.

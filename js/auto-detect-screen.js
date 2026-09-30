@@ -470,7 +470,7 @@ export class AutoDetectScreen {
         if (!v) continue;
         const c = a.confidence?.[k] || 0;
         const confCls = c >= 0.6 ? 'hi' : c >= 0.4 ? 'med' : 'lo';
-        const label = ({ formationFamily: 'Family', qbAlignment: 'QB', backfield: 'Backfield', playType: 'Type', hash: 'Dir', result: 'Result', yardage: 'Yds' })[k] || k;
+        const label = ({ formationFamily: 'Formation', qbAlignment: 'QB', backfield: 'Backfield', playType: 'Type', hash: 'Dir', result: 'Result', yardage: 'Yds' })[k] || k;
         const title = a.reasons?.[k] ? `${label}: ${v} — ${a.reasons[k]} (${Math.round(c * 100)}%)` : `${label}: ${v}`;
         pills.push(`<span class="drr-tag ${confCls}" title="${title.replace(/"/g, '&quot;')}">${label} · ${v}</span>`);
       }

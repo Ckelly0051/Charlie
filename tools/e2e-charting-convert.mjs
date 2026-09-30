@@ -1,5 +1,5 @@
 /* THROWAWAY with tools/convert-charting-once.mjs: the rehearsal proof of the one-time
-   Formation -> Family / Receiver Set conversion, on synthetic catalogs in a scratch
+   Formation -> Family / Receiver Distribution conversion, on synthetic catalogs in a scratch
    folder. Never touches coach data. Run: node tools/e2e-charting-convert.mjs */
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -20,8 +20,8 @@ const M = { tokens: { Trips: { receiverSet: '3x1' }, Ace: { formationFamily: 'Ac
 ok(decide('', emptyMapping()).status === 'blank', 'a blank Formation stays blank');
 ok(same(decide('Power-I', emptyMapping()), { status: 'convert', formationFamily: 'Power-I', receiverSet: '', dropped: [] }), 'an exact Family name converts with no mapping');
 {
-  const d = decide('Trips', emptyMapping());
-  ok(d.status === 'unresolved' && /"Trips" has no mapping/.test(d.reasons[0]), 'a package or receiver word is unresolved until the coach maps it', JSON.stringify(d));
+  const d = decide('Coach Special', emptyMapping());
+  ok(d.status === 'unresolved' && /"Coach Special" has no mapping/.test(d.reasons[0]), 'an unknown coach name is unresolved until mapped', JSON.stringify(d));
 }
 ok(same(decide('Spread + Trips', M), { status: 'convert', formationFamily: 'Spread', receiverSet: '3x1', dropped: [] }), 'a Family and a coach-mapped receiver word convert together');
 ok(decide('Spread + Trips', emptyMapping()).status === 'unresolved', 'the same value is unresolved without the coach mapping');
@@ -41,20 +41,20 @@ console.log('\n== convertPlay(): identity and unrelated tags stay ==');
   const before = JSON.parse(JSON.stringify(play));
   const r = convertPlay(play, M, 's|g|7');
   ok(r.status === 'convert' && !('formation' in play.tags) && play.tags.formationFamily === 'Spread' && play.tags.receiverSet === '3x1', 'the play gains Family and Set and loses formation');
-  const strip = p => { const t = { ...p.tags }; for (const k of ['formation', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun']) delete t[k]; return { ...p, tags: t }; };
+  const strip = p => { const t = { ...p.tags }; for (const k of ['formation', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverStrength', 'lineBalance', 'gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun']) delete t[k]; return { ...p, tags: t }; };
   ok(same(strip(play), strip(before)), 'identity, film references, notes and every unrelated tag are byte-equal');
   ok(['gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun'].every(k => play.tags[k] === ''), 'the new detail keys are added blank, as a new play is born');
   ok(SeasonFormat.playProblems(play).length === 0, 'the converted play is the current format');
   const again = JSON.stringify(play); convertPlay(play, M, 's|g|7');
   ok(JSON.stringify(play) === again, 'converting twice changes nothing');
-  const unresolved = { id: 8, tags: { unit: 'offense', formation: 'Bunch' } }, copy = JSON.stringify(unresolved);
+  const unresolved = { id: 8, tags: { unit: 'offense', formation: 'Coach Special' } }, copy = JSON.stringify(unresolved);
   const u = convertPlay(unresolved, M, 's|g|8');
   ok(u.status === 'unresolved' && JSON.stringify(unresolved) === copy, 'an unresolved play is left exactly as stored');
 }
 {
-  const book = { calls: [{ name: '26 Blast', defaults: { formation: 'Power-I', playType: 'Run Inside' } }, { name: 'Odd', defaults: { formation: 'Bunch' } }] };
+  const book = { calls: [{ name: '26 Blast', defaults: { formation: 'Power-I', playType: 'Run Inside' } }, { name: 'Odd', defaults: { formation: 'Coach Special' } }] };
   const r = convertPlaybook(book, emptyMapping(), 'S');
-  ok(book.calls[0].defaults.formationFamily === 'Power-I' && !('formation' in book.calls[0].defaults) && r.unresolved.length === 1 && book.calls[1].defaults.formation === 'Bunch', 'a play call default converts by the same rule; an unresolved one stays');
+  ok(book.calls[0].defaults.formationFamily === 'Power-I' && !('formation' in book.calls[0].defaults) && r.unresolved.length === 1 && book.calls[1].defaults.formation === 'Coach Special', 'a play call default converts by the same rule; an unresolved one stays');
 }
 
 console.log('\n== A catalog rehearsal, the live write and its refusals ==');
@@ -84,8 +84,8 @@ try {
   const r0 = await run({ catalogPath: file, outDir: path.join(tmp, 'r0'), mapping: emptyMapping() });
   ok(sha(readFileSync(file)) === sourceHash, 'a rehearsal never writes the source catalog');
   const sa = r0.seasons.find(s => s.id === 'a');
-  ok(sa.plays === 5 && sa.withFormation === 4 && sa.converted === 1 && sa.unresolved.length === 3, 'the deterministic value converts and the rest are listed unresolved', JSON.stringify({ c: sa.converted, u: sa.unresolved.length }));
-  ok(r0.unresolvedTokens.some(u => /"Trips"/.test(u.reason)) && r0.unresolvedTokens.some(u => /"Ace"/.test(u.reason)), 'the unresolved list names each value');
+  ok(sa.plays === 5 && sa.withFormation === 4 && sa.converted === 3 && sa.unresolved.length === 1, 'exact named formations convert while a compound remains unresolved', JSON.stringify({ c: sa.converted, u: sa.unresolved.length }));
+  ok(r0.seasons.every(s => s.unresolved.length === 1 && s.unresolved[0].oldValue === 'Spread + Trips'), 'the unresolved list names the exact compound');
   ok(sa.proof.identity && sa.proof.filmRefs && sa.proof.unrelatedTags && sa.proof.otherPlayFields && sa.proof.gameFields && sa.proof.roundTrip, 'identity, film references, unrelated tags and the catalog round trip all hold', JSON.stringify(sa.proof));
   ok(sa.proof.analyticsUnexpected.length === 0, 'analytics differ only in formation-derived values', JSON.stringify(sa.proof.analyticsUnexpected));
   ok(r0.copies.backups.total === 1 && r0.copies.versions.total === 1, 'restore points and game versions are inventoried');
@@ -124,7 +124,7 @@ try {
   writeFileSync(fixIn, JSON.stringify(season('f')));
   const fx = convertFixture(fixIn, fixOut, emptyMapping());
   const out = JSON.parse(readFileSync(fixOut, 'utf8'));
-  ok(fx.problems.length === 0 && out.games[0].plays[0].tags.formationFamily === 'Power-I' && out.games[0].plays[2].tags.formationFamily === '' && !('formation' in out.games[0].plays[2].tags), 'a test fixture converts: exact families kept, unresolved blank and listed, never guessed');
+  ok(fx.problems.length === 0 && out.games[0].plays[0].tags.formationFamily === 'Power-I' && out.games[0].plays[2].tags.formationFamily === 'Trips' && out.games[0].plays[1].tags.formationFamily === '' && fx.result.unresolved.length > 0 && !('formation' in out.games[0].plays[2].tags), 'a test fixture keeps exact formation names and lists unresolved compounds without guessing');
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
