@@ -1,0 +1,1098 @@
+[
+  {
+    "seasonId": "sjm-varsity-2026",
+    "season": "SJM Varsity 2026",
+    "gameId": "gmu08mo671r2xz",
+    "game": "Week 3 vs St. Charles Bulldogs",
+    "before": {
+      "working": [
+        {
+          "s": 344,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>17.2%</strong> explosive plays rate (5 plays) — hitting big shots"
+        }
+      ],
+      "fix": [
+        {
+          "s": 500,
+          "cut": [
+            "situation",
+            "redZone"
+          ],
+          "text": "Red zone TD rate only <strong>0%</strong> (0/7) — settling for FGs or stalling"
+        },
+        {
+          "s": 482,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>24.1%</strong> plays for loss (7 plays) — too many losses behind the line"
+        },
+        {
+          "s": 300,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>88%</strong> of the time (8 plays) — motion is a tell"
+        },
+        {
+          "s": 198,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 83% run (6 snaps) — predictable"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 344,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>17.2%</strong> explosive plays rate (5 plays) — hitting big shots"
+        }
+      ],
+      "fix": [
+        {
+          "s": 500,
+          "cut": [
+            "situation",
+            "redZone"
+          ],
+          "text": "Red zone TD rate only <strong>0%</strong> (0/7) — settling for FGs or stalling"
+        },
+        {
+          "s": 482,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>24.1%</strong> plays for loss (7 plays) — too many losses behind the line"
+        },
+        {
+          "s": 300,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>88%</strong> of the time (8 plays) — motion is a tell"
+        },
+        {
+          "s": 200.00000000000006,
+          "cut": [
+            "formationFamily",
+            "Ace"
+          ],
+          "text": "<strong>Ace</strong> is 83% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 198,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 83% run (6 snaps) — predictable"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "sjm-jv-2026",
+    "season": "SJM JV 2026",
+    "gameId": "gmtesa64hkru1q",
+    "game": "Week 1 vs Notre Dame Prep",
+    "before": {
+      "working": [],
+      "fix": []
+    },
+    "after": {
+      "working": [],
+      "fix": [
+        {
+          "s": 100,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 75% run — add a pass concept to keep the defense honest"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "sjm-jv-2026",
+    "season": "SJM JV 2026",
+    "gameId": "gmtyzoxcgg9va9",
+    "game": "Week 2 vs Our Lady of the Lakes Lakers",
+    "before": {
+      "working": [
+        {
+          "s": 904.7619047619048,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 90% stop rate, 3.0 avg allowed (21 snaps)"
+        },
+        {
+          "s": 860,
+          "text": "<strong>Maverick + Cover 3</strong>: 86% stop rate, 3 avg (21 snaps) — keep calling it"
+        },
+        {
+          "s": 778,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>38.9%</strong> explosive plays rate (7 plays) — hitting big shots"
+        },
+        {
+          "s": 500,
+          "text": "Scoring <strong>5 pts/drive</strong> — efficient possessions"
+        }
+      ],
+      "fix": [
+        {
+          "s": 252,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 86% run (7 snaps) — predictable"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 100% run (5 snaps) — predictable"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (5 snaps) — predictable"
+        },
+        {
+          "s": 176.4705882352941,
+          "cut": [
+            "playDir",
+            "Right"
+          ],
+          "text": "<strong>65%</strong> of runs go <strong>Right</strong> (11/17) — defenses will overload that side"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 904.7619047619048,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 90% stop rate, 3.0 avg allowed (21 snaps)"
+        },
+        {
+          "s": 860,
+          "text": "<strong>Maverick + Cover 3</strong>: 86% stop rate, 3 avg (21 snaps) — keep calling it"
+        },
+        {
+          "s": 778,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>38.9%</strong> explosive plays rate (7 plays) — hitting big shots"
+        },
+        {
+          "s": 500,
+          "text": "Scoring <strong>5 pts/drive</strong> — efficient possessions"
+        }
+      ],
+      "fix": [
+        {
+          "s": 649.9999999999999,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 93% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 252,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 86% run (7 snaps) — predictable"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 100% run (5 snaps) — predictable"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (5 snaps) — predictable"
+        },
+        {
+          "s": 176.4705882352941,
+          "cut": [
+            "playDir",
+            "Right"
+          ],
+          "text": "<strong>65%</strong> of runs go <strong>Right</strong> (11/17) — defenses will overload that side"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "sjm-jv-2026",
+    "season": "SJM JV 2026",
+    "gameId": "gmuk5msuoop7se",
+    "game": "Week 5 vs St. George Dragon Slayers",
+    "before": {
+      "working": [],
+      "fix": [
+        {
+          "s": 600,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (12 plays) — motion is a tell"
+        },
+        {
+          "s": 333.33333333333337,
+          "cut": [
+            "situation",
+            "redZone"
+          ],
+          "text": "Red zone TD rate only <strong>17%</strong> (1/6) — settling for FGs or stalling"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (5 snaps) — predictable"
+        },
+        {
+          "s": 200,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+        },
+        {
+          "s": 120,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong> allowing 20.0 YPA (6 snaps) — consider switching"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 504,
+          "cut": [
+            "formationFamily",
+            "Ace"
+          ],
+          "text": "<strong>Ace</strong>: 63% success (8 plays, 8.4 avg)"
+        }
+      ],
+      "fix": [
+        {
+          "s": 600,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (12 plays) — motion is a tell"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "formationFamily",
+            "Ace"
+          ],
+          "text": "<strong>Ace</strong> is 100% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 333.33333333333337,
+          "cut": [
+            "situation",
+            "redZone"
+          ],
+          "text": "Red zone TD rate only <strong>17%</strong> (1/6) — settling for FGs or stalling"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (5 snaps) — predictable"
+        },
+        {
+          "s": 200,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "2026-varsity-demo",
+    "season": "2025 St. Joseph Mavericks - JV",
+    "gameId": "gmq9plozwgukpk",
+    "game": "Week 1 vs St. Peter Lutheran Patriots",
+    "before": {
+      "working": [
+        {
+          "s": 1000,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 100% stop rate, 0.0 avg allowed (15 snaps)"
+        },
+        {
+          "s": 1000,
+          "text": "<strong>Maverick + Cover 3</strong>: 100% stop rate, 0 avg (15 snaps) — keep calling it"
+        },
+        {
+          "s": 666,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>33.3%</strong> explosive plays rate (9 plays) — hitting big shots"
+        },
+        {
+          "s": 509.99999999999994,
+          "text": "Scoring <strong>5.1 pts/drive</strong> — efficient possessions"
+        }
+      ],
+      "fix": [
+        {
+          "s": 456,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 88% run (16 snaps) — predictable"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (8 plays) — motion is a tell"
+        },
+        {
+          "s": 350,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (7 snaps) — predictable"
+        },
+        {
+          "s": 100,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 75% run (4 snaps) — predictable"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 1065,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong>: 71% success (17 plays, 10.8 avg)"
+        },
+        {
+          "s": 1000,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 100% stop rate, 0.0 avg allowed (15 snaps)"
+        },
+        {
+          "s": 1000,
+          "text": "<strong>Maverick + Cover 3</strong>: 100% stop rate, 0 avg (15 snaps) — keep calling it"
+        },
+        {
+          "s": 666,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>33.3%</strong> explosive plays rate (9 plays) — hitting big shots"
+        },
+        {
+          "s": 603,
+          "cut": [
+            "formationFamily",
+            "Ace"
+          ],
+          "text": "<strong>Ace</strong>: 67% success (9 plays, 11.0 avg)"
+        }
+      ],
+      "fix": [
+        {
+          "s": 485.29411764705867,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 82% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 456,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 88% run (16 snaps) — predictable"
+        },
+        {
+          "s": 450,
+          "cut": [
+            "formationFamily",
+            "Ace"
+          ],
+          "text": "<strong>Ace</strong> is 100% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (8 plays) — motion is a tell"
+        },
+        {
+          "s": 350,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (7 snaps) — predictable"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "2026-varsity-demo",
+    "season": "2025 St. Joseph Mavericks - JV",
+    "gameId": "gmqfbfaqnpxjll",
+    "game": "Week 2 vs ND Prep Fighting Irish",
+    "before": {
+      "working": [
+        {
+          "s": 810,
+          "text": "<strong>Jumbo Shift + Cover 3</strong>: 81% stop rate, 2.6 avg (21 snaps) — keep calling it"
+        }
+      ],
+      "fix": [
+        {
+          "s": 600,
+          "text": "Running 76.7% of the time but only 14.3% play-action — opponents aren't being held by fakes"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>20%</strong> plays for loss (6 plays) — too many losses behind the line"
+        },
+        {
+          "s": 350,
+          "cut": [
+            "dd",
+            "3|Long"
+          ],
+          "text": "<strong>3rd & Long</strong>: only 0% conversion (7 plays) — need a better call here"
+        },
+        {
+          "s": 300,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (6 plays) — motion is a tell"
+        },
+        {
+          "s": 252,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 86% run (7 snaps) — predictable"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 810,
+          "text": "<strong>Jumbo Shift + Cover 3</strong>: 81% stop rate, 2.6 avg (21 snaps) — keep calling it"
+        }
+      ],
+      "fix": [
+        {
+          "s": 600,
+          "text": "Running 76.7% of the time but only 14.3% play-action — opponents aren't being held by fakes"
+        },
+        {
+          "s": 400.0000000000001,
+          "cut": [
+            "formationFamily",
+            "Ace"
+          ],
+          "text": "<strong>Ace</strong> is 83% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>20%</strong> plays for loss (6 plays) — too many losses behind the line"
+        },
+        {
+          "s": 350,
+          "cut": [
+            "dd",
+            "3|Long"
+          ],
+          "text": "<strong>3rd & Long</strong>: only 0% conversion (7 plays) — need a better call here"
+        },
+        {
+          "s": 300,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (6 plays) — motion is a tell"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "2026-varsity-demo",
+    "season": "2025 St. Joseph Mavericks - JV",
+    "gameId": "gmqik11s86n46s",
+    "game": "Week 3 vs OL Refuge Ravens",
+    "before": {
+      "working": [
+        {
+          "s": 687.5,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 69% stop rate, 3.8 avg allowed (32 snaps)"
+        }
+      ],
+      "fix": [
+        {
+          "s": 552,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>27.6%</strong> plays for loss (8 plays) — too many losses behind the line"
+        },
+        {
+          "s": 550,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (11 snaps) — predictable"
+        },
+        {
+          "s": 500,
+          "text": "<strong>5 three-and-outs</strong> in 7 drives — too many stalled possessions"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 100% run (8 snaps) — predictable"
+        },
+        {
+          "s": 350,
+          "cut": [
+            "motion",
+            "Any"
+          ],
+          "text": "When you motion, you run <strong>100%</strong> of the time (7 plays) — motion is a tell"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 687.5,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 69% stop rate, 3.8 avg allowed (32 snaps)"
+        }
+      ],
+      "fix": [
+        {
+          "s": 666.6666666666666,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 94% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 552,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>27.6%</strong> plays for loss (8 plays) — too many losses behind the line"
+        },
+        {
+          "s": 550,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 100% run (11 snaps) — predictable"
+        },
+        {
+          "s": 500,
+          "text": "<strong>5 three-and-outs</strong> in 7 drives — too many stalled possessions"
+        },
+        {
+          "s": 400,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 100% run (8 snaps) — predictable"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "2026-varsity-demo",
+    "season": "2025 St. Joseph Mavericks - JV",
+    "gameId": "gmqo9g65dqzba4",
+    "game": "Week 4 vs OL Sorrows Lancers",
+    "before": {
+      "working": [
+        {
+          "s": 791.6666666666665,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 79% stop rate, 3.4 avg allowed (24 snaps)"
+        },
+        {
+          "s": 790,
+          "text": "<strong>Maverick + Cover 3</strong>: 79% stop rate, 3.4 avg (24 snaps) — keep calling it"
+        },
+        {
+          "s": 260,
+          "text": "Scoring <strong>2.6 pts/drive</strong> — efficient possessions"
+        }
+      ],
+      "fix": [
+        {
+          "s": 400,
+          "text": "<strong>4 three-and-outs</strong> in 7 drives — too many stalled possessions"
+        },
+        {
+          "s": 351,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 89% run (9 snaps) — predictable"
+        },
+        {
+          "s": 320,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>16%</strong> plays for loss (4 plays) — too many losses behind the line"
+        },
+        {
+          "s": 253,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 73% run (11 snaps) — predictable"
+        },
+        {
+          "s": 250,
+          "cut": [
+            "situation",
+            "redZone"
+          ],
+          "text": "Red zone TD rate only <strong>25%</strong> (1/4) — settling for FGs or stalling"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 791.6666666666665,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 79% stop rate, 3.4 avg allowed (24 snaps)"
+        },
+        {
+          "s": 790,
+          "text": "<strong>Maverick + Cover 3</strong>: 79% stop rate, 3.4 avg (24 snaps) — keep calling it"
+        },
+        {
+          "s": 260,
+          "text": "Scoring <strong>2.6 pts/drive</strong> — efficient possessions"
+        }
+      ],
+      "fix": [
+        {
+          "s": 550,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 92% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 400,
+          "text": "<strong>4 three-and-outs</strong> in 7 drives — too many stalled possessions"
+        },
+        {
+          "s": 351,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 89% run (9 snaps) — predictable"
+        },
+        {
+          "s": 320,
+          "cut": [
+            "situation",
+            "negative"
+          ],
+          "text": "<strong>16%</strong> plays for loss (4 plays) — too many losses behind the line"
+        },
+        {
+          "s": 253,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 73% run (11 snaps) — predictable"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "2026-varsity-demo",
+    "season": "2025 St. Joseph Mavericks - JV",
+    "gameId": "gmqpt95xh58z0a",
+    "game": "Week 5 vs OL Lakes Lakers",
+    "before": {
+      "working": [
+        {
+          "s": 760,
+          "text": "<strong>Maverick + Cover 3</strong>: 76% stop rate, 3.5 avg (33 snaps) — keep calling it"
+        },
+        {
+          "s": 757.5757575757575,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 76% stop rate, 3.5 avg allowed (33 snaps)"
+        }
+      ],
+      "fix": [
+        {
+          "s": 600,
+          "text": "<strong>6 three-and-outs</strong> in 11 drives — too many stalled possessions"
+        },
+        {
+          "s": 372,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 81% run (16 snaps) — predictable"
+        },
+        {
+          "s": 200,
+          "cut": [
+            "dd",
+            "3|Long"
+          ],
+          "text": "<strong>3rd & Long</strong>: only 0% conversion (4 plays) — need a better call here"
+        },
+        {
+          "s": 150,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 80% run (5 snaps) — predictable"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 760,
+          "text": "<strong>Maverick + Cover 3</strong>: 76% stop rate, 3.5 avg (33 snaps) — keep calling it"
+        },
+        {
+          "s": 757.5757575757575,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 76% stop rate, 3.5 avg allowed (33 snaps)"
+        }
+      ],
+      "fix": [
+        {
+          "s": 600,
+          "text": "<strong>6 three-and-outs</strong> in 11 drives — too many stalled possessions"
+        },
+        {
+          "s": 375,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 75% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 372,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 81% run (16 snaps) — predictable"
+        },
+        {
+          "s": 200.00000000000006,
+          "cut": [
+            "formationFamily",
+            "Single Wing"
+          ],
+          "text": "<strong>Single Wing</strong> is 83% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 200,
+          "cut": [
+            "dd",
+            "3|Long"
+          ],
+          "text": "<strong>3rd & Long</strong>: only 0% conversion (4 plays) — need a better call here"
+        }
+      ]
+    }
+  },
+  {
+    "seasonId": "2026-varsity-demo",
+    "season": "2025 St. Joseph Mavericks - JV",
+    "gameId": "gmqptqoprzli2r",
+    "game": "Week 6 vs Holy Family Wildcats",
+    "before": {
+      "working": [
+        {
+          "s": 800,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 80% stop rate, 2.2 avg allowed (20 snaps)"
+        },
+        {
+          "s": 800,
+          "text": "<strong>Maverick + Cover 3</strong>: 80% stop rate, 2.2 avg (20 snaps) — keep calling it"
+        },
+        {
+          "s": 500,
+          "text": "<strong>Jumbo Shift + Cover 3</strong>: 100% stop rate, 0.8 avg (5 snaps) — keep calling it"
+        },
+        {
+          "s": 364,
+          "cut": [
+            "situation",
+            "explosive"
+          ],
+          "text": "<strong>18.2%</strong> explosive plays rate (6 plays) — hitting big shots"
+        },
+        {
+          "s": 340,
+          "text": "Scoring <strong>3.4 pts/drive</strong> — efficient possessions"
+        }
+      ],
+      "fix": [
+        {
+          "s": 528,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 94% run (18 snaps) — predictable"
+        },
+        {
+          "s": 304,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 88% run (8 snaps) — predictable"
+        },
+        {
+          "s": 252,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 86% run (7 snaps) — predictable"
+        }
+      ]
+    },
+    "after": {
+      "working": [
+        {
+          "s": 825,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong>: 55% success (20 plays, 6.2 avg)"
+        },
+        {
+          "s": 803,
+          "cut": [
+            "formationFamily",
+            "Single Wing"
+          ],
+          "text": "<strong>Single Wing</strong>: 73% success (11 plays, 11.8 avg)"
+        },
+        {
+          "s": 800,
+          "cut": [
+            "coverage",
+            "Cover 3"
+          ],
+          "text": "<strong>Cover 3</strong>: 80% stop rate, 2.2 avg allowed (20 snaps)"
+        },
+        {
+          "s": 800,
+          "text": "<strong>Maverick + Cover 3</strong>: 80% stop rate, 2.2 avg (20 snaps) — keep calling it"
+        },
+        {
+          "s": 500,
+          "text": "<strong>Jumbo Shift + Cover 3</strong>: 100% stop rate, 0.8 avg (5 snaps) — keep calling it"
+        }
+      ],
+      "fix": [
+        {
+          "s": 600,
+          "cut": [
+            "formationFamily",
+            "Power-I"
+          ],
+          "text": "<strong>Power-I</strong> is 90% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 528,
+          "cut": [
+            "hash",
+            "Right"
+          ],
+          "text": "<strong>Right hash</strong>: 94% run (18 snaps) — predictable"
+        },
+        {
+          "s": 450,
+          "cut": [
+            "formationFamily",
+            "Single Wing"
+          ],
+          "text": "<strong>Single Wing</strong> is 91% run — add a pass concept to keep the defense honest"
+        },
+        {
+          "s": 304,
+          "cut": [
+            "hash",
+            "Left"
+          ],
+          "text": "<strong>Left hash</strong>: 88% run (8 snaps) — predictable"
+        },
+        {
+          "s": 252,
+          "cut": [
+            "hash",
+            "Middle"
+          ],
+          "text": "<strong>Middle hash</strong>: 86% run (7 snaps) — predictable"
+        }
+      ]
+    }
+  }
+]

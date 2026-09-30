@@ -63,7 +63,11 @@ This section is the one place release state is kept current.
   refusal of the retired `formation` key. The supplemental visual-finish comp
   supplied only the Gap interaction and spacing. Live coach data is NOT
   converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
-  awaiting the coach's decision. Source verification: full build and gate
+  awaiting the coach's decision. The 2026-09-30 copy rehearsal resolves 408
+  of 496 nonblank formations; 88 plays in 12 combinations remain unresolved.
+  Exact preservation passes; format and generated-takeaway proof blockers
+  remain (`docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`).
+  Source verification: full build and gate
   141/141, zero skipped and zero failed at `d5b27c10` on 2026-09-29.
   No installer or installed approval exists for it. BD-UX-1 and BD-UX-2 remain
   open in `docs/OPEN-DEFECTS.md`.

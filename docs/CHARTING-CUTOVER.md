@@ -273,6 +273,12 @@ point equals the pre-write catalog by hash; no staged file remains.
 
 ### Remaining Smoke-Readiness Checkpoints (2026-09-30)
 
+Checkpoint 1 started: the refreshed exact-name rehearsal is recorded in
+`docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`. It supersedes earlier counts:
+408 of 496 nonblank Formation values resolve; 88 plays in 12 combinations
+still need explicit decisions. Preservation and read-back proofs pass, but
+format and generated-takeaway proof blockers remain. No live write.
+
 The coach deferred packaging to finish the cutover first. No installer build
 started; the uncommitted version bump was undone. The 141/141 source gate at
 `d5b27c10` remains valid for that revision, not for future cleanup changes.

@@ -2,6 +2,12 @@
 
 ## Charting adversarial review, 2026-09-29
 
+2026-09-30 copy rehearsal: 88 live plays remain unresolved, down from 198
+under the superseded model. Identity, film, unrelated fields and read-back
+proofs pass; current-format checks and formation-driven top-five takeaway
+differences still block live conversion. Exact counts and decision groups:
+`docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`. Live catalog hash unchanged.
+
 2026-09-30 packaging decision: coach deferred the installer until cutover
 readiness. No installer build started; the uncommitted bump was undone.
 `docs/CHARTING-CUTOVER.md` now lists the three remaining checkpoints: mapping
