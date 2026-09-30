@@ -105,11 +105,15 @@ local preview server is running; this is source, not an installed release.
   records left x right: 0x1, 0x2, 0x3, 0x4, 0x5, 1x0, 1x1, 1x2, 1x3,
   1x4, 2x0, 2x1, 2x2, 2x3, 3x0, 3x1, 3x2, 4x0, 4x1, 5x0.
   A play holds one of each. Personnel sits after Formation, before QB Alignment.
-- **Gap** (L-A..L-D, R-A..R-D, Center, Other) opens directly under Play Direction.
+- **Gap** (L-A..L-D, R-A..R-D, Center, Other) sits directly under Play Direction.
+  Coach revision 2026-09-30, pending S107-4 repair: both fields are independent;
+  no overwrite, coupled clearing or required Direction. Existing charting stays
+  unchanged. Gap is additional precision, not required for direction reporting.
   **Motion Starts/Ends** open under Motion. **RPO** (read, defender number,
   decision) and **QB Run** (Designed, Scramble, RPO Keeper) open under Play Type.
   **Reverse** and **QB Run** are Play Types; neither sets Run/Pass.
-- Removing what opens a detail asks first and clears it in one undoable write.
+- Removing what opens a Motion/RPO/QB-run detail asks first and clears it in one
+  undoable write. Gap is independent and is not subject to trigger removal.
 - **Run gaps** is a film-linked chart on the Offense Structure page, the Opponent
   Offense scout tab (their runs) and the Defense board's opponent page (runs
   faced), with a Frequency / Performance switch, a play-type filter, the eligible

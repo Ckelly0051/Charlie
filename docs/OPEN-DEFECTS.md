@@ -2,6 +2,20 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
+**S107-4 - Gap/Direction independence, APPROVED CHANGE / OPEN.** Coach approval,
+2026-09-30: Direction is a broad subjective classification; Gap is additional
+precise lane measurement, not a prerequisite for useful direction statistics.
+Middle is not restricted to a play over Center; the coach describes it as between
+the B gaps, with marginal decisions left to the coach. Neither field may infer,
+overwrite, reject or clear the other. Gap must remain usable/retained with blank
+Direction. Middle + L-A is valid; Center must not force Middle. All existing
+charting, including currently Right plays, stays unchanged. No migration.
+Current `ChartingDetails.gapDirection/gapAgrees/settle/orphans/problems` coupling
+and consumers must be updated consistently (deck, Film Room, imports, format
+validation, reports/exports and focused tests); preserve independent gap and
+direction cohorts and exact film links. Existing comp geometry/vocabulary stays.
+No production repair yet. This supersedes the earlier approved coupling rule.
+
 **S107-3 - P2, play strip groups adjacent runs instead of assigned drives,
 OPEN.** Coach reports assigned drive number should override play-number order.
 Source reproduction in `js/football-rules.js:95`: offense plays 1/2/3 assigned

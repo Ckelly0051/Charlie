@@ -35,9 +35,10 @@ behavior, coach data, manifest status, or installed acceptance is changed.
 - `#gap` and `#qb` now place the Gap control immediately below Play Direction.
   Clicking a direction reveals ten choices in one desktop row: L-A through
   L-D, R-A through R-D, Center, and Other. There is no separate Gap
-  side control. Selecting a sided gap keeps Play Direction on that side;
-  choosing another direction clears a conflicting gap instead of guessing.
-  Center selects Middle direction. The four L chips use less horizontal space
+  side control. The comp's coupled behavior is superseded by coach approval on
+  2026-09-30 (S107-4): Gap and Direction are independent; no overwrite or coupled
+  clearing, and Gap does not require Direction. Existing stored values remain
+  unchanged. This interaction repair is not built yet. The four L chips use less horizontal space
   so Center has comfortable padding without reducing text size or wrapping.
 - `#reverse` proposes Reverse as a Play Type. Its example travels Left and
   hits L-C. Reverse stays a run and retains the normal result, yardage,

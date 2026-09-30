@@ -163,10 +163,12 @@ roster (`SeasonManager._mergeRoster()`).
   `receiverStrength` and `lineBalance` shapes are refused,
   never interpreted. One confirmed tools-only conversion, no compatibility tail.
 - Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
-  `ChartingDetails`. A sided gap sets Play Direction, Center sets Middle, a
-  direction that contradicts the gap clears it; a detail is never stored without
-  the field that opens it (Motion, the RPO or QB Run Play Type, a Play
-  Direction), and removing that field clears its details in one undoable write
+  `ChartingDetails`. Coach-approved revision 2026-09-30 (S107-4, pending repair):
+  Gap and Play Direction are independent, neither overwrites or clears the other,
+  and Gap can be blank or charted without Direction. Existing stored values stay
+  unchanged; no inference or migration. Direction is the coach's broad classification,
+  Gap the precise lane. Other details require their opening field (Motion, the
+  RPO or QB Run Play Type), and removing that field clears those details in one undoable write
   after the coach confirms. `QB Run` and `Reverse` never fill or imply Run/Pass.
 - Left/Right on `strength`, `playDir` and `hash` are always the offense's
   perspective; there is no stored perspective flag and no auto-flip.

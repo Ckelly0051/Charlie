@@ -1,5 +1,14 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
+> **Coach revision 2026-09-30, approved / pending implementation (S107-4):**
+> Play Direction and Gap are independent coach-entered fields. Neither overwrites
+> or clears the other. Gap is a precise lane and may be blank; a charted Gap does
+> not require Direction. Middle is a broad inside classification, not limited to
+> Center. Coach judgment controls the margins. Existing Right/Left/Middle and Gap
+> values remain unchanged; no inferred reclassification or data migration. This
+> supersedes the coupling and trigger-removal rules for Gap below, not the rules
+> for Motion, RPO or QB-run details.
+
 > **Formation revision, 2026-09-29 (coach direction):** Formation is one
 > coach-managed name, stored as `formationFamily`. Trips, Bunch, Tight Bunch,
 > Ace, Twins, Doubles, Beast and Victory are valid formation choices, alongside

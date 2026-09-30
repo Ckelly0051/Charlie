@@ -136,9 +136,13 @@ or game data.
 2. **New play details.** Gap records the actual lane hit. Under Play Direction,
    show one desktop row of L-A through L-D, R-A through R-D, Center, and Other
    at the approved text size; the L chips surrender a little width so Center
-   has usable padding. There is no Gap-side field. A sided Gap selection sets
-   the corresponding Play Direction; changing direction clears a contradictory
-   Gap, and Center sets Middle. Neither the call nor a blank Gap is inferred.
+   has usable padding. There is no Gap-side field. Coach revision 2026-09-30
+   (S107-4, approved / not yet built): Gap and Play Direction are independent.
+   Neither selection overwrites or clears the other; a blank Gap is valid and
+   Direction is not required to retain a Gap. Middle is the coach's broad
+   inside classification, not restricted to Center. Exact margins remain coach
+   judgment, not automatic gap-to-direction rules. Preserve every existing
+   direction and gap as stored; no migration or retrospective reclassification.
    Reverse is a selectable Play Type; keep Run/Pass explicit rather than
    changing statistical classification solely from the word Reverse. Motion
    type and Starts/Ends are separate, using offensive left/middle/right. RPO

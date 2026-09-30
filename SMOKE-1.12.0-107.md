@@ -121,6 +121,13 @@ assigned drives 2/1/2 create two separate Drive 2 groups. Current implementation
 groups only adjacent runs, not all members of the assigned drive. No repair yet;
 keep opposing possession sides separate and never guess blank drive assignments.
 
+**S107-4 - Gap/Direction independence, coach-approved change / OPEN.** Direction
+is broad coach judgment; Gap is additional precise lane charting. Neither field
+overwrites or clears the other, and Gap is valid without Direction. Middle need
+not mean Center. Preserve all existing stored values, including Right; no data
+migration or inferred reclassification. Earlier checklist step 4's coupled
+direction-clears-gap behavior is superseded. No production repair yet.
+
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
 reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are
 acceptable as separate formations for now. Keep the current single-select
