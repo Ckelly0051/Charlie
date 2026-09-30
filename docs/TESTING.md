@@ -83,7 +83,8 @@ in the film strip. `e2e-film-room-sheet` pins the matching play-sheet title.
 Geometry and native tagging/theater harnesses remain unchanged and pass.
 
 Formation correction (2026-09-29): `e2e-receiver-look` covers coach-named
-formations, independent Receiver Strength, old-schema refusal, Line Balance, exact conversion conflicts,
+formations, directional Receiver Alignment ordering, five Offensive Line Strength
+choices and unbalanced toward/away film attribution, retired-schema refusal, exact conversion conflicts,
 combination mapping and analytics film filters. `e2e-charting-cutover-deck`
 also exercises real deck clicks, independent strength, Film Room edits and CSV
 round-trip/refusal. `capture-receiver-look.mjs` compares the source build and

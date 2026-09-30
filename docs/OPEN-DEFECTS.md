@@ -52,8 +52,11 @@ load); the run-gap sample uses the Reports' own run rule and says so.
 Formation-model correction, 2026-09-29: built in source, IMPLEMENTED_UNVERIFIED.
 The coach rejected the rigid Family/Receiver Look split. Formation now accepts
 Twins, Trips, Bunch and Tight Bunch as whole coach-managed names. QB Alignment,
-Backfield, Offensive Line Strength, independent Receiver Strength, numeric Receiver
-Distribution and Line Balance stay separate. receiverLook/receiverSide are
+Backfield and Offensive Line Strength stay separate. Strength includes Unbalanced
+Left and Unbalanced Right. Receiver Alignment is directional left x right (totals
+1-5, numeric order, no 0x0). Personnel follows Formation before QB Alignment.
+Receiver Strength and Line Balance are removed; their stored shapes are refused.
+receiverLook/receiverSide are
 removed from authoring/readers and refused on import. All deck, grid, CSV,
 template, carry, Study and detail consumers use the one current model.
 Earlier 298/198 conversion counts are superseded; the full impact must be

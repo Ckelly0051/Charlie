@@ -62,8 +62,10 @@ This section is the one place release state is kept current.
   exists for it. BD-UX-1 and BD-UX-2 remain open in `docs/OPEN-DEFECTS.md`.
   The coach's 2026-09-29 correction supersedes the receiver-look follow-up:
   Formation accepts Twins, Trips, Bunch and Tight Bunch; Backfield and QB
-  Alignment stay separate. Offensive Line Strength and Receiver Strength are
-  independent. Receiver Distribution and Line Balance remain separate.
+  Alignment stay separate. Personnel follows Formation before QB Alignment.
+  Offensive Line Strength includes Unbalanced Left/Right. Receiver Alignment
+  means left x right (totals 1-5, no 0x0). Receiver Strength and Line Balance
+  are removed, not retained as compatibility readers.
   No receiver-look reader remains. Copy-only impact counts need refreshing
   before approval; live data and installed acceptance are unchanged.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;

@@ -154,10 +154,13 @@ roster (`SeasonManager._mergeRoster()`).
 - Formation is one coach-named value in the library (stored as
   `formationFamily`): Trips, Bunch and Tight Bunch are formations, not a
   separate receiver-look taxonomy. QB Alignment and Backfield stay separate.
-  `strength` is Offensive Line Strength; `receiverStrength` is independently
-  Left/Right/Balanced. Neither is inferred or cleared by changing Formation.
-  `receiverSet` is numeric Receiver Distribution; `lineBalance` is independent.
-  The old `formation`, `receiverLook` and `receiverSide` shapes are refused,
+  Personnel follows Formation, before QB Alignment. `strength` is Offensive
+  Line Strength: Left, Right, Balanced, Unbalanced Left, Unbalanced Right.
+  `receiverSet` is Receiver Alignment: left count x right count, all totals
+  1-5, ordered by left then right count; no 0x0. Neither field is inferred
+  or cleared by changing Formation. Receiver Strength and Line Balance are
+  removed. The old `formation`, `receiverLook`, `receiverSide`,
+  `receiverStrength` and `lineBalance` shapes are refused,
   never interpreted. One confirmed tools-only conversion, no compatibility tail.
 - Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
   `ChartingDetails`. A sided gap sets Play Direction, Center sets Middle, a

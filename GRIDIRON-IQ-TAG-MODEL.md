@@ -4,10 +4,11 @@
 > coach-managed name, stored as `formationFamily`. Trips, Bunch, Tight Bunch,
 > Ace, Twins, Doubles, Beast and Victory are valid formation choices, alongside
 > I-Form, Wing-T and the existing catalog. QB Alignment and Backfield remain
-> separate. `strength` is Offensive Line Strength; `receiverStrength` is independent
-> Left/Right/Balanced and can be charted without Formation. `receiverSet` is
-> numeric Receiver Distribution. `lineBalance` is independently Balanced/Unbalanced.
-> No field infers another. The separate receiverLook/receiverSide schema is
+> separate. Personnel follows Formation, before QB Alignment. `strength` is
+> Offensive Line Strength: Left, Right, Balanced, Unbalanced Left, Unbalanced Right.
+> `receiverSet` is Receiver Alignment (left x right), all totals 1-5, numerically
+> ordered by left then right; no 0x0. Receiver Strength and Line Balance are removed.
+> No field infers another. The receiverLook/receiverSide/receiverStrength/lineBalance schema is
 > superseded and refused, not converted at read time. Kicking plays strip the
 > current look fields under the existing run/pass-try exemption.
 

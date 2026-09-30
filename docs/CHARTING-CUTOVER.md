@@ -10,18 +10,20 @@ Formation-model checkpoint, 2026-09-29: **built in source, IMPLEMENTED_UNVERIFIE
 Coach-named Formation (stored as `formationFamily`) accepts Trips, Twins,
 Bunch, Tight Bunch, Ace, Doubles, Beast and Victory, plus existing and custom
 formations. QB Alignment and Backfield are separate. Offensive Line Strength
-(`strength`) and Receiver Strength (`receiverStrength`, Left/Right/Balanced)
-are independent. Receiver Distribution (`receiverSet`) stays numeric; Line
-Balance stays independent. Changing or clearing Formation never clears strength.
-The receiverLook/receiverSide checkpoint in 1cace291 is superseded and its
+(`strength`) offers Left/Right/Balanced/Unbalanced Left/Unbalanced Right.
+Receiver Alignment (`receiverSet`) is left count x right count, totals 1-5,
+numerically ordered; no 0x0. Personnel follows Formation before QB Alignment.
+Receiver Strength and Line Balance are removed. Changing or clearing Formation never clears strength.
+The receiverLook/receiverSide checkpoint in 1cace291 and subsequent redundant fields are superseded and their
 schema is refused, with no old reader. All consumers and the supplemental comp
 use the current model. No coach data was touched.
 
 Label clarification, 2026-09-29: Offensive Line Strength is the existing
-`strength` field (Left/Right/Balanced); no key, value or calculation changes.
+`strength` field. The subsequent coach revision adds Unbalanced Left/Right;
+relative-direction analytics derive Left/Right while keeping the stored label.
 The deck, Film Room (OL Strength), play detail, Settings, Study and CSV export
 use the clarified label. CSV import accepts the new header and existing aliases.
-Receiver Strength remains the separate `receiverStrength` field.
+Receiver Strength and Line Balance are now refused retired fields, not readers.
 Verified with CSV projection 39/39 and charting cutover deck 89/89; the populated
 canonical page was recaptured and the source fixture hash stayed unchanged.
 
@@ -80,12 +82,14 @@ local preview server is running; this is source, not an installed release.
 
 ## What the coach will see
 
-- **Formation** and **Receiver Distribution** replace the mixed Formation field. The
+- **Formation** and **Receiver Alignment** replace the mixed Formation field. The
   Formation library (Settings > Charting > Formations: add, hide, reorder,
   remove a custom one) seeded with Spread, Power-I, I-Form, Split Back, Singleback,
   Wing-T, Flexbone, Wishbone, Wildcat, Double Wing, Single Wing, Ace, Twins,
-  Trips, Doubles, Bunch, Tight Bunch, Beast and Victory. Receiver Distribution
-  is 2x2, 3x1, 2x1, 3x2, 1x1, 4x1, 2x0, 3x0. A play holds one of each.
+  Trips, Doubles, Bunch, Tight Bunch, Beast and Victory. Receiver Alignment
+  records left x right: 0x1, 0x2, 0x3, 0x4, 0x5, 1x0, 1x1, 1x2, 1x3,
+  1x4, 2x0, 2x1, 2x2, 2x3, 3x0, 3x1, 3x2, 4x0, 4x1, 5x0.
+  A play holds one of each. Personnel sits after Formation, before QB Alignment.
 - **Gap** (L-A..L-D, R-A..R-D, Center, Other) opens directly under Play Direction.
   **Motion Starts/Ends** open under Motion. **RPO** (read, defender number,
   decision) and **QB Run** (Designed, Scramble, RPO Keeper) open under Play Type.
@@ -169,10 +173,18 @@ historical counts; do not use them as the current impact or approval report.
 
 ## Decisions needed (nothing is guessed or assigned for you)
 
+2026-09-29 field simplification: source and comp use Receiver Alignment and the
+five Offensive Line Strength choices. Receiver Strength and Line Balance have
+no authoring or analytics readers; only old-format refusal guards remain.
+Focused build plus 12 affected harnesses passed; the deck rerun passed 94/94,
+and the pure formation-model checks passed 14/14. Canonical screenshots at
+1920 and 1280 were inspected with the fixture hash unchanged. These are source
+checks, not a full gate, live conversion, installer or installed approval.
+
 1. **Approve the historical mapping, by exact combination.** The table below
    supersedes the old Family-or-numeric-Set question. Exact single names now
-   become Formation, and Unbalanced has Line Balance only when explicitly mapped.
-   Receiver Strength and numeric Distribution may
+   become Formation; Unbalanced needs an explicit Left/Right strength decision.
+   Offensive Line Strength and numeric Receiver Alignment may
    remain blank and can be charted later; missing information is not invented.
 2. **Resolve conflicts explicitly.** A combination such as Trips + Bunch needs
    one coach-named Formation (for example Bunch, or a custom name). A single confirmed combination rule can cover
@@ -186,7 +198,7 @@ historical counts; do not use them as the current impact or approval report.
 
 Give the answers as a mapping file (`tools/convert-charting-once.mjs` header):
 `{ "tokens": { "Trips": { "formationFamily": "Trips" } }, "combinations": {
-"Trips + Bunch + Unbalanced": { "formationFamily": "Bunch", "lineBalance": "Unbalanced" }
+"Trips + Bunch + Unbalanced": { "formationFamily": "Bunch", "strength": "Unbalanced Left" }
 }, "plays": {} }`. This is an example, not an approved mapping.
 
 | Exact historical combination | Recorded plays |

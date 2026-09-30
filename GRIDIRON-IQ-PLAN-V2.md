@@ -119,9 +119,10 @@ or game data.
    coach-named Formation / Backfield / separate strength approach. Formation
    (stored as formationFamily) accepts Trips, Bunch, Tight Bunch and custom
    names. Remove the separate Receiver Look row and taxonomy. Keep QB Alignment,
-   Offensive Strength and independent Receiver Strength (Left/Right/Balanced).
-   Numeric Receiver Distribution and Line Balance remain separate, with no
-   inference. Changing Formation never clears strength. All consumers use this
+   Offensive Line Strength (Left/Right/Balanced/Unbalanced Left/Unbalanced Right).
+   Personnel follows Formation before QB Alignment. Receiver Alignment is left x
+   right, totals 1-5, numerically ordered, without 0x0. Receiver Strength and Line
+   Balance are removed. No inference. Changing Formation never clears strength. All consumers use this
    one schema; old receiverLook/receiverSide shapes are refused. Built in source,
    IMPLEMENTED_UNVERIFIED; app/comp captures are in artifacts/receiver-look-review/.
    No live write, gate or installer. The prior 298/198 rehearsal counts are

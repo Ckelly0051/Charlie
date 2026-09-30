@@ -4,8 +4,9 @@
 
 The coach requested distinct Twins, Trips, Bunch and Tight Bunch selections
 with Left/Right immediately underneath, replacing the proposed modifier chain.
-Line Balance is independent; numeric Receiver Set never implies side. The comp
-now shows Tight Bunch Left on an Unbalanced line as an illustrative selection.
+That initial proposal is superseded: Receiver Alignment records left x right,
+and the redundant Receiver Strength and Line Balance fields are removed. The comp
+shows Tight Bunch, 3x1, and Unbalanced Left as an illustrative selection.
 The existing 27px chips, text size and local field flow remain the composition
 reference. Cyan around the formation block is the comp's review highlight,
 not a production surface requirement. App and comp captures were inspected at
@@ -81,8 +82,10 @@ that migration needs a separate impact report and live-write confirmation.
 2026-09-29 coach correction: follow the Hudl Formation / Backfield / separate
 strength model. Formation accepts coach-named Trips, Twins, Bunch and Tight
 Bunch; the earlier Family/Receiver Look split is superseded. QB Alignment stays
-separate. Offensive Line Strength and Receiver Strength (Left/Right/Balanced) are
-independent; numeric Receiver Distribution and Line Balance remain separate.
+separate. Personnel follows Formation before QB Alignment. Offensive Line
+Strength offers Left, Right, Balanced, Unbalanced Left and Unbalanced Right.
+Receiver Alignment records left x right, totals 1-5 in numeric order, without
+0x0. Receiver Strength and Line Balance are removed.
 Changing Formation clears no strength. The supplemental comp and source now
 show this model using the existing 27px chips and readable type. No registry
 approval, live conversion or installed acceptance is implied. Hudl reference:
