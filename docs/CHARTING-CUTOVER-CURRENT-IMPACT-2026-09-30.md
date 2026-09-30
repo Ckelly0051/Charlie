@@ -5,7 +5,8 @@ The live charting conversion completed on explicit coach authorization and was
 independently verified on 2026-09-30. Installed settings and Documents mirror
 are unchanged. The throwaway conversion/archive tools, dependent tests and
 Previous formations bridge are deleted. Final gate passed 140/140 at
-`a449b59e`, zero skipped and zero failed. Packaging authorized; smoke remains.
+`a449b59e`, zero skipped and zero failed. Packaged as `1.12.0-107` from
+`72bea85a`; installed smoke remains. Build/hash: `SMOKE-1.12.0-107.md`.
 
 ## Live Conversion Complete
 

@@ -33,9 +33,14 @@ This section is the one place release state is kept current.
 - Coach authorized the final gate and packaging on 2026-09-30. Full gate at
   `a449b59e`: **140/140 green, zero skipped, zero failed** after conversion and
   temporary-code cleanup. All four version owners now read `1.12.0-107`;
-  unsigned Windows installer build is the next action. No installation or
-  installed approval exists for this candidate. `SMOKE-1.12.0-107.md` records
-  the pending checks; the previous `1.12.0-106` remains the latest smoked build.
+  unsigned Windows installer built successfully from clean commit `72bea85a`.
+  Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-107_x64-setup.exe`
+  (4,037,422 bytes), SHA-256
+  `AD3D650E69743E1EE1647C6F287C9E2D22885CC1CD648090CD0977D7EE865290`.
+  Product/file versions both `1.12.0-107`; post-bump p0-exit 19/19.
+  No installation or installed approval exists for this candidate.
+  `SMOKE-1.12.0-107.md` records the pending checks; `1.12.0-106` remains
+  the latest smoked build. Nothing pushed, tagged or published.
 - Latest built and coach-smoked installer: `1.12.0-106` (`cbf1889`),
   containing the Settings team-name save-on-close repair and its immediate-close
   regression checks. Full gate 136/136, zero skipped and zero failed at
@@ -56,8 +61,8 @@ This section is the one place release state is kept current.
 - Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
   modules and dead renderers deleted, the custom-field editor rebuilt on the
   overlay service, and Special Teams try charting.
-- Break Down charting cutover (roadmap Step 1), on the working branch and in no
-  installer: IMPLEMENTED_UNVERIFIED in source. Formation and Receiver Set
+- Break Down charting cutover (roadmap Step 1), packaged in `1.12.0-107`,
+  installed smoke pending: IMPLEMENTED_UNVERIFIED. Formation and Receiver Set
   (with a coach-managed Formation library), Gap under Play Direction, motion
   Starts/Ends, RPO and QB Run details, Reverse and QB Run play types, the
   film-linked run-gap report, Film Room and CSV columns, and the single-format
@@ -79,8 +84,9 @@ This section is the one place release state is kept current.
   `D:\Football\Film\GridIronIQ-Backups\current-state-2026-09-30-b10094cf`
   (data, managed film, desktop settings, Documents mirror and source bundle).
   Source verification: full build and gate
-  141/141, zero skipped and zero failed at `d5b27c10` on 2026-09-29.
-  No installer or installed approval exists for it. BD-UX-1 and BD-UX-2 remain
+  140/140, zero skipped and zero failed at `a449b59e` on 2026-09-30;
+  version-only bump p0-exit 19/19. No installed approval exists for it.
+  BD-UX-1 and BD-UX-2 remain
   open in `docs/OPEN-DEFECTS.md`.
   The coach's 2026-09-29 correction supersedes the receiver-look follow-up:
   Formation accepts Twins, Trips, Bunch and Tight Bunch; Backfield and QB

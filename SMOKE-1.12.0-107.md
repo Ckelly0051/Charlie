@@ -3,10 +3,19 @@
 ## Build Record
 
 Full gate at `a449b59e`: **140/140 green, 0 skipped, 0 failed**, 2026-09-30.
-Candidate adds only the four-owner version bump after the tested cutover source.
+Built source: `72bea85a`, adding only the four-owner version bump after the
+tested cutover source (plus gate/smoke documentation).
 Post-bump `e2e-p0-exit`: 19/19, all four version owners match.
-Installer build authorized by the coach; artifact path/hash will be recorded
-after successful packaging. No installation or installed approval yet.
+Installer built successfully (exit 0) with `cargo tauri build --bundles nsis
+--config artifacts/local-installer-config.json`; local override disables
+updater-artifact signing. Artifact:
+`src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-107_x64-setup.exe`,
+4,037,422 bytes. SHA-256:
+`AD3D650E69743E1EE1647C6F287C9E2D22885CC1CD648090CD0977D7EE865290`.
+Built executable product/file versions both report `1.12.0-107`.
+No installation or installed approval yet. No push, tag or publication.
+The working tree was clean for the build; after packaging, the live catalog
+still hashes to `770f3cc3b185e2b71e732a841a46e0ebc25859ac7d7beb361a43fb798273469c`.
 
 Live charting conversion is already complete and independently verified:
 `docs/charting-live-verification-2026-09-30.json`. There is no converter in the
