@@ -72,6 +72,11 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | One season format | `e2e-season-format` (every old-format refusal), `e2e-legacy-inventory` (ratchet: counts only fall), `e2e-legacy-roundtrip` (the converted live season survives save/reopen unchanged), `e2e-charting-convert` (the throwaway Formation converter: mapping, refusals, staged swap; deleted with the converter before shipping), `e2e-csv-roundtrip`, `e2e-csv-projection` |
 | Real data | `e2e-realdata` plus the canonical-season rows above |
 
+CSV mapping regression (2026-09-29): `e2e-csv-projection` also pins duplicate
+aliases, a hidden combined look, duplicate headers and manually duplicated
+targets. Refusal leaves plays and nextId unchanged and emits no save; unmapping
+the extra column permits retry. Six added checks; 39/39 overall.
+
 Formation correction (2026-09-29): `e2e-receiver-look` covers coach-named
 formations, independent Receiver Strength, old-schema refusal, Line Balance, exact conversion conflicts,
 combination mapping and analytics film filters. `e2e-charting-cutover-deck`

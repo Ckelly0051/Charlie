@@ -62,6 +62,16 @@ rehearsal takeaway-text differences still need review. The Previous formations
 bridge remains tools-cutover work: remove after conversion before packaging.
 No live write, gate, installer or installed acceptance.
 
+CSV mapping review, 2026-09-29: **P2 repaired in source; installed verification
+pending.** Formation and Formation Family headers could map to the same field,
+silently overwriting a supplied formation or hiding a combined look before
+validation. `StorageManager.applyPlayImport` now refuses any duplicate target
+in the final mapping, including manual column mappings, before changing plays,
+IDs or emitting a save. The coach can unmap the extra column and retry. Five
+refusal regressions failed before the fix; CSV projection now passes 39/39,
+CSV round-trip 14/14 and charting cutover deck 88/88. No coach data was touched;
+no full gate, installer or live conversion was run.
+
 **BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and
 unfinished; its expanded menu uses the older flat styling and typography rather

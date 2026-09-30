@@ -2018,6 +2018,19 @@ export class StorageManager {
     this.lastImportRefusal = null;
     const pending = [];
 
+    // Validate the final mapping, including edits made in the import sheet,
+    // before duplicate assignments can hide a value from row validation.
+    const mappedFields = new Map();
+    for (const [colIdx, field] of Object.entries(colMap)) {
+      if (!field) continue;
+      if (mappedFields.has(field)) {
+        const columnName = idx => parsed.headers?.[Number(idx)] || `Column ${Number(idx) + 1}`;
+        this.lastImportRefusal = `Columns "${columnName(mappedFields.get(field))}" and "${columnName(colIdx)}" both map to ${field}. Map only one column to each field. Nothing was imported.`;
+        return 0;
+      }
+      mappedFields.set(field, colIdx);
+    }
+
     const playerFields = ['ballCarrier', 'passer', 'receiver', 'tackler'];
 
     for (const cells of lines) {

@@ -161,8 +161,36 @@ const res = await page.evaluate(async () => {
   const oldBeside = sm.importPlaysFromText('Down,Distance,Receiver Look,Formation,Play Type\n1,10,Trips,Spread,Short Pass');
   const oldBesideAlias = sm.importPlaysFromText('Down,Distance,Family,Form,Play Type\n1,10,Spread,Trips,Short Pass');
 
+  const duplicateCases = [
+    ['conflicting Formation aliases', 'Formation,Formation Family\nTight Bunch,Spread'],
+    ['combined look hidden by a later alias', 'Formation,Formation Family\nShotgun + Trips,Spread'],
+    ['combined look before a later current row', 'Formation Family,Formation\nSpread,Trips\nSpread,Shotgun + Trips'],
+    ['identical duplicate columns', 'Formation,Formation\nSpread,Spread'],
+    ['manually duplicated mapping', 'First,Second\nLeft,Right', { 0: 'receiverStrength', 1: 'receiverStrength' }],
+  ];
+  const duplicateMappings = duplicateCases.map(([label, csv, colMap]) => {
+    const parsed = sm.importPlaysFromText(csv);
+    if (colMap) parsed.colMap = colMap;
+    sm.tagger.plays = [legacyPlay];
+    sm.tagger.nextId = 100;
+    const before = JSON.stringify(sm.tagger.plays);
+    const emit = sm.tagger._emit;
+    let emits = 0;
+    sm.tagger._emit = () => { emits++; };
+    let count;
+    try { count = sm.applyPlayImport(parsed); } finally { sm.tagger._emit = emit; }
+    return { label, count, refusal: sm.lastImportRefusal,
+      unchanged: before === JSON.stringify(sm.tagger.plays), nextId: sm.tagger.nextId, emits };
+  });
+  const resolvedMapping = sm.importPlaysFromText('Formation,Formation Family\nTight Bunch,Spread');
+  resolvedMapping.colMap[1] = '';
+  sm.tagger.plays = [];
+  sm.tagger.nextId = 1;
+  const resolvedCount = sm.applyPlayImport(resolvedMapping);
+  const resolved = { count: resolvedCount, refusal: sm.lastImportRefusal, formation: sm.tagger.plays[0]?.tags.formationFamily };
+
   return {
-    oldColumn, oldBeside, oldBesideAlias, detailMismatches, exportedDetails, importedDetails,
+    resolved, duplicateMappings, oldColumn, oldBeside, oldBesideAlias, detailMismatches, exportedDetails, importedDetails,
     headers, mismatches, formationLeak, imported, exportedLooks,
     exportedUnits, importedUnits, importedLooks, emptyRowResult,
     row1: { formation: cell(0, 'Formation'), set: cell(0, 'Receiver Distribution'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Offensive Strength') },
@@ -230,6 +258,12 @@ ok(res.oldColumn.count === 0 && /old GridIron IQ format/.test(res.oldColumn.erro
   'a CSV with the retired Receiver Look column is refused whole with the plain message', JSON.stringify(res.oldColumn));
 ok(res.oldBeside.count === 0 && /old GridIron IQ format/.test(res.oldBeside.error || '') && res.oldBesideAlias.count === 0 && /old GridIron IQ format/.test(res.oldBesideAlias.error || ''),
   'a retired receiver-look header or Form alias is refused even beside current Formation', JSON.stringify([res.oldBeside, res.oldBesideAlias]));
+for (const result of res.duplicateMappings) {
+  ok(result.count === 0 && /both map/.test(result.refusal || '') && result.unchanged && result.nextId === 100 && result.emits === 0,
+    `${result.label}: refused atomically without changing plays, ids or emitting a save`, JSON.stringify(result));
+}
+ok(res.resolved.count === 1 && res.resolved.refusal === null && res.resolved.formation === 'Tight Bunch',
+  'unmapping the duplicate permits import and clears the previous refusal', JSON.stringify(res.resolved));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

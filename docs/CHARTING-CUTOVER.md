@@ -17,6 +17,13 @@ The receiverLook/receiverSide checkpoint in 1cace291 is superseded and its
 schema is refused, with no old reader. All consumers and the supplemental comp
 use the current model. No coach data was touched.
 
+Adversarial-review repair, 2026-09-29: the final CSV column mapping may target
+each field only once. Duplicate Formation aliases, including ones hiding an old
+combined look, and duplicate manual mappings are refused before any write.
+Unmapping the extra column allows retry. Focused verification: CSV projection
+39/39, CSV round-trip 14/14, charting cutover deck 88/88. No live data changes,
+full gate or installer.
+
 The inventory/rehearsal below predates this correction. Its 298/198 result is
 historical, NOT the current conversion impact. Exact single names now keep
 their names as Formation; compound words still require explicit decisions.
