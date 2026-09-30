@@ -2,6 +2,11 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Coach-mapped rehearsal, 2026-09-30: all 496 Formation values resolve (four
+explicitly blanked). Current-format and preservation proofs pass. Takeaway
+proof and handling of 34 incompatible restore points / 94 versions remain;
+no live write. Mapping and report recorded in the dated cutover evidence.
+
 2026-09-30 copy rehearsal: 88 live plays remain unresolved, down from 198
 under the superseded model. Identity, film, unrelated fields and read-back
 proofs pass; current-format checks and formation-driven top-five takeaway

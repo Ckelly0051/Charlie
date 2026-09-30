@@ -1,0 +1,18 @@
+{
+  "tokens": {},
+  "combinations": {
+    "Trips + Unbalanced": { "formationFamily": "Trips" },
+    "I-Form + Twins": { "formationFamily": "Twins" },
+    "Bunch + Trips + Unbalanced": { "formationFamily": "Trips" },
+    "Doubles + Spread": { "formationFamily": "Doubles" },
+    "Ace + Twins": { "formationFamily": "Twins" },
+    "Unbalanced": { "blank": true },
+    "Bunch + Spread + Trips": { "formationFamily": "Trips" },
+    "Split Back + Twins": { "formationFamily": "Twins" },
+    "Twins + Unbalanced": { "formationFamily": "Twins" },
+    "Bunch + Trips": { "formationFamily": "Trips" },
+    "Bunch + Single Wing + Trips + Unbalanced": { "formationFamily": "Trips" },
+    "Spread + Twins": { "formationFamily": "Twins" }
+  },
+  "plays": {}
+}

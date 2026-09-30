@@ -30,6 +30,16 @@ on the 88 unresolved records. This scratch catalog is NOT ready for live use.
 
 ## Coach Decisions
 
+Coach supplied the explicit table on 2026-09-30. Recorded in
+`tools/charting-coach-mapping-2026-09-30.json`: Trips + Unbalanced,
+Bunch + Trips + Unbalanced, Bunch + Spread + Trips, Bunch + Trips and
+Bunch + Single Wing + Trips + Unbalanced become Trips. I-Form + Twins,
+Ace + Twins, Split Back + Twins, Twins + Unbalanced and Spread + Twins
+become Twins. Doubles + Spread becomes Doubles. Unbalanced alone is blanked
+and retained on the re-chart list (four live plays). No strength or Receiver
+Alignment is inferred. These decisions approve the mapping only, not a live
+write or historical-snapshot removal. The table below is the original inventory.
+
 One explicit rule can cover an exact combination regardless of token order;
 per-play overrides handle exceptions. These counts are live plays only.
 
@@ -89,7 +99,24 @@ do not blanket-ignore all takeaway differences. Rerun after coach mappings.
 
 ## Next
 
-Settle the 12 combinations and historical-snapshot policy, verify browser
+### Coach-Mapped Rerun
+
+The explicit mapping resolves all 496 nonblank old Formation records across
+the 919 live plays: 87 Varsity, 64 SJM JV and 345 2025 JV. Four 2025 JV plays
+with Unbalanced alone are deliberately blanked and listed for re-charting.
+All three seasons have zero unresolved values and zero current-format problems.
+Identity, film, unrelated tags, other play/game fields and round-trip proofs
+pass. Source hash remains unchanged. Exact evidence:
+`charting-coach-mapped-rehearsal-2026-09-30.json`.
+
+42 of 76 restore points and 52 of 146 versions resolve. The remaining 34
+restore points and 94 versions have other format problems; no mapping is
+guessed for those and no record is removed. Historical handling remains a
+separate coach decision. Generated takeaway proof still blocks the live write
+(`takeaways.fix`, and in two seasons `takeaways.working`). No gate, installer
+or live write was run.
+
+The 12 combination decisions are settled. Settle historical-snapshot policy, verify browser
 settings disposition, address the narrowly explained takeaway proof, then rerun
 the complete copy rehearsal. Only its exact final impact can be approved for
 the separate live-write checkpoint. No installer or gate was run in this step.

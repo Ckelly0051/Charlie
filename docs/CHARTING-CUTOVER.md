@@ -273,6 +273,11 @@ point equals the pre-write catalog by hash; no staged file remains.
 
 ### Remaining Smoke-Readiness Checkpoints (2026-09-30)
 
+Coach mapping now recorded in `tools/charting-coach-mapping-2026-09-30.json`.
+Its scratch rerun resolves all 496 old Formation values, with four explicitly
+blanked. Current-format and preservation checks pass; takeaway-proof and
+historical handling remain. No live-write approval is implied.
+
 Checkpoint 1 started: the refreshed exact-name rehearsal is recorded in
 `docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`. It supersedes earlier counts:
 408 of 496 nonblank Formation values resolve; 88 plays in 12 combinations
