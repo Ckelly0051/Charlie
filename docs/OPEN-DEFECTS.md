@@ -50,6 +50,17 @@ a custom entry in the retired Formation list is offered by name under
 retired list now survives a second library edit (it was dropped on the next
 load); the run-gap sample uses the Reports' own run rule and says so.
 
+Receiver-look follow-up, 2026-09-29: built in source, IMPLEMENTED_UNVERIFIED.
+Twins, Trips, Bunch and Tight Bunch are distinct Receiver Look selections;
+Left/Right opens locally, Line Balance is independent, and Receiver Set stays
+numeric. Film Room, play detail, CSV, templates/carry and Study carry the fields.
+Fresh catalog-copy rehearsal: 919 plays, 496 with Formation, 298 exact-name
+conversions and 198 unresolved. Original catalog hash stayed unchanged.
+The existing rehearsal flags `takeaways.fix`/`takeaways.working` text changes
+on SJM JV and 2025 JV; these need explicit review before live-write approval.
+The Previous formations bridge remains temporary and must be removed after
+the approved conversion and before packaging. No live write, gate or installer.
+
 **BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and
 unfinished; its expanded menu uses the older flat styling and typography rather

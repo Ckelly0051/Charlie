@@ -115,6 +115,15 @@ or game data.
    or projected into Family/Receiver Set at read time. Keep Motion's Trade
    choice and existing coach-defined library entries available. New plays
    write only the separated current structure.
+   Receiver-look follow-up (coach direction 2026-09-29): add distinct Twins,
+   Trips, Bunch and Tight Bunch selections, each with a local Left/Right
+   control. Bunch and Tight Bunch are whole selections, not modifier chains.
+   Add an independent Balanced/Unbalanced Line Balance field. Keep numeric
+   Receiver Set separate; neither it nor an old Formation word implies side.
+   This follow-up is built in source, IMPLEMENTED_UNVERIFIED; comp and app
+   captures are in `artifacts/receiver-look-review/`. Live conversion still
+   waits for the decisions in `docs/CHARTING-CUTOVER.md`, followed by the
+   required impact approval. No gate or installer has run for this batch.
 2. **New play details.** Gap records the actual lane hit. Under Play Direction,
    show one desktop row of L-A through L-D, R-A through R-D, Center, and Other
    at the approved text size; the L chips surrender a little width so Center

@@ -156,6 +156,19 @@
     let currentView='formation';
     let currentPlayType='Run Inside';
     const formationSection=document.getElementById('formation-fields').closest('.section');
+    const receiverFields=document.createElement('div');
+    receiverFields.id='receiver-look-fields';
+    receiverFields.innerHTML='<div class="field"><div class="field-label">Receiver Look</div><div class="chips" id="receiver-look"><button class="chip">Twins</button><button class="chip">Trips</button><button class="chip">Bunch</button><button class="chip on">Tight Bunch</button></div></div><div class="field" id="receiver-side-field"><div class="field-label">Receiver Side</div><div class="chips" id="receiver-side"><button class="chip on">Left</button><button class="chip">Right</button></div></div><div class="field"><div class="field-label">Line Balance</div><div class="chips"><button class="chip">Balanced</button><button class="chip on">Unbalanced</button></div></div>';
+    document.getElementById('formation-fields').append(receiverFields);
+    receiverFields.addEventListener('click',event=>{
+      const group=event.target.closest('.chips');
+      if(!group||group.id!=='receiver-look')return;
+      queueMicrotask(()=>{
+        const opened=!!group.querySelector('.on');
+        document.getElementById('receiver-side-field').hidden=!opened;
+        if(!opened)document.querySelectorAll('#receiver-side .on').forEach(chip=>chip.classList.remove('on'));
+      });
+    });
     const libraryPanel=document.createElement('div');
     libraryPanel.className='library-panel';
     libraryPanel.id='full-library';

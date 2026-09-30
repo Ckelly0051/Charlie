@@ -1,5 +1,15 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
+> **Receiver-look revision, 2026-09-29:** `receiverLook` is one of Twins,
+> Trips, Bunch or Tight Bunch. `receiverSide` is Left/Right, charted from the
+> offense's perspective, with blank valid. The side opens under the look;
+> removing a populated look confirms clearing its side in the same undo step.
+> Changing between looks preserves the side. `lineBalance` is independently
+> Balanced/Unbalanced, blank when uncharted. Numeric `receiverSet` stores the
+> distribution and never implies a side. These fields travel through the deck,
+> templates, carry-forward, Film Room, CSV, play detail, Study and look labels.
+> Kicking plays strip them under the existing run/pass-try exemption.
+
 > **Revision 2026-09-28 (charting cutover, Step 1) — the `formation` field is
 > retired.** The old multi-select mixed family, receiver and package words
 > ("Spread + Doubles", "Trips + Unbalanced"). The current format stores

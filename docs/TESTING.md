@@ -72,6 +72,15 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | One season format | `e2e-season-format` (every old-format refusal), `e2e-legacy-inventory` (ratchet: counts only fall), `e2e-legacy-roundtrip` (the converted live season survives save/reopen unchanged), `e2e-charting-convert` (the throwaway Formation converter: mapping, refusals, staged swap; deleted with the converter before shipping), `e2e-csv-roundtrip`, `e2e-csv-projection` |
 | Real data | `e2e-realdata` plus the canonical-season rows above |
 
+Receiver-look follow-up (2026-09-29): `e2e-receiver-look` covers vocabulary,
+side ownership, independent Line Balance, exact conversion conflicts,
+combination mapping and analytics film filters. `e2e-charting-cutover-deck`
+also exercises real deck clicks, confirmation/cancel, Film Room edits and CSV
+round-trip/refusal. `capture-receiver-look.mjs` compares the source build and
+the supplemental comp at 1920, 1440, 1280 and 390 on an isolated canonical
+fixture copy; receiver selections are illustrative, and source hashes are
+verified unchanged. Evidence is under `artifacts/receiver-look-review/`.
+
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.
 

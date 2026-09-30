@@ -1,0 +1,1453 @@
+{
+  "date": "2026-09-29",
+  "sourceHash": "67780703e0e2bff34c0f5672af5f6e13887d980bdf2c3ee93584849ca2b6c696",
+  "sourceUnchanged": true,
+  "mappingApproved": false,
+  "seasons": [
+    {
+      "id": "sjm-varsity-2026",
+      "name": "SJM Varsity 2026",
+      "plays": 293,
+      "converted": 44,
+      "unresolved": 43
+    },
+    {
+      "id": "sjm-jv-2026",
+      "name": "SJM JV 2026",
+      "plays": 186,
+      "converted": 41,
+      "unresolved": 23
+    },
+    {
+      "id": "2026-varsity-demo",
+      "name": "2025 St. Joseph Mavericks - JV",
+      "plays": 440,
+      "converted": 213,
+      "unresolved": 132
+    }
+  ],
+  "unresolvedCombinations": {
+    "Bunch + Trips + Unbalanced": [
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 5,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|5",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 6,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|6",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 7,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|7",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 8,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|8",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 9,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|9",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 10,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|10",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 11,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|11",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmteo1x4q5110f",
+        "playId": 12,
+        "ref": "sjm-varsity-2026|gmteo1x4q5110f|12",
+        "oldValue": "Bunch + Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 44,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|44",
+        "oldValue": "Trips + Bunch + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 45,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|45",
+        "oldValue": "Trips + Bunch + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 47,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|47",
+        "oldValue": "Trips + Bunch + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 73,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|73",
+        "oldValue": "Trips + Unbalanced + Bunch"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 79,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|79",
+        "oldValue": "Trips + Bunch + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 2,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|2",
+        "oldValue": "Bunch + Unbalanced + Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 3,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|3",
+        "oldValue": "Bunch + Unbalanced + Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 11,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|11",
+        "oldValue": "Unbalanced + Trips + Bunch"
+      }
+    ],
+    "Doubles": [
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 1,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|1",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 29,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|29",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 30,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|30",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 59,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|59",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 60,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|60",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 62,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|62",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 63,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|63",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 64,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|64",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 1,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|1",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 2,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|2",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 3,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|3",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 4,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|4",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 5,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|5",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 6,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|6",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 7,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|7",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 8,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|8",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 9,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|9",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 10,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|10",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 11,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|11",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 12,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|12",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 13,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|13",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 14,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|14",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 15,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|15",
+        "oldValue": "Doubles"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmubixg4hlcfbl",
+        "playId": 16,
+        "ref": "sjm-varsity-2026|gmubixg4hlcfbl|16",
+        "oldValue": "Doubles"
+      }
+    ],
+    "Ace": [
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 2,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|2",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 12,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|12",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 14,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|14",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 33,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|33",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 40,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|40",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 41,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|41",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmtyzoxcgg9va9",
+        "playId": 43,
+        "ref": "sjm-jv-2026|gmtyzoxcgg9va9|43",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmtyzoxcgg9va9",
+        "playId": 44,
+        "ref": "sjm-jv-2026|gmtyzoxcgg9va9|44",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmtyzoxcgg9va9",
+        "playId": 51,
+        "ref": "sjm-jv-2026|gmtyzoxcgg9va9|51",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 15,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|15",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 16,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|16",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 17,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|17",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 18,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|18",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 24,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|24",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 25,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|25",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 26,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|26",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 27,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|27",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 28,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|28",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 45,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|45",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 46,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|46",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 47,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|47",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 48,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|48",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 49,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|49",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 59,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|59",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 66,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|66",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 67,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|67",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmq9plozwgukpk",
+        "playId": 68,
+        "ref": "2026-varsity-demo|gmq9plozwgukpk|68",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 18,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|18",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 19,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|19",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 20,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|20",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 21,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|21",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 35,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|35",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 36,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|36",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 37,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|37",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 51,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|51",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 52,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|52",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 53,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|53",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 54,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|54",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 69,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|69",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 77,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|77",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 12,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|12",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 13,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|13",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 14,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|14",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 44,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|44",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 45,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|45",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 46,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|46",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 47,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|47",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 48,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|48",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 79,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|79",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 80,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|80",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 8,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|8",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 9,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|9",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 10,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|10",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 11,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|11",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 13,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|13",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 14,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|14",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 15,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|15",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqo9g65dqzba4",
+        "playId": 19,
+        "ref": "2026-varsity-demo|gmqo9g65dqzba4|19",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 29,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|29",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 67,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|67",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 68,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|68",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 81,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|81",
+        "oldValue": "Ace"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 84,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|84",
+        "oldValue": "Ace"
+      }
+    ],
+    "Trips": [
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 31,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|31",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 32,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|32",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 42,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|42",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 43,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|43",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "sjm-varsity-2026",
+        "gameId": "gmu08mo671r2xz",
+        "playId": 44,
+        "ref": "sjm-varsity-2026|gmu08mo671r2xz|44",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 75,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|75",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 76,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|76",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 70,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|70",
+        "oldValue": "Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 68,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|68",
+        "oldValue": "Trips"
+      }
+    ],
+    "Beast": [
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 2,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|2",
+        "oldValue": "Beast"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 3,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|3",
+        "oldValue": "Beast"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 4,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|4",
+        "oldValue": "Beast"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 5,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|5",
+        "oldValue": "Beast"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 6,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|6",
+        "oldValue": "Beast"
+      }
+    ],
+    "Ace + Twins": [
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 9,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|9",
+        "oldValue": "Ace + Twins"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 10,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|10",
+        "oldValue": "Ace + Twins"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 11,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|11",
+        "oldValue": "Ace + Twins"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 12,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|12",
+        "oldValue": "Ace + Twins"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 13,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|13",
+        "oldValue": "Ace + Twins"
+      },
+      {
+        "seasonId": "sjm-jv-2026",
+        "gameId": "gmuk5msuoop7se",
+        "playId": 14,
+        "ref": "sjm-jv-2026|gmuk5msuoop7se|14",
+        "oldValue": "Ace + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 28,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|28",
+        "oldValue": "Ace + Twins"
+      }
+    ],
+    "Doubles + Spread": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 6,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|6",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 15,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|15",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 43,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|43",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 46,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|46",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 50,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|50",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 57,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|57",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 63,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|63",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 70,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|70",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 82,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|82",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 11,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|11",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 62,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|62",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 63,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|63",
+        "oldValue": "Spread + Doubles"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 46,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|46",
+        "oldValue": "Spread + Doubles"
+      }
+    ],
+    "Trips + Unbalanced": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 8,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|8",
+        "oldValue": "Unbalanced + Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 9,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|9",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 10,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|10",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 11,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|11",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 12,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|12",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 13,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|13",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 24,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|24",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 25,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|25",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 26,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|26",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 40,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|40",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 42,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|42",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 48,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|48",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 49,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|49",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 58,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|58",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 61,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|61",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 62,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|62",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 72,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|72",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 74,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|74",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqfbfaqnpxjll",
+        "playId": 84,
+        "ref": "2026-varsity-demo|gmqfbfaqnpxjll|84",
+        "oldValue": "Trips + Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 58,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|58",
+        "oldValue": "Unbalanced + Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 59,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|59",
+        "oldValue": "Unbalanced + Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 64,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|64",
+        "oldValue": "Unbalanced + Trips"
+      }
+    ],
+    "Split Back + Twins": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqik11s86n46s",
+        "playId": 69,
+        "ref": "2026-varsity-demo|gmqik11s86n46s|69",
+        "oldValue": "Split Back + Twins"
+      }
+    ],
+    "I-Form + Twins": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 4,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|4",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 10,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|10",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 15,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|15",
+        "oldValue": "Twins + I-Form"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 20,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|20",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 30,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|30",
+        "oldValue": "Twins + I-Form"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 31,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|31",
+        "oldValue": "Twins + I-Form"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 33,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|33",
+        "oldValue": "Twins + I-Form"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 35,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|35",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 36,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|36",
+        "oldValue": "Twins + I-Form"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 48,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|48",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 49,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|49",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 54,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|54",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 55,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|55",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 56,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|56",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 57,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|57",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 65,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|65",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 74,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|74",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 75,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|75",
+        "oldValue": "I-Form + Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 78,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|78",
+        "oldValue": "Twins + I-Form"
+      }
+    ],
+    "Twins + Unbalanced": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 13,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|13",
+        "oldValue": "Unbalanced + Twins"
+      }
+    ],
+    "Twins": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 14,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|14",
+        "oldValue": "Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 16,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|16",
+        "oldValue": "Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 17,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|17",
+        "oldValue": "Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 90,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|90",
+        "oldValue": "Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 14,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|14",
+        "oldValue": "Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 63,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|63",
+        "oldValue": "Twins"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 67,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|67",
+        "oldValue": "Twins"
+      }
+    ],
+    "Bunch + Trips": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqpt95xh58z0a",
+        "playId": 37,
+        "ref": "2026-varsity-demo|gmqpt95xh58z0a|37",
+        "oldValue": "Trips + Bunch"
+      }
+    ],
+    "Unbalanced": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 3,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|3",
+        "oldValue": "Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 4,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|4",
+        "oldValue": "Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 23,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|23",
+        "oldValue": "Unbalanced"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 60,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|60",
+        "oldValue": "Unbalanced"
+      }
+    ],
+    "Bunch + Single Wing + Trips + Unbalanced": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 5,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|5",
+        "oldValue": "Unbalanced + Single Wing + Trips + Bunch"
+      }
+    ],
+    "Bunch + Spread + Trips": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 30,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|30",
+        "oldValue": "Spread + Bunch + Trips"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 31,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|31",
+        "oldValue": "Spread + Bunch + Trips"
+      }
+    ],
+    "Spread + Twins": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 32,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|32",
+        "oldValue": "Spread + Twins"
+      }
+    ],
+    "Victory": [
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 77,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|77",
+        "oldValue": "Victory"
+      },
+      {
+        "seasonId": "2026-varsity-demo",
+        "gameId": "gmqptqoprzli2r",
+        "playId": 79,
+        "ref": "2026-varsity-demo|gmqptqoprzli2r|79",
+        "oldValue": "Victory"
+      }
+    ]
+  }
+}

@@ -1,5 +1,19 @@
 # Break Down populated layout - review comp
 
+## Receiver look, 2026-09-29
+
+The coach requested distinct Twins, Trips, Bunch and Tight Bunch selections
+with Left/Right immediately underneath, replacing the proposed modifier chain.
+Line Balance is independent; numeric Receiver Set never implies side. The comp
+now shows Tight Bunch Left on an Unbalanced line as an illustrative selection.
+The existing 27px chips, text size and local field flow remain the composition
+reference. Cyan around the formation block is the comp's review highlight,
+not a production surface requirement. App and comp captures were inspected at
+1920, 1440, 1280 and 390; the canonical fixture stayed byte-identical. New
+receiver selections in the captures are examples, not coach data or mapping
+approval. Source status is IMPLEMENTED_UNVERIFIED pending installed smoke;
+this supplemental comp does not change the approval registry.
+
 Status: **supplemental review comp, not blanket `COMP_APPROVED`.** The coach
 reviewed the nested, single-row Gap control and asked for Reverse as a Play
 Type on 2026-09-28. The full-library (BD-UX-1) and context-selector (BD-UX-2)

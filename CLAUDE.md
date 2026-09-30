@@ -156,6 +156,10 @@ roster (`SeasonManager._mergeRoster()`).
   each, and `SeasonFormat` refuses any `formation` key. Each look field is its
   own field and `TagProjection.project` is a plain read; nothing infers a
   family or set from another tag.
+  `receiverLook` is Twins, Trips, Bunch or Tight Bunch; `receiverSide` is Left
+  or Right and stays blank until charted. Clearing the look confirms removal
+  of its side. `lineBalance` is an independent Balanced/Unbalanced choice.
+  Numeric Receiver Set never supplies receiver side.
 - Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
   `ChartingDetails`. A sided gap sets Play Direction, Center sets Middle, a
   direction that contradicts the gap clears it; a detail is never stored without

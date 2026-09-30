@@ -60,6 +60,10 @@ This section is the one place release state is kept current.
   converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
   awaiting the coach's decision. No full gate, installer or installed approval
   exists for it. BD-UX-1 and BD-UX-2 remain open in `docs/OPEN-DEFECTS.md`.
+  The 2026-09-29 receiver-look follow-up is also built in source: Twins, Trips,
+  Bunch, Tight Bunch, local Left/Right, and independent Line Balance. Focused
+  checks and canonical-fixture captures pass; live data and installed acceptance
+  are unchanged. The fresh copy-only inventory is recorded in CHARTING-CUTOVER.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports

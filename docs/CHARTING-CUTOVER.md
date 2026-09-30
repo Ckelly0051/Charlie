@@ -6,6 +6,39 @@ been written, no full gate has run and no installer exists.** The live conversio
 coach's answers in "Decisions needed" and an explicit yes immediately before the
 write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
 
+Receiver-look checkpoint, 2026-09-29 (`1cace291`): **built in source, IMPLEMENTED_UNVERIFIED.**
+`receiverLook` offers Twins, Trips, Bunch and Tight Bunch as distinct choices;
+`receiverSide` offers Left/Right directly below it. A side is never inferred;
+clearing a look confirms clearing its populated side. `lineBalance` independently
+offers Balanced/Unbalanced. Numeric Receiver Set stays separate. All three
+fields carry through templates, carry-forward, Film Room, CSV, play detail,
+Study and presentation look labels. There is no new read-time conversion.
+
+Fresh read-only copy inventory: source SHA-256
+`67780703e0e2bff34c0f5672af5f6e13887d980bdf2c3ee93584849ca2b6c696`.
+919 plays: SJM Varsity 293, SJM JV 186, 2025 JV 440. Of the 496 plays carrying
+Formation, exact Family names convert 298 and 198 remain unresolved with an
+empty mapping. The original source hash stayed unchanged. The catalog holds
+76 restore points and 146 game versions; with no additional mappings, 26
+versions convert on exact names and no restore point fully converts. Earlier
+counts below are the dated 2026-09-28 inventory, not the current totals.
+
+The copy rehearsal preserves identities, film references, unrelated tags and
+other play/game fields, and catalog read-back passes. It flags additional
+takeaway text changes (`takeaways.fix` on SJM JV, `takeaways.fix` and
+`takeaways.working` on 2025 JV); these must be reviewed before a live write,
+not silently rebaselined. No live write, full gate or installer was run.
+
+Focused verification: build passed; 14 affected harnesses passed, including
+receiver-look 16/16, real deck/Film Room/CSV 86/86, scratch conversion 37/37,
+season-format 45/45, and unchanged analytics parity on both goldens. Removing
+the receiver-side opener made its regression fail; the mutation was restored.
+App and comp captures were inspected at 1920, 1440, 1280 and 390: 27px desktop
+chips, no clipped receiver labels and no page overflow. The canonical fixture
+hash stayed unchanged; new receiver selections there are illustrative. Design
+approvals audit: zero violations. Preview: `http://127.0.0.1:5192` while the
+local preview server is running; this is source, not an installed release.
+
 ## What the coach will see
 
 - **Formation Family** and **Receiver Set** replace the one Formation field. The
@@ -95,24 +128,51 @@ stored and unresolved** (SJM Varsity 43, SJM JV 23, 2025 JV 132).
 
 ## Decisions needed (nothing is guessed or assigned for you)
 
-1. **Each word marked "your decision".** For each of Ace, Trips, Unbalanced,
-   Doubles, Twins, Bunch, Beast and Victory, say one of: a Family (a built-in one,
-   or keep the word as your own Family such as `Ace`), a Receiver Set (which one:
-   `Trips` is 3x1? 3x0? 3x2?), or **drop it** (the play keeps its other values and
-   is listed for re-charting with the old text). A word can be a Family in one
-   answer and nothing else; a play cannot hold two Families or two Receiver Sets,
-   so a play like `Unbalanced + Single Wing + Trips + Bunch` needs its own answer
-   (a per-play retag) or the dropped words.
-2. **Plays whose words map to two Families or two Sets** are named after your
-   answers; they are never picked between.
+1. **Approve the historical mapping, by exact combination.** The table below
+   supersedes the old Family-or-numeric-Set question. Receiver names now have
+   their own field, and Unbalanced has Line Balance. Side and numeric Set may
+   remain blank and can be charted later; missing information is not invented.
+2. **Resolve conflicts explicitly.** A combination such as Trips + Bunch needs
+   one selected receiver look. A single confirmed combination rule can cover
+   every matching record regardless of token order; per-play overrides handle
+   actual exceptions. The tool refuses conflicting rules or populated current
+   fields that disagree and leaves that source record intact.
 3. **Restore points and game versions.** Convert those that resolve fully under
    your mapping, or leave them as stored (they then read as an old format and
    are refused if restored). Counts are re-run with your mapping.
 4. **Browser stores** (below).
 
 Give the answers as a mapping file (`tools/convert-charting-once.mjs` header):
-`{ "tokens": { "Trips": { "receiverSet": "3x1" }, "Ace": { "formationFamily": "Ace" },
-"Victory": { "blank": true } }, "plays": {} }`.
+`{ "tokens": { "Trips": { "receiverLook": "Trips" } }, "combinations": {
+"Trips + Bunch + Unbalanced": { "receiverLook": "Bunch", "lineBalance": "Unbalanced" }
+}, "plays": {} }`. This is an example, not an approved mapping.
+
+| Exact historical combination | Live plays | Proposed meaning / decision |
+|---|---:|---|
+| Ace | 63 | Decide Family name; do not infer receiver count |
+| Ace + Twins | 7 | Same Ace decision plus Twins; side blank |
+| Doubles | 24 | Decide whether to keep a custom Family or explicitly assign a numeric Set |
+| Doubles + Spread | 13 | Spread plus the Doubles decision; two Families would conflict |
+| Beast | 5 | Decide whether to preserve Beast as a custom Family |
+| Victory | 2 | Decide whether to preserve Victory as a custom Family |
+| Trips | 9 | Trips; side and numeric Set blank |
+| Trips + Unbalanced | 22 | Trips plus Unbalanced; side and Set blank |
+| Bunch + Trips + Unbalanced | 16 | Confirm Bunch plus Unbalanced, or provide exceptions |
+| Bunch + Trips | 1 | Confirm Bunch, or choose Trips |
+| Bunch + Single Wing + Trips + Unbalanced | 1 | Single Wing plus Unbalanced; confirm Bunch vs Trips |
+| Bunch + Spread + Trips | 2 | Spread; confirm Bunch vs Trips |
+| Twins | 7 | Twins; side and Set blank |
+| I-Form + Twins | 19 | I-Form plus Twins; side and Set blank |
+| Split Back + Twins | 1 | Split Back plus Twins; side and Set blank |
+| Twins + Unbalanced | 1 | Twins plus Unbalanced; side and Set blank |
+| Spread + Twins | 1 | Spread plus Twins; side and Set blank |
+| Unbalanced | 4 | Line Balance only; Family, receiver look and side blank |
+
+Total: 198 distinct live plays. The rehearsal inventory contains every affected
+season/game/play ID and old value, grouped by normalized combination. It is in
+`docs/charting-receiver-inventory-2026-09-29.json` (committed review evidence,
+not a data backup or write approval). Full scratch proof and catalog copies are
+under `C:\Users\charl\AppData\Local\Temp\giq-receiver-review-ZmDpHI\`.
 
 ## Browser stores
 

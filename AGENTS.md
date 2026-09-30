@@ -138,14 +138,15 @@ play   { id, timestamp{start,end}, clipId, catalogClipId, notes, diagram,
 ```
 
 `play.tags` carries the football model: situation (`down`, `distance`,
-`quarter`, `fieldSide`, `yardLine`, `hash`), offensive look (`formation`,
+`quarter`, `fieldSide`, `yardLine`, `hash`), offensive look (`formationFamily`,
+`receiverSet`, `receiverLook`, `receiverSide`, `lineBalance`,
 `backfield`, `strength`, `qbAlignment`, `personnel`, `motion`), the call
 (`playCall`, `playCallId`, `playConcept`), outcome (`runPass`, `playType`,
 `result`, `yardage`, `playDir`), defense (`defFront`, `coverage`,
 `coverageFamily`, `blitz`), `unit`, `driveNumber`, `players{}`, `grades{}`,
 and `custom[]`.
 
-Multi-value fields (`formation`, `playType`, `result`, `defFront`, `blitz`)
+Multi-value fields (`playType`, `result`, `defFront`, `blitz`)
 store `" + "`-joined strings so every string consumer keeps working;
 `StatsEngine.splitFormations()` and its siblings are the canonical splitters,
 and analytics attribute a play to each component.
