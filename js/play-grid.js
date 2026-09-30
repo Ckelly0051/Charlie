@@ -40,7 +40,7 @@ export class PlayGrid {
     // default preset, but available in the Columns menu like any other column.
     { key: 'qbAlignment', label: 'QB Align', type: 'enum', src: 'tagQbAlignment',              unit: 'offense' },
     { key: 'backfield', label: 'Backfield', type: 'enum', src: 'tagBackfield',                 unit: 'offense' },
-    { key: 'strength',  label: 'Off Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
+    { key: 'strength',  label: 'OL Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
     { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
     { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
     // A motion's path opens with the motion (ChartingDetails.TRIGGERS): a cell is

@@ -1795,7 +1795,7 @@ export class StorageManager {
       // Coverage Family; a blank exports blank ("Unknown" would read as a real
       // analytics category). The run and motion details follow the field that
       // opens them (ChartingDetails).
-      'Formation', 'Receiver Distribution', 'Receiver Strength', 'Line Balance', 'QB Alignment', 'Backfield', 'Offensive Strength', 'Personnel', 'Motion',
+      'Formation', 'Receiver Distribution', 'Receiver Strength', 'Line Balance', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Personnel', 'Motion',
       'Motion Starts', 'Motion Ends',
       'Play Call', 'Play Call ID', 'Play Concept',
       'Run/Pass', 'Play Type', 'Play Dir', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type', 'Def Front',
@@ -1961,7 +1961,7 @@ export class StorageManager {
       // are refused during row validation, never split by an import reader.
       formation: 'formationFamily', formationfamily: 'formationFamily', family: 'formationFamily',
       receiverdistribution: 'receiverSet', receiverset: 'receiverSet', recset: 'receiverSet',
-      receiverstrength: 'receiverStrength', linebalance: 'lineBalance', offensivestrength: 'strength',
+      receiverstrength: 'receiverStrength', linebalance: 'lineBalance', offensivestrength: 'strength', offensivelinestrength: 'strength',
       motionstarts: 'motionStart', motionstart: 'motionStart', motionends: 'motionEnd', motionend: 'motionEnd',
       gap: 'gap', rporead: 'rpoRead', rpodefender: 'rpoDefender', rpodecision: 'rpoDecision',
       qbruntype: 'qbRun', qbrun: 'qbRun',

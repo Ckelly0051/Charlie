@@ -100,7 +100,7 @@ const res = await page.evaluate(async () => {
     return i < 0 ? null : (parsed.lines[rowIdx][i] ?? '');
   };
 
-  const COLS = ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Strength', 'Coverage Call', 'Coverage Family'];
+  const COLS = ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Coverage Call', 'Coverage Family'];
   const KEYS = ['formationFamily', 'receiverSet', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
   const DETAIL_COLS = ['Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type'];
 
@@ -193,7 +193,7 @@ const res = await page.evaluate(async () => {
     resolved, duplicateMappings, oldColumn, oldBeside, oldBesideAlias, detailMismatches, exportedDetails, importedDetails,
     headers, mismatches, formationLeak, imported, exportedLooks,
     exportedUnits, importedUnits, importedLooks, emptyRowResult,
-    row1: { formation: cell(0, 'Formation'), set: cell(0, 'Receiver Distribution'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Offensive Strength') },
+    row1: { formation: cell(0, 'Formation'), set: cell(0, 'Receiver Distribution'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Offensive Line Strength') },
     row2: { call: cell(1, 'Coverage Call'), family: cell(1, 'Coverage Family') },
     row3: { call: cell(2, 'Coverage Call'), family: cell(2, 'Coverage Family') },
     row4: { formation: cell(3, 'Formation'), set: cell(3, 'Receiver Distribution'), qb: cell(3, 'QB Alignment'), backfield: cell(3, 'Backfield') },
@@ -203,7 +203,7 @@ const res = await page.evaluate(async () => {
 });
 
 // --- Column contract ---
-for (const col of ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Strength', 'Coverage Call', 'Coverage Family', 'Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type']) {
+for (const col of ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Coverage Call', 'Coverage Family', 'Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type']) {
   ok(res.headers.includes(col), `CSV header carries the "${col}" column`, JSON.stringify(res.headers));
 }
 

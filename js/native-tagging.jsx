@@ -86,7 +86,7 @@ function Field({screen, field, label, value, type='number', min, max, step, plac
 const CALL_DEFAULT_LABELS = {
   runPass:'Run / Pass', playType:'Play Type', playDir:'Direction', formationFamily:'Formation', receiverSet:'Receiver Distribution',
   receiverStrength:'Receiver Strength', lineBalance:'Line Balance',
-  qbAlignment:'QB Alignment', backfield:'Backfield', strength:'Strength',
+  qbAlignment:'QB Alignment', backfield:'Backfield', strength:'Offensive Line Strength',
   personnel:'Personnel', motion:'Motion',
 };
 
@@ -479,7 +479,7 @@ export function NativeTagging({screen}) {
           {chips('formationFamily','Formation',state.libraries.formationFamily,'','formationFamily')}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment)}
           {chips('backfield','Backfield',state.libraries.backfield,'','backfield')}
-          {chips('strength','Offensive Strength',OPTIONS.strength)}
+          {chips('strength','Offensive Line Strength',OPTIONS.strength)}
           {chips('receiverStrength','Receiver Strength',OPTIONS.receiverStrength)}
           {chips('receiverSet','Receiver Distribution',OPTIONS.receiverSet)}
           {chips('lineBalance','Line Balance',OPTIONS.lineBalance)}

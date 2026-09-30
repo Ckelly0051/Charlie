@@ -58,6 +58,7 @@ console.log('\n== 1. Fields, order and copy ==');
   const at = f => s.order.indexOf(f);
   ok(at('formationFamily') > -1 && at('formationFamily') < at('qbAlignment') && at('qbAlignment') < at('backfield') && at('backfield') < at('receiverStrength') && at('receiverStrength') < at('receiverSet'), 'Formation, QB Alignment, Backfield and Receiver Strength precede Distribution', s.order.join());
   ok(!/optional/i.test(s.text) && !/select all/i.test(s.text), 'the deck carries no "optional" or "select all" subtext');
+  ok(s.labels.includes('Offensive Line Strength') && s.labels.includes('Receiver Strength'), 'Offensive Line Strength labels the existing strength field separately from Receiver Strength');
   ok(s.labels.some(l => /^Formation/.test(l)) && s.labels.some(l => /^Receiver Distribution/.test(l)) && s.labels.some(l => /^Play Direction/.test(l)), 'the fields are labeled Formation, Receiver Distribution and Play Direction');
   ok((await P.chips('receiverSet')).join() === '2x2,3x1,2x1,3x2,1x1,4x1,2x0,3x0', 'Receiver Distribution offers the distributions', (await P.chips('receiverSet')).join());
   const fam = await P.chips('formationFamily');

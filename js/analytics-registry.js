@@ -95,7 +95,7 @@ export class AnalyticsRegistry {
       ready('receiverStrength', 'Receiver Strength', p => this._one(SE.proj(p).receiverStrength), 'TagProjection.project.receiverStrength'),
       ready('lineBalance', 'Line Balance', p => this._one(SE.proj(p).lineBalance), 'TagProjection.project.lineBalance'),
       ready('backfield', 'Backfield', p => this._one(SE.proj(p).backfield), 'TagProjection.project.backfield'),
-      ready('strength', 'Offensive Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
+      ready('strength', 'Offensive Line Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
       ready('personnel', 'Personnel', tag('personnel'), 'play.tags.personnel'),
       ready('motion', 'Motion', p => [p?.tags?.motion || 'No Motion'], 'play.tags.motion | No Motion'),
       ready('playCall', 'Play Call', tag('playCall'), 'play.tags.playCall'),

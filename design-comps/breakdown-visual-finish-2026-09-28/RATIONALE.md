@@ -81,7 +81,7 @@ that migration needs a separate impact report and live-write confirmation.
 2026-09-29 coach correction: follow the Hudl Formation / Backfield / separate
 strength model. Formation accepts coach-named Trips, Twins, Bunch and Tight
 Bunch; the earlier Family/Receiver Look split is superseded. QB Alignment stays
-separate. Offensive Strength and Receiver Strength (Left/Right/Balanced) are
+separate. Offensive Line Strength and Receiver Strength (Left/Right/Balanced) are
 independent; numeric Receiver Distribution and Line Balance remain separate.
 Changing Formation clears no strength. The supplemental comp and source now
 show this model using the existing 27px chips and readable type. No registry

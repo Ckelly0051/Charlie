@@ -280,7 +280,7 @@ export class BreakdownTheaterScreen {
         row('Receiver strength', tags.receiverStrength),
         row('Line balance', tags.lineBalance),
         row('Personnel', tags.personnel), row('QB alignment', tags.qbAlignment), row('Backfield', tags.backfield),
-        row('Offensive strength', tags.strength), row('Motion', tags.motion),
+        row('Offensive line strength', tags.strength), row('Motion', tags.motion),
         // A detail is listed while the field that opens it is charted.
         ...(tags.motion ? [row('Motion starts', tags.motionStart), row('Motion ends', tags.motionEnd)] : []),
       ] };

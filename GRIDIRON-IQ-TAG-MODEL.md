@@ -4,7 +4,7 @@
 > coach-managed name, stored as `formationFamily`. Trips, Bunch, Tight Bunch,
 > Ace, Twins, Doubles, Beast and Victory are valid formation choices, alongside
 > I-Form, Wing-T and the existing catalog. QB Alignment and Backfield remain
-> separate. `strength` is Offensive Strength; `receiverStrength` is independent
+> separate. `strength` is Offensive Line Strength; `receiverStrength` is independent
 > Left/Right/Balanced and can be charted without Formation. `receiverSet` is
 > numeric Receiver Distribution. `lineBalance` is independently Balanced/Unbalanced.
 > No field infers another. The separate receiverLook/receiverSide schema is

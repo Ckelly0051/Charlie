@@ -154,7 +154,7 @@ roster (`SeasonManager._mergeRoster()`).
 - Formation is one coach-named value in the library (stored as
   `formationFamily`): Trips, Bunch and Tight Bunch are formations, not a
   separate receiver-look taxonomy. QB Alignment and Backfield stay separate.
-  `strength` is Offensive Strength; `receiverStrength` is independently
+  `strength` is Offensive Line Strength; `receiverStrength` is independently
   Left/Right/Balanced. Neither is inferred or cleared by changing Formation.
   `receiverSet` is numeric Receiver Distribution; `lineBalance` is independent.
   The old `formation`, `receiverLook` and `receiverSide` shapes are refused,

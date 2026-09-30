@@ -9,13 +9,21 @@ write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
 Formation-model checkpoint, 2026-09-29: **built in source, IMPLEMENTED_UNVERIFIED.**
 Coach-named Formation (stored as `formationFamily`) accepts Trips, Twins,
 Bunch, Tight Bunch, Ace, Doubles, Beast and Victory, plus existing and custom
-formations. QB Alignment and Backfield are separate. Offensive Strength
+formations. QB Alignment and Backfield are separate. Offensive Line Strength
 (`strength`) and Receiver Strength (`receiverStrength`, Left/Right/Balanced)
 are independent. Receiver Distribution (`receiverSet`) stays numeric; Line
 Balance stays independent. Changing or clearing Formation never clears strength.
 The receiverLook/receiverSide checkpoint in 1cace291 is superseded and its
 schema is refused, with no old reader. All consumers and the supplemental comp
 use the current model. No coach data was touched.
+
+Label clarification, 2026-09-29: Offensive Line Strength is the existing
+`strength` field (Left/Right/Balanced); no key, value or calculation changes.
+The deck, Film Room (OL Strength), play detail, Settings, Study and CSV export
+use the clarified label. CSV import accepts the new header and existing aliases.
+Receiver Strength remains the separate `receiverStrength` field.
+Verified with CSV projection 39/39 and charting cutover deck 89/89; the populated
+canonical page was recaptured and the source fixture hash stayed unchanged.
 
 Adversarial-review repair, 2026-09-29: the final CSV column mapping may target
 each field only once. Duplicate Formation aliases, including ones hiding an old
