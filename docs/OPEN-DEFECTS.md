@@ -1,5 +1,20 @@
 # GridIron IQ Open Defects
 
+## Smoke 1.12.0-107, 2026-09-30
+
+**S107-1 - Formation vocabulary, OPEN.** Coach identifies Bunch as a modifier
+of Trips: separate Trips and Bunch chips cannot be combined with the current
+single-select Formation field. Bunch and Tight Bunch already exist as standalone
+choices; clarify complete formation names rather than treating their presence
+as a resolution. Coach proposed multi-select or distinct choices. Recommended,
+not approved: Trips Bunch and Trips Tight Bunch as complete single selections.
+Record only during smoke; no code repair or data migration yet.
+
+Coach reports completing the four requested re-charts (2025 JV, Week 6 vs Holy
+Family Wildcats, plays 3, 4, 23, 60). No independent audit of those edits; the
+pre-smoke hash is not asserted as the current catalog hash. Overall smoke
+acceptance remains pending. Checklist/feedback: `SMOKE-1.12.0-107.md`.
+
 ## Charting adversarial review, 2026-09-29
 
 Packaging checkpoint, 2026-09-30: coach-authorized full gate **140/140 green,
