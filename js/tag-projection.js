@@ -1,8 +1,11 @@
+import { ChartingDetails } from './charting-details.js';
+
 /**
  * The pre-snap look vocabulary and its one read (GRIDIRON-IQ-TAG-MODEL.md §5).
  *
  * A look is stored in its own fields: formationFamily (the offense's structure,
- * one value), receiverSet (its receiver distribution, one value), qbAlignment,
+ * one value), receiverSet (its receiver distribution, one value), receiverLook,
+ * receiverSide, lineBalance, qbAlignment,
  * backfield, strength, coverage (the call) and coverageFamily. The old model
  * packed an alignment into formation ("Under Center + Flexbone"), 'Empty' into
  * formation and a family into coverage, and its single Formation field mixed
@@ -24,7 +27,7 @@ export class TagProjection {
    *  field: the Formation Family offers no alignment and no 'Empty', Backfield
    *  no alignment, the Coverage call no family. */
   static PICKER_EXCLUDE = Object.freeze({
-    formationFamily: [...TagProjection.QB_ALIGNMENTS, ...TagProjection.FORMATION_BACKFIELD_TOKENS],
+    formationFamily: [...TagProjection.QB_ALIGNMENTS, ...TagProjection.FORMATION_BACKFIELD_TOKENS, ...ChartingDetails.RECEIVER_LOOKS, 'Unbalanced'],
     backfield: [...TagProjection.QB_ALIGNMENTS],
     coverage: [...TagProjection.COVERAGE_FAMILIES],
   });
@@ -48,6 +51,7 @@ export class TagProjection {
     const t = tags && typeof tags === 'object' ? tags : {};
     const s = v => (typeof v === 'string' ? v : '');
     return { ...t, qbAlignment: s(t.qbAlignment), formationFamily: s(t.formationFamily), receiverSet: s(t.receiverSet),
+      receiverLook: s(t.receiverLook), receiverSide: s(t.receiverSide), lineBalance: s(t.lineBalance),
       backfield: s(t.backfield), coverage: s(t.coverage), coverageFamily: s(t.coverageFamily) };
   }
 
@@ -59,6 +63,7 @@ export class TagProjection {
    */
   static lookLabel(tags) {
     const p = this.project(tags);
-    return [p.qbAlignment, p.formationFamily, p.receiverSet].filter(Boolean).join(' ');
+    const receivers = [p.receiverLook, p.receiverSide].filter(Boolean).join(' ');
+    return [p.qbAlignment, p.formationFamily, p.lineBalance, receivers, p.receiverSet].filter(Boolean).join(' ');
   }
 }

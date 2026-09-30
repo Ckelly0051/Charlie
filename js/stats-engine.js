@@ -49,7 +49,7 @@ export class StatsEngine {
    *  everything else, so one dynamic-key display projects the six and passes the
    *  rest through unchanged. EDITORS must never call this — they read and write the
    *  coach's stored value (§20). */
-  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
+  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
     // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
     // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
@@ -4150,6 +4150,9 @@ export class StatsEngine {
       case 'qbAlignment': return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '') === val;
       case 'formationFamily': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(val);
       case 'receiverSet': return p => isOff(p) && (StatsEngine.proj(p).receiverSet || '') === val;
+      case 'receiverLook': return p => isOff(p) && (StatsEngine.proj(p).receiverLook || '') === val;
+      case 'receiverSide': return p => isOff(p) && (StatsEngine.proj(p).receiverSide || '') === val;
+      case 'lineBalance': return p => isOff(p) && (StatsEngine.proj(p).lineBalance || '') === val;
       // The run and motion details (ChartingDetails): one stored value each, a
       // blank is uncharted and never matches.
       case 'gap': return p => isOff(p) && (p.tags.gap || '') === val;
@@ -4389,6 +4392,9 @@ export class StatsEngine {
     return [
       { id: 'formationFamily',  label: 'Formation Family',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily) },
       { id: 'receiverSet', label: 'Receiver Set', extract: p => [StatsEngine.proj(p).receiverSet || ''].filter(Boolean) },
+      { id: 'receiverLook', label: 'Receiver Look', extract: p => [StatsEngine.proj(p).receiverLook || ''].filter(Boolean) },
+      { id: 'receiverSide', label: 'Receiver Side', extract: p => [StatsEngine.proj(p).receiverSide || ''].filter(Boolean) },
+      { id: 'lineBalance', label: 'Line Balance', extract: p => [StatsEngine.proj(p).lineBalance || ''].filter(Boolean) },
       { id: 'qbAlignment', label: 'QB Alignment', extract: p => [StatsEngine.proj(p).qbAlignment || ''].filter(Boolean) },
       { id: 'backfield',  label: 'Backfield',  extract: p => [StatsEngine.proj(p).backfield || ''].filter(Boolean) },
       { id: 'strength',   label: 'Strength',   extract: p => [StatsEngine.proj(p).strength || ''].filter(Boolean) },

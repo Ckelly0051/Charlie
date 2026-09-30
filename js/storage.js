@@ -1795,7 +1795,7 @@ export class StorageManager {
       // Coverage Family; a blank exports blank ("Unknown" would read as a real
       // analytics category). The run and motion details follow the field that
       // opens them (ChartingDetails).
-      'Formation Family', 'Receiver Set', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
+      'Formation Family', 'Receiver Set', 'Receiver Look', 'Receiver Side', 'Line Balance', 'QB Alignment', 'Backfield', 'Strength', 'Personnel', 'Motion',
       'Motion Starts', 'Motion Ends',
       'Play Call', 'Play Call ID', 'Play Concept',
       'Run/Pass', 'Play Type', 'Play Dir', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type', 'Def Front',
@@ -1824,6 +1824,9 @@ export class StorageManager {
       p.tags.yardLine || '',
       look.formationFamily ?? '',
       look.receiverSet ?? '',
+      look.receiverLook ?? '',
+      look.receiverSide ?? '',
+      look.lineBalance ?? '',
       look.qbAlignment ?? '',
       look.backfield ?? '',
       look.strength ?? '',
@@ -1960,6 +1963,8 @@ export class StorageManager {
       // (see the refusal below).
       formationfamily: 'formationFamily', family: 'formationFamily',
       receiverset: 'receiverSet', recset: 'receiverSet',
+      receiverlook: 'receiverLook', reclook: 'receiverLook',
+      receiverside: 'receiverSide', recside: 'receiverSide', linebalance: 'lineBalance',
       motionstarts: 'motionStart', motionstart: 'motionStart', motionends: 'motionEnd', motionend: 'motionEnd',
       gap: 'gap', rporead: 'rpoRead', rpodefender: 'rpoDefender', rpodecision: 'rpoDecision',
       qbruntype: 'qbRun', qbrun: 'qbRun',

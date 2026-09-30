@@ -42,10 +42,10 @@ ok(!reserved.add('formationFamily','EMPTY')&&reserved.lastError?.owner==='Backfi
 ok(!reserved.add('backfield','Shotgun')&&!reserved.add('coverage','Zone')&&reserved.lastError?.owner==='Coverage Family','an alignment is not a backfield and a family is not a coverage call');
 ok(reserved.add('coverage','Cover 3 Match')&&reserved.add('front','Man Free')&&reserved.add('formationFamily','Shotgun Special'),'a value that merely contains a reserved word is allowed');
 // A compound label charts the same combined shape as the lone reserved word.
-const compound=[['formationFamily','Shotgun + Trips','QB Alignment'],['formationFamily','Trips + Empty','Backfield'],['formationFamily','Trips+under center','QB Alignment'],['backfield','Pistol + Diamond','QB Alignment'],['coverage','Cover 3 + Man','Coverage Family']]
+const compound=[['formationFamily','Shotgun + Trips','QB Alignment'],['formationFamily','Spread + Empty','Backfield'],['formationFamily','Spread+under center','QB Alignment'],['backfield','Pistol + Diamond','QB Alignment'],['coverage','Cover 3 + Man','Coverage Family']]
   .map(([g,v,owner])=>({v,refused:!reserved.add(g,v),owner:reserved.lastError?.owner,expected:owner}));
 ok(compound.every(c=>c.refused&&c.owner===c.expected),'a compound label carrying a reserved token is refused, whatever the spacing or case',JSON.stringify(compound));
-ok(!reserved.add('formationFamily','Trips + Bunch')&&reserved.lastError?.name==='MultiValue','a Family is one value: a "+" compound is refused');
+ok(!reserved.add('formationFamily','Power-I + Flexbone')&&reserved.lastError?.name==='MultiValue','a Family is one value: a "+" compound is refused');
 const compoundStorage=new MemoryStorage({ffa_tag_libraries_teamS:JSON.stringify({version:4,groups:{
   formationFamily:{custom:['Shotgun + Trips','Trips + Empty','Wing Special'],enabled:['Shotgun + Trips','Trips + Empty','Wing Special'],order:['Shotgun + Trips','Trips + Empty','Wing Special']},
   backfield:{custom:['Pistol + Diamond'],enabled:['Pistol + Diamond'],order:['Pistol + Diamond']}}})});

@@ -41,7 +41,7 @@ console.log('\n== convertPlay(): identity and unrelated tags stay ==');
   const before = JSON.parse(JSON.stringify(play));
   const r = convertPlay(play, M, 's|g|7');
   ok(r.status === 'convert' && !('formation' in play.tags) && play.tags.formationFamily === 'Spread' && play.tags.receiverSet === '3x1', 'the play gains Family and Set and loses formation');
-  const strip = p => { const t = { ...p.tags }; for (const k of ['formation', 'formationFamily', 'receiverSet', 'gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun']) delete t[k]; return { ...p, tags: t }; };
+  const strip = p => { const t = { ...p.tags }; for (const k of ['formation', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun']) delete t[k]; return { ...p, tags: t }; };
   ok(same(strip(play), strip(before)), 'identity, film references, notes and every unrelated tag are byte-equal');
   ok(['gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun'].every(k => play.tags[k] === ''), 'the new detail keys are added blank, as a new play is born');
   ok(SeasonFormat.playProblems(play).length === 0, 'the converted play is the current format');

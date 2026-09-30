@@ -188,6 +188,7 @@ export class SettingsScreen {
       playDir:['Left','Middle','Right'],
       formationFamily:this.chartingSnapshot('formationFamily').enabled,
       receiverSet:[...ChartingDetails.RECEIVER_SETS],
+      receiverLook:[...ChartingDetails.RECEIVER_LOOKS], receiverSide:[...ChartingDetails.RECEIVER_SIDES], lineBalance:[...ChartingDetails.LINE_BALANCES],
       qbAlignment:['Under Center','Pistol','Shotgun'],
       backfield:this.chartingSnapshot('backfield').enabled,
       strength:['Left','Right','Balanced'],

@@ -6,7 +6,7 @@
  *
  * The old `tags.formation` field mixed family, receiver and package words in one
  * multi-select ("Spread + Doubles", "Trips + Unbalanced"). The current format
- * keeps `formationFamily` and `receiverSet`, each one value, and has no
+ * keeps Family, numeric Set, receiver Look/Side and Line Balance separately, and has no
  * `formation` field. This module decides, for one stored value, what it becomes,
  * and refuses to decide when the mapping does not say:
  *
@@ -19,9 +19,10 @@
  *     Formation stays blank.
  *
  * The mapping file (the coach's decisions):
- *   { "tokens": { "Trips": { "receiverSet": "3x1" }, "Ace": { "formationFamily": "Ace" },
+ *   { "tokens": { "Trips": { "receiverLook": "Trips" }, "Ace": { "formationFamily": "Ace" },
  *                 "Victory": { "blank": true } },
- *     "plays":  { "<seasonId>|<gameId>|<playId>": { "formationFamily": "Spread", "receiverSet": "3x1" } } }
+ *     "combinations": { "Trips + Bunch": { "receiverLook": "Bunch" } },
+ *     "plays":  { "<seasonId>|<gameId>|<playId>": { "formationFamily": "Spread", "receiverLook": "Bunch", "receiverSide": "Left" } } }
  * `blank` is the coach choosing to drop a token; the play is listed for re-charting
  * with its old value.
  */
@@ -34,12 +35,15 @@ export const OLD_KEY = 'formation';
 export const NEW_KEYS = ChartingDetails.KEYS;
 const clone = o => JSON.parse(JSON.stringify(o));
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const LOOK_KEYS = ['formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance'];
+const EXTRA_KEYS = ['receiverLook', 'receiverSide', 'lineBalance'];
 
 /** Tokens that are exactly a Formation Family in the current vocabulary. */
 export const DETERMINISTIC = Object.freeze(Object.fromEntries(
   TagLibrary.DEFINITIONS.formationFamily.map(name => [name, { formationFamily: name }])));
 
 export const tokensOf = value => String(value == null ? '' : value).split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
+export const combinationOf = value => [...new Set(tokensOf(value))].sort().join(' + ');
 
 export function emptyMapping() { return { tokens: {}, plays: {} }; }
 
@@ -54,16 +58,32 @@ export function mappingProblems(mapping) {
   const out = [];
   const check = (where, rule) => {
     if (!rule || typeof rule !== 'object') { out.push(`${where}: not a rule`); return; }
-    if (rule.blank) return;
+    if (rule.blank) {
+      if (rule.blank !== true || LOOK_KEYS.some(key => rule[key]) || Object.keys(rule).some(key => ![...LOOK_KEYS, 'blank'].includes(key))) out.push(`${where}: blank cannot carry a look value or an unknown field`);
+      return;
+    }
+    for (const key of LOOK_KEYS) if (rule[key] != null && typeof rule[key] !== 'string') out.push(`${where}: ${key} must be text`);
     if (rule.receiverSet && !ChartingDetails.RECEIVER_SETS.includes(rule.receiverSet)) out.push(`${where}: receiverSet "${rule.receiverSet}" is not offered`);
+    for (const [key, allowed] of [['receiverLook', ChartingDetails.RECEIVER_LOOKS], ['receiverSide', ChartingDetails.RECEIVER_SIDES], ['lineBalance', ChartingDetails.LINE_BALANCES]]) {
+      if (rule[key] && !allowed.includes(rule[key])) out.push(`${where}: ${key} "${rule[key]}" is not offered`);
+    }
+    for (const key of Object.keys(rule)) if (![...LOOK_KEYS, 'blank'].includes(key)) out.push(`${where}: unknown mapping field ${key}`);
     if (rule.formationFamily) {
+      if (String(rule.formationFamily).includes('+')) out.push(`${where}: a Family must be one value`);
       const owner = TagLibrary.reservedOwner('formationFamily', rule.formationFamily);
       if (owner) out.push(`${where}: "${rule.formationFamily}" is a ${owner} value, not a Family`);
     }
-    if (!rule.formationFamily && !rule.receiverSet) out.push(`${where}: names neither a family nor a receiver set`);
+    if (!LOOK_KEYS.some(key => rule[key])) out.push(`${where}: names no look field`);
   };
   for (const [token, rule] of Object.entries(mapping?.tokens || {})) check(`token "${token}"`, rule);
   for (const [ref, rule] of Object.entries(mapping?.plays || {})) check(`play ${ref}`, rule);
+  const seenCombinations = new Map();
+  for (const [name, rule] of Object.entries(mapping?.combinations || {})) {
+    check(`combination "${name}"`, rule);
+    const key = combinationOf(name);
+    if (seenCombinations.has(key) && JSON.stringify(seenCombinations.get(key)) !== JSON.stringify(rule)) out.push(`combination "${name}": conflicting rules for the same words`);
+    seenCombinations.set(key, rule);
+  }
   return out;
 }
 
@@ -79,22 +99,37 @@ export function decide(value, mapping, ref = '') {
   if (!tokens.length) return { status: 'blank' };
   const leaked = tokens.filter(t => TagProjection.QB_ALIGNMENTS.includes(t) || TagProjection.FORMATION_BACKFIELD_TOKENS.includes(t));
   if (leaked.length) return { status: 'old-format', reasons: [`holds ${leaked.join(', ')} (an old combined look)`] };
-  const override = ref && mapping?.plays && has(mapping.plays, ref) ? mapping.plays[ref] : null;
+  const perPlay = ref && mapping?.plays && has(mapping.plays, ref) ? mapping.plays[ref] : null;
+  const matches = Object.entries(mapping?.combinations || {}).filter(([name]) => combinationOf(name) === combinationOf(value));
+  if (matches.length > 1 && matches.some(([, rule]) => JSON.stringify(rule) !== JSON.stringify(matches[0][1]))) return { status: 'unresolved', reasons: ['conflicting combination rules'] };
+  const override = perPlay || matches[0]?.[1] || null;
   if (override) {
-    return { status: 'convert', formationFamily: override.formationFamily || '', receiverSet: override.receiverSet || '', dropped: [], override: true };
+    const next = { formationFamily: override.formationFamily || '', receiverSet: override.receiverSet || '' };
+    for (const key of EXTRA_KEYS) if (override[key]) next[key] = override[key];
+    const problems = [...mappingProblems({ plays: { [ref]: override } }), ...ChartingDetails.problems(next)];
+    if (problems.length) return { status: 'unresolved', reasons: problems };
+    return { status: 'convert', ...next, dropped: override.blank ? tokens : [], override: true };
   }
   const families = new Set(), sets = new Set(), dropped = [], reasons = [];
+  const extras = Object.fromEntries(EXTRA_KEYS.map(key => [key, new Set()]));
   for (const token of tokens) {
     const rule = ruleFor(token, mapping);
     if (!rule) { reasons.push(`"${token}" has no mapping`); continue; }
+    const invalid = mappingProblems({ tokens: { [token]: rule } });
+    if (invalid.length) { reasons.push(...invalid); continue; }
     if (rule.blank) { dropped.push(token); continue; }
     if (rule.formationFamily) families.add(rule.formationFamily);
     if (rule.receiverSet) sets.add(rule.receiverSet);
+    for (const key of EXTRA_KEYS) if (rule[key]) extras[key].add(rule[key]);
   }
   if (families.size > 1) reasons.push(`two families (${[...families].join(' + ')})`);
   if (sets.size > 1) reasons.push(`two receiver sets (${[...sets].join(' + ')})`);
+  for (const key of EXTRA_KEYS) if (extras[key].size > 1) reasons.push(`two ${key} values (${[...extras[key]].join(' + ')})`);
+  const next = { formationFamily: [...families][0] || '', receiverSet: [...sets][0] || '' };
+  for (const key of EXTRA_KEYS) if (extras[key].size === 1) next[key] = [...extras[key]][0];
+  reasons.push(...ChartingDetails.problems(next), ...ChartingDetails.vocabularyProblems(next));
   if (reasons.length) return { status: 'unresolved', reasons };
-  return { status: 'convert', formationFamily: [...families][0] || '', receiverSet: [...sets][0] || '', dropped };
+  return { status: 'convert', ...next, dropped };
 }
 
 /** Add the current keys a converted play carries, blank, exactly as a new play is born. */
@@ -111,9 +146,17 @@ export function convertPlay(play, mapping, ref) {
   const oldValue = tags[OLD_KEY];
   const decision = decide(oldValue, mapping, ref);
   if (decision.status === 'unresolved' || decision.status === 'old-format') return { ...decision, oldValue };
+  for (const key of LOOK_KEYS) {
+    if (decision[key] && tags[key] && tags[key] !== decision[key]) return { status: 'unresolved', reasons: [`${key} already holds ${tags[key]}`], oldValue };
+  }
   delete tags[OLD_KEY];
   tags.formationFamily = decision.status === 'convert' ? decision.formationFamily : (tags.formationFamily || '');
   tags.receiverSet = decision.status === 'convert' ? decision.receiverSet : (tags.receiverSet || '');
+  for (const key of EXTRA_KEYS) {
+    if (decision[key]) {
+      tags[key] = decision[key];
+    }
+  }
   completeKeys(tags);
   return { ...decision, oldValue };
 }
@@ -126,9 +169,12 @@ export function convertPlaybook(playbook, mapping, where) {
     if (!defaults || !has(defaults, OLD_KEY)) continue;
     const decision = decide(defaults[OLD_KEY], mapping);
     if (decision.status === 'unresolved' || decision.status === 'old-format') { out.unresolved.push({ where: `${where} call "${call.name}"`, oldValue: defaults[OLD_KEY], reasons: decision.reasons }); continue; }
+    const conflicts = LOOK_KEYS.filter(key => decision[key] && defaults[key] && defaults[key] !== decision[key]);
+    if (conflicts.length) { out.unresolved.push({ where: `${where} call "${call.name}"`, oldValue: defaults[OLD_KEY], reasons: conflicts.map(key => `${key} already holds ${defaults[key]}`) }); continue; }
     delete defaults[OLD_KEY];
     if (decision.formationFamily) defaults.formationFamily = decision.formationFamily;
     if (decision.receiverSet) defaults.receiverSet = decision.receiverSet;
+    for (const key of EXTRA_KEYS) if (decision[key]) defaults[key] = decision[key];
     out.converted++;
   }
   return out;
@@ -142,7 +188,7 @@ export function convertPlaybook(playbook, mapping, where) {
  * distinct tokens seen with their counts.
  */
 export function convertSeason(season, mapping, label = '') {
-  const r = { plays: 0, withFormation: 0, converted: 0, blankKept: 0, unresolved: [], old: [], dropped: [], tokens: {}, playbook: null };
+  const r = { plays: 0, withFormation: 0, converted: 0, blankKept: 0, unresolved: [], old: [], dropped: [], tokens: {}, combinations: {}, playbook: null };
   const seasonId = season.id || label;
   for (const game of season.games || []) {
     for (const play of game.plays || []) {
@@ -151,6 +197,10 @@ export function convertSeason(season, mapping, label = '') {
       const ref = `${seasonId}|${game.id}|${play.id}`;
       const oldValue = has(tags, OLD_KEY) ? tags[OLD_KEY] : undefined;
       if (oldValue) { r.withFormation++; for (const token of tokensOf(oldValue)) r.tokens[token] = (r.tokens[token] || 0) + 1; }
+      if (oldValue) {
+        const combination = combinationOf(oldValue);
+        (r.combinations[combination] ||= []).push({ seasonId, gameId: game.id, playId: play.id, ref, oldValue });
+      }
       const result = convertPlay(play, mapping, ref);
       const where = { season: season.seasonName || seasonId, game: game.name || game.id, play: play.id, ref, oldValue: oldValue ?? '' };
       if (result.status === 'convert') { if (oldValue) r.converted++; if (result.dropped?.length) r.dropped.push({ ...where, dropped: result.dropped }); }

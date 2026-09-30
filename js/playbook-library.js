@@ -7,7 +7,7 @@
  */
 export class PlaybookLibrary {
   static VERSION = 1;
-  static DEFAULT_KEYS = ['runPass', 'playType', 'playDir', 'formationFamily', 'receiverSet',
+  static DEFAULT_KEYS = ['runPass', 'playType', 'playDir', 'formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance',
     'qbAlignment', 'backfield', 'strength', 'personnel', 'motion'];
 
   constructor({ storage, teamId } = {}) {

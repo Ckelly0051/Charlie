@@ -31,6 +31,7 @@ export function loadMapping(file) {
   if (!file) return emptyMapping();
   const raw = JSON.parse(readFileSync(file, 'utf8'));
   const mapping = { tokens: raw.tokens || {}, plays: raw.plays || {} };
+  if (raw.combinations) mapping.combinations = raw.combinations;
   const problems = mappingProblems(mapping);
   if (problems.length) throw new Error(`mapping file is not valid: ${problems.join('; ')}`);
   return mapping;

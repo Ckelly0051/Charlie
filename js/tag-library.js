@@ -7,7 +7,8 @@ export class TagLibrary {
   // formation, a family is never a coverage call. Charting one would store the
   // old combined shape (TagProjection.isCombined). Matched case-insensitively.
   static RESERVED = Object.freeze({
-    formationFamily: { values: TagProjection.PICKER_EXCLUDE.formationFamily, owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : 'Backfield',
+    formationFamily: { values: TagProjection.PICKER_EXCLUDE.formationFamily,
+      owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : v === 'Empty' ? 'Backfield' : v === 'Unbalanced' ? 'Line Balance' : 'Receiver Look',
       // A receiver distribution ("3x1") is the Receiver Set, never a Family.
       pattern: /^\d+\s*x\s*\d+$/i, patternOwner: 'Receiver Set' },
     backfield: { values: TagProjection.PICKER_EXCLUDE.backfield, owner: () => 'QB Alignment' },

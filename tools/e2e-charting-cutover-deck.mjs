@@ -319,10 +319,52 @@ console.log('\n== 8. Film Room edits the same fields ==');
 console.log('\n== 9. Special Teams keeps no offensive look ==');
 {
   await P.select(1);
+  await P.chip('receiverLook', 'Trips'); await settle();
+  ok((await P.chips('receiverLook')).join() === 'Twins,Trips,Bunch,Tight Bunch', 'receiver looks are distinct choices');
+  ok((await P.chips('receiverSide')).join() === 'Left,Right', 'side opens immediately under receiver look');
+  await P.chip('receiverSide', 'Left'); await P.chip('lineBalance', 'Unbalanced'); await P.chip('receiverLook', 'Tight Bunch'); await settle();
+  let t = await P.tags();
+  ok(t.receiverLook === 'Tight Bunch' && t.receiverSide === 'Left' && t.lineBalance === 'Unbalanced', 'changing look preserves independent side and line balance');
+  await P.chip('receiverLook', 'Tight Bunch'); await settle();
+  ok(/Receiver side Left/.test(await P.dialog() || ''), 'clearing receiver look asks before removing its side');
+  await P.answer(false); await settle();
+  ok((await P.tags()).receiverSide === 'Left', 'declining preserves the receiver look and side');
+  await P.chip('receiverLook', 'Tight Bunch'); await settle(); await P.answer(true); await settle();
+  t = await P.tags();
+  ok(t.receiverLook === '' && t.receiverSide === '' && t.lineBalance === 'Unbalanced', 'confirming clears look and side without clearing line balance');
+  const r = await page.evaluate(() => {
+    const app = window.app, p = app.tagger.getCurrentPlay(), grid = app.playGrid;
+    const locked = grid.nativeEditor(p.id, 'receiverSide') === null;
+    grid.nativeCommitEdit(p.id, 'receiverLook', 'Bunch');
+    grid.nativeCommitEdit(p.id, 'receiverSide', 'Right');
+    grid.nativeCommitEdit(p.id, 'lineBalance', 'Balanced');
+    return { locked, tags: p.tags, options: grid.nativeEditor(p.id, 'receiverLook') };
+  });
+  ok(r.locked && r.tags.receiverLook === 'Bunch' && r.tags.receiverSide === 'Right' && r.tags.lineBalance === 'Balanced', 'Film Room edits the same values and locks an orphan side');
+  const carry = await page.evaluate(() => window.app.tagger.constructor.CARRY_SCHEME_KEYS);
+  ok(['receiverLook','receiverSide','lineBalance'].every(k => carry.includes(k)), 'carry-forward includes receiver look, side and line balance');
+  const csv = await page.evaluate(async () => {
+    const app = window.app, storage = app.storage;
+    const original = storage._download;
+    let blob;
+    try { storage._download = value => { blob = value; }; storage.exportCsv(); }
+    finally { storage._download = original; }
+    const text = await blob.text(), before = app.tagger.plays.length;
+    const count = storage.applyPlayImport(storage.importPlaysFromText(text));
+    const imported = app.tagger.plays[before];
+    const badBefore = app.tagger.plays.length;
+    const refused = storage.applyPlayImport(storage.importPlaysFromText('Unit,Receiver Side\noffense,Left'));
+    return { text, count, tags: imported?.tags, refused, unchanged: app.tagger.plays.length === badBefore };
+  });
+  ok(csv.count > 0 && csv.tags.receiverLook === 'Bunch' && csv.tags.receiverSide === 'Right' && csv.tags.lineBalance === 'Balanced', 'CSV export and import preserve receiver look, side and line balance');
+  ok(csv.refused === 0 && csv.unchanged, 'CSV with an orphan receiver side is refused before writing');
+}
+{
+  await P.select(1);
   await page.evaluate(() => { window.app.tagger.getCurrentPlay().tags.formationFamily = 'Spread'; window.app.tagger.getCurrentPlay().tags.receiverSet = '3x1'; });
   await page.evaluate(() => window.app.nativeTagging.setUnit('special')); await settle();
   const t = await P.tags();
-  ok(t.formationFamily === '' && t.receiverSet === '', 'a Special Teams play holds no Formation Family or Receiver Set', JSON.stringify([t.formationFamily, t.receiverSet]));
+  ok(t.formationFamily === '' && t.receiverSet === '' && !t.receiverLook && !t.receiverSide && !t.lineBalance, 'a Special Teams play holds no offensive look fields', JSON.stringify(t));
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
 }
 

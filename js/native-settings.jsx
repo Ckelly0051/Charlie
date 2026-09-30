@@ -87,7 +87,7 @@ function FilmSettings({ screen, required, finish }) {
 
 const PLAY_CALL_DEFAULTS = [
   ['runPass','Run / Pass'],['playType','Play type'],['playDir','Direction'],
-  ['formationFamily','Formation family'],['receiverSet','Receiver set'],['qbAlignment','QB alignment'],['backfield','Backfield'],
+  ['formationFamily','Formation family'],['receiverSet','Receiver set'],['receiverLook','Receiver look'],['receiverSide','Receiver side'],['lineBalance','Line balance'],['qbAlignment','QB alignment'],['backfield','Backfield'],
   ['strength','Strength'],['personnel','Personnel'],['motion','Motion'],
 ];
 const blankCall = () => ({ id:'', name:'', concept:'', favorite:false, defaults:{} });

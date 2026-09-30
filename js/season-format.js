@@ -1,4 +1,5 @@
 import { TagProjection } from './tag-projection.js';
+import { ChartingDetails } from './charting-details.js';
 
 /**
  * THE CURRENT SEASON FORMAT, and the one place that knows the retired shapes
@@ -51,6 +52,8 @@ export class SeasonFormat {
       if (Object.prototype.hasOwnProperty.call(tags, 'formation')) out.push('retired Formation field');
       if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
       if (tags.custom != null && !Array.isArray(tags.custom)) out.push('custom tags not a list');
+      const receiver = { receiverLook: tags.receiverLook, receiverSide: tags.receiverSide, lineBalance: tags.lineBalance };
+      out.push(...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver));
     }
     // Checked whether or not the tags are usable.
     const st = play.specialTeams;
@@ -79,6 +82,12 @@ export class SeasonFormat {
     calls.forEach((call, ci) => {
       if (this._isObject(call) && this._isObject(call.defaults) && Object.prototype.hasOwnProperty.call(call.defaults, 'formation')) {
         out.push({ where: `play call ${call.name || ci + 1}`, problem: 'retired Formation default' });
+      }
+      if (this._isObject(call?.defaults)) {
+        const d = call.defaults, where = `play call ${call.name || ci + 1}`;
+        if (TagProjection.isCombined(d)) out.push({ where, problem: 'combined look default' });
+        const receiver = { receiverLook: d.receiverLook, receiverSide: d.receiverSide, lineBalance: d.lineBalance };
+        for (const problem of [...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver)]) out.push({ where, problem });
       }
     });
     data.games.forEach((g, gi) => {

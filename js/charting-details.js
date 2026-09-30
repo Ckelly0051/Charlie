@@ -24,21 +24,26 @@ export class ChartingDetails {
   static RPO_READS = Object.freeze(['End', 'Apex', 'Box', 'Other']);
   static RPO_DECISIONS = Object.freeze(['Give', 'Keep', 'Throw']);
   static QB_RUNS = Object.freeze(['Designed', 'Scramble', 'RPO Keeper']);
-  /** Receiver distributions, "left x right" from the offense's view. */
+  /** Receiver counts; side is charted separately and never inferred here. */
   static RECEIVER_SETS = Object.freeze(['2x2', '3x1', '2x1', '3x2', '1x1', '4x1', '2x0', '3x0']);
+  static RECEIVER_LOOKS = Object.freeze(['Twins', 'Trips', 'Bunch', 'Tight Bunch']);
+  static RECEIVER_SIDES = Object.freeze(['Left', 'Right']);
+  static LINE_BALANCES = Object.freeze(['Balanced', 'Unbalanced']);
 
   /** Every field this module owns on a play's tags. */
-  static KEYS = Object.freeze(['formationFamily', 'receiverSet', 'gap', 'motionStart', 'motionEnd',
+  static KEYS = Object.freeze(['formationFamily', 'receiverSet', 'receiverLook', 'receiverSide', 'lineBalance', 'gap', 'motionStart', 'motionEnd',
     'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun']);
 
   /** Each opening field and the details it opens. */
   static TRIGGERS = Object.freeze([
+    { id: 'receiverLook', label: 'Receiver side', children: ['receiverSide'], opened: t => ChartingDetails.RECEIVER_LOOKS.includes(clean(t.receiverLook)) },
     { id: 'motion', label: 'Motion path', children: ['motionStart', 'motionEnd'], opened: t => !!clean(t.motion) },
     { id: 'rpo', label: 'RPO details', children: ['rpoRead', 'rpoDefender', 'rpoDecision'], opened: t => hasType(t, 'RPO') },
     { id: 'qbRun', label: 'QB run', children: ['qbRun'], opened: t => hasType(t, 'QB Run') },
   ]);
 
   static CHILD_LABELS = Object.freeze({
+    receiverSide: 'Receiver side',
     motionStart: 'Motion start', motionEnd: 'Motion end', rpoRead: 'RPO read', rpoDefender: 'RPO defender',
     rpoDecision: 'RPO decision', qbRun: 'QB run', gap: 'Gap',
   });
@@ -117,7 +122,7 @@ export class ChartingDetails {
     for (const trigger of ChartingDetails.TRIGGERS) {
       if (trigger.opened(t)) continue;
       for (const child of trigger.children) {
-        if (clean(t[child])) out.push(`${ChartingDetails.CHILD_LABELS[child]} needs ${trigger.id === 'motion' ? 'a Motion type' : trigger.id === 'rpo' ? 'the RPO Play Type' : 'the QB Run Play Type'}`);
+        if (clean(t[child])) out.push(`${ChartingDetails.CHILD_LABELS[child]} needs ${trigger.id === 'receiverLook' ? 'a Receiver Look' : trigger.id === 'motion' ? 'a Motion type' : trigger.id === 'rpo' ? 'the RPO Play Type' : 'the QB Run Play Type'}`);
       }
     }
     if (clean(t.gap) && !ChartingDetails.gapAgrees(t.gap, t.playDir)) out.push(`Gap ${clean(t.gap)} disagrees with Play Direction ${clean(t.playDir) || '(blank)'}`);
@@ -129,6 +134,9 @@ export class ChartingDetails {
   static vocabularyProblems(tags) {
     const t = tags && typeof tags === 'object' ? tags : {};
     const checks = [
+      ['receiverLook', 'Receiver Look', ChartingDetails.RECEIVER_LOOKS],
+      ['receiverSide', 'Receiver Side', ChartingDetails.RECEIVER_SIDES],
+      ['lineBalance', 'Line Balance', ChartingDetails.LINE_BALANCES],
       ['receiverSet', 'Receiver Set', ChartingDetails.RECEIVER_SETS], ['gap', 'Gap', ChartingDetails.GAPS],
       ['motionStart', 'Motion Starts', ChartingDetails.PATH_POINTS], ['motionEnd', 'Motion Ends', ChartingDetails.PATH_POINTS],
       ['rpoRead', 'RPO Read', ChartingDetails.RPO_READS], ['rpoDecision', 'RPO Decision', ChartingDetails.RPO_DECISIONS],
