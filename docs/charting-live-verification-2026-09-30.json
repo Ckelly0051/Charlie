@@ -1,0 +1,88 @@
+{
+  "status": "INDEPENDENTLY_VERIFIED",
+  "date": "2026-09-30T15:17:43.820Z",
+  "backupRoot": "D:/Football/Film/GridIronIQ-Backups/charting-conversion-2026-09-30",
+  "sourceHash": "948d6b22312a65c2eeefbc2670504880215d529a402ed77a7de3a2d7aea3e966",
+  "liveHash": "770f3cc3b185e2b71e732a841a46e0ebc25859ac7d7beb361a43fb798273469c",
+  "manifestFilesVerified": 114,
+  "filmCopied": false,
+  "tables": {
+    "audit_log": 0,
+    "backups": 42,
+    "clips": 952,
+    "games": 16,
+    "imports": 0,
+    "meta": 1,
+    "migrations": 2,
+    "plays": 920,
+    "seasons": 3,
+    "sqlite_sequence": 2,
+    "versions": 52
+  },
+  "allowedChanges": [
+    "approved Formation mapping",
+    "blank current detail keys",
+    "season SQL updated timestamp",
+    "regenerated plays/clips SQL surrogate row IDs and their exact sequence increments"
+  ],
+  "changedPlayBodiesIncludingSnapshots": 13697,
+  "convertedDefaultsIncludingSnapshots": 90,
+  "seasons": [
+    {
+      "id": "sjm-varsity-2026",
+      "name": "SJM Varsity 2026",
+      "plays": 293
+    },
+    {
+      "id": "sjm-jv-2026",
+      "name": "SJM JV 2026",
+      "plays": 186
+    },
+    {
+      "id": "2026-varsity-demo",
+      "name": "2025 St. Joseph Mavericks - JV",
+      "plays": 440
+    }
+  ],
+  "rechart": [
+    {
+      "seasonId": "2026-varsity-demo",
+      "season": "2025 St. Joseph Mavericks - JV",
+      "gameId": "gmqptqoprzli2r",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 3,
+      "previousFormation": "Unbalanced",
+      "formation": ""
+    },
+    {
+      "seasonId": "2026-varsity-demo",
+      "season": "2025 St. Joseph Mavericks - JV",
+      "gameId": "gmqptqoprzli2r",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 4,
+      "previousFormation": "Unbalanced",
+      "formation": ""
+    },
+    {
+      "seasonId": "2026-varsity-demo",
+      "season": "2025 St. Joseph Mavericks - JV",
+      "gameId": "gmqptqoprzli2r",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 23,
+      "previousFormation": "Unbalanced",
+      "formation": ""
+    },
+    {
+      "seasonId": "2026-varsity-demo",
+      "season": "2025 St. Joseph Mavericks - JV",
+      "gameId": "gmqptqoprzli2r",
+      "game": "Week 6 vs Holy Family Wildcats",
+      "play": 60,
+      "previousFormation": "Unbalanced",
+      "formation": ""
+    }
+  ],
+  "allOtherFieldsUnchanged": true,
+  "retainedHistoryCurrentFormat": true,
+  "appLoadAndNormalize": true
+}

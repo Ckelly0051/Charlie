@@ -1,9 +1,43 @@
 # Charting Cutover Current Impact - 2026-09-30
 
 This supersedes the earlier rehearsal's history counts and takeaway blockers.
-The live charting conversion has NOT been run or approved. Installed settings
-and Documents mirror are unchanged. Final browser-settings disposition and
-immediate live-write confirmation remain prerequisites.
+The live charting conversion completed on explicit coach authorization and was
+independently verified on 2026-09-30. Installed settings and Documents mirror
+are unchanged. The throwaway conversion/archive tools, dependent tests and
+Previous formations bridge are deleted. Final gate/package/smoke remain.
+
+## Live Conversion Complete
+
+Data-only backup: `D:\Football\Film\GridIronIQ-Backups\charting-conversion-2026-09-30`.
+All 114 manifest files hash-verified; no film was copied. Live catalog matches
+`run/converted.db` and its report hash:
+`770f3cc3b185e2b71e732a841a46e0ebc25859ac7d7beb361a43fb798273469c`.
+Original catalog hash: `948d6b22312a65c2eeefbc2670504880215d529a402ed77a7de3a2d7aea3e966`.
+
+An independent raw-SQL reader used no converter/check functions. It compared
+all 11 tables: all 919 live plays, six call defaults, 42 backups and 52 versions
+match the approved mapping exactly. Identity, ordering, timestamps, clip paths
+and references, notes, penalties, players, grades and unrelated tags are unchanged.
+The normal SqlCatalog save regenerated internal play/clip row IDs and advanced
+their SQL sequences by the exact row counts; season SQL `updated` timestamps
+changed. Those are not durable play/clip IDs. Orphan SQL rows remain unchanged.
+Every retained snapshot passes current-format checks; all three seasons load
+through SqlCatalog and SeasonStore normalization. Live hash stayed unchanged
+during verification.
+
+Receipt: `charting-live-verification-2026-09-30.json`, also saved in the backup
+as `INDEPENDENT-VERIFICATION.json`. Approved decisions are preserved in
+`charting-approved-mapping-2026-09-30.json`.
+
+Saved library verified from a disposable copy of the backed-up desktop profile:
+one custom old Formation, Beast, already available as a current built-in.
+No coach choice is lost when the temporary offer bridge is removed. Raw retired
+settings groups remain opaque and preserved through unrelated edits; no old
+Formation group is read or offered. Inventory: `charting-library-inventory-2026-09-30.json`.
+
+After cleanup: build and eight focused harnesses pass (receiver-look, tag-library,
+charting-details, tag-library-settings, charting-cutover-deck, season-format,
+legacy-inventory, legacy-roundtrip). No new full gate, installer or installed smoke.
 
 ## History Retirement Complete
 
@@ -25,7 +59,8 @@ or charting conversion occurred during backup.
 Coach authorized verified archival and removal of incompatible history while
 keeping compatible records. Exactly 34 catalog restore points and 94 game
 versions were archived and removed. 42 restore points and 52 versions remain,
-with their complete raw rows unchanged (not yet charting-converted).
+with their complete raw rows unchanged at retirement; subsequently converted
+and independently verified as described above.
 
 Archive:
 `C:\Users\charl\GridIronIQ-Backups\incompatible-charting-history-2026-09-30`.
@@ -38,7 +73,7 @@ original row and body hash, absence from active history, and all ten catalog
 tables. Only the manifest's 128 rows were removed; all season/game/play/film
 and other table rows are unchanged. Original catalog hash:
 `67780703e0e2bff34c0f5672af5f6e13887d980bdf2c3ee93584849ca2b6c696`.
-Current catalog hash after retirement:
+Historical catalog hash immediately after retirement, before conversion:
 `948d6b22312a65c2eeefbc2670504880215d529a402ed77a7de3a2d7aea3e966`.
 
 ## Takeaway Proof Complete
@@ -56,7 +91,7 @@ No new full gate was run.
 Scratch folder:
 `C:\Users\charl\AppData\Local\Temp\giq-final-cutover-2026-09-30-c7PqoM`.
 Source is a verified copy of the current history-cleaned catalog. Coach mapping:
-`tools/charting-coach-mapping-2026-09-30.json`.
+`docs/charting-approved-mapping-2026-09-30.json` (moved from the spent tools).
 
 - Three live seasons, 919 plays: 293 Varsity, 186 SJM JV, 440 2025 JV.
 - 496 nonblank old Formation values resolve: 87, 64 and 345 respectively.
@@ -71,14 +106,14 @@ Source is a verified copy of the current history-cleaned catalog. Coach mapping:
 
 Exact report and impact: `charting-final-rehearsal-2026-09-30.json` and
 `charting-final-impact-2026-09-30.json`. The source hash must still match
-immediately before any separately approved conversion.
+matched immediately before the approved conversion; that write is now complete.
 
-## Re-Chart Checklist (Prepared, Not Yet Applied)
+## Final Re-Chart Checklist (Verified Against Converted Live)
 
 Season: **2025 St. Joseph Mavericks - JV**. Game: **Week 6 vs Holy Family
 Wildcats**. The original Formation is **Unbalanced** for all four entries.
 
-| Play Number In App / Durable ID | Current Array Position | Formation After Approved Conversion |
+| Play Number In App / Durable ID | Current Array Position | Current Formation |
 |---|---:|---|
 | 3 | 2 | blank |
 | 4 | 3 | blank |
@@ -87,6 +122,6 @@ Wildcats**. The original Formation is **Unbalanced** for all four entries.
 
 The app displays the durable play ID, not its array position (confirmed in
 the Film Room and theater renderers). Use 3, 4, 23 and 60 to find them.
-Season ID `2026-varsity-demo`; game ID `gmqptqoprzli2r`. Confirm this list
-against the converted live catalog after the eventual write before delivering
-it as the final re-chart checklist.
+Season ID `2026-varsity-demo`; game ID `gmqptqoprzli2r`. Each original value and
+current blank Formation was independently checked against the backup and live
+catalog. Re-chart these plays when convenient; no side/alignment was guessed.

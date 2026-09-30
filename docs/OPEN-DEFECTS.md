@@ -2,14 +2,20 @@
 
 ## Charting adversarial review, 2026-09-29
 
-Current cutover status, 2026-09-30: takeaway proof passes the exact approved
-projection. Authorized history retirement is complete and independently
-verified: 34 backups / 94 versions removed, 42/52 retained byte-for-byte.
-All ten catalog tables compared; live season/game/play/film data unchanged.
-Final scratch conversion has zero unresolved values, current-format problems
-or unexpected analytics. Live charting conversion still needs separate
-confirmation. Receipt, impact and prepared re-chart list:
+Current cutover status, 2026-09-30: live conversion completed on explicit coach
+authorization and independently verified. All 919 plays, 42 retained restore
+points and 52 retained versions are current format. Approved Formation mapping
+and blank new detail fields are the only play-data changes; identity, film,
+notes, penalties, players, grades and unrelated tags are unchanged.
+Spent converter/archive tools, dependent tests and Previous formations bridge
+are deleted. Installed library checked from a profile copy: Beast is its only
+old custom Formation and is already a current built-in. Settings and mirror
+files were not rewritten. Final gate/package/smoke remain outstanding.
+Receipt, impact and final re-chart list:
 `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
+
+Earlier entries below are historical checkpoint evidence, superseded by the
+current status above; their pending-write language is not an open task.
 
 2026-09-30 takeaway blocker repaired in tools: exact expected ranked lists are
 recomputed from original plays plus approved Formation/strength, not blanket

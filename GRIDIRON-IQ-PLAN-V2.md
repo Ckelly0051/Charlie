@@ -63,7 +63,7 @@ finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
    `1.12.0-98` installed Reports smoke. The coach said the remaining checks
    looked good. Reports production manifests still read `REJECTED`; do not
    repeat the completed composition package as new work.
-2. **Break Down charting — next build.** The library-save repair, tighter
+2. **Break Down charting — built, final gate/package/smoke outstanding.** The library-save repair, tighter
    desktop spacing without smaller type, and independent Play Call/Play Type
    folds are in shipped source. Add explicit Formation/Receiver Set,
    Gap, motion path, RPO read/decision, QB-run classification, and Reverse.
@@ -71,8 +71,12 @@ finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
    `design-comps/breakdown-charting-2026-09-27/` is coach-approved, including
    inline disclosure and shorter desktop chips. The later supplemental comp
    records the coach-reviewed Gap row and proposed visual finish. The new
-   fields are not built. Stored-data changes require the confirmed,
-   single-format cutover below; no coach data rewrite is authorized yet.
+   fields are built. The confirmed single-format cutover completed 2026-09-30:
+   919 live plays, 42 retained restore points and 52 retained versions verified
+   independently; 496 populated Formation values mapped, four deliberately
+   blanked. Temporary conversion code and the Previous formations bridge are
+   deleted. See `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md` and its
+   verification receipt. Final gate, installer and installed smoke remain.
 3. **Film Room — built, specific smoke outstanding.** The table docks below
    film by default, with Beside, resize, Reset, and persisted layouts. This
    is shipped source, not a new design/build task. A specific installed smoke

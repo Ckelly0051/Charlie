@@ -1,11 +1,12 @@
 # Charting cutover (roadmap Step 1): record and coach decision
 
-Status, 2026-09-29: **source built through the deck, Film Room, CSV, analytics,
-the run-gap report and the converter (IMPLEMENTED_UNVERIFIED); no coach data has
-been written and no installer exists. Full build and gate passed 141/141 at
-`d5b27c10`, zero skipped and zero failed.** The live conversion waits for the
-coach's answers in "Decisions needed" and an explicit yes immediately before the
-write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
+Status, 2026-09-30: **source built; live conversion complete on explicit coach
+authorization and independently verified. Spent tools, their tests and the
+Previous formations bridge are deleted. Final full gate, installer and installed
+smoke remain outstanding.** Current receipt and final re-chart list:
+`CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`. Last full gate was 141/141 at
+`d5b27c10`, before the final cleanup. The build and eight focused suites pass
+after cleanup. Earlier dated checkpoints below are historical, not open tasks.
 
 Adversarial-review repairs, 2026-09-29: the three findings in
 843154e8..c4940657 are repaired in source. Before staging, the conversion now
@@ -243,11 +244,11 @@ under `C:\Users\charl\AppData\Local\Temp\giq-receiver-review-ZmDpHI\`.
 
 ## Browser stores
 
-- **Tag library**: the custom Formation `Beast` stays in storage exactly as stored
-  (kept as `retired`, through any later library edit) and is never added for you.
-  Settings > Charting > Families lists it under "Previous formations" with an
-  "Add Beast" button, so keeping it is one click and never a retyping; only words a
-  Family can hold are listed (no `+` compound, receiver distribution or alignment).
+- **Tag library**: the copied installed profile confirms Beast is its only
+  custom old Formation. Beast is already in the current Formation library.
+  The Previous formations bridge is deleted after cutover; no legacy group is
+  interpreted or offered. Original settings bytes and opaque retired groups
+  are preserved, not rewritten or guessed.
   The Family group starts fully visible; `QB Run` and `Reverse` appear in Play Type
   with no conversion.
 - **Play calls**: the two calls' `Power-I` default is in the season (converted with
@@ -269,67 +270,23 @@ changed since the review, an unresolved value, or a change between the backup an
 the swap each stop the write with the source byte-identical; the immutable restore
 point equals the pre-write catalog by hash; no staged file remains.
 
-## Procedure after your answers
+## Remaining Checkpoints
 
-### Remaining Smoke-Readiness Checkpoints (2026-09-30)
+1. Conversion and cleanup are complete. Approved mapping, independent receipt,
+   profile-copy library inventory and the final four-play re-chart list are in
+   the dated current-impact record. No converter remains in the app or tools.
+2. Request the final full gate. After green and explicit packaging authorization,
+   bump the four version owners, build the unsigned installer, record its hash
+   and update the scoped smoke checklist. No installer has been built for this
+   cutover; source validation does not imply installed approval.
+3. Coach smoke with real film: all three seasons, retained history, charting
+   detail controls, library edits, Film Room, CSV and run-gap report/export.
 
-Current checkpoint: takeaway proof complete; incompatible history archived,
-verified and retired on coach authorization. Final scratch rehearsal passes
-for all three seasons, 42 retained restore points and 52 retained versions.
-`docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md` supersedes the earlier
-takeaway blockers and history counts. Live charting conversion is still
-unapproved/unrun; browser-settings disposition still needs final verification.
+## Single Current Format
 
-Coach mapping now recorded in `tools/charting-coach-mapping-2026-09-30.json`.
-Its scratch rerun resolves all 496 old Formation values, with four explicitly
-blanked. Current-format and preservation checks pass; takeaway-proof and
-historical handling remain. No live-write approval is implied.
-
-Checkpoint 1 started: the refreshed exact-name rehearsal is recorded in
-`docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`. It supersedes earlier counts:
-408 of 496 nonblank Formation values resolve; 88 plays in 12 combinations
-still need explicit decisions. Preservation and read-back proofs pass, but
-format and generated-takeaway proof blockers remain. No live write.
-
-The coach deferred packaging to finish the cutover first. No installer build
-started; the uncommitted version bump was undone. The 141/141 source gate at
-`d5b27c10` remains valid for that revision, not for future cleanup changes.
-
-1. **Mapping and copy-only rehearsal.** Refresh the impact using the current
-   coach-named Formation model. Single names stay names; compound choices,
-   Unbalanced direction, restore-point/version handling and browser settings
-   require the remaining explicit decisions. Review every analytics difference,
-   including the recorded takeaway-text differences. Present exact current
-   counts and a preservation proof before asking for write approval.
-2. **Confirmed cutover and cleanup.** Only after explicit confirmation immediately
-   before the write: close the app, verify backups, stage/swap/read back and
-   independently verify the result. Record the receipt and remove the throwaway
-   converter, its dependent tests and the temporary Previous formations bridge;
-   leave no old-format reader or dual-write path. Do not remove refusal guards.
-3. **Final verification and package.** Run focused checks after cleanup, then
-   request the final full gate. After green and packaging authorization, bump
-   all four version owners, verify the bump, build the unsigned installer and
-   record its hash and scoped smoke checklist. Installed smoke is still the
-   coach's acceptance checkpoint, not implied by source checks.
-
-The next action is checkpoint 1, not another feature pass or installer build.
-
-1. Close GridIron IQ. 2. `--rehearse` with your mapping; review the counts,
-`report.json` and the re-chart list; the coach's yes on `impact.json`.
-3. `--apply --backup <new dir> --approved impact.json --mapping <file>`: it copies
-the catalog folder, `library.json` and the Documents mirror (film excluded) with
-each copy hash-verified, converts, validates, re-checks that the app is closed and
-the catalog is unchanged, swaps in a staged file from the same folder and reads it
-back; on any mismatch it stops and names the restore file.
-4. Delete `tools/convert-charting-once.mjs`, `tools/charting-convert.mjs`,
-`tools/charting-decision-support.mjs`, `tools/e2e-charting-convert.mjs` and
-`tools/charting-fixture-mapping.json` in the same commit that records the receipt.
-
-## Not shipped
-
-No old-shape reader, projection or dual write exists in `js/`: `SeasonFormat`
-refuses any `formation` key (play, play call default, template, CSV column), the
-projection reads the current fields only, and the library never offers its old
-Formation group as choices (Settings lists its custom names as "Previous formations",
-read only, and adds one only when you click it). The converter lives in `tools/`, is imported by nothing in `js/`,
-and is deleted after the live conversion.
+SeasonFormat rejects a retired Formation field before any import or restore
+write. Projection reads only current fields. Settings offers only the current
+Formation library. Opaque unknown settings bytes may be preserved but are never
+used to interpret old charting data. The throwaway conversion and archive tools
+and their tests were removed with the completion record. Historical rehearsal
+references above are evidence, not commands to rerun.

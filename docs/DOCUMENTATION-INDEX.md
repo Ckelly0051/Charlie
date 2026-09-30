@@ -33,8 +33,8 @@ This section is the one place release state is kept current.
 - Packaging deferred by the coach on 2026-09-30 until the charting cutover is
   ready. The uncommitted `1.12.0-107` bump was undone; no installer build,
   installation or launch occurred. The full 141/141 source gate at `d5b27c10`
-  stands. Remaining checkpoints: current mapping and copy rehearsal; confirmed
-  live conversion and temporary-code cleanup; final verification and packaging.
+  stands for that revision. Live conversion and temporary-code cleanup are now
+  complete; remaining checkpoints are the final authorized gate and packaging.
 - Latest built and coach-smoked installer: `1.12.0-106` (`cbf1889`),
   containing the Settings team-name save-on-close repair and its immediate-close
   regression checks. Full gate 136/136, zero skipped and zero failed at
@@ -61,14 +61,18 @@ This section is the one place release state is kept current.
   Starts/Ends, RPO and QB Run details, Reverse and QB Run play types, the
   film-linked run-gap report, Film Room and CSV columns, and the single-format
   refusal of the retired `formation` key. The supplemental visual-finish comp
-  supplied only the Gap interaction and spacing. Live coach data is NOT
-  converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
-  awaiting final impact/write approval. The coach's 2026-09-30 mapping resolves
+  supplied only the Gap interaction and spacing. Live coach data was converted
+  on explicit coach authorization on 2026-09-30 and independently verified.
+  The coach's 2026-09-30 mapping resolves
   all 496 nonblank formations; four are deliberately blanked for re-charting.
   Exact preservation, current-format and takeaway proofs pass in the final
   copy rehearsal. Incompatible history was archived, independently verified
   and removed on coach authorization: 34 backups / 94 versions; 42/52 kept.
-  Live seasons remain unconverted. Current impact and re-chart checklist:
+  All 919 live plays and retained 42 backups / 52 versions are current format.
+  Film references, identity and unrelated fields are unchanged. Spent tools,
+  their tests and the Previous formations bridge are deleted. Beast remains
+  available in the current library; installed settings were not rewritten.
+  Current receipt, impact and final re-chart checklist:
   `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
   Additional full current-state backup verified 2026-09-30 under
   `D:\Football\Film\GridIronIQ-Backups\current-state-2026-09-30-b10094cf`

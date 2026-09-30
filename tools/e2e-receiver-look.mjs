@@ -7,7 +7,6 @@ import { SeasonStore } from '../js/season-store.js';
 import { SeasonFormat } from '../js/season-format.js';
 import { StatsEngine } from '../js/stats-engine.js';
 import { AnalyticsRegistry } from '../js/analytics-registry.js';
-import { decide, convertPlay, convertSeason, mappingProblems } from './charting-convert.mjs';
 
 let checks = 0;
 function test(name, fn) { fn(); checks++; console.log('PASS ' + name); }
@@ -80,30 +79,6 @@ test('single-value formation still rejects combined fields', () => {
   assert.ok(TagProjection.isCombined({ formationFamily: 'Trips + Bunch' }));
   assert.ok(TagProjection.isCombined({ formationFamily: 'Trips+Bunch' }));
   assert.ok(TagProjection.isCombined({ formationFamily: 'Shotgun' }));
-});
-test('exact conversion invents no strength or distribution', () => {
-  const d = decide('Trips', {});
-  assert.equal(d.status, 'convert'); assert.equal(d.formationFamily, 'Trips'); assert.equal(d.receiverSet, ''); assert.equal(d.receiverStrength, undefined);
-});
-test('compound names need explicit decisions', () => {
-  assert.equal(decide('Trips + Bunch', {}).status, 'unresolved');
-  const d = decide('Unbalanced + Bunch + Trips', { combinations: { 'Trips + Bunch + Unbalanced': { formationFamily: 'Bunch', strength: 'Unbalanced Left' } } });
-  assert.equal(d.formationFamily, 'Bunch'); assert.equal(d.strength, 'Unbalanced Left'); assert.equal(d.receiverStrength, undefined);
-});
-test('invalid and contradictory mappings are refused', () => {
-  assert.ok(mappingProblems({ tokens: { Trips: { receiverStrength: 'Middle' } } }).length);
-  assert.ok(mappingProblems({ tokens: { Trips: { receiverLook: 'Trips' } } }).length);
-  assert.ok(mappingProblems({ tokens: { Trips: { formationFamily: 'Power-I + Flexbone' } } }).length);
-  assert.ok(mappingProblems({ combinations: { 'Trips + Bunch': { formationFamily: 'Bunch' }, 'Bunch + Trips': { formationFamily: 'Trips' } } }).length);
-});
-test('conversion conflicts preserve the entire source', () => {
-  const p = { id: 1, tags: { unit: 'offense', formation: 'Trips', formationFamily: 'Twins' } }, before = structuredClone(p);
-  assert.equal(convertPlay(p, {}, 's|g|1').status, 'unresolved'); assert.deepEqual(p, before);
-});
-test('combination inventory retains composite identity', () => {
-  const s = { id: 's', games: [{ id: 'g', plays: [{ id: 1, tags: { unit: 'offense', formation: 'Trips + Unbalanced' } }] }] };
-  const r = convertSeason(s, {});
-  assert.equal(r.combinations['Trips + Unbalanced'][0].ref, 's|g|1'); assert.equal(r.unresolved.length, 1);
 });
 test('analytics and film links read independent dimensions', () => {
   const engine = new StatsEngine(null), registry = new AnalyticsRegistry(engine);

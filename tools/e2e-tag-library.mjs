@@ -66,16 +66,5 @@ ok(savedCompound.formationFamily.custom.includes('Shotgun + Trips')&&savedCompou
 }
 ok(!reserved.group('formationFamily').values.includes('Shotgun')&&!reserved.group('formationFamily').enabled.includes('Shotgun')&&reserved.group('formationFamily').custom.includes('Trey'),'a saved reserved value is never offered; its neighbors are');
 ok(JSON.parse(reservedStorage.getItem('ffa_tag_libraries_teamR')).groups.formationFamily.custom.includes('Shotgun'),'the saved library entry is not rewritten');
-// A custom entry in the coach's retired Formation list is offered back, by name, as a
-// Family the coach can add; nothing is added or rewritten on its own.
-{
-  const oldStorage=new MemoryStorage({ffa_tag_libraries_teamP:JSON.stringify({version:4,groups:{formation:{custom:['Coach Beast','Trips + Bunch','2x2','Pistol','Spread','Coach Beast','  Trey  '],enabled:['Coach Beast'],order:['Coach Beast']}}})});
-  const oldLib=new TagLibrary({storage:oldStorage,teamId:'teamP'});
-  const before=oldStorage.getItem('ffa_tag_libraries_teamP');
-  ok(oldLib.previousFormations().join()==='Coach Beast,Trey','the retired Formation list offers its own custom entries, once each, and none that a Family cannot hold',oldLib.previousFormations().join());
-  ok(!oldLib.group('formationFamily').values.includes('Coach Beast')&&oldStorage.getItem('ffa_tag_libraries_teamP')===before,'reading them adds nothing and writes nothing');
-  ok(oldLib.add('formationFamily','Coach Beast')&&oldLib.group('formationFamily').enabled.includes('Coach Beast')&&oldLib.previousFormations().join()==='Trey','adding one makes it a shown Family and takes it off the offer');
-  ok(JSON.parse(oldStorage.getItem('ffa_tag_libraries_teamP')).retired?.formation?.custom?.includes('Coach Beast'),'the retired entry itself stays as stored');
-  ok(new TagLibrary({storage:new MemoryStorage(),teamId:'teamQ'}).previousFormations().length===0,'a library with no retired Formation list offers nothing');
-}
+ok(library.group('formationFamily').enabled.includes('Beast'), 'Beast is available directly in the current Formation library');
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);process.exit(fail?1:0);

@@ -114,15 +114,13 @@ await page.type('[data-tag-add]','Bear "Zero"');await page.click('.gi-library-ad
 state=await page.evaluate(()=>{const value='Bear "Zero"';const row=[...document.querySelectorAll('[data-tag-value]')].find(el=>el.dataset.tagValue===value);const remove=[...(row?.querySelectorAll('button')||[])].find(button=>button.getAttribute('aria-label')===`Remove ${value}`);return{stored:window.app.customChips.library.group('front').custom.includes(value),row:!!row,aria:remove?.getAttribute('aria-label'),stray:!!row?.getAttribute('zero"')};});
 ok(state.stored&&state.row&&state.aria==='Remove Bear "Zero"'&&!state.stray,'Quoted custom names remain exact inert DOM data',JSON.stringify(state));
 
-// A custom entry from the retired Formation list is offered back in Families, by name,
-// and only the coach's click adds it.
-await page.evaluate(()=>{const lib=window.app.customChips.library,key=lib.key(),saved=JSON.parse(localStorage.getItem(key)||'{}');saved.retired={formation:{custom:['Coach Beast'],enabled:['Coach Beast'],order:['Coach Beast']}};localStorage.setItem(key,JSON.stringify(saved));});
+// Custom Formations use the same current library editor as every other choice.
 await page.click('[data-chart-group="formationFamily"]');
-state=await page.evaluate(()=>({offered:[...document.querySelectorAll('[data-previous-formation]')].map(b=>b.dataset.previousFormation+'|'+b.textContent.trim()),listed:!!document.querySelector('[data-tag-value="Coach Beast"]'),custom:window.app.customChips.library.group('formationFamily').custom.includes('Coach Beast')}));
-ok(state.offered.join()==='Coach Beast|Add Coach Beast'&&!state.listed&&!state.custom,'Families offers the retired custom entry by name and adds nothing on its own',JSON.stringify(state));
-await page.click('[data-previous-formation="Coach Beast"]');
-state=await page.evaluate(()=>{const row=document.querySelector('[data-tag-value="Coach Beast"]');return{listed:!!row,shown:row?.querySelector('input')?.checked,custom:window.app.customChips.library.group('formationFamily').custom.includes('Coach Beast'),offered:document.querySelectorAll('[data-previous-formation]').length,retired:!!JSON.parse(localStorage.getItem(window.app.customChips.library.key())).retired?.formation};});
-ok(state.listed&&state.shown&&state.custom&&state.offered===0&&state.retired,'Adding it makes Beast a shown Family, ends the offer and leaves the retired entry as stored',JSON.stringify(state));
+state=await page.evaluate(()=>({listed:!!document.querySelector('[data-tag-value="Coach Beast"]'),custom:window.app.customChips.library.group('formationFamily').custom.includes('Coach Beast'),beast:window.app.customChips.library.group('formationFamily').enabled.includes('Beast')}));
+ok(!state.listed&&!state.custom&&state.beast,'Formation opens without inventing a custom choice, and Beast is available',JSON.stringify(state));
+await page.type('[data-tag-add]','Coach Beast');await page.click('.gi-library-add button');
+state=await page.evaluate(()=>{const row=document.querySelector('[data-tag-value="Coach Beast"]');return{listed:!!row,shown:row?.querySelector('input')?.checked,custom:window.app.customChips.library.group('formationFamily').custom.includes('Coach Beast')};});
+ok(state.listed&&state.shown&&state.custom,'Adding a custom Formation shows it and persists it in the current group',JSON.stringify(state));
 await page.click('[data-chart-group="front"]');
 
 for(const [group,value] of [['formationFamily','Trey Open'],['backfield','Ace Offset']]){await page.click(`[data-chart-group="${group}"]`);await page.type('[data-tag-add]',value);await page.click('.gi-library-add button');}

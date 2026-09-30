@@ -1,9 +1,12 @@
 # Testing
 
-Cutover tools checkpoint, 2026-09-30: conversion/takeaway proof 45/45;
-temporary history-archive safety 13/13. Synthetic data only. The takeaway
-regressions fail before the repair and reject a blanket-exemption mutation.
-These focused checks are not a new full gate or installed approval.
+Cutover complete, 2026-09-30: independent live-data verification receipt in
+`docs/charting-live-verification-2026-09-30.json`. Spent converter/archive tools
+and their harnesses are deleted. Build and eight focused suites pass after
+cleanup: receiver-look, tag-library, charting-details, tag-library-settings,
+charting-cutover-deck, season-format, legacy-inventory and legacy-roundtrip.
+No new full gate or installed approval. Pre-write safety checks were 45/45
+and 13/13; retained as historical evidence, not runnable gate tasks.
 
 Charting-cutover verification, 2026-09-29: full build and gate at `d5b27c10`,
 **141 harnesses green, zero skipped, zero failed**. Repairs cover disclosure-arrow
@@ -80,7 +83,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Film identity and health | `e2e-clip-identity`, `e2e-clip-match`, `e2e-relink-legacy` (basename relink, a current tier), `e2e-relink-linked`, `e2e-film-index`, `e2e-film-persist`, `e2e-linked-film`, `e2e-film-clip-set`, `e2e-film-health-realdata`, `e2e-film-storage-setup`, `e2e-addfiles-race`, `e2e-delete-undo-film`, `e2e-data-correctness-batch1` |
 | Persistence and catalog | `e2e-sql-catalog`, `e2e-sql-fuzzer`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions`, `e2e-catalog-fuzzer`, `e2e-catalog-safety`, `e2e-revision-fence`, `e2e-snapshot-envelope`, `e2e-projform-durability`, `e2e-season-roster-scope`, `e2e-roster-ownership`, `e2e-operation-diff`, `e2e-integrity` (fuzzed operation sequences) |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery`, `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
-| One season format | `e2e-season-format` (every old-format refusal), `e2e-legacy-inventory` (ratchet: counts only fall), `e2e-legacy-roundtrip` (the current-format canonical fixture survives import/save/reopen field for field; fixture and live catalog hashes stay unchanged), `e2e-charting-convert` (the throwaway Formation converter: mapping, refusals, staged swap; deleted with the converter before shipping), `e2e-csv-roundtrip`, `e2e-csv-projection` |
+| One season format | `e2e-season-format` (every old-format refusal), `e2e-legacy-inventory` (ratchet: counts only fall), `e2e-legacy-roundtrip` (the current-format canonical fixture survives import/save/reopen field for field; fixture and live catalog hashes stay unchanged), `e2e-csv-roundtrip`, `e2e-csv-projection` |
 | Real data | `e2e-realdata` plus the canonical-season rows above |
 
 CSV mapping regression (2026-09-29): `e2e-csv-projection` also pins duplicate
@@ -95,8 +98,8 @@ Geometry and native tagging/theater harnesses remain unchanged and pass.
 
 Formation correction (2026-09-29): `e2e-receiver-look` covers coach-named
 formations, directional Receiver Alignment ordering, five Offensive Line Strength
-choices and unbalanced toward/away film attribution, retired-schema refusal, exact conversion conflicts,
-combination mapping and analytics film filters. `e2e-charting-cutover-deck`
+choices and unbalanced toward/away film attribution, invalid-schema refusal
+and analytics film filters. `e2e-charting-cutover-deck`
 also exercises real deck clicks, independent strength, Film Room edits and CSV
 round-trip/refusal. `capture-receiver-look.mjs` compares the source build and
 the supplemental comp at 1920, 1440, 1280 and 390 on an isolated canonical
@@ -105,10 +108,10 @@ verified unchanged. Evidence is under `artifacts/receiver-look-review/`.
 
 Adversarial follow-up (2026-09-29): `e2e-receiver-look` also rejects non-string
 Receiver Alignment on plays, game snapshots and call defaults.
-`e2e-charting-convert` pins pre-stage refusal of invalid converted seasons and
-failed catalog round-trip proofs, plus exact approved strength mappings and
-refusal of unapproved/wrong strength changes. The new regressions failed on the
-unfixed source. Build and seven affected suites passed; no full gate or live write.
+Before the live write, the now-deleted converter harness pinned pre-stage
+refusals, catalog round-trip proofs and exact approved strength mappings.
+Its regressions failed on unfixed source. It is not part of the current gate;
+current data-format guards and their import/restore tests remain.
 
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.

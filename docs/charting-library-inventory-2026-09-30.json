@@ -1,0 +1,210 @@
+{
+  "source": "D:/Football/Film/GridIronIQ-Backups/current-state-2026-09-30-b10094cf/desktop-profile/EBWebView",
+  "scratchCopy": "C:\\Users\\charl\\AppData\\Local\\Temp\\giq-charting-profile-read-AWXNfQ",
+  "result": [
+    {
+      "origin": "http://tauri.localhost",
+      "libraries": [
+        {
+          "key": "ffa_tag_libraries_mavericks",
+          "value": {
+            "version": 4,
+            "groups": {
+              "formation": {
+                "custom": [
+                  "Beast"
+                ],
+                "enabled": [
+                  "Single Wing",
+                  "Unbalanced",
+                  "Goal Line",
+                  "Trips",
+                  "Twins",
+                  "Victory",
+                  "Ace",
+                  "Power-I",
+                  "I-Form",
+                  "Wing-T",
+                  "Wishbone",
+                  "Wildcat",
+                  "Split Back",
+                  "Double Wing",
+                  "Flexbone",
+                  "Spread",
+                  "Bunch",
+                  "Doubles",
+                  "Beast"
+                ],
+                "order": [
+                  "Single Wing",
+                  "Double Wing",
+                  "Wing-T",
+                  "Flexbone",
+                  "Wishbone",
+                  "Spread",
+                  "Wildcat",
+                  "Unbalanced",
+                  "Goal Line",
+                  "I-Form",
+                  "Split Back",
+                  "Power-I",
+                  "Ace",
+                  "Victory",
+                  "Trips",
+                  "Twins",
+                  "Doubles",
+                  "Bunch",
+                  "Beast"
+                ]
+              },
+              "backfield": {
+                "custom": [
+                  "Beast"
+                ],
+                "enabled": [
+                  "Single",
+                  "Split",
+                  "I",
+                  "Power",
+                  "Offset",
+                  "Strong",
+                  "Weak",
+                  "Diamond",
+                  "Empty",
+                  "Beast"
+                ],
+                "order": [
+                  "Single",
+                  "Split",
+                  "I",
+                  "Power",
+                  "Offset",
+                  "Strong",
+                  "Weak",
+                  "Diamond",
+                  "Empty",
+                  "Beast"
+                ]
+              },
+              "front": {
+                "custom": [
+                  "Rhino"
+                ],
+                "enabled": [
+                  "Maverick",
+                  "Eagle",
+                  "Falcon",
+                  "Jumbo Shift",
+                  "4-3",
+                  "3-4",
+                  "4-4",
+                  "5-2",
+                  "5-3",
+                  "6-2",
+                  "3-3-5",
+                  "4-2-5",
+                  "Nickel",
+                  "Dime",
+                  "Quarter",
+                  "4-6",
+                  "Rhino"
+                ],
+                "order": [
+                  "Maverick",
+                  "Rhino",
+                  "Eagle",
+                  "Falcon",
+                  "Jumbo Shift",
+                  "4-3",
+                  "3-4",
+                  "4-4",
+                  "5-2",
+                  "5-3",
+                  "6-2",
+                  "3-3-5",
+                  "4-2-5",
+                  "Nickel",
+                  "Dime",
+                  "Quarter",
+                  "4-6"
+                ]
+              },
+              "coverage": {
+                "custom": [],
+                "enabled": [
+                  "Cover 0",
+                  "Cover 1",
+                  "Cover 2",
+                  "Cover 3",
+                  "Cover 4",
+                  "Cover 5",
+                  "Cover 6"
+                ],
+                "order": [
+                  "Cover 0",
+                  "Cover 1",
+                  "Cover 2",
+                  "Cover 3",
+                  "Cover 4",
+                  "Cover 5",
+                  "Cover 6"
+                ]
+              },
+              "playType": {
+                "custom": [],
+                "enabled": [
+                  "Run Inside",
+                  "Run Outside",
+                  "Screen",
+                  "Short Pass",
+                  "Medium Pass",
+                  "Deep Pass",
+                  "Play Action",
+                  "RPO",
+                  "Trick Play",
+                  "Option"
+                ],
+                "order": [
+                  "Run Inside",
+                  "Run Outside",
+                  "Screen",
+                  "Short Pass",
+                  "Medium Pass",
+                  "Deep Pass",
+                  "Play Action",
+                  "RPO",
+                  "Trick Play",
+                  "Option"
+                ]
+              },
+              "blitz": {
+                "custom": [],
+                "enabled": [
+                  "A-Gap",
+                  "B-Gap",
+                  "C-Gap",
+                  "Edge",
+                  "DB Blitz",
+                  "Zone Blitz"
+                ],
+                "order": [
+                  "A-Gap",
+                  "B-Gap",
+                  "C-Gap",
+                  "Edge",
+                  "DB Blitz",
+                  "Zone Blitz"
+                ]
+              }
+            },
+            "presets": []
+          }
+        }
+      ]
+    },
+    {
+      "origin": "https://tauri.localhost",
+      "libraries": []
+    }
+  ]
+}

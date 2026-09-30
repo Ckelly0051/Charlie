@@ -100,7 +100,7 @@ console.log('\n== A saved library learns the new built-ins without a conversion 
     playType: { custom: [], enabled: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play', 'Option'],
       order: ['Run Inside', 'Run Outside', 'Screen', 'Short Pass', 'Medium Pass', 'Deep Pass', 'Play Action', 'RPO', 'Trick Play', 'Option'] },
     blitz: { custom: [], enabled: ['A-Gap', 'B-Gap', 'C-Gap', 'Edge', 'DB Blitz'], order: ['A-Gap', 'B-Gap', 'C-Gap', 'Edge', 'DB Blitz', 'Zone Blitz'] },
-    formation: { custom: ['Coach Beast'], enabled: ['Coach Beast', 'Trips'], order: ['Trips', 'Coach Beast'] },
+    formationFamily: { custom: ['Coach Beast'], enabled: ['Coach Beast', ...TagLibrary.DEFINITIONS.formationFamily], order: [...TagLibrary.DEFINITIONS.formationFamily, 'Coach Beast'] },
   }, presets: [] };
   const raw = JSON.stringify(saved);
   const storage = new MemoryStorage({ ffa_tag_libraries_t: raw });
@@ -109,11 +109,11 @@ console.log('\n== A saved library learns the new built-ins without a conversion 
   ok(playType.enabled.includes('QB Run') && playType.enabled.includes('Reverse'), 'QB Run and Reverse are visible in a library saved before they existed');
   ok(!library.group('blitz').enabled.includes('Zone Blitz') && library.group('blitz').values.includes('Zone Blitz'), 'a value the coach hid stays hidden');
   ok(storage.getItem('ffa_tag_libraries_t') === raw, 'reading a saved library writes nothing');
-  ok(library.group('formationFamily').enabled.length === TagLibrary.DEFINITIONS.formationFamily.length, 'the new Family group starts fully visible');
+  ok(library.group('formationFamily').enabled.length === TagLibrary.DEFINITIONS.formationFamily.length + 1, 'the Formation group retains its built-ins and custom choice');
   ok(library.setEnabled('playType', 'Reverse', false) && !new TagLibrary({ storage, teamId: 't' }).group('playType').enabled.includes('Reverse'), 'a coach can hide a new built-in and it stays hidden after a reload');
   const written = JSON.parse(storage.getItem('ffa_tag_libraries_t'));
-  ok(written.retired?.formation?.custom?.[0] === 'Coach Beast', 'the retired Formation group is kept as stored through an unrelated edit');
-  ok(library.group('formation').values.length === 0, 'and is never offered');
+  ok(written.groups.formationFamily.custom[0] === 'Coach Beast', 'the current custom Formation survives an unrelated edit');
+  ok(library.group('formationFamily').values.includes('Coach Beast'), 'the custom Formation is offered directly');
 }
 
 console.log('\n== Projection and format ==');
