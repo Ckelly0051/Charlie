@@ -2,6 +2,12 @@
 
 ## Charting adversarial review, 2026-09-29
 
+2026-09-30 packaging decision: coach deferred the installer until cutover
+readiness. No installer build started; the uncommitted bump was undone.
+`docs/CHARTING-CUTOVER.md` now lists the three remaining checkpoints: mapping
+and copy rehearsal; confirmed conversion and cleanup; final verification and
+packaging. No live-data write was authorized.
+
 Final source verification: **full build and gate 141/141 at `d5b27c10`,
 zero skipped and zero failed**. This supersedes the pending-rerun notes below.
 No live conversion, installer or installed smoke was performed; BD-UX-1/2

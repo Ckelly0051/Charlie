@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-29.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-30.
 
 ## Current Authority
 
@@ -30,7 +30,12 @@
 
 This section is the one place release state is kept current.
 
-- Main checkout and latest built installer: `1.12.0-106` (`cbf1889`),
+- Packaging deferred by the coach on 2026-09-30 until the charting cutover is
+  ready. The uncommitted `1.12.0-107` bump was undone; no installer build,
+  installation or launch occurred. The full 141/141 source gate at `d5b27c10`
+  stands. Remaining checkpoints: current mapping and copy rehearsal; confirmed
+  live conversion and temporary-code cleanup; final verification and packaging.
+- Latest built and coach-smoked installer: `1.12.0-106` (`cbf1889`),
   containing the Settings team-name save-on-close repair and its immediate-close
   regression checks. Full gate 136/136, zero skipped and zero failed at
   `2f309d6`, before the four-owner version-only bump; `e2e-p0-exit` 19/19

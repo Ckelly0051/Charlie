@@ -271,6 +271,31 @@ point equals the pre-write catalog by hash; no staged file remains.
 
 ## Procedure after your answers
 
+### Remaining Smoke-Readiness Checkpoints (2026-09-30)
+
+The coach deferred packaging to finish the cutover first. No installer build
+started; the uncommitted version bump was undone. The 141/141 source gate at
+`d5b27c10` remains valid for that revision, not for future cleanup changes.
+
+1. **Mapping and copy-only rehearsal.** Refresh the impact using the current
+   coach-named Formation model. Single names stay names; compound choices,
+   Unbalanced direction, restore-point/version handling and browser settings
+   require the remaining explicit decisions. Review every analytics difference,
+   including the recorded takeaway-text differences. Present exact current
+   counts and a preservation proof before asking for write approval.
+2. **Confirmed cutover and cleanup.** Only after explicit confirmation immediately
+   before the write: close the app, verify backups, stage/swap/read back and
+   independently verify the result. Record the receipt and remove the throwaway
+   converter, its dependent tests and the temporary Previous formations bridge;
+   leave no old-format reader or dual-write path. Do not remove refusal guards.
+3. **Final verification and package.** Run focused checks after cleanup, then
+   request the final full gate. After green and packaging authorization, bump
+   all four version owners, verify the bump, build the unsigned installer and
+   record its hash and scoped smoke checklist. Installed smoke is still the
+   coach's acceptance checkpoint, not implied by source checks.
+
+The next action is checkpoint 1, not another feature pass or installer build.
+
 1. Close GridIron IQ. 2. `--rehearse` with your mapping; review the counts,
 `report.json` and the re-chart list; the coach's yes on `impact.json`.
 3. `--apply --backup <new dir> --approved impact.json --mapping <file>`: it copies
