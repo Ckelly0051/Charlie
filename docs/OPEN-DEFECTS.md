@@ -2,6 +2,15 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Third gate follow-up: the run at `caa05eff` was stopped on stale harness
+inputs. Round-trip still imported the live pre-charting-cutover season, which
+the new format correctly refuses; it now imports the existing current-format
+canonical fixture and checks all 449 plays against that file, plus unchanged
+fixture and live-catalog hashes (11/11). Native Film Room still searched for
+the superseded "Family" heading; its unchanged tendency assertion now locates
+"Formation" (27/27). No coach data or fixture was written. Full gate rerun
+pending.
+
 Second gate follow-up: the run at `778838a8` was stopped after
 `e2e-explosive-labels` found the run-gap export's bare "Explosive" header.
 It now reads "Explosive Plays" on offense and "Explosive Plays Allowed" on

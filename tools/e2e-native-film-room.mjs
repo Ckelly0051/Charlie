@@ -95,7 +95,7 @@ state = await page.evaluate(() => {
   return {
     text: cell?.textContent.trim(),
     expected: window.app.playGrid._cellText(window.app.tagger.getPlay(1), window.app.playGrid._visibleCols().find(col => col.key === 'formationFamily')),
-    tendency: [...document.querySelectorAll('thead th')].find(th => th.querySelector('span')?.textContent === 'Family')?.querySelector('small')?.textContent || '',
+    tendency: [...document.querySelectorAll('thead th')].find(th => th.querySelector('span')?.textContent === 'Formation')?.querySelector('small')?.textContent || '',
   };
 });
 ok(state.text === state.expected && state.text === 'Spread', 'Formation cell text equals the canonical Film Room value', JSON.stringify(state));

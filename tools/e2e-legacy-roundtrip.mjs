@@ -1,7 +1,7 @@
 /**
  * ROUND TRIP (docs/LEGACY-EXCISION-PLAN.md, Phase 0; source switched in Pass 2
- * step 6). The coach's real 2025 JV season, read from a COPY of the live catalog
- * (converted 2026-09-26, hash-checked), is adopted into the app through the real
+ * step 6). The canonical current-format 2025 JV fixture (test-only charting
+ * conversion; not the coach's mapping decisions) is adopted through the real
  * import path, persisted, the page reloaded and the season reopened from
  * storage; then saved again with no change and reopened again. The pre-conversion
  * Documents mirror copy is refused by that same import path (step 6). What a
@@ -15,15 +15,12 @@
  *      transforms the app documents (listed below).
  * Run:  node tools/e2e-legacy-roundtrip.mjs
  */
-import { readFileSync, existsSync, copyFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { LIVE_CATALOG } from './audit-legacy.mjs';
-import { CANONICAL_SOURCE_MIRROR } from './canonical-season.mjs';
-import { SqlCatalog } from '../js/sql-catalog.js';
+import { CANONICAL_SEASON, CANONICAL_SOURCE_MIRROR } from './canonical-season.mjs';
 import { SeasonFormat } from '../js/season-format.js';
 
 let pass = 0, fail = 0;
@@ -31,22 +28,17 @@ const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log('  PASS  ' + label))
   : (fail++, console.log('  FAIL  ' + label + (detail ? ' -- ' + detail : '')));
 
-if (!existsSync(LIVE_CATALOG)) {
+if (!existsSync(LIVE_CATALOG) || !existsSync(CANONICAL_SEASON)) {
   if (process.env.GIQ_REALDATA_OPTIONAL === '1') { console.log('  SKIP  canonical season absent (GIQ_REALDATA_OPTIONAL=1)'); console.log('\n== RESULT: 0 passed, 0 failed =='); process.exit(0); }
-  ok(false, 'live catalog present', LIVE_CATALOG);
+  ok(false, 'live catalog and canonical fixture present', `${LIVE_CATALOG}; ${CANONICAL_SEASON}`);
   console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`); process.exit(1);
 }
 const hashBefore = createHash('sha256').update(readFileSync(LIVE_CATALOG)).digest('hex');
-const copyDir = mkdtempSync(path.join(tmpdir(), 'giq-roundtrip-'));
-copyFileSync(LIVE_CATALOG, path.join(copyDir, 'library.db'));
-const SQL = await (await import('sql.js')).default();
-const catalog = new SqlCatalog(SQL); await catalog.open(readFileSync(path.join(copyDir, 'library.db')));
-const meta = catalog.listSeasons().find(m => m.name === '2025 St. Joseph Mavericks - JV');
-const source = meta ? catalog.loadSeason(meta.id) : null;
-rmSync(copyDir, { recursive: true, force: true });
-if (!source) { ok(false, 'the 2025 JV season is in the live catalog'); console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`); process.exit(1); }
+const fixtureBytes = readFileSync(CANONICAL_SEASON);
+const fixtureHash = createHash('sha256').update(fixtureBytes).digest('hex');
+const source = JSON.parse(fixtureBytes.toString('utf8'));
 const sourcePlays = source.games.reduce((n, g) => n + (g.plays || []).length, 0);
-ok(SeasonFormat.isCurrentSeason(source), 'the live season is in the current format');
+ok(SeasonFormat.isCurrentSeason(source), 'the canonical fixture is in the current format');
 
 // Fields a save legitimately stamps; they carry no charted data.
 const VOLATILE = new Set(['revision', 'savedAt', 'updatedAt', 'lastSaved', 'lastOpened', 'modified']);
@@ -77,7 +69,7 @@ const adopted = await page.evaluate(async data => {
   await store.drainWrites?.();
   return { ok: result.ok, id: store.currentSeasonId, data: JSON.parse(JSON.stringify(store.data)) };
 }, source);
-ok(adopted.ok, 'the real season imports through the real adopt path');
+ok(adopted.ok, 'the canonical season imports through the real adopt path');
 
 if (existsSync(CANONICAL_SOURCE_MIRROR)) {
   const old = JSON.parse(readFileSync(CANONICAL_SOURCE_MIRROR, 'utf8'));
@@ -113,7 +105,7 @@ ok(!d2.length, 'a second save and reopen is identical to the first', d2.join(' |
 console.log('\n== 3. Every play\'s tags survive as imported ==');
 // Documented transforms (CLAUDE.md > Binding data rules): a Special Teams play
 // may not hold the look fields (SeasonStore.ST_ALIGNMENT_KEYS, stripped at every
-// save), and game-node rosters move to the season once. Nothing else may move.
+// save). Nothing else may move.
 const ST_KEYS = await page.evaluate(() => window.app.storage.seasonStore.constructor.ST_ALIGNMENT_KEYS);
 const expectTags = play => {
   const t = JSON.parse(JSON.stringify(play.tags || {}));
@@ -157,6 +149,7 @@ ok(total === sourcePlays && total > 400, `all ${total} plays of the real season 
 ok(!changed.length, 'every field of every play survives import, save and reopen against the original file; only empty schema defaults and the documented Special Teams strip differ', `${changed.length} changed: ${changed.slice(0, 6).join(' | ')}`);
 
 ok(createHash('sha256').update(readFileSync(LIVE_CATALOG)).digest('hex') === hashBefore, 'the live catalog is unchanged');
+ok(createHash('sha256').update(readFileSync(CANONICAL_SEASON)).digest('hex') === fixtureHash, 'the canonical fixture is unchanged');
 ok(!errors.length, 'no page errors', errors.slice(0, 3).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
