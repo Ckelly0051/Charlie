@@ -2,8 +2,9 @@
 
 Status, 2026-09-30: **source built; live conversion complete on explicit coach
 authorization and independently verified. Spent tools, their tests and the
-Previous formations bridge are deleted. Final full gate, installer and installed
-smoke remain outstanding.** Current receipt and final re-chart list:
+Previous formations bridge are deleted. Final full gate passed 140/140 at
+`a449b59e`, zero skipped and zero failed. Installer authorized; installed
+smoke remains outstanding.** Current receipt and final re-chart list:
 `CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`. Last full gate was 141/141 at
 `d5b27c10`, before the final cleanup. The build and eight focused suites pass
 after cleanup. Earlier dated checkpoints below are historical, not open tasks.
@@ -275,10 +276,10 @@ point equals the pre-write catalog by hash; no staged file remains.
 1. Conversion and cleanup are complete. Approved mapping, independent receipt,
    profile-copy library inventory and the final four-play re-chart list are in
    the dated current-impact record. No converter remains in the app or tools.
-2. Request the final full gate. After green and explicit packaging authorization,
-   bump the four version owners, build the unsigned installer, record its hash
-   and update the scoped smoke checklist. No installer has been built for this
-   cutover; source validation does not imply installed approval.
+2. Final gate is green at `a449b59e`; coach authorized packaging. All four
+   version owners are bumped to `1.12.0-107`, p0-exit 19/19. Build the unsigned
+   installer and record its hash in `SMOKE-1.12.0-107.md` and the status index.
+   Source validation does not imply installed approval.
 3. Coach smoke with real film: all three seasons, retained history, charting
    detail controls, library edits, Film Room, CSV and run-gap report/export.
 

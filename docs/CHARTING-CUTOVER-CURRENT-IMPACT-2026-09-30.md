@@ -4,7 +4,8 @@ This supersedes the earlier rehearsal's history counts and takeaway blockers.
 The live charting conversion completed on explicit coach authorization and was
 independently verified on 2026-09-30. Installed settings and Documents mirror
 are unchanged. The throwaway conversion/archive tools, dependent tests and
-Previous formations bridge are deleted. Final gate/package/smoke remain.
+Previous formations bridge are deleted. Final gate passed 140/140 at
+`a449b59e`, zero skipped and zero failed. Packaging authorized; smoke remains.
 
 ## Live Conversion Complete
 
@@ -37,7 +38,9 @@ Formation group is read or offered. Inventory: `charting-library-inventory-2026-
 
 After cleanup: build and eight focused harnesses pass (receiver-look, tag-library,
 charting-details, tag-library-settings, charting-cutover-deck, season-format,
-legacy-inventory, legacy-roundtrip). No new full gate, installer or installed smoke.
+legacy-inventory, legacy-roundtrip). Subsequent authorized full gate passed
+140/140 at `a449b59e`. The four-owner `1.12.0-107` bump passes p0-exit 19/19.
+Installer and smoke status: `docs/DOCUMENTATION-INDEX.md`, `SMOKE-1.12.0-107.md`.
 
 ## History Retirement Complete
 

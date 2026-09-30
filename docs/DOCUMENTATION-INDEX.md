@@ -30,11 +30,12 @@
 
 This section is the one place release state is kept current.
 
-- Packaging deferred by the coach on 2026-09-30 until the charting cutover is
-  ready. The uncommitted `1.12.0-107` bump was undone; no installer build,
-  installation or launch occurred. The full 141/141 source gate at `d5b27c10`
-  stands for that revision. Live conversion and temporary-code cleanup are now
-  complete; remaining checkpoints are the final authorized gate and packaging.
+- Coach authorized the final gate and packaging on 2026-09-30. Full gate at
+  `a449b59e`: **140/140 green, zero skipped, zero failed** after conversion and
+  temporary-code cleanup. All four version owners now read `1.12.0-107`;
+  unsigned Windows installer build is the next action. No installation or
+  installed approval exists for this candidate. `SMOKE-1.12.0-107.md` records
+  the pending checks; the previous `1.12.0-106` remains the latest smoked build.
 - Latest built and coach-smoked installer: `1.12.0-106` (`cbf1889`),
   containing the Settings team-name save-on-close repair and its immediate-close
   regression checks. Full gate 136/136, zero skipped and zero failed at

@@ -2,6 +2,10 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Packaging checkpoint, 2026-09-30: coach-authorized full gate **140/140 green,
+zero skipped, zero failed** at `a449b59e`. Version-only bump to `1.12.0-107`;
+installer build authorized after green. No installed smoke or acceptance yet.
+
 Current cutover status, 2026-09-30: live conversion completed on explicit coach
 authorization and independently verified. All 919 plays, 42 retained restore
 points and 52 retained versions are current format. Approved Formation mapping

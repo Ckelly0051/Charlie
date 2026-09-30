@@ -1,5 +1,10 @@
 # Testing
 
+Release gate, 2026-09-30: **140/140 green, zero skipped, zero failed** at
+`a449b59e`, on the clean committed post-conversion cleanup. Coach authorized
+packaging after green. This replaces the pending-final-gate status; installed
+smoke remains outstanding for the `1.12.0-107` candidate.
+
 Cutover complete, 2026-09-30: independent live-data verification receipt in
 `docs/charting-live-verification-2026-09-30.json`. Spent converter/archive tools
 and their harnesses are deleted. Build and eight focused suites pass after

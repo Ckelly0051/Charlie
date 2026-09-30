@@ -63,7 +63,7 @@ finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
    `1.12.0-98` installed Reports smoke. The coach said the remaining checks
    looked good. Reports production manifests still read `REJECTED`; do not
    repeat the completed composition package as new work.
-2. **Break Down charting — built, final gate/package/smoke outstanding.** The library-save repair, tighter
+2. **Break Down charting — built, gate green, package/smoke outstanding.** The library-save repair, tighter
    desktop spacing without smaller type, and independent Play Call/Play Type
    folds are in shipped source. Add explicit Formation/Receiver Set,
    Gap, motion path, RPO read/decision, QB-run classification, and Reverse.
@@ -76,7 +76,8 @@ finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
    independently; 496 populated Formation values mapped, four deliberately
    blanked. Temporary conversion code and the Previous formations bridge are
    deleted. See `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md` and its
-   verification receipt. Final gate, installer and installed smoke remain.
+   verification receipt. Final gate 140/140 at `a449b59e`; `1.12.0-107`
+   packaging authorized, installed smoke remains.
 3. **Film Room — built, specific smoke outstanding.** The table docks below
    film by default, with Beside, resize, Reset, and persisted layouts. This
    is shipped source, not a new design/build task. A specific installed smoke
