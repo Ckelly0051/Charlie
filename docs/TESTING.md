@@ -1,5 +1,10 @@
 # Testing
 
+S107-5: `e2e-reports-overview` pins total team turnovers independent of margin,
+offense plus explicit Special Teams losses, no redundant subtext, unknown and
+retained recoveries, ordinary kicks, double representations and no-play rulings.
+The screenshot/pixel and containment checks remain unchanged.
+
 Source repairs, 2026-09-30 (S107-2/3/4): failing-first checks reproduced all three
 faults. Charting-details covers repeated cross-game pass IDs and a multi-result
 single pass, nonadjacent assigned drives, data no-op and independent Gap/Direction.

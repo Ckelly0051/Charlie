@@ -2,6 +2,12 @@
 
 ## Build Record
 
+Additional source repair S107-5: Overview Turnovers counts total team losses,
+including explicit Special Teams losses; NDP reads 1, with no subtext. Not in
+this installer. S107-6 sack-yardage accounting remains an open follow-up: coach
+requires sack losses in rushing, not passing, and no passing attempt for a sack.
+The historical 164 passing yards / 6.8 YPA below uses the superseded convention.
+
 Repair follow-up, 2026-09-30: S107-2/3/4 are fixed in source, not in this artifact.
 Focused regression checks pass and the independent stats audit passes 4,344/4,344
 with the coach catalog unchanged. Live Season passing now correctly reports 24

@@ -30,6 +30,11 @@
 
 This section is the one place release state is kept current.
 
+- S107-5 Overview total-turnover tile repaired in source, not packaged. NDP now
+  reads 1, with the redundant subtext removed; ST losses are included explicitly.
+  S107-6 sack-yardage convention is an open, coach-directed follow-up. Previous
+  audit passing-yard figures use the superseded net-of-sacks convention.
+
 - 2026-09-30 source repairs: S107-2 passing attempts, S107-3 assigned-drive
   grouping and S107-4 independent Gap/Direction. Focused regression suites and
   4,344 independent arithmetic checks pass; coach catalog unchanged. These fixes

@@ -33,6 +33,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { StatsEngine } from '../js/stats-engine.js';
+import { overviewKpis } from '../js/reports-view.js';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => {
@@ -41,6 +43,26 @@ const ok = (condition, label, detail = '') => {
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+{
+  const play = (id, unit, result, recovery) => ({ id, tags: {
+    unit, playType: unit === 'special' ? '' : 'Run Inside', result, fumbleRecovery: recovery,
+  } });
+  const offense = play(1, 'offense', 'Fumble', 'opponent');
+  const defense = play(2, 'defense', 'Fumble', 'subject');
+  const tile = plays => overviewKpis(new StatsEngine().compute(plays)).find(k => k.label === 'Turnovers');
+  ok(tile([offense, defense]).value === 1, 'Overview counts one turnover even when one takeaway makes margin zero');
+  ok(!tile([offense]).sub, 'Turnovers has no redundant offense-only subtext');
+  const lostReturn = { ...play(3, 'special', '', ''), specialTeams: {
+    unit: 'puntReturn', outcome: { status: 'muffed', recoveredBy: 'opponent' },
+  } };
+  ok(tile([offense, lostReturn]).value === 2, 'Overview total includes an explicitly lost muffed return');
+  ok(tile([play(4, 'special', 'Fumble', 'opponent')]).value === 1, 'Special Teams fumble lost counts without a run/pass classification');
+  ok(tile([{ ...lostReturn, tags: { ...lostReturn.tags, result: 'Fumble', fumbleRecovery: 'opponent' } }]).value === 1, 'the same lost return in tags and structured event counts once');
+  ok(tile([{ ...offense, penalties: [{ playCounts: false }] }]).value === 0, 'a no-play ruling removes the turnover');
+  ok(tile([{ ...lostReturn, specialTeams: { unit: 'puntReturn', outcome: { status: 'muffed', recoveredBy: 'subject' } } }]).value === 0, 'a muff recovered by us is not a turnover');
+  ok(tile([{ ...lostReturn, specialTeams: { unit: 'puntReturn', outcome: { status: 'muffed' } } }]).value === 0, 'a muff with unknown recovery is not guessed lost');
+  ok(tile([{ ...lostReturn, specialTeams: { unit: 'punt', outcome: { status: 'returned', recoveredBy: 'opponent' } } }]).value === 0, 'normal punt possession transfer is not a turnover');
+}
 
 /* CANONICAL PIXEL EVIDENCE. The 2026-08 `charlie-gate-density4` captures were
  * superseded for COLOUR AND TYPE ONLY on 2026-09-11: the coach-approved global

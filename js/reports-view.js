@@ -22,7 +22,7 @@ export function overviewKpis(stats) {
   const totalYards = stats.rushing.yards + stats.passing.yards;
   const yardsPerPlay = stats.offPlays.length ? (totalYards / stats.offPlays.length).toFixed(1) : '—';
   const penalty = stats.penalties || {};
-  const giveaways = stats.turnovers?.giveaways ?? stats.offenseTurnovers ?? 0;
+  const turnovers = stats.totalTurnovers ?? stats.turnovers?.total ?? 0;
   // The CHARTED cohort is the headline; the CLASSIFIED cohort is its qualifier.
   // `stats.allPlays` is the classified count every measure below is computed
   // over — it is not the number of plays charted, and printing it as
@@ -39,9 +39,7 @@ export function overviewKpis(stats) {
     { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successes || 0} successful snaps`, cls: 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
     { label: 'Explosive Plays', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
-    // The tile already says Turnovers; the sub said the same thing in the
-    // legacy word. It names the side instead, which is the fact it can add.
-    { label: 'Turnovers', value: giveaways, sub: 'lost by our offense' },
+    { label: 'Turnovers', value: turnovers },
     { label: 'Plays for loss', value: stats.efficiency.negativePlays, sub: `${stats.efficiency.negativePct}% of snaps` },
     { label: 'Penalties', value: penalty.hasData ? penalty.accepted : 0, sub: penalty.hasData ? `${penalty.subjectYards} yards accepted` : 'none charted' },
   ];

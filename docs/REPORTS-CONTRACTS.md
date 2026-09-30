@@ -16,6 +16,12 @@ a separate, evidenced step.
 
 ## Cross-cutting
 
+- Overview **Turnovers** means total team turnovers conceded across charted
+  offense and Special Teams, never net margin. Read `StatsEngine.totalTurnovers`;
+  do not derive the count in presentation. No offense-only subtext. A lost muff
+  requires explicit opponent recovery; ordinary kick possession changes and
+  unknown recovery are not turnovers. No-play rulings and tries remain excluded.
+
 - **Never import `preact/compat`.** It rewrites `onChange` to `onInput` app-wide,
   so change-committed fields commit per keystroke. Portals use core Preact.
 - **Canonical data.** Evidence uses a read-only copy of the registered

@@ -2,6 +2,34 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
+**S107-5 - P2, Overview Turnovers tile reads a nonexistent field,
+REPAIRED IN SOURCE / not packaged.** Live 2025 JV NDP play 5 has Fumble with
+`fumbleRecovery: opponent`; the engine's offensive count is correctly 1.
+`overviewKpis` read `turnovers.giveaways`, which does not exist, and fell back
+to zero. This was not margin arithmetic. Coach additionally requires total team
+turnovers, including Special Teams, and no "lost by our offense" subtext.
+The shared engine now provides `totalTurnovers` from all charted phases; the
+screen and HTML export read that value. Explicitly lost ST fumbles and muffed
+returns count once; normal kicks, unknown recovery, defensive takeaways,
+run/pass tries and no-play rulings do not count as conceded turnovers.
+Offense-specific report metrics retain their existing cohort. Failing-first
+regressions cover the original zero-margin example, ST losses, unknown/retained
+recovery and double representations. Live NDP tile independently checked as 1.
+No coach-data change, full gate or packaging.
+
+**S107-6 - P2, inconsistent sack-yardage accounting, OPEN.** Claude's review
+found passing totals net of sacks in `_passingStats`, versus sacks excluded
+from passing attempts/YPA in the Defense board. Coach ruling 2026-09-30:
+sacks are not pass attempts and their losses belong in rushing yards, not
+passing yards. Coach further confirmed college-style treatment: each sack is
+one QB/team rushing attempt and negative QB/team rushing yards. Keep dropback
+and called-play classifications unchanged for tendency analysis.
+The prior audit's 164 passing yards / 6.8 YPA followed the old net-of-sacks
+formula; it verified arithmetic but not the now-settled football convention.
+Those values must not be described as the correct post-repair convention.
+Update team, opponent and player yardage owners, audit expectations and report
+proof together; no re-charting or coach-data migration is authorized.
+
 ### Source repairs, 2026-09-30
 
 S107-2, S107-3 and S107-4 are **REPAIRED IN SOURCE / installed smoke pending**.

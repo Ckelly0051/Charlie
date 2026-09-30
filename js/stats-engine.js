@@ -109,6 +109,18 @@ export class StatsEngine {
     return StatsEngine.hasResult(p, 'Interception') || StatsEngine.isFumbleLost(p);
   }
 
+  /** Team turnovers across charted phases, not net margin or routine kicks. */
+  static isTeamTurnover(p) {
+    if (p?.penalties?.some(penalty => penalty.playCounts === false)) return false;
+    const unit = countedUnit(p);
+    if (unit !== 'offense' && unit !== 'special') return false;
+    const special = SpecialTeamsModel.normalize(p?.specialTeams);
+    if (special?.unit === 'try' || special?.unit === 'tryDefense') return false;
+    if (StatsEngine.isGiveaway(p)) return true;
+    return unit === 'special' && special?.subjectRole === 'receiving'
+      && special.outcome.status === 'muffed' && special.outcome.recoveredBy === 'opponent';
+  }
+
   static isTakeaway(p) {
     return StatsEngine.hasResult(p, 'Interception') || StatsEngine.isFumbleRecovered(p);
   }
@@ -428,6 +440,9 @@ export class StatsEngine {
        `convSource` is the broader list this method already builds for ST and
        conversion plays, for precisely this reason. */
     Object.defineProperty(stats, 'orderedPlays', { value: convSource, enumerable: false });
+    Object.defineProperty(stats, 'totalTurnovers', {
+      value: convSource.filter(StatsEngine.isTeamTurnover).length, enumerable: false,
+    });
 
     /* THE CHARTED COHORT, kept beside the CLASSIFIED one.
      *
