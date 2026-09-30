@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { SqlCatalog } from '../js/sql-catalog.js';
 import { StatsEngine } from '../js/stats-engine.js';
 import { SeasonFormat } from '../js/season-format.js';
-import { convertSeason, convertPlay, emptyMapping, mappingProblems, otherProblems, tokensOf, OLD_KEY, NEW_KEYS, clone, DETERMINISTIC } from './charting-convert.mjs';
+import { convertSeason, convertPlay, decide, emptyMapping, mappingProblems, otherProblems, tokensOf, OLD_KEY, NEW_KEYS, clone, DETERMINISTIC } from './charting-convert.mjs';
 
 export const LIVE_CATALOG = path.join(process.env.APPDATA || '', 'com.gridironiq.app', 'seasons', 'library.db');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -101,7 +101,7 @@ export async function run({ catalogPath = LIVE_CATALOG, outDir, mapping = emptyM
     allResults.push(result);
     const s = { id: meta.id, name: before.seasonName || meta.name, ...result, proof: null };
     if (write) {
-      s.proof = proveSeason(before, after);
+      s.proof = proveSeason(before, after, mapping, meta.id);
       cat.saveSeason(after);
       const reread = cat.loadSeason(meta.id);
       s.proof.roundTrip = JSON.stringify(strip(reread)) === JSON.stringify(strip(after));
@@ -165,9 +165,15 @@ export async function run({ catalogPath = LIVE_CATALOG, outDir, mapping = emptyM
 const strip = season => JSON.parse(JSON.stringify(season, (k, v) => (k === 'updated' || k === 'lastOpened') ? undefined : v));
 
 /** What must not change: identity, film references, every tag but the Formation ones, every non-tag play field. */
-function proveSeason(before, after) {
+export function proveSeason(before, after, mapping = emptyMapping(), seasonId = before.id) {
   const proof = { identity: true, filmRefs: true, unrelatedTags: true, otherPlayFields: true, gameFields: true, analyticsUnexpected: [], analyticsChanged: [], details: [] };
   const relatedTag = k => k === OLD_KEY || NEW_KEYS.includes(k);
+  const approvedStrength = (play, gameId) => {
+    if (!play.tags || !has(play.tags, OLD_KEY)) return undefined;
+    const d = decide(play.tags[OLD_KEY], mapping, `${seasonId}|${gameId}|${play.id}`);
+    return d.status === 'convert' && d.strength && (!play.tags.strength || play.tags.strength === d.strength)
+      ? d.strength : undefined;
+  };
   before.games.forEach((g, gi) => {
     const a = after.games[gi];
     const { plays: bp, ...bg } = g, { plays: ap, ...ag } = a;
@@ -179,8 +185,11 @@ function proveSeason(before, after) {
       const film = x => `${x.clipPath || ''}|${JSON.stringify(x.clipRefs || null)}|${x.catalogClipId || ''}|${x.clipName || ''}|${x.clipId ?? ''}`;
       if (ident(p) !== ident(q)) { proof.identity = false; proof.details.push(`identity: ${g.name} #${p.id}`); }
       if (film(p) !== film(q)) { proof.filmRefs = false; proof.details.push(`film: ${g.name} #${p.id}`); }
-      const tagsOf = x => Object.fromEntries(Object.entries(x.tags || {}).filter(([k]) => !relatedTag(k)));
-      if (JSON.stringify(tagsOf(p)) !== JSON.stringify(tagsOf(q))) { proof.unrelatedTags = false; proof.details.push(`tags: ${g.name} #${p.id}`); }
+      const strength = approvedStrength(p, g.id);
+      const tagsOf = x => Object.fromEntries(Object.entries(x.tags || {}).filter(([k]) => !relatedTag(k) && !(k === 'strength' && strength !== undefined)));
+      if (JSON.stringify(tagsOf(p)) !== JSON.stringify(tagsOf(q)) || (strength !== undefined && q.tags?.strength !== strength)) {
+        proof.unrelatedTags = false; proof.details.push(`tags: ${g.name} #${p.id}`);
+      }
       const { tags: _t1, ...pr } = p, { tags: _t2, ...qr } = q;
       if (JSON.stringify(pr) !== JSON.stringify(qr)) { proof.otherPlayFields = false; proof.details.push(`fields: ${g.name} #${p.id}`); }
     });
@@ -197,12 +206,20 @@ function proveSeason(before, after) {
     }
     out.push(prefix); return out;
   };
-  const changed = new Set();
+  const changed = new Set(), unexpected = new Set();
   before.games.forEach((g, gi) => {
-    for (const p of paths(stats(g.plays, g.id), stats(after.games[gi].plays, g.id))) changed.add(p.replace(/\.\d+/g, '[]'));
+    // Compare against the coach-approved strength, not a blanket permission
+    // for strength-derived analytics to change.
+    const expected = g.plays.map(play => {
+      const strength = approvedStrength(play, g.id);
+      return strength === undefined ? play : { ...play, tags: { ...play.tags, strength } };
+    });
+    const originalStats = stats(g.plays, g.id), convertedStats = stats(after.games[gi].plays, g.id);
+    for (const p of paths(originalStats, convertedStats)) changed.add(p.replace(/\.\d+/g, '[]'));
+    for (const p of paths(stats(expected, g.id), convertedStats)) unexpected.add(p.replace(/\.\d+/g, '[]'));
   });
   proof.analyticsChanged = [...changed].sort();
-  proof.analyticsUnexpected = proof.analyticsChanged.filter(p => !/ormation|look|Look|bigCall|calls|Calls|identity|Identity|matchup|Matchup|predict|tells|Tells|scout|Scout|diversity|Diversity/.test(p));
+  proof.analyticsUnexpected = [...unexpected].sort().filter(p => !/ormation|look|Look|bigCall|calls|Calls|identity|Identity|matchup|Matchup|predict|tells|Tells|scout|Scout|diversity|Diversity/.test(p));
   return proof;
 }
 
@@ -295,6 +312,13 @@ export async function apply({ backupDir, approvedPath, mapping, catalogPath = LI
   if (sha(bytes) !== report.convertedHash) throw new Error('converted catalog does not match its report. Nothing written.');
   const remaining = await liveRemaining(bytes);
   if (remaining.length) throw new Error(`converted catalog still holds the retired Formation in: ${remaining.join(', ')}. Nothing written.`);
+  for (const season of report.seasons) {
+    const proof = season.proof;
+    const checks = ['identity', 'filmRefs', 'unrelatedTags', 'otherPlayFields', 'gameFields', 'roundTrip'];
+    if (!proof || checks.some(key => proof[key] !== true) || proof.currentFormat !== 0 || proof.analyticsUnexpected.length) {
+      throw new Error(`conversion proof or current-format validation failed for season ${season.id}. Nothing written.`);
+    }
+  }
 
   const staged = path.join(appSeasons, `library.db.pending-${randomUUID()}`);
   writeFileSync(staged, bytes);

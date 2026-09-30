@@ -144,6 +144,10 @@ export class ChartingDetails {
     ];
     const out = [];
     for (const [key, label, allowed] of checks) {
+      if (t[key] != null && typeof t[key] !== 'string') {
+        out.push(`${label} must be text`);
+        continue;
+      }
       const value = clean(t[key]);
       if (value && !allowed.includes(value)) out.push(`${label} "${value}" is not one of ${allowed.join(', ')}`);
     }

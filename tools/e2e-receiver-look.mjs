@@ -40,6 +40,16 @@ test('superseded receiver schema is refused, not interpreted', () => {
     assert.equal(key in PlayTagger.blankTags({ unit: 'offense' }), false);
   }
 });
+test('Receiver Alignment rejects non-string values before import or restore', () => {
+  for (const receiverSet of [['3x1'], [], {}, 31, false]) {
+    assert.ok(SeasonFormat.playProblems({ tags: { unit: 'offense', receiverSet } }).length);
+    assert.ok(SeasonFormat.gameProblems({ plays: [{ tags: { unit: 'offense', receiverSet } }] }).length);
+    assert.ok(SeasonFormat.seasonProblems({ games: [], playbook: { calls: [{ defaults: { receiverSet } }] } }).length);
+  }
+  for (const receiverSet of ['', null, undefined, '3x1']) {
+    assert.deepEqual(SeasonFormat.playProblems({ tags: { unit: 'offense', receiverSet } }), []);
+  }
+});
 test('schema and ST clearing own current fields', () => {
   const t = PlayTagger.blankTags({ unit: 'offense' });
   for (const key of ['formationFamily','receiverSet','strength']) { assert.equal(t[key], ''); assert.ok(SeasonStore.ST_ALIGNMENT_KEYS.includes(key)); }

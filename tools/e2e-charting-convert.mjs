@@ -8,7 +8,7 @@ import path from 'node:path';
 import { SqlCatalog } from '../js/sql-catalog.js';
 import { SeasonFormat } from '../js/season-format.js';
 import { decide, convertPlay, convertPlaybook, mappingProblems, emptyMapping } from './charting-convert.mjs';
-import { run, apply, impactOf, liveRemaining, convertFixture } from './convert-charting-once.mjs';
+import { run, apply, impactOf, liveRemaining, convertFixture, proveSeason } from './convert-charting-once.mjs';
 
 let pass = 0, fail = 0;
 const ok = (value, label, extra = '') => { console.log(`${value ? '  PASS' : '  FAIL'}  ${label}${!value && extra ? ` -- ${extra}` : ''}`); value ? pass++ : fail++; };
@@ -88,6 +88,17 @@ try {
   ok(r0.seasons.every(s => s.unresolved.length === 1 && s.unresolved[0].oldValue === 'Spread + Trips'), 'the unresolved list names the exact compound');
   ok(sa.proof.identity && sa.proof.filmRefs && sa.proof.unrelatedTags && sa.proof.otherPlayFields && sa.proof.gameFields && sa.proof.roundTrip, 'identity, film references, unrelated tags and the catalog round trip all hold', JSON.stringify(sa.proof));
   ok(sa.proof.analyticsUnexpected.length === 0, 'analytics differ only in formation-derived values', JSON.stringify(sa.proof.analyticsUnexpected));
+  const strengthMapping = { combinations: { 'Spread + Trips': { formationFamily: 'Spread', receiverSet: '3x1', strength: 'Unbalanced Left' } }, tokens: {}, plays: {} };
+  const rs = await run({ catalogPath: file, outDir: path.join(tmp, 'r-strength'), mapping: strengthMapping });
+  ok(rs.seasons.every(s => s.proof.unrelatedTags && s.proof.analyticsUnexpected.length === 0), 'explicit strength mappings pass preservation and analytics proofs', JSON.stringify(rs.seasons.map(s => s.proof)));
+  const strengthBefore = season('proof'), strengthAfter = structuredClone(strengthBefore);
+  const mappedPlay = strengthAfter.games[0].plays[1];
+  convertPlay(mappedPlay, strengthMapping, 'proof|proof-g1|2');
+  mappedPlay.tags.strength = 'Unbalanced Right';
+  ok(!proveSeason(strengthBefore, strengthAfter, strengthMapping).unrelatedTags, 'a strength different from the explicit mapping fails preservation');
+  mappedPlay.tags.strength = 'Unbalanced Left';
+  strengthAfter.games[0].plays[0].tags.strength = 'Left';
+  ok(!proveSeason(strengthBefore, strengthAfter, strengthMapping).unrelatedTags, 'an unmapped strength change also fails preservation');
   ok(r0.copies.backups.total === 1 && r0.copies.versions.total === 1, 'restore points and game versions are inventoried');
   // 2. the full mapping
   const mapping = { tokens: { Trips: { receiverSet: '3x1' }, Ace: { formationFamily: 'Ace' } }, plays: {} };
@@ -119,6 +130,32 @@ try {
   const manifest = JSON.parse(readFileSync(path.join(tmp, 'b-ok', 'manifest.json'), 'utf8'));
   ok(manifest.length >= 2 && manifest.some(m => m.source === file && m.sha256 === sourceHash) && sha(readFileSync(path.join(tmp, 'b-ok', 'appdata-seasons', 'library.db'))) === sourceHash, 'the immutable restore point holds the exact pre-write catalog, hash-verified');
   ok(!readdirSync(path.dirname(file)).some(n => n.includes('pending')), 'no staged file is left behind');
+  const proofDir = path.join(tmp, 'failed-proof'), proofFile = await makeCatalog(proofDir);
+  const proofHash = sha(readFileSync(proofFile));
+  const proofReport = await run({ catalogPath: proofFile, outDir: path.join(proofDir, 'run'), mapping });
+  const proofApproved = path.join(proofDir, 'impact.json'); writeFileSync(proofApproved, JSON.stringify(impactOf(proofReport)));
+  const saveSeason = SqlCatalog.prototype.saveSeason;
+  let proofError = null;
+  try {
+    SqlCatalog.prototype.saveSeason = function(data) {
+      const altered = structuredClone(data); altered.games[0].plays[0].notes = 'unexpected durable change';
+      return saveSeason.call(this, altered);
+    };
+    await apply({ rehearsal: true, backupDir: path.join(proofDir, 'backup'), approvedPath: proofApproved, mapping, catalogPath: proofFile, mirror: path.join(tmp, 'none') });
+  } catch (e) { proofError = e; } finally { SqlCatalog.prototype.saveSeason = saveSeason; }
+  ok(proofError && /proof/.test(proofError.message) && sha(readFileSync(proofFile)) === proofHash && !readdirSync(path.dirname(proofFile)).some(n => n.includes('pending')), 'a failed catalog round-trip proof stops before staging or swapping', proofError?.message || 'write was accepted');
+  const invalidDir = path.join(tmp, 'invalid-format');
+  const invalidFile = await makeCatalog(invalidDir);
+  const invalidCat = new SqlCatalog(SQL); await invalidCat.open(readFileSync(invalidFile));
+  const invalidSeason = invalidCat.loadSeason('a');
+  invalidSeason.games[0].plays[0].tags.lineBalance = '';
+  invalidCat.saveSeason(invalidSeason); writeFileSync(invalidFile, invalidCat.toBytes()); invalidCat.close();
+  const invalidHash = sha(readFileSync(invalidFile));
+  const invalidReport = await run({ catalogPath: invalidFile, outDir: path.join(invalidDir, 'run'), mapping });
+  const invalidApproved = path.join(invalidDir, 'impact.json'); writeFileSync(invalidApproved, JSON.stringify(impactOf(invalidReport)));
+  let invalidError = null;
+  try { await apply({ rehearsal: true, backupDir: path.join(invalidDir, 'backup'), approvedPath: invalidApproved, mapping, catalogPath: invalidFile, mirror: path.join(tmp, 'none') }); } catch (e) { invalidError = e; }
+  ok(invalidReport.seasons.some(s => s.proof.currentFormat > 0) && invalidError && /proof|format/.test(invalidError.message) && sha(readFileSync(invalidFile)) === invalidHash && !readdirSync(path.dirname(invalidFile)).some(n => n.includes('pending')), 'a non-current converted season stops before staging or replacing the catalog', invalidError?.message || 'write was accepted');
   // 5. a fixture
   const fixIn = path.join(tmp, 'fix-in.json'), fixOut = path.join(tmp, 'fix-out.json');
   writeFileSync(fixIn, JSON.stringify(season('f')));
