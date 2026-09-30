@@ -83,6 +83,17 @@ This is not an independent recalculation of every report statistic or proof of
 native desktop film playback, filesystem behavior or persistence after restart.
 Overall installed smoke remains pending.
 
+Expanded stats-engine arithmetic verification, 2026-09-30: **one P2 defect**,
+S107-2 in `docs/OPEN-DEFECTS.md`. The built engine and actual Season report model
+collapse pass attempts across games sharing a play number. Live 2025 JV should
+read 15/24 completions/attempts, 62.5%, 6.8 yards/attempt; currently 15/20, 75%,
+8.2. The registered canonical fixture and a two-game minimal example reproduce
+the same root cause. Of 4,344 checks, 4,335 pass and nine fail on that cause.
+Independent evidence: `docs/stats-engine-verification-1.12.0-107-2026-09-30.json`.
+Existing analytics parity remains 2/2 green without golden changes, so passing
+parity alone is not sufficient evidence of arithmetic correctness. No product
+repair yet; smoke acceptance must not be inferred from the earlier data audit.
+
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
 reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are
 acceptable as separate formations for now. Keep the current single-select

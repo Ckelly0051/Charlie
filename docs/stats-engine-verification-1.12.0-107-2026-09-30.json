@@ -1,0 +1,392 @@
+{
+  "date": "2026-09-30T17:33:27.501Z",
+  "sourceHash": "345842261d59ab2545275dcfb2fa06931522eb9c2be58feb198aa2e32eaa6e3f",
+  "checks": 4344,
+  "failed": 9,
+  "failures": [
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "field": "passing.attempts",
+      "expected": 24,
+      "actual": 20
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "field": "passing.average",
+      "expected": "6.8",
+      "actual": "8.2"
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "field": "passing.completionPct",
+      "expected": "62.5",
+      "actual": "75.0"
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "field": "passing.attempts",
+      "expected": 26,
+      "actual": 20
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "field": "passing.average",
+      "expected": "6.3",
+      "actual": "8.2"
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "field": "passing.completionPct",
+      "expected": "57.7",
+      "actual": "75.0"
+    },
+    {
+      "scope": "edge/repeated play numbers across games",
+      "field": "passing.attempts",
+      "expected": 2,
+      "actual": 1
+    },
+    {
+      "scope": "edge/repeated play numbers across games",
+      "field": "passing.average",
+      "expected": "4.0",
+      "actual": "8.0"
+    },
+    {
+      "scope": "edge/repeated play numbers across games",
+      "field": "passing.completionPct",
+      "expected": "50.0",
+      "actual": "100.0"
+    }
+  ],
+  "reportModelProof": [
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "games": 6,
+      "passing": {
+        "attempts": 20,
+        "completions": 15,
+        "yards": 164,
+        "average": "8.2",
+        "yardsPerCompletion": "10.9",
+        "completionPct": "75.0",
+        "touchdowns": 2,
+        "interceptions": 0,
+        "sacks": 3,
+        "sackYards": 27,
+        "longest": 60,
+        "firstDowns": 8
+      }
+    }
+  ],
+  "cases": [
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 1 vs St. Peter Lutheran Patriots",
+      "plays": 67,
+      "offense": 27,
+      "rush": 24,
+      "rushYards": 255,
+      "passAttempts": 3,
+      "reportedPassAttempts": 3,
+      "passYards": 34,
+      "defenseYards": 0
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 2 vs ND Prep Fighting Irish",
+      "plays": 74,
+      "offense": 30,
+      "rush": 23,
+      "rushYards": 98,
+      "passAttempts": 6,
+      "reportedPassAttempts": 6,
+      "passYards": -3,
+      "defenseYards": 127
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 3 vs OL Refuge Ravens",
+      "plays": 78,
+      "offense": 29,
+      "rush": 27,
+      "rushYards": 89,
+      "passAttempts": 2,
+      "reportedPassAttempts": 2,
+      "passYards": 0,
+      "defenseYards": 120
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 4 vs OL Sorrows Lancers",
+      "plays": 67,
+      "offense": 25,
+      "rush": 21,
+      "rushYards": 132,
+      "passAttempts": 3,
+      "reportedPassAttempts": 3,
+      "passYards": 23,
+      "defenseYards": 81
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 5 vs OL Lakes Lakers",
+      "plays": 82,
+      "offense": 29,
+      "rush": 20,
+      "rushYards": 151,
+      "passAttempts": 7,
+      "reportedPassAttempts": 7,
+      "passYards": 26,
+      "defenseYards": 116
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 6 vs Holy Family Wildcats",
+      "plays": 72,
+      "offense": 34,
+      "rush": 31,
+      "rushYards": 170,
+      "passAttempts": 3,
+      "reportedPassAttempts": 3,
+      "passYards": 84,
+      "defenseYards": 42
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "plays": 440,
+      "offense": 174,
+      "rush": 146,
+      "rushYards": 895,
+      "passAttempts": 24,
+      "reportedPassAttempts": 20,
+      "passYards": 164,
+      "defenseYards": 486
+    },
+    {
+      "scope": "live SJM Varsity 2026/vs Notre Dame Prep Fighting Irish",
+      "plays": 26,
+      "offense": 0,
+      "rush": 0,
+      "rushYards": 0,
+      "passAttempts": 0,
+      "reportedPassAttempts": 0,
+      "passYards": 0,
+      "defenseYards": 0
+    },
+    {
+      "scope": "live SJM Varsity 2026/vs Romeo Bulldogs",
+      "plays": 24,
+      "offense": 0,
+      "rush": 0,
+      "rushYards": 0,
+      "passAttempts": 0,
+      "reportedPassAttempts": 0,
+      "passYards": 0,
+      "defenseYards": null
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 1 vs Holy Family Wildcats",
+      "plays": 18,
+      "offense": 1,
+      "rush": 1,
+      "rushYards": 1,
+      "passAttempts": 0,
+      "reportedPassAttempts": 0,
+      "passYards": 0,
+      "defenseYards": null
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 3 vs St. Charles Bulldogs",
+      "plays": 63,
+      "offense": 29,
+      "rush": 18,
+      "rushYards": 181,
+      "passAttempts": 9,
+      "reportedPassAttempts": 9,
+      "passYards": 21,
+      "defenseYards": 156
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 4 vs Oakland Christian Lancers",
+      "plays": 64,
+      "offense": 0,
+      "rush": 0,
+      "rushYards": 0,
+      "passAttempts": 0,
+      "reportedPassAttempts": 0,
+      "passYards": 0,
+      "defenseYards": 52
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 5 vs St. George Dragon Slayers",
+      "plays": 98,
+      "offense": 0,
+      "rush": 0,
+      "rushYards": 0,
+      "passAttempts": 0,
+      "reportedPassAttempts": 0,
+      "passYards": 0,
+      "defenseYards": null
+    },
+    {
+      "scope": "live SJM Varsity 2026/FULL SEASON",
+      "plays": 293,
+      "offense": 30,
+      "rush": 19,
+      "rushYards": 182,
+      "passAttempts": 9,
+      "reportedPassAttempts": 9,
+      "passYards": 21,
+      "defenseYards": 208
+    },
+    {
+      "scope": "live SJM JV 2026/Week 1 vs Notre Dame Prep",
+      "plays": 64,
+      "offense": 4,
+      "rush": 3,
+      "rushYards": 5,
+      "passAttempts": 1,
+      "reportedPassAttempts": 1,
+      "passYards": 0,
+      "defenseYards": null
+    },
+    {
+      "scope": "live SJM JV 2026/Week 2 vs Our Lady of the Lakes Lakers",
+      "plays": 59,
+      "offense": 18,
+      "rush": 17,
+      "rushYards": 273,
+      "passAttempts": 1,
+      "reportedPassAttempts": 1,
+      "passYards": 10,
+      "defenseYards": 63
+    },
+    {
+      "scope": "live SJM JV 2026/Week 5 vs St. George Dragon Slayers",
+      "plays": 63,
+      "offense": 14,
+      "rush": 14,
+      "rushYards": 102,
+      "passAttempts": 0,
+      "reportedPassAttempts": 0,
+      "passYards": 0,
+      "defenseYards": 120
+    },
+    {
+      "scope": "live SJM JV 2026/FULL SEASON",
+      "plays": 186,
+      "offense": 36,
+      "rush": 34,
+      "rushYards": 380,
+      "passAttempts": 2,
+      "reportedPassAttempts": 2,
+      "passYards": 10,
+      "defenseYards": 183
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/Week 1 vs St. Peter Lutheran Patriots",
+      "plays": 70,
+      "offense": 27,
+      "rush": 24,
+      "rushYards": 255,
+      "passAttempts": 3,
+      "reportedPassAttempts": 3,
+      "passYards": 34,
+      "defenseYards": 0
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/Week 2 vs ND Prep Fighting Irish",
+      "plays": 79,
+      "offense": 34,
+      "rush": 26,
+      "rushYards": 61,
+      "passAttempts": 7,
+      "reportedPassAttempts": 7,
+      "passYards": -3,
+      "defenseYards": 126
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/Week 3 vs OL Refuge Ravens",
+      "plays": 78,
+      "offense": 28,
+      "rush": 26,
+      "rushYards": 82,
+      "passAttempts": 2,
+      "reportedPassAttempts": 2,
+      "passYards": 0,
+      "defenseYards": 120
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/Week 4 vs OL Sorrows Lancers",
+      "plays": 67,
+      "offense": 25,
+      "rush": 20,
+      "rushYards": 135,
+      "passAttempts": 4,
+      "reportedPassAttempts": 4,
+      "passYards": 23,
+      "defenseYards": 81
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/Week 5 vs OL Lakes Lakers",
+      "plays": 83,
+      "offense": 26,
+      "rush": 17,
+      "rushYards": 140,
+      "passAttempts": 7,
+      "reportedPassAttempts": 7,
+      "passYards": 26,
+      "defenseYards": 127
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/Week 6 vs Holy Family Wildcats",
+      "plays": 72,
+      "offense": 33,
+      "rush": 30,
+      "rushYards": 169,
+      "passAttempts": 3,
+      "reportedPassAttempts": 3,
+      "passYards": 84,
+      "defenseYards": 43
+    },
+    {
+      "scope": "canonical fixture 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "plays": 449,
+      "offense": 173,
+      "rush": 143,
+      "rushYards": 842,
+      "passAttempts": 26,
+      "reportedPassAttempts": 20,
+      "passYards": 164,
+      "defenseYards": 497
+    },
+    {
+      "scope": "edge/repeated play numbers across games",
+      "plays": 2,
+      "offense": 2,
+      "rush": 0,
+      "rushYards": 0,
+      "passAttempts": 2,
+      "reportedPassAttempts": 1,
+      "passYards": 8,
+      "defenseYards": null
+    },
+    {
+      "scope": "edge/RPO Give Keep Throw",
+      "plays": 3,
+      "offense": 3,
+      "rush": 2,
+      "rushYards": 16,
+      "passAttempts": 1,
+      "reportedPassAttempts": 1,
+      "passYards": 8,
+      "defenseYards": null
+    },
+    {
+      "scope": "edge/one pass with two outcome tags",
+      "plays": 1,
+      "offense": 1,
+      "rush": 0,
+      "rushYards": 0,
+      "passAttempts": 1,
+      "reportedPassAttempts": 1,
+      "passYards": 0,
+      "defenseYards": null
+    }
+  ]
+}

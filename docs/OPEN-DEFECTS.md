@@ -2,6 +2,29 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
+**S107-2 - P2, full-season passing attempts collapse repeated play numbers,
+OPEN.** Independently reproduced against the built app and its Season report
+model. `js/stats-engine.js:2370` deduplicates attempt plays by bare `p.id`;
+different games reuse those IDs. Live 2025 JV: 24 attempts are reported as 20,
+15 completions as 75.0% instead of 62.5%, and 164 yards as 8.2 yards/attempt
+instead of 6.8. The registered 449-play fixture similarly reports 20 instead
+of 26 attempts. Minimal reproduction: two passes with id 1 in different games,
+one completed for 8 yards, one incomplete; engine returns 1 attempt / 100% /
+8.0 YPA instead of 2 / 50% / 4.0. Single-game totals pass. Repair should count
+each qualifying pass once using an OR outcome predicate, not deduplicate across
+games by play number; retain the multi-result single-play regression.
+
+Independent arithmetic audit: 4,344 checks, 4,335 passed and 9 failed, all nine
+failures are this one root cause across live season, fixture and minimal case.
+Covered game/season scopes, rushing/passing production, touchdown counts,
+turnovers, success/explosive/negative rates, down-and-distance counts/rates/
+yardage/film references, defense yardage/cohorts, rushing/passing player credits,
+current-field drilldowns, detail-only invariance, RPO decisions and run/pass try
+exclusion. Evidence: `docs/stats-engine-verification-1.12.0-107-2026-09-30.json`.
+Existing `e2e-parity` passes 2/2 without updating goldens, demonstrating a golden
+correctness gap, not refuting the reproduced defect. No repair, coach-data write,
+gate rerun or new installer performed. Smoke remains pending.
+
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** Coach
 reviewed the existing controls and confirmed Bunch and Tight Bunch are acceptable
 as separate formations for now. Retain the current single-select model and
