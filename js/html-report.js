@@ -62,7 +62,7 @@ const runGapChartTable = (title, chart) => {
   const defense = chart.side === 'defense';
   const order = ['L-D', 'L-C', 'L-B', 'L-A', 'Center', 'R-A', 'R-B', 'R-C', 'R-D', 'Other'];
   const rows = order.map(gap => chart.cells.find(cell => cell.gap === gap));
-  const head = ['Gap', 'Runs', 'Share', defense ? 'Yards / Play Allowed' : 'Yards / Play', defense ? 'Opponent success' : 'Success', 'Explosive'];
+  const head = ['Gap', 'Runs', 'Share', defense ? 'Yards / Play Allowed' : 'Yards / Play', defense ? 'Opponent success' : 'Success', defense ? 'Explosive Plays Allowed' : 'Explosive Plays'];
   const body = `<div class="table-wrap"><table data-rg-export="${esc(chart.side)}"><thead><tr>${head.map(label => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows.map(cell => {
     const text = fmt(cell);
     return `<tr data-rg-row="${esc(cell.gap)}">${[cell.gap, text.plays, text.share, text.ypp, text.success, text.explosives].map(value => `<td>${esc(value)}</td>`).join('')}</tr>`;

@@ -2,6 +2,12 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Second gate follow-up: the run at `778838a8` was stopped after
+`e2e-explosive-labels` found the run-gap export's bare "Explosive" header.
+It now reads "Explosive Plays" on offense and "Explosive Plays Allowed" on
+defense. Focused checks pass unchanged: explosive labels 42/42 and run-gap
+report 33/33. Full gate rerun pending; no installer or coach-data write.
+
 Gate follow-up: the first run at 9da74967 was stopped on coach instruction
 after `e2e-breakdown-viewport` found eight disclosure-arrow overflow failures.
 The glyph needed 12px but its box was 8px. Its box now occupies the existing
