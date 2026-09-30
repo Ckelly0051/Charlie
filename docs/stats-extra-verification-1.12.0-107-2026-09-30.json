@@ -1,0 +1,552 @@
+{
+  "date": "2026-09-30T17:50:22.739Z",
+  "sourceHash": "345842261d59ab2545275dcfb2fa06931522eb9c2be58feb198aa2e32eaa6e3f",
+  "checks": 3300,
+  "failed": 0,
+  "failures": [],
+  "scoreDifferences": [
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "official": {
+        "us": 41,
+        "them": 0
+      },
+      "charted": {
+        "us": 42,
+        "them": 0
+      },
+      "scoringPlays": [
+        {
+          "play": 10,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 11,
+          "result": "Good",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 21,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 23,
+          "result": "No Gain",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 34,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 35,
+          "result": "Gain + Good",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 41,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 42,
+          "result": "Gain + Good",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 49,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 50,
+          "result": "Good + Gain",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 59,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 60,
+          "result": "Gain + Good",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        }
+      ]
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 2 vs ND Prep Fighting Irish",
+      "official": {
+        "us": 0,
+        "them": 13
+      },
+      "charted": {
+        "us": 0,
+        "them": 12
+      },
+      "scoringPlays": [
+        {
+          "play": 15,
+          "result": "Gain + Touchdown",
+          "unit": "defense",
+          "points": 6,
+          "owner": "opponent"
+        },
+        {
+          "play": 63,
+          "result": "Gain + Touchdown",
+          "unit": "defense",
+          "points": 6,
+          "owner": "opponent"
+        }
+      ]
+    },
+    {
+      "season": "2025 St. Joseph Mavericks - JV",
+      "game": "Week 5 vs OL Lakes Lakers",
+      "official": {
+        "us": 13,
+        "them": 13
+      },
+      "charted": {
+        "us": 14,
+        "them": 6
+      },
+      "scoringPlays": [
+        {
+          "play": 5,
+          "result": "Good",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 6,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 7,
+          "result": "Good",
+          "unit": "special",
+          "eventUnit": "try",
+          "attemptType": "extraPoint",
+          "score": "extraPoint",
+          "points": 1,
+          "owner": "subject"
+        },
+        {
+          "play": 37,
+          "result": "Touchdown",
+          "unit": "defense",
+          "points": 6,
+          "owner": "opponent"
+        },
+        {
+          "play": 52,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        }
+      ]
+    },
+    {
+      "season": "SJM Varsity 2026",
+      "game": "Week 3 vs St. Charles Bulldogs",
+      "official": {
+        "us": 13,
+        "them": 34
+      },
+      "charted": {
+        "us": 12,
+        "them": 14
+      },
+      "scoringPlays": [
+        {
+          "play": 6,
+          "result": "Touchdown + Gain",
+          "unit": "defense",
+          "points": 6,
+          "owner": "opponent"
+        },
+        {
+          "play": 8,
+          "result": "",
+          "unit": "special",
+          "eventUnit": "tryDefense",
+          "attemptType": "extraPoint",
+          "score": "twoPoint",
+          "points": 2,
+          "owner": "opponent"
+        },
+        {
+          "play": 23,
+          "result": "",
+          "unit": "special",
+          "eventUnit": "kickoff",
+          "attemptType": null,
+          "score": "touchdown",
+          "points": 6,
+          "owner": "opponent"
+        },
+        {
+          "play": 33,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        },
+        {
+          "play": 49,
+          "result": "Gain + Touchdown",
+          "unit": "offense",
+          "points": 6,
+          "owner": "subject"
+        }
+      ]
+    }
+  ],
+  "rosterIssues": [],
+  "summaries": [
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 1 vs St. Peter Lutheran Patriots",
+      "plays": 67,
+      "score": {
+        "us": 42,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 19,
+      "penaltyRecords": 2
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 2 vs ND Prep Fighting Irish",
+      "plays": 74,
+      "score": {
+        "us": 0,
+        "them": 12,
+        "unattributed": 0
+      },
+      "structuredEvents": 5,
+      "penaltyRecords": 4
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 3 vs OL Refuge Ravens",
+      "plays": 78,
+      "score": {
+        "us": 7,
+        "them": 13,
+        "unattributed": 0
+      },
+      "structuredEvents": 11,
+      "penaltyRecords": 2
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 4 vs OL Sorrows Lancers",
+      "plays": 67,
+      "score": {
+        "us": 18,
+        "them": 6,
+        "unattributed": 0
+      },
+      "structuredEvents": 7,
+      "penaltyRecords": 3
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 5 vs OL Lakes Lakers",
+      "plays": 82,
+      "score": {
+        "us": 14,
+        "them": 6,
+        "unattributed": 0
+      },
+      "structuredEvents": 5,
+      "penaltyRecords": 1
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/Week 6 vs Holy Family Wildcats",
+      "plays": 72,
+      "score": {
+        "us": 27,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 13,
+      "penaltyRecords": 4
+    },
+    {
+      "scope": "live 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "plays": 440,
+      "score": {
+        "us": 108,
+        "them": 37,
+        "unattributed": 0
+      },
+      "structuredEvents": 60,
+      "penaltyRecords": 16
+    },
+    {
+      "scope": "live SJM Varsity 2026/vs Notre Dame Prep Fighting Irish",
+      "plays": 26,
+      "score": {
+        "us": 0,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM Varsity 2026/vs Romeo Bulldogs",
+      "plays": 24,
+      "score": {
+        "us": 0,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 1 vs Holy Family Wildcats",
+      "plays": 18,
+      "score": {
+        "us": 0,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 1,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 3 vs St. Charles Bulldogs",
+      "plays": 63,
+      "score": {
+        "us": 12,
+        "them": 14,
+        "unattributed": 0
+      },
+      "structuredEvents": 9,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 4 vs Oakland Christian Lancers",
+      "plays": 64,
+      "score": {
+        "us": 0,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 3,
+      "penaltyRecords": 3
+    },
+    {
+      "scope": "live SJM Varsity 2026/Week 5 vs St. George Dragon Slayers",
+      "plays": 98,
+      "score": {
+        "us": 0,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 1,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM Varsity 2026/FULL SEASON",
+      "plays": 293,
+      "score": {
+        "us": 12,
+        "them": 14,
+        "unattributed": 0
+      },
+      "structuredEvents": 14,
+      "penaltyRecords": 3
+    },
+    {
+      "scope": "live SJM JV 2026/Week 1 vs Notre Dame Prep",
+      "plays": 64,
+      "score": {
+        "us": 0,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 1,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM JV 2026/Week 2 vs Our Lady of the Lakes Lakers",
+      "plays": 59,
+      "score": {
+        "us": 46,
+        "them": 6,
+        "unattributed": 0
+      },
+      "structuredEvents": 20,
+      "penaltyRecords": 1
+    },
+    {
+      "scope": "live SJM JV 2026/Week 5 vs St. George Dragon Slayers",
+      "plays": 63,
+      "score": {
+        "us": 7,
+        "them": 13,
+        "unattributed": 0
+      },
+      "structuredEvents": 7,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "live SJM JV 2026/FULL SEASON",
+      "plays": 186,
+      "score": {
+        "us": 53,
+        "them": 19,
+        "unattributed": 0
+      },
+      "structuredEvents": 28,
+      "penaltyRecords": 1
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/Week 1 vs St. Peter Lutheran Patriots",
+      "plays": 70,
+      "score": {
+        "us": 36,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/Week 2 vs ND Prep Fighting Irish",
+      "plays": 79,
+      "score": {
+        "us": 0,
+        "them": 12,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/Week 3 vs OL Refuge Ravens",
+      "plays": 78,
+      "score": {
+        "us": 6,
+        "them": 12,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/Week 4 vs OL Sorrows Lancers",
+      "plays": 67,
+      "score": {
+        "us": 18,
+        "them": 6,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/Week 5 vs OL Lakes Lakers",
+      "plays": 83,
+      "score": {
+        "us": 12,
+        "them": 12,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/Week 6 vs Holy Family Wildcats",
+      "plays": 72,
+      "score": {
+        "us": 24,
+        "them": 0,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "fixture 2025 St. Joseph Mavericks - JV/FULL SEASON",
+      "plays": 449,
+      "score": {
+        "us": 96,
+        "them": 42,
+        "unattributed": 0
+      },
+      "structuredEvents": 0,
+      "penaltyRecords": 0
+    },
+    {
+      "scope": "edge/scoring penalties shared tackle zero return",
+      "plays": 8,
+      "score": {
+        "us": 7,
+        "them": 2,
+        "unattributed": 6
+      },
+      "structuredEvents": 4,
+      "penaltyRecords": 3
+    }
+  ]
+}

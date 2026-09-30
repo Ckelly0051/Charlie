@@ -94,6 +94,23 @@ Existing analytics parity remains 2/2 green without golden changes, so passing
 parity alone is not sufficient evidence of arithmetic correctness. No product
 repair yet; smoke acceptance must not be inferred from the earlier data audit.
 
+Additional independent arithmetic/data checks, 2026-09-30: **3,300 passed, zero
+failures**, no additional engine defect found. Covered charted score ownership
+and quarters, Special Teams counts/averages/eligible film references, conversions,
+penalty counts/accepted yardage/no-play exclusions, defensive takeaways and
+touchdowns, solo/shared tackles and player season-to-game reconciliation. Zero
+duplicate roster jerseys or charted jerseys absent from their season roster.
+Synthetic cases include a defensive touchdown, safety, ambiguous blocked-return
+touchdown, zero-yard return, declined foul and wiped-out try. Live catalog bytes
+unchanged. Evidence: `docs/stats-extra-verification-1.12.0-107-2026-09-30.json`.
+
+Charted scoring events differ from saved official scores in four live games
+(official -> charted, our points first): 2025 JV Week 1 41-0 -> 42-0;
+Week 2 0-13 -> 0-12; Week 5 13-13 -> 14-6; SJM Varsity 2026 Week 3
+13-34 -> 12-14. These are recorded data-reconciliation observations, not
+additional confirmed arithmetic bugs. No score or scoring event was rewritten;
+do not infer an uncharted try/TD or change ownership to force a match.
+
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
 reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are
 acceptable as separate formations for now. Keep the current single-select

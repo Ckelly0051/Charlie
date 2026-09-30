@@ -2,6 +2,19 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
+Additional data verification: 3,300 independent checks passed for scoring,
+Special Teams, penalties, defensive takeaways/TD ownership, tackles and player
+season-to-game totals. No additional engine defect identified; S107-2 remains
+open. No duplicate roster jerseys or charted jerseys missing from season rosters.
+Evidence: `docs/stats-extra-verification-1.12.0-107-2026-09-30.json`.
+
+**Charting reconciliation observations, not confirmed product defects:** saved
+official vs chart-derived scores differ for 2025 JV Week 1 (41-0 vs 42-0),
+Week 2 (0-13 vs 0-12), Week 5 (13-13 vs 14-6), and SJM Varsity 2026 Week 3
+(13-34 vs 12-14). The engine matches the raw charted scoring events. Coach
+spot-check is needed to determine which events are incomplete or incorrect;
+nothing inferred, re-charted or rewritten by the audit.
+
 **S107-2 - P2, full-season passing attempts collapse repeated play numbers,
 OPEN.** Independently reproduced against the built app and its Season report
 model. `js/stats-engine.js:2370` deduplicates attempt plays by bare `p.id`;
