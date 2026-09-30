@@ -2,6 +2,12 @@
 
 ## Build Record
 
+Repair follow-up, 2026-09-30: S107-2/3/4 are fixed in source, not in this artifact.
+Focused regression checks pass and the independent stats audit passes 4,344/4,344
+with the coach catalog unchanged. Live Season passing now correctly reports 24
+attempts, 62.5% completions and 6.8 yards/attempt. Full gate and new packaging are
+still required before the repaired behavior can be smoke-tested.
+
 Full gate at `a449b59e`: **140/140 green, 0 skipped, 0 failed**, 2026-09-30.
 Built source: `72bea85a`, adding only the four-owner version bump after the
 tested cutover source (plus gate/smoke documentation).
@@ -13,7 +19,7 @@ updater-artifact signing. Artifact:
 4,037,422 bytes. SHA-256:
 `AD3D650E69743E1EE1647C6F287C9E2D22885CC1CD648090CD0977D7EE865290`.
 Built executable product/file versions both report `1.12.0-107`.
-No installation or installed approval yet. No push, tag or publication.
+Coach installed smoke is underway; no installed approval. No push, tag or publication.
 The working tree was clean for the build; after packaging, the live catalog
 still hashes to `770f3cc3b185e2b71e732a841a46e0ebc25859ac7d7beb361a43fb798273469c`.
 
@@ -25,6 +31,10 @@ restore points remain refused before a write. Data-only pre-write backup:
 
 ## Installed Checks
 
+Source repairs S107-2/3/4 landed after this installer. The checks below describe
+the intended repaired behavior and must be repeated on a new packaged candidate;
+the current 1.12.0-107 installer cannot pass them. Full gate/packaging not rerun.
+
 1. Install this candidate and confirm the displayed version is `1.12.0-107`.
    Open all three seasons: SJM Varsity 2026 (293 plays), SJM JV 2026 (186),
    and 2025 St. Joseph Mavericks - JV (440). Counts are pre-smoke baselines.
@@ -35,7 +45,8 @@ restore points remain refused before a write. Data-only pre-write backup:
    hidden choices and persistence. Formation & Call labels and 27px desktop
    chips must match the approved comp without shrinking type.
 4. Exercise Gap directly under Play Direction: L/R gaps, Center and Other;
-   contradictory direction clears Gap in one undo step. Exercise Motion Starts/
+   Gap and Direction never overwrite or clear each other; either may be blank.
+   Verify Middle + L-A and existing Right are preserved. Exercise Motion Starts/
    Ends, RPO Give/Keep/Throw and QB Run details, plus Reverse and H/J shortcuts.
    Clearing a trigger with charted details must ask before clearing; Undo works.
 5. Check the same fields in Film Room, play detail and theater. Export and
@@ -115,18 +126,18 @@ Coach follow-up, 2026-09-30: OLL discrepancy was a migration-related charting
 error, now corrected by the coach; total-points engine confirmed working by the
 coach. Audit score observations above describe the earlier captured data only.
 
-**S107-3 - Drive grouping, OPEN.** Assigned drive must take precedence over
+**S107-3 - Drive grouping, REPAIRED IN SOURCE / not packaged.** Assigned drive must take precedence over
 play-number order. Reproduced in the shared theater grouping owner: plays 1/2/3
 assigned drives 2/1/2 create two separate Drive 2 groups. Current implementation
-groups only adjacent runs, not all members of the assigned drive. No repair yet;
+grouped only adjacent runs, not all members of the assigned drive. Source now collects assigned drives;
 keep opposing possession sides separate and never guess blank drive assignments.
 
-**S107-4 - Gap/Direction independence, coach-approved change / OPEN.** Direction
+**S107-4 - Gap/Direction independence, REPAIRED IN SOURCE / not packaged.** Direction
 is broad coach judgment; Gap is additional precise lane charting. Neither field
 overwrites or clears the other, and Gap is valid without Direction. Middle need
 not mean Center. Preserve all existing stored values, including Right; no data
 migration or inferred reclassification. Earlier checklist step 4's coupled
-direction-clears-gap behavior is superseded. No production repair yet.
+direction-clears-gap behavior is superseded. Source repair passes focused tests.
 
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
 reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are

@@ -1,12 +1,12 @@
 # GridIron IQ — Tag Model Contract (Lane E1)
 
-> **Coach revision 2026-09-30, approved / pending implementation (S107-4):**
+> **Coach revision 2026-09-30, repaired in source / smoke pending (S107-4):**
 > Play Direction and Gap are independent coach-entered fields. Neither overwrites
 > or clears the other. Gap is a precise lane and may be blank; a charted Gap does
 > not require Direction. Middle is a broad inside classification, not limited to
 > Center. Coach judgment controls the margins. Existing Right/Left/Middle and Gap
 > values remain unchanged; no inferred reclassification or data migration. This
-> supersedes the coupling and trigger-removal rules for Gap below, not the rules
+> supersedes the former coupling and trigger-removal rules for Gap, not the rules
 > for Motion, RPO or QB-run details.
 
 > **Formation revision, 2026-09-29 (coach direction):** Formation is one
@@ -31,13 +31,12 @@
 > `SeasonFormat` refuses a play, a play call default or a template that carries
 > it. Wherever this document says "formation", read Formation; the
 > multi-value and "Trips / Bunch" passages are history. New owned fields, all in
-> `js/charting-details.js`: `gap` (L-A..L-D, R-A..R-D, Center, Other; a sided gap
-> sets Play Direction, Center sets Middle, a direction that contradicts the gap
-> clears it), `motionStart` / `motionEnd` (offense left / middle / right, opened by
+> `js/charting-details.js`: `gap` (L-A..L-D, R-A..R-D, Center, Other; independent
+> of Play Direction), `motionStart` / `motionEnd` (offense left / middle / right, opened by
 > Motion), `rpoRead` / `rpoDefender` / `rpoDecision` (opened by the RPO Play Type)
 > and `qbRun` (Designed / Scramble / RPO Keeper, opened by the QB Run Play Type).
 > `QB Run` and `Reverse` are Play Types that never fill or imply Run/Pass. A
-> detail is never stored without the field that opens it; removing that field
+> triggered detail needs the field that opens it; Gap has no opener. Removing a trigger
 > clears its details in the same write, after the coach confirms. Nothing here is
 > inferred from the call, the result or another tag; blank is uncharted. The
 > conversion of stored data is recorded in `docs/CHARTING-CUTOVER.md`.

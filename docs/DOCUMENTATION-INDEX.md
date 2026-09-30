@@ -30,6 +30,11 @@
 
 This section is the one place release state is kept current.
 
+- 2026-09-30 source repairs: S107-2 passing attempts, S107-3 assigned-drive
+  grouping and S107-4 independent Gap/Direction. Focused regression suites and
+  4,344 independent arithmetic checks pass; coach catalog unchanged. These fixes
+  are not in installer 1.12.0-107. Full gate and packaging have not been rerun.
+
 - Coach authorized the final gate and packaging on 2026-09-30. Full gate at
   `a449b59e`: **140/140 green, zero skipped, zero failed** after conversion and
   temporary-code cleanup. All four version owners now read `1.12.0-107`;
@@ -38,7 +43,7 @@ This section is the one place release state is kept current.
   (4,037,422 bytes), SHA-256
   `AD3D650E69743E1EE1647C6F287C9E2D22885CC1CD648090CD0977D7EE865290`.
   Product/file versions both `1.12.0-107`; post-bump p0-exit 19/19.
-  No installation or installed approval exists for this candidate.
+  Coach installed smoke is underway; no installed approval exists for this candidate.
   `SMOKE-1.12.0-107.md` records the pending checks; `1.12.0-106` remains
   the latest smoked build. Nothing pushed, tagged or published.
 - Latest built and coach-smoked installer: `1.12.0-106` (`cbf1889`),

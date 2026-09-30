@@ -137,7 +137,7 @@ or game data.
    show one desktop row of L-A through L-D, R-A through R-D, Center, and Other
    at the approved text size; the L chips surrender a little width so Center
    has usable padding. There is no Gap-side field. Coach revision 2026-09-30
-   (S107-4, approved / not yet built): Gap and Play Direction are independent.
+   (S107-4, repaired in source / smoke pending): Gap and Play Direction are independent.
    Neither selection overwrites or clears the other; a blank Gap is valid and
    Direction is not required to retain a Gap. Middle is the coach's broad
    inside classification, not restricted to Center. Exact margins remain coach

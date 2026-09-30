@@ -54,6 +54,26 @@ ok(mounted.dataSame, 'Mounting the theater is a season-data no-op');
 // every numbered drive here is ours; the two-team case is
 // e2e-data-correctness-batch1's subject.
 ok(mounted.cards === 12 && mounted.drives.join('|') === 'Our Drive 1|Our Drive 2|No drive', 'Strip preserves order and groups plays by drive with its possession side', JSON.stringify(mounted));
+const reassigned = await page.evaluate(async () => {
+  const app = window.app, plays = app.tagger.plays;
+  const old = plays.map(p => p.tags.driveNumber);
+  plays[0].tags.driveNumber = '2'; plays[4].tags.driveNumber = '1';
+  const before = JSON.stringify(plays);
+  app.tagger._emit('play-updated', plays[0]);
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const groups = [...document.querySelectorAll('.gi-drive-group')].map(g => ({
+    name: g.querySelector('h3').textContent,
+    ids: [...g.querySelectorAll('[data-native-play-id]')].map(n => Number(n.dataset.nativePlayId)),
+  }));
+  const unchanged = JSON.stringify(plays) === before;
+  plays.forEach((p, i) => { p.tags.driveNumber = old[i]; });
+  app.tagger._emit('play-updated', plays[0]);
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  return { groups, unchanged };
+});
+ok(reassigned.groups[0].name === 'Our Drive 1' && reassigned.groups[0].ids.join() === '2,3,4,5'
+  && reassigned.groups[1].ids.join() === '1,6,7,8,9', 'rendered strip collects nonadjacent assigned drives and sorts plays within them', JSON.stringify(reassigned));
+ok(reassigned.unchanged, 'rendering reassigned drives does not rewrite stored charting');
 
 let state = await page.evaluate(() => {
   document.querySelector('[data-drive-scroll]').style.maxWidth = '500px';

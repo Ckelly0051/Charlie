@@ -163,7 +163,7 @@ roster (`SeasonManager._mergeRoster()`).
   `receiverStrength` and `lineBalance` shapes are refused,
   never interpreted. One confirmed tools-only conversion, no compatibility tail.
 - Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
-  `ChartingDetails`. Coach-approved revision 2026-09-30 (S107-4, pending repair):
+  `ChartingDetails`. Coach-approved revision 2026-09-30 (S107-4, repaired in source):
   Gap and Play Direction are independent, neither overwrites or clears the other,
   and Gap can be blank or charted without Direction. Existing stored values stay
   unchanged; no inference or migration. Direction is the coach's broad classification,
@@ -174,6 +174,9 @@ roster (`SeasonManager._mergeRoster()`).
   perspective; there is no stored perspective flag and no auto-flip.
 - Multi-value tags are `" + "`-joined strings; analytics split and credit each
   component.
+- The play strip collects assigned drives by possession side plus drive number,
+  orders drives numerically and plays within each drive by play number. Blank
+  assignments stay in No drive; rendering never rewrites charting.
 - Add Game asks for no analytics perspective; Program versus Scout derives from
   the owning season in `GameScreen.save()`.
 

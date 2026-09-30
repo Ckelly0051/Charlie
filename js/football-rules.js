@@ -90,7 +90,9 @@ export function driveLabel(side, number, mode = 'perspective') {
  * transparent — it joins the surrounding drive of the same number and can never
  * merge two known sides.
  *
- * Returns `[{ key, side, number, label, plays }]` in charted order. `project`
+ * Collects nonadjacent assigned drives, orders groups by drive number, and
+ * plays by play number within each group. Unassigned plays stay in No drive.
+ * Returns `[{ key, side, number, label, plays }]`. `project`
  * maps a play to whatever the caller renders; `mode` selects the labels.
  */
 export function groupPlaysByDrive(plays, { project = play => play, mode = 'perspective' } = {}) {
@@ -111,10 +113,21 @@ export function groupPlaysByDrive(plays, { project = play => play, mode = 'persp
     } else if (side && !current.side) {
       current.side = side;
     }
-    current.plays.push(project(play));
+    current.plays.push(play);
   });
-  groups.forEach(group => { group.label = driveLabel(group.side, group.number, mode); });
-  return groups;
+  const collected = new Map();
+  for (const group of groups) {
+    const key = group.number ? `${group.side || 'unknown'}|${group.number}` : 'none';
+    const existing = collected.get(key);
+    if (existing) existing.plays.push(...group.plays);
+    else collected.set(key, { ...group, key, plays: [...group.plays] });
+  }
+  return [...collected.values()].sort((a, b) => {
+    if (!a.number) return b.number ? 1 : 0;
+    if (!b.number) return -1;
+    return a.number.localeCompare(b.number, undefined, { numeric: true });
+  }).map(group => ({ ...group, label: driveLabel(group.side, group.number, mode),
+    plays: group.plays.sort((a, b) => Number(a.id) - Number(b.id)).map(project) }));
 }
 
 /**

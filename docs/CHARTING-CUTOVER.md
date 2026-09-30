@@ -106,7 +106,7 @@ local preview server is running; this is source, not an installed release.
   1x4, 2x0, 2x1, 2x2, 2x3, 3x0, 3x1, 3x2, 4x0, 4x1, 5x0.
   A play holds one of each. Personnel sits after Formation, before QB Alignment.
 - **Gap** (L-A..L-D, R-A..R-D, Center, Other) sits directly under Play Direction.
-  Coach revision 2026-09-30, pending S107-4 repair: both fields are independent;
+  Coach revision 2026-09-30, S107-4 repaired in source: both fields are independent;
   no overwrite, coupled clearing or required Direction. Existing charting stays
   unchanged. Gap is additional precision, not required for direction reporting.
   **Motion Starts/Ends** open under Motion. **RPO** (read, defender number,

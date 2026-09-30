@@ -177,7 +177,6 @@ function ResultField({screen, state}) {
  *  stored gap, shows the ten choices in one row (ChartingDetails.GAPS). */
 function GapField({screen, state}) {
   const gap = state.values.gap || '';
-  if (!state.values.playDir && !gap) return null;
   return <div class="gi-tag-field gi-tag-gap" data-native-field="gap">
     <div class="gi-tag-field-label"><span>Gap</span></div>
     <div class="gi-tag-chips gi-tag-gap-row">{ChartingDetails.GAPS.map(option =>

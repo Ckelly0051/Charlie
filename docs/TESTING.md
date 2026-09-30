@@ -1,5 +1,16 @@
 # Testing
 
+Source repairs, 2026-09-30 (S107-2/3/4): failing-first checks reproduced all three
+faults. Charting-details covers repeated cross-game pass IDs and a multi-result
+single pass, nonadjacent assigned drives, data no-op and independent Gap/Direction.
+Native-breakdown-theater verifies regrouping in rendered DOM; cutover-deck verifies
+independent edits, undo, call defaults and retained trigger confirmations.
+Focused suites pass; the independent live/canonical arithmetic audit passes
+4,344/4,344 with an unchanged catalog hash. Evidence:
+`docs/stats-engine-repair-verification-2026-09-30.json`.
+The local canonical parity golden changed only attempts/completion%/YPA in season
+stats and scout report. No game scope changed. No full gate or packaging rerun.
+
 Release gate, 2026-09-30: **140/140 green, zero skipped, zero failed** at
 `a449b59e`, on the clean committed post-conversion cleanup. Coach authorized
 packaging after green. This replaces the pending-final-gate status; installed
@@ -75,7 +86,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Team Hub, registry, season workflow | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-native-season` |
 | Shell, context, cross-cutting | `e2e-workspace-shell`, `e2e-workspace-context`, `e2e-game-context`, `e2e-p0-exit`, `e2e-p0-capabilities`, `e2e-responsive-containment`, `e2e-native-overlay`, `e2e-xss-names`, `e2e-copy-standard`, `e2e-design-system`, `e2e-css-ownership`, `audit-design-approvals` |
 | Break Down theater and film | `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle`, `e2e-breakdown-viewport`, `e2e-breakdown-a11y`, `e2e-mark-flow`, `e2e-film-load-race`, `e2e-multi-angle`, `e2e-video-cors` |
-| Charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields` (the custom-field editor sheet), `e2e-st-try-charting` (Kick XP / Run/Pass / Fake tries in the deck), `e2e-charting-details` (the detail model: Gap direction rules, orphan prompts, vocabulary), `e2e-charting-cutover-deck` (Family, Receiver Set, Gap row, motion, RPO, QB Run in the deck and Film Room) |
+| Charting | `e2e-native-tagging`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields` (the custom-field editor sheet), `e2e-st-try-charting` (Kick XP / Run/Pass / Fake tries in the deck), `e2e-charting-details` (the detail model: Gap/Direction independence, orphan prompts, vocabulary), `e2e-charting-cutover-deck` (Family, Receiver Set, Gap row, motion, RPO, QB Run in the deck and Film Room) |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout`, `e2e-film-room-columns`, `e2e-film-room-sheet`, `e2e-unit-ownership` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-reports-global-strip`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-down-distance`, `e2e-run-gap-report` (the film-linked run-gap chart and its exports), `e2e-reports-module-system`, `e2e-reports-view-parity`, `e2e-explosive-labels`, `e2e-self-scout` |

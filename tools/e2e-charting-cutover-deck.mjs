@@ -88,10 +88,10 @@ console.log('\n== 2. Family and Receiver Alignment are single selections ==');
   await P.chip('formationFamily', 'Beast'); await P.chip('receiverSet', '3x1'); await settle();
 }
 
-console.log('\n== 3. Gap sits under Play Direction and follows it ==');
+console.log('\n== 3. Gap sits under Play Direction and is independent ==');
 {
   await P.select(2);
-  ok((await page.evaluate(() => !document.querySelector('[data-native-tagging] [data-native-field="gap"]'))), 'no Gap field before a direction is charted');
+  ok((await page.evaluate(() => !!document.querySelector('[data-native-tagging] [data-native-field="gap"]'))), 'Gap is available without Direction');
   await P.chip('playDir', 'Right'); await settle();
   const geo = await page.evaluate(() => {
     const dir = document.querySelector('[data-native-tagging] [data-native-field="playDir"]');
@@ -106,32 +106,28 @@ console.log('\n== 3. Gap sits under Play Direction and follows it ==');
   await page.evaluate(() => window.app.history.reset());
   await P.chip('gap', 'L-B'); await settle();
   let t = await P.tags();
-  ok(t.gap === 'L-B' && t.playDir === 'Left', 'a sided Gap sets its Play Direction', JSON.stringify([t.gap, t.playDir]));
-  ok(await P.entries() === 1, 'the Gap and its direction are one undoable write', String(await P.entries()));
+  ok(t.gap === 'L-B' && t.playDir === 'Right', 'Gap preserves the existing Right Direction', JSON.stringify([t.gap, t.playDir]));
+  ok(await P.entries() === 1, 'Gap is one undoable write and leaves Direction unchanged', String(await P.entries()));
   await page.evaluate(() => window.app.history.undo()); await settle(); t = await P.tags();
   ok(t.gap === '' && t.playDir === 'Right', 'undo restores both fields together', JSON.stringify([t.gap, t.playDir]));
   await P.chip('gap', 'Center'); await settle(); t = await P.tags();
-  ok(t.gap === 'Center' && t.playDir === 'Middle', 'Center sets Middle');
+  ok(t.gap === 'Center' && t.playDir === 'Right', 'Center preserves Right');
   await P.chip('gap', 'Other'); await settle(); t = await P.tags();
-  ok(t.gap === 'Other' && t.playDir === 'Middle', 'Other leaves the direction alone');
+  ok(t.gap === 'Other' && t.playDir === 'Right', 'Other leaves the direction alone');
   await P.chip('gap', 'L-C'); await settle();
   await page.evaluate(() => window.app.history.reset());
-  await P.chip('playDir', 'Right'); await settle(); t = await P.tags();
-  ok(t.playDir === 'Right' && t.gap === '' && (await P.dialog()) === null, 'choosing another direction clears a contradictory Gap at once, with no prompt', JSON.stringify(t));
+  await P.chip('playDir', 'Middle'); await settle(); t = await P.tags();
+  ok(t.playDir === 'Middle' && t.gap === 'L-C' && (await P.dialog()) === null, 'Middle preserves a lateral Gap without a prompt', JSON.stringify(t));
   ok(await P.entries() === 1, 'and it is one undoable write');
   await P.chip('gap', 'R-A'); await settle();
   await page.evaluate(() => window.app.history.reset());
-  await P.chip('playDir', 'Right'); await settle();   // removing the direction
-  const message = await P.dialog();
-  ok(!!message && /Gap R-A/.test(message), 'removing the direction under a charted Gap asks first and names what it clears', String(message));
+  await P.chip('playDir', 'Middle'); await settle();
   let now = await P.tags();
-  ok(now.playDir === 'Right' && now.gap === 'R-A', 'nothing changes while the question is open');
-  await P.answer(false); await settle(); now = await P.tags();
-  ok(now.playDir === 'Right' && now.gap === 'R-A' && await P.entries() === 0, 'declining changes nothing and records nothing');
-  await P.chip('playDir', 'Right'); await settle(); await P.answer(true); await settle(); now = await P.tags();
-  ok(now.playDir === '' && now.gap === '' && await P.entries() === 1, 'confirming clears both in ONE undoable write', JSON.stringify(now) + ' entries ' + await P.entries());
+  ok((await P.dialog()) === null, 'removing Direction never asks to remove Gap');
+  ok(now.playDir === '' && now.gap === 'R-A' && await P.entries() === 1, 'removing Direction preserves Gap in one undoable write');
   await page.evaluate(() => window.app.history.undo()); await settle(); now = await P.tags();
-  ok(now.playDir === 'Right' && now.gap === 'R-A', 'undo brings the direction and the Gap back', JSON.stringify(now));
+  ok(now.playDir === 'Middle' && now.gap === 'R-A', 'undo restores Direction without changing Gap');
+
 }
 
 console.log('\n== 4. Motion path opens under Motion ==');
@@ -252,15 +248,10 @@ console.log('\n== 7b. Changing a Play Call asks before it clears charting ==');
   await settle();
   let t = await P.tags();
   ok(t.playCall === 'Sweep Left' && t.playDir === 'Left' && t.gap === 'L-A', 'Chart: a call sets its Direction and a Gap charts under it', JSON.stringify([t.playCall, t.playDir, t.gap]));
-  await ask("window.app.nativeTagging.selectPlayCall('Sweep Right')"); await sleep(200);
-  ok(/Gap L-A/.test(await P.dialog() || ''), 'Chart: a call that would clear the Gap asks and names it', String(await P.dialog()));
-  await P.answer(false); await sleep(200);
+  await ask("window.app.nativeTagging.selectPlayCall('Sweep Right')"); await sleep(250);
   t = await P.tags();
-  ok(await result() === false && t.playCall === 'Sweep Left' && t.playDir === 'Left' && t.gap === 'L-A', 'Chart: declining changes nothing', JSON.stringify([t.playCall, t.playDir, t.gap]));
-  await ask("window.app.nativeTagging.selectPlayCall('Sweep Right')"); await sleep(200);
-  await P.answer(true); await sleep(250);
-  t = await P.tags();
-  ok(t.playCall === 'Sweep Right' && t.playDir === 'Right' && t.gap === '', 'Chart: confirming applies the call and clears the Gap', JSON.stringify([t.playCall, t.playDir, t.gap]));
+  ok((await P.dialog()) === null, 'Chart: a Direction default needs no Gap-removal confirmation');
+  ok(t.playCall === 'Sweep Right' && t.playDir === 'Right' && t.gap === 'L-A', 'Chart: a call changes Direction and preserves Gap', JSON.stringify([t.playCall, t.playDir, t.gap]));
   // A call with nothing to clear applies at once.
   await page.evaluate(() => { window.app.nativeTagging.selectPlayCall('Sweep Left'); });
   await settle();
@@ -271,15 +262,11 @@ console.log('\n== 7b. Changing a Play Call asks before it clears charting ==');
   await settle();
   t = await P.tags();
   ok(t.playDir === 'Left' && t.gap === 'L-B', 'Film Room: the same call and Gap', JSON.stringify([t.playDir, t.gap]));
-  await ask("window.app.playGrid.nativeCommitEdit(3, 'playCall', 'Sweep Right')"); await sleep(200);
-  ok(/Gap L-B/.test(await P.dialog() || ''), 'Film Room: a call that would clear the Gap asks and names it', String(await P.dialog()));
-  await P.answer(false); await sleep(200);
+  await ask("window.app.playGrid.nativeCommitEdit(3, 'playCall', 'Sweep Right')"); await sleep(250);
   t = await P.tags();
-  ok(await result() === false && t.playCall === 'Sweep Left' && t.gap === 'L-B', 'Film Room: declining changes nothing', JSON.stringify([t.playCall, t.gap]));
-  await ask("window.app.playGrid.nativeCommitEdit(3, 'playCall', 'Sweep Right')"); await sleep(200);
-  await P.answer(true); await sleep(250);
-  t = await P.tags();
-  ok(t.playCall === 'Sweep Right' && t.playDir === 'Right' && t.gap === '', 'Film Room: confirming applies the call and clears the Gap', JSON.stringify([t.playCall, t.playDir, t.gap]));
+  ok((await P.dialog()) === null, 'Film Room: a Direction default needs no Gap-removal confirmation');
+  ok(t.playCall === 'Sweep Right' && t.playDir === 'Right' && t.gap === 'L-B', 'Film Room: a call changes Direction and preserves Gap', JSON.stringify([t.playCall, t.playDir, t.gap]));
+
 }
 
 console.log('\n== 8. Film Room edits the same fields ==');
@@ -310,8 +297,8 @@ console.log('\n== 8. Film Room edits the same fields ==');
     return out;
   });
   ok(r.lockedRead === null && r.lockedStart === null, 'a detail cell is locked while the field that opens it is blank');
-  ok(r.openGap && r.gapEdit.join() === 'L-A,Left', 'a Gap edit sets the direction, as in Chart', r.gapEdit.join());
-  ok(r.dirEdit.join() === ',Right', 'a contradicting direction edit clears the Gap, as in Chart', r.dirEdit.join());
+  ok(r.openGap && r.gapEdit.join() === 'L-A,', 'a Gap edit leaves blank Direction blank', r.gapEdit.join());
+  ok(r.dirEdit.join() === 'L-A,Right', 'a Direction edit preserves Gap', r.dirEdit.join());
   ok(r.openRead, 'an RPO detail cell opens where RPO is charted');
   ok(r.thenable && /RPO read Box/.test(r.message || '') && /RPO decision Give/.test(r.message || ''), 'removing RPO through Film Room asks first and names the details', String(r.message));
   ok(r.beforeAnswer.join() === 'RPO,Box', 'nothing changes while the question is open');
@@ -352,6 +339,8 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
   ok(['formationFamily','receiverSet','strength'].every(k => carry.includes(k)) && !carry.includes('receiverLook'), 'carry-forward owns only current fields');
   const csv = await page.evaluate(async () => {
     const app = window.app, storage = app.storage;
+    app.tagger.plays[0].tags.playDir = 'Middle';
+    app.tagger.plays[0].tags.gap = 'L-A';
     const original = storage._download;
     let blob;
     try { storage._download = value => { blob = value; }; storage.exportCsv(); }
@@ -363,6 +352,7 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
     return { text, count, tags: imported?.tags, refused, unchanged: app.tagger.plays.length === badBefore };
   });
   ok(csv.count > 0 && csv.tags.formationFamily === 'Bunch' && csv.tags.receiverSet === '1x3' && csv.tags.strength === 'Balanced', 'CSV round trip preserves Formation and Receiver Alignment');
+  ok(csv.tags.playDir === 'Middle' && csv.tags.gap === 'L-A', 'CSV round trip preserves independent Middle and lateral Gap');
   ok(csv.refused === 0 && csv.unchanged, 'invalid Receiver Alignment is refused before writing');
 }
 {

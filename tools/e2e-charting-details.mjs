@@ -10,6 +10,7 @@ import { StatsEngine } from '../js/stats-engine.js';
 import { PlayTagger } from '../js/play-tagger.js';
 import { PlayCallModel } from '../js/play-call-model.js';
 import { SeasonStore } from '../js/season-store.js';
+import { groupPlaysByDrive } from '../js/football-rules.js';
 
 let pass = 0, fail = 0;
 const ok = (value, label, extra = '') => { console.log(`${value ? '  PASS' : '  FAIL'}  ${label}${!value && extra ? ` -- ${extra}` : ''}`); value ? pass++ : fail++; };
@@ -17,6 +18,32 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 class MemoryStorage { constructor(seed = {}) { this.data = new Map(Object.entries(seed)); } getItem(k) { return this.data.get(k) ?? null; } setItem(k, v) { this.data.set(k, String(v)); } removeItem(k) { this.data.delete(k); } }
 
 console.log('\n== Vocabulary ==');
+{
+  const plays = [
+    { id: 1, tags: { unit: 'offense', driveNumber: '2' } },
+    { id: 2, tags: { unit: 'offense', driveNumber: '1' } },
+    { id: 3, tags: { unit: 'offense', driveNumber: '2' } },
+  ];
+  const before = JSON.stringify(plays);
+  const groups = groupPlaysByDrive(plays);
+  ok(same(groups.map(g => [g.number, g.plays.map(p => p.id)]), [['1', [2]], ['2', [1, 3]]]), 'assigned drives collect nonadjacent plays and override play-number order');
+  ok(JSON.stringify(plays) === before, 'drive grouping never changes stored plays');
+  const tags = { playDir: 'Middle', gap: 'L-A' };
+  ChartingDetails.settle(tags, 'gap');
+  ok(tags.playDir === 'Middle' && tags.gap === 'L-A' && !ChartingDetails.problems(tags).length, 'Middle and a precise lateral Gap remain independent');
+  for (const playDir of ['', 'Left', 'Middle', 'Right']) {
+    ok(!SeasonFormat.playProblems({ id: 1, tags: { unit: 'offense', playDir, gap: 'L-A' } }).length,
+      `format boundary accepts lateral Gap with Direction ${playDir || '(blank)'}`);
+  }
+  const passes = [
+    { id: 1, tags: { unit: 'offense', runPass: 'Pass', result: 'Gain', yardage: '8' } },
+    { id: 1, tags: { unit: 'offense', runPass: 'Pass', result: 'Incomplete', yardage: '0' } },
+  ];
+  const passing = new StatsEngine().compute(passes).passing;
+  ok(passing.attempts === 2, 'different games may reuse a play ID without losing a pass attempt', JSON.stringify(passing));
+  ok(passing.completionPct === '50.0' && passing.average === '4.0', 'season completion percentage and yards per attempt use both games');
+  ok(new StatsEngine().compute([{ id: 1, tags: { unit: 'offense', runPass: 'Pass', result: 'Incomplete + Interception' } }]).passing.attempts === 1, 'multiple outcomes on one pass still count one attempt');
+}
 ok(same(ChartingDetails.GAPS, ['L-A', 'L-B', 'L-C', 'L-D', 'R-A', 'R-B', 'R-C', 'R-D', 'Center', 'Other']), 'ten gap choices, L-A through R-D, Center, Other, in one order');
 ok(same(ChartingDetails.PATH_POINTS, ['Left', 'Middle', 'Right']), 'motion starts and ends use the offense left / middle / right');
 ok(same(ChartingDetails.RPO_READS, ['End', 'Apex', 'Box', 'Other']) && same(ChartingDetails.RPO_DECISIONS, ['Give', 'Keep', 'Throw']), 'RPO read and decision choices');
@@ -24,32 +51,32 @@ ok(same(ChartingDetails.QB_RUNS, ['Designed', 'Scramble', 'RPO Keeper']), 'QB ru
 ok(['2x2', '3x1', '2x1', '3x2'].every(v => ChartingDetails.RECEIVER_SETS.includes(v)), 'the approved receiver sets are offered');
 
 console.log('\n== Gap and direction ==');
-ok(ChartingDetails.gapDirection('L-C') === 'Left' && ChartingDetails.gapDirection('R-A') === 'Right' && ChartingDetails.gapDirection('Center') === 'Middle', 'a sided gap names its direction and Center is Middle');
+ok(ChartingDetails.gapDirection('L-C') === 'Left' && ChartingDetails.gapDirection('R-A') === 'Right' && ChartingDetails.gapDirection('Center') === 'Middle', 'report-only gap lateral classification remains available');
 ok(ChartingDetails.gapDirection('Other') === null && ChartingDetails.gapDirection('') === null, 'Other and blank name no direction');
 {
   const t = { playDir: '', gap: 'R-B' };
   ChartingDetails.settle(t, 'gap');
-  ok(t.playDir === 'Right' && t.gap === 'R-B', 'charting a sided gap sets its Play Direction');
+  ok(t.playDir === '' && t.gap === 'R-B', 'charting Gap leaves blank Direction blank');
   const c = { playDir: 'Left', gap: 'Center' };
   ChartingDetails.settle(c, 'gap');
-  ok(c.playDir === 'Middle', 'charting Center sets Middle, replacing another direction');
+  ok(c.playDir === 'Left', 'charting Center preserves the coach direction');
   const o = { playDir: 'Left', gap: 'Other' };
   ChartingDetails.settle(o, 'gap');
   ok(o.playDir === 'Left' && o.gap === 'Other', 'Other leaves the direction alone');
   const d = { playDir: 'Right', gap: 'L-A' };
   const cleared = ChartingDetails.settle(d, 'playDir');
-  ok(d.gap === '' && cleared.includes('gap'), 'a direction that contradicts the gap clears it');
+  ok(d.gap === 'L-A' && cleared.length === 0, 'changing Direction preserves Gap');
   const k = { playDir: 'Left', gap: 'L-A' };
   ChartingDetails.settle(k, 'playDir');
   ok(k.gap === 'L-A', 'the same direction keeps the gap');
-  ok(!ChartingDetails.gapAgrees('L-A', ''), 'a sided gap does not agree with a blank direction');
+  ok(ChartingDetails.problems({ gap: 'L-A', playDir: '' }).length === 0, 'Gap is valid without Direction');
 }
 {
   const tags = { playDir: 'Left', gap: 'L-B' };
   const change = ChartingDetails.orphans(tags, 'playDir', 'Right');
-  ok(change.length === 1 && change[0].key === 'gap' && change[0].coupled === true, 'choosing another direction is the approved clear (coupled)');
+  ok(change.length === 0, 'changing Direction orphans no Gap');
   const removal = ChartingDetails.orphans(tags, 'playDir', '');
-  ok(removal.length === 1 && removal[0].coupled === false, 'removing the direction is a removal the coach confirms');
+  ok(removal.length === 0, 'removing Direction orphans no Gap');
   ok(ChartingDetails.orphans(tags, 'playDir', 'Left').length === 0, 'an unchanged direction clears nothing');
   ok(ChartingDetails.orphans({ playDir: 'Left', gap: 'Other' }, 'playDir', 'Right').length === 0, 'Other never contradicts a direction');
 }
@@ -58,7 +85,7 @@ console.log('\n== Details need the field that opens them ==');
 {
   const motion = { motion: 'Jet', motionStart: 'Left', motionEnd: 'Right' };
   const gone = ChartingDetails.orphans(motion, 'motion', '');
-  ok(gone.map(o => o.key).sort().join() === 'motionEnd,motionStart' && gone.every(o => !o.coupled), 'removing Motion would clear its start and end');
+  ok(gone.map(o => o.key).sort().join() === 'motionEnd,motionStart', 'removing Motion would clear its start and end');
   ok(ChartingDetails.orphans(motion, 'motion', 'Orbit').length === 0, 'changing the motion type keeps its path');
   const rpo = { playType: 'RPO + Short Pass', rpoRead: 'Apex', rpoDefender: '24', rpoDecision: 'Throw' };
   ok(ChartingDetails.orphans(rpo, 'playType', 'Short Pass').length === 3, 'removing RPO would clear read, defender and decision');
@@ -68,7 +95,7 @@ console.log('\n== Details need the field that opens them ==');
   const t = { motion: '', motionStart: 'Left' };
   ok(same(ChartingDetails.settle(t, 'motion'), ['motionStart']) && t.motionStart === '', 'settle clears a detail whose opener is blank');
   ok(ChartingDetails.problems({ motionStart: 'Left' }).length === 1 && ChartingDetails.problems({ motion: 'Jet', motionStart: 'Left' }).length === 0, 'problems names a detail with no opener');
-  ok(ChartingDetails.problems({ playDir: 'Right', gap: 'L-A' }).length === 1, 'problems names a gap that disagrees with the direction');
+  ok(ChartingDetails.problems({ playDir: 'Right', gap: 'L-A' }).length === 0, 'different Direction and Gap are valid');
   ok(ChartingDetails.vocabularyProblems({ gap: 'L-Z' }).length === 1 && ChartingDetails.vocabularyProblems({ rpoDefender: 'abc' }).length === 1 && ChartingDetails.vocabularyProblems({ gap: '', rpoDefender: '24', qbRun: 'Designed' }).length === 0, 'a value the app does not offer is a problem; blank is not');
 }
 ok(ChartingDetails.rpoDecisionRunPass('Give') === 'Run' && ChartingDetails.rpoDecisionRunPass('Keep') === 'Run' && ChartingDetails.rpoDecisionRunPass('Throw') === 'Pass' && ChartingDetails.rpoDecisionRunPass('') === '', 'an RPO decision reads as run or pass');
@@ -152,7 +179,7 @@ console.log('\n== A play call and Special Teams keep the rules ==');
   const playbook = { list: () => [{ id: 'c1', name: 'Sweep', concept: '', defaults: { playDir: 'Right' } }], constructor: { DEFAULT_KEYS: ['playDir'] } };
   const play = { tags: { playDir: '', gap: 'L-A', playCallDefaults: {} } };
   PlayCallModel.apply(play, 'Sweep', playbook, () => '');
-  ok(play.tags.playDir === 'Right' && play.tags.gap === '', 'a call whose default direction contradicts a charted Gap clears the Gap');
+  ok(play.tags.playDir === 'Right' && play.tags.gap === 'L-A', 'a call direction preserves the charted Gap');
   const kept = { tags: { playDir: '', gap: 'R-A', playCallDefaults: {} } };
   PlayCallModel.apply(kept, 'Sweep', playbook, () => '');
   ok(kept.tags.playDir === 'Right' && kept.tags.gap === 'R-A', 'a call whose default agrees keeps it');
@@ -178,8 +205,8 @@ console.log('\n== Changing a Play Call says what it would clear ==');
   const play = charted();
   const before = JSON.stringify(play);
   const lost = PlayCallModel.losses(play, 'Sweep Right', playbook, () => '');
-  ok(lost.map(item => item.key).sort().join() === 'gap,motionEnd,motionStart' && lost.find(item => item.key === 'gap').value === 'L-A',
-    'switching a call whose Direction and Motion the new call replaces lists the Gap and the path it would clear', JSON.stringify(lost));
+  ok(lost.map(item => item.key).sort().join() === 'motionEnd,motionStart',
+    'switching a call whose Direction and Motion the new call replaces lists only the Motion path it would clear', JSON.stringify(lost));
   ok(JSON.stringify(play) === before, 'asking changes nothing');
   ok(PlayCallModel.losses(play, 'Sweep Left', playbook, () => '').length === 0, 'the same call clears nothing');
   const plain = { tags: { playDir: 'Left', motion: '', gap: 'L-B', playCallDefaults: {} } };

@@ -2,7 +2,37 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
-**S107-4 - Gap/Direction independence, APPROVED CHANGE / OPEN.** Coach approval,
+### Source repairs, 2026-09-30
+
+S107-2, S107-3 and S107-4 are **REPAIRED IN SOURCE / installed smoke pending**.
+The 1.12.0-107 installer does not contain these repairs. No new full gate,
+installer, installed approval or coach-data write was performed.
+
+- S107-2: passing attempts count qualifying plays once, without deduplicating
+  game-local play numbers. Multi-result passes still count once. The independent
+  live/canonical arithmetic audit now passes 4,344/4,344; live 2025 JV has 24
+  attempts, 62.5% completions and 6.8 yards/attempt. Catalog hash unchanged.
+- S107-3: collect nonadjacent assigned drives by possession side plus number,
+  sort drives numerically and plays within them by play number. Blank drives stay
+  unassigned; existing adjacent Special Teams ownership behavior is retained.
+  Both the pure model and rendered theater pin the out-of-order regression.
+- S107-4: deleted Gap/Direction coupling and its orphan-removal plumbing. Gap is
+  always available below Direction; either field can be blank, and neither
+  rewrites, clears or rejects the other. Existing Right charting is untouched.
+  Motion/RPO/QB-run trigger confirmations remain. Gap report lateral classification
+  remains report-only, so precise Gap cohorts and broad Direction cohorts differ
+  legitimately.
+
+Focused verification: charting-details, charting-cutover-deck,
+data-correctness-batch1, native-breakdown-theater, run-gap-report, parity and
+reports-season. Canonical parity changed only season attempts/completion%/YPA
+in stats and scout report (six scalar changes); all game scopes are unchanged.
+Visual check: actual built deck on a canonical-season copy at 1920x1080 shows
+Middle and L-A selected together, ten Gap chips on one row without clipping.
+No film was loaded in this scratch browser; desktop film smoke remains required.
+The findings below describe the pre-repair evidence, not current source behavior.
+
+**S107-4 - Gap/Direction independence, REPAIRED IN SOURCE.** Coach approval,
 2026-09-30: Direction is a broad subjective classification; Gap is additional
 precise lane measurement, not a prerequisite for useful direction statistics.
 Middle is not restricted to a play over Center; the coach describes it as between
@@ -10,14 +40,14 @@ the B gaps, with marginal decisions left to the coach. Neither field may infer,
 overwrite, reject or clear the other. Gap must remain usable/retained with blank
 Direction. Middle + L-A is valid; Center must not force Middle. All existing
 charting, including currently Right plays, stays unchanged. No migration.
-Current `ChartingDetails.gapDirection/gapAgrees/settle/orphans/problems` coupling
-and consumers must be updated consistently (deck, Film Room, imports, format
+The former `ChartingDetails` coupling and consumers were updated consistently
+(deck, Film Room, imports, format
 validation, reports/exports and focused tests); preserve independent gap and
 direction cohorts and exact film links. Existing comp geometry/vocabulary stays.
-No production repair yet. This supersedes the earlier approved coupling rule.
+The source repair above supersedes the earlier approved coupling rule.
 
 **S107-3 - P2, play strip groups adjacent runs instead of assigned drives,
-OPEN.** Coach reports assigned drive number should override play-number order.
+REPAIRED IN SOURCE.** Coach reports assigned drive number should override play-number order.
 Source reproduction in `js/football-rules.js:95`: offense plays 1/2/3 assigned
 drives 2/1/2 produce `Our Drive 2 [1]`, `Our Drive 1 [2]`, `Our Drive 2 [3]`.
 `groupPlaysByDrive` joins only the currently open adjacent group; it does not
@@ -27,7 +57,7 @@ Required approach: drive assignment controls grouping and ordering; play number
 orders plays within a drive, not the drive groups. Preserve separate possession
 sides for equal drive numbers and do not invent assignments for blank drives.
 The existing theater harness covers only already-contiguous drive assignments,
-so it does not detect this case. No product repair or coach-data write yet.
+so it did not detect this case. The new regression covers it; no coach-data write.
 
 Coach correction, 2026-09-30: OLL points discrepancy was a migration-related
 charting error, corrected by the coach; coach confirms total-points engine works.
@@ -36,8 +66,9 @@ values below are historical, not the current score after the coach's changes.
 
 Additional data verification: 3,300 independent checks passed for scoring,
 Special Teams, penalties, defensive takeaways/TD ownership, tackles and player
-season-to-game totals. No additional engine defect identified; S107-2 remains
-open. No duplicate roster jerseys or charted jerseys missing from season rosters.
+season-to-game totals. No additional engine defect identified; S107-2 was the
+only engine finding and is now repaired in source. No duplicate roster jerseys
+or charted jerseys missing from season rosters.
 Evidence: `docs/stats-extra-verification-1.12.0-107-2026-09-30.json`.
 
 **Charting reconciliation observations, not confirmed product defects:** saved
@@ -48,7 +79,7 @@ spot-check is needed to determine which events are incomplete or incorrect;
 nothing inferred, re-charted or rewritten by the audit.
 
 **S107-2 - P2, full-season passing attempts collapse repeated play numbers,
-OPEN.** Independently reproduced against the built app and its Season report
+REPAIRED IN SOURCE.** Independently reproduced against the pre-repair app and its Season report
 model. `js/stats-engine.js:2370` deduplicates attempt plays by bare `p.id`;
 different games reuse those IDs. Live 2025 JV: 24 attempts are reported as 20,
 15 completions as 75.0% instead of 62.5%, and 164 yards as 8.2 yards/attempt
@@ -67,8 +98,8 @@ yardage/film references, defense yardage/cohorts, rushing/passing player credits
 current-field drilldowns, detail-only invariance, RPO decisions and run/pass try
 exclusion. Evidence: `docs/stats-engine-verification-1.12.0-107-2026-09-30.json`.
 Existing `e2e-parity` passes 2/2 without updating goldens, demonstrating a golden
-correctness gap, not refuting the reproduced defect. No repair, coach-data write,
-gate rerun or new installer performed. Smoke remains pending.
+correctness gap, not refuting the reproduced defect. That audit preceded the
+source repair above; no coach-data write, gate rerun or new installer. Smoke remains pending.
 
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** Coach
 reviewed the existing controls and confirmed Bunch and Tight Bunch are acceptable

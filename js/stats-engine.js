@@ -2356,16 +2356,15 @@ export class StatsEngine {
     const completions = passPlays.filter(p =>
       StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')
     );
-    const incompletions = passPlays.filter(p => StatsEngine.hasResult(p, 'Incomplete'));
     const yards = passPlays.reduce((sum, p) => {
       if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return sum;
       return sum + (parseInt(p.tags.yardage) || 0);
     }, 0);
-    // Count each attempt PLAY once. Summing the three filters double-counted a
-    // play carrying two of the results (e.g. "Incomplete + Interception"), so a
-    // single pick could inflate attempts and deflate completion %.
-    const ints = passPlays.filter(p => StatsEngine.hasResult(p, 'Interception'));
-    const attempts = new Set([...completions, ...incompletions, ...ints].map(p => p.id)).size;
+    // One qualifying play is one attempt, even with multiple outcomes.
+    // Play IDs are game-local and must not deduplicate a season's attempts.
+    const attempts = passPlays.filter(p => StatsEngine.hasResult(p, 'Gain')
+      || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')
+      || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')).length;
 
     return {
       attempts,

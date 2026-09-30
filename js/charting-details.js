@@ -5,8 +5,7 @@
  * Chart, Film Room, CSV import and the analytics registry all read it.
  *
  *   Gap            where the ball actually hit (not the called gap). One value,
- *                  opened by Play Direction. A sided gap names its direction;
- *                  Center is Middle; Other names none.
+ *                  independent of the coach's Play Direction.
  *   Motion path    where the motion starts and ends (offense left / middle /
  *                  right), opened by Motion.
  *   RPO            read defender, an optional jersey number and the decision
@@ -14,9 +13,9 @@
  *   QB run         Designed / Scramble / RPO keeper, opened by the QB Run Play
  *                  Type.
  *
- * Nothing here infers a value: a blank stays uncharted. A detail is never
- * stored without the field that opens it, so removing that field clears its
- * details in the same write.
+ * Nothing here infers a value: a blank stays uncharted. Motion, RPO and QB-run
+ * details need their opening field; removing it clears them in the same write.
+ * Gap has no opening-field requirement.
  */
 export class ChartingDetails {
   static GAPS = Object.freeze(['L-A', 'L-B', 'L-C', 'L-D', 'R-A', 'R-B', 'R-C', 'R-D', 'Center', 'Other']);
@@ -50,7 +49,7 @@ export class ChartingDetails {
     rpoDecision: 'RPO decision', qbRun: 'QB run', gap: 'Gap',
   });
 
-  /** The Play Direction a gap implies, or null when it implies none. */
+  /** Lateral gap classification for reports only; never writes Play Direction. */
   static gapDirection(gap) {
     const value = clean(gap);
     if (value === 'Center') return 'Middle';
@@ -58,21 +57,10 @@ export class ChartingDetails {
     if (/^R-[A-D]$/.test(value)) return 'Right';
     return null;
   }
-
-  /** A gap agrees with a direction when it implies none (blank, Other) or the
-   *  direction is the one it implies. A sided gap under a blank direction is not
-   *  consistent: a sided gap sets its direction when it is charted. */
-  static gapAgrees(gap, direction) {
-    const implied = ChartingDetails.gapDirection(gap);
-    return implied === null || clean(direction) === implied;
-  }
-
   /**
    * What writing `next` to `tags[key]` would take away, before it is written:
-   * `[{ key, label, value, coupled }]` for every populated detail the write
-   * orphans. `coupled` is true for a Gap that a direction change contradicts
-   * (the approved interaction clears it on the spot); everything else is a
-   * detail whose opening field is being removed, which the coach confirms.
+   * `[{ key, label, value }]` for each populated triggered detail being removed.
+   * Callers obtain coach confirmation before clearing these details.
    */
   static orphans(tags, key, next) {
     const t = tags && typeof tags === 'object' ? tags : {};
@@ -81,31 +69,20 @@ export class ChartingDetails {
     for (const trigger of ChartingDetails.TRIGGERS) {
       if (!trigger.opened(t) || trigger.opened(after)) continue;
       for (const child of trigger.children) {
-        if (clean(t[child])) out.push({ key: child, label: ChartingDetails.CHILD_LABELS[child], value: clean(t[child]), coupled: false });
+        if (clean(t[child])) out.push({ key: child, label: ChartingDetails.CHILD_LABELS[child], value: clean(t[child]) });
       }
-    }
-    if (key === 'playDir' && clean(t.gap) && !ChartingDetails.gapAgrees(t.gap, next)) {
-      // Choosing another direction is the approved clear; removing the
-      // direction is a removal the coach confirms.
-      out.push({ key: 'gap', label: ChartingDetails.CHILD_LABELS.gap, value: clean(t.gap), coupled: !!clean(next) });
     }
     return out;
   }
 
   /**
-   * The consequences of a write that has just been applied to `tags`: a gap
-   * sets its direction, a direction that contradicts the gap clears it, and a
-   * detail whose opening field is gone is cleared. Returns the keys cleared.
+   * Clear details whose opening field is gone. Gap and Direction are independent.
+   * Returns the keys cleared.
    * Idempotent. Callers confirm removals first (`orphans`).
    */
   static settle(tags, key) {
     const cleared = [];
     if (!tags || typeof tags !== 'object') return cleared;
-    if (key === 'gap') {
-      const implied = ChartingDetails.gapDirection(tags.gap);
-      if (implied) tags.playDir = implied;
-    }
-    if (!ChartingDetails.gapAgrees(tags.gap, tags.playDir)) { tags.gap = ''; cleared.push('gap'); }
     for (const trigger of ChartingDetails.TRIGGERS) {
       if (trigger.opened(tags)) continue;
       for (const child of trigger.children) {
@@ -116,7 +93,7 @@ export class ChartingDetails {
   }
 
   /** Why a set of tags cannot be stored as charted: a detail without the field
-   *  that opens it, or a gap that disagrees with the direction. Empty when the
+   *  that opens it. Gap never requires a Direction. Empty when the
    *  tags hold together. CSV import refuses a row that fails this. */
   static problems(tags) {
     const t = tags && typeof tags === 'object' ? tags : {};
@@ -127,7 +104,6 @@ export class ChartingDetails {
         if (clean(t[child])) out.push(`${ChartingDetails.CHILD_LABELS[child]} needs ${trigger.id === 'motion' ? 'a Motion type' : trigger.id === 'rpo' ? 'the RPO Play Type' : 'the QB Run Play Type'}`);
       }
     }
-    if (clean(t.gap) && !ChartingDetails.gapAgrees(t.gap, t.playDir)) out.push(`Gap ${clean(t.gap)} disagrees with Play Direction ${clean(t.playDir) || '(blank)'}`);
     return out;
   }
 

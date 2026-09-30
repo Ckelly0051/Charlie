@@ -578,9 +578,7 @@ export class PlayTagger {
       }
     }
 
-    // A gap sets its direction, a direction that contradicts the gap clears it,
-    // and a detail whose opening field is gone is cleared, all in this one write
-    // (ChartingDetails). Chart and Film Room both come through here.
+    // Clear triggered details in this write. Gap and Direction remain independent.
     ChartingDetails.settle(play.tags, key);
 
     // Entering positive yardage with no result yet means a gain — fill the
@@ -613,7 +611,7 @@ export class PlayTagger {
   requestTagValue(key, value, { toggle = false, play = this.getCurrentPlay() } = {}) {
     if (!play) return false;
     const next = toggle ? this.toggledTagValue(key, value, play) : (value == null ? '' : value);
-    const removals = ChartingDetails.orphans(play.tags, key, next).filter(item => !item.coupled);
+    const removals = ChartingDetails.orphans(play.tags, key, next);
     const write = () => (toggle ? this.toggleTagValue(key, value, play) : this.setTagValue(key, value, play));
     if (!removals.length) return write();
     return this._confirmDialog(ChartingDetails.clearMessage(removals), 'Clear').then(ok => (ok ? write() : false));
