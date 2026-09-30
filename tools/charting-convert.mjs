@@ -1,12 +1,12 @@
 /**
- * THROWAWAY: the one-time Formation -> Formation / Receiver Distribution conversion
+ * THROWAWAY: the one-time Formation -> Formation / Receiver Alignment conversion
  * (GRIDIRON-IQ-PLAN-V2.md, "Approved Break Down charting comp - build contract",
  * item 3). Delete this file and tools/convert-charting-once.mjs after the live
  * conversion; nothing in js/ imports either.
  *
  * The old `tags.formation` field mixed family, receiver and package words in one
  * multi-select ("Spread + Doubles", "Trips + Unbalanced"). The current format
- * keeps Formation, numeric distribution, Receiver Strength and Line Balance separately, and has no
+ * keeps Formation, Receiver Alignment and Offensive Line Strength separately, and has no
  * `formation` field. This module decides, for one stored value, what it becomes,
  * and refuses to decide when the mapping does not say:
  *
@@ -22,7 +22,7 @@
  *   { "tokens": { "Trips": { "formationFamily": "Trips" }, "Ace": { "formationFamily": "Ace" },
  *                 "Victory": { "blank": true } },
  *     "combinations": { "Trips + Bunch": { "formationFamily": "Bunch" } },
- *     "plays":  { "<seasonId>|<gameId>|<playId>": { "formationFamily": "Tight Bunch", "receiverStrength": "Left" } } }
+ *     "plays":  { "<seasonId>|<gameId>|<playId>": { "formationFamily": "Tight Bunch", "receiverSet": "3x1" } } }
  * `blank` is the coach choosing to drop a token; the play is listed for re-charting
  * with its old value.
  */
@@ -35,8 +35,8 @@ export const OLD_KEY = 'formation';
 export const NEW_KEYS = ChartingDetails.KEYS;
 const clone = o => JSON.parse(JSON.stringify(o));
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
-const LOOK_KEYS = ['formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance'];
-const EXTRA_KEYS = ['receiverStrength', 'lineBalance'];
+const LOOK_KEYS = ['formationFamily', 'receiverSet', 'strength'];
+const EXTRA_KEYS = ['strength'];
 
 /** Tokens that are exactly a Formation in the current vocabulary. */
 export const DETERMINISTIC = Object.freeze(Object.fromEntries(
@@ -53,7 +53,7 @@ export function ruleFor(token, mapping) {
   return own || DETERMINISTIC[token] || null;
 }
 
-/** Check a mapping's own values: a Receiver Distribution must be one the app offers. */
+/** Check a mapping's own values: a Receiver Alignment must be one the app offers. */
 export function mappingProblems(mapping) {
   const out = [];
   const check = (where, rule) => {
@@ -64,7 +64,7 @@ export function mappingProblems(mapping) {
     }
     for (const key of LOOK_KEYS) if (rule[key] != null && typeof rule[key] !== 'string') out.push(`${where}: ${key} must be text`);
     if (rule.receiverSet && !ChartingDetails.RECEIVER_SETS.includes(rule.receiverSet)) out.push(`${where}: receiverSet "${rule.receiverSet}" is not offered`);
-    for (const [key, allowed] of [['receiverStrength', ChartingDetails.RECEIVER_STRENGTHS], ['lineBalance', ChartingDetails.LINE_BALANCES]]) {
+    for (const [key, allowed] of [['strength', ChartingDetails.LINE_STRENGTHS]]) {
       if (rule[key] && !allowed.includes(rule[key])) out.push(`${where}: ${key} "${rule[key]}" is not offered`);
     }
     for (const key of Object.keys(rule)) if (![...LOOK_KEYS, 'blank'].includes(key)) out.push(`${where}: unknown mapping field ${key}`);

@@ -32,9 +32,7 @@ export class PlayGrid {
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
     { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
     { key: 'formationFamily', label: 'Formation', type: 'enum', src: 'tagFormationFamily',       unit: 'offense' },
-    { key: 'receiverSet', label: 'Rec Set',   type: 'enum', src: 'tagReceiverSet',             unit: 'offense' },
-    { key: 'receiverStrength', label: 'Rec Strength', type: 'enum', src: 'tagReceiverStrength', unit: 'offense' },
-    { key: 'lineBalance', label: 'Line Balance', type: 'enum', src: 'tagLineBalance', unit: 'offense' },
+    { key: 'receiverSet', label: 'Rec Align', type: 'enum', src: 'tagReceiverSet',             unit: 'offense' },
     // QB Alignment, Backfield, Strength and Coverage Family are single-select
     // look fields, edited inline with the plain `enum` editor. Not in any
     // default preset, but available in the Columns menu like any other column.

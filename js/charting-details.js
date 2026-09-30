@@ -24,13 +24,18 @@ export class ChartingDetails {
   static RPO_READS = Object.freeze(['End', 'Apex', 'Box', 'Other']);
   static RPO_DECISIONS = Object.freeze(['Give', 'Keep', 'Throw']);
   static QB_RUNS = Object.freeze(['Designed', 'Scramble', 'RPO Keeper']);
-  /** Receiver counts; side is charted separately and never inferred here. */
-  static RECEIVER_SETS = Object.freeze(['2x2', '3x1', '2x1', '3x2', '1x1', '4x1', '2x0', '3x0']);
-  static RECEIVER_STRENGTHS = Object.freeze(['Left', 'Right', 'Balanced']);
-  static LINE_BALANCES = Object.freeze(['Balanced', 'Unbalanced']);
+  /** First count is left, second is right; personnel describes the total. */
+  static RECEIVER_SETS = Object.freeze(['0x1','0x2','0x3','0x4','0x5','1x0','1x1','1x2','1x3','1x4','2x0','2x1','2x2','2x3','3x0','3x1','3x2','4x0','4x1','5x0']);
+  static LINE_STRENGTHS = Object.freeze(['Left','Right','Balanced','Unbalanced Left','Unbalanced Right']);
+  static strengthSide(value) {
+    const v = typeof value === 'string' ? value.trim() : '';
+    if (v === 'Left' || v === 'Unbalanced Left') return 'Left';
+    if (v === 'Right' || v === 'Unbalanced Right') return 'Right';
+    return '';
+  }
 
   /** Every field this module owns on a play's tags. */
-  static KEYS = Object.freeze(['formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'gap', 'motionStart', 'motionEnd',
+  static KEYS = Object.freeze(['formationFamily', 'receiverSet', 'gap', 'motionStart', 'motionEnd',
     'rpoRead', 'rpoDefender', 'rpoDecision', 'qbRun']);
 
   /** Each opening field and the details it opens. */
@@ -41,7 +46,6 @@ export class ChartingDetails {
   ]);
 
   static CHILD_LABELS = Object.freeze({
-    receiverStrength: 'Receiver strength',
     motionStart: 'Motion start', motionEnd: 'Motion end', rpoRead: 'RPO read', rpoDefender: 'RPO defender',
     rpoDecision: 'RPO decision', qbRun: 'QB run', gap: 'Gap',
   });
@@ -132,9 +136,8 @@ export class ChartingDetails {
   static vocabularyProblems(tags) {
     const t = tags && typeof tags === 'object' ? tags : {};
     const checks = [
-      ['receiverStrength', 'Receiver Strength', ChartingDetails.RECEIVER_STRENGTHS],
-      ['lineBalance', 'Line Balance', ChartingDetails.LINE_BALANCES],
-      ['receiverSet', 'Receiver Distribution', ChartingDetails.RECEIVER_SETS], ['gap', 'Gap', ChartingDetails.GAPS],
+      ['strength', 'Offensive Line Strength', ChartingDetails.LINE_STRENGTHS],
+      ['receiverSet', 'Receiver Alignment', ChartingDetails.RECEIVER_SETS], ['gap', 'Gap', ChartingDetails.GAPS],
       ['motionStart', 'Motion Starts', ChartingDetails.PATH_POINTS], ['motionEnd', 'Motion Ends', ChartingDetails.PATH_POINTS],
       ['rpoRead', 'RPO Read', ChartingDetails.RPO_READS], ['rpoDecision', 'RPO Decision', ChartingDetails.RPO_DECISIONS],
       ['qbRun', 'QB Run Type', ChartingDetails.QB_RUNS],

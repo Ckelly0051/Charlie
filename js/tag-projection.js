@@ -3,7 +3,7 @@
  *
  * A look is stored in its own fields: formationFamily (the offense's structure,
  * one value), receiverSet (its receiver distribution, one value),
- * receiverStrength, lineBalance, qbAlignment,
+ * qbAlignment,
  * backfield, strength, coverage (the call) and coverageFamily. The old model
  * packed an alignment into formation ("Under Center + Flexbone"), 'Empty' into
  * formation and a family into coverage, and its single Formation field mixed
@@ -49,7 +49,6 @@ export class TagProjection {
     const t = tags && typeof tags === 'object' ? tags : {};
     const s = v => (typeof v === 'string' ? v : '');
     return { ...t, qbAlignment: s(t.qbAlignment), formationFamily: s(t.formationFamily), receiverSet: s(t.receiverSet),
-      receiverStrength: s(t.receiverStrength), lineBalance: s(t.lineBalance),
       backfield: s(t.backfield), coverage: s(t.coverage), coverageFamily: s(t.coverageFamily) };
   }
 
@@ -61,6 +60,6 @@ export class TagProjection {
    */
   static lookLabel(tags) {
     const p = this.project(tags);
-    return [p.qbAlignment, p.formationFamily, p.receiverStrength && `Receivers ${p.receiverStrength}`, p.lineBalance, p.receiverSet].filter(Boolean).join(' ');
+    return [p.qbAlignment, p.formationFamily, p.receiverSet].filter(Boolean).join(' ');
   }
 }

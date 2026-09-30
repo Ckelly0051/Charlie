@@ -1,4 +1,4 @@
-/* Charting cutover, Step 1 model contract: Formation / Receiver Distribution, Gap, motion
+/* Charting cutover, Step 1 model contract: Formation / Receiver Alignment, Gap, motion
    path, RPO, QB run and Reverse (GRIDIRON-IQ-PLAN-V2.md, "Approved Break Down
    charting comp - build contract"). Pure model checks; the deck, Film Room and CSV
    have their own harnesses. Run: node tools/e2e-charting-details.mjs */
@@ -89,7 +89,7 @@ console.log('\n== Formation library ==');
   ok(library.remove('formationFamily', 'Coach Beast') && !library.group('formationFamily').values.includes('Coach Beast'), 'a custom Family can be removed');
   ok(!library.remove('formationFamily', 'Power-I'), 'a built-in Family cannot be removed');
   ok(!library.add('formationFamily', 'Shotgun') && library.lastError?.owner === 'QB Alignment', 'an alignment is not a Family');
-  ok(!library.add('formationFamily', '3x1') && library.lastError?.owner === 'Receiver Distribution' && !library.add('formationFamily', '2 x 2'), 'a receiver distribution is not a Family');
+  ok(!library.add('formationFamily', '3x1') && library.lastError?.owner === 'Receiver Alignment' && !library.add('formationFamily', '2 x 2'), 'a receiver distribution is not a Family');
   ok(!library.add('formationFamily', 'Empty') && library.lastError?.owner === 'Backfield', 'Empty is not a Family');
   ok(library.add('formationFamily', 'Trips Right'), 'a value that only contains a receiver word is allowed');
 }
@@ -120,7 +120,7 @@ console.log('\n== Projection and format ==');
 {
   const tags = { formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun' };
   const p = TagProjection.project(tags);
-  ok(p.formationFamily === 'Spread' && p.receiverSet === '3x1', 'project reads Family and Receiver Distribution as stored');
+  ok(p.formationFamily === 'Spread' && p.receiverSet === '3x1', 'project reads Family and Receiver Alignment as stored');
   ok(TagProjection.project({}).receiverSet === '' && TagProjection.project({}).formationFamily === '', 'a blank play reads blank');
   ok(TagProjection.lookLabel(tags) === 'Shotgun Spread 3x1', 'the look label composes alignment, family and set', TagProjection.lookLabel(tags));
   ok(!('formation' in TagProjection.project({ formationFamily: 'Spread' })), 'projection publishes no formation field');
@@ -156,7 +156,7 @@ console.log('\n== A play call and Special Teams keep the rules ==');
   const kept = { tags: { playDir: '', gap: 'R-A', playCallDefaults: {} } };
   PlayCallModel.apply(kept, 'Sweep', playbook, () => '');
   ok(kept.tags.playDir === 'Right' && kept.tags.gap === 'R-A', 'a call whose default agrees keeps it');
-  ok(['formationFamily', 'receiverSet'].every(k => SeasonStore.ST_ALIGNMENT_KEYS.includes(k)) && !SeasonStore.ST_ALIGNMENT_KEYS.includes('formation'), 'a Special Teams play may hold no Family or Receiver Distribution, and no retired Formation');
+  ok(['formationFamily', 'receiverSet'].every(k => SeasonStore.ST_ALIGNMENT_KEYS.includes(k)) && !SeasonStore.ST_ALIGNMENT_KEYS.includes('formation'), 'a Special Teams play may hold no Family or Receiver Alignment, and no retired Formation');
   const st = { id: 1, tags: { unit: 'special', formationFamily: 'Spread', receiverSet: '3x1' } };
   SeasonStore.stripStAlignment(st);
   ok(st.tags.formationFamily === '' && st.tags.receiverSet === '', 'the strip clears them');

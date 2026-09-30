@@ -181,7 +181,7 @@ state=await page.evaluate(async()=>{
     click('playType',i%2?'Run Inside':'Run Outside');click('playType','RPO');click('result','Gain');
     await new Promise(r=>setTimeout(r,0));
     const active=root().querySelectorAll('[data-native-field="formationFamily"] button.is-active,[data-native-field="receiverSet"] button.is-active').length;
-    if(active!==2)throw new Error('Family and Receiver Distribution collapsed on play '+(i+1)+': '+active);
+    if(active!==2)throw new Error('Family and Receiver Alignment collapsed on play '+(i+1)+': '+active);
     if(i<19){command('Save & Next');await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(i===0){const saved=[...root().querySelectorAll('button')].find(b=>b.classList.contains('is-primary'));firstFeedback={controller:app.nativeTagging._saveConfirmed,text:saved?.textContent,cls:saved?.className};firstConfirmed=!!saved&&saved.textContent.trim()==='Saved'&&saved.classList.contains('is-confirmed')}}
   }
   const advancedTo=app.tagger.currentPlayId;
@@ -191,7 +191,7 @@ state=await page.evaluate(async()=>{
   app.storage.commitActive();await app.storage.seasonStore.persist();
   return{current:advancedTo,firstConfirmed,firstFeedback,plays:app.tagger.plays.map(p=>({id:p.id,formation:p.tags.formationFamily,set:p.tags.receiverSet,qb:p.tags.qbAlignment,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage,players:p.tags.players,grades:p.tags.grades,notes:p.notes}))};
 });
-ok(state.plays.length===20&&state.plays.every(p=>(p.formation==='Power-I'||p.formation==='Spread'||p.formation==='I-Form'||p.formation==='Split Back')&&['2x1','3x1'].includes(p.set)),'All 20 plays retain their Family and Receiver Distribution selections',JSON.stringify(state.plays.slice(0,3)));
+ok(state.plays.length===20&&state.plays.every(p=>(p.formation==='Power-I'||p.formation==='Spread'||p.formation==='I-Form'||p.formation==='Split Back')&&['2x1','3x1'].includes(p.set)),'All 20 plays retain their Family and Receiver Alignment selections',JSON.stringify(state.plays.slice(0,3)));
 ok(state.plays.every(p=>p.playType.includes('RPO')&&(p.playType.includes('Run Inside')||p.playType.includes('Run Outside'))&&p.result==='Gain'),'All 20 plays retain multi-select Play Type and Result',JSON.stringify(state.plays.slice(0,3)));
 ok(state.current===20,'Save & Next advances chronologically without collapse',JSON.stringify(state.current));
 ok(state.firstConfirmed&&state.plays[0].players.tackler==='55, 22'&&Number(state.plays[0].grades.tackler)===2&&state.plays[0].notes==='Two tacklers preserved','Native Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback',JSON.stringify({firstConfirmed:state.firstConfirmed,feedback:state.firstFeedback,play:state.plays[0]}));

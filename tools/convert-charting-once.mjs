@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * THROWAWAY: one-time Formation -> Formation / Receiver Distribution conversion tool
+ * THROWAWAY: one-time Formation -> Formation / Receiver Alignment conversion tool
  * (see tools/charting-convert.mjs). Delete after the live conversion.
  *
  *   node tools/convert-charting-once.mjs --inventory [--catalog <library.db>] [--mapping <m.json>] [--out <dir>]

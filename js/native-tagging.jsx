@@ -17,7 +17,7 @@ export const UNIT_CHOICES = [['offense', 'Offense'], ['defense', 'Defense'], ['s
 
 export const OPTIONS = {
   down:['1','2','3','4'], qbAlignment:['Under Center','Pistol','Shotgun'],
-  strength:['Right','Left','Balanced'], personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
+  strength:ChartingDetails.LINE_STRENGTHS.slice(), personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
   motion:['Jet','Orbit','Shift','Trade'], runPass:['Run','Pass'],
   // Play type is LIBRARY-managed, so its vocabulary has one owner
   // (TagLibrary.DEFINITIONS). This entry is the fallback PlayGrid's inline Film
@@ -30,8 +30,6 @@ export const OPTIONS = {
   hash:['Left','Middle','Right'], quarter:['Q1','Q2','Q3','Q4','OT'],
   // Owned by ChartingDetails, the one home of the run and motion detail vocabularies.
   receiverSet:ChartingDetails.RECEIVER_SETS.slice(), gap:ChartingDetails.GAPS.slice(),
-  receiverStrength:ChartingDetails.RECEIVER_STRENGTHS.slice(),
-  lineBalance:ChartingDetails.LINE_BALANCES.slice(),
   motionStart:ChartingDetails.PATH_POINTS.slice(), motionEnd:ChartingDetails.PATH_POINTS.slice(),
   rpoRead:ChartingDetails.RPO_READS.slice(), rpoDecision:ChartingDetails.RPO_DECISIONS.slice(), qbRun:ChartingDetails.QB_RUNS.slice(),
 };
@@ -84,8 +82,7 @@ function Field({screen, field, label, value, type='number', min, max, step, plac
 }
 
 const CALL_DEFAULT_LABELS = {
-  runPass:'Run / Pass', playType:'Play Type', playDir:'Direction', formationFamily:'Formation', receiverSet:'Receiver Distribution',
-  receiverStrength:'Receiver Strength', lineBalance:'Line Balance',
+  runPass:'Run / Pass', playType:'Play Type', playDir:'Direction', formationFamily:'Formation', receiverSet:'Receiver Alignment',
   qbAlignment:'QB Alignment', backfield:'Backfield', strength:'Offensive Line Strength',
   personnel:'Personnel', motion:'Motion',
 };
@@ -477,13 +474,12 @@ export function NativeTagging({screen}) {
         const offense = <Group key="off" title={side === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Formation & Call' : 'Formation & Call'} open={side !== 'defense'} syncOpen>
           <PlayCallField screen={screen} state={{ ...state, unit: side }}/>
           {chips('formationFamily','Formation',state.libraries.formationFamily,'','formationFamily')}
+          {chips('personnel','Personnel',OPTIONS.personnel)}
           {chips('qbAlignment','QB Alignment',OPTIONS.qbAlignment)}
           {chips('backfield','Backfield',state.libraries.backfield,'','backfield')}
           {chips('strength','Offensive Line Strength',OPTIONS.strength)}
-          {chips('receiverStrength','Receiver Strength',OPTIONS.receiverStrength)}
-          {chips('receiverSet','Receiver Distribution',OPTIONS.receiverSet)}
-          {chips('lineBalance','Line Balance',OPTIONS.lineBalance)}
-          {chips('personnel','Personnel',OPTIONS.personnel)}{chips('motion','Motion',OPTIONS.motion)}
+          {chips('receiverSet','Receiver Alignment',OPTIONS.receiverSet)}
+          {chips('motion','Motion',OPTIONS.motion)}
           {state.values.motion && <div class="gi-tag-detail gi-tag-pair" data-native-detail="motion">
             {chips('motionStart','Starts',OPTIONS.motionStart)}{chips('motionEnd','Ends',OPTIONS.motionEnd)}
           </div>}

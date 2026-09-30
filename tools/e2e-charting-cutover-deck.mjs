@@ -1,5 +1,5 @@
 /* Charting cutover, Step 1: the deck and Film Room behaviors of the owned fields
-   (Formation, Receiver Distribution, Gap, motion path, RPO, QB run, Reverse), driven
+   (Formation, Receiver Alignment, Gap, motion path, RPO, QB run, Reverse), driven
    through real clicks. GRIDIRON-IQ-PLAN-V2.md, "Approved Break Down charting comp -
    build contract". Run after build: node tools/e2e-charting-cutover-deck.mjs */
 import puppeteer from 'puppeteer';
@@ -56,30 +56,30 @@ console.log('\n== 1. Fields, order and copy ==');
     return { order, text: root.textContent, labels: [...root.querySelectorAll('.gi-tag-field-label')].map(n => n.textContent) };
   });
   const at = f => s.order.indexOf(f);
-  ok(at('formationFamily') > -1 && at('formationFamily') < at('qbAlignment') && at('qbAlignment') < at('backfield') && at('backfield') < at('receiverStrength') && at('receiverStrength') < at('receiverSet'), 'Formation, QB Alignment, Backfield and Receiver Strength precede Distribution', s.order.join());
+  ok(at('formationFamily') > -1 && at('personnel') === at('formationFamily') + 1 && at('qbAlignment') === at('personnel') + 1, 'Personnel immediately follows Formation and precedes QB Alignment', s.order.join());
   ok(!/optional/i.test(s.text) && !/select all/i.test(s.text), 'the deck carries no "optional" or "select all" subtext');
-  ok(s.labels.includes('Offensive Line Strength') && s.labels.includes('Receiver Strength'), 'Offensive Line Strength labels the existing strength field separately from Receiver Strength');
+  ok(s.labels.includes('Offensive Line Strength') && s.labels.includes('Receiver Alignment'), 'Offensive Line Strength labels the existing strength field separately from Receiver Alignment');
   const labelAlignment = await page.evaluate(() => {
     const selectors = ['[data-native-play-call]', '[data-native-field="formationFamily"]', '[data-native-field="backfield"]'];
     return selectors.map(selector => document.querySelector(`${selector} .gi-tag-field-label span`).getBoundingClientRect().left);
   });
   ok(Math.max(...labelAlignment) - Math.min(...labelAlignment) <= 1, 'collapsible and plain field labels share one left edge', JSON.stringify(labelAlignment));
   ok(await page.evaluate(() => [...document.querySelectorAll('.gi-chyron-k')].some(node => node.textContent.trim() === 'Formation & Call')), 'the film strip uses Formation & Call');
-  ok(s.labels.some(l => /^Formation/.test(l)) && s.labels.some(l => /^Receiver Distribution/.test(l)) && s.labels.some(l => /^Play Direction/.test(l)), 'the fields are labeled Formation, Receiver Distribution and Play Direction');
-  ok((await P.chips('receiverSet')).join() === '2x2,3x1,2x1,3x2,1x1,4x1,2x0,3x0', 'Receiver Distribution offers the distributions', (await P.chips('receiverSet')).join());
+  ok(s.labels.some(l => /^Formation/.test(l)) && s.labels.some(l => /^Receiver Alignment/.test(l)) && s.labels.some(l => /^Play Direction/.test(l)), 'the fields are labeled Formation, Receiver Alignment and Play Direction');
+  ok((await P.chips('receiverSet')).join() === '0x1,0x2,0x3,0x4,0x5,1x0,1x1,1x2,1x3,1x4,2x0,2x1,2x2,2x3,3x0,3x1,3x2,4x0,4x1,5x0', 'Receiver Alignment offers the distributions', (await P.chips('receiverSet')).join());
   const fam = await P.chips('formationFamily');
   ok(['Power-I', 'Split Back', 'Spread', 'Wing-T'].every(v => fam.includes(v)), 'the Family library offers Power-I and Split Back with the seeded vocabulary', fam.join());
   const heights = await page.evaluate(() => [...new Set([...document.querySelectorAll('[data-native-tagging] .gi-tag-chips button')].filter(b => b.getClientRects().length).map(b => Math.round(b.getBoundingClientRect().height)))]);
   ok(heights.join() === '27', 'every desktop chip is 27px tall', heights.join());
 }
 
-console.log('\n== 2. Family and Receiver Distribution are single selections ==');
+console.log('\n== 2. Family and Receiver Alignment are single selections ==');
 {
   await P.chip('formationFamily', 'Spread'); await P.chip('receiverSet', '3x1'); await settle();
   let t = await P.tags();
   ok(t.formationFamily === 'Spread' && t.receiverSet === '3x1', 'each stores its own field', JSON.stringify([t.formationFamily, t.receiverSet]));
   await P.chip('formationFamily', 'Wing-T'); await settle(); t = await P.tags();
-  ok(t.formationFamily === 'Wing-T' && t.receiverSet === '3x1' && (await P.active('formationFamily')).join() === 'Wing-T', 'choosing another Family replaces it and leaves the Receiver Distribution', JSON.stringify(t));
+  ok(t.formationFamily === 'Wing-T' && t.receiverSet === '3x1' && (await P.active('formationFamily')).join() === 'Wing-T', 'choosing another Family replaces it and leaves the Receiver Alignment', JSON.stringify(t));
   await P.chip('formationFamily', 'Wing-T'); await settle(); t = await P.tags();
   ok(t.formationFamily === '', 'choosing the active Family clears it');
   await page.evaluate(() => { window.app.tagger.getCurrentPlay().tags.formationFamily = 'Beast'; window.app.tagger._emit('play-updated', window.app.tagger.getCurrentPlay()); });
@@ -226,7 +226,7 @@ console.log('\n== 7. Templates and carry ==');
     const tg = window.app.tagger; tg._promptDialog = async () => 'Cutover Look';
     await tg.saveTemplate(); return tg._templateStore()['Cutover Look'];
   });
-  ok(saved.formationFamily === 'Spread' && saved.receiverSet === '2x2' && saved.motion === 'Orbit' && saved.motionStart === 'Left' && saved.motionEnd === 'Right', 'a template carries Family, Receiver Distribution, motion and its path', JSON.stringify(saved));
+  ok(saved.formationFamily === 'Spread' && saved.receiverSet === '2x2' && saved.motion === 'Orbit' && saved.motionStart === 'Left' && saved.motionEnd === 'Right', 'a template carries Family, Receiver Alignment, motion and its path', JSON.stringify(saved));
   ok(!('gap' in saved) && !('rpoRead' in saved) && !('qbRun' in saved), 'and none of what happened on the snap');
   await P.select(6);
   const applied = await page.evaluate(() => { window.app.tagger.applyTemplate('Cutover Look'); const t = window.app.tagger.getCurrentPlay().tags; return [t.formationFamily, t.receiverSet, t.motion, t.motionStart, t.motionEnd]; });
@@ -320,32 +320,36 @@ console.log('\n== 8. Film Room edits the same fields ==');
   ok(after.join() === 'Short Pass,,,1', 'confirming edits the type and clears its details in one write', after.join());
   const sheet = await page.evaluate(() => { const app = window.app; app.tagger.selectPlay(1); const s = app.breakdownTheater?._playSheet?.(app.tagger.getPlay(1)) || null; return s && s.groups.map(g => [g.title, g.rows.map(r => r.label)]); });
   const labels = sheet ? sheet.flatMap(([, rows]) => rows) : [];
-  ok(labels.includes('Formation') && labels.includes('Receiver distribution') && !labels.includes('Receiver look'), 'the play detail lists Formation and distribution without Receiver Look', labels.join());
+  ok(labels.includes('Formation') && labels.includes('Receiver alignment') && !labels.includes('Receiver look'), 'the play detail lists Formation and distribution without Receiver Look', labels.join());
 }
 
 console.log('\n== 9. Special Teams keeps no offensive look ==');
 {
   await P.select(1);
   ok(!(await P.chips('receiverLook')).length, 'no separate receiver look row remains');
-  ok((await P.chips('receiverStrength')).join() === 'Left,Right,Balanced', 'Receiver Strength is independently available');
+  ok(!(await P.chips('receiverStrength')).length, 'no redundant Receiver Strength field remains');
+  ok(!(await P.chips('lineBalance')).length, 'no redundant Line Balance field remains');
+  ok(JSON.stringify(await P.chips('strength')) === JSON.stringify(['Left','Right','Balanced','Unbalanced Left','Unbalanced Right']), 'Offensive Line Strength offers both explicit unbalanced directions');
+  await P.chip('strength', 'Unbalanced Right'); await settle();
+  ok((await P.tags()).strength === 'Unbalanced Right', 'Unbalanced Right writes the existing strength key');
   for (const name of ['Twins','Trips','Bunch','Tight Bunch']) ok((await P.chips('formationFamily')).includes(name), name + ' is a Formation choice');
-  await P.chip('receiverStrength', 'Left'); await P.chip('lineBalance', 'Unbalanced'); await P.chip('formationFamily', 'Tight Bunch'); await settle();
+  await P.chip('receiverSet', '3x1'); await P.chip('strength', 'Unbalanced Left'); await P.chip('formationFamily', 'Tight Bunch'); await settle();
   let t = await P.tags();
-  ok(t.formationFamily === 'Tight Bunch' && t.receiverStrength === 'Left' && t.lineBalance === 'Unbalanced', 'formation and strength are independent');
+  ok(t.formationFamily === 'Tight Bunch' && t.receiverSet === '3x1' && t.strength === 'Unbalanced Left', 'formation and strength are independent');
   await P.chip('formationFamily', 'Tight Bunch'); await settle();
   t = await P.tags();
-  ok(t.formationFamily === '' && t.receiverStrength === 'Left' && !(await P.dialog()), 'clearing Formation keeps Receiver Strength without a confirmation');
+  ok(t.formationFamily === '' && t.receiverSet === '3x1' && !(await P.dialog()), 'clearing Formation keeps Receiver Alignment without a confirmation');
   const r = await page.evaluate(() => {
     const app = window.app, p = app.tagger.getCurrentPlay(), grid = app.playGrid;
-    const available = grid.nativeEditor(p.id, 'receiverStrength') !== null;
+    const available = grid.nativeEditor(p.id, 'receiverSet') !== null;
     grid.nativeCommitEdit(p.id, 'formationFamily', 'Bunch');
-    grid.nativeCommitEdit(p.id, 'receiverStrength', 'Right');
-    grid.nativeCommitEdit(p.id, 'lineBalance', 'Balanced');
+    grid.nativeCommitEdit(p.id, 'receiverSet', '1x3');
+    grid.nativeCommitEdit(p.id, 'strength', 'Balanced');
     return { available, tags: p.tags };
   });
-  ok(r.available && r.tags.formationFamily === 'Bunch' && r.tags.receiverStrength === 'Right' && r.tags.lineBalance === 'Balanced', 'Film Room edits independent formation and strengths');
+  ok(r.available && r.tags.formationFamily === 'Bunch' && r.tags.receiverSet === '1x3' && r.tags.strength === 'Balanced', 'Film Room edits independent formation and strengths');
   const carry = await page.evaluate(() => window.app.tagger.constructor.CARRY_SCHEME_KEYS);
-  ok(['formationFamily','receiverStrength','lineBalance'].every(k => carry.includes(k)) && !carry.includes('receiverLook'), 'carry-forward owns only current fields');
+  ok(['formationFamily','receiverSet','strength'].every(k => carry.includes(k)) && !carry.includes('receiverLook'), 'carry-forward owns only current fields');
   const csv = await page.evaluate(async () => {
     const app = window.app, storage = app.storage;
     const original = storage._download;
@@ -355,18 +359,18 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
     const text = await blob.text(), before = app.tagger.plays.length;
     const count = storage.applyPlayImport(storage.importPlaysFromText(text));
     const imported = app.tagger.plays[before], badBefore = app.tagger.plays.length;
-    const refused = storage.applyPlayImport(storage.importPlaysFromText('Unit,Receiver Strength\noffense,Middle'));
+    const refused = storage.applyPlayImport(storage.importPlaysFromText('Unit,Receiver Alignment\noffense,0x0'));
     return { text, count, tags: imported?.tags, refused, unchanged: app.tagger.plays.length === badBefore };
   });
-  ok(csv.count > 0 && csv.tags.formationFamily === 'Bunch' && csv.tags.receiverStrength === 'Right' && csv.tags.lineBalance === 'Balanced', 'CSV round trip preserves Formation and Receiver Strength');
-  ok(csv.refused === 0 && csv.unchanged, 'invalid Receiver Strength is refused before writing');
+  ok(csv.count > 0 && csv.tags.formationFamily === 'Bunch' && csv.tags.receiverSet === '1x3' && csv.tags.strength === 'Balanced', 'CSV round trip preserves Formation and Receiver Alignment');
+  ok(csv.refused === 0 && csv.unchanged, 'invalid Receiver Alignment is refused before writing');
 }
 {
   await P.select(1);
   await page.evaluate(() => { window.app.tagger.getCurrentPlay().tags.formationFamily = 'Spread'; window.app.tagger.getCurrentPlay().tags.receiverSet = '3x1'; });
   await page.evaluate(() => window.app.nativeTagging.setUnit('special')); await settle();
   const t = await P.tags();
-  ok(t.formationFamily === '' && t.receiverSet === '' && !t.receiverLook && !t.receiverStrength && !t.lineBalance, 'a Special Teams play holds no offensive look fields', JSON.stringify(t));
+  ok(t.formationFamily === '' && t.receiverSet === '' && !t.receiverLook && !t.strength, 'a Special Teams play holds no offensive look fields', JSON.stringify(t));
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
 }
 

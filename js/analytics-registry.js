@@ -91,9 +91,7 @@ export class AnalyticsRegistry {
       // are single-value (multi:false) so a cross-tab places each play in one cell.
       ready('qbAlignment', 'QB Alignment', p => this._one(SE.proj(p).qbAlignment), 'TagProjection.project.qbAlignment'),
       ready('formationFamily', 'Formation', p => this._one(SE.proj(p).formationFamily), 'TagProjection.project.formationFamily'),
-      ready('receiverSet', 'Receiver Distribution', p => this._one(SE.proj(p).receiverSet), 'TagProjection.project.receiverSet'),
-      ready('receiverStrength', 'Receiver Strength', p => this._one(SE.proj(p).receiverStrength), 'TagProjection.project.receiverStrength'),
-      ready('lineBalance', 'Line Balance', p => this._one(SE.proj(p).lineBalance), 'TagProjection.project.lineBalance'),
+      ready('receiverSet', 'Receiver Alignment', p => this._one(SE.proj(p).receiverSet), 'TagProjection.project.receiverSet'),
       ready('backfield', 'Backfield', p => this._one(SE.proj(p).backfield), 'TagProjection.project.backfield'),
       ready('strength', 'Offensive Line Strength', p => this._one(SE.proj(p).strength), 'TagProjection.project.strength'),
       ready('personnel', 'Personnel', tag('personnel'), 'play.tags.personnel'),

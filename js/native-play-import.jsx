@@ -3,8 +3,8 @@ import '../css/native-play-import.css';
 
 const FIELD_OPTIONS = [
   ['unit', 'Unit'], ['quarter', 'Quarter'], ['driveNumber', 'Drive'], ['down', 'Down'], ['distance', 'Distance'],
-  ['fieldSide', 'Field Side'], ['yardLine', 'Yard Line'], ['formationFamily', 'Formation'], ['receiverSet', 'Receiver Distribution'],
-  ['receiverStrength', 'Receiver Strength'], ['lineBalance', 'Line Balance'], ['qbAlignment', 'QB Alignment'],
+  ['fieldSide', 'Field Side'], ['yardLine', 'Yard Line'], ['formationFamily', 'Formation'], ['receiverSet', 'Receiver Alignment'],
+  ['qbAlignment', 'QB Alignment'],
   ['backfield', 'Backfield'], ['strength', 'Offensive Line Strength'], ['personnel', 'Personnel'], ['motion', 'Motion'],
   ['motionStart', 'Motion Starts'], ['motionEnd', 'Motion Ends'],
   ['runPass', 'Run / Pass'], ['playType', 'Play Type'], ['playDir', 'Play Direction'], ['gap', 'Gap'],

@@ -1791,11 +1791,11 @@ export class StorageManager {
       'Field Side', 'Yard Line',
       // The pre-snap look exports through the one projection (GRIDIRON-IQ-TAG-MODEL.md
       // §20), so a CSV agrees with Film Room, Study, and analytics. Formation
-      // and Receiver Distribution are their own columns, as are QB Alignment and
+      // and Receiver Alignment are their own columns, as are QB Alignment and
       // Coverage Family; a blank exports blank ("Unknown" would read as a real
       // analytics category). The run and motion details follow the field that
       // opens them (ChartingDetails).
-      'Formation', 'Receiver Distribution', 'Receiver Strength', 'Line Balance', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Personnel', 'Motion',
+      'Formation', 'Receiver Alignment', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Personnel', 'Motion',
       'Motion Starts', 'Motion Ends',
       'Play Call', 'Play Call ID', 'Play Concept',
       'Run/Pass', 'Play Type', 'Play Dir', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type', 'Def Front',
@@ -1824,8 +1824,6 @@ export class StorageManager {
       p.tags.yardLine || '',
       look.formationFamily ?? '',
       look.receiverSet ?? '',
-      look.receiverStrength ?? '',
-      look.lineBalance ?? '',
       look.qbAlignment ?? '',
       look.backfield ?? '',
       look.strength ?? '',
@@ -1960,8 +1958,8 @@ export class StorageManager {
       // writes). Formation is a single coach-named value; combined look values
       // are refused during row validation, never split by an import reader.
       formation: 'formationFamily', formationfamily: 'formationFamily', family: 'formationFamily',
-      receiverdistribution: 'receiverSet', receiverset: 'receiverSet', recset: 'receiverSet',
-      receiverstrength: 'receiverStrength', linebalance: 'lineBalance', offensivestrength: 'strength', offensivelinestrength: 'strength',
+      receiveralignment: 'receiverSet', receiverdistribution: 'receiverSet', receiverset: 'receiverSet', recset: 'receiverSet',
+      offensivestrength: 'strength', offensivelinestrength: 'strength',
       motionstarts: 'motionStart', motionstart: 'motionStart', motionends: 'motionEnd', motionend: 'motionEnd',
       gap: 'gap', rporead: 'rpoRead', rpodefender: 'rpoDefender', rpodecision: 'rpoDecision',
       qbruntype: 'qbRun', qbrun: 'qbRun',
@@ -2004,7 +2002,7 @@ export class StorageManager {
     });
 
     // Never silently drop fields from the superseded receiver-look schema.
-    if (headers.some(h => ['form', 'offform', 'offenseformation', 'receiverlook', 'reclook', 'receiverside', 'recside'].includes(h))) {
+    if (headers.some(h => ['form', 'offform', 'offenseformation', 'receiverlook', 'reclook', 'receiverside', 'recside', 'receiverstrength', 'recstrength', 'linebalance'].includes(h))) {
       return { count: 0, error: SeasonFormat.MESSAGE };
     }
 

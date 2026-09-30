@@ -136,5 +136,5 @@ export function isPlayTagged(play) {
       && (!special.events.defensiveReturn || special.outcome.returnAward != null));
   }
   return !!special || !!(t.playType || t.result || t.runPass
-    || t.formationFamily || t.receiverSet || t.receiverStrength || t.lineBalance || t.defFront || t.coverage || t.blitz);
+    || t.formationFamily || t.receiverSet || t.defFront || t.coverage || t.blitz);
 }

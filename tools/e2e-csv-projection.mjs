@@ -1,6 +1,6 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* CSV EXPORT/IMPORT of the look fields (GRIDIRON-IQ-TAG-MODEL.md §20, coach
-   contract). Every look field is its own column: Formation, Receiver Distribution,
+   contract). Every look field is its own column: Formation, Receiver Alignment,
    QB Alignment, Backfield, Strength, Coverage Call, Coverage Family, and the run
    and motion details (Motion Starts/Ends, Gap, RPO Read/Defender/Decision, QB Run
    Type). Export writes the stored field; import stores each column in its own
@@ -100,7 +100,7 @@ const res = await page.evaluate(async () => {
     return i < 0 ? null : (parsed.lines[rowIdx][i] ?? '');
   };
 
-  const COLS = ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Coverage Call', 'Coverage Family'];
+  const COLS = ['Formation', 'Receiver Alignment', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Coverage Call', 'Coverage Family'];
   const KEYS = ['formationFamily', 'receiverSet', 'qbAlignment', 'backfield', 'strength', 'coverage', 'coverageFamily'];
   const DETAIL_COLS = ['Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type'];
 
@@ -166,7 +166,7 @@ const res = await page.evaluate(async () => {
     ['combined look hidden by a later alias', 'Formation,Formation Family\nShotgun + Trips,Spread'],
     ['combined look before a later current row', 'Formation Family,Formation\nSpread,Trips\nSpread,Shotgun + Trips'],
     ['identical duplicate columns', 'Formation,Formation\nSpread,Spread'],
-    ['manually duplicated mapping', 'First,Second\nLeft,Right', { 0: 'receiverStrength', 1: 'receiverStrength' }],
+    ['manually duplicated mapping', 'First,Second\n3x1,1x3', { 0: 'receiverSet', 1: 'receiverSet' }],
   ];
   const duplicateMappings = duplicateCases.map(([label, csv, colMap]) => {
     const parsed = sm.importPlaysFromText(csv);
@@ -193,23 +193,23 @@ const res = await page.evaluate(async () => {
     resolved, duplicateMappings, oldColumn, oldBeside, oldBesideAlias, detailMismatches, exportedDetails, importedDetails,
     headers, mismatches, formationLeak, imported, exportedLooks,
     exportedUnits, importedUnits, importedLooks, emptyRowResult,
-    row1: { formation: cell(0, 'Formation'), set: cell(0, 'Receiver Distribution'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Offensive Line Strength') },
+    row1: { formation: cell(0, 'Formation'), set: cell(0, 'Receiver Alignment'), qb: cell(0, 'QB Alignment'), strength: cell(0, 'Offensive Line Strength') },
     row2: { call: cell(1, 'Coverage Call'), family: cell(1, 'Coverage Family') },
     row3: { call: cell(2, 'Coverage Call'), family: cell(2, 'Coverage Family') },
-    row4: { formation: cell(3, 'Formation'), set: cell(3, 'Receiver Distribution'), qb: cell(3, 'QB Alignment'), backfield: cell(3, 'Backfield') },
+    row4: { formation: cell(3, 'Formation'), set: cell(3, 'Receiver Alignment'), qb: cell(3, 'QB Alignment'), backfield: cell(3, 'Backfield') },
     row6: COLS.map(c => cell(5, c)),
     legacy: { coverage: legacyPlay?.tags?.coverage, formation: legacyPlay?.tags?.formationFamily },
   };
 });
 
 // --- Column contract ---
-for (const col of ['Formation', 'Receiver Distribution', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Coverage Call', 'Coverage Family', 'Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type']) {
+for (const col of ['Formation', 'Receiver Alignment', 'QB Alignment', 'Backfield', 'Offensive Line Strength', 'Coverage Call', 'Coverage Family', 'Motion Starts', 'Motion Ends', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type']) {
   ok(res.headers.includes(col), `CSV header carries the "${col}" column`, JSON.stringify(res.headers));
 }
 
 // --- Projection, per column semantic ---
 ok(res.row1.formation === 'Spread' && res.row1.set === '3x1' && res.row1.qb === 'Shotgun',
-  'Formation, Receiver Distribution and QB Alignment export in their own columns',
+  'Formation, Receiver Alignment and QB Alignment export in their own columns',
   JSON.stringify(res.row1));
 ok(res.row1.strength === 'Right', 'Strength exports the coach\'s stored value');
 ok(res.row2.call === '' && res.row2.family === 'Man',

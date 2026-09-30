@@ -17,7 +17,7 @@ import { ChartingDetails } from './charting-details.js';
  *   - a combined look (an alignment inside the Formation, Empty inside
  *     it, a family inside Coverage): the look commit would still change it
  *   - the retired Formation field (one field that mixed family, receiver and
- *     package words; converted once into Formation and Receiver Distribution), on a
+ *     package words; converted once into Formation and Receiver Alignment), on a
  *     play or as a play call's saved default
  *   - a retired Special Teams tag (stType, kickOutcome, scoreFor, kickDistance,
  *     returnYards, hangTime, kickedTo)
@@ -28,7 +28,7 @@ import { ChartingDetails } from './charting-details.js';
  */
 export class SeasonFormat {
   static RETIRED_TAG_KEYS = Object.freeze(['stType', 'kickOutcome', 'scoreFor', 'kickDistance', 'returnYards', 'hangTime', 'kickedTo']);
-  static RETIRED_LOOK_KEYS = Object.freeze(['receiverLook', 'receiverSide']);
+  static RETIRED_LOOK_KEYS = Object.freeze(['receiverLook', 'receiverSide', 'receiverStrength', 'lineBalance']);
 
   static MESSAGE = 'This file uses an old GridIron IQ format and was not opened. Export it again from the current app.';
   static RESTORE_MESSAGE = 'This restore point was saved in an old format and cannot be restored. Nothing was changed.';
@@ -54,7 +54,7 @@ export class SeasonFormat {
       if (this.RETIRED_LOOK_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired receiver look field');
       if (this.RETIRED_TAG_KEYS.some(k => Object.prototype.hasOwnProperty.call(tags, k))) out.push('retired Special Teams tag');
       if (tags.custom != null && !Array.isArray(tags.custom)) out.push('custom tags not a list');
-      const receiver = { receiverStrength: tags.receiverStrength, lineBalance: tags.lineBalance };
+      const receiver = { receiverSet: tags.receiverSet };
       out.push(...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver));
     }
     // Checked whether or not the tags are usable.
@@ -89,7 +89,7 @@ export class SeasonFormat {
         const d = call.defaults, where = `play call ${call.name || ci + 1}`;
         if (this.RETIRED_LOOK_KEYS.some(k => Object.prototype.hasOwnProperty.call(d, k))) out.push({ where, problem: 'retired receiver look default' });
         if (TagProjection.isCombined(d)) out.push({ where, problem: 'combined look default' });
-        const receiver = { receiverStrength: d.receiverStrength, lineBalance: d.lineBalance };
+        const receiver = { receiverSet: d.receiverSet };
         for (const problem of [...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver)]) out.push({ where, problem });
       }
     });

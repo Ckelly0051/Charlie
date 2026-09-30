@@ -17,7 +17,7 @@ const test = (label, fn) => {
 };
 
 const tags = (o = {}) => ({
-  down: '', distance: '', formationFamily: '', receiverSet: '', receiverStrength: '', lineBalance: '', backfield: '', strength: '', personnel: '',
+  down: '', distance: '', formationFamily: '', receiverSet: '', backfield: '', strength: '', personnel: '',
   motion: '', runPass: '', playType: '', result: '', yardage: '', coverage: '',
   defFront: '', blitz: '', unit: 'offense', players: {}, grades: {}, ...o,
 });
@@ -86,7 +86,7 @@ test('6 · isCombined passes every current look, a family and a receiver set inc
 test('16 · (E1-R9) ST invariant: any op ending unit:special leaves ST keys blank', () => {
   // liveness: forbidden values are PRESENT first, then stripped by the op.
   const st = legacyPlay(1, {
-    unit: 'special', formationFamily: 'Spread', receiverSet: '3x1', receiverStrength: 'Left', lineBalance: 'Unbalanced', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', receiverSet: '3x1', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverageFamily: 'Zone', coverage: 'Cover 3',
   });
   // prove they are present before the op
@@ -125,7 +125,7 @@ test('16d · (E2-R1) Same-as-Last onto an ST result strips forbidden fields', ()
   // A legacy ST source carrying forbidden alignment. Copying it forward must not
   // reproduce those values on the resulting ST play (E1-R9 invariant, any op).
   const src = legacyPlay(40, {
-    unit: 'special', formationFamily: 'Spread', receiverStrength: 'Left', lineBalance: 'Unbalanced', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   });
   const cur = legacyPlay(41, { unit: 'offense' });
@@ -144,7 +144,7 @@ test('16e · (E2-R1) template application onto an ST result strips forbidden fie
   const pt = Object.create(PlayTagger.prototype);
   pt.getCurrentPlay = () => cur;
   pt._templateStore = () => ({ leaky: {
-    unit: 'special', formationFamily: 'Spread', receiverStrength: 'Left', lineBalance: 'Unbalanced', qbAlignment: 'Shotgun',
+    unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
   } });
   pt._updateTimeline = () => {}; pt._emit = () => {};

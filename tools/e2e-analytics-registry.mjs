@@ -160,7 +160,7 @@ if (!result.missing) {
   // H19 added dirVsStrength/dirVsHash as registered dimensions so the two reads
   // a defensive coordinator asks for pivot against everything else rather than
   // living in two hardcoded tables.
-  const expectedMatrix = ['formationFamily','receiverSet','receiverStrength','lineBalance','qbAlignment','backfield','strength','playType','down','distBucket','personnel','defFront','coverage','coverageFamily','hash','playDir','gap','qbRun','rpoRead','rpoDecision','motion','quarter','runPass','dirVsStrength','dirVsHash'];
+  const expectedMatrix = ['formationFamily','receiverSet','qbAlignment','backfield','strength','playType','down','distBucket','personnel','defFront','coverage','coverageFamily','hash','playDir','gap','qbRun','rpoRead','rpoDecision','motion','quarter','runPass','dirVsStrength','dirVsHash'];
   ok(JSON.stringify([...result.matrixIds].sort()) === JSON.stringify(expectedMatrix.sort()),
     'every current Matrix dimension is pinned exactly, with no retired receiver dimension');
   ok(result.matrixValues.distBucket[0] === 'Med (4-6)' && result.matrixValues.runPass[0] === 'Pass', 'Legacy Matrix distance/run-pass behavior is explicit');

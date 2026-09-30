@@ -276,9 +276,7 @@ export class BreakdownTheaterScreen {
     } else {
       const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent Formation & Call' : 'Formation & Call', rows: [
         row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation', tags.formationFamily),
-        row('Receiver distribution', tags.receiverSet),
-        row('Receiver strength', tags.receiverStrength),
-        row('Line balance', tags.lineBalance),
+        row('Receiver alignment', tags.receiverSet),
         row('Personnel', tags.personnel), row('QB alignment', tags.qbAlignment), row('Backfield', tags.backfield),
         row('Offensive line strength', tags.strength), row('Motion', tags.motion),
         // A detail is listed while the field that opens it is charted.

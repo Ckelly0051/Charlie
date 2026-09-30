@@ -49,7 +49,7 @@ export class StatsEngine {
    *  everything else, so one dynamic-key display projects the six and passes the
    *  rest through unchanged. EDITORS must never call this — they read and write the
    *  coach's stored value (§20). */
-  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'receiverStrength', 'lineBalance', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
+  static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
     // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
     // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
@@ -1840,7 +1840,7 @@ export class StatsEngine {
       source.filter(p => p.tags.playDir === name)), isRelative: false }));
     const relativeDirection = play => {
       const direction = String(play.tags.playDir || '').trim();
-      const strength = String(StatsEngine.proj(play).strength || '').trim();
+      const strength = ChartingDetails.strengthSide(StatsEngine.proj(play).strength);
       if (!['Left', 'Right'].includes(direction) || !['Left', 'Right'].includes(strength)) return '';
       return direction === strength ? 'Toward Strength' : 'Away from Strength';
     };
@@ -2154,14 +2154,14 @@ export class StatsEngine {
 
     /* STRENGTH. A relationship needs a charted direction AND a charted
        strength; missing either is excluded, never inferred. */
-    const sided = ps.filter(p => ['Left', 'Right'].includes(p.tags.playDir) && ['Left', 'Right'].includes(S.proj(p).strength));
+    const sided = ps.filter(p => ['Left', 'Right'].includes(p.tags.playDir) && !!ChartingDetails.strengthSide(S.proj(p).strength));
     const balanced = ps.filter(p => S.proj(p).strength === 'Balanced' && String(p.tags.playDir || '').trim());
     const strengthEligible = [...sided, ...balanced];
     const eligibleRuns = strengthEligible.filter(S.isRun).length;
     const eligiblePasses = strengthEligible.filter(S.isPass).length;
     const strength = [
-      ['Toward strength', sided.filter(p => p.tags.playDir === S.proj(p).strength)],
-      ['Away from strength', sided.filter(p => p.tags.playDir !== S.proj(p).strength)],
+      ['Toward strength', sided.filter(p => p.tags.playDir === ChartingDetails.strengthSide(S.proj(p).strength))],
+      ['Away from strength', sided.filter(p => p.tags.playDir !== ChartingDetails.strengthSide(S.proj(p).strength))],
       ['Balanced strength', balanced],
     ].map(([name, cohort]) => {
       const row = summarize(cohort);
@@ -4150,8 +4150,6 @@ export class StatsEngine {
       case 'qbAlignment': return p => isOff(p) && (StatsEngine.proj(p).qbAlignment || '') === val;
       case 'formationFamily': return p => isOff(p) && StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).includes(val);
       case 'receiverSet': return p => isOff(p) && (StatsEngine.proj(p).receiverSet || '') === val;
-      case 'receiverStrength': return p => isOff(p) && (StatsEngine.proj(p).receiverStrength || '') === val;
-      case 'lineBalance': return p => isOff(p) && (StatsEngine.proj(p).lineBalance || '') === val;
       // The run and motion details (ChartingDetails): one stored value each, a
       // blank is uncharted and never matches.
       case 'gap': return p => isOff(p) && (p.tags.gap || '') === val;
@@ -4390,9 +4388,7 @@ export class StatsEngine {
   static _matrixDimensions() {
     return [
       { id: 'formationFamily',  label: 'Formation',  extract: p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily) },
-      { id: 'receiverSet', label: 'Receiver Distribution', extract: p => [StatsEngine.proj(p).receiverSet || ''].filter(Boolean) },
-      { id: 'receiverStrength', label: 'Receiver Strength', extract: p => [StatsEngine.proj(p).receiverStrength || ''].filter(Boolean) },
-      { id: 'lineBalance', label: 'Line Balance', extract: p => [StatsEngine.proj(p).lineBalance || ''].filter(Boolean) },
+      { id: 'receiverSet', label: 'Receiver Alignment', extract: p => [StatsEngine.proj(p).receiverSet || ''].filter(Boolean) },
       { id: 'qbAlignment', label: 'QB Alignment', extract: p => [StatsEngine.proj(p).qbAlignment || ''].filter(Boolean) },
       { id: 'backfield',  label: 'Backfield',  extract: p => [StatsEngine.proj(p).backfield || ''].filter(Boolean) },
       { id: 'strength',   label: 'Offensive Line Strength',   extract: p => [StatsEngine.proj(p).strength || ''].filter(Boolean) },
@@ -4427,8 +4423,9 @@ export class StatsEngine {
          distinct buckets rather than being counted as Toward or Away. */
       { id: 'dirVsStrength', label: 'Direction vs Strength', extract: p => {
         const dir = String(p.tags.playDir || '').trim();
-        const str = String(StatsEngine.proj(p).strength || '').trim();
-        if (!dir || !str) return [];
+        const rawStrength = String(StatsEngine.proj(p).strength || '').trim();
+        const str = ChartingDetails.strengthSide(rawStrength);
+        if (!dir || !rawStrength) return [];
         if (str !== 'Left' && str !== 'Right') return ['Balanced strength'];
         if (dir === 'Middle') return ['Middle'];
         return [dir === str ? 'Toward strength' : 'Away from strength'];
@@ -5418,9 +5415,9 @@ export class StatsEngine {
       return { key: gap, gap, held: rows.length === 0, share: charted.length ? rows.length / charted.length * 100 : null, ...measure(rows) };
     });
     const sided = charted.filter(p => ChartingDetails.gapDirection(gapOf(p)) === 'Left' || ChartingDetails.gapDirection(gapOf(p)) === 'Right');
-    const withStrength = sided.filter(p => ['Left', 'Right'].includes(S.proj(p).strength));
-    const toward = withStrength.filter(p => ChartingDetails.gapDirection(gapOf(p)) === S.proj(p).strength);
-    const away = withStrength.filter(p => ChartingDetails.gapDirection(gapOf(p)) !== S.proj(p).strength);
+    const withStrength = sided.filter(p => !!ChartingDetails.strengthSide(S.proj(p).strength));
+    const toward = withStrength.filter(p => ChartingDetails.gapDirection(gapOf(p)) === ChartingDetails.strengthSide(S.proj(p).strength));
+    const away = withStrength.filter(p => ChartingDetails.gapDirection(gapOf(p)) !== ChartingDetails.strengthSide(S.proj(p).strength));
     const typeCounts = new Map();
     for (const p of cohort.filter(gapOf)) for (const name of typesOf(p)) {
       const label = name === 'Unknown' ? 'No play type' : name;

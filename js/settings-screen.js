@@ -188,10 +188,9 @@ export class SettingsScreen {
       playDir:['Left','Middle','Right'],
       formationFamily:this.chartingSnapshot('formationFamily').enabled,
       receiverSet:[...ChartingDetails.RECEIVER_SETS],
-      receiverStrength:[...ChartingDetails.RECEIVER_STRENGTHS], lineBalance:[...ChartingDetails.LINE_BALANCES],
       qbAlignment:['Under Center','Pistol','Shotgun'],
       backfield:this.chartingSnapshot('backfield').enabled,
-      strength:['Left','Right','Balanced'],
+      strength:[...ChartingDetails.LINE_STRENGTHS],
       personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
       motion:['Jet','Orbit','Shift','Trade'],
     };

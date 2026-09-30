@@ -8,9 +8,9 @@ export class TagLibrary {
   // old combined shape (TagProjection.isCombined). Matched case-insensitively.
   static RESERVED = Object.freeze({
     formationFamily: { values: TagProjection.PICKER_EXCLUDE.formationFamily,
-      owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : v === 'Empty' ? 'Backfield' : 'Line Balance',
-      // A receiver distribution ("3x1") is the Receiver Distribution, never a Family.
-      pattern: /^\d+\s*x\s*\d+$/i, patternOwner: 'Receiver Distribution' },
+      owner: v => TagProjection.QB_ALIGNMENTS.includes(v) ? 'QB Alignment' : v === 'Empty' ? 'Backfield' : 'Offensive Line Strength',
+      // A receiver distribution ("3x1") is the Receiver Alignment, never a Family.
+      pattern: /^\d+\s*x\s*\d+$/i, patternOwner: 'Receiver Alignment' },
     backfield: { values: TagProjection.PICKER_EXCLUDE.backfield, owner: () => 'QB Alignment' },
     coverage: { values: TagProjection.PICKER_EXCLUDE.coverage, owner: () => 'Coverage Family' },
   });
@@ -32,10 +32,9 @@ export class TagLibrary {
   static DEFINITIONS = {
     // Classification-critical fields (down, result, run/pass, QB alignment,
     // coverage family, strength and direction) intentionally remain fixed, and so
-    // does the Receiver Distribution (a numeric distribution, ChartingDetails.RECEIVER_SETS).
-    // The Formation is the offense's structure, one value per play; the
-    // package and receiver words the old Formation field mixed in (Trips, Twins,
-    // Bunch, Goal Line...) are not built in here.
+    // does the Receiver Alignment (a numeric distribution, ChartingDetails.RECEIVER_SETS).
+    // Formation is one coach-named value, including receiver formations such
+    // as Trips, Twins and Bunch; alignment counts stay in Receiver Alignment.
     formationFamily: ['Spread','Power-I','I-Form','Split Back','Singleback','Wing-T','Flexbone','Wishbone','Wildcat','Double Wing','Single Wing','Ace','Twins','Trips','Doubles','Bunch','Tight Bunch','Beast','Victory'],
     backfield: ['Single','Split','I','Power','Offset','Strong','Weak','Diamond','Empty'],
     front: ['Maverick','Eagle','Falcon','Jumbo Shift','4-3','3-4','4-4','5-2','5-3','6-2','3-3-5','4-2-5','Nickel','Dime','Quarter','4-6'],
