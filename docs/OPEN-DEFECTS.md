@@ -2,6 +2,24 @@
 
 ## Smoke 1.12.0-107, 2026-09-30
 
+**S107-3 - P2, play strip groups adjacent runs instead of assigned drives,
+OPEN.** Coach reports assigned drive number should override play-number order.
+Source reproduction in `js/football-rules.js:95`: offense plays 1/2/3 assigned
+drives 2/1/2 produce `Our Drive 2 [1]`, `Our Drive 1 [2]`, `Our Drive 2 [3]`.
+`groupPlaysByDrive` joins only the currently open adjacent group; it does not
+collect all plays belonging to the same assigned drive. The theater uses it at
+`js/breakdown-theater-screen.js:595`, and the native strip renders those groups.
+Required approach: drive assignment controls grouping and ordering; play number
+orders plays within a drive, not the drive groups. Preserve separate possession
+sides for equal drive numbers and do not invent assignments for blank drives.
+The existing theater harness covers only already-contiguous drive assignments,
+so it does not detect this case. No product repair or coach-data write yet.
+
+Coach correction, 2026-09-30: OLL points discrepancy was a migration-related
+charting error, corrected by the coach; coach confirms total-points engine works.
+Do not treat that observation as a scoring-engine defect. Earlier read-only audit
+values below are historical, not the current score after the coach's changes.
+
 Additional data verification: 3,300 independent checks passed for scoring,
 Special Teams, penalties, defensive takeaways/TD ownership, tackles and player
 season-to-game totals. No additional engine defect identified; S107-2 remains

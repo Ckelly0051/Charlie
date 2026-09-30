@@ -111,6 +111,16 @@ Week 2 0-13 -> 0-12; Week 5 13-13 -> 14-6; SJM Varsity 2026 Week 3
 additional confirmed arithmetic bugs. No score or scoring event was rewritten;
 do not infer an uncharted try/TD or change ownership to force a match.
 
+Coach follow-up, 2026-09-30: OLL discrepancy was a migration-related charting
+error, now corrected by the coach; total-points engine confirmed working by the
+coach. Audit score observations above describe the earlier captured data only.
+
+**S107-3 - Drive grouping, OPEN.** Assigned drive must take precedence over
+play-number order. Reproduced in the shared theater grouping owner: plays 1/2/3
+assigned drives 2/1/2 create two separate Drive 2 groups. Current implementation
+groups only adjacent runs, not all members of the assigned drive. No repair yet;
+keep opposing possession sides separate and never guess blank drive assignments.
+
 **S107-1 - Formation vocabulary, WITHDRAWN by coach, 2026-09-30.** After
 reviewing the existing controls, the coach confirmed Bunch and Tight Bunch are
 acceptable as separate formations for now. Keep the current single-select
