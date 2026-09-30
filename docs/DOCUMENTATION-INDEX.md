@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-28.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-29.
 
 ## Current Authority
 
@@ -58,8 +58,10 @@ This section is the one place release state is kept current.
   refusal of the retired `formation` key. The supplemental visual-finish comp
   supplied only the Gap interaction and spacing. Live coach data is NOT
   converted: `docs/CHARTING-CUTOVER.md` holds the impact report and the words
-  awaiting the coach's decision. No full gate, installer or installed approval
-  exists for it. BD-UX-1 and BD-UX-2 remain open in `docs/OPEN-DEFECTS.md`.
+  awaiting the coach's decision. Source verification: full build and gate
+  141/141, zero skipped and zero failed at `d5b27c10` on 2026-09-29.
+  No installer or installed approval exists for it. BD-UX-1 and BD-UX-2 remain
+  open in `docs/OPEN-DEFECTS.md`.
   The coach's 2026-09-29 correction supersedes the receiver-look follow-up:
   Formation accepts Twins, Trips, Bunch and Tight Bunch; Backfield and QB
   Alignment stay separate. Personnel follows Formation before QB Alignment.

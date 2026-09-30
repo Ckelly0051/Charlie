@@ -1,5 +1,11 @@
 # Testing
 
+Charting-cutover verification, 2026-09-29: full build and gate at `d5b27c10`,
+**141 harnesses green, zero skipped, zero failed**. Repairs cover disclosure-arrow
+sizing, run-gap export wording, canonical round-trip input, the Formation header
+locator and the formation-model result-line format. No assertions were removed.
+No live conversion, installer or installed smoke was performed.
+
 Harnesses are `tools/e2e-*.mjs`, each a standalone Node script that prints a
 result line and exits non-zero on failure. Enumerate them from the filesystem;
 never keep a count in prose. Most drive the built app in headless Chromium

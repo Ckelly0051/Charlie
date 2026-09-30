@@ -2,6 +2,11 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Final source verification: **full build and gate 141/141 at `d5b27c10`,
+zero skipped and zero failed**. This supersedes the pending-rerun notes below.
+No live conversion, installer or installed smoke was performed; BD-UX-1/2
+and the live cutover retain their existing approval checkpoints.
+
 Fourth gate follow-up: the run at `c78ee3bd` reached the formation-model
 harness, whose 15 assertions passed but whose custom summary was not a valid
 gate result line. The harness now prints the standard `== RESULT: ... ==`
@@ -40,7 +45,8 @@ Three findings from 843154e8..c4940657 are **REPAIRED IN SOURCE**, not installed
   unapproved and wrong-value changes still fail.
 
 Failing-first regression checks and seven focused suites passed, including
-analytics parity. No coach data was touched. No full gate, package or smoke;
+analytics parity, followed by the full gate recorded above. No coach data was
+touched; no package or smoke;
 BD-UX-1/2 and the live cutover remain pending their existing checkpoints.
 
 ## Break Down next update (coach finding, 2026-09-28)
@@ -82,7 +88,8 @@ has the counts, the field mapping and the rehearsal proof). Open until the
 coach decides compound mappings. Exact single names remain coach-named
 Formation choices under the 2026-09-29 correction. The full live/snapshot
 impact report must be refreshed with current rules before approval. No installed
-acceptance is claimed and no gate has run for this change. Review of
+acceptance is claimed. Full gate 141/141 at `d5b27c10` on 2026-09-29.
+Review of
 `19b2ed1..94fb5b8` (2026-09-29) found four defects, repaired with failing-first
 tests: a Play Call that replaces a Direction, Motion or Play Type now names the
 Gap, path or RPO detail it would clear and waits (Chart and Film Room); a CSV
@@ -106,7 +113,7 @@ Earlier 298/198 conversion counts are superseded; the full impact must be
 rehearsed again before coach approval. Compound mappings and the existing
 rehearsal takeaway-text differences still need review. The Previous formations
 bridge remains tools-cutover work: remove after conversion before packaging.
-No live write, gate, installer or installed acceptance.
+Full gate passed as recorded above. No live write, installer or installed acceptance.
 
 Full-screen visual review, 2026-09-29: two P3 findings repaired in source on
 the coach's instruction. The offensive film strip and play-sheet group now

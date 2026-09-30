@@ -125,7 +125,8 @@ or game data.
    Balance are removed. No inference. Changing Formation never clears strength. All consumers use this
    one schema; old receiverLook/receiverSide shapes are refused. Built in source,
    IMPLEMENTED_UNVERIFIED; app/comp captures are in artifacts/receiver-look-review/.
-   No live write, gate or installer. The prior 298/198 rehearsal counts are
+   Full build and gate passed 141/141 at `d5b27c10` on 2026-09-29, zero skipped
+   and zero failed. No live write or installer. The prior 298/198 rehearsal counts are
    superseded; refresh the impact report with current rules before approval.
 2. **New play details.** Gap records the actual lane hit. Under Play Direction,
    show one desktop row of L-A through L-D, R-A through R-D, Center, and Other

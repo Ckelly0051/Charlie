@@ -1,8 +1,9 @@
 # Charting cutover (roadmap Step 1): record and coach decision
 
-Status, 2026-09-28: **source built through the deck, Film Room, CSV, analytics,
+Status, 2026-09-29: **source built through the deck, Film Room, CSV, analytics,
 the run-gap report and the converter (IMPLEMENTED_UNVERIFIED); no coach data has
-been written, no full gate has run and no installer exists.** The live conversion waits for the
+been written and no installer exists. Full build and gate passed 141/141 at
+`d5b27c10`, zero skipped and zero failed.** The live conversion waits for the
 coach's answers in "Decisions needed" and an explicit yes immediately before the
 write (`GRIDIRON-IQ-PLAN-V2.md`, build contract item 3).
 
@@ -58,7 +59,7 @@ historical, NOT the current conversion impact. Exact single names now keep
 their names as Formation; compound words still require explicit decisions.
 Refresh the full copy-only rehearsal and impact report before any live approval.
 
-Current verification: build and 21 focused harnesses pass (Formation model
+Earlier focused verification (before the full gate above): build and 21 focused harnesses pass (Formation model
 13/13, deck/Film Room/CSV 88/88, scratch conversion 37/37, tag model 26/26).
 Both analytics goldens remain unchanged. Reintroducing the Tight Bunch
 restriction fails the formation regression; the mutation was restored.
