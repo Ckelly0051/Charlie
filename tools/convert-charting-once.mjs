@@ -166,7 +166,7 @@ const strip = season => JSON.parse(JSON.stringify(season, (k, v) => (k === 'upda
 
 /** What must not change: identity, film references, every tag but the Formation ones, every non-tag play field. */
 export function proveSeason(before, after, mapping = emptyMapping(), seasonId = before.id) {
-  const proof = { identity: true, filmRefs: true, unrelatedTags: true, otherPlayFields: true, gameFields: true, analyticsUnexpected: [], analyticsChanged: [], details: [] };
+  const proof = { identity: true, filmRefs: true, unrelatedTags: true, otherPlayFields: true, gameFields: true, takeawayProjection: true, analyticsUnexpected: [], analyticsChanged: [], details: [] };
   const relatedTag = k => k === OLD_KEY || NEW_KEYS.includes(k);
   const approvedStrength = (play, gameId) => {
     if (!play.tags || !has(play.tags, OLD_KEY)) return undefined;
@@ -215,8 +215,21 @@ export function proveSeason(before, after, mapping = emptyMapping(), seasonId = 
       return strength === undefined ? play : { ...play, tags: { ...play.tags, strength } };
     });
     const originalStats = stats(g.plays, g.id), convertedStats = stats(after.games[gi].plays, g.id);
+    // Recompute the entire ranked list from original plays with only the
+    // approved Formation and strength. Never trust the converted recommendation.
+    const projected = expected.map(play => {
+      if (!play.tags || !has(play.tags, OLD_KEY)) return play;
+      const d = decide(play.tags[OLD_KEY], mapping, `${seasonId}|${g.id}|${play.id}`);
+      if (!['blank', 'convert'].includes(d.status)) return play;
+      return { ...play, tags: { ...play.tags, formationFamily: d.status === 'convert' ? d.formationFamily : (play.tags.formationFamily || '') } };
+    });
+    const takeawayMatches = JSON.stringify(stats(projected, g.id).takeaways) === JSON.stringify(convertedStats.takeaways);
+    if (!takeawayMatches) proof.takeawayProjection = false;
     for (const p of paths(originalStats, convertedStats)) changed.add(p.replace(/\.\d+/g, '[]'));
-    for (const p of paths(stats(expected, g.id), convertedStats)) unexpected.add(p.replace(/\.\d+/g, '[]'));
+    for (const p of paths(stats(expected, g.id), convertedStats)) {
+      if (takeawayMatches && p.startsWith('takeaways.')) continue;
+      unexpected.add(p.replace(/\.\d+/g, '[]'));
+    }
   });
   proof.analyticsChanged = [...changed].sort();
   proof.analyticsUnexpected = [...unexpected].sort().filter(p => !/ormation|look|Look|bigCall|calls|Calls|identity|Identity|matchup|Matchup|predict|tells|Tells|scout|Scout|diversity|Diversity/.test(p));
@@ -314,7 +327,7 @@ export async function apply({ backupDir, approvedPath, mapping, catalogPath = LI
   if (remaining.length) throw new Error(`converted catalog still holds the retired Formation in: ${remaining.join(', ')}. Nothing written.`);
   for (const season of report.seasons) {
     const proof = season.proof;
-    const checks = ['identity', 'filmRefs', 'unrelatedTags', 'otherPlayFields', 'gameFields', 'roundTrip'];
+    const checks = ['identity', 'filmRefs', 'unrelatedTags', 'otherPlayFields', 'gameFields', 'roundTrip', 'takeawayProjection'];
     if (!proof || checks.some(key => proof[key] !== true) || proof.currentFormat !== 0 || proof.analyticsUnexpected.length) {
       throw new Error(`conversion proof or current-format validation failed for season ${season.id}. Nothing written.`);
     }

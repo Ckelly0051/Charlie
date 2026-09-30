@@ -2,6 +2,13 @@
 
 ## Charting adversarial review, 2026-09-29
 
+2026-09-30 takeaway blocker repaired in tools: exact expected ranked lists are
+recomputed from original plays plus approved Formation/strength, not blanket
+exempted. Converter 45/45; real mapped copies have zero unexpected analytics.
+Coach authorized verified archive retirement of the 34 incompatible backups
+and 94 versions, keeping 42/52; execution receipt pending. Live charting
+conversion still requires separate immediate confirmation.
+
 Coach-mapped rehearsal, 2026-09-30: all 496 Formation values resolve (four
 explicitly blanked). Current-format and preservation proofs pass. Takeaway
 proof and handling of 34 incompatible restore points / 94 versions remain;

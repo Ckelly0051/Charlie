@@ -1,5 +1,10 @@
 # Testing
 
+Cutover tools checkpoint, 2026-09-30: conversion/takeaway proof 45/45;
+temporary history-archive safety 13/13. Synthetic data only. The takeaway
+regressions fail before the repair and reject a blanket-exemption mutation.
+These focused checks are not a new full gate or installed approval.
+
 Charting-cutover verification, 2026-09-29: full build and gate at `d5b27c10`,
 **141 harnesses green, zero skipped, zero failed**. Repairs cover disclosure-arrow
 sizing, run-gap export wording, canonical round-trip input, the Formation header

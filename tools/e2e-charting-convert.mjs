@@ -64,6 +64,23 @@ const mkPlay = (id, formation, extra = {}) => ({ id, timestamp: { start: id, end
 const season = id => ({ version: 5, type: 'season', id, seasonName: `Season ${id}`, team: 'T', year: '2025', level: 'JV', roster: [], activeGameId: `${id}-g1`,
   playbook: { version: 1, calls: [{ id: 'call_a', name: 'A', concept: '', favorite: false, defaults: { formation: 'Power-I' } }] }, plans: [],
   games: [{ id: `${id}-g1`, name: 'Wk1', gameInfo: {}, status: 'active', nextId: 6, plays: [mkPlay(1, 'Power-I'), mkPlay(2, 'Spread + Trips'), mkPlay(3, 'Trips'), mkPlay(4, ''), mkPlay(5, 'Ace')] }] });
+
+console.log('\n== Takeaway proof: exact approved Formation, not a blanket exemption ==');
+{
+  const before = season('takeaways');
+  before.games[0].plays = Array.from({ length: 12 }, (_, i) => mkPlay(i + 1, 'Power-I', { yardage: '8' }));
+  const after = structuredClone(before);
+  for (const play of after.games[0].plays) convertPlay(play, emptyMapping(), `takeaways|takeaways-g1|${play.id}`);
+  const good = proveSeason(before, after);
+  ok(good.analyticsChanged.includes('takeaways.fix') && good.analyticsChanged.includes('takeaways.working') && good.analyticsUnexpected.length === 0 && good.takeawayProjection === true, 'formation recommendations and top-five ranking match the exact approved projection', JSON.stringify(good));
+  for (const play of after.games[0].plays) play.tags.formationFamily = 'Trips';
+  const wrongName = proveSeason(before, after);
+  ok(wrongName.takeawayProjection === false && wrongName.analyticsUnexpected.some(p => p.startsWith('takeaways.')), 'a different Formation recommendation is refused even though it is formation-derived', JSON.stringify(wrongName));
+  for (const play of after.games[0].plays) play.tags.formationFamily = 'Power-I';
+  after.games[0].plays.forEach(play => { play.tags.yardage = '-8'; play.tags.result = 'Loss'; });
+  const wrongYards = proveSeason(before, after);
+  ok(wrongYards.takeawayProjection === false && wrongYards.analyticsUnexpected.some(p => p.startsWith('takeaways.')), 'an unrelated performance change cannot hide inside takeaway ranking', JSON.stringify(wrongYards));
+}
 async function makeCatalog(dir) {
   const cat = new SqlCatalog(SQL); await cat.open();
   cat.saveSeason(season('a')); cat.saveSeason(season('b'));

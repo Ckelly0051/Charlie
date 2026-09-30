@@ -99,6 +99,27 @@ do not blanket-ignore all takeaway differences. Rerun after coach mappings.
 
 ## Next
 
+2026-09-30 takeaway proof repair: recompute the complete ranked recommendation
+lists from original plays with only the explicitly approved Formation and
+strength. Exempt takeaway differences only when those exact expected lists
+equal the converted lists, including ordering, scores, text and film-cut keys.
+No blanket takeaway whitelist. Three failing-first checks cover expected
+ranking, wrong Formation and unrelated performance changes; converter 45/45.
+A blanket-exemption mutation fails the two refusal checks; restored afterward.
+All three mapped live-season copies now pass `takeawayProjection`, with zero
+unexpected analytics differences. No live season conversion has occurred.
+
+The coach authorized archive/verify/hash-matched retirement of incompatible
+history, keeping compatible records. Read-only independent inventory confirms
+34 backups and 94 versions to retire, keeping 42 backups and 52 versions.
+Temporary retirement tooling is outside the app. Synthetic archive checks
+pass 13/13, including corruption and race refusal, preserved live tables,
+compatible history, archive hashes and receipts. Live retirement receipt pending.
+
+The final cutover deliverable must include the coach's re-chart checklist:
+season, game, visible play number, durable play ID and original value for each
+deliberately blanked live play (currently four Unbalanced plays).
+
 ### Coach-Mapped Rerun
 
 The explicit mapping resolves all 496 nonblank old Formation records across
