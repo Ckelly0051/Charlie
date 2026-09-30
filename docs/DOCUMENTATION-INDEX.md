@@ -70,6 +70,9 @@ This section is the one place release state is kept current.
   and removed on coach authorization: 34 backups / 94 versions; 42/52 kept.
   Live seasons remain unconverted. Current impact and re-chart checklist:
   `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
+  Additional full current-state backup verified 2026-09-30 under
+  `D:\Football\Film\GridIronIQ-Backups\current-state-2026-09-30-b10094cf`
+  (data, managed film, desktop settings, Documents mirror and source bundle).
   Source verification: full build and gate
   141/141, zero skipped and zero failed at `d5b27c10` on 2026-09-29.
   No installer or installed approval exists for it. BD-UX-1 and BD-UX-2 remain

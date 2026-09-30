@@ -7,6 +7,21 @@ immediate live-write confirmation remain prerequisites.
 
 ## History Retirement Complete
 
+### Additional Current-State Backup
+
+Coach requested a full current-state backup before proceeding. Verified backup:
+`D:\Football\Film\GridIronIQ-Backups\current-state-2026-09-30-b10094cf`.
+Contains app data including managed film (591 files), complete desktop settings
+profile (798 files), Documents mirror (109 files) and a verified complete Git
+bundle at `70c68884`. Total: 1,499 files, 15,536,970,855 bytes. Every copied
+file passed SHA-256 and size comparison; its source hash was checked again
+after copying. Linked film remains in its original location, not duplicated.
+`MANIFEST.json` and `BACKUP-RECEIPT.json` are in the backup folder; receipt
+status `BACKUP_VERIFIED`. Manifest SHA-256:
+`8A76CC38A7FC5D3A07DF6549DA8E494E2755D0C6EEDE13CB6083DAE79B0E80CC`.
+This is the history-cleaned, still-unconverted live state. No live data write
+or charting conversion occurred during backup.
+
 Coach authorized verified archival and removal of incompatible history while
 keeping compatible records. Exactly 34 catalog restore points and 94 game
 versions were archived and removed. 42 restore points and 52 versions remain,
