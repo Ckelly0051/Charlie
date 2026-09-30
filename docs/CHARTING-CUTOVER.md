@@ -25,6 +25,13 @@ Receiver Strength remains the separate `receiverStrength` field.
 Verified with CSV projection 39/39 and charting cutover deck 89/89; the populated
 canonical page was recaptured and the source fixture hash stayed unchanged.
 
+Visual-review follow-up, 2026-09-29: Formation & Call is the offensive group
+name in the deck, film strip and play sheet (scout: Opponent Formation & Call).
+Collapse arrows sit in the group gutter without indenting the label text.
+Verified by charting cutover deck 91/91, play sheet 27/27, geometry 46/46 and
+the native tagging/theater harnesses. Canonical captures at 1920 and 1280
+were inspected; no coach data, font size or chip size changed.
+
 Adversarial-review repair, 2026-09-29: the final CSV column mapping may target
 each field only once. Duplicate Formation aliases, including ones hiding an old
 combined look, and duplicate manual mappings are refused before any write.

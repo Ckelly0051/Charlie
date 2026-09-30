@@ -62,6 +62,15 @@ rehearsal takeaway-text differences still need review. The Previous formations
 bridge remains tools-cutover work: remove after conversion before packaging.
 No live write, gate, installer or installed acceptance.
 
+Full-screen visual review, 2026-09-29: two P3 findings repaired in source on
+the coach's instruction. The offensive film strip and play-sheet group now
+say Formation & Call (Opponent Formation & Call for scout film), matching
+the deck. Collapsible field arrows occupy the existing group gutter so Play
+Call and Play Type labels share the plain fields' left edge; disclosure
+behavior, typography and chip dimensions are unchanged. Five focused harnesses
+pass and canonical-data captures were inspected at 1920 and 1280. No coach
+data changes, full gate, installer or installed approval.
+
 CSV mapping review, 2026-09-29: **P2 repaired in source; installed verification
 pending.** Formation and Formation Family headers could map to the same field,
 silently overwriting a supplied formation or hiding a combined look before

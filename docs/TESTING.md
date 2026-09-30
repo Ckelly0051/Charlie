@@ -77,6 +77,11 @@ aliases, a hidden combined look, duplicate headers and manually duplicated
 targets. Refusal leaves plays and nextId unchanged and emits no save; unmapping
 the extra column permits retry. Six added checks; 39/39 overall.
 
+Visual follow-up (2026-09-29): `e2e-charting-cutover-deck` asserts the shared
+left edge of Play Call, Formation and Backfield labels, plus Formation & Call
+in the film strip. `e2e-film-room-sheet` pins the matching play-sheet title.
+Geometry and native tagging/theater harnesses remain unchanged and pass.
+
 Formation correction (2026-09-29): `e2e-receiver-look` covers coach-named
 formations, independent Receiver Strength, old-schema refusal, Line Balance, exact conversion conflicts,
 combination mapping and analytics film filters. `e2e-charting-cutover-deck`

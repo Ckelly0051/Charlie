@@ -274,7 +274,7 @@ export class BreakdownTheaterScreen {
         row('Scored by', st?.outcome?.score ? side(SpecialTeamsModel.scoringTeam(st)) : ''),
       ] });
     } else {
-      const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent offensive look' : 'Our offensive look', rows: [
+      const offense = { key: 'offense', title: unit === 'defense' ? 'Offense faced' : scout ? 'Opponent Formation & Call' : 'Formation & Call', rows: [
         row('Play call', tags.playCall), row('Concept', tags.playConcept), row('Formation', tags.formationFamily),
         row('Receiver distribution', tags.receiverSet),
         row('Receiver strength', tags.receiverStrength),
@@ -391,7 +391,7 @@ export class BreakdownTheaterScreen {
       lookLabel = 'Offense Faced';
       lookValue = offenseLook;
     } else {
-      ourLabel = scout ? 'Opponent Offensive Look' : 'Our Offensive Look';
+      ourLabel = scout ? 'Opponent Formation & Call' : 'Formation & Call';
       ourValue = offenseLook;
       ourTone = 'off';
       lookLabel = 'Defense Faced';

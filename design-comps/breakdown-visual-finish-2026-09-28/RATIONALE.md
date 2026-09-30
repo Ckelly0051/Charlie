@@ -88,6 +88,11 @@ show this model using the existing 27px chips and readable type. No registry
 approval, live conversion or installed acceptance is implied. Hudl reference:
 https://www.hudl.com/blog/tips-from-an-assist-expert-formation-backfield
 
+2026-09-29 full-screen review: the coach prefers Formation & Call across the
+deck, film strip and play sheet. Production disclosure arrows occupy the group
+gutter so collapsible and plain labels align. Canonical-data source captures
+at 1920 and 1280 were inspected; chip height and typography are unchanged.
+
 The capture record below is historical, from before the Formation correction.
 
 Captured `#library` at 1920x1080, 1440x900, 1280x800 and 390x844;

@@ -76,13 +76,13 @@ await page.evaluate(() => window.app.tagger.selectPlay(1)); await settle(page);
 let s = await sheet();
 const g = key => s.groups.find(x => x.key === key);
 ok(s.groups.map(x => x.key).join() === 'situation,offense,defense,play,players,grades,custom,notes',
-  'an offensive play: Situation, Our offensive look, Defense faced, Play & result, Players, Grades, Custom, Notes, in that order', JSON.stringify(s.groups.map(x => x.key)));
+  'an offensive play: Situation, Formation & Call, Defense faced, Play & result, Players, Grades, Custom, Notes, in that order', JSON.stringify(s.groups.map(x => x.key)));
 // Review (97b2f37): grades and custom fields and tags are chartable, so the sheet shows them.
 ok(g('grades').rows.Passer === '+1' && g('custom').rows.Pressure === 'Edge' && g('custom').rows.Tags === 'Motion tell',
   'grades, custom fields and custom tags are on the sheet', JSON.stringify({ grades: g('grades'), custom: g('custom') }));
 ok(g('situation').rows.Quarter === 'Q1' && g('situation').rows['Down & distance'] === '1st & 10' && g('situation').rows['Field position'] === 'Own 25' && g('situation').rows.Hash === 'Left',
   'situation values are the charted ones', JSON.stringify(g('situation').rows));
-ok(g('offense').title === 'Our offensive look' && g('offense').rows['Formation'] === 'Spread' && g('offense').rows.Personnel === '11' && g('offense').rows['Play call'] === 'Not charted',
+ok(g('offense').title === 'Formation & Call' && g('offense').rows['Formation'] === 'Spread' && g('offense').rows.Personnel === '11' && g('offense').rows['Play call'] === 'Not charted',
   'the unit\'s look is filled where charted and says Not charted where not', JSON.stringify(g('offense')));
 ok(g('defense').title === 'Defense faced' && Object.values(g('defense').rows).every(v => v === 'Not charted'), 'the faced side is listed, uncharted', JSON.stringify(g('defense')));
 ok(g('play').rows['Run / pass'] === 'Pass' && g('play').rows['Play type'] === 'Short Pass' && /Gain/.test(g('play').rows.Result),
