@@ -1,5 +1,17 @@
 # Testing
 
+S107-6 college sack convention: charting-details 94/94, Study players 39/39,
+Defense board 60/60 and canonical Defense real-data 95/95. Season 100/100,
+Players 239/239 and Overview 118/118 also passed during the focused repair run.
+The independent raw-field audit compares team/opponent/QB production across
+every game and season in the three live seasons plus the canonical fixture:
+437/437, coach catalog hash unchanged. Receipt:
+`docs/sack-accounting-verification-2026-09-30.json`. Canonical parity changes are
+limited to sack-related production, rushing player cohorts and passing averages;
+the synthetic golden is unchanged. No new harness added to the gate and no full
+gate or packaging run. Historical net-of-sacks audit figures below are superseded
+by the coach's college convention, not evidence of the new convention.
+
 S107-5: `e2e-reports-overview` pins total team turnovers independent of margin,
 offense plus explicit Special Teams losses, no redundant subtext, unknown and
 retained recoveries, ordinary kicks, double representations and no-play rulings.

@@ -128,8 +128,8 @@ export class AnalyticsRegistry {
       // the offense roles (excludes an ordinary Special Teams play; admits a
       // fake), `unit === 'defense'` for tackler, per `_individualStats`.
       ready('playerBallCarrier', 'Ball Carrier',
-        this._playerRoleValues('ballCarrier', p => SE.countsFootballRoles(p) && SE.isRun(p)),
-        'StatsEngine.effectivePlayers.ballCarrier (run plays)', { multi: true }),
+        p => SE.countsFootballRoles(p) && SE.isRushingAttempt(p) ? SE.splitPlayers(SE.rushingPlayer(p)) : [],
+        'StatsEngine.rushingPlayer (rushing attempts including sacks)', { multi: true }),
       // Passer's gate is EVERY dropback this passer is credited on --
       // official attempts (complete/incomplete/intercepted) PLUS sacks. A
       // sack is not a pass "attempt" by the official football definition

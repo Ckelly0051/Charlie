@@ -400,8 +400,8 @@ const METRICS = {
     // numerator and the denominator (a sack is not a pass attempt, and its
     // negative yardage is not "passing yardage"), unlike the generic
     // `yardsPerPlay` this checkpoint reuses as-is for ball-carrier ("Yards/
-    // Carry") and receiver ("Yards/Target") cohorts, neither of which ever
-    // contains a sack play. This is the one player metric NOT reused
+    // Carry") and receiver ("Yards/Target") cohorts. The rushing cohort includes
+    // QB sacks under the college-style convention. This player metric is NOT reused
     // verbatim across roles, because Y/A's sack-exclusion is specific to the
     // passer's broadened (attempts + sacks) dimension cohort.
     polarity: MetricPolarity.HIGHER,

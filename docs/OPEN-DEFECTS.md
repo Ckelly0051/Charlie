@@ -17,7 +17,8 @@ regressions cover the original zero-margin example, ST losses, unknown/retained
 recovery and double representations. Live NDP tile independently checked as 1.
 No coach-data change, full gate or packaging.
 
-**S107-6 - P2, inconsistent sack-yardage accounting, OPEN.** Claude's review
+**S107-6 - P2, inconsistent sack-yardage accounting,
+REPAIRED IN SOURCE / not packaged.** Claude's review
 found passing totals net of sacks in `_passingStats`, versus sacks excluded
 from passing attempts/YPA in the Defense board. Coach ruling 2026-09-30:
 sacks are not pass attempts and their losses belong in rushing yards, not
@@ -27,8 +28,20 @@ and called-play classifications unchanged for tendency analysis.
 The prior audit's 164 passing yards / 6.8 YPA followed the old net-of-sacks
 formula; it verified arithmetic but not the now-settled football convention.
 Those values must not be described as the correct post-repair convention.
-Update team, opponent and player yardage owners, audit expectations and report
-proof together; no re-charting or coach-data migration is authorized.
+Team/opponent production, Defense yard columns, QB rushing credits, Study's
+rushing player cohort and passing/Play Action averages now use that convention.
+Sack film stays in the called-pass cohort; passer grades are not copied into
+rushing grades. Missing QB attribution is not guessed. Live 2025 JV: 191 passing
+yards / 24 attempts / 8.0 YPA; 866 rushing yards / 148 attempts. The three
+called-pass sacks move 27 yards into rushing. Other plays already tagged Run
+with Sack stay Run; no charted classification is rewritten.
+Independent raw-field audit: 437/437 over all three live seasons plus the
+canonical fixture, catalog hash unchanged. Receipt:
+`docs/sack-accounting-verification-2026-09-30.json`. Model, Study, Defense and
+report regressions pass. Canonical Defense season allocation becomes 266 rush
++ 231 pass = 497 total; Week 5 becomes 67 + 60 = 127. Parity changes only the
+sack-related production, rushing player rows/refs and passing averages; the
+synthetic golden is unchanged. No full gate, package or coach-data write.
 
 ### Source repairs, 2026-09-30
 

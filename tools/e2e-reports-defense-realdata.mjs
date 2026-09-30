@@ -63,7 +63,7 @@ const INVENTORY = {
   ],
 };
 const KPI_VALUES = {
-  season: ['497', '271', '226', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
+  season: ['497', '266', '231', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
   game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '100.0%', '—'],
 };
 const FIXED = new Set(['Disruption', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
@@ -568,13 +568,13 @@ ok(unreconciled.length === 0,
   'every Game-by-game row reconciles: Total yds equals Rush yds plus Pass yds',
   JSON.stringify(unreconciled));
 const oll = canonical.byGame.find(row => /OL Lakes/.test(row.name));
-ok(oll && oll.yards === 127 && oll.rush === 72 && oll.pass === 55,
-  'the canonical Week 5 defensive line is 127 = 72 + 55, penalty-only yardage excluded',
+ok(oll && oll.yards === 127 && oll.rush === 67 && oll.pass === 60,
+  'the canonical Week 5 defensive line is 127 = 67 + 60, sack loss in rushing and penalty-only yardage excluded',
   JSON.stringify(oll));
 ok(canonical.byGame.reduce((sum, row) => sum + row.yards, 0) === canonical.yards,
   'the six game rows sum to the season total rather than agreeing by coincidence',
   JSON.stringify({ rows: canonical.byGame.map(r => r.yards), season: canonical.yards }));
-ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 271 && canonical.pass === 226
+ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 266 && canonical.pass === 231
   && canonical.ypp === 3.2 && canonical.turnovers === 2 && canonical.explosives === 7,
   'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));
 /* A RATE'S TWO HALVES ARE ONE COHORT. */

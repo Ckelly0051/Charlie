@@ -109,6 +109,16 @@ export class StatsEngine {
     return StatsEngine.hasResult(p, 'Interception') || StatsEngine.isFumbleLost(p);
   }
 
+  /** Statistical rushing includes sacks; called Run/Pass remains unchanged. */
+  static isRushingAttempt(p) {
+    return StatsEngine.isRun(p) || StatsEngine.hasResult(p, 'Sack');
+  }
+
+  static rushingPlayer(p) {
+    const players = StatsEngine.effectivePlayers(p);
+    return StatsEngine.hasResult(p, 'Sack') ? (players.passer || players.ballCarrier) : players.ballCarrier;
+  }
+
   /** Team turnovers across charted phases, not net margin or routine kicks. */
   static isTeamTurnover(p) {
     if (p?.penalties?.some(penalty => penalty.playCounts === false)) return false;
@@ -1769,8 +1779,8 @@ export class StatsEngine {
       return {
         name, n: rows.length, charted: rows.length, measured,
         runs: runs.length, passes: passes.length, yards,
-        runYards: measured ? runs.reduce((sum, p) => sum + yard(p), 0) : null,
-        passYards: measured ? passes.reduce((sum, p) => sum + yard(p), 0) : null,
+        runYards: measured ? scrimmage.filter(StatsEngine.isRushingAttempt).reduce((sum, p) => sum + yard(p), 0) : null,
+        passYards: measured ? passes.filter(p => !StatsEngine.hasResult(p, 'Sack')).reduce((sum, p) => sum + yard(p), 0) : null,
         ypp: measured ? +(yards / measured).toFixed(1) : null,
         explosives: measured ? rows.filter(StatsEngine.isExplosive).length : null,
         touchdowns: rows.filter(p => StatsEngine.hasResult(p, 'Touchdown') && StatsEngine.scoringSide(p) !== 'us').length,
@@ -2351,7 +2361,7 @@ export class StatsEngine {
   }
 
   _rushingStats(plays) {
-    const rushPlays = plays.filter(p => StatsEngine.isRun(p));
+    const rushPlays = plays.filter(StatsEngine.isRushingAttempt);
     const yards = rushPlays.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
     const attempts = rushPlays.length;
 
@@ -2367,7 +2377,8 @@ export class StatsEngine {
   }
 
   _passingStats(plays) {
-    const passPlays = plays.filter(p => StatsEngine.isPass(p));
+    const dropbacks = plays.filter(p => StatsEngine.isPass(p));
+    const passPlays = dropbacks.filter(p => !StatsEngine.hasResult(p, 'Sack'));
     const completions = passPlays.filter(p =>
       StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')
     );
@@ -2390,8 +2401,8 @@ export class StatsEngine {
       completionPct: attempts ? ((completions.length / attempts) * 100).toFixed(1) : '0.0',
       touchdowns: passPlays.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length,
       interceptions: passPlays.filter(p => StatsEngine.hasResult(p, 'Interception')).length,
-      sacks: passPlays.filter(p => StatsEngine.hasResult(p, 'Sack')).length,
-      sackYards: passPlays.filter(p => StatsEngine.hasResult(p, 'Sack'))
+      sacks: dropbacks.filter(p => StatsEngine.hasResult(p, 'Sack')).length,
+      sackYards: dropbacks.filter(p => StatsEngine.hasResult(p, 'Sack'))
         .reduce((sum, p) => sum + Math.abs(parseInt(p.tags.yardage) || 0), 0),
       longest: passPlays.reduce((max, p) => {
         if (StatsEngine.hasResult(p, 'Incomplete')) return max;
@@ -3011,11 +3022,8 @@ export class StatsEngine {
 
     const runs = plays.filter(p => StatsEngine.isRun(p)).length;
     const passes = plays.length - runs;
-    const runYds = plays.filter(p => StatsEngine.isRun(p)).reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
-    const passYds = plays.filter(p => StatsEngine.isPass(p)).reduce((s, p) => {
-      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
-      return s + (parseInt(p.tags.yardage) || 0);
-    }, 0);
+    const runYds = this._rushingStats(plays).yards;
+    const passYds = this._passingStats(plays).yards;
     const runSucc = plays.filter(p => StatsEngine.isRun(p) && this._isSuccessfulPlay(p)).length;
     const passSucc = plays.filter(p => StatsEngine.isPass(p) && this._isSuccessfulPlay(p)).length;
 
@@ -3250,16 +3258,16 @@ export class StatsEngine {
     });
 
     const paRate = dropbacks.length ? ((paPlays.length / dropbacks.length) * 100).toFixed(1) : '0.0';
-    const paComps = paPlays.filter(p => StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain'));
+    const paComps = paPlays.filter(p => !StatsEngine.hasResult(p, 'Sack') && (StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')));
     const paAttempts = paPlays.filter(p => !StatsEngine.hasResult(p, 'Sack')).length;
     const paYards = paPlays.reduce((s, p) => {
-      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
+      if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
       return s + (parseInt(p.tags.yardage) || 0);
     }, 0);
-    const straightComps = straightDrops.filter(p => StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain'));
+    const straightComps = straightDrops.filter(p => !StatsEngine.hasResult(p, 'Sack') && (StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')));
     const straightAttempts = straightDrops.filter(p => !StatsEngine.hasResult(p, 'Sack')).length;
     const straightYards = straightDrops.reduce((s, p) => {
-      if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
+      if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
       return s + (parseInt(p.tags.yardage) || 0);
     }, 0);
 
@@ -3624,7 +3632,6 @@ export class StatsEngine {
       const structured = SpecialTeamsModel.normalize(p.specialTeams);
       const players = StatsEngine.effectivePlayers(p);
       const yds = parseInt(p.tags.yardage) || 0;
-      const isRun = StatsEngine.isRun(p);
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
       const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
@@ -3659,23 +3666,25 @@ export class StatsEngine {
 
       if (!StatsEngine.countsFootballRoles(p)) return;
 
-      if (players.ballCarrier && isRun) {
-        bucket(players.ballCarrier, 'rushing', 'Rushing', ROLE_COHORT, p);
-        bucket(players.ballCarrier, 'rushing', 'Rushing', 'att', p);
-        bucket(players.ballCarrier, 'rushing', 'Rushing', 'yds', p, yds);
-        if (isTD) bucket(players.ballCarrier, 'rushing', 'Rushing', 'td', p);
-        if (StatsEngine.hasResult(p, 'Fumble')) bucket(players.ballCarrier, 'rushing', 'Rushing', 'fum', p);
-        grade(players.ballCarrier, 'rushing', 'Rushing', p, 'ballCarrier');
+      const isSack = StatsEngine.hasResult(p, 'Sack');
+      const rusher = StatsEngine.rushingPlayer(p);
+      if (rusher && StatsEngine.isRushingAttempt(p)) {
+        bucket(rusher, 'rushing', 'Rushing', ROLE_COHORT, p);
+        bucket(rusher, 'rushing', 'Rushing', 'att', p);
+        bucket(rusher, 'rushing', 'Rushing', 'yds', p, yds);
+        if (isTD) bucket(rusher, 'rushing', 'Rushing', 'td', p);
+        if (StatsEngine.hasResult(p, 'Fumble')) bucket(rusher, 'rushing', 'Rushing', 'fum', p);
+        if (!isSack) grade(rusher, 'rushing', 'Rushing', p, 'ballCarrier');
       }
 
       if (players.passer && isPass) {
         bucket(players.passer, 'passing', 'Passing', ROLE_COHORT, p);
         // Attempts = completions + incompletions + interceptions, the same
         // cohort the team C/A uses. A sack is not an attempt.
-        if (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) {
+        if (!isSack && (isComplete || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception'))) {
           bucket(players.passer, 'passing', 'Passing', 'att', p);
         }
-        if (isComplete) {
+        if (isComplete && !isSack) {
           bucket(players.passer, 'passing', 'Passing', 'cmp', p);
           bucket(players.passer, 'passing', 'Passing', 'yds', p, yds);
         }
@@ -3685,7 +3694,7 @@ export class StatsEngine {
         grade(players.passer, 'passing', 'Passing', p, 'passer');
       }
 
-      if (players.receiver && isPass && isComplete) {
+      if (players.receiver && isPass && isComplete && !isSack) {
         bucket(players.receiver, 'receiving', 'Receiving', ROLE_COHORT, p);
         bucket(players.receiver, 'receiving', 'Receiving', 'rec', p);
         bucket(players.receiver, 'receiving', 'Receiving', 'yds', p, yds);

@@ -19,6 +19,28 @@ class MemoryStorage { constructor(seed = {}) { this.data = new Map(Object.entrie
 
 console.log('\n== Vocabulary ==');
 {
+  const engine = new StatsEngine();
+  const sack = { id: 2, tags: { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Sack', yardage: '-7', players: { passer: '12' } } };
+  const completion = { id: 1, tags: { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '20', players: { passer: '12' } } };
+  const stats = engine.compute([completion, sack]);
+  ok(stats.passing.attempts === 1 && stats.passing.yards === 20 && stats.passing.average === '20.0', 'sacks never enter passing attempts or yards');
+  ok(stats.rushing.attempts === 1 && stats.rushing.yards === -7, 'a sack is a team rushing attempt and lost rushing yards');
+  ok(stats.rushing.yards + stats.passing.yards === 13, 'reassigning sack yards preserves total offense');
+  const qb = stats.individuals.rushers.find(p => p.num === '12');
+  ok(qb?.attempts === 1 && qb.yards === -7, 'the charted QB receives the sack rushing attempt and loss');
+  ok(stats.individuals.passers[0].attempts === 1 && stats.individuals.passers[0].yards === 20 && stats.individuals.passers[0].sacks === 1, 'QB passing line excludes sack yards and still records sacks');
+  ok(StatsEngine.isPass(sack) && !StatsEngine.isRun(sack), 'a sack retains its called-pass classification');
+  const faced = [completion, sack].map(p => ({ ...p, tags: { ...p.tags, unit: 'defense' } }));
+  const opponent = engine.opponentProduction(faced, faced);
+  ok(opponent.rushing.attempts === 1 && opponent.rushing.yards === -7 && opponent.passing.yards === 20, 'opponent production uses the same sack convention');
+  const defense = engine.defenseDashboard(faced).summary;
+  ok(defense.runYards === -7 && defense.passYards === 20 && defense.yards === 13, 'Defense board reallocates sack losses without changing total yards');
+  const unknown = engine.compute([{ ...sack, tags: { ...sack.tags, players: {} } }]);
+  ok(unknown.rushing.attempts === 1 && unknown.individuals.rushers.length === 0, 'an uncharted QB is not guessed; the team still receives the sack loss');
+  const overlap = engine.compute([{ ...sack, tags: { ...sack.tags, result: 'Sack + Gain' } }]);
+  ok(overlap.passing.attempts === 0 && overlap.passing.yards === 0 && overlap.individuals.passers[0].attempts === 0, 'Sack excludes passing credit even with another result chip');
+}
+{
   const plays = [
     { id: 1, tags: { unit: 'offense', driveNumber: '2' } },
     { id: 2, tags: { unit: 'offense', driveNumber: '1' } },

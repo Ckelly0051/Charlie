@@ -32,8 +32,12 @@ This section is the one place release state is kept current.
 
 - S107-5 Overview total-turnover tile repaired in source, not packaged. NDP now
   reads 1, with the redundant subtext removed; ST losses are included explicitly.
-  S107-6 sack-yardage convention is an open, coach-directed follow-up. Previous
-  audit passing-yard figures use the superseded net-of-sacks convention.
+  S107-6 college sack accounting also repaired in source, not packaged:
+  QB/team rushing attempts and losses, no pass attempt or passing yards.
+  Independent live/canonical proof passes 437/437, catalog unchanged. Live
+  2025 JV: 191 passing yards / 24 attempts / 8.0 YPA, 866 rushing yards / 148
+  attempts. Previous audit passing-yard figures use the superseded net-of-sacks
+  convention. No full gate, new installer or installed acceptance for these fixes.
 
 - 2026-09-30 source repairs: S107-2 passing attempts, S107-3 assigned-drive
   grouping and S107-4 independent Gap/Direction. Focused regression suites and

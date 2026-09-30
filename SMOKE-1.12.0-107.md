@@ -4,14 +4,17 @@
 
 Additional source repair S107-5: Overview Turnovers counts total team losses,
 including explicit Special Teams losses; NDP reads 1, with no subtext. Not in
-this installer. S107-6 sack-yardage accounting remains an open follow-up: coach
-requires sack losses in rushing, not passing, and no passing attempt for a sack.
+this installer. S107-6 is also repaired in source: college convention credits
+each sack as a QB/team rushing attempt and loss, never a passing attempt or yards.
+Independent audit 437/437, catalog unchanged. Live 2025 JV now has 191 passing
+yards / 24 attempts / 8.0 YPA, and 866 rushing yards / 148 attempts. Neither
+repair is in this installer; focused checks do not replace a new gate and smoke.
 The historical 164 passing yards / 6.8 YPA below uses the superseded convention.
 
 Repair follow-up, 2026-09-30: S107-2/3/4 are fixed in source, not in this artifact.
 Focused regression checks pass and the independent stats audit passes 4,344/4,344
-with the coach catalog unchanged. Live Season passing now correctly reports 24
-attempts, 62.5% completions and 6.8 yards/attempt. Full gate and new packaging are
+with the coach catalog unchanged. That earlier repair reported 24
+attempts, 62.5% completions and 6.8 yards/attempt under the old convention. Full gate and new packaging are
 still required before the repaired behavior can be smoke-tested.
 
 Full gate at `a449b59e`: **140/140 green, 0 skipped, 0 failed**, 2026-09-30.

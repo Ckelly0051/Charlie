@@ -291,7 +291,7 @@ ok(r.roleOptions.includes('ballCarrier') && r.roleOptions.includes('passer') && 
   'Every required player role is offered on the role picker', JSON.stringify(r.roleOptions));
 ok(r.playerOptions.includes('22') && r.metricOptions.includes('avgGrade') && r.measureDisabled === true && r.columnDisabled === true,
   'Choosing a role populates the player pool and role-scoped metrics, and takes over the primary metric/pivot pickers', JSON.stringify({ playerOptions: r.playerOptions, metricOptions: r.metricOptions, measureDisabled: r.measureDisabled, columnDisabled: r.columnDisabled }));
-ok(r.rowCount === 1 && r.metricHead === 'Avg Grade' && JSON.stringify(r.rowRefs[0]) === JSON.stringify(['g-players-1::1', 'g-players-1::2']),
+ok(r.rowCount === 2 && r.metricHead === 'Avg Grade' && JSON.stringify(r.rowRefs[0]) === JSON.stringify(['g-players-1::1', 'g-players-1::2']) && r.rowRefs[1].length === 0,
   'The Avg Grade leaderboard row for #22 uses exactly the metric\'s own eligible refs (the blank-grade play is excluded)', JSON.stringify(r.rowRefs));
 
 // #4a -- per-row Watch consumes exactly the metric's own refs (not the group's raw sample of 3).
@@ -348,8 +348,8 @@ ok(r.rows.every(text => /^(1|2|3|4)$/.test(text)) && r.rows.length > 0 && /for #
   'Choosing a specific player groups by the EXISTING "Break down by" dimension (Down), filtered to that player\'s own cohort', JSON.stringify(r));
 
 // #5 -- comparison mode retains player-specific refs on BOTH cohorts.
-await page.select('#wsStudyPlayer', '');
 await page.select('#wsStudyPlayerRole', 'ballCarrier');
+await page.select('#wsStudyPlayer', '22');
 await page.select('#wsStudyPlayerMetric', 'yardsPerPlay');
 await page.select('#wsStudyCompare', 'prior');
 r = await page.evaluate(() => {
@@ -365,6 +365,12 @@ ok(JSON.stringify(r.base) === JSON.stringify(['g-players-1::1', 'g-players-1::2'
   && JSON.stringify(r.against) === JSON.stringify(['g-players-2::1']),
   'Comparison mode keeps #22\'s refs separate and correct on both the base (game) and against (prior games) cohorts', JSON.stringify(r));
 await page.select('#wsStudyCompare', '');
+await page.select('#wsStudyPlayer', '7');
+const sackRushing = await page.evaluate(() => ({
+  refs: window.app.studyScreen.rows.flatMap(row => row.refs).sort(),
+}));
+ok(JSON.stringify(sackRushing.refs) === JSON.stringify(['g-players-1::7']),
+  'QB rushing Study cohort includes the sack and no other player\'s carries', JSON.stringify(sackRushing));
 
 // ---- mutation proof: player-role eligibility gate --------------------------
 // Every AnalyticsRegistry dimension entry is Object.freeze()-d (analytics-
