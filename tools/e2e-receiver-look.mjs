@@ -114,4 +114,4 @@ test('analytics and film links read independent dimensions', () => {
     assert.deepEqual([a,b].filter(engine._buildCutFilter(key, value)).map(p => `${p.__gid}::${p.id}`), ['g1::1']);
   }
 });
-console.log(`${checks}/${checks} formation-model checks passed`);
+console.log(`== RESULT: ${checks} passed, 0 failed ==`);

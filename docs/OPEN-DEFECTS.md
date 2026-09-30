@@ -2,6 +2,11 @@
 
 ## Charting adversarial review, 2026-09-29
 
+Fourth gate follow-up: the run at `c78ee3bd` reached the formation-model
+harness, whose 15 assertions passed but whose custom summary was not a valid
+gate result line. The harness now prints the standard `== RESULT: ... ==`
+summary; assertions and failure behavior are unchanged. Full gate rerun pending.
+
 Third gate follow-up: the run at `caa05eff` was stopped on stale harness
 inputs. Round-trip still imported the live pre-charting-cutover season, which
 the new format correctly refuses; it now imports the existing current-format
