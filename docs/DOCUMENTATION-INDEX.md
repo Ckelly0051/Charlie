@@ -32,7 +32,8 @@ This section is the one place release state is kept current.
 
 - 2026-10-01: Break Down visual finish (BD-UX-1, BD-UX-2) built in source,
   IMPLEMENTED_UNVERIFIED, not packaged. Program, Season and Game are the shared
-  two-line control on Break Down, in a 36px row to keep the film floors, and are
+  two-line control on Break Down, in a 36px row (coach's choice over the comp's
+  49px, 2026-10-01; it also keeps the film floors), and are
   now also available below 901px. The three menus share one titled pattern with
   a checked current row and gold commands. The deck has one label-row rhythm,
   Gap is a plain field on the inset, and an off-library stored value is read in
