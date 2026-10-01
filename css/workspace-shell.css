@@ -183,23 +183,30 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-workspace-switch button.is-active{color:var(--ws-text);box-shadow:inset 0 -3px var(--gi-bd-gold)}
 .ws-workspace-switch button.is-scout{color:var(--gi-bd-cyan)}
 .ws-workspace-switch button:disabled{cursor:not-allowed;opacity:.55}
-/* Break Down's compact chrome (S6) exists specifically to buy the theater
- * height back from a coach's 1181-1499px "is-film-room" bracket -- the exact
- * geometry the Charlie Gate re-fixed this milestone. The three selectors stay
- * reachable (V2-A req 1), just compact and unconditional on this route rather
- * than gated to one width band, so Break Down never re-loses that headroom
- * at any desktop size. */
+/* BD-UX-2: Break Down uses the shared two-line selector (label over full value,
+ * caret, gold underline while open); the cramped single-line 22px band it
+ * replaced read as a breadcrumb, not as controls. The row is 36px, not the
+ * comp's 49px: the film's useful-area floors (e2e-breakdown-viewport, 960x540
+ * at 1440x900 and 740x416 at 1280x720) leave 14px for it, so only line-height
+ * and padding tighten -- both type sizes stay. Our Program / Opponent Scout
+ * lives in the route's own toolbar, so the bar's switch is not repeated. */
 @media(min-width:901px){
-  body.ws-shell-active.ws-route-breakdown .ws-main{grid-template-rows:var(--ws-top) 22px minmax(0,1fr)}
-  body.ws-shell-active.ws-route-breakdown .ws-contextbar{grid-template-columns:repeat(3,minmax(0,1fr)) auto}
-  body.ws-shell-active.ws-route-breakdown .ws-ctx{padding:0 18px 0 8px;display:flex;align-items:center}
-  /* The label word is dropped on this route at every desktop width (not just
-   * the narrow band below) -- the value alone is still a real, clickable,
-   * reachable selector (req 1), and dropping the label line is what buys the
-   * remaining Film Room headroom back at 1440x900. */
-  body.ws-shell-active.ws-route-breakdown .ws-ctx-label{display:none}
-  body.ws-shell-active.ws-route-breakdown .ws-ctx-value{font-size:11px;margin-top:0}
-  body.ws-shell-active.ws-route-breakdown .ws-ctx-chev{top:50%}
+  body.ws-shell-active.ws-route-breakdown .ws-main{grid-template-rows:var(--ws-top) 36px minmax(0,1fr)}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx{padding-block:2px}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx-label{line-height:1.1}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx-value{margin-top:1px;line-height:1.15}
+  body.ws-shell-active.ws-route-breakdown .ws-contextbar{grid-template-columns:minmax(240px,.8fr) minmax(260px,1.1fr) minmax(260px,1.25fr)}
+  body.ws-shell-active.ws-route-breakdown .ws-workspace-switch{display:none}
+}
+/* Narrow Break Down keeps the same three selectors in one fitted row under the
+ * mobile head; a long value ellipsizes in its control and is shown in full in
+ * the menu. */
+@media(max-width:900px){
+  body.ws-shell-active.ws-route-breakdown .ws-main{grid-template-rows:48px 50px minmax(0,1fr)}
+  body.ws-shell-active.ws-route-breakdown .ws-mobile-head{grid-row:1}
+  body.ws-shell-active.ws-route-breakdown .ws-contextbar{display:grid;grid-row:2;grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx{padding:6px 22px 5px 10px}
+  body.ws-shell-active.ws-route-breakdown .ws-ctx-chev{right:8px}
   body.ws-shell-active.ws-route-breakdown .ws-workspace-switch{display:none}
 }
 

@@ -275,10 +275,10 @@ export class WorkspaceShell {
     const teams=registry.teams();
     const items=teams.map(team=>({key:`team-${team.id}`,label:team.teamName,selected:team.id===activeId,
       onSelect:async()=>{ if(await this.app.teamHubScreen?.switchTeam?.(team.id)) { await this.show('home'); } }}));
-    items.push({key:'new-program',label:'+ New program',separator:!!teams.length,
+    items.push({key:'new-program',label:'+ New program',tone:'command',separator:!!teams.length,
       onSelect:()=>this.app.teamHubScreen?.openAddTeam?.(anchor)});
     anchor.setAttribute('aria-expanded','true');
-    const handle=this.app.overlays.popover({title:'Switch program',anchor,returnFocus:anchor,items});
+    const handle=this.app.overlays.popover({title:'Switch program',anchor,returnFocus:anchor,items,variant:'context',placement:'bottom-start'});
     handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
   }
   /** V2-A Season selector — the approved canon (season-switcher-1440x900.png):
@@ -314,12 +314,12 @@ export class WorkspaceShell {
           // leaves the prior season live; navigating would show Home for a
           // season that never opened. The store reports its own message.
           onSelect:async()=>{ if(String(season.id)===String(currentId)) return; if(await this.app.storage.openSeasonById(season.id)===false) return; await this.show('home'); }}));
-    items.push({key:'season-library',label:'Season Library',detail:scoutMode?'Manage opponent scout seasons':'View and manage all program seasons',separator:!!items.length,
+    items.push({key:'season-library',label:'Season Library',tone:'command',detail:scoutMode?'Manage opponent scout seasons':'View and manage all program seasons',separator:!!items.length,
       onSelect:()=>this._openLibrary()});
-    items.push({key:scoutMode?'new-scout':'new-season',label:scoutMode?'+ New opponent scout':'+ New season',separator:false,
+    items.push({key:scoutMode?'new-scout':'new-season',label:scoutMode?'+ New opponent scout':'+ New season',tone:'command',separator:false,
       onSelect:()=>scoutMode?this.app.teamHubScreen?.openCreateScout?.(anchor):this.app.teamHubScreen?.openCreateSeason?.(anchor)});
     anchor.setAttribute('aria-expanded','true');
-    const handle=this.app.overlays.popover({title:'Switch season',anchor,returnFocus:anchor,items});
+    const handle=this.app.overlays.popover({title:'Switch season',anchor,returnFocus:anchor,items,variant:'context',placement:'bottom-start'});
     handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
   }
   async _openGameSwitch(anchor){
@@ -343,7 +343,7 @@ export class WorkspaceShell {
     // "Game" means as a context selector.
     if(!items.length)items.push({key:'none',label:'No games yet',detail:'Create one from Home',disabled:true});
     anchor.setAttribute('aria-expanded','true');
-    const handle=this.app.overlays.popover({title:'Switch game',anchor,returnFocus:anchor,items});
+    const handle=this.app.overlays.popover({title:'Switch game',anchor,returnFocus:anchor,items,variant:'context',placement:'bottom-start'});
     handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
   }
   /** Week/opponent is the label; this is the rest of UX-2's row: result, charting, film. */

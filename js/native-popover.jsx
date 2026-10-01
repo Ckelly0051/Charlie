@@ -87,7 +87,7 @@ export function NativePopover({ overlay, service, top }) {
   >
     <section
       ref={panelRef}
-      class="gi-popover-panel"
+      class={`gi-popover-panel${overlay.variant ? ` is-${overlay.variant}` : ''}`}
       role={overlay.content ? 'dialog' : 'menu'}
       aria-label={overlay.title}
       onKeyDown={event => {
@@ -97,6 +97,7 @@ export function NativePopover({ overlay, service, top }) {
         else if (event.key === 'End') move(event, 'last');
       }}
     >
+      {overlay.variant === 'context' && <p class="gi-popover-title" role="presentation">{overlay.title}</p>}
       {overlay.content}
       {overlay.items.map(item => item.heading
         ? <p
@@ -114,7 +115,7 @@ export function NativePopover({ overlay, service, top }) {
         class={`gi-popover-item is-${item.tone}${item.separator ? ' has-separator' : ''}${item.selected ? ' is-selected' : ''}`}
         data-popover-item={item.key}
         onClick={() => choose(item)}
-      ><span>{item.label}</span>{item.detail && <small>{item.detail}</small>}</button>)}
+      ><span>{item.label}</span>{item.detail && <small>{item.detail}</small>}{overlay.variant === 'context' && item.selected && <i class="gi-popover-check" aria-hidden="true">✓</i>}</button>)}
     </section>
   </div>;
 }

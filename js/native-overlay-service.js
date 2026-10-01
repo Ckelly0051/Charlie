@@ -97,6 +97,9 @@ export class NativeOverlayService {
       items,
       anchor: type === 'popover' ? options.anchor : null,
       placement: options.placement || 'bottom-end',
+      // 'context' is the shared Program / Season / Game selector menu: titled,
+      // checked current row, command rows (BD-UX-2).
+      variant: options.variant === 'context' ? 'context' : '',
       destructive: options.destructive === true,
       modal: type === 'dialog' || options.modal === true,
       dismissOnEscape: options.dismissOnEscape !== false,

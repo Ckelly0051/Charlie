@@ -30,6 +30,18 @@
 
 This section is the one place release state is kept current.
 
+- 2026-10-01: Break Down visual finish (BD-UX-1, BD-UX-2) built in source,
+  IMPLEMENTED_UNVERIFIED, not packaged. Program, Season and Game are the shared
+  two-line control on Break Down, in a 36px row to keep the film floors, and are
+  now also available below 901px. The three menus share one titled pattern with
+  a checked current row and gold commands. The deck has one label-row rhythm,
+  Gap is a plain field on the inset, and an off-library stored value is read in
+  full. Recorded deviations from the supplemental comp are in
+  `docs/OPEN-DEFECTS.md`. `e2e-breakdown-visual-finish` 27/27 plus 26 focused
+  harnesses and parity green. To ship together with the S107 source repairs
+  after one full gate and a new installer; no gate, installer or installed
+  approval yet.
+
 - 2026-10-01: S107-7 kickoff strip grouping repaired in source, not packaged.
   Review follow-up also fixes numbered-kick ownership: explicit numbers win over
   automatic boundary/scoring grouping and never borrow a mismatched drive's side.

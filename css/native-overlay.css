@@ -87,3 +87,26 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .gi-native-toast{font:var(--gi-text-control);text-transform:uppercase}
 .gi-native-toast button{font:var(--gi-text-label);letter-spacing:var(--gi-track-label);
   text-transform:uppercase}
+
+/* BD-UX-2: the Program / Season / Game selector menu. One pattern for all three,
+   titled like the control it opened from, the current row checked in gold, and
+   Season Library / New commands set apart as gold commands. Names wrap rather
+   than truncate so a long program or season name is never cut. */
+.gi-popover-panel.is-context{width:min(400px,calc(100vw - 16px));padding:6px;border-color:var(--gi-7);background:var(--gi-2)}
+.gi-popover-title{margin:0;padding:6px 9px 9px;border-bottom:1px solid var(--gi-6);color:var(--gi-11);
+  font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
+.is-context .gi-popover-heading{margin:8px 0 2px;padding:0 9px}
+.is-context .gi-popover-item{grid-template-columns:minmax(0,1fr) 16px;align-content:center;column-gap:8px;row-gap:2px;min-height:46px;padding:7px 9px;
+  border-bottom:1px solid var(--gi-5);border-radius:0;font:var(--gi-text-control)}
+.is-context .gi-popover-item>span{grid-column:1;overflow-wrap:anywhere}
+.is-context .gi-popover-item small{grid-column:1;color:var(--gi-11);font:500 12px/1.3 var(--gi-sans)}
+.gi-popover-check{grid-column:2;grid-row:1/3;align-self:center;color:var(--gi-bd-gold);font-style:normal;font-weight:700}
+.is-context .gi-popover-item:hover{background:var(--gi-4)}
+.is-context .gi-popover-item:focus-visible{background:var(--gi-4);box-shadow:inset 0 0 0 2px var(--gi-los)}
+.is-context .gi-popover-item.is-selected{background:var(--gi-4);box-shadow:inset 3px 0 0 var(--gi-bd-gold)}
+.is-context .gi-popover-item.is-selected:focus-visible{box-shadow:inset 3px 0 0 var(--gi-bd-gold),inset 0 0 0 2px var(--gi-los)}
+.is-context .gi-popover-item.has-separator{margin-top:4px;border-top:1px solid var(--gi-6);border-radius:0;padding-top:9px}
+.is-context .gi-popover-item.is-command{min-height:38px;border-bottom:0}
+.is-context .gi-popover-item.is-command>span{color:var(--gi-bd-gold)}
+.is-context .gi-popover-item.is-command:hover>span,.is-context .gi-popover-item.is-command:focus-visible>span{color:var(--gi-12)}
+@media(pointer:coarse){.is-context .gi-popover-item.is-command{min-height:44px}}

@@ -55,7 +55,7 @@ function Chips({screen, field, label, options, value, hint, library, collapsible
   // A stored value the library does not offer (a hidden or removed custom choice)
   // is still shown, selected, at the end of the list.
   if (library) for (const item of String(value || '').split(' + ').filter(Boolean)) {
-    if (!choices.some(option => option.value === item)) choices.push({ value: item, label: item });
+    if (!choices.some(option => option.value === item)) choices.push({ value: item, label: item, offLibrary: true });
   }
   const summary = String(value || '').split(' + ').filter(Boolean).map(item => choices.find(option => option.value === item)?.label || item).join(' + ');
   return <div class={`gi-tag-field gi-tag-field-${field}${collapsed ? ' is-collapsed' : ''}`} data-native-field={field} data-library-align={library ? '' : undefined}>
@@ -63,7 +63,7 @@ function Chips({screen, field, label, options, value, hint, library, collapsible
       {library && <button type="button" class="gi-tag-library" onClick={() => screen.openLibrary(library)}>Edit library</button>}
     </FieldLabel>
     {!collapsed && <div class={`gi-tag-chips${library ? ' is-library' : ''}`} id={collapsible ? `giTagField-${field}` : undefined}>{choices.map(option =>
-      <button type="button" key={option.value} class={selected(value, option.value) ? 'is-active' : ''}
+      <button type="button" key={option.value} class={`${selected(value, option.value) ? 'is-active' : ''}${option.offLibrary ? ' is-off-library' : ''}`.trim()}
         aria-pressed={selected(value, option.value)} title={option.label}
         onClick={() => MULTI.has(field) ? screen.toggleField(field, option.value) : screen.setField(field, selected(value, option.value) ? '' : option.value)}>
         {option.label}
@@ -173,11 +173,11 @@ function ResultField({screen, state}) {
   </div>;
 }
 
-/** Gap sits directly under Play Direction and opens with it: a direction, or a
- *  stored gap, shows the ten choices in one row (ChartingDetails.GAPS). */
+/** Gap sits directly under Play Direction and is independent of it (S107-4):
+ *  the ten choices always show in one row (ChartingDetails.GAPS). */
 function GapField({screen, state}) {
   const gap = state.values.gap || '';
-  return <div class="gi-tag-field gi-tag-gap" data-native-field="gap">
+  return <div class="gi-tag-field" data-native-field="gap">
     <div class="gi-tag-field-label"><span>Gap</span></div>
     <div class="gi-tag-chips gi-tag-gap-row">{ChartingDetails.GAPS.map(option =>
       <button type="button" key={option} class={gap === option ? 'is-active' : ''} aria-pressed={gap === option}

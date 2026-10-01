@@ -276,14 +276,28 @@ production-to-comp mapping are in
 - **This applies to every route that shows the bar, not only Breakdown.** The
   first pass widened Breakdown's tracks alone, and `St. Joseph Mavericks`
   ellipsized in the Program selector on Home at both 1440 and 1280 while
-  `.ws-ctx-value` still carried `text-overflow:ellipsis`. Three owners set that
-  width — `css/workspace-shell.css` for the shared grid,
-  `css/native-breakdown-route.css` and `css/native-home.css` for their own route
-  overrides — and all three now carry a floor that holds the longest canonical
-  program name. The ellipsis stays as a last-resort safeguard for an imported
+  `.ws-ctx-value` still carried `text-overflow:ellipsis`. Two owners set that
+  width — `css/workspace-shell.css` for the shared grid and Break Down's track
+  weights, and `css/native-home.css` for Home's own override — and both carry a
+  floor that holds the longest canonical program name. (Break Down's separate
+  override in `css/native-breakdown-route.css` was removed 2026-10-01.) The ellipsis stays as a last-resort safeguard for an imported
   name longer than any panel can give it; it must not be the normal case.
 - Enforced by `e2e-workspace-shell` on all five routes at 1440 and 1280, using
   the longest canonical Program, Season and Game strings.
+- **Every route shows the same two-line control: label above value, caret,
+  gold underline while open** (BD-UX-2, 2026-10-01). Break Down no longer
+  drops the label into a 22px breadcrumb band. Its row is 36px rather than the
+  comp's 49px, because the film's useful-area floors in `e2e-breakdown-viewport`
+  (1150x645, 960x540, 740x416) leave only that much. It gets there by tightening
+  line-height and padding only; the 12.5px label and 13px value stay. Below 901px
+  Break Down shows the three selectors as one fitted row under the mobile head.
+  The full value stays in the accessible name and the menu.
+- **One menu pattern for the three selectors** (the popover's `context`
+  variant): a title naming the switch, rows with the name and a muted detail,
+  the current row marked by a gold left rule and a gold check, and Season
+  Library / New commands in gold. Names wrap rather than truncate. Other menus
+  (More, Film Room) keep the general popover. Enforced by
+  `e2e-breakdown-visual-finish`.
 - Never truncate team names in score or matchup presentation. Team identity and
   its aligned score must remain visually unambiguous.
 

@@ -1,5 +1,44 @@
 # GridIron IQ Open Defects
 
+## Break Down visual finish, 2026-10-01 (BD-UX-1, BD-UX-2)
+
+**BD-UX-2 - IMPLEMENTED_UNVERIFIED in source; not packaged; no installed
+approval.** Program, Season and Game on Break Down are now the shared two-line
+control (label over full value, caret, gold underline while open), replacing the
+22px single-line band and its two parallel route overrides, which are deleted.
+The three menus share one pattern (the popover `context` variant): a title, the
+current row checked, Season Library / New season / New program as gold commands,
+and long names wrapped rather than cut. Behavior, items, counts, focus return,
+Escape and arrow keys are unchanged. Narrow Break Down (<901px) now shows the
+three selectors in one fitted row; before, it had none. **Deviations from the
+supplemental comp:** the desktop row is 36px instead of 49px, to keep the
+film's useful-area floors (they pass with 2-4px margin: 1150x647, 964x542,
+743x418); the narrow row fits rather than side-scrolls, because
+`e2e-responsive-containment` treats a selector past the viewport edge as
+clipped; the menus are 400px wide rather than 360px, so game details wrap less.
+
+**BD-UX-1 - IMPLEMENTED_UNVERIFIED in source; not packaged; no installed
+approval.** On the populated canonical deck at 1920, 1440, 1280 and 390, every
+field label row has one 22px rhythm, whether or not it carries a disclosure or
+Edit library. Gap is a plain field on the deck's inset, not an indented child
+of Play Direction (S107-4 made them independent). A stored value the library
+does not offer gets its own full-width row, selected, instead of being cut to
+one column. Chips stay 27px and type is unchanged. No library choice is hidden,
+and sections still collapse independently with the selected value shown.
+**Deviation from the supplemental comp, kept deliberately:** Edit library stays
+beside its label, not at the far right. The coach rejected the far-edge
+placement at 1.12.0-93, and `e2e-native-tagging`, `e2e-breakdown-geometry` and
+`e2e-home-breakdown-visual-repair` pin it.
+
+Evidence: `e2e-breakdown-visual-finish` 27/27 (all selector checks red on the
+pre-change code, the four deck checks red on the pre-change deck). 26 focused
+harnesses green with no assertion changed, including `e2e-parity` 2/2 and
+`e2e-breakdown-viewport` 167/167. Captures from a read-only copy of the
+canonical 2025 JV season are in the local, untracked
+`artifacts/bd-visual-finish-2026-10-01/` (before set in `before/`). No coach
+data, schema, analytics, drive grouping or charting behavior changed. Full gate
+and installer pending.
+
 ## Source repair, 2026-10-01
 
 **S107-7 - P2, kickoff grouping crosses possession/half boundaries,
@@ -281,8 +320,8 @@ BD-UX-1/2 and the live cutover remain pending their existing checkpoints.
 
 ## Break Down next update (coach finding, 2026-09-28)
 
-**BD-UX-1 — OPEN (source IMPLEMENTED_UNVERIFIED 2026-09-28; see Charting
-cutover below). The populated Chart deck looks jagged beside the approved
+**BD-UX-1 — superseded by the 2026-10-01 entry at the top (source
+IMPLEMENTED_UNVERIFIED; installed smoke pending). The populated Chart deck looks jagged beside the approved
 comp.** In the coach's 1920x1080 Break Down capture (SJM JV 2026, Week 5,
 Play 24), the Situation grid is reasonably aligned, but Our Offensive Look
 becomes a wall of variable-width chip outlines. The full Formation catalog
@@ -364,7 +403,8 @@ refusal regressions failed before the fix; CSV projection now passes 39/39,
 CSV round-trip 14/14 and charting cutover deck 88/88. No coach data was touched;
 no full gate, installer or live conversion was run.
 
-**BD-UX-2 — OPEN. Break Down context dropdowns need a visual pass.** In the
+**BD-UX-2 — superseded by the 2026-10-01 entry at the top (source
+IMPLEMENTED_UNVERIFIED; installed smoke pending). Break Down context dropdowns needed a visual pass.** In the
 coach's 2026-09-28 capture, the collapsed Season selector looks cramped and
 unfinished; its expanded menu uses the older flat styling and typography rather
 than the current visual system. Review the Program and Game selectors in the
