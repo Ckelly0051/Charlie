@@ -287,7 +287,7 @@ production-to-comp mapping are in
 - **Every route shows the same two-line control: label above value, caret,
   gold underline while open** (BD-UX-2, 2026-10-01). Break Down no longer
   drops the label into a 22px breadcrumb band. Its row is 36px rather than the
-  comp's 49px, because the film's useful-area floors in `e2e-breakdown-viewport`
+  comp's 49px (coach's choice after comparing both, 2026-10-01), because the film's useful-area floors in `e2e-breakdown-viewport`
   (1150x645, 960x540, 740x416) leave only that much. It gets there by tightening
   line-height and padding only; the 12.5px label and 13px value stay. Below 901px
   Break Down shows the three selectors as one fitted row under the mobile head.

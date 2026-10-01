@@ -13,7 +13,8 @@ Escape and arrow keys are unchanged. Narrow Break Down (<901px) now shows the
 three selectors in one fitted row; before, it had none. **Deviations from the
 supplemental comp:** the desktop row is 36px instead of 49px, to keep the
 film's useful-area floors (they pass with 2-4px margin: 1150x647, 964x542,
-743x418); the narrow row fits rather than side-scrolls, because
+743x418). **The coach chose the 36px row over the comp's height on 2026-10-01,
+after comparing the two; do not restore 49px.** the narrow row fits rather than side-scrolls, because
 `e2e-responsive-containment` treats a selector past the viewport edge as
 clipped; the menus are 400px wide rather than 360px, so game details wrap less.
 
