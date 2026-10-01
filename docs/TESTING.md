@@ -1,5 +1,11 @@
 # Testing
 
+S107-7 explicit-number review follow-up: four new failing-first model cases
+pin numbered kickoff ownership, halftime and return-TD overrides, and numbered
+tries excluded from automatic scoring groups. Charting-details 107/107;
+theater 69/69, data-correctness-batch1 77/77 and parity 2/2 unchanged. No new
+analytics baseline, gate harness, full gate or package.
+
 S107-7, 2026-10-01: charting-details 103/103 (five failing-first regressions),
 native-breakdown-theater 69/69 (actual DOM grouping and data no-op),
 data-correctness-batch1 77/77 and parity 2/2. Coverage: halftime versus ordinary

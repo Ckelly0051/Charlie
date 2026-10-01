@@ -9,7 +9,7 @@ as transparent by drive number and pooled blank kickoff tags into No drive.
 tags. A blank kickoff may borrow the next scrimmage snap's assigned drive only
 before another counting kickoff, a return touchdown, an unrelated/uncharted ST
 snap or a half/regulation boundary. Explicit drive numbers are retained.
-Terminal kicks stay separate: End of half, End of regulation or Kickoff when
+Unnumbered terminal kicks stay separate: End of half, End of regulation or Kickoff when
 there is no evidence for a more specific label. A return TD and its subsequent
 try/defending-a-try stay in Kick return touchdown, never the next drive. Re-kicks
 join only when the preceding same-unit kick is explicitly no-play.
@@ -18,6 +18,15 @@ Our Drive 5 (44-50). 2026 JV OLL play 40 is End of half; play 41 joins Our
 Drive 6 (41-45). Catalog hash unchanged. Failing-first model tests and rendered
 strip checks pass; analytics parity unchanged. No full gate, package, push or
 coach-data write. Installed smoke remains pending for the repair.
+
+Review follow-up, 2026-10-01: P2 phantom drive and P3 explicit-number mismatch
+repaired in source. Explicit numbers now bypass automatic kickoff grouping,
+including terminal/return-TD kicks; they use the surrounding-drive rule instead
+of borrowing a following drive's side. Numbered tries/re-kicks cannot be absorbed
+by automatic groups. Four failing-first cases cover mismatched next number,
+numbered halftime kick, numbered return TD and numbered try. Charting-details
+107/107, theater 69/69, data-correctness-batch1 77/77, parity 2/2. No full gate
+or packaging; coach data unchanged.
 
 ## Smoke 1.12.0-107, 2026-09-30
 

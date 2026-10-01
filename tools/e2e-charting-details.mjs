@@ -46,6 +46,19 @@ console.log('\n== Vocabulary ==');
   const assigned = kick(1, 'Q1'); assigned.tags.driveNumber = '8';
   const manual = groupPlaysByDrive([assigned, snap(2, 'Q1', '5')]);
   ok(manual.some(g => g.number === '8' && ids(g) === '1'), 'explicit kickoff drive number is never replaced by the next snap\'s number');
+  const numbered = kick(2, 'Q1', 'kickoff'); numbered.tags.driveNumber = '3';
+  const owned = groupPlaysByDrive([snap(1, 'Q1', '3'), numbered, snap(3, 'Q1', '4', 'defense')]);
+  ok(owned.length === 2 && owned[0].label === 'Our Drive 3' && ids(owned[0]) === '1,2'
+    && owned[1].label === 'Opponent Drive 4', 'numbered kickoff never invents the next possession\'s side on its own number');
+  numbered.tags.quarter = 'Q2'; numbered.tags.driveNumber = '4';
+  const numberedHalf = groupPlaysByDrive([snap(1, 'Q2', '4'), numbered, snap(3, 'Q3', '5')]);
+  ok(numberedHalf[0].label === 'Our Drive 4' && ids(numberedHalf[0]) === '1,2', 'explicit drive number wins over automatic End of half grouping');
+  const numberedTd = { ...touchdown, id: 2, tags: { ...touchdown.tags, driveNumber: '4' } };
+  const manualTd = groupPlaysByDrive([snap(1, 'Q1', '4'), numberedTd]);
+  ok(manualTd.length === 1 && manualTd[0].label === 'Our Drive 4' && ids(manualTd[0]) === '1,2', 'explicit drive number wins over automatic return-TD grouping');
+  const numberedTry = { ...attempt, tags: { ...attempt.tags, driveNumber: '7' } };
+  const manualTry = groupPlaysByDrive([touchdown, numberedTry]);
+  ok(manualTry.some(g => g.number === '7' && ids(g) === '2'), 'return-TD grouping never absorbs a try with its own explicit drive');
 }
 {
   const engine = new StatsEngine();

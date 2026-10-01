@@ -21,7 +21,10 @@ a separate, evidenced step.
   possession sequence, never across another counting kickoff, a half boundary
   or return touchdown. Terminal kicks/return scores remain standalone; the try
   joins a return-TD sequence. A same-unit re-kick requires an explicitly no-play
-  prior kick. Preserve explicit charted numbers; do not write derived drive
+  prior kick. Explicit charted numbers win over automatic boundary/score groups:
+  numbered ST plays keep the surrounding-drive rule, never a different next
+  drive's side. Automatic groups never absorb numbered tries or re-kicks.
+  Do not write derived drive
   assignments or change analytics possession/drive calculations as a side effect.
 
 - **College sack accounting (coach ruling, 2026-09-30).** A sack counts once as

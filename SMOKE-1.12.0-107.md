@@ -2,6 +2,10 @@
 
 ## Build Record
 
+S107-7 review follow-up (source only): explicitly numbered kickoffs retain the
+surrounding-drive grouping, even at halftime or on return TDs. Test a numbered
+kick between Our Drive 3 and Opponent Drive 4: no phantom Opponent Drive 3.
+
 2026-10-01 source follow-up S107-7 (not in this installer): verify play-strip
 kickoffs at halftime, return touchdowns plus tries, and explicit no-play re-kicks.
 2025 JV Week 1: 43 End of half, 44-50 Our Drive 5. 2026 JV OLL: 40 End of half,

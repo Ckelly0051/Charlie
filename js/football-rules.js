@@ -92,7 +92,7 @@ function kickoffGroups(plays) {
     || (['3', '4'].includes(a) && !['3', '4'].includes(b)));
   for (let i = 0; i < plays.length; i++) {
     const first = event(plays[i]);
-    if (!isKick(first) || assignments.has(plays[i])) continue;
+    if (!isKick(first) || assignments.has(plays[i]) || driveNumberOf(plays[i].tags)) continue;
     const members = [plays[i]];
     let lastKick = plays[i], lastEvent = first, next = null, boundary = '';
     let score = !noPlay(lastKick) && lastEvent.outcome.score === 'touchdown';
@@ -104,11 +104,11 @@ function kickoffGroups(plays) {
         break;
       }
       if (score) {
-        if (e && ['try', 'tryDefense'].includes(e.unit)) { members.push(p); continue; }
+        if (e && ['try', 'tryDefense'].includes(e.unit) && !driveNumberOf(p.tags)) { members.push(p); continue; }
         break;
       }
       if (isKick(e)) {
-        if (noPlay(lastKick) && e.unit === lastEvent.unit) {
+        if (noPlay(lastKick) && e.unit === lastEvent.unit && !driveNumberOf(p.tags)) {
           members.push(p); lastKick = p; lastEvent = e;
           score = !noPlay(p) && e.outcome.score === 'touchdown';
           continue;
@@ -121,7 +121,7 @@ function kickoffGroups(plays) {
     }
     // Explicit numbers remain coach-owned. Only a blank kickoff borrows the
     // next snap's number, and only inside this bounded possession sequence.
-    const number = driveNumberOf(plays[i].tags) || (next ? driveNumberOf(next.tags) : '');
+    const number = next ? driveNumberOf(next.tags) : '';
     const terminal = !next || score || !!boundary;
     const label = score ? 'Kick return touchdown' : boundary || 'Kickoff';
     const side = next ? drivePossessionSide(next.tags) : '';
@@ -145,7 +145,8 @@ function kickoffGroups(plays) {
  * Collects nonadjacent assigned drives, orders groups by drive number, and
  * plays by play number within each group. Blank kickoff numbers may join the
  * next drive only inside a bounded kickoff sequence. Terminal kicks/return
- * scores stay separate; other unassigned plays stay in No drive. No tag writes.
+ * scores stay separate unless explicitly numbered by the coach; other
+ * unassigned plays stay in No drive. No tag writes.
  * Returns `[{ key, side, number, label, plays }]`. `project`
  * maps a play to whatever the caller renders; `mode` selects the labels.
  */

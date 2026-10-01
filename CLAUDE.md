@@ -137,7 +137,10 @@ roster (`SeasonManager._mergeRoster()`).
   (`PlayGrid.cellLocked`).
 - A drive is possession side plus number (`football-rules.js`:
   `drivePossessionSide`, `groupPlaysByDrive`, `driveLabel`), read from the
-  charted unit only. A special-teams snap joins the surrounding drive.
+  charted unit only. An explicitly numbered special-teams snap joins the
+  surrounding drive of that number; never pair its number with a different
+  following drive's side. Automatic kickoff boundary/scoring groups apply only
+  to unnumbered plays, and never absorb an explicitly numbered try or re-kick.
 - Extra points are authored only under `Try` and `Defending a Try`; the Field
   Goal unit has no attempt selector.
 - `TagLibrary.DEFINITIONS` owns every library field's defaults, and every
