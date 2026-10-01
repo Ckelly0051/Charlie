@@ -74,6 +74,38 @@ const reassigned = await page.evaluate(async () => {
 ok(reassigned.groups[0].name === 'Our Drive 1' && reassigned.groups[0].ids.join() === '2,3,4,5'
   && reassigned.groups[1].ids.join() === '1,6,7,8,9', 'rendered strip collects nonadjacent assigned drives and sorts plays within them', JSON.stringify(reassigned));
 ok(reassigned.unchanged, 'rendering reassigned drives does not rewrite stored charting');
+const kickoffBoundaries = await page.evaluate(async () => {
+  const app = window.app, saved = app.tagger.plays;
+  const kick = (id, quarter, unit, outcome = {}) => ({ id, timestamp: { start: id, end: id + 1 },
+    tags: { unit: 'special', quarter, driveNumber: '', players: {}, grades: {} }, specialTeams: { unit, outcome } });
+  const read = () => [...document.querySelectorAll('.gi-drive-group')].map(g => ({ label: g.querySelector('h3').textContent,
+    ids: [...g.querySelectorAll('[data-native-play-id]')].map(n => Number(n.dataset.nativePlayId)) }));
+  const render = async plays => {
+    app.tagger.plays = plays;
+    const before = JSON.stringify(plays);
+    app.tagger._emit('plays-loaded');
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return { groups: read(), unchanged: JSON.stringify(plays) === before };
+  };
+  try {
+    const half = await render([kick(43, 'Q2', 'kickoff'), kick(44, 'Q3', 'kickoffReturn'),
+      { ...saved[0], id: 45, tags: { ...saved[0].tags, quarter: 'Q3', driveNumber: '5' } }]);
+    const score = await render([kick(1, 'Q1', 'kickoffReturn', { status: 'returned', score: 'touchdown', scoredBy: 'subject' }),
+      { ...kick(2, 'Q1', 'try'), specialTeams: { unit: 'try', attemptType: 'extraPoint', result: 'converted' } },
+      kick(3, 'Q1', 'kickoff'), { ...saved[0], id: 4, tags: { ...saved[0].tags, unit: 'defense', quarter: 'Q1', driveNumber: '1' } }]);
+    return { half, score };
+  } finally {
+    app.tagger.plays = saved; app.tagger._emit('plays-loaded');
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+});
+ok(JSON.stringify(kickoffBoundaries.half.groups) === JSON.stringify([
+  { label: 'End of half', ids: [43] }, { label: 'Our Drive 5', ids: [44, 45] }]),
+  'rendered strip separates halftime kickoff from the second-half possession', JSON.stringify(kickoffBoundaries.half));
+ok(JSON.stringify(kickoffBoundaries.score.groups) === JSON.stringify([
+  { label: 'Kick return touchdown', ids: [1, 2] }, { label: 'Opponent Drive 1', ids: [3, 4] }]),
+  'rendered strip keeps the return touchdown and try out of the following receiving drive', JSON.stringify(kickoffBoundaries.score));
+ok(kickoffBoundaries.half.unchanged && kickoffBoundaries.score.unchanged, 'rendered kickoff groups never rewrite charted data');
 
 let state = await page.evaluate(() => {
   document.querySelector('[data-drive-scroll]').style.maxWidth = '500px';

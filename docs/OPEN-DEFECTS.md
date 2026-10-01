@@ -1,5 +1,24 @@
 # GridIron IQ Open Defects
 
+## Source repair, 2026-10-01
+
+**S107-7 - P2, kickoff grouping crosses possession/half boundaries,
+REPAIRED IN SOURCE / not packaged.** The strip formerly treated Special Teams
+as transparent by drive number and pooled blank kickoff tags into No drive.
+`groupPlaysByDrive` now resolves structured kickoff sequences without writing
+tags. A blank kickoff may borrow the next scrimmage snap's assigned drive only
+before another counting kickoff, a return touchdown, an unrelated/uncharted ST
+snap or a half/regulation boundary. Explicit drive numbers are retained.
+Terminal kicks stay separate: End of half, End of regulation or Kickoff when
+there is no evidence for a more specific label. A return TD and its subsequent
+try/defending-a-try stay in Kick return touchdown, never the next drive. Re-kicks
+join only when the preceding same-unit kick is explicitly no-play.
+Read-only live proof: 2025 JV Week 1 play 43 is End of half; play 44 joins
+Our Drive 5 (44-50). 2026 JV OLL play 40 is End of half; play 41 joins Our
+Drive 6 (41-45). Catalog hash unchanged. Failing-first model tests and rendered
+strip checks pass; analytics parity unchanged. No full gate, package, push or
+coach-data write. Installed smoke remains pending for the repair.
+
 ## Smoke 1.12.0-107, 2026-09-30
 
 **S107-5 - P2, Overview Turnovers tile reads a nonexistent field,

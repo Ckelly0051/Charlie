@@ -1,5 +1,14 @@
 # Testing
 
+S107-7, 2026-10-01: charting-details 103/103 (five failing-first regressions),
+native-breakdown-theater 69/69 (actual DOM grouping and data no-op),
+data-correctness-batch1 77/77 and parity 2/2. Coverage: halftime versus ordinary
+quarter changes, consecutive kicks, return TD plus try, explicit no-play re-kick,
+manual drive numbers, preserved nonadjacent drive collection and no tag writes.
+Read-only live verification confirms 2025 JV Week 1 43/44 and 2026 JV OLL 40/41;
+catalog hash unchanged. No analytics baseline changed, new gate harness, full
+gate or installer.
+
 S107-6 college sack convention: charting-details additionally pins attribution
 to Passer regardless of position and no Ball Carrier fallback when Passer is blank
 (96/96). Study players remains 39/39; parity 2/2, with additional canonical changes

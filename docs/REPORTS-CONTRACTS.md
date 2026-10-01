@@ -16,6 +16,14 @@ a separate, evidenced step.
 
 ## Cross-cutting
 
+- **Kickoff strip grouping:** `groupPlaysByDrive` owns read-only display grouping.
+  A blank kickoff can join the next assigned scrimmage drive only within its
+  possession sequence, never across another counting kickoff, a half boundary
+  or return touchdown. Terminal kicks/return scores remain standalone; the try
+  joins a return-TD sequence. A same-unit re-kick requires an explicitly no-play
+  prior kick. Preserve explicit charted numbers; do not write derived drive
+  assignments or change analytics possession/drive calculations as a side effect.
+
 - **College sack accounting (coach ruling, 2026-09-30).** A sack counts once as
   a team/passer rushing attempt and its signed yardage belongs to rushing, never
   passing yards or passing attempts. Use `StatsEngine.isRushingAttempt` and

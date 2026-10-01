@@ -2,6 +2,12 @@
 
 ## Build Record
 
+2026-10-01 source follow-up S107-7 (not in this installer): verify play-strip
+kickoffs at halftime, return touchdowns plus tries, and explicit no-play re-kicks.
+2025 JV Week 1: 43 End of half, 44-50 Our Drive 5. 2026 JV OLL: 40 End of half,
+41-45 Our Drive 6. Focused tests and unchanged analytics parity pass; new gate,
+package and installed smoke are still required for these source repairs.
+
 Additional source repair S107-5: Overview Turnovers counts total team losses,
 including explicit Special Teams losses; NDP reads 1, with no subtext. Not in
 this installer. S107-6 is also repaired in source: college convention credits

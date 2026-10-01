@@ -82,6 +82,58 @@ export function driveLabel(side, number, mode = 'perspective') {
   return `${side === 'subject' ? 'Our' : 'Opponent'} Drive ${number}`;
 }
 
+function kickoffGroups(plays) {
+  const assignments = new Map();
+  const event = p => SpecialTeamsModel.normalize(p?.specialTeams);
+  const isKick = e => e && ['kickoff', 'kickoffReturn'].includes(e.unit);
+  const noPlay = p => p?.penalties?.some(penalty => penalty.playCounts === false);
+  const quarter = p => String(p?.tags?.quarter || '').replace(/^Q/i, '');
+  const halfChanged = (a, b) => a && b && ((['1', '2'].includes(a) && !['1', '2'].includes(b))
+    || (['3', '4'].includes(a) && !['3', '4'].includes(b)));
+  for (let i = 0; i < plays.length; i++) {
+    const first = event(plays[i]);
+    if (!isKick(first) || assignments.has(plays[i])) continue;
+    const members = [plays[i]];
+    let lastKick = plays[i], lastEvent = first, next = null, boundary = '';
+    let score = !noPlay(lastKick) && lastEvent.outcome.score === 'touchdown';
+    const startQuarter = quarter(plays[i]);
+    for (let j = i + 1; j < plays.length; j++) {
+      const p = plays[j], e = event(p);
+      if (halfChanged(startQuarter, quarter(p))) {
+        boundary = ['1', '2'].includes(startQuarter) ? 'End of half' : 'End of regulation';
+        break;
+      }
+      if (score) {
+        if (e && ['try', 'tryDefense'].includes(e.unit)) { members.push(p); continue; }
+        break;
+      }
+      if (isKick(e)) {
+        if (noPlay(lastKick) && e.unit === lastEvent.unit) {
+          members.push(p); lastKick = p; lastEvent = e;
+          score = !noPlay(p) && e.outcome.score === 'touchdown';
+          continue;
+        }
+        break;
+      }
+      if (drivePossessionSide(p.tags)) { next = p; break; }
+      // An unrelated or uncharted ST snap is not proof of continuation.
+      break;
+    }
+    // Explicit numbers remain coach-owned. Only a blank kickoff borrows the
+    // next snap's number, and only inside this bounded possession sequence.
+    const number = driveNumberOf(plays[i].tags) || (next ? driveNumberOf(next.tags) : '');
+    const terminal = !next || score || !!boundary;
+    const label = score ? 'Kick return touchdown' : boundary || 'Kickoff';
+    const side = next ? drivePossessionSide(next.tags) : '';
+    const neighbor = plays.slice(i + 1).find(p => driveNumberOf(p.tags))
+      || plays.slice(0, i).reverse().find(p => driveNumberOf(p.tags));
+    const group = { number, side, terminal, label,
+      key: `kickoff:${i}`, order: i, anchor: number || driveNumberOf(neighbor?.tags) };
+    for (const p of members) assignments.set(p, group);
+  }
+  return assignments;
+}
+
 /**
  * Group an ordered play list into drives on composite side+number identity,
  * because the two teams each run their own drive sequence: grouping on the raw
@@ -91,24 +143,33 @@ export function driveLabel(side, number, mode = 'perspective') {
  * merge two known sides.
  *
  * Collects nonadjacent assigned drives, orders groups by drive number, and
- * plays by play number within each group. Unassigned plays stay in No drive.
+ * plays by play number within each group. Blank kickoff numbers may join the
+ * next drive only inside a bounded kickoff sequence. Terminal kicks/return
+ * scores stay separate; other unassigned plays stay in No drive. No tag writes.
  * Returns `[{ key, side, number, label, plays }]`. `project`
  * maps a play to whatever the caller renders; `mode` selects the labels.
  */
 export function groupPlaysByDrive(plays, { project = play => play, mode = 'perspective' } = {}) {
+  const kickoff = kickoffGroups(plays || []);
   const groups = [];
   let current = null;
-  (plays || []).forEach(play => {
+  (plays || []).forEach((play, order) => {
     const tags = play?.tags || {};
-    const number = driveNumberOf(tags);
-    const side = drivePossessionSide(tags);
+    const kick = kickoff.get(play);
+    const number = kick ? kick.number : driveNumberOf(tags);
+    const side = kick ? kick.side : drivePossessionSide(tags);
+    if (kick?.terminal) {
+      if (current?.key !== kick.key) { current = { ...kick, plays: [] }; groups.push(current); }
+      current.plays.push(play);
+      return;
+    }
     // An unknown side continues the open drive of the same number, and a known
     // side ADOPTS an open drive that has not resolved one yet (a kickoff ahead
     // of our own snaps is one drive, not two).
-    const continues = !!current && current.number === number
+    const continues = !!current && !current.terminal && current.number === number
       && (!side || !current.side || current.side === side);
     if (!continues) {
-      current = { key: `${side || 'unknown'}|${number || 'none'}#${groups.length}`, side, number, label: '', plays: [] };
+      current = { key: `${side || 'unknown'}|${number || 'none'}#${groups.length}`, side, number, label: '', order, plays: [] };
       groups.push(current);
     } else if (side && !current.side) {
       current.side = side;
@@ -117,16 +178,17 @@ export function groupPlaysByDrive(plays, { project = play => play, mode = 'persp
   });
   const collected = new Map();
   for (const group of groups) {
-    const key = group.number ? `${group.side || 'unknown'}|${group.number}` : 'none';
+    const key = group.terminal ? group.key : group.number ? `${group.side || 'unknown'}|${group.number}` : 'none';
     const existing = collected.get(key);
     if (existing) existing.plays.push(...group.plays);
     else collected.set(key, { ...group, key, plays: [...group.plays] });
   }
   return [...collected.values()].sort((a, b) => {
-    if (!a.number) return b.number ? 1 : 0;
-    if (!b.number) return -1;
-    return a.number.localeCompare(b.number, undefined, { numeric: true });
-  }).map(group => ({ ...group, label: driveLabel(group.side, group.number, mode),
+    const an = a.number || a.anchor, bn = b.number || b.anchor;
+    if (!an) return bn ? 1 : a.order - b.order;
+    if (!bn) return -1;
+    return an.localeCompare(bn, undefined, { numeric: true }) || a.order - b.order;
+  }).map(group => ({ ...group, label: group.terminal ? group.label : driveLabel(group.side, group.number, mode),
     plays: group.plays.sort((a, b) => Number(a.id) - Number(b.id)).map(project) }));
 }
 

@@ -30,6 +30,13 @@
 
 This section is the one place release state is kept current.
 
+- 2026-10-01: S107-7 kickoff strip grouping repaired in source, not packaged.
+  Half-ending kicks and return-TD/try sequences stay separate from the following
+  drive. Blank kickoff drive assignment is a bounded read-only grouping, never
+  a stored-data rewrite. Exact live Week 1 43/44 and 2026 JV OLL 40/41 cases
+  verified with unchanged catalog hash. Focused tests/parity green; no new gate,
+  installer or installed approval.
+
 - S107-5 Overview total-turnover tile repaired in source, not packaged. NDP now
   reads 1, with the redundant subtext removed; ST losses are included explicitly.
   S107-6 college sack accounting also repaired in source, not packaged:

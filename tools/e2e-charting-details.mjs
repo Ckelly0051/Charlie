@@ -19,6 +19,35 @@ class MemoryStorage { constructor(seed = {}) { this.data = new Map(Object.entrie
 
 console.log('\n== Vocabulary ==');
 {
+  const kick = (id, quarter, unit = 'kickoffReturn', outcome = {}) => ({ id,
+    tags: { unit: 'special', quarter, driveNumber: '' }, specialTeams: { unit, outcome } });
+  const snap = (id, quarter, number = '5', unit = 'offense') => ({ id,
+    tags: { unit, quarter, driveNumber: number } });
+  const ids = g => g.plays.map(p => p.id).join();
+  const halftime = [kick(43, 'Q2', 'kickoff'), kick(44, 'Q3'), snap(45, 'Q3')];
+  const before = JSON.stringify(halftime);
+  const groups = groupPlaysByDrive(halftime);
+  ok(groups.length === 2 && groups[0].label === 'End of half' && ids(groups[0]) === '43'
+    && groups[1].label === 'Our Drive 5' && ids(groups[1]) === '44,45', 'halftime kickoff stays separate; second-half kick joins only its own drive');
+  ok(JSON.stringify(halftime) === before, 'kickoff grouping never writes charted tags');
+  const touchdown = kick(1, 'Q1', 'kickoffReturn', { status: 'returned', score: 'touchdown', scoredBy: 'subject' });
+  const attempt = { id: 2, tags: { unit: 'special', quarter: 'Q1' }, specialTeams: { unit: 'try', result: 'converted', attemptType: 'extraPoint' } };
+  const scoring = groupPlaysByDrive([touchdown, attempt, kick(3, 'Q1', 'kickoff'), snap(4, 'Q1', '1', 'defense')]);
+  ok(scoring.length === 2 && scoring[0].label === 'Kick return touchdown' && ids(scoring[0]) === '1,2'
+    && scoring[1].label === 'Opponent Drive 1' && ids(scoring[1]) === '3,4', 'return TD and try form one scoring possession, not the next drive');
+  const first = kick(1, 'Q1');
+  first.penalties = [{ playCounts: false }];
+  const rekick = groupPlaysByDrive([first, kick(2, 'Q1'), snap(3, 'Q1')]);
+  ok(rekick.length === 1 && ids(rekick[0]) === '1,2,3', 'an explicitly nullified kick and its re-kick stay together');
+  const consecutive = groupPlaysByDrive([kick(1, 'Q1'), kick(2, 'Q1'), snap(3, 'Q1')]);
+  ok(consecutive.length === 2 && ids(consecutive[0]) === '1' && ids(consecutive[1]) === '2,3', 'unexplained consecutive kicks never borrow each other\'s drive');
+  const quarter = groupPlaysByDrive([kick(1, 'Q1'), snap(2, 'Q2')]);
+  ok(quarter.length === 1 && ids(quarter[0]) === '1,2', 'ordinary quarter change is not a halftime boundary');
+  const assigned = kick(1, 'Q1'); assigned.tags.driveNumber = '8';
+  const manual = groupPlaysByDrive([assigned, snap(2, 'Q1', '5')]);
+  ok(manual.some(g => g.number === '8' && ids(g) === '1'), 'explicit kickoff drive number is never replaced by the next snap\'s number');
+}
+{
   const engine = new StatsEngine();
   const sack = { id: 2, tags: { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Sack', yardage: '-7', players: { passer: '12' } } };
   const completion = { id: 1, tags: { unit: 'offense', runPass: 'Pass', playType: 'Short Pass', result: 'Gain', yardage: '20', players: { passer: '12' } } };
