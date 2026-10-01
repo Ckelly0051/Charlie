@@ -30,6 +30,18 @@
 
 This section is the one place release state is kept current.
 
+- **Latest built installer: `1.12.0-108`** (2026-10-01). It packages the Break
+  Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.
+  Full gate 141/141 green, zero skipped and zero failed, at `0163da45`.
+  Version-only bump `05ec6615`, with `e2e-p0-exit` 19/19 after it.
+  Unsigned NSIS:
+  `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-108_x64-setup.exe`
+  (4,041,437 bytes), SHA-256
+  `DA6C40A96A553881FFD96A9A6215E6F1CE25DD6FA56BDF3C3FD83FC0F24A2E77`.
+  Product and file version `1.12.0-108`. Installed smoke is pending
+  (`SMOKE-1.12.0-108.md`); no installed approval yet. `1.12.0-106` remains
+  the latest smoked build. Nothing pushed, tagged or published.
+
 - 2026-10-01: Break Down visual finish (BD-UX-1, BD-UX-2) built in source,
   IMPLEMENTED_UNVERIFIED, not packaged. Program, Season and Game are the shared
   two-line control on Break Down, in a 36px row (coach's choice over the comp's
