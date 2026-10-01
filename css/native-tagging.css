@@ -71,9 +71,10 @@
    ragged row. */
 .gi-tag-chips.is-library{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .gi-tag-chips.is-library button{overflow:hidden;text-overflow:ellipsis}
-/* A stored value the library does not offer takes its own full row, so the
-   selection on the play is read in full rather than cut to one column. */
-.gi-tag-chips.is-library button.is-off-library{grid-column:1/-1}
+/* A stored value the library does not offer takes its own full row and wraps
+   there at the chip's type size, so the selection on the play is always read in
+   full -- never cut to one column or to the deck's width. */
+.gi-tag-chips.is-library button.is-off-library{grid-column:1/-1;overflow:visible;white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
 @media(max-width:520px){.gi-tag-chips.is-library{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* A detail opened by the field above it (Motion path, RPO, QB run) sits inline
    under that field, indented, never in a separate step. Gap is not a detail:

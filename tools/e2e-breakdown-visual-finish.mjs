@@ -134,6 +134,25 @@ ok(new Set(deck.labels.filter(label => !label.column).map(label => label.left)).
 ok(!deck.gapInDetail && deck.gapIndent === 0 && deck.gapLeft === deck.dirLeft, 'Gap is a plain field aligned with Play Direction, not an indented detail', deck);
 ok(deck.off && deck.off.text === 'Trey Open Wide' && deck.off.active && deck.off.full && !deck.off.clipped, 'A stored Formation the library does not offer is selected and read in full on its own row', deck.off);
 
+// A stored name longer than the deck is wide wraps inside its full row; it is never cut.
+const LONG = 'Doubles Tight Bunch Right Unbalanced Over Wing Slot Trade Motion Formation';
+await page.evaluate(long => { const t = window.app.tagger, p = t.getCurrentPlay(); p.tags.formationFamily = long; t._emit('play-updated', p); }, LONG);
+for (const [w, h] of [[1440, 900], [768, 1024], [390, 844]]) {
+  await page.setViewport({ width: w, height: h }); await sleep(350);
+  await page.evaluate(() => document.querySelector('[data-native-tagging] [data-native-field="formationFamily"] button.is-off-library')?.scrollIntoView({ block: 'center' }));
+  await sleep(150);
+  if (process.env.GI_BD_SHOTS) await page.screenshot({ path: `${process.env.GI_BD_SHOTS}/long-formation-${w}.png` });
+  const long = await page.evaluate(() => {
+    const off = document.querySelector('[data-native-tagging] [data-native-field="formationFamily"] button.is-off-library');
+    if (!off) return null;
+    const grid = off.parentElement.getBoundingClientRect(), rect = off.getBoundingClientRect();
+    return { text: off.textContent.trim(), clipped: off.scrollWidth > off.clientWidth + 1 || off.scrollHeight > off.clientHeight + 1,
+      inside: rect.left >= grid.left - 1 && rect.right <= grid.right + 1, h: Math.round(rect.height), font: getComputedStyle(off).fontSize };
+  });
+  ok(long && long.text.length > 60 && !long.clipped && long.inside && long.h >= 27 && long.font === '12.5px',
+    `${w}: a long stored Formation wraps in full inside the deck at the chip's type size`, long);
+}
+
 ok(errors.length === 0, 'No page errors', errors.slice(0, 3).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

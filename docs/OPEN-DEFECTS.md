@@ -24,14 +24,16 @@ field label row has one 22px rhythm, whether or not it carries a disclosure or
 Edit library. Gap is a plain field on the deck's inset, not an indented child
 of Play Direction (S107-4 made them independent). A stored value the library
 does not offer gets its own full-width row, selected, instead of being cut to
-one column. Chips stay 27px and type is unchanged. No library choice is hidden,
+one column, and a name longer than the deck wraps inside that row instead of
+being ellipsized (Codex review P3, 2026-10-01, repaired with a failing-first
+check at 1440, 768 and 390). Chips stay 27px and type is unchanged. No library choice is hidden,
 and sections still collapse independently with the selected value shown.
 **Deviation from the supplemental comp, kept deliberately:** Edit library stays
 beside its label, not at the far right. The coach rejected the far-edge
 placement at 1.12.0-93, and `e2e-native-tagging`, `e2e-breakdown-geometry` and
 `e2e-home-breakdown-visual-repair` pin it.
 
-Evidence: `e2e-breakdown-visual-finish` 27/27 (all selector checks red on the
+Evidence: `e2e-breakdown-visual-finish` 30/30 (all selector checks red on the
 pre-change code, the four deck checks red on the pre-change deck). 26 focused
 harnesses green with no assertion changed, including `e2e-parity` 2/2 and
 `e2e-breakdown-viewport` 167/167. Captures from a read-only copy of the

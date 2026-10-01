@@ -38,7 +38,7 @@ This section is the one place release state is kept current.
   a checked current row and gold commands. The deck has one label-row rhythm,
   Gap is a plain field on the inset, and an off-library stored value is read in
   full. Recorded deviations from the supplemental comp are in
-  `docs/OPEN-DEFECTS.md`. `e2e-breakdown-visual-finish` 27/27 plus 26 focused
+  `docs/OPEN-DEFECTS.md`. `e2e-breakdown-visual-finish` 30/30 plus 26 focused
   harnesses and parity green. To ship together with the S107 source repairs
   after one full gate and a new installer; no gate, installer or installed
   approval yet.
