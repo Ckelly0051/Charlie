@@ -124,13 +124,19 @@ const one = n => n.toFixed(1);
 const classified = activePlays.filter(charted);
 const off = classified.filter(p => (tags(p).unit || 'offense') === 'offense');
 const def = classified.filter(p => tags(p).unit === 'defense');
-const rush = off.filter(isRun), pas = off.filter(isPass);
+/* College sack accounting (coach ruling 2026-09-30, docs/REPORTS-CONTRACTS.md):
+ * a sack counts once as a rushing attempt and its signed yards belong to
+ * rushing, never to passing yards or passing attempts. Transcribed from the
+ * ruling, not from the engine. One qualifying play is one passing attempt
+ * (S107-2: play ids are game-local, so they never deduplicate). */
+const sack = p => hasResult(p, 'Sack');
+const rush = off.filter(p => isRun(p) || sack(p)), pas = off.filter(isPass);
 const rushYards = rush.reduce((t, p) => t + yds(p), 0);
-const passComp = pas.filter(p => hasResult(p, 'Gain') || hasResult(p, 'Touchdown') || hasResult(p, 'No Gain'));
-const passInc = pas.filter(p => hasResult(p, 'Incomplete'));
-const passInt = pas.filter(p => hasResult(p, 'Interception'));
-const passAtt = new Set([...passComp, ...passInc, ...passInt].map(p => p.id)).size;
-const passYards = pas.reduce((t, p) => (hasResult(p, 'Incomplete') || hasResult(p, 'Interception') ? t : t + yds(p)), 0);
+const passComp = pas.filter(p => !sack(p) && (hasResult(p, 'Gain') || hasResult(p, 'Touchdown') || hasResult(p, 'No Gain')));
+const passInt = pas.filter(p => !sack(p) && hasResult(p, 'Interception'));
+const passAtt = pas.filter(p => !sack(p) && (hasResult(p, 'Gain') || hasResult(p, 'Touchdown') || hasResult(p, 'No Gain')
+  || hasResult(p, 'Incomplete') || hasResult(p, 'Interception'))).length;
+const passYards = pas.reduce((t, p) => (sack(p) || hasResult(p, 'Incomplete') || hasResult(p, 'Interception') ? t : t + yds(p)), 0);
 const totalYards = rushYards + passYards;
 const defYards = def.reduce((t, p) => t + yds(p), 0);
 

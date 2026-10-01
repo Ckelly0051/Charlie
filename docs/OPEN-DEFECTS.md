@@ -42,6 +42,15 @@ canonical 2025 JV season are in the local, untracked
 data, schema, analytics, drive grouping or charting behavior changed. Full gate
 and installer pending.
 
+Gate at `e8f268c5` (2026-10-01): 140/141, failed only
+`e2e-reports-overview-realdata`. Its stand-alone Rushing/Passing recalculation
+still used the pre-S107-6 convention (sack yards in passing, a sack not a rushing
+attempt), so it expected 26/61 rushing and -3 passing yards. The app rendered
+27/51 and 7, which is correct under the coach's college sack ruling. Not a product
+defect. The S107-6 commits never updated this canonical-data harness, and CI skips
+real data. The recalculation now follows the ruling as written (39/39); the gate
+is to be rerun.
+
 ## Source repair, 2026-10-01
 
 **S107-7 - P2, kickoff grouping crosses possession/half boundaries,
