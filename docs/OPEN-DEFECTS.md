@@ -1,5 +1,22 @@
 # GridIron IQ Open Defects
 
+## Gate coverage consolidation, 2026-10-02
+
+**Built in source (`ad0807ea`); focused verification only, not a full gate.**
+The Reports terminology harness reuses one observation for wording, clipping,
+Defense KPI/header geometry and page overflow. Duplicate initial-page reads
+and its second Defense traversal are removed. All 42 prior assertions remain,
+with six additional visit/header-presence guards (48 checks total); each
+selection must activate, and empty scopes require their named empty state.
+Traversal delays are replaced by active-control/font/rendered-frame readiness.
+Separate OLL typography, multi-game board and navigation contracts remain.
+The ownership mapping is in `docs/TESTING.md`. No product or coach-data change,
+seed reduction, harness retirement, package or installed approval. Release
+receipts remain the next approved gate enhancement.
+Proof: fresh build; terminology 48/48, typography census 34/34 and runner
+63/63, zero skipped/failed. Omitted-page mutation is rejected; canonical source
+hash is unchanged. Complete local logs are indexed in Testing.
+
 ## Gate adversarial review repairs, 2026-10-02
 
 **All three repaired in source (`2683d866`); full gate GREEN at `12ca4a03`,
@@ -51,7 +68,8 @@ focused run exposed one incorrect new test assumption (disconnected contexts
 may be automatically disposed). Correcting it to test shared-browser survival,
 cleanup and the next child's isolation yielded a 2/2 focused rerun. Full gate
 145/145 at `07bf04aa` is historical and predates this checkpoint. Remaining
-gate follow-ups: behavior-based coverage consolidation and release receipts.
+gate follow-ups were behavior-based coverage consolidation and release receipts;
+the bounded consolidation checkpoint is now recorded above.
 
 ## Full gate at `fec0aba9`, 2026-10-02
 

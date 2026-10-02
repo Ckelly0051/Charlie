@@ -316,7 +316,7 @@ passed **145/145 harnesses, zero skipped and zero failed**. Canonical integrity
 completed 960 operations with source bytes unchanged, and analytics parity plus
 all Reports suites passed. Eight shared Chromium launches were used, with
 dedicated browsers retained for special options. No installer or live-data write.
-Future coverage
+Coverage
 consolidation, deadlines/logging and release receipts are recorded in
 `GRIDIRON-IQ-PLAN-V2.md` > Gate Efficiency and Quality.
 
@@ -327,6 +327,38 @@ installed WebView2 smoke, which nothing above replaces.
 A harness is green only when its exit code is 0 **and** its result line is
 clean; the runner checks both and the self-test proves it. Run the self-test
 whenever a gate result is doubted or the runner changes.
+
+## Coverage Consolidation (2026-10-02)
+
+Consolidate observations, not distinct failure contracts. The Reports mapping:
+
+| Owner | Contract retained | Why separate |
+| --- | --- | --- |
+| `e2e-explosive-labels` | Source vocabulary; all Reports pages; Defense/ST scopes; wording, clipping, SVG containment, KPI/header geometry; Study; HTML exports; sparse/empty | Canonical St. Peter game at 1440/1280/768, plus synthetic edge states |
+| `e2e-reports-typefloor-realdata` | Exact font-size census, exceptions and named narrow modules | Canonical OLL game at 1440/1280; not the same state or assertion as terminology |
+| `e2e-reports-offense-realdata` / `e2e-reports-defense-realdata` | Every canonical game, module inventory, scope-specific data and geometry | Multi-game content contracts, not label spelling |
+| `e2e-reports-global-strip` | Stable navigation positions, active sections, scopes, exports and responsive chrome | Navigation behavior, not board contents |
+
+The terminology harness now observes each page once per scope and viewport,
+collecting labels, KPI line count, header heights and page overflow together.
+Its second Defense traversal and duplicate initial-page observations are gone.
+All original assertions, fixture breadth and thresholds remain; overflow is
+now checked on every visited state rather than only the final page. Six added
+assertions pin the eight Defense page/scope states and non-vacuous header
+measurement at each width. Missing controls fail; absent scope controls are
+accepted only with the report's named empty state. Selected controls must
+actually become active. No harness, stress seed or operation count is retired.
+
+Code checkpoint: `ad0807ea`. An in-memory mutation omitting the Scheme page
+fails the independent visit-matrix assertion at 1440; no source file or coach
+data was modified by that experiment. The isolated terminology rerun passed
+48/48 in approximately 21 seconds (the preceding full gate took 83 seconds).
+This is an observed run, not a timing threshold or a guaranteed gate-wide gain.
+Final focused verification at the committed code checkpoint: fresh build;
+terminology 48/48, gate-runner 63/63 and exact typography census 34/34. All
+three green, zero skipped/failed. Canonical source bytes remained unchanged.
+Complete local logs: `artifacts/gate-logs/2026-10-02T23-49-48-145Z-vnxHz4/`;
+build log in sibling `2026-10-02T23-49-47-049Z-6dtA29/`. Full gate was not run.
 
 ## Rules
 

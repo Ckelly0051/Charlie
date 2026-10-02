@@ -31,6 +31,13 @@
 
 This section is the one place release state is kept current.
 
+- **Coverage consolidation, 2026-10-02, `ad0807ea`:** Reports terminology
+  observations consolidated without retiring contracts or harnesses. Six added
+  guards and active-control/render readiness; separate canonical typography,
+  multi-game board and navigation checks retained. Focused proof in
+  `docs/TESTING.md`; the latest full gate below predates this change. No
+  product, package, live-data write or installed approval.
+
 - **Latest full gate, 2026-10-02, `12ca4a03`: GREEN.** Fresh build and all 145
   harnesses passed, zero skipped and zero failed. Runner 63/63, canonical
   integrity 960 operations with source bytes unchanged, analytics parity and

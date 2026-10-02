@@ -112,15 +112,22 @@ termination probes on readiness. Runner proof is now 63/63; a fresh build plus
 seven focused harnesses passed, including all 960 integrity operations. Exact
 coverage is recorded in Testing. Full gate at `12ca4a03` is now green:
 145/145, zero skipped and zero failed, with a fresh build and all logs verified.
-No package or installed approval on this checkpoint. Next: coverage
-consolidation, then release receipts; neither is built by this checkpoint.
+No package or installed approval on this checkpoint.
+
+Coverage consolidation checkpoint is built in `ad0807ea`: the expensive
+Reports terminology crawl collects wording, fit and Defense geometry during
+one visit per page/scope/viewport instead of repeating the same traversal.
+Active-control and rendered-frame readiness replace its traversal delays.
+All original contracts remain, plus six non-vacuity/visit guards. The separate
+canonical OLL typography census and multi-game/navigation suites remain:
+their failure contracts differ. The coverage-owner mapping and focused proof
+are in `docs/TESTING.md`. No harness or stress operation was retired, and no
+product or live data changed. This is bounded consolidation, not a claim that
+every possible overlap in 145 harnesses has been eliminated. Next: release
+receipts. The latest full gate above predates this checkpoint.
 
 Future enhancements, recorded on coach direction; not authorization to build:
 
-- **Behavior-based coverage consolidation.** Remove repeated setup and genuinely
-  identical assertions only after mapping their failure contracts. Preserve
-  distinct UI, persistence, ownership and analytics paths; do not retire checks
-  merely because they are old. No timing-baseline project is required.
 - **Auditable release receipts.** Record the tested commit, build fingerprint,
   fixture identities and individual outcomes in a machine-readable receipt.
   Distinguish focused runs, full runs, skips and failures. A receipt must never
