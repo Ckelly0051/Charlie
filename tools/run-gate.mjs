@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readdir, readFile, mkdir, mkdtemp } from 'node:fs/promises';
+import { readdir, readFile, mkdir, mkdtemp, appendFile } from 'node:fs/promises';
 import { openSync, writeSync, closeSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -20,11 +20,33 @@ function terminateTree(child) {
   if (!child.pid) return Promise.resolve();
   if (process.platform === 'win32') return new Promise(resolveKill => {
     const killer = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
-    killer.once('error', () => { child.kill('SIGKILL'); resolveKill(); });
-    killer.once('close', code => { if (code !== 0) child.kill('SIGKILL'); resolveKill(); });
+    const timer = setTimeout(() => { killer.kill('SIGKILL'); child.kill('SIGKILL'); resolveKill(); }, 5000);
+    killer.once('error', () => { clearTimeout(timer); child.kill('SIGKILL'); resolveKill(); });
+    killer.once('close', code => { clearTimeout(timer); if (code !== 0) child.kill('SIGKILL'); resolveKill(); });
   });
   try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') child.kill('SIGKILL'); }
   return Promise.resolve();
+}
+function scheduleDeadline(callback, ms) {
+  const timer = setTimeout(callback, ms);
+  return () => clearTimeout(timer);
+}
+async function bounded(operation, ms, label) {
+  let timer;
+  try {
+    return await Promise.race([operation(), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} exceeded ${ms}ms`)), ms);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+export async function closeBrowser(browser, timeoutMs = 10000) {
+  try { await bounded(() => browser.close(), timeoutMs, 'Browser shutdown'); }
+  catch (error) {
+    const child = browser.process?.();
+    if (!child?.pid) throw error;
+    await terminateTree(child);
+    browser.disconnect();
+  }
 }
 export function classify(output, code) {
   const line = output.split(/\r?\n/).filter(line => /RESULT:|ALL PASS|TOTALS/.test(line)).at(-1) || '';
@@ -34,35 +56,60 @@ export function classify(output, code) {
 
 export const failureEvidence = output => output.split(/\r?\n/).filter(line => /^\s*FAIL(\s|$)/.test(line));
 export const buildAccepted = result => result.code === 0;
-export async function cleanupContexts(browser) {
-  for (const context of browser.browserContexts()) {
-    if (context !== browser.defaultBrowserContext()) await context.close();
-  }
+export async function cleanupContexts(browser, timeoutMs = 10000) {
+  await bounded(async () => {
+    for (const context of browser.browserContexts()) {
+      if (context !== browser.defaultBrowserContext()) await context.close();
+    }
+  }, timeoutMs, 'Browser context cleanup');
 }
 
-export function execute(command, args, env = process.env, signal, { timeoutMs = 180000, logPath } = {}) {
+export function execute(command, args, env = process.env, signal,
+  { timeoutMs = 180000, logPath, deadlineScheduler = scheduleDeadline } = {}) {
   return new Promise((resolveResult, reject) => {
     const fd = logPath ? openSync(logPath, 'wx') : null;
     const child = spawn(command, args, { cwd: ROOT, env, detached: process.platform !== 'win32', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    let output = '', timedOut = false, aborted = false, kill = null, spawnError = null;
-    const capture = chunk => { output += chunk; if (fd !== null) writeSync(fd, chunk); };
+    let output = '', timedOut = false, aborted = false, kill = null, spawnError = null, logError = null, ended = false;
+    const logFailure = error => {
+      if (logError) return;
+      logError = error;
+      output += `\nLOG FAILED: ${error.message}\n`;
+      if (!ended) stop('log');
+    };
+    const capture = chunk => {
+      output += chunk;
+      if (fd === null || logError) return;
+      try {
+        let offset = 0;
+        while (offset < chunk.length) {
+          const written = writeSync(fd, chunk, offset, chunk.length - offset);
+          if (written <= 0) throw new Error('Log write made no progress');
+          offset += written;
+        }
+      } catch (error) { logFailure(error); }
+    };
     const stop = reason => {
       if (kill) return;
-      timedOut = reason === 'timeout'; aborted = !timedOut;
-      capture(Buffer.from(`\n${timedOut ? 'TIMEOUT' : 'INTERRUPTED'}: child ${child.pid} (${timeoutMs}ms deadline)\n`));
+      timedOut = reason === 'timeout'; aborted = reason === 'abort';
+      // Termination must not depend on successfully writing its diagnostic.
       kill = terminateTree(child);
+      capture(Buffer.from(`\n${timedOut ? 'TIMEOUT' : aborted ? 'INTERRUPTED' : 'LOG FAILURE'}: child ${child.pid} (${timeoutMs}ms deadline)\n`));
     };
     const abort = () => stop('abort');
-    const timer = setTimeout(() => stop('timeout'), timeoutMs);
+    const cancelDeadline = deadlineScheduler(() => stop('timeout'), timeoutMs);
     child.stdout.on('data', capture);
     child.stderr.on('data', capture);
     child.once('error', error => { spawnError = error; capture(Buffer.from(`${error.stack}\n`)); });
     child.once('close', async (code, exitSignal) => {
-      clearTimeout(timer); signal?.removeEventListener('abort', abort);
+      ended = true;
+      cancelDeadline(); signal?.removeEventListener('abort', abort);
       await kill;
-      if (fd !== null) closeSync(fd);
+      if (fd !== null) {
+        try { closeSync(fd); } catch (error) { logFailure(error); }
+      }
       if (spawnError) reject(spawnError);
-      else resolveResult({ output, code: timedOut || aborted || exitSignal ? 1 : code, timedOut, aborted });
+      else resolveResult({ output, code: timedOut || aborted || exitSignal || logError ? 1 : code, timedOut, aborted,
+        logError: logError?.message });
     });
     signal?.addEventListener('abort', abort, { once: true });
     if (signal?.aborted) abort();
@@ -71,7 +118,7 @@ export function execute(command, args, env = process.env, signal, { timeoutMs = 
 
 export async function runHarnesses(files, { freshBrowser = false, recycleEvery = 20,
   launchBrowser = options => puppeteer.launch(options), executeHarness = execute,
-  logDir, deadlineFor = harnessDeadline } = {}) {
+  logDir, deadlineFor = harnessDeadline, cleanupTimeoutMs = 10000 } = {}) {
   logDir ||= await logDirectory();
   console.log(`Full harness logs: ${logDir}`);
   let browser = null, runs = 0, launches = 0;
@@ -86,7 +133,7 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       if (controller.signal.aborted) throw new Error('Gate interrupted');
       const source = await readFile(resolve(ROOT, 'tools', file), 'utf8');
       if (!freshBrowser && source.includes("from './test-browser.mjs'") && (!browser || runs >= recycleEvery)) {
-        if (browser) await browser.close();
+        if (browser) await closeBrowser(browser, cleanupTimeoutMs);
         browser = await launchBrowser({ args: ['--no-sandbox'] });
         runs = 0;
         launches++;
@@ -101,7 +148,20 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       finally {
         // A crashed child may never call close(). Reclaim every non-default
         // context before the next child, rather than silently leaking state.
-        if (browser) await cleanupContexts(browser);
+        if (browser) {
+          try { await cleanupContexts(browser, cleanupTimeoutMs); }
+          catch (error) {
+            const damaged = browser;
+            browser = null;
+            await closeBrowser(damaged, cleanupTimeoutMs);
+            result ||= { code: 1, output: '' };
+            result.code = 1;
+            const diagnostic = `\nCLEANUP FAILED: ${error.message}\n`;
+            result.output += diagnostic;
+            try { await appendFile(resolve(logDir, `${index}-${file}.log`), diagnostic); }
+            catch (logError) { result.output += `LOG FAILED: ${logError.message}\n`; }
+          }
+        }
       }
       runs++;
       const secs = Math.round((Date.now() - started) / 1000);
@@ -118,7 +178,7 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       }
     }
   } finally {
-    try { if (browser) await browser.close(); }
+    try { if (browser) await closeBrowser(browser, cleanupTimeoutMs); }
     finally { process.removeListener('SIGINT', interrupt); process.removeListener('SIGTERM', interrupt); }
   }
   if (slow.length) console.log('\n=== harnesses over 25s ===\n' + slow.join('\n'));
