@@ -1,7 +1,19 @@
 # AI Recognition: Landscape and Plan (proposal, 2026-10-01)
 
 Status: **planning proposal for coach review. Nothing here is approved or
-built.** Roadmap entry: `GRIDIRON-IQ-PLAN-V2.md` §5. It extends the existing
+built.**
+
+**Goal (coach, 2026-10-02): reduce clicks, not remove the coach.** A human
+always stays in the loop. Success is measured in clicks per charted play, not in
+model accuracy:
+- A field is pre-filled only when the model is right far more often than wrong.
+- Below that confidence it highlights its top two or three chips instead.
+- An accept-all confirm covers a whole look.
+
+Every result is compared with two baselines on a held-out game: today's deck,
+and free smart defaults with no AI (the previous play, the drive, tendencies,
+play-call defaults). AI is worth shipping only for the clicks it saves beyond
+those defaults. Roadmap entry: `GRIDIRON-IQ-PLAN-V2.md` §5. It extends the existing
 "Automated data production" follow-on (V2-F item 4): proposed tags carry
 confidence and provenance, stay reviewable in film context, and never silently
 overwrite coach-entered data.
