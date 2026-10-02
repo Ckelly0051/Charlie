@@ -1456,7 +1456,15 @@ V2-A through V2-H are complete baseline milestones. The current sequence is:
 4. **Later data expansion:** pass target and catch location, receiver
    route/release, missed tackles, and useful visualizations paired with each
    new report capability. Do not revisit run-gap reporting here.
-5. **V2-I mobile companion:** after the desktop charting and reporting
+5. **AI recognition (proposal, 2026-10-01):** measured, coach-reviewed
+   suggestions for charting fields, phased so each phase must earn the next:
+   Phase 0 measures accuracy offline against the coach's charted plays; then
+   situation and run/pass/direction; then the pre-snap look in the coach's
+   vocabulary; then post-snap; defense is a research track. Builds on V2-F
+   "Automated data production" and never overwrites coach tags. Competitor
+   landscape, current assets and decisions needed: `docs/AI-RECOGNITION-PLAN.md`.
+   Not approved or started.
+6. **V2-I mobile companion:** after the desktop charting and reporting
    contract is competitive and the installed workflow is accepted.
 
 Functional Beta Acceptance requires a cold-start Assistant Coach Test on a clean Windows

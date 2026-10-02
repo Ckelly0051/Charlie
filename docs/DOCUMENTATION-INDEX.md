@@ -11,6 +11,7 @@
 - `GRIDIRON-IQ-PLAN-V2.md` - active product roadmap and accepted decisions.
 - `docs/OPEN-DEFECTS.md` - canonical index of unresolved defects.
 - `docs/TESTING.md` - testing tiers and execution rules.
+- `docs/AI-RECOGNITION-PLAN.md` - AI recognition proposal: competitor landscape, current assets, phased plan (not approved).
 - `docs/VISUAL-SYSTEM-RULES.md` - coach-approved shared palette, typography,
   navigation, selector, and static-dashboard composition rules.
 - `TAURI.md` - desktop build, packaging, and installed-smoke requirements.
