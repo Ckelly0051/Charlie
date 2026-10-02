@@ -50,7 +50,7 @@ ok(Boolean(appVersion) && appVersion === cargoVersion && appVersion === lockVers
   JSON.stringify({ appVersion, cargoVersion, lockVersion, tauri: tauriConfig.version }));
 const gateRunner = await read('tools/run-gate.mjs');
 ok(/exec node tools\/run-gate\.mjs "\$@"/.test(gate)
-  && /await execute\('npm', \['run', 'build'\]\)/.test(gateRunner)
+  && /await execute\('npm', \['run', 'build'\],/.test(gateRunner)
   && /npm run build/.test(gateRunner)
   && /await readdir\(resolve\(ROOT, 'tools'\)\)/.test(gateRunner)
   && gateRunner.includes("filter(name => /^e2e-.*\\.mjs$/.test(name)).sort()")

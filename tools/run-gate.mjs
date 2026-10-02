@@ -1,10 +1,31 @@
 import { spawn } from 'node:child_process';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, mkdir, mkdtemp } from 'node:fs/promises';
+import { openSync, writeSync, closeSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import puppeteer from 'puppeteer';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+export function harnessDeadline(file) {
+  if (['e2e-integrity.mjs', 'e2e-catalog-fuzzer.mjs', 'e2e-sql-fuzzer.mjs'].includes(file)) return 600000;
+  if (['e2e-analytics-registry.mjs', 'e2e-analytics-projection.mjs', 'e2e-crosstab.mjs'].includes(file)) return 60000;
+  return 180000;
+}
+async function logDirectory() {
+  const base = resolve(ROOT, 'artifacts', 'gate-logs');
+  await mkdir(base, { recursive: true });
+  return mkdtemp(resolve(base, `${new Date().toISOString().replace(/[:.]/g, '-')}-`));
+}
+function terminateTree(child) {
+  if (!child.pid) return Promise.resolve();
+  if (process.platform === 'win32') return new Promise(resolveKill => {
+    const killer = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
+    killer.once('error', () => { child.kill('SIGKILL'); resolveKill(); });
+    killer.once('close', code => { if (code !== 0) child.kill('SIGKILL'); resolveKill(); });
+  });
+  try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') child.kill('SIGKILL'); }
+  return Promise.resolve();
+}
 export function classify(output, code) {
   const line = output.split(/\r?\n/).filter(line => /RESULT:|ALL PASS|TOTALS/.test(line)).at(-1) || '';
   if (code !== 0 || !line || /[1-9][0-9]*\s+(failed|failures)|violations:\s*[1-9]/.test(line)) return { status: 'fail', line };
@@ -19,19 +40,40 @@ export async function cleanupContexts(browser) {
   }
 }
 
-export function execute(command, args, env = process.env, signal) {
+export function execute(command, args, env = process.env, signal, { timeoutMs = 180000, logPath } = {}) {
   return new Promise((resolveResult, reject) => {
-    const child = spawn(command, args, { cwd: ROOT, env, signal, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-    let output = '';
-    child.stdout.on('data', chunk => { output += chunk; });
-    child.stderr.on('data', chunk => { output += chunk; });
-    child.once('error', reject);
-    child.once('close', (code, signal) => resolveResult({ output, code: signal ? 1 : code }));
+    const fd = logPath ? openSync(logPath, 'wx') : null;
+    const child = spawn(command, args, { cwd: ROOT, env, detached: process.platform !== 'win32', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    let output = '', timedOut = false, aborted = false, kill = null, spawnError = null;
+    const capture = chunk => { output += chunk; if (fd !== null) writeSync(fd, chunk); };
+    const stop = reason => {
+      if (kill) return;
+      timedOut = reason === 'timeout'; aborted = !timedOut;
+      capture(Buffer.from(`\n${timedOut ? 'TIMEOUT' : 'INTERRUPTED'}: child ${child.pid} (${timeoutMs}ms deadline)\n`));
+      kill = terminateTree(child);
+    };
+    const abort = () => stop('abort');
+    const timer = setTimeout(() => stop('timeout'), timeoutMs);
+    child.stdout.on('data', capture);
+    child.stderr.on('data', capture);
+    child.once('error', error => { spawnError = error; capture(Buffer.from(`${error.stack}\n`)); });
+    child.once('close', async (code, exitSignal) => {
+      clearTimeout(timer); signal?.removeEventListener('abort', abort);
+      await kill;
+      if (fd !== null) closeSync(fd);
+      if (spawnError) reject(spawnError);
+      else resolveResult({ output, code: timedOut || aborted || exitSignal ? 1 : code, timedOut, aborted });
+    });
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) abort();
   });
 }
 
 export async function runHarnesses(files, { freshBrowser = false, recycleEvery = 20,
-  launchBrowser = options => puppeteer.launch(options), executeHarness = execute } = {}) {
+  launchBrowser = options => puppeteer.launch(options), executeHarness = execute,
+  logDir, deadlineFor = harnessDeadline } = {}) {
+  logDir ||= await logDirectory();
+  console.log(`Full harness logs: ${logDir}`);
   let browser = null, runs = 0, launches = 0;
   const totals = { pass: 0, skip: 0, fail: 0 };
   const failed = [], slow = [];
@@ -40,7 +82,7 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
   process.once('SIGINT', interrupt);
   process.once('SIGTERM', interrupt);
   try {
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
       if (controller.signal.aborted) throw new Error('Gate interrupted');
       const source = await readFile(resolve(ROOT, 'tools', file), 'utf8');
       if (!freshBrowser && source.includes("from './test-browser.mjs'") && (!browser || runs >= recycleEvery)) {
@@ -54,7 +96,8 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       if (browser) env.GIQ_TEST_BROWSER_ENDPOINT = browser.wsEndpoint();
       const started = Date.now();
       let result;
-      try { result = await executeHarness(process.execPath, [resolve(ROOT, 'tools', file)], env, controller.signal); }
+      try { result = await executeHarness(process.execPath, [resolve(ROOT, 'tools', file)], env, controller.signal,
+        { timeoutMs: deadlineFor(file), logPath: resolve(logDir, `${index}-${file}.log`) }); }
       finally {
         // A crashed child may never call close(). Reclaim every non-default
         // context before the next child, rather than silently leaking state.
@@ -68,6 +111,7 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       if (secs >= 25) slow.push(`  ${secs}s  ${file}`);
       if (status === 'fail') {
         failed.push(file);
+        console.log(`       ${result.timedOut ? 'TIMEOUT; ' : ''}complete output: ${resolve(logDir, `${index}-${file}.log`)}`);
         const assertions = failureEvidence(result.output);
         if (assertions.length) console.log('       assertion failure(s):\n' + assertions.map(line => `       ${line}`).join('\n'));
         console.log(result.output.split(/\r?\n/).slice(-40).map(line => `       ${line}`).join('\n'));
@@ -106,10 +150,13 @@ async function main() {
     files = files.filter(file => only.includes(file));
   }
   if (!args.includes('--no-build')) {
+    const logDir = await logDirectory();
+    const logPath = resolve(logDir, 'build.log');
     console.log('=== BUILD ===');
+    console.log(`Full build log: ${logPath}`);
     const build = process.platform === 'win32'
-      ? await execute(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'])
-      : await execute('npm', ['run', 'build']);
+      ? await execute(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], process.env, undefined, { timeoutMs: 300000, logPath })
+      : await execute('npm', ['run', 'build'], process.env, undefined, { timeoutMs: 300000, logPath });
     console.log(build.output.split(/\r?\n/).slice(-3).join('\n'));
     if (!buildAccepted(build)) { console.error(`BUILD FAILED (exit ${build.code}); refusing to gate a stale bundle.`); return 1; }
   }

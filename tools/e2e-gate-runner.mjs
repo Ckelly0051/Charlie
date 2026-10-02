@@ -1,16 +1,20 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { resolve } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import puppeteer from 'puppeteer';
+import { spawn } from 'node:child_process';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import testBrowser, { canShare, waitForApp } from './test-browser.mjs';
-import { classify, execute, cleanupContexts, failureEvidence, buildAccepted, runHarnesses } from './run-gate.mjs';
+import { classify, execute, cleanupContexts, failureEvidence, buildAccepted, runHarnesses, harnessDeadline } from './run-gate.mjs';
 
 async function probe(mode) {
   const browser = await testBrowser.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
   const page = await browser.newPage();
   await page.goto(process.env.GIQ_GATE_PROBE_URL);
-  if (mode === 'write' || mode === 'leak') {
+  if (mode === 'write' || mode === 'leak' || mode === 'hang') {
     await page.evaluate(async () => {
       localStorage.setItem('probe', 'old');
       document.cookie = 'probe=old; path=/';
@@ -29,6 +33,11 @@ async function probe(mode) {
     await isolated.goto(process.env.GIQ_GATE_PROBE_URL);
     assert.equal(await isolated.evaluate(() => localStorage.getItem('probe')), null);
     if (mode === 'leak') process.exit(1);
+    if (mode === 'hang') {
+      console.log('hung browser probe ready');
+      setInterval(() => {}, 1000);
+      await new Promise(() => {});
+    }
   } else {
     const state = await page.evaluate(async () => ({ value: localStorage.getItem('probe'),
       cookies: document.cookie, databases: await indexedDB.databases(), caches: await caches.keys() }));
@@ -74,8 +83,41 @@ export async function runTests() {
   check('buried assertion survives a long diagnostic tail', () => assert.deepEqual(
     failureEvidence('  FAIL  buried assertion\n' + '  PASS later assertion\n'.repeat(42)), ['  FAIL  buried assertion']));
 
+  check('stress campaigns retain a ten-minute execution budget', () => assert.equal(harnessDeadline('e2e-integrity.mjs'), 600000));
+  check('pure analytics checks have a one-minute execution budget', () => assert.equal(harnessDeadline('e2e-crosstab.mjs'), 60000));
+  check('ordinary browser journeys have a three-minute execution budget', () => assert.equal(harnessDeadline('e2e-native-reports.mjs'), 180000));
+  const scratch = await mkdtemp(resolve(tmpdir(), 'giq-gate-deadlines-'));
+  try {
+    const logPath = resolve(scratch, 'failure.log');
+    const logged = await execute(process.execPath, ['-e', 'console.log("FIRST");console.error("stderr evidence");console.log("tail\\n".repeat(80));process.exit(7)'], process.env, undefined, { logPath });
+    const saved = await readFile(logPath, 'utf8');
+    check('complete durable diagnostics include early stdout and stderr beyond the console tail', () => assert(saved.includes('FIRST') && saved.includes('stderr evidence') && saved === logged.output));
+    check('durable logging preserves the original failure exit code', () => assert.equal(logged.code, 7));
+    const heartbeat = resolve(scratch, 'heartbeat');
+    const timed = await execute(process.execPath, ['tools/e2e-gate-runner.mjs', '--process-probe', heartbeat], process.env, undefined,
+      { timeoutMs: 1000, logPath: resolve(scratch, 'timeout.log') });
+    check('a hung child fails explicitly at its deadline even after a green result line', () => assert(timed.timedOut && timed.code === 1 && classify(timed.output, timed.code).status === 'fail'));
+    check('timeout diagnostics retain the deadline and the completed partial output', () => assert(timed.output.includes('TIMEOUT:') && timed.output.includes('RESULT: 1 passed')));
+    const before = (await stat(heartbeat)).size;
+    await new Promise(resolve => setTimeout(resolve, 200));
+    check('timeout terminates the descendant process, not just its parent', () => assert.equal(before, statSyncSize()));
+    function statSyncSize() { return readFileSync(heartbeat).length; }
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), 200);
+    const interrupted = await execute(process.execPath, ['-e', 'setInterval(()=>{},1000)'], process.env, controller.signal,
+      { timeoutMs: 5000, logPath: resolve(scratch, 'interrupted.log') });
+    clearTimeout(abortTimer);
+    check('external interruption fails distinctly from a harness timeout', () => assert(interrupted.aborted && !interrupted.timedOut && interrupted.code === 1));
+    check('interruption is retained in the durable log', () => assert(interrupted.output.includes('INTERRUPTED:')));
+  } finally {
+    assert.equal(dirname(scratch), resolve(tmpdir()));
+    assert(scratch.startsWith(resolve(tmpdir(), 'giq-gate-deadlines-')));
+    await rm(scratch, { recursive: true, force: true });
+  }
+
   const launched = [], endpoints = [];
   let calls = 0, cleaned = 0;
+  const deadlines = [];
   const exit = await runHarnesses(Array(3).fill('e2e-native-reports.mjs'), {
     recycleEvery: 2,
     launchBrowser: async () => {
@@ -88,13 +130,14 @@ export async function runTests() {
       launched.push(browser);
       return browser;
     },
-    executeHarness: async (command, args, env) => {
+    executeHarness: async (command, args, env, signal, options) => {
+      deadlines.push(options);
       endpoints.push(env.GIQ_TEST_BROWSER_ENDPOINT);
       const browser = launched.at(-1);
       const context = { async close() { cleaned++; browser.contexts = browser.contexts.filter(item => item !== context); } };
       browser.contexts.push(context);
       calls++;
-      return { code: calls === 2 ? 1 : 0, output: '== RESULT: 1 passed, 0 failed ==' };
+      return { code: calls === 2 ? 1 : 0, timedOut: calls === 2, output: '== RESULT: 1 passed, 0 failed ==' };
     },
   });
   check('runner keeps a nonzero child red and continues every harness', () => assert(exit === 1 && calls === 3));
@@ -102,6 +145,7 @@ export async function runTests() {
     ['test-endpoint-0', 'test-endpoint-0', 'test-endpoint-1']));
   check('runner cleans orphan contexts after green and red children', () => assert.equal(cleaned, 3));
   check('runner closes recycled and final Chromium instances', () => assert(launched.every(browser => browser.closed)));
+  check('runner passes deadlines and distinct log paths to every child', () => assert(deadlines.every(item => item.timeoutMs === 180000) && new Set(deadlines.map(item => item.logPath)).size === 3));
 
   const server = createServer((request, response) => response.end('<!doctype html><title>Gate isolation</title>'));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -145,12 +189,15 @@ export async function runTests() {
       check(`${mode} child uses the shared process with isolated storage`, () => assert.equal(result.code, mode === 'leak' ? 1 : 0, result.output));
       if (mode !== 'leak') check(`${mode} child closes every owned context without closing Chromium`, () => assert.equal(browser.browserContexts().length, 1));
     }
+    const hung = await execute(process.execPath, ['tools/e2e-gate-runner.mjs', '--probe', 'hang'], env, undefined, { timeoutMs: 1500 });
+    check('a real browser child deadline fails and retains its partial output', () => assert(hung.timedOut && hung.output.includes('hung browser probe ready')));
+    check('timed-out browser child does not terminate the shared Chromium process', () => assert(browser.connected));
     await browser.createBrowserContext();
     await browser.createBrowserContext();
     await cleanupContexts(browser);
     check('runner reclaims orphan contexts', () => assert.equal(browser.browserContexts().length, 1));
     const after = await execute(process.execPath, ['tools/e2e-gate-runner.mjs', '--probe', 'read'], env);
-    check('cleanup after a crashed child preserves a clean next child', () => assert.equal(after.code, 0, after.output));
+    check('cleanup after crashed and timed-out children preserves a clean next child', () => assert.equal(after.code, 0, after.output));
     check('Chromium remains alive after all children close', () => assert(browser.connected));
   } catch (error) { fail++; console.log(`  FAIL  browser isolation: ${error.stack}`); }
   finally { if (browser) await browser.close(); await new Promise(resolve => server.close(resolve)); }
@@ -159,6 +206,12 @@ export async function runTests() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  try { process.exitCode = process.argv[2] === '--probe' ? await probe(process.argv[3]) : await runTests(); }
+  try {
+    if (process.argv[2] === '--process-probe') {
+      spawn(process.execPath, ['-e', 'const fs=require("node:fs");setInterval(()=>fs.appendFileSync(process.argv[1],"tick\\n"),30)', process.argv[3]], { stdio: 'ignore', windowsHide: true });
+      console.log('== RESULT: 1 passed, 0 failed ==');
+      setInterval(() => {}, 1000);
+    } else process.exitCode = process.argv[2] === '--probe' ? await probe(process.argv[3]) : await runTests();
+  }
   catch (error) { console.error(error); process.exitCode = 1; }
 }
