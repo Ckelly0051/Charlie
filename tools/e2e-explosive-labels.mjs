@@ -125,36 +125,69 @@ const collect = where => page.evaluate((mention, where) => {
       micro: !!el.closest('.gi-overview-kpi') && el.parentElement.classList.contains('gi-overview-kpi') && el.tagName === 'SPAN',
       clipped, defense: !!el.closest('.gi-def2'), sentence: own.split(' ').length > 5 });
   }
-  return out;
+  const span = [...document.querySelectorAll('[data-def2-kpi] span')].find(n => /Explosive/.test(n.textContent));
+  let kpi = null;
+  if (span) {
+    const range = document.createRange(); range.selectNodeContents(span);
+    kpi = { text: span.textContent.trim(), lines: range.getClientRects().length };
+  }
+  const headers = [...document.querySelectorAll('.gi-def2-module thead tr')]
+    .filter(tr => tr.textContent.includes('Explosive'))
+    .map(tr => ({ where, module: tr.closest('[data-def2-module]')?.dataset.def2Module,
+      h: Math.round(tr.getBoundingClientRect().height) }));
+  return { where, labels: out, kpi, headers,
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
 }, { source: MENTION.source, flags: MENTION.flags }, where);
 
 const tabs = ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'matchup', 'season'];
-/** Every page in the shared secondary bar, collected in turn; back to page 1. */
+async function click(selector) {
+  await page.evaluate(s => {
+    const control = document.querySelector(s);
+    if (!control) throw new Error(`Missing Reports control: ${s}`);
+    control.click();
+  }, selector);
+  await page.waitForFunction(s => {
+    const control = document.querySelector(s);
+    return control && (control.getAttribute('aria-selected') === 'true'
+      || control.getAttribute('aria-pressed') === 'true'
+      || control.getAttribute('aria-current') === 'page');
+  }, { timeout: 5000 }, selector);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+}
+/** One observation per page, including reports without a secondary bar. */
 async function walkPages(where) {
   const found = [];
   const ids = await page.evaluate(() => [...document.querySelectorAll('[data-reports-secbar] [data-section]')].map(n => n.dataset.section));
+  if (!ids.length) return [await collect(where)];
   for (const id of ids) {
-    await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
-    await sleep(200);
-    found.push(...await collect(`${where}#${id}`));
+    await click(`[data-reports-secbar] [data-section="${id}"]`);
+    found.push(await collect(`${where}#${id}`));
   }
-  if (ids.length) await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), ids[0]);
   return found;
 }
 async function crawl(width) {
   const found = [];
   for (const tab of tabs) {
-    await page.evaluate(t => document.querySelector(`[data-report-tab="${t}"]`).click(), tab);
-    await sleep(300);
-    found.push(...await collect(`${width}/${tab}`));
+    await click(`[data-report-tab="${tab}"]`);
     // Multi-section reports: every page a coach can open.
     found.push(...await walkPages(`${width}/${tab}`));
     if (tab === 'defense' || tab === 'special') {
-      await page.evaluate(t => document.querySelector(t === 'defense' ? '[data-defense-scope="season"]' : '[data-st-scope="season"]')?.click(), tab);
-      await sleep(300);
+      const scopeAttr = tab === 'defense' ? 'data-defense-scope' : 'data-st-scope';
+      // Empty boards have no scope controls; require the named empty state,
+      // rather than silently accepting a missing populated-board control.
+      const hasScope = await page.$(`[${scopeAttr}="season"]`);
+      if (!hasScope) {
+        const empty = await page.evaluate(t => [...document.querySelectorAll('.gi-reports-empty h3')]
+          .some(n => new RegExp(t === 'defense' ? '^No defensive snaps charted$' : 'special teams', 'i').test(n.textContent)), tab);
+        if (!empty) throw new Error(`Missing ${tab} scope controls without its empty state`);
+        continue;
+      }
+      await click(`[${scopeAttr}="season"]`);
       found.push(...await walkPages(`${width}/${tab}@season`));
-      await page.evaluate(t => document.querySelector(t === 'defense' ? '[data-defense-scope="game"]' : '[data-st-scope="game"]')?.click(), tab);
-      await sleep(200);
+      await click(`[${scopeAttr}="game"]`);
     }
   }
   return found;
@@ -164,7 +197,14 @@ async function crawl(width) {
 console.log('\n== 2. Rendered, canonical 2025 JV ==');
 for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024]]) {
   await boot(w, h, season, stPeter.id);
-  const found = await crawl(w);
+  const observations = await crawl(w);
+  const found = observations.flatMap(o => o.labels);
+  // Pin the complete Defense visit matrix independently of the controls we discover.
+  const defenseStates = ['performance', 'opponent', 'scheme', 'situations']
+    .flatMap(id => [`${w}/defense#${id}`, `${w}/defense@season#${id}`]);
+  ok(defenseStates.every(state => observations.filter(o => o.where === state).length === 1)
+    && new Set(observations.map(o => o.where)).size === observations.length,
+  `${w}: every Defense page/scope is observed exactly once, with no duplicate report states`);
   const labels = found.filter(f => !f.sentence);
   const wrong = labels.filter(f => !APPROVED.test(f.text));
   ok(labels.length >= 20, `${w}: the crawl reaches explosive-play labels across Reports (${labels.length})`, String(labels.length));
@@ -175,16 +215,7 @@ for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024]]) {
     JSON.stringify(def.filter(f => !/^Explosive Plays( Rate)?$/.test(f.text)).slice(0, 4)));
   /* The compact KPI tile: the label holds ONE line (18px line-height). With
      "Allowed" it took two and pushed its value down against its neighbors. */
-  await page.evaluate(() => document.querySelector('[data-report-tab="defense"]').click());
-  await sleep(250);
-  await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click());
-  await sleep(200);
-  const kpiLabel = await page.evaluate(() => {
-    const span = [...document.querySelectorAll('[data-def2-kpi] span')].find(n => /Explosive/.test(n.textContent));
-    if (!span) return null;
-    const range = document.createRange(); range.selectNodeContents(span);
-    return { text: span.textContent.trim(), lines: range.getClientRects().length };
-  });
+  const kpiLabel = observations.find(o => o.where === `${w}/defense#performance`)?.kpi;
   ok(kpiLabel?.text === 'Explosive Plays' && kpiLabel.lines === 1,
     `${w}: the Defense KPI label reads "Explosive Plays" on one line`, JSON.stringify(kpiLabel));
   const clipped = found.filter(f => f.clipped);
@@ -193,27 +224,15 @@ for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024]]) {
   ok(small.length === 0, `${w}: no HTML explosive-play label is below the 12.5px floor (recorded micro-labels excepted)`, JSON.stringify(small.slice(0, 6)));
   const radar = found.filter(f => f.svg);
   ok(radar.length > 0 && radar.every(f => !f.clipped), `${w}: every chart label naming the metric sits inside its chart (${radar.length})`, JSON.stringify(radar.filter(f => f.clipped)));
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  ok(overflow <= 0, `${w}: no page-level horizontal overflow`, String(overflow));
+  const overflow = observations.filter(o => o.overflow > 0);
+  ok(overflow.length === 0, `${w}: no page-level horizontal overflow on any visited report state`, JSON.stringify(overflow.map(o => ({ where: o.where, overflow: o.overflow }))));
   /* The Defense board's module geometry is a contract: a 44px table header.
      A label that wraps to a third line grows it and pushes a fixed-height
      module's rows behind a scroller. Both scopes. */
-  const tall = [];
-  for (const scope of ['game', 'season']) {
-    await page.evaluate(() => document.querySelector('[data-report-tab="defense"]').click());
-    await sleep(250);
-    await page.evaluate(s => document.querySelector(`[data-defense-scope="${s}"]`)?.click(), scope);
-    await sleep(300);
-    for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
-      await page.evaluate(p => document.querySelector(`[data-reports-secbar] [data-section="${p}"]`)?.click(), id);
-      await sleep(150);
-      tall.push(...await page.evaluate(s => [...document.querySelectorAll('.gi-def2-module thead tr')].filter(tr => tr.textContent.includes('Explosive'))
-        .map(tr => ({ scope: s, module: tr.closest('[data-def2-module]')?.dataset.def2Module, h: Math.round(tr.getBoundingClientRect().height) }))
-        .filter(r => r.h > 45), scope));
-    }
-    await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click());
-  }
-  await page.evaluate(() => document.querySelector('[data-defense-scope="game"]')?.click());
+  const headers = observations.flatMap(o => o.headers);
+  ok(['defense#', 'defense@season#'].every(scope => headers.some(r => r.where.includes(scope))),
+    `${w}: explosive table headers were measured in both Defense scopes`);
+  const tall = headers.filter(r => r.h > 45);
   ok(tall.length === 0, `${w}: every Defense table header carrying the explosive label keeps its 44px height`, JSON.stringify(tall.slice(0, 6)));
 }
 
@@ -271,7 +290,7 @@ const sparse = { id: 'expl-sparse', seasonName: 'Sparse QA', team: 'QA', year: 2
 for (const gameId of ['g-one', 'g-zero']) {
   for (const [w, h] of [[1440, 900], [768, 1024]]) {
     await boot(w, h, sparse, gameId);
-    const found = await crawl(`${gameId}@${w}`);
+    const found = (await crawl(`${gameId}@${w}`)).flatMap(o => o.labels);
     const wrong = found.filter(f => !f.sentence && !APPROVED.test(f.text));
     ok(wrong.length === 0 && found.every(f => !f.clipped), `${gameId} at ${w}: approved wording, nothing clipped (${found.length} labels)`, JSON.stringify([...wrong, ...found.filter(f => f.clipped)].slice(0, 4)));
   }
