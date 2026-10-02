@@ -245,6 +245,12 @@ zero skipped, four failed**. `e2e-data-correctness-batch1`,
 source/inventory assertions, detailed in `docs/OPEN-DEFECTS.md`. No checks were
 changed or retried during the run. Eight shared Chromium launches were used;
 special launch options retained dedicated browsers. No installer was built.
+The failed evidence checks are repaired in `d7cbbdc2`: a fresh build plus
+data-correctness-batch1 (77), legacy-inventory (18), p0-capabilities (10),
+p0-exit (20), context-ownership (35), gate-runner (43) and study-screen (115)
+all passed, zero skipped. Seven in-memory source mutations were rejected by
+the updated runner/cleanup guards. This is focused verification, not a new
+full-gate result. No product source or coach data changed.
 Future coverage
 consolidation, deadlines/logging and release receipts are recorded in
 `GRIDIRON-IQ-PLAN-V2.md` > Gate Efficiency and Quality.

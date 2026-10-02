@@ -58,6 +58,12 @@ This section is the one place release state is kept current.
   changes. Shared Chromium launched eight times, with special-option tests
   retaining dedicated browsers.
 
+- **Gate evidence repair, 2026-10-02, `d7cbbdc2`:** all four failed harnesses
+  repaired without product changes. Fresh build plus seven focused harnesses
+  passed, zero skipped; seven source-guard mutations were rejected. The latest
+  full gate remains the red run above until an authorized rerun. No installer,
+  installed approval or live-data changes.
+
 - **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
   Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.
   Full gate 141/141 green, zero skipped and zero failed, at `0163da45`.

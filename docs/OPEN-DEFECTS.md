@@ -2,9 +2,9 @@
 
 ## Full gate at `fec0aba9`, 2026-10-02
 
-**RED: 141 green, zero skipped, four failed out of 145 harnesses.** Fresh build
-passed. Five assertions need repair; no gate rerun or package is authorized by
-this result. No coach data was changed.
+**Historical full result: RED, 141 green, zero skipped, four failed out of 145
+harnesses.** Fresh build passed. The five assertions are repaired in source in
+`d7cbbdc2`; no full gate rerun or package has occurred. No coach data was changed.
 
 - `e2e-data-correctness-batch1`: the source check expects exactly three
   `clearFilmOperation` calls and only film/repair variable names. CR-4 adds a
@@ -26,6 +26,18 @@ Canonical integrity passed all 960 operations with source bytes unchanged;
 analytics parity and all Reports suites passed. These results do not make the
 full gate green or establish installed approval. Eight shared Chromium launches
 were used; special-option tests retained dedicated browsers.
+
+Repair proof: fresh build plus seven focused harnesses all green, zero skipped:
+context-ownership 35/35, data-correctness-batch1 77/77, gate-runner 43/43,
+legacy-inventory 18/18, p0-capabilities 10/10, p0-exit 20/20 and study-screen
+115/115. Cleanup now explicitly covers the fourth, pinned-owner cancellation
+path. The ratchet's 73-to-74 exception documents that current cleanup dependency;
+all retired-reader counts remain zero. P0 verifies wrapper delegation, Node
+build/discovery/refusal/execution and shared-launcher product consumers, while
+separately checking the synthetic runner self-test. The export inventory names
+the actual shared-save assertion. Seven in-memory broken-source variants were
+rejected by the repaired guards (five runner mutations and two cleanup ownership
+mutations); no product source was modified for these checks.
 
 ## Codex code review of `f698ef0b`, 2026-10-02 (CR-1..CR-8)
 
