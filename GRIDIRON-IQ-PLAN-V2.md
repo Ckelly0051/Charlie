@@ -1456,7 +1456,7 @@ V2-A through V2-H are complete baseline milestones. The current sequence is:
 4. **Later data expansion:** pass target and catch location, receiver
    route/release, missed tackles, and useful visualizations paired with each
    new report capability. Do not revisit run-gap reporting here.
-5. **AI recognition (proposal, 2026-10-01):** measured, coach-reviewed
+5. **AI recognition (parked 2026-10-02; proposal from 2026-10-01):** measured, coach-reviewed
    suggestions for charting fields, sized to the coach's real film: elevated
    sideline iPhone clips, 1080p, one per play, with about 500 labels per look
    field. Phase 0 measures with one game held out at a time. Expected: Tier A

@@ -1,7 +1,7 @@
 # AI Recognition: Landscape and Plan (proposal, 2026-10-01)
 
-Status: **planning proposal for coach review. Nothing here is approved or
-built.**
+Status: **parked by the coach on 2026-10-02 ("not sold"). Ideas kept here for a
+later look; nothing is approved or built.**
 
 **Goal (coach, 2026-10-02): reduce clicks, not remove the coach.** A human
 always stays in the loop. Success is measured in clicks per charted play, not in
@@ -202,6 +202,28 @@ play type, and the defensive front.
 3. Field priority among Tiers A and B.
 4. Whether a cloud model (Claude or GPT) may see sampled frames for the
    vocabulary fields, or whether everything stays local.
+
+## 7. Parked ideas (2026-10-02)
+
+- **Clicks baseline first.** Count clicks per play on one 2025 game with today's
+  deck. Then measure what free defaults save with no AI: the previous play's look
+  within a drive, play-call defaults, and per-down tendencies. AI has to beat
+  that.
+- **Subscription test.** In a Claude Code session, chart 10-15 pre-snap frames
+  from one 2025 game blind (formation, backfield, QB alignment, personnel,
+  strength), then score against the coach's tags. No API cost.
+- **API cost if it ever ships** (personal account, 2026-10 prices): Sonnet 5.5
+  $2/$10 and Opus 5.5 $4/$20 per million tokens, batch half price. About 6
+  frames per play comes to roughly $3 a game on Sonnet and $6 on Opus, or about
+  half that in overnight batch. A subscription cannot power the app; it can only
+  run tests in a session.
+- **Division of labor.** Vision models do the geometry (players, field map,
+  hash, direction, yardage). An LLM names the look in the coach's vocabulary,
+  using his charted plays as examples. Competitors rely on large human-tagged
+  datasets and fixed taxonomies; we would substitute a small labeled set plus a
+  general model.
+- **Privacy.** Frames of youth players would go to the model provider; check
+  the program's film policy before any cloud use.
 
 ## Sources
 
