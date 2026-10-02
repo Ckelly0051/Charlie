@@ -2,7 +2,8 @@
 
 ## Gate adversarial review repairs, 2026-10-02
 
-**All three repaired in source (`2683d866`); not full-gated or packaged.**
+**All three repaired in source (`2683d866`); full gate GREEN at `12ca4a03`,
+145/145, zero skipped and zero failed. Not packaged.**
 
 - **GATE-R1, P2:** child deadlines did not bound context cleanup or browser
   shutdown. Each now has a ten-second bound; stalled cleanup makes the journey
@@ -24,11 +25,18 @@ Proof: runner 63/63; fresh build plus seven focused harnesses passed, zero
 skipped: analytics-registry, gate-runner, integrity (960 operations and unchanged
 source bytes), mark-flow, native-tagging, p0-capabilities and p0-exit. Injected
 short/zero/error/close logging faults and stalled cleanup/shutdown are covered.
-No product or coach-data changes. Full gate `07bf04aa` predates these changes.
+Full proof: fresh build, runner 63/63, canonical integrity 960 operations with
+source bytes unchanged, analytics parity and all Reports suites passed. Eight
+shared Chromium launches; special-option tests retained dedicated browsers.
+Verified 145 harness logs and the build log under local-only
+`artifacts/gate-logs/2026-10-02T23-21-38-610Z-5MbVOF/` (build log in sibling
+`2026-10-02T23-21-37-565Z-3PiKPY/`). No real harness timeout or logging failure,
+no product or coach-data changes, and no installer or installed approval.
 
 ## Gate deadlines and durable diagnostics, 2026-10-02
 
-**Complete in source (`f84c8be0`), not full-gated or packaged.** Child budgets
+**Complete in source (`f84c8be0`), with repairs and full-gate proof above; not
+packaged.** Child budgets
 are three minutes normally, ten for the three seeded stress harnesses, one for
 the three pure analytics checks, and five for build. A timeout is red, kills
 the child's process tree, retains full partial output and reclaims shared

@@ -31,20 +31,30 @@
 
 This section is the one place release state is kept current.
 
+- **Latest full gate, 2026-10-02, `12ca4a03`: GREEN.** Fresh build and all 145
+  harnesses passed, zero skipped and zero failed. Runner 63/63, canonical
+  integrity 960 operations with source bytes unchanged, analytics parity and
+  all Reports suites passed. Eight shared Chromium launches; special-option
+  tests retained dedicated browsers. Verified 145 complete harness logs plus
+  the build log under local-only `artifacts/gate-logs/`. No real harness
+  timeout or logging failure. No installer, version bump, push or live-data
+  changes; installed approval remains `1.12.0-108`.
+
 - **Gate adversarial repairs, 2026-10-02, `2683d866`:** all three review findings
   fixed: bounded browser teardown, controlled partial/failed logging, and
   readiness-synchronized termination probes. Fresh build and seven focused
   harnesses green, zero skipped; runner 63/63 and canonical integrity 960
-  operations with source bytes unchanged. No full gate or package on this
-  checkpoint; `07bf04aa` below remains the last full-gated revision. No product
-  or live-data changes.
+  operations with source bytes unchanged. Subsequently full-gated at
+  `12ca4a03` above; no package, product or live-data changes.
 
 - **Gate deadline/logging checkpoint, 2026-10-02, `f84c8be0`:** complete in
-  source, not full-gated or packaged. Per-child deadlines, process-tree
+  source; initially focused-only, subsequently repaired and full-gated above.
+  Not packaged. Per-child deadlines, process-tree
   termination and complete local-only build/harness logs; runner 56/56 and
   focused browser/model/stress coverage green after correcting one new test's
   disconnect assumption. The full green gate at `07bf04aa` below predates this
-  checkpoint and does not certify it. Coverage consolidation and release
+  checkpoint; the newer `12ca4a03` run certifies the repaired checkpoint.
+  Coverage consolidation and release
   receipts remain future work; no product or live-data changes.
 
 - **Unpackaged source work, 2026-10-02:** `576a0981` repairs CR-1..CR-8 and

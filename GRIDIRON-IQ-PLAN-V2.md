@@ -110,7 +110,10 @@ browser shutdown to ten seconds each (then terminate the owned process), handle
 short/failed log writes through controlled teardown, and synchronize synthetic
 termination probes on readiness. Runner proof is now 63/63; a fresh build plus
 seven focused harnesses passed, including all 960 integrity operations. Exact
-coverage is recorded in Testing. No full gate or package on this checkpoint.
+coverage is recorded in Testing. Full gate at `12ca4a03` is now green:
+145/145, zero skipped and zero failed, with a fresh build and all logs verified.
+No package or installed approval on this checkpoint. Next: coverage
+consolidation, then release receipts; neither is built by this checkpoint.
 
 Future enhancements, recorded on coach direction; not authorization to build:
 

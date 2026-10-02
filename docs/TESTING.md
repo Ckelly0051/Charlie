@@ -243,7 +243,16 @@ owned-process force termination, recovery on the next child, and prior
 isolation/readiness/scoring assertions. Fresh build plus all seven focused
 harnesses passed: analytics-registry 32, gate-runner 63, integrity 3 (960
 operations), mark-flow 13, native-tagging 89, p0-capabilities 10, p0-exit 20.
-Zero skipped. No full gate or installer on these repairs.
+Zero skipped. Subsequent authorized full gate at `12ca4a03`: fresh build and
+**145/145 green, zero skipped and zero failed**, runner 63/63, canonical
+integrity 960 operations with unchanged source bytes, analytics parity and all
+Reports suites green. Eight shared Chromium launches; special-option tests
+retained dedicated browsers. No real harness timeout or logging failure.
+All 145 harness log files were read back and their final result lines passed;
+the full build log exists too. Local harness logs:
+`artifacts/gate-logs/2026-10-02T23-21-38-610Z-5MbVOF/`; build log:
+`artifacts/gate-logs/2026-10-02T23-21-37-565Z-3PiKPY/build.log`.
+No installer, push or live-data write.
 
 `e2e-gate-runner` covers the old detector cases, failed-build rejection, buried
 failure evidence, recycling, failure propagation and orphan cleanup, plus
