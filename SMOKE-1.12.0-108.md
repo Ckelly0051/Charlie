@@ -13,7 +13,17 @@
   Product and file version `1.12.0-108`. Built from a clean tree with
   `createUpdaterArtifacts:false`. Nothing pushed, tagged or published.
 
-## What to check (installed smoke pending)
+## Result
+
+**Installed smoke passed - coach approval, 2026-10-01.** The coach reported
+everything as expected. A spot-check of live 2025 JV Week 1 against a
+read-only catalog copy (hash unchanged) matched the strip, results, yardages and
+play 36. No app findings. Two drive-number charting slips are coach data to fix
+in Film Room, not app defects: Opponent Drive 3 holds plays 24-28 (Q2) and
+51-58 (Q3); Our Drive 6 holds 59-60 and 66-69. This approval does not move the
+design-approval registry.
+
+## What was checked
 
 Break Down visual finish (BD-UX-1, BD-UX-2):
 - Program, Season and Game show label above value in a 36px row, at your
@@ -37,4 +47,4 @@ S107 source repairs now packaged:
 
 ## Findings
 
-(log during smoke; no fixes until the list is complete)
+None (list complete, 2026-10-01).

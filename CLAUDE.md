@@ -86,11 +86,9 @@ module or goes through `window.app`.
 
 ## Binding data rules
 
-**Football accounting:** sacks are passer/team rushing attempts and signed rushing
-losses (college convention, coach ruling 2026-09-30), never passing attempts or
-passing yards. Keep called Run/Pass unchanged for tendencies and film. Use the
-StatsEngine rushing owners; credit the charted Passer regardless of position,
-never fall back to Ball Carrier on a sack or rewrite coach tags.
+**Football accounting:** a sack is a rushing attempt with signed rushing yards,
+credited to the charted Passer (college convention), never a passing attempt or
+passing yards; called Run/Pass is unchanged (`docs/REPORTS-CONTRACTS.md`).
 
 **Coach data**
 - Never migrate, clear or rewrite known-bad data. Cleanup needs an impact report
@@ -137,10 +135,11 @@ roster (`SeasonManager._mergeRoster()`).
   (`PlayGrid.cellLocked`).
 - A drive is possession side plus number (`football-rules.js`:
   `drivePossessionSide`, `groupPlaysByDrive`, `driveLabel`), read from the
-  charted unit only. An explicitly numbered special-teams snap joins the
-  surrounding drive of that number; never pair its number with a different
-  following drive's side. Automatic kickoff boundary/scoring groups apply only
-  to unnumbered plays, and never absorb an explicitly numbered try or re-kick.
+  charted unit only. The play strip collects each assigned drive, orders drives
+  numerically and plays by number; a numbered special-teams snap keeps its own
+  drive and never borrows another drive's side; only unnumbered kickoffs get the
+  bounded automatic grouping (`docs/REPORTS-CONTRACTS.md`). Rendering never
+  rewrites charting.
 - Extra points are authored only under `Try` and `Defending a Try`; the Field
   Goal unit has no attempt selector.
 - `TagLibrary.DEFINITIONS` owns every library field's defaults, and every
@@ -148,10 +147,9 @@ roster (`SeasonManager._mergeRoster()`).
   enum and validator, Quick Chart and the global shortcuts (each built-in has a
   key; the legend lists it). `TagLibrary.RESERVED` keeps an alignment out of
   Formation and Backfield, `Empty` and a receiver distribution out of
-  the Family and a coverage family out of Coverage. A new built-in is visible in
-  a saved library with no conversion: a default the library's `order` has never
-  listed is shown (a value the coach hid stays listed and hidden), read-only
-  until the next library edit. `QB Run` and `Reverse` arrived this way.
+  the Family and a coverage family out of Coverage. A new built-in shows in a
+  saved library without conversion (a default never listed in `order` is
+  shown; one the coach hid stays hidden).
   Approved fixed report schemas are not resized for a new value without the
   coach.
 - `SeasonStore.ST_ALIGNMENT_KEYS` is the one list of fields a Special Teams
@@ -160,32 +158,21 @@ roster (`SeasonManager._mergeRoster()`).
   (`SpecialTeamsModel.isRunPassTry`) charts its look like a scrimmage snap and
   is kept out of every analytics cohort (`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
   §4b.3d).
-- Formation is one coach-named value in the library (stored as
-  `formationFamily`): Trips, Bunch and Tight Bunch are formations, not a
-  separate receiver-look taxonomy. QB Alignment and Backfield stay separate.
-  Personnel follows Formation, before QB Alignment. `strength` is Offensive
-  Line Strength: Left, Right, Balanced, Unbalanced Left, Unbalanced Right.
-  `receiverSet` is Receiver Alignment: left count x right count, all totals
-  1-5, ordered by left then right count; no 0x0. Neither field is inferred
-  or cleared by changing Formation. Receiver Strength and Line Balance are
-  removed. The old `formation`, `receiverLook`, `receiverSide`,
-  `receiverStrength` and `lineBalance` shapes are refused,
-  never interpreted. One confirmed tools-only conversion, no compatibility tail.
-- Gap, motion start/end, RPO read/defender/decision and QB-run type belong to
-  `ChartingDetails`. Coach-approved revision 2026-09-30 (S107-4, repaired in source):
-  Gap and Play Direction are independent, neither overwrites or clears the other,
-  and Gap can be blank or charted without Direction. Existing stored values stay
-  unchanged; no inference or migration. Direction is the coach's broad classification,
-  Gap the precise lane. Other details require their opening field (Motion, the
-  RPO or QB Run Play Type), and removing that field clears those details in one undoable write
-  after the coach confirms. `QB Run` and `Reverse` never fill or imply Run/Pass.
+- Look fields are separate, one value each, never inferred from or cleared by
+  another: Formation (`formationFamily`, coach-named, Trips and Bunch included),
+  Personnel, QB Alignment, Backfield, Offensive Line Strength (`strength`) and
+  Receiver Alignment (`receiverSet`, left x right). The retired `formation`,
+  `receiverLook`, `receiverSide`, `receiverStrength` and `lineBalance` shapes
+  are refused, never read. Vocabulary: `GRIDIRON-IQ-TAG-MODEL.md`.
+- `ChartingDetails` owns Gap, motion start/end, RPO read/defender/decision and
+  QB-run type. Gap and Play Direction are independent: neither sets or clears
+  the other. Other details need their opening field (Motion, the RPO or QB Run
+  Play Type); removing it clears them in one undoable write after the coach
+  confirms. `QB Run` and `Reverse` never imply Run/Pass.
 - Left/Right on `strength`, `playDir` and `hash` are always the offense's
   perspective; there is no stored perspective flag and no auto-flip.
 - Multi-value tags are `" + "`-joined strings; analytics split and credit each
   component.
-- The play strip collects assigned drives by possession side plus drive number,
-  orders drives numerically and plays within each drive by play number. Blank
-  assignments stay in No drive; rendering never rewrites charting.
 - Add Game asks for no analytics perspective; Program versus Scout derives from
   the owning season in `GameScreen.save()`.
 

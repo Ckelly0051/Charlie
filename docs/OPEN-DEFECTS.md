@@ -2,8 +2,11 @@
 
 ## Break Down visual finish, 2026-10-01 (BD-UX-1, BD-UX-2)
 
-**BD-UX-2 - IMPLEMENTED_UNVERIFIED in source; not packaged; no installed
-approval.** Program, Season and Game on Break Down are now the shared two-line
+**Closed: installed smoke of `1.12.0-108` passed on coach approval,
+2026-10-01** (`SMOKE-1.12.0-108.md`). This covers BD-UX-1, BD-UX-2 and the
+S107-2..7 repairs below. The design-approval registry is unchanged.
+
+**BD-UX-2 - repaired; shipped in `1.12.0-108`.** Program, Season and Game on Break Down are now the shared two-line
 control (label over full value, caret, gold underline while open), replacing the
 22px single-line band and its two parallel route overrides, which are deleted.
 The three menus share one pattern (the popover `context` variant): a title, the
@@ -18,8 +21,7 @@ after comparing the two; do not restore 49px.** the narrow row fits rather than 
 `e2e-responsive-containment` treats a selector past the viewport edge as
 clipped; the menus are 400px wide rather than 360px, so game details wrap less.
 
-**BD-UX-1 - IMPLEMENTED_UNVERIFIED in source; not packaged; no installed
-approval.** On the populated canonical deck at 1920, 1440, 1280 and 390, every
+**BD-UX-1 - repaired; shipped in `1.12.0-108`.** On the populated canonical deck at 1920, 1440, 1280 and 390, every
 field label row has one 22px rhythm, whether or not it carries a disclosure or
 Edit library. Gap is a plain field on the deck's inset, not an indented child
 of Play Direction (S107-4 made them independent). A stored value the library

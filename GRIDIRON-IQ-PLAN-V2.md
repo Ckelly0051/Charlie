@@ -1444,16 +1444,15 @@ V2-A through V2-H are complete baseline milestones. The current sequence is:
    Motion path, RPO and QB-run detail, and Reverse; coach-managed Family
    library, one-time verified conversion, and the first film-linked run-gap
    chart/report with eligible sample and export parity. No legacy reader or
-   writer shipped. **Status 2026-09-28:** source IMPLEMENTED_UNVERIFIED on the
-   working branch; the live conversion awaits the coach's decisions on the words
-   in docs/CHARTING-CUTOVER.md.
+   writer shipped. **Done:** live data converted on coach authorization
+   2026-09-30; shipped and smoked in `1.12.0-108` (2026-10-01).
 2. **Break Down visual finish:** resolve BD-UX-1 populated deck and BD-UX-2
    context selectors against real data; preserve existing choices and film.
-   **Status 2026-10-01:** built in source, IMPLEMENTED_UNVERIFIED; deviations
-   and evidence are in `docs/OPEN-DEFECTS.md`; installed verification pending.
+   **Done:** shipped in `1.12.0-108`; installed smoke passed 2026-10-01.
 3. **Installed verification:** focused harnesses, one coach-authorized full
    gate, a new installer, and a continuous installed smoke of the charting
-   and Film Room dock/resize/persistence behaviors.
+   and Film Room dock/resize/persistence behaviors. **Done:** gate 141/141 and
+   `1.12.0-108` smoke passed 2026-10-01.
 4. **Later data expansion:** pass target and catch location, receiver
    route/release, missed tackles, and useful visualizations paired with each
    new report capability. Do not revisit run-gap reporting here.
