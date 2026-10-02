@@ -30,7 +30,7 @@
 
 This section is the one place release state is kept current.
 
-- **Latest built installer: `1.12.0-108`** (2026-10-01). It packages the Break
+- **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
   Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.
   Full gate 141/141 green, zero skipped and zero failed, at `0163da45`.
   Version-only bump `05ec6615`, with `e2e-p0-exit` 19/19 after it.
@@ -38,12 +38,13 @@ This section is the one place release state is kept current.
   `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-108_x64-setup.exe`
   (4,041,437 bytes), SHA-256
   `DA6C40A96A553881FFD96A9A6215E6F1CE25DD6FA56BDF3C3FD83FC0F24A2E77`.
-  Product and file version `1.12.0-108`. Installed smoke is pending
-  (`SMOKE-1.12.0-108.md`); no installed approval yet. `1.12.0-106` remains
-  the latest smoked build. Nothing pushed, tagged or published.
+  Product and file version `1.12.0-108`. **Installed smoke passed on coach
+  approval, 2026-10-01** (`SMOKE-1.12.0-108.md`); it supersedes `1.12.0-107`
+  and `1.12.0-106`. BD-UX-1/2 and S107-2..7 are closed. The working branch is
+  pushed to GitHub; nothing is tagged or published.
 
-- 2026-10-01: Break Down visual finish (BD-UX-1, BD-UX-2) built in source,
-  IMPLEMENTED_UNVERIFIED, not packaged. Program, Season and Game are the shared
+- 2026-10-01: Break Down visual finish (BD-UX-1, BD-UX-2): shipped in
+  `1.12.0-108`; installed smoke passed. Program, Season and Game are the shared
   two-line control on Break Down, in a 36px row (coach's choice over the comp's
   49px, 2026-10-01; it also keeps the film floors), and are
   now also available below 901px. The three menus share one titled pattern with
@@ -51,33 +52,30 @@ This section is the one place release state is kept current.
   Gap is a plain field on the inset, and an off-library stored value is read in
   full. Recorded deviations from the supplemental comp are in
   `docs/OPEN-DEFECTS.md`. `e2e-breakdown-visual-finish` 30/30 plus 26 focused
-  harnesses and parity green. To ship together with the S107 source repairs
-  after one full gate and a new installer; no gate, installer or installed
-  approval yet.
+  harnesses and parity green.
 
-- 2026-10-01: S107-7 kickoff strip grouping repaired in source, not packaged.
+- 2026-10-01: S107-7 kickoff strip grouping repaired; shipped in `1.12.0-108`.
   Review follow-up also fixes numbered-kick ownership: explicit numbers win over
   automatic boundary/scoring grouping and never borrow a mismatched drive's side.
   Half-ending kicks and return-TD/try sequences stay separate from the following
   drive. Blank kickoff drive assignment is a bounded read-only grouping, never
   a stored-data rewrite. Exact live Week 1 43/44 and 2026 JV OLL 40/41 cases
-  verified with unchanged catalog hash. Focused tests/parity green; no new gate,
-  installer or installed approval.
+  verified with unchanged catalog hash. Smoke passed in `1.12.0-108`.
 
-- S107-5 Overview total-turnover tile repaired in source, not packaged. NDP now
+- S107-5 Overview total-turnover tile repaired; shipped in `1.12.0-108`. NDP now
   reads 1, with the redundant subtext removed; ST losses are included explicitly.
-  S107-6 college sack accounting also repaired in source, not packaged:
+  S107-6 college sack accounting also repaired and shipped in `1.12.0-108`:
   passer/team rushing attempts and losses, no pass attempt or passing yards.
   Sack attribution uses only the charted Passer, regardless of roster position.
   Independent live/canonical proof passes 437/437, catalog unchanged. Live
   2025 JV: 191 passing yards / 24 attempts / 8.0 YPA, 866 rushing yards / 148
   attempts. Previous audit passing-yard figures use the superseded net-of-sacks
-  convention. No full gate, new installer or installed acceptance for these fixes.
+  convention. Smoke passed in `1.12.0-108`.
 
 - 2026-09-30 source repairs: S107-2 passing attempts, S107-3 assigned-drive
   grouping and S107-4 independent Gap/Direction. Focused regression suites and
-  4,344 independent arithmetic checks pass; coach catalog unchanged. These fixes
-  are not in installer 1.12.0-107. Full gate and packaging have not been rerun.
+  4,344 independent arithmetic checks pass; coach catalog unchanged. Not in
+  `1.12.0-107`; shipped and smoke-passed in `1.12.0-108`.
 
 - Coach authorized the final gate and packaging on 2026-09-30. Full gate at
   `a449b59e`: **140/140 green, zero skipped, zero failed** after conversion and
@@ -87,10 +85,8 @@ This section is the one place release state is kept current.
   (4,037,422 bytes), SHA-256
   `AD3D650E69743E1EE1647C6F287C9E2D22885CC1CD648090CD0977D7EE865290`.
   Product/file versions both `1.12.0-107`; post-bump p0-exit 19/19.
-  Coach installed smoke is underway; no installed approval exists for this candidate.
-  `SMOKE-1.12.0-107.md` records the pending checks; `1.12.0-106` remains
-  the latest smoked build. Nothing pushed, tagged or published.
-- Latest built and coach-smoked installer: `1.12.0-106` (`cbf1889`),
+  Superseded by `1.12.0-108`: its smoke found S107-2..7, all repaired there.
+- Earlier coach-smoked installer: `1.12.0-106` (`cbf1889`),
   containing the Settings team-name save-on-close repair and its immediate-close
   regression checks. Full gate 136/136, zero skipped and zero failed at
   `2f309d6`, before the four-owner version-only bump; `e2e-p0-exit` 19/19
@@ -110,8 +106,8 @@ This section is the one place release state is kept current.
 - Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
   modules and dead renderers deleted, the custom-field editor rebuilt on the
   overlay service, and Special Teams try charting.
-- Break Down charting cutover (roadmap Step 1), packaged in `1.12.0-107`,
-  installed smoke pending: IMPLEMENTED_UNVERIFIED. Formation and Receiver Set
+- Break Down charting cutover (roadmap Step 1): shipped in `1.12.0-107`;
+  installed smoke passed in `1.12.0-108`. Formation and Receiver Set
   (with a coach-managed Formation library), Gap under Play Direction, motion
   Starts/Ends, RPO and QB Run details, Reverse and QB Run play types, the
   film-linked run-gap report, Film Room and CSV columns, and the single-format
@@ -134,22 +130,19 @@ This section is the one place release state is kept current.
   (data, managed film, desktop settings, Documents mirror and source bundle).
   Source verification: full build and gate
   140/140, zero skipped and zero failed at `a449b59e` on 2026-09-30;
-  version-only bump p0-exit 19/19. No installed approval exists for it.
-  BD-UX-1 and BD-UX-2 remain
-  open in `docs/OPEN-DEFECTS.md`.
+  version-only bump p0-exit 19/19. BD-UX-1 and BD-UX-2 are closed (`1.12.0-108`).
   The coach's 2026-09-29 correction supersedes the receiver-look follow-up:
   Formation accepts Twins, Trips, Bunch and Tight Bunch; Backfield and QB
   Alignment stay separate. Personnel follows Formation before QB Alignment.
   Offensive Line Strength includes Unbalanced Left/Right. Receiver Alignment
   means left x right (totals 1-5, no 0x0). Receiver Strength and Line Balance
   are removed, not retained as compatibility readers.
-  No receiver-look reader remains. Copy-only impact counts need refreshing
-  before approval; live data and installed acceptance are unchanged.
+  No receiver-look reader remains.
 - Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
   installed smokes approved Players, Defense cohort presentation and Special
   Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports
   navigation work (`1.12.0-98`) without moving the registry.
-- Nothing is tagged, pushed or published.
+- The working branch is pushed to GitHub (2026-10-01); nothing is tagged or published.
 - Harness inventory is discovered from `tools/e2e-*.mjs`; never a count in prose.
 
 ## Historical And Reference Material
