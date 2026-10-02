@@ -105,8 +105,12 @@ contracts have one minute. Build has five minutes. Timeouts fail explicitly,
 terminate the child process tree and retain partial output; the runner reclaims
 shared contexts and continues serially with no retry. Complete stdout/stderr
 logs live in gitignored `artifacts/gate-logs/`, including successful children
-and failed builds. Runner proof 56/56; focused coverage is recorded in Testing.
-No full gate or package on this checkpoint.
+and failed builds. Adversarial repairs in `2683d866` bound context cleanup and
+browser shutdown to ten seconds each (then terminate the owned process), handle
+short/failed log writes through controlled teardown, and synchronize synthetic
+termination probes on readiness. Runner proof is now 63/63; a fresh build plus
+seven focused harnesses passed, including all 960 integrity operations. Exact
+coverage is recorded in Testing. No full gate or package on this checkpoint.
 
 Future enhancements, recorded on coach direction; not authorization to build:
 

@@ -225,6 +225,26 @@ dispose them automatically. The corrected contract requires browser survival,
 cleanup and clean next-child execution; the focused rerun passed 2/2.
 No full gate or installer on these changes.
 
+Adversarial repairs (`2683d866`, 2026-10-02): context cleanup and browser shutdown
+each have a ten-second bound. Failed context cleanup makes that harness red,
+records its diagnostic and replaces Chromium before continuing. Stalled browser
+shutdown force-terminates its owned process; the Windows kill helper has a
+five-second fallback. Partial log writes are completed, while zero-progress,
+disk-full and close errors produce controlled failures, not uncaught callbacks.
+Termination is independent of successful logging. If disk writes fail, console
+evidence names the failure; the log is not represented as complete.
+
+Termination probes synchronize on a heartbeat or browser-ready marker before
+arming their short test deadline, with a fifteen-second startup guard. The
+scheduler injection is synthetic-test-only; normal gate deadlines still start
+at process launch. A deliberate 1.2-second startup delay is exercised.
+Runner 63/63 passed, including all four logging-fault modes, bounded cleanup,
+owned-process force termination, recovery on the next child, and prior
+isolation/readiness/scoring assertions. Fresh build plus all seven focused
+harnesses passed: analytics-registry 32, gate-runner 63, integrity 3 (960
+operations), mark-flow 13, native-tagging 89, p0-capabilities 10, p0-exit 20.
+Zero skipped. No full gate or installer on these repairs.
+
 `e2e-gate-runner` covers the old detector cases, failed-build rejection, buried
 failure evidence, recycling, failure propagation and orphan cleanup, plus
 separate real Chromium children proving storage isolation. 2026-10-02: 37/37;

@@ -1,5 +1,31 @@
 # GridIron IQ Open Defects
 
+## Gate adversarial review repairs, 2026-10-02
+
+**All three repaired in source (`2683d866`); not full-gated or packaged.**
+
+- **GATE-R1, P2:** child deadlines did not bound context cleanup or browser
+  shutdown. Each now has a ten-second bound; stalled cleanup makes the journey
+  red and replaces the damaged browser before the next child. Stalled shutdown
+  force-terminates only its owned process and disconnects. Windows taskkill also
+  has a five-second fallback bound.
+- **GATE-R2, P2:** log writes ignored short returns and let exceptions escape.
+  Partial writes now finish in a loop; zero progress, disk-full and close
+  failures become controlled nonzero results. Child termination is initiated
+  independently of logging. A failed disk cannot be promised a complete log;
+  the failure is included in console evidence instead of claiming success.
+- **GATE-R3, P3:** short termination-probe timers could expire before readiness.
+  Synthetic probes now wait for a heartbeat/browser-ready marker (with a
+  bounded startup guard), then arm the termination timer. A deliberate
+  1.2-second startup delay is covered. Normal harness deadlines still start
+  at spawn; no stress operations or production deadlines were reduced.
+
+Proof: runner 63/63; fresh build plus seven focused harnesses passed, zero
+skipped: analytics-registry, gate-runner, integrity (960 operations and unchanged
+source bytes), mark-flow, native-tagging, p0-capabilities and p0-exit. Injected
+short/zero/error/close logging faults and stalled cleanup/shutdown are covered.
+No product or coach-data changes. Full gate `07bf04aa` predates these changes.
+
 ## Gate deadlines and durable diagnostics, 2026-10-02
 
 **Complete in source (`f84c8be0`), not full-gated or packaged.** Child budgets

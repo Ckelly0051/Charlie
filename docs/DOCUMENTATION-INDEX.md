@@ -31,6 +31,14 @@
 
 This section is the one place release state is kept current.
 
+- **Gate adversarial repairs, 2026-10-02, `2683d866`:** all three review findings
+  fixed: bounded browser teardown, controlled partial/failed logging, and
+  readiness-synchronized termination probes. Fresh build and seven focused
+  harnesses green, zero skipped; runner 63/63 and canonical integrity 960
+  operations with source bytes unchanged. No full gate or package on this
+  checkpoint; `07bf04aa` below remains the last full-gated revision. No product
+  or live-data changes.
+
 - **Gate deadline/logging checkpoint, 2026-10-02, `f84c8be0`:** complete in
   source, not full-gated or packaged. Per-child deadlines, process-tree
   termination and complete local-only build/harness logs; runner 56/56 and
