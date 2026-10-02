@@ -584,7 +584,14 @@ reserved look value; nothing in the app offers one to them.
 
 **STORAGE CLEANUP CHECKPOINT — IN SOURCE 2026-09-26 (`a70c52e`), installed check pending (step 8).** Three retired keys (`ffa_versions_default`: 20 unscoped game snapshots; `ffa_roster`: a copy of the 2025 JV roster; `ffa_roster_mavericks`: `[]`) are archived and verified in `C:\Users\charl\GridIronIQ-Backups` and removed once at boot only when each still matches its archived hash. After the step 8 install's first launch, re-read a copy of the profile: the three keys gone, `giq_storage_cleanup_2026_09_26` listing three `removed`. Record in `docs/LEGACY-EXCISION-PLAN.md` Pass 2b.
 
-**ST-GAPS — ITEMS 1-2 REPAIRED IN SOURCE 2026-09-27, plus three coach additions; not in an installer; list stays open for the coach's further gaps.**
+**ST-GAPS — CLOSED.** Items 1-2 and three coach additions were repaired on
+2026-09-27 (`67d1ee0c`, review fix `206551e9`). They shipped in `1.12.0-105`,
+and its installed smoke on 2026-09-28 covered them; its only finding was
+S105-1, which is unrelated. They are in every later build through
+`1.12.0-108`. No further Special Teams gaps are recorded; any new one is a new
+entry, not this one. Verified against git and `SMOKE-1.12.0-105.md` on
+2026-10-01, after Codex flagged the stale "open" heading.
+History of the repair:
 Attempt is now Kick XP / Run/Pass / Fake; every try records 1 or 2 points (kick
 defaults 1, run/pass and Fake 2); a kicked try offers Kicker (Defending: Blocker)
 and no Returner; a run/pass or Fake try shows the offensive (or, defending, the
@@ -602,11 +609,15 @@ and nothing is built until the migration lands (one data format to extend).
    point = 1 and two-point = 2. **Coach decision (2026-09-25): per play, a kicked try
    defaults to 1 point with a chip for 2, the same pattern as the run/pass try options.** No
    season-level rule. Scoreboard, reports and exports read the charted points.
-2. **A run/pass try worth 1 point cannot be charted** (youth scoring).. More to come (coach checking later).
+2. **A run/pass try worth 1 point cannot be charted** (youth scoring).
+   (The original "more to come" list received no further items.)
 
-**Plays the coach re-charts after these fixes** (charted as close as the current options
-allow; left as they are until then):
-- 2025 JV, Wk 1 St. Peter, play 23: a run-in try for 1 point, charted on Offense as `XP`.
+**Coach data to re-chart (not a defect):**
+- 2025 JV, Wk 1 St. Peter, play 23: a run-in try for 1 point. A read-only check of
+  the live catalog on 2026-10-01 shows it still stored as Try, Kick XP,
+  converted (1 point), with a Run Outside look. Re-chart it as Try, Run/Pass,
+  Converted, 1 Point. The points are already right; only the attempt type is
+  stale.
 
 **REC-1 — REPAIRED (`e4417b8`), 2026-09-25. Recovery's Game versions could show
 another game's versions.** TEST-2's "the app is correct" was only half right: the
