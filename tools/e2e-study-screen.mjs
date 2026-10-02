@@ -182,14 +182,20 @@ ok(ordering.initial.length===3 && ordering.moved[1]==='Red zone alert' && orderi
 const planLayout=await page.evaluate(()=>{const plan=document.querySelector('#wsPlan'),head=plan.querySelector('.ws-plan-head'),rect=plan.getBoundingClientRect(),headRect=head.getBoundingClientRect();return{hidden:plan.hidden,display:getComputedStyle(plan).display,width:rect.width,height:rect.height,headWidth:headRect.width,route:document.body.className};});
 ok(!planLayout.hidden&&planLayout.display==='block'&&planLayout.width>900&&planLayout.height>600&&planLayout.headWidth>800,'Plan owns the full active workspace instead of inheriting the centered placeholder layout',JSON.stringify(planLayout));
 await capture('plan-ordering-1280x800');
+// Export goes through window.ffaSaveBlob, the seam that opens the native save
+// dialog on desktop (the WebView ignores anchor downloads). A direct anchor
+// download passed in Chromium and did nothing in the installed app.
 const exported=await page.evaluate(async()=>{
-  const oldUrl=URL.createObjectURL,oldClick=HTMLAnchorElement.prototype.click;
-  let blob=null,download='';URL.createObjectURL=value=>{blob=value;return'blob:plan-export-test';};HTMLAnchorElement.prototype.click=function(){download=this.download;};
+  const oldSave=window.ffaSaveBlob,oldClick=HTMLAnchorElement.prototype.click;
+  let blob=null,download='',anchorClicks=0;
+  window.ffaSaveBlob=async(value,name)=>{blob=value;download=name;return true;};
+  HTMLAnchorElement.prototype.click=function(){anchorClicks++;};
   document.querySelector('[data-plan-action="export"]').click();await new Promise(resolve=>setTimeout(resolve,0));
-  const html=await blob.text();URL.createObjectURL=oldUrl;HTMLAnchorElement.prototype.click=oldClick;
-  return{download,ordered:html.indexOf('Boundary alert')<html.indexOf('Formation')&&html.indexOf('Formation')<html.indexOf('Red zone alert'),audience:html.includes('Audience: Players')};
+  window.ffaSaveBlob=oldSave;HTMLAnchorElement.prototype.click=oldClick;
+  const html=blob?await blob.text():'';
+  return{download,anchorClicks,ordered:html.indexOf('Boundary alert')<html.indexOf('Formation')&&html.indexOf('Formation')<html.indexOf('Red zone alert'),audience:html.includes('Audience: Players')};
 });
-ok(exported.download==='rival-week.html'&&exported.ordered&&exported.audience,'Plan export downloads the same ordered, audience-aware presentation data',JSON.stringify(exported));
+ok(exported.download==='rival-week.html'&&exported.anchorClicks===0&&exported.ordered&&exported.audience,'Plan export saves through the shared save seam with the same ordered, audience-aware presentation data',JSON.stringify(exported));
 await page.click('[data-plan-action="present"]');
 r=await page.evaluate(()=>({dialog:!!document.querySelector('.ws-plan-present'),label:document.querySelector('.ws-plan-present h2')?.textContent,position:document.querySelector('.ws-plan-present>header>div:nth-child(2)')?.textContent,audience:document.querySelector('.ws-plan-present>header span')?.textContent,prevDisabled:document.querySelector('[data-plan-present-action="prev"]')?.disabled}));
 ok(r.dialog&&r.label==='Boundary alert'&&/1 of 3/.test(r.position)&&r.audience==='Players'&&r.prevDisabled,'Presentation opens full-screen at the first ordered item with audience context',JSON.stringify(r));

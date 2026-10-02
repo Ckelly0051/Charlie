@@ -1068,6 +1068,29 @@ export class StorageManager {
       return false;
     }
 
+    // The repair belongs to the season and game it started on. The copy can take
+    // minutes; if the coach opens another game meanwhile, nothing is loaded,
+    // committed or saved into that one. The copied film stays in the library.
+    const ownerSeasonId = this.seasonStore.currentSeasonId;
+    const moved = () => {
+      if (this.seasonStore.currentSeasonId === ownerSeasonId && this.seasonStore.data?.activeGameId === game.id
+        && this._loadedGameId === game.id) return false;
+      window.app?.workspace?.clearFilmOperation(game.id, ownerSeasonId);
+      this.tagger.toast?.('Film repair stopped: the game changed. Open that game and repair its film again.', 10000);
+      return true;
+    };
+    // Success is announced only after the season save lands.
+    const saveRepair = async () => {
+      this.commitActive();
+      const saved = await this.seasonStore.persist();
+      if (saved === false) {
+        this.tagger.toast?.('Film was copied, but the repair was not saved. Try the repair again.', 10000);
+        return false;
+      }
+      this._signalSave('saved');
+      return true;
+    };
+
     if (videoFiles.length === 1 && !game.isMultiClip) {
       const file = videoFiles[0];
       const ok = await this.tagger._choiceDialog(
@@ -1091,15 +1114,14 @@ export class StorageManager {
       }
       const ref = (Array.isArray(imported) && imported[0]) || file.name;
       const url = backend.filmUrl ? await backend.filmUrl(game.id, ref) : null;
+      if (moved()) return false;
       this.videoFileName = this._fileRefName(ref) || file.name;
       if (url) this.vc.loadUrl(url, this.videoFileName);
       else this.vc.loadFile(file);
       // Repair copies into the managed library, so this game is managed now — a
       // formerly-linked game must stop auto-loading its old linked folder.
       game.filmMode = 'managed'; game.filmDir = null;
-      this.commitActive();
-      this.seasonStore.persist();
-      this._signalSave('saved');
+      if (!(await saveRepair())) return false;
       this.tagger.toast?.(url ? 'Film repaired and loaded from the library.' : 'Film repaired; using the selected file until restart.');
       return true;
     }
@@ -1141,14 +1163,14 @@ export class StorageManager {
           url
         };
       }));
+      if (moved()) return false;
       const missingUrls = playableMatches.filter(m => !m.url).length;
       await this.playlist.repairWithMatches(playableMatches);
+      if (moved()) return false;
       this.videoFileName = null;
       // Managed copy now owns this game's film — clear any stale linked mode.
       game.filmMode = 'managed'; game.filmDir = null;
-      this.commitActive();
-      this.seasonStore.persist();
-      this._signalSave('saved');
+      if (!(await saveRepair())) return false;
       this.tagger.toast?.(missingUrls
         ? `Film repaired, but ${missingUrls} clip${missingUrls === 1 ? '' : 's'} could not be loaded from the library yet.`
         : `Film repaired and loaded: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);

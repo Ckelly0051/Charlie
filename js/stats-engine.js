@@ -7,7 +7,7 @@
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { Charts } from './charts.js';
 import { AnalyticsMetrics } from './analytics-metrics.js';
-import { countedUnit, gainedFirstDown, DRIVE_ENDERS, isPlayTagged } from './football-rules.js';
+import { countedUnit, gainedFirstDown, DRIVE_ENDERS, isPlayTagged, playbackOrder } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { TagProjection } from './tag-projection.js';
@@ -110,6 +110,20 @@ export class StatsEngine {
   }
 
   /** Statistical rushing includes sacks; called Run/Pass remains unchanged. */
+  /** A caught pass by its charted result: Gain, No Gain, Loss (a screen
+   *  stopped behind the line) or Touchdown. Callers decide whether the play is
+   *  a pass and whether an Interception or Sack rules it out. */
+  static isCompletionResult(p) {
+    return StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'No Gain')
+      || StatsEngine.hasResult(p, 'Loss') || StatsEngine.hasResult(p, 'Touchdown');
+  }
+
+  /** A pass attempt's result: a completion, an Incomplete or an Interception. */
+  static isPassAttemptResult(p) {
+    return StatsEngine.isCompletionResult(p) || StatsEngine.hasResult(p, 'Incomplete')
+      || StatsEngine.hasResult(p, 'Interception');
+  }
+
   static isRushingAttempt(p) {
     return StatsEngine.isRun(p) || StatsEngine.hasResult(p, 'Sack');
   }
@@ -1455,7 +1469,8 @@ export class StatsEngine {
         if (defSuccess) coverages[c].successes++;
         // A pick-six is charted `Interception + Touchdown`: it is an
         // interception against this coverage, never a completion allowed.
-        if (StatsEngine.hasResult(p, 'Gain') || StatsEngine.isTouchdownAllowed(p) || StatsEngine.hasResult(p, 'No Gain')) coverages[c].comps++;
+        if (StatsEngine.hasResult(p, 'Gain') || StatsEngine.isTouchdownAllowed(p) || StatsEngine.hasResult(p, 'No Gain')
+          || (StatsEngine.hasResult(p, 'Loss') && StatsEngine.isPass(p))) coverages[c].comps++;
         if (StatsEngine.hasResult(p, 'Incomplete')) coverages[c].incs++;
         if (StatsEngine.hasResult(p, 'Interception')) coverages[c].ints++;
         if (StatsEngine.hasResult(p, 'Sack')) coverages[c].sacks++;
@@ -2047,10 +2062,9 @@ export class StatsEngine {
     const passing = rows => {
       const dropbacks = rows.filter(S.isPass);
       const has = (p, value) => S.hasResult(p, value);
-      const attempts = dropbacks.filter(p => !has(p, 'Sack') && (has(p, 'Gain') || has(p, 'Touchdown')
-        || has(p, 'No Gain') || has(p, 'Incomplete') || has(p, 'Interception')));
+      const attempts = dropbacks.filter(p => !has(p, 'Sack') && S.isPassAttemptResult(p));
       const completions = attempts.filter(p => !has(p, 'Interception') && !has(p, 'Incomplete')
-        && (has(p, 'Gain') || has(p, 'Touchdown') || has(p, 'No Gain')));
+        && S.isCompletionResult(p));
       const passYards = attempts.filter(p => !has(p, 'Incomplete') && !has(p, 'Interception'))
         .reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0);
       return { dropbacks: dropbacks.length, attempts: attempts.length, completions: completions.length,
@@ -2379,18 +2393,14 @@ export class StatsEngine {
   _passingStats(plays) {
     const dropbacks = plays.filter(p => StatsEngine.isPass(p));
     const passPlays = dropbacks.filter(p => !StatsEngine.hasResult(p, 'Sack'));
-    const completions = passPlays.filter(p =>
-      StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')
-    );
+    const completions = passPlays.filter(p => StatsEngine.isCompletionResult(p));
     const yards = passPlays.reduce((sum, p) => {
       if (StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return sum;
       return sum + (parseInt(p.tags.yardage) || 0);
     }, 0);
     // One qualifying play is one attempt, even with multiple outcomes.
     // Play IDs are game-local and must not deduplicate a season's attempts.
-    const attempts = passPlays.filter(p => StatsEngine.hasResult(p, 'Gain')
-      || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')
-      || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')).length;
+    const attempts = passPlays.filter(p => StatsEngine.isPassAttemptResult(p)).length;
 
     return {
       attempts,
@@ -3258,13 +3268,13 @@ export class StatsEngine {
     });
 
     const paRate = dropbacks.length ? ((paPlays.length / dropbacks.length) * 100).toFixed(1) : '0.0';
-    const paComps = paPlays.filter(p => !StatsEngine.hasResult(p, 'Sack') && (StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')));
+    const paComps = paPlays.filter(p => !StatsEngine.hasResult(p, 'Sack') && StatsEngine.isCompletionResult(p));
     const paAttempts = paPlays.filter(p => !StatsEngine.hasResult(p, 'Sack')).length;
     const paYards = paPlays.reduce((s, p) => {
       if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
       return s + (parseInt(p.tags.yardage) || 0);
     }, 0);
-    const straightComps = straightDrops.filter(p => !StatsEngine.hasResult(p, 'Sack') && (StatsEngine.hasResult(p, 'Gain') || StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'No Gain')));
+    const straightComps = straightDrops.filter(p => !StatsEngine.hasResult(p, 'Sack') && StatsEngine.isCompletionResult(p));
     const straightAttempts = straightDrops.filter(p => !StatsEngine.hasResult(p, 'Sack')).length;
     const straightYards = straightDrops.reduce((s, p) => {
       if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Incomplete') || StatsEngine.hasResult(p, 'Interception')) return s;
@@ -3541,7 +3551,7 @@ export class StatsEngine {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     if (structured && !structured.isFake) return structured.outcome?.status === 'good';
     return hasResult(play, 'Gain') || hasResult(play, 'Touchdown') || hasResult(play, 'No Gain')
-      || hasResult(play, 'Good');
+      || hasResult(play, 'Loss') || hasResult(play, 'Good');
   }
 
   /** Study Phase 3 (Codex review, 2026-08-15, finding #2): "did WE score a
@@ -3634,7 +3644,7 @@ export class StatsEngine {
       const yds = parseInt(p.tags.yardage) || 0;
       const isPass = StatsEngine.isPass(p);
       const isTD = StatsEngine.hasResult(p, 'Touchdown');
-      const isComplete = StatsEngine.hasResult(p, 'Gain') || isTD || StatsEngine.hasResult(p, 'No Gain');
+      const isComplete = StatsEngine.isCompletionResult(p);
       // --- Return game. The structured return is authoritative; a return with
       // no charted yardage is a return that contributed no measured yards.
       const structuredReturn = structured && ['kickoffReturn', 'puntReturn'].includes(structured.unit);
@@ -4102,9 +4112,7 @@ export class StatsEngine {
     // or the row's count and what actually plays disagree.
     let pool = this.tagger.plays.filter(p => p && p.tags);
     if (this.filter && this.filter.active) pool = this.filter.filter(pool);
-    const matches = pool
-      .filter(p => filter(p))
-      .sort((a, b) => (a.timestamp?.start || 0) - (b.timestamp?.start || 0));
+    const matches = playbackOrder(pool.filter(p => filter(p)));
     if (matches.length === 0) return;
     if (!this.filmNavigation) {
       throw new Error('StatsEngine requires FilmNavigationService for report film');

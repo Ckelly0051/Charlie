@@ -38,6 +38,14 @@ a separate, evidenced step.
   agree on these statistical lines; called-play yards/play still measures the
   actual outcome of that called-play cohort, including sack losses.
 
+- **Pass attempts and completions (2026-10-02).** A completion is a pass whose
+  result is Gain, No Gain, Loss (a screen stopped behind the line) or
+  Touchdown; an attempt is a completion, an Incomplete or an Interception. A
+  Sack is neither. `StatsEngine.isCompletionResult` / `isPassAttemptResult` are
+  the one definition for the offense line, Defense board, play action, Players
+  credits and the Passer dimension; Study's completions and the coverage table
+  (which counts a pick-six as an interception) admit Loss the same way.
+
 - Overview **Turnovers** means total team turnovers conceded across charted
   offense and Special Teams, never net margin. Read `StatsEngine.totalTurnovers`;
   do not derive the count in presentation. No offense-only subtext. A lost muff

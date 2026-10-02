@@ -60,10 +60,20 @@ export class VersionManager {
     try { return await backend.listVersions(scope.seasonId, scope.gameId); } catch (e) { return []; }
   }
 
-  /** Resolves to the new version id, or null when nothing durable was written. */
-  async snapshot(label, manual = false) {
+  /** True while `scope` is still the open season and game AND the live tagger
+   *  holds that game. Every await in a restore can let the coach switch. */
+  _inScope(scope) {
+    const now = this._scope();
+    return !!(scope && now && now.seasonId === scope.seasonId && now.gameId === scope.gameId
+      && this.storage._loadedGameId === scope.gameId);
+  }
+
+  /** Resolves to the new version id, or null when nothing durable was written.
+   *  `expected` pins the snapshot to a season and game; it refuses otherwise. */
+  async snapshot(label, manual = false, expected = null) {
     const scope = this._scope(), backend = this._backend();
     if (!scope || !backend) return null;
+    if (expected && !this._inScope(expected)) return null;
     const data = this.storage._serialize();
     // Monotonic id: two snapshots in the same millisecond (a restore and its
     // "Backup before restore") must not share an id and overwrite each other.
@@ -84,10 +94,21 @@ export class VersionManager {
   async restore(id) {
     const scope = this._scope(), backend = this._backend();
     if (!scope || !backend) return false;
+    // Each wait below can let the coach open another game. The restore belongs
+    // to the game it started on; once that changes it stops before anything is
+    // backed up or replaced.
+    const moved = () => {
+      if (this._inScope(scope)) return false;
+      this.tagger.toast?.('Version restore stopped: the game changed. Nothing was replaced.');
+      return true;
+    };
     // Scoped read: a version belongs to exactly one season::game, so another
     // game's snapshot can never be deserialized over the open one.
-    const meta = (await this.list()).find(v => String(v.id) === String(id));
+    let versions = [];
+    try { versions = await backend.listVersions(scope.seasonId, scope.gameId); } catch (e) {}
+    const meta = (versions || []).find(v => String(v.id) === String(id));
     const data = meta ? await backend.getVersion(scope.seasonId, scope.gameId, String(id)) : null;
+    if (moved()) return false;
     if (!meta || !data) {
       this.tagger.toast?.('That version is not available for this game.');
       return false;
@@ -101,10 +122,11 @@ export class VersionManager {
     const ok = await this.tagger._confirmDialog(
       `Restore version "${meta.label}" (${meta.playCount} plays)? A backup of your current state is saved first.`,
       'Restore Version');
-    if (!ok) return false;
+    if (!ok || moved()) return false;
     const prior = this.storage._serialize();
     // The dialog promised a backup. Without a durable one, nothing is replaced.
-    const backup = await this.snapshot('Backup before restore', false);
+    const backup = await this.snapshot('Backup before restore', false, scope);
+    if (moved()) return false;
     if (!backup) {
       this.tagger.toast?.('Version restore stopped: the current game could not be backed up first.');
       return false;
@@ -118,6 +140,11 @@ export class VersionManager {
     const s = this._store();
     const persisted = s ? await s.persist() : true;
     if (persisted === false) {
+      // The rollback, like the restore, belongs only to the game it started on.
+      if (!this._inScope(scope)) {
+        this.tagger.toast?.('Version restore was not saved. Reopen that game to check it.');
+        return false;
+      }
       this.storage._deserialize(prior);
       this.storage.commitActive();
       if (window.app?.history?.reset) window.app.history.reset();

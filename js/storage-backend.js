@@ -257,8 +257,8 @@ export class BrowserBackend extends StorageBackend {
   // ---- canonical (PC-1: explicit seasonId) ----
   async loadSeason(seasonId) {
     if (!seasonId) return null;
-    try { return JSON.parse(localStorage.getItem(this._seasonKey(seasonId)) || 'null'); }
-    catch (e) { return null; }
+    // Unreadable bytes throw: only a missing key means nothing was saved yet.
+    return JSON.parse(localStorage.getItem(this._seasonKey(seasonId)) || 'null');
   }
   async peekSeason(id) {
     if (!id) return null;
@@ -856,7 +856,7 @@ export class TauriBackend extends StorageBackend {
     // rejected it.
     try {
       const okDb = await cp.saveSeason(seasonId, data);
-      if (okDb) await this._touchMeta(seasonId, data);
+      if (okDb) { await this._touchMeta(seasonId, data); this._lastWrite = Date.now(); }
       return okDb;
     }
     catch (e) {
@@ -1409,6 +1409,9 @@ export class TauriBackend extends StorageBackend {
   // ---- durable disk ----
 
   supportsDisk() { return this._ok(); }
+  /** CatalogPersistence.saveSeason() writes the Documents mirror after every
+   *  durable canonical save, so SeasonStore needs no deferred disk sync. */
+  mirrorsOnCanonicalSave() { return this._ok(); }
   diskStatus() {
     // The durable target is the Documents mirror — it survives app-data wipes.
     return { supported: this._ok(), bound: this._ok(), name: this._ok() ? 'Documents › GridIron IQ' : '', lastWrite: this._lastWrite };

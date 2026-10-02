@@ -145,7 +145,7 @@ export class AnalyticsRegistry {
       // invisible to Avg Grade.
       ready('playerPasser', 'Passer',
         this._playerRoleValues('passer', p => SE.countsFootballRoles(p) && SE.isPass(p)
-          && (SE.hasResult(p, 'Gain') || SE.hasResult(p, 'Touchdown') || SE.hasResult(p, 'No Gain') || SE.hasResult(p, 'Incomplete') || SE.hasResult(p, 'Interception') || SE.hasResult(p, 'Sack'))),
+          && (SE.isPassAttemptResult(p) || SE.hasResult(p, 'Sack'))),
         'StatsEngine.effectivePlayers.passer (dropbacks: attempts + sacks)', { multi: true }),
       // Receiver is gated on EVERY pass thrown their way, complete or not --
       // unlike _individualStats' box score (which only ever credited a

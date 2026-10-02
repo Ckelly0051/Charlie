@@ -1,5 +1,51 @@
 # GridIron IQ Open Defects
 
+## Codex code review of `f698ef0b`, 2026-10-02 (CR-1..CR-8)
+
+**All repaired in source; not packaged.** Each was confirmed against source and
+reproduced red before its repair.
+
+- **CR-1 - P1, a failed season read opened an empty season.** `openSeason()` and
+  `load()` swallowed read errors, and `CatalogPersistence.loadSeason()` reported
+  an unreadable row as absent, so the next `persist()` replaced the saved plays
+  with none. A failed read now refuses the open ("That season could not be
+  read..."); only a season with no stored body opens empty.
+- **CR-2 - P1, version restore could overwrite another game.** It now re-checks
+  the season, game and loaded tagger after the version read, the confirmation
+  and the backup; a switch stops it before anything is backed up or replaced.
+- **CR-3 - P2, overlapping season opens.** `openSeason()` changes nothing until
+  its read finishes, then switches id, pointer and data in one step; an earlier
+  open still reading is superseded by the latest one.
+- **CR-4 / CR-5 - P2, film repair.** A game switch during the copy stops the
+  repair (copied film stays in the library; the coach repairs again), and a
+  failed season save is reported as not saved instead of success.
+- **CR-6 - P2, completed passes for a loss.** Pass + Loss is now an attempt and a
+  completion everywhere passing is counted (`docs/REPORTS-CONTRACTS.md`).
+- **CR-7 - P2, Plan export on desktop.** Export saves through `ffaSaveBlob`, the
+  native save dialog; the anchor download did nothing in the WebView. Installed
+  behavior not yet smoked.
+- **CR-8 - P2, multi-clip cut-up order.** Cut-ups, cross-game cut-ups and Reports
+  Watch order clip plays by play number (`playbackOrder`); one continuous video
+  still orders by time. `e2e-cross-game-cutup` had pinned the defect (its
+  fixture gives every play its own clip and expected clip-local time order);
+  that expectation was corrected and a single-video case added.
+
+Runtime duplicates from the same review: a hidden Reports scorebug no longer
+computes the full stats model (Defense did it twice per render, discarded), and
+the shown one computes once. On desktop the deferred 2.5s disk sync no longer
+re-saves the season; the canonical save already writes the Documents mirror.
+The third bloat item (gate harnesses each launching Chromium) is not started.
+
+Evidence: `e2e-context-ownership` 35/35 (28 red on `080d665d`),
+`e2e-pass-loss-and-play-order` 12/12 (9 red on `080d665d`). 70 focused
+harnesses green (build, then every harness touching season open, restore,
+film repair, export, cut-ups, Reports passing or the catalog). `e2e-parity`'s
+local real-data golden (gitignored) was regenerated after review: the only
+drift was one offensive Pass + Loss play (`gmqo9g65dqzba4::15`, -1) now an
+attempt, completion, passer credit and reception, and one defensive pass for a
+loss now a coverage completion; team passing yards unchanged. The committed
+synthetic golden did not move. Full gate and installer pending.
+
 ## Break Down visual finish, 2026-10-01 (BD-UX-1, BD-UX-2)
 
 **Closed: installed smoke of `1.12.0-108` passed on coach approval,

@@ -226,10 +226,10 @@ export class CatalogPersistence {
   async loadSeason(id) {
     if (!id) return null;
     await this._ensureLoaded();
-    try {
-      const fromDb = this.catalog.loadSeason(id);
-      if (fromDb && Array.isArray(fromDb.games)) return { data: fromDb, source: 'db' };
-    } catch (e) { /* not found / unreadable -- genuinely absent */ }
+    // No row is null (absent). A row that fails to read THROWS: reporting it
+    // absent opened the season empty, and the next save replaced its plays.
+    const fromDb = this.catalog.loadSeason(id);
+    if (fromDb && Array.isArray(fromDb.games)) return { data: fromDb, source: 'db' };
     return null;
   }
 

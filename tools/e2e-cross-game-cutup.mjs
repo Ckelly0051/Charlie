@@ -1,7 +1,7 @@
 /* Cross-game cut-up planner contract (redesign — true cross-game playback).
    Pure module, so this runs in Node directly. Pins the ordered plan a season
    Study query needs to walk matching plays ACROSS games: game order
-   (chronological), per-game play order (by timestamp), honest skip accounting,
+   (chronological), per-game play order (time in one video, play order across clips), honest skip accounting,
    and backward-compatible single-game behavior. */
 import assert from 'node:assert';
 import { CrossGameCutup } from '../js/cross-game-cutup.js';
@@ -25,8 +25,16 @@ const games = [
   ok(p.total === 5 && p.skipped.length === 0, 'all resolvable refs become segments', JSON.stringify(p.total));
   ok(eq(p.games.map(g => g.gameId), ['g2', 'g1']), 'games ordered chronologically (g2 earlier date first)', JSON.stringify(p.games));
   ok(eq(p.games.map(g => g.count), [2, 3]), 'per-game segment counts are correct');
-  ok(eq(p.segments.map(s => `${s.gameId}::${s.playId}`), ['g2::1', 'g2::2', 'g1::2', 'g1::1', 'g1::3']),
-    'segments ordered by game then by timestamp.start within game', JSON.stringify(p.segments.map(s => `${s.gameId}::${s.playId}@${s.start}`)));
+  // Corrected 2026-10-02 (Codex review of f698ef0b): every play here has its
+  // own clip, so its timestamps are local to that clip. This used to expect
+  // g1 as 2, 1, 3 by clip-local start time, which is the defect: a cut-up
+  // that played the game out of order. Clip plays play in play order.
+  ok(eq(p.segments.map(s => `${s.gameId}::${s.playId}`), ['g2::1', 'g2::2', 'g1::1', 'g1::2', 'g1::3']),
+    'segments ordered by game, then multi-clip plays in play order', JSON.stringify(p.segments.map(s => `${s.gameId}::${s.playId}@${s.start}`)));
+  const oneVideo = [{ id: 'v', gameInfo: { date: '2025-09-15' },
+    plays: [play(1, 30, 36, { clipId: null }), play(2, 5, 11, { clipId: null }), play(3, 60, 66, { clipId: null })] }];
+  ok(eq(planner.plan(['v::3', 'v::1', 'v::2'], oneVideo).segments.map(s => s.playId), ['2', '1', '3']),
+    'one continuous video: plays ordered by timestamp.start');
   ok(eq(p.segments.map(s => s.order), [0, 1, 2, 3, 4]), 'segments carry a monotonic play order');
   const s0 = p.segments[0];
   ok(s0.clipName === 'c1' && s0.start === 12 && s0.end === 18 && s0.gameName === 'Week 1 vs Eagles', 'each segment carries clip identity + timestamps + game name for the player');

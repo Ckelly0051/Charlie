@@ -25,6 +25,8 @@
  * + counts; plan.skipped lists refs that couldn't be resolved (missing play/clip/
  * timestamp) so the UI can report an honest count.
  */
+import { playbackOrder } from './football-rules.js';
+
 export class CrossGameCutup {
   /**
    * plan(refs, games, opts?) -> {
@@ -34,7 +36,7 @@ export class CrossGameCutup {
    *   skipped:  [ ref, ... ]                      // unresolved refs (honest count)
    * }
    * Order: games chronologically by `gameInfo.date` (undated games last, stable by
-   * the season's array order), then plays by `timestamp.start` within each game —
+   * the season's array order), then plays in game order within each game (playbackOrder) —
    * a coherent season reel (game 1 → game N). opts.order === 'as-listed' keeps the
    * games[] array order instead of sorting by date.
    */
@@ -61,6 +63,7 @@ export class CrossGameCutup {
         playId: pid,
         clipId: play.clipId != null ? play.clipId : null,
         clipName: play.clipName || '',
+        play,
         start: Number(ts.start),
         end: Number(ts.end),
       });
@@ -76,9 +79,10 @@ export class CrossGameCutup {
     const segments = [];
     const gamesOut = [];
     for (const gid of gameOrder) {
-      const segs = byGame.get(gid).sort((a, b) => a.start - b.start);
+      const entries = byGame.get(gid);
+      const segs = playbackOrder(entries.map(s => s.play)).map(p => entries.find(s => s.play === p));
       gamesOut.push({ gameId: gid, gameName: segs[0].gameName, count: segs.length });
-      for (const s of segs) segments.push({ ...s, order: segments.length });
+      for (const { play, ...s } of segs) segments.push({ ...s, order: segments.length });
     }
     return { segments, games: gamesOut, total: segments.length, skipped };
   }

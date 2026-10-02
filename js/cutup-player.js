@@ -9,6 +9,8 @@
  * Unlike CutupExporter (which renders a downloadable stitched video),
  * this just drives the existing <video> element for instant review.
  */
+import { playbackOrder } from './football-rules.js';
+
 export class CutupPlayer {
   constructor(videoController, tagger, options = {}) {
     this.vc = videoController;
@@ -28,13 +30,12 @@ export class CutupPlayer {
     this.vc.on('video-ended', () => this._onEnded());
   }
 
-  /** Begin a cut-up over the given play IDs (sorted by time). */
+  /** Begin a cut-up over the given play IDs, in game order (playbackOrder). */
   start(playIds, label = '') {
     if (this.active) this.stop('replaced');
-    const plays = (playIds || [])
+    const plays = playbackOrder((playIds || [])
       .map(id => this.tagger.getPlay(id))
-      .filter(Boolean)
-      .sort((a, b) => a.timestamp.start - b.timestamp.start);
+      .filter(Boolean));
     if (!plays.length) return Promise.resolve({ completed: false, reason: 'empty' });
 
     this.vc.clearLoop();

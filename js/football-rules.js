@@ -194,6 +194,25 @@ export function groupPlaysByDrive(plays, { project = play => play, mode = 'persp
 }
 
 /**
+ * One game's plays in game order, for playback (cut-ups, Watch). A play cut
+ * from a multi-clip folder has a `clipId`, and its timestamps are local to
+ * that clip, so play 1 starting 30s into its clip would sort after plays
+ * starting at 0 in theirs. Clip plays therefore order by play number, the
+ * play strip's order; one continuous video orders by start time. Ties keep
+ * the incoming order. Returns a new array.
+ */
+export function playbackOrder(plays) {
+  const hasClip = p => p?.clipId != null && p.clipId !== '';
+  return (plays || []).map((play, index) => ({ play, index })).sort((a, b) => {
+    const ca = hasClip(a.play), cb = hasClip(b.play);
+    if (ca !== cb) return ca ? 1 : -1;
+    const delta = ca ? Number(a.play.id) - Number(b.play.id)
+      : (Number(a.play.timestamp?.start) || 0) - (Number(b.play.timestamp?.start) || 0);
+    return delta || a.index - b.index;
+  }).map(entry => entry.play);
+}
+
+/**
  * Has the coach put any meaningful tag on this play? The single source of truth
  * for "tagged" across the progress counter, the play selector, and the Film Room
  * grid (they used to disagree — some checked playType ONLY, so a Kick Return or a

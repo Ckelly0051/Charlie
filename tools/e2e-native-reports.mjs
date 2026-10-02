@@ -180,6 +180,20 @@ result = await page.evaluate(() => {
 ok(result.official.hidden===false && result.official.scores.join('|')==='21|14','The scorebug leads with the official Game Settings score when tagged scoring is incomplete',JSON.stringify(result.official));
 ok(!result.fired && result.hostile.images===0 && result.hostile.text.includes('<img src=x'),'Imported score values render as inert text in the approved scorebug',JSON.stringify(result.hostile));
 
+console.log('\n== 1b2. The scorebug computes stats only when it is shown, once ==');
+result = await page.evaluate(() => {
+  const app = window.app, stats = app.stats, real = stats.compute;
+  let calls = 0;
+  stats.compute = function (...args) { calls++; return real.apply(this, args); };
+  try {
+    const count = tab => { app.reportsScreen.selectTab(tab); calls = 0; app.reportsScreen._syncKpiRail(); return calls; };
+    return { defense: count('defense'), overview: count('overview'),
+      shown: !document.querySelector('[data-reports-scorebug]')?.hidden };
+  } finally { stats.compute = real; }
+});
+ok(result.defense === 0 && result.overview === 1 && result.shown,
+  'A hidden scorebug computes no stats; the shown one computes them once', JSON.stringify(result));
+
 console.log('\n== 1c. The compact score\'s Turnover margin never claims an uncharted side ==');
 result = await page.evaluate(async () => {
   const app = window.app;

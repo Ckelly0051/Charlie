@@ -65,6 +65,7 @@ export class SeasonStore {
     // Why the most recent open was refused (a stored season in an old format),
     // `{ seasonId, message, problems }`, or null. The caller reports it.
     this.openRefusal = null;
+    this._openSeq = 0;   // latest openSeason() request; an earlier one still reading is superseded
   }
 
   // ---- lifecycle -----------------------------------------------------------
@@ -74,7 +75,8 @@ export class SeasonStore {
     if (!this.currentSeasonId) return null;
     const priorData = this.data;
     let parsed = null;
-    try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) {}
+    // A failed read keeps the live season; it is never "nothing saved yet".
+    try { parsed = await this.backend.loadSeason(this.currentSeasonId); } catch (e) { return priorData; }
     // Every stored payload is validated -- a single-game save or any other old
     // shape is refused, never opened as an empty season. Only NO stored payload
     // (nothing saved yet) starts empty.
@@ -542,35 +544,47 @@ export class SeasonStore {
   /**
    * Open an existing season by id and load its data as the current season.
    *
-   * Returns null and opens NOTHING when the stored season is in an old format
-   * (`_hydrate`). The season the coach already had open stays open, its live
-   * data is untouched, and the backend's current-season pointer is put back
-   * exactly as it was, so no later write can be aimed at the refused season.
+   * Nothing changes until the read has finished: the season id, the backend
+   * pointer and the data switch together, in one synchronous step, so no edit,
+   * save or film load in between can see a season id paired with another
+   * season's data.
+   *
+   * Returns null and opens NOTHING when
+   *   - the read fails (a failed read is not "no season saved yet": opening it
+   *     empty let the next persist() replace the saved plays with none),
+   *   - the stored season is in an old format (`_hydrate`), or
+   *   - a later openSeason() started while this one was reading; the latest
+   *     request owns the result.
+   * The season the coach already had open stays open with its data untouched.
    */
   async openSeason(id) {
-    const priorSeasonId = this.currentSeasonId;
-    const priorData = this.data;
-    const priorPointer = (typeof this.backend.currentSeason === 'function') ? this.backend.currentSeason() : undefined;
+    const seq = ++this._openSeq;
+    const superseded = () => seq !== this._openSeq;
     this.cancelPendingDiskWrite();   // a stale debounce must not target the new season
-    this.backend.setCurrentSeason(id);
-    this.currentSeasonId = id;
     let parsed = null;
-    try { parsed = await this.backend.loadSeason(id); } catch (e) {}
+    try { parsed = await this.backend.loadSeason(id); }
+    catch (e) {
+      if (superseded()) return null;
+      try { console.error('[season-store] open failed: season could not be read', id, e); } catch (e2) {}
+      this.openRefusal = { seasonId: id, problems: ['read failed'],
+        message: 'That season could not be read. Nothing was changed, and the season you had open is still open.' };
+      return null;
+    }
+    if (superseded()) return null;
+    let data;
     // Every stored payload is validated (see load()); only none starts empty.
     if (parsed != null) {
       if (typeof parsed === 'object') parsed.id = id;   // this library slot, not the payload's own id
-      const hydrated = await this._hydrate(id, parsed);
-      if (!hydrated) {
-        this.currentSeasonId = priorSeasonId;
-        this.data = priorData;
-        if (priorPointer !== undefined) { try { this.backend.setCurrentSeason(priorPointer); } catch (e) {} }
-        return null;
-      }
-      this.data = hydrated;
+      data = await this._hydrate(id, parsed);
+      if (superseded() || !data) return null;
     } else {
-      this.data = this._empty();
+      data = this._empty();
     }
-    this.data.id = id;
+    data.id = id;
+    this.cancelPendingDiskWrite();
+    this.backend.setCurrentSeason(id);
+    this.currentSeasonId = id;
+    this.data = data;
     try { await this.backend.touchOpened(id); } catch (e) {}
     return this.data;
   }
@@ -958,6 +972,9 @@ export class SeasonStore {
 
   _scheduleDiskWrite(seasonId = this.currentSeasonId, data = this.data, revision = this._revision.get(seasonId)) {
     if (!this.backend.diskStatus().bound) return;
+    // The desktop canonical save already wrote the Documents mirror; a deferred
+    // writeDisk() would save the whole season (SQL rows + db export) again.
+    if (this.backend.mirrorsOnCanonicalSave?.()) return;
     clearTimeout(this._diskTimer);
     const snap = JSON.parse(JSON.stringify(data));   // freeze the payload
     // Pin the owning season: writeDisk resolves the TARGET at fire time (via

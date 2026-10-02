@@ -319,18 +319,27 @@ export class ReportsScreen {
    *  non-score facts - plays charted and turnover margin - live in the compact
    *  Overview score. The name is kept because every presentation sync calls it. */
   _syncKpiRail() {
+    // A hidden scorebug needs no stats: skip the full compute (Defense syncs its
+    // presentation twice per board render).
+    if (!this._scorebugShown()) { this._syncScorebug(null); return; }
     const stats = this.app.stats;
-    this._syncScorebug(stats?._kpiRailData?.(stats.compute()));
+    const computed = stats?.compute?.();
+    this._syncScorebug(stats?._kpiRailData?.(computed), computed);
   }
 
-  _syncScorebug(data) {
+  /** Self perspective only: an opponent scout has no "our score", and the
+   *  Season tab is season-scope. */
+  _scorebugShown() {
+    return this._mode === 'main' && this.perspective === 'self'
+      && SCOREBUG_TABS.has(this.activeTab) && this._usesCurrentGameContext();
+  }
+
+  _syncScorebug(data, computed = null) {
     const bug = this.host?.querySelector('[data-reports-scorebug]');
     if (!bug) return;
-    // Self perspective only: an opponent scout has no "our score", and the
-    // Season tab is season-scope. Empty data leaves the container hidden rather
-    // than rendering a blank scorebug shell.
-    const visible = this._mode === 'main' && this.perspective === 'self'
-      && SCOREBUG_TABS.has(this.activeTab) && this._usesCurrentGameContext() && data?.totalPlays;
+    // Empty data leaves the container hidden rather than rendering a blank
+    // scorebug shell.
+    const visible = this._scorebugShown() && data?.totalPlays;
     // The linescore class is cleared here as well as on the pair path: hiding
     // the bug returns before the pair branch, so leaving Defense for a
     // rail-bearing tab would otherwise leave `is-linescore` set on a hidden
@@ -339,8 +348,7 @@ export class ReportsScreen {
     const esc = Charts._esc;
     const game = this.app.storage?.gameInfo || {};
     const context = this.app.workspace?.snapshot?.() || {};
-    const computed = this.app.stats.compute();
-    const tagged = computed.scoreboard || {};
+    const tagged = (computed || this.app.stats.compute()).scoreboard || {};
     const scoreUs = game.scoreUs !== '' && game.scoreUs != null ? game.scoreUs : (tagged.us || 0);
     const scoreThem = game.scoreThem !== '' && game.scoreThem != null ? game.scoreThem : (tagged.them || 0);
     const team = context.team?.name || game.teamName || 'Our Team';
