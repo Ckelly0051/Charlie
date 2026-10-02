@@ -54,15 +54,23 @@ This section is the one place release state is kept current.
   repair adds one `window.app` reference, 74 versus 73), `e2e-p0-capabilities`
   (Plan export assertion name changed), and `e2e-p0-exit` (still checks the old
   shell runner and direct Puppeteer/app-entry imports). No assertions were
-  changed during the run. Packaging remains blocked; no installer or live-data
+  changed during the run. Packaging was blocked at that checkpoint; no installer or live-data
   changes. Shared Chromium launched eight times, with special-option tests
   retaining dedicated browsers.
 
 - **Gate evidence repair, 2026-10-02, `d7cbbdc2`:** all four failed harnesses
   repaired without product changes. Fresh build plus seven focused harnesses
   passed, zero skipped; seven source-guard mutations were rejected. The latest
-  full gate remains the red run above until an authorized rerun. No installer,
+  full gate was still red at that checkpoint, before the rerun below. No installer,
   installed approval or live-data changes.
+
+- **Latest full gate, 2026-10-02, `07bf04aa`: GREEN.** Fresh build passed;
+  all 145 harnesses passed, zero skipped and zero failed. All four previously
+  failed harnesses passed. Canonical integrity completed 960 operations and
+  verified source bytes unchanged; analytics parity and every Reports suite
+  passed. Eight shared Chromium launches, plus dedicated browsers for special
+  launch options. No installer, version bump, push or live-data changes.
+  Installed approval remains `1.12.0-108`; Plan export still needs desktop smoke.
 
 - **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
   Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.

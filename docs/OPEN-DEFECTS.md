@@ -4,7 +4,8 @@
 
 **Historical full result: RED, 141 green, zero skipped, four failed out of 145
 harnesses.** Fresh build passed. The five assertions are repaired in source in
-`d7cbbdc2`; no full gate rerun or package has occurred. No coach data was changed.
+`d7cbbdc2`. The authorized rerun at `07bf04aa` passed **145/145, zero skipped,
+zero failed**, with a fresh build. No package or coach-data change occurred.
 
 - `e2e-data-correctness-batch1`: the source check expects exactly three
   `clearFilmOperation` calls and only film/repair variable names. CR-4 adds a
@@ -38,6 +39,12 @@ separately checking the synthetic runner self-test. The export inventory names
 the actual shared-save assertion. Seven in-memory broken-source variants were
 rejected by the repaired guards (five runner mutations and two cleanup ownership
 mutations); no product source was modified for these checks.
+
+Full rerun proof, `07bf04aa`: all four failed harnesses are green, along with
+canonical integrity (960 operations, source bytes unchanged), analytics parity
+and every Reports suite. Eight shared Chromium launches; special-option tests
+retained dedicated browsers. The gate-evidence findings are closed in source.
+This is not installed approval; Plan export still needs desktop smoke.
 
 ## Codex code review of `f698ef0b`, 2026-10-02 (CR-1..CR-8)
 
