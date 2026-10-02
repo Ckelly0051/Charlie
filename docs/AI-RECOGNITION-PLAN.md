@@ -68,76 +68,128 @@ opening.
 - No jersey OCR.
 - No evidence of how the film angle affects results.
 
-## 3. Plan
+## 3. Our reality: the 2025 film and labels (measured 2026-10-01)
 
-Phases are gated: each one starts only when the previous one's measured result
-earns it.
+The coach's 2025 JV film is the best view we will get. Every estimate below is
+sized to it, not to All-22 or broadcast film.
 
-**Phase 0: Measure before building (the decision gate).**
-- Build an offline evaluation tool in `tools/` that reads copies of charted
-  plays and their film. It runs each engine over the same plays and scores
-  every field against the coach's tags.
-- Engines: heuristic, YOLO, and the current models from Claude, GPT and Gemini.
-- Output: per-field accuracy, confidence calibration, minutes and cost per game,
-  and a split by camera angle.
-- No app changes; coach data read only.
-- Exit: a table of which fields and which engine are worth suggesting.
+**The film.** I sampled 18 clips across all six 2025 games.
+- One iPhone clip per play, 8-19 s long, 1080p at 30 fps (a few 4K).
+- Shot from an elevated sideline. The camera pans and zooms to follow the ball,
+  and the start of each clip is the pre-snap look.
+- Both lines and the backfield are almost always in frame pre-snap; wide
+  receivers are sometimes at or past the edge.
+- Players are roughly 40-90 px tall, so jersey numbers are not readable except
+  occasionally on 4K.
+- Yard numbers, yard lines and hash marks are clearly visible on most fields.
+  OLL is the exception: a low grass field with sideline crowd in front.
+- The scoreboard appears only in occasional separate clips, so down and distance
+  cannot come from the play clips. The app's own situation chaining already
+  covers that.
+- Play segmentation is already done: the camera operator started and stopped
+  each clip.
 
-**Phase 1: A suggestion layer and the reliable fields.**
-- Store suggestions apart from tags, with engine, model, confidence and evidence
-  frame. A schema decision needs the coach first.
-- Show them in Chart and Film Room as pending values to accept or correct per
-  field, or accept all for a play.
-- Fields:
-  - play boundaries and O/D/K (matching the coach's marks)
-  - run/pass, play direction, hash
-  - quarter, down and distance and yard line, read from the scoreboard and
-    field markings, with yardage from field-line registration
-- Move model calls out of the browser (the Tauri side holds the key).
+**The labels** (all three seasons, live catalog, read-only copy). 919 plays:
+429 offensive snaps, plus the offense faced on 279 defensive snaps. Look fields
+are charted on both, which is why their counts exceed 429:
 
-**Phase 2: The pre-snap look in the coach's own vocabulary.**
-- Fields: formation, personnel, backfield, QB alignment, offensive line
-  strength and receiver alignment.
-- Read from the pre-snap frame. Local detection supplies player positions and
-  the line of scrimmage, and an LLM labels them against the coach's library.
-- The prompt includes few-shot examples from the coach's own charted plays,
-  plus agreement voting across models.
-- Corrections become new examples (per-team learning).
+| Field | Charted | Classes | Usable for training? |
+|---|---|---|---|
+| Hash | 516 | 3, balanced | Yes, and it is geometric |
+| QB alignment | 491 | 3 (Pistol 11) | Yes |
+| Play direction | 459 | 3, balanced | Yes, and it is geometric |
+| Run/Pass | 469 | 2; 80% Run | Yes, but it must beat the 80% "always Run" baseline |
+| Formation | 500 | 14; top 6 hold 77% | Top 6 yes; the tail cannot be learned |
+| Backfield | 502 | 10; 4 dominate | Top 4 yes |
+| Personnel | 467 | 12 | Common groups yes |
+| Line strength | 473 | 3 (+2 rare) | Yes |
+| Play type | 464 | 9; 3 dominate | Inside, outside and pass; RPO is visually hard |
+| Result / yardage | 545 | Gain/Loss/No Gain/TD | Yes, and yardage is geometric |
+| Defensive front | 463 | 6 | Partly |
+| Motion | 102 | 4 | Yes/no only |
+| Coverage | 455 | **97% Cover 3** | **No signal to learn** |
+| Blitz | 19 | 3 | No |
+| Gap | 1 | - | No labels; can be computed geometrically, but only checked once charted |
+| Receiver alignment | 11 | - | No labels; can be computed from positions |
 
-**Phase 3: Post-snap.**
-- Fields: play type, gap, result and yardage, and ball carrier and passer by
-  jersey OCR checked against the season roster.
+## 4. What training buys us on this film
 
-**Phase 4: Defense (research track).**
-- Fields: front, coverage shell, blitz.
-- Attempt only if Phases 0-2 show the film quality supports it. This is where
-  Hudl IQ spends human analysts.
+The real constraint is labels, not compute. Renting a GPU (a few hours on one
+A100 or 4090, roughly $10-50 per run) covers the heavy steps:
+- detecting and tracking players across about 1,700 clips;
+- fine-tuning a field-marking (yard line and hash) model on about 150 frames we
+  label together.
 
-**Architecture recommendation (to confirm in Phase 0):**
-- Hybrid. Local computer vision (detection, field registration, OCR) produces
-  structure and keeps per-play cost near zero.
-- Cloud LLMs (Claude or GPT, whichever measures better per field) reason over
-  that structure plus a few frames.
-- Sending film to the cloud is an explicit coach opt-in per season, as the
-  existing AI-exchange item already requires.
+Everything after that trains on this PC's CPU in minutes.
 
-**Where GridIron IQ can beat the field:**
-- Publish measured accuracy per field to the coach.
-- Suggest in the coach's own vocabulary, not a fixed vendor taxonomy.
-- Learn from each team's corrections.
-- Every suggestion is one click from its film.
-- Offline and local by default; cloud by choice.
-- Never overwrites charting.
+**The approach.**
+1. A pretrained person detector plus a tracker.
+2. Team separation by jersey color.
+3. Field registration from the yard lines and hashes, turning each frame into a
+   top-down field map.
+4. Small models trained on the coach's ~500 labels over the player positions.
+   Mirroring Left/Right doubles the data for direction and strength.
+5. Scoring with one game held out at a time, so every number is measured on a
+   game the model never saw.
 
-## 4. Decisions needed from the coach
+Several fields need no learned model once we have the field map. They are
+geometry: hash, play direction, yardage, receiver alignment, QB depth and gap.
 
-1. Which camera angles are typical: high sideline, end zone, or both? This
-   decides which fields are feasible.
-2. Whether film may go to a cloud model, and the budget per game.
-3. Field priority. Proposed order: situation, run/pass and direction,
-   formation, personnel, then the rest.
-4. Approval to store suggestions alongside tags (a schema addition).
-5. Approval to start Phase 0, which is read-only measurement.
+**Expected results** (ranges to confirm in Phase 0, not promises):
+
+| Tier | Fields | Expected | Use |
+|---|---|---|---|
+| **A** | Offense/Defense/Kick (by our jersey color), special-teams unit, hash, QB alignment, play direction, motion yes/no | about 85-95% | Pre-fill; coach glances |
+| **B** | Run/Pass (target about 90%), top-6 formation, backfield, personnel group, line strength, result, yardage within about 3 yd | about 65-85% | Suggested with confidence; coach confirms |
+| **C** | Play type beyond inside/outside/pass, rare formations, defensive front | about 50-65% | Low-confidence hint only |
+| **Not possible with this film and data** | Coverage, blitz, jersey numbers and player credit, down and distance from video | - | Stay manual |
+
+**Practical payoff:** most of the Situation and Formation & Call groups
+pre-filled, a quick confirm instead of a build-from-scratch, and Tier A fields
+nearly free. Charting still needs the coach for calls, results he judges,
+players, defense and anything low-confidence.
+
+**Payoff we will measure, not assume:** seconds of charting per play before and
+after, on a held-out game.
+
+**It improves as the coach charts.** Every charted or corrected play is a new
+label. The 2026 film adds more games from similar angles, and retraining weekly
+sharpens the model on this team and its opponents. Gap and receiver alignment
+become checkable once charted.
+
+## 5. Plan
+
+**Phase 0: measure (about one week; read-only).**
+- Run detection, tracking and field registration on the 2025 games.
+- Label about 150 frames with the coach for the field markings.
+- Train Tier A and B on five games and score on the sixth, rotating through all six.
+- Also score Claude and GPT on the same held-out plays, frames plus our structure,
+  for the vocabulary fields.
+- Deliverable: a per-field accuracy table, the error cases on film, minutes saved
+  per game, and the compute cost.
+- Exit: the coach picks the fields to ship.
+
+**Phase 1: suggestions in the app.**
+- A suggestion store kept apart from tags (a schema decision for the coach),
+  with engine, confidence and evidence frame.
+- Pending values in Chart and Film Room: accept or correct per field, or accept
+  all for a play.
+- Models run locally on this PC. No film leaves the machine unless the coach
+  opts in.
+
+**Phase 2: the learning loop.**
+- Weekly retraining from new charting, with accuracy tracked per field over time.
+
+**Later, only if Phase 0 earns it:** gap and receiver alignment from geometry,
+play type, and the defensive front.
+
+## 6. Decisions needed from the coach
+
+1. Approve Phase 0 and a small compute budget (about $50).
+2. About an hour together to label field markings on roughly 150 frames.
+3. Field priority among Tiers A and B.
+4. Whether a cloud model (Claude or GPT) may see sampled frames for the
+   vocabulary fields, or whether everything stays local.
 
 ## Sources
 

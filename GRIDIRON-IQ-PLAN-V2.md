@@ -1457,10 +1457,13 @@ V2-A through V2-H are complete baseline milestones. The current sequence is:
    route/release, missed tackles, and useful visualizations paired with each
    new report capability. Do not revisit run-gap reporting here.
 5. **AI recognition (proposal, 2026-10-01):** measured, coach-reviewed
-   suggestions for charting fields, phased so each phase must earn the next:
-   Phase 0 measures accuracy offline against the coach's charted plays; then
-   situation and run/pass/direction; then the pre-snap look in the coach's
-   vocabulary; then post-snap; defense is a research track. Builds on V2-F
+   suggestions for charting fields, sized to the coach's real film: elevated
+   sideline iPhone clips, 1080p, one per play, with about 500 labels per look
+   field. Phase 0 measures with one game held out at a time. Expected: Tier A
+   (Offense/Defense/Kick, hash, QB alignment, direction, motion) about 85-95%;
+   Tier B (run/pass, top formations, backfield, personnel, strength, result and
+   yardage) about 65-85%. Coverage, blitz, jersey numbers and down and distance
+   are not possible with this film. Builds on V2-F
    "Automated data production" and never overwrites coach tags. Competitor
    landscape, current assets and decisions needed: `docs/AI-RECOGNITION-PLAN.md`.
    Not approved or started.
