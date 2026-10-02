@@ -238,8 +238,14 @@ inputs are validated before browser startup; real fixture bytes are checked
 unchanged afterward. `FFA_INTEGRITY_SYNTHETIC=1` still forces the portable path.
 18 affected harnesses passed on a fresh build, including canonical integrity
 and unchanged parity. The portable integrity path also passed all 960 operations
-(2/2), with no console errors or invariant violations. No full gate or installer
-was run. Future coverage
+(2/2), with no console errors or invariant violations. The subsequent authorized
+full gate at `fec0aba9` built successfully and ran all 145 harnesses: **141 green,
+zero skipped, four failed**. `e2e-data-correctness-batch1`,
+`e2e-legacy-inventory`, `e2e-p0-capabilities` and `e2e-p0-exit` failed five stale
+source/inventory assertions, detailed in `docs/OPEN-DEFECTS.md`. No checks were
+changed or retried during the run. Eight shared Chromium launches were used;
+special launch options retained dedicated browsers. No installer was built.
+Future coverage
 consolidation, deadlines/logging and release receipts are recorded in
 `GRIDIRON-IQ-PLAN-V2.md` > Gate Efficiency and Quality.
 

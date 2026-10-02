@@ -35,7 +35,8 @@ This section is the one place release state is kept current.
   two runtime duplicate computations/writes. Codex reviewed the fixes and
   verified the affected paths in a 12-harness focused run. Gate infrastructure
   now shares Chromium with isolated per-harness contexts; its 37-check
-  self-test passes. No full gate or installer has run on these changes.
+  self-test passes. The full gate result below supersedes focused-only status;
+  no installer has run on these changes.
   Installed Plan-export behavior still needs smoke. `1.12.0-108` below remains
   the last installed approval; this source work is not included in it.
 
@@ -43,8 +44,19 @@ This section is the one place release state is kept current.
   harnesses, three model-only harnesses moved to Node with browser wiring
   retained, and current-format integrity fixtures validated before loading.
   18 focused harnesses pass; runner/readiness 43/43 and fixture contracts
-  10/10. No full gate or package; no coach data changed. Deferred gate-quality
+  10/10. No package; no coach data changed. Deferred gate-quality
   enhancements are recorded in the roadmap.
+
+- **Full gate, 2026-10-02, `fec0aba9`: RED.** Fresh build passed;
+  145 harnesses ran: 141 green, zero skipped, four failed. Failures:
+  `e2e-data-correctness-batch1` (three-call source expectation excludes the
+  new season-scoped repair cancellation), `e2e-legacy-inventory` (that same
+  repair adds one `window.app` reference, 74 versus 73), `e2e-p0-capabilities`
+  (Plan export assertion name changed), and `e2e-p0-exit` (still checks the old
+  shell runner and direct Puppeteer/app-entry imports). No assertions were
+  changed during the run. Packaging remains blocked; no installer or live-data
+  changes. Shared Chromium launched eight times, with special-option tests
+  retaining dedicated browsers.
 
 - **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
   Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.

@@ -1,5 +1,32 @@
 # GridIron IQ Open Defects
 
+## Full gate at `fec0aba9`, 2026-10-02
+
+**RED: 141 green, zero skipped, four failed out of 145 harnesses.** Fresh build
+passed. Five assertions need repair; no gate rerun or package is authorized by
+this result. No coach data was changed.
+
+- `e2e-data-correctness-batch1`: the source check expects exactly three
+  `clearFilmOperation` calls and only film/repair variable names. CR-4 adds a
+  fourth call with the pinned `ownerSeasonId` when the game changes. Retain
+  season-ownership coverage rather than merely changing the total.
+- `e2e-legacy-inventory`: that cancellation adds a `window.app` reference;
+  actual 74 versus baseline 73. Review this current dependency before accepting
+  a ratchet change; it is not an old-format reader.
+- `e2e-p0-capabilities`: `plan.export` names the retired anchor-download
+  assertion instead of the current shared-save-seam assertion. The actual
+  Study/Plan journey passed 115/115, including the save-seam check.
+- `e2e-p0-exit`: the composition audit inspects `run-gate.sh` for the deleted
+  build/loop implementation instead of its Node delegate. Its browser scan
+  misses shared-launcher consumers and misclassifies the synthetic runner
+  isolation test as a product journey. Keep build, discovery and shared-entry
+  coverage against the current owners; do not just remove these assertions.
+
+Canonical integrity passed all 960 operations with source bytes unchanged;
+analytics parity and all Reports suites passed. These results do not make the
+full gate green or establish installed approval. Eight shared Chromium launches
+were used; special-option tests retained dedicated browsers.
+
 ## Codex code review of `f698ef0b`, 2026-10-02 (CR-1..CR-8)
 
 **All repaired in source; not packaged.** Each was confirmed against source and
