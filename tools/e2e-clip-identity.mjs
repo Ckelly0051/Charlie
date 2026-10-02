@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 /* CLIP-IDENTITY HARNESS (P1a — basename collision) ------------------------
    Two clips named "0001.mp4" that live in different subfolders (endzone/ vs
    sideline/) must stay DISTINCT through import → save → reopen. The old code
@@ -30,8 +30,7 @@ page.on('pageerror', e => pageErrors.push(String(e.message || e)));
 page.on('console', m => { if (m.type() === 'error') pageErrors.push(m.text()); });
 const appErrors = () => pageErrors.filter(e => !/Video error|DEMUXER|FFmpegDemuxer|could not be decoded|Not allowed to load local resource: blob:linked-/i.test(e));
 
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
+await gotoApp(page, URL);
 
 const rep = await page.evaluate(async () => {
   const out = { steps: {}, err: null };

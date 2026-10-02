@@ -1,5 +1,16 @@
 import puppeteer from 'puppeteer';
 
+/** Library-first startup, independent of dist/ so self-tests need no build. */
+export async function waitForApp(page, timeout = 15000) {
+  await page.waitForFunction(() => {
+    const app = window.app;
+    return app?.workspaceShell?.root?.dataset.route === 'home'
+      && app.homeScreen?.snapshot?.().status === 'ready'
+      && !!document.querySelector('[data-native-home]')
+      && document.fonts.status === 'loaded';
+  }, { timeout });
+}
+
 // Standalone harnesses retain Puppeteer's launch behavior. Gate children share
 // only the Chromium process, never pages, storage or browser contexts.
 export function canShare(options = {}) {

@@ -45,6 +45,15 @@ runner's isolation proof and mark-flow's autoplay flags). No full gate,
 installer or coach-data write; full-suite elapsed-time improvement is not yet
 measured. See `docs/TESTING.md` for commands and isolation coverage.
 
+Coach-approved efficiency follow-up, 2026-10-02: normal startup waits use
+observable readiness in 12 harnesses; three pure analytics harnesses run in
+Node with built-App wiring retained in Reports; integrity's retired input
+path and stale `stType` fixture are replaced by current, pre-validated inputs.
+18 focused harnesses passed, parity unchanged; runner/readiness checks 43/43,
+fixture contracts 10/10. No full gate, installer or live-data write. Remaining
+coverage consolidation, deadlines/full diagnostics and release receipts are
+deferred in the roadmap, not silently dropped.
+
 Evidence: `e2e-context-ownership` 35/35 (28 red on `080d665d`),
 `e2e-pass-loss-and-play-order` 12/12 (9 red on `080d665d`). 70 focused
 harnesses green (build, then every harness touching season open, restore,

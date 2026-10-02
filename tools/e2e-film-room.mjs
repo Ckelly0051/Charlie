@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';
 /* E2E Film Room harness -- drives the built bundle headless through the
    NATIVE Film Room route/mode (window.app.nativeFilmRoom / native-film-room.jsx,
@@ -92,7 +92,7 @@ const reopenFilmRoom = async () => {
 };
 
 console.log('\n== 1. Setup: team + demo season + open game ==');
-await page.goto(URL, { waitUntil: 'networkidle0' });
+await gotoApp(page, URL);
 await setupTeamAndDemo(page);
 await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
 await page.click('.ws-game-row');

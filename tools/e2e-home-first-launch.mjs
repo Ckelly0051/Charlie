@@ -1,6 +1,6 @@
 import puppeteer from './test-browser.mjs';
 import {mkdirSync} from 'node:fs';
-import {APP_URL} from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
 // The captures below write into `artifacts/`, which is untracked and absent from
 // a clean checkout; without this the harness crashed before asserting anything.
 mkdirSync('artifacts',{recursive:true});
@@ -8,7 +8,7 @@ let pass=0,fail=0;
 const ok=(value,label,detail='')=>value?(pass++,console.log(`  PASS  ${label}`)):(fail++,console.log(`  FAIL  ${label}${detail?' -- '+detail:''}`));
 async function scenario(run){
   const browser=await puppeteer.launch({args:['--no-sandbox']});
-  try{const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewport({width:1440,height:900});await page.goto(APP_URL,{waitUntil:'networkidle0'});await page.waitForSelector('[data-first-launch]');const result=await run(page);return{...result,errors};}finally{await browser.close();}
+  try{const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.setViewport({width:1440,height:900});await gotoApp(page, APP_URL);await page.waitForSelector('[data-first-launch]');const result=await run(page);return{...result,errors};}finally{await browser.close();}
 }
 console.log('== Approved first-launch Home ==');
 let r=await scenario(async page=>{

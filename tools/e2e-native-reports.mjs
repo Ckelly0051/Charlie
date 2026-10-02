@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
@@ -25,8 +25,21 @@ page.on('pageerror', error => errors.push(error.stack || error.message));
 page.on('console', message => {
   if (message.type() === 'error') errors.push(message.text());
 });
-await page.goto(TEST_APP_URL, { waitUntil: 'networkidle0' });
-await sleep(500);
+await gotoApp(page, TEST_APP_URL);
+
+// Model contracts live in Node; this retained browser seam pins the actual
+// built App's owners rather than constructing stand-ins in another browser.
+const wiring = await page.evaluate(() => {
+  const app = window.app;
+  return { registry: !!app.analyticsRegistry && app.analyticsRegistry.stats === app.stats,
+    metrics: !!app.analyticsRegistry && app.analyticsRegistry.metricsEngine() === app.stats.metricsEngine(),
+    filter: !!app.filter && app.filter.tagger === app.tagger,
+    matrix: app.stats.constructor._matrixDimensions().some(dim => dim.id === 'qbAlignment')
+      && app.stats.constructor._matrixDimensions().some(dim => dim.id === 'coverageFamily') };
+});
+ok(wiring.registry && wiring.metrics, 'Built App binds AnalyticsRegistry to its StatsEngine and one metrics owner');
+ok(wiring.filter, 'Built App binds the PlayFilter model to its live tagger');
+ok(wiring.matrix, 'Built App exposes the model-tested Matrix dimensions');
 
 console.log('\n== 1. Native Reports owns the route and preserves the legacy node ==');
 await page.evaluate(async () => {

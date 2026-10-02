@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import puppeteer from 'puppeteer';
-import testBrowser, { canShare } from './test-browser.mjs';
+import testBrowser, { canShare, waitForApp } from './test-browser.mjs';
 import { classify, execute, cleanupContexts, failureEvidence, buildAccepted, runHarnesses } from './run-gate.mjs';
 
 async function probe(mode) {
@@ -76,7 +76,7 @@ export async function runTests() {
 
   const launched = [], endpoints = [];
   let calls = 0, cleaned = 0;
-  const exit = await runHarnesses(Array(3).fill('e2e-analytics-registry.mjs'), {
+  const exit = await runHarnesses(Array(3).fill('e2e-native-reports.mjs'), {
     recycleEvery: 2,
     launchBrowser: async () => {
       const defaultContext = {};
@@ -108,6 +108,36 @@ export async function runTests() {
   let browser;
   try {
     browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    const readyPage = await browser.newPage();
+    await readyPage.setContent('<!doctype html><title>Readiness</title>');
+    await assert.rejects(waitForApp(readyPage, 100), /timeout/i);
+    check('readiness rejects a page without the App', () => assert(true));
+    await readyPage.evaluate(() => {
+      window.app = { workspaceShell: { root: { dataset: { route: 'home' } } },
+        homeScreen: { snapshot: () => ({ status: 'ready' }) } };
+    });
+    await assert.rejects(waitForApp(readyPage, 100), /timeout/i);
+    check('readiness rejects an unrendered Home', () => assert(true));
+    await readyPage.evaluate(() => {
+      const home = document.createElement('main'); home.setAttribute('data-native-home', ''); document.body.append(home);
+      window.app.homeScreen.snapshot = () => ({ status: 'loading' });
+    });
+    await assert.rejects(waitForApp(readyPage, 100), /timeout/i);
+    check('readiness rejects unfinished Home state', () => assert(true));
+    await readyPage.evaluate(() => {
+      window.app.homeScreen.snapshot = () => ({ status: 'ready' });
+      window.app.workspaceShell.root.dataset.route = 'study';
+    });
+    await assert.rejects(waitForApp(readyPage, 100), /timeout/i);
+    check('readiness rejects a non-startup route', () => assert(true));
+    await readyPage.evaluate(() => { window.app.workspaceShell.root.dataset.route = 'home'; });
+    await readyPage.evaluate(() => Object.defineProperty(document.fonts, 'status', { configurable: true, value: 'loading' }));
+    await assert.rejects(waitForApp(readyPage, 100), /timeout/i);
+    check('readiness rejects pending fonts', () => assert(true));
+    await readyPage.evaluate(() => { delete document.fonts.status; });
+    await waitForApp(readyPage, 500);
+    check('readiness resolves when the startup state and rendered Home agree', () => assert(true));
+    await readyPage.close();
     const env = { ...process.env, GIQ_TEST_BROWSER_ENDPOINT: browser.wsEndpoint(),
       GIQ_GATE_PROBE_URL: `http://127.0.0.1:${server.address().port}/` };
     for (const mode of ['write', 'read', 'leak']) {

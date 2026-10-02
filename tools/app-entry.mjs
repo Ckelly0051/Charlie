@@ -2,6 +2,8 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { waitForApp } from './test-browser.mjs';
+export { waitForApp } from './test-browser.mjs';
 
 const TOOLS_DIR = dirname(fileURLToPath(import.meta.url));
 export const APP_ROOT = resolve(process.env.GIQ_APP_ROOT || resolve(TOOLS_DIR, '..', 'dist'));
@@ -57,3 +59,8 @@ function serveApp() {
 }
 
 export const APP_URL = process.env.GIQ_APP_URL || process.env.FFA_STUDY_URL || await serveApp();
+
+export async function gotoApp(page, url = APP_URL) {
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await waitForApp(page);
+}

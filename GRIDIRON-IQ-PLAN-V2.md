@@ -90,6 +90,29 @@ candidate. No production acceptance is implied by this plan.
 Broader visualization work remains lower priority and should accompany a
 substantive analysis feature rather than become a standalone redesign.
 
+### Gate Efficiency and Quality (2026-10-02)
+
+Coach-approved current work: replace guessed startup delays with readiness
+conditions, move pure analytics contracts to Node while retaining built-App
+wiring in browser tests, and validate ordinary fixtures before normalization.
+Implemented in source; verification and exact scope live in `docs/TESTING.md`.
+This is test infrastructure, not a product change or installed approval.
+
+Future enhancements, recorded on coach direction; not authorization to build:
+
+- **Behavior-based coverage consolidation.** Remove repeated setup and genuinely
+  identical assertions only after mapping their failure contracts. Preserve
+  distinct UI, persistence, ownership and analytics paths; do not retire checks
+  merely because they are old. No timing-baseline project is required.
+- **Harness deadlines and durable diagnostics.** Fail an over-deadline child
+  explicitly, reclaim its resources and retain complete failure output. Choose
+  budgets appropriate to deterministic checks versus seeded stress tests; do
+  not hide failures with automatic retries or silently reduce stress coverage.
+- **Auditable release receipts.** Record the tested commit, build fingerprint,
+  fixture identities and individual outcomes in a machine-readable receipt.
+  Distinguish focused runs, full runs, skips and failures. A receipt must never
+  imply installed approval or bless a different build.
+
 ### Approved Break Down charting comp - build contract (2026-09-28)
 
 Formal status: `design-approvals/breakdown-charting/manifest.json` is

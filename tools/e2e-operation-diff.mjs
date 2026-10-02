@@ -1,5 +1,5 @@
 import puppeteer from './test-browser.mjs';
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
 import { auditSeasonOperation } from './operation-diff.mjs';
 
 let pass = 0, fail = 0;
@@ -11,7 +11,7 @@ const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
+await gotoApp(page, APP_URL);
 
 const fixture = {
   version: 5,

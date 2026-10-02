@@ -1,4 +1,6 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { StatsEngine } from '../js/stats-engine.js';
+import { AnalyticsRegistry } from '../js/analytics-registry.js';
+import { PlayFilter } from '../js/play-filter.js';
 /* BEHAVIORAL look-field tests: every analytics surface reads each look field
    (formation, QB alignment, backfield, coverage call, coverage family) from its
    own field, and never counts one as another — an alignment is never a
@@ -6,26 +8,17 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    format (legacy excision step 7). A surface that mixes fields fails its
    assertion regardless of how the read was coded, which a grep can't guarantee.
 
-   Runs against the BUILT bundle so module wiring + App bootstrap are covered.
+   Runs model contracts in Node; App wiring stays in e2e-native-reports.
    Run: node tools/e2e-analytics-projection.mjs */
-import puppeteer from './test-browser.mjs';
 
-const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage();
-const errors = [];
-page.on('pageerror', e => errors.push(e.message));
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
-
-const results = await page.evaluate(() => {
-  const registry = window.app?.analyticsRegistry;
+const results = (() => {
+  const registry = new AnalyticsRegistry(new StatsEngine(null));
   const eng = registry?.stats;
   if (!registry || !eng) return { missing: true };
   const SE = eng.constructor;
@@ -125,7 +118,7 @@ const results = await page.evaluate(() => {
   // This filter selects the film the coach exports, so its set must EQUAL the
   // registry cut set for the same value. OFF is Trips with a Shotgun alignment;
   // ALIGN_ONLY charts an Under Center alignment and no formation.
-  const pf = window.app.filter;
+  const pf = new PlayFilter(null);
   const filterSet = (formation, plays) => {
     const saved = JSON.parse(JSON.stringify(pf.criteria));
     pf.criteria.formationFamilies = [formation];
@@ -156,14 +149,12 @@ const results = await page.evaluate(() => {
     !epaForms.includes('Unknown') && !epaForms.includes('Shotgun'), JSON.stringify(epaForms));
 
   return { out };
-});
+})();
 
 console.log('\n== Analytics look fields (behavioral) ==');
-if (results.missing) { console.error('  FAIL  window.app.analyticsRegistry / stats not available'); fail++; }
+if (results.missing) { console.error('  FAIL  AnalyticsRegistry / StatsEngine not available'); fail++; }
 else for (const r of results.out) ok(r.ok, r.label, r.ok ? '' : r.detail);
 
-ok(errors.length === 0, `zero page errors`, errors.join(' | '));
 
-await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { StatsEngine } from '../js/stats-engine.js';
 /* E3a-4 — cross-tabs with the §6.5 eligible-denominator contract. Two dedicated
    single-value × single-value cross-tabs: qbAlignment × strength (new, §8a) and
    coverage-call × coverageFamily. Per §19, each cohort lives in its OWN synthetic
@@ -15,24 +15,15 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    QB alignment is its own field; the qbAlignment axis reads it directly.
 
    Run: node tools/e2e-crosstab.mjs */
-import puppeteer from './test-browser.mjs';
 
-const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage();
-const errors = [];
-page.on('pageerror', e => errors.push(e.message));
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
-
-const results = await page.evaluate(() => {
-  const eng = window.app?.stats;
+const results = (() => {
+  const eng = new StatsEngine(null);
   if (!eng) return { missing: true };
   const tag = (o) => ({ down: '', distance: '', formationFamily: '', backfield: '', strength: '',
     personnel: '', motion: '', runPass: '', playType: '', result: '', yardage: '',
@@ -93,14 +84,12 @@ const results = await page.evaluate(() => {
   t('matrix dims include qbAlignment + coverageFamily', dimIds.includes('qbAlignment') && dimIds.includes('coverageFamily'), JSON.stringify(dimIds));
 
   return { out };
-});
+})();
 
 console.log('\n== E3a cross-tabs (eligible denominator §6.5) ==');
-if (results.missing) { console.error('  FAIL  window.app.stats not available'); fail++; }
+if (results.missing) { console.error('  FAIL  StatsEngine not available'); fail++; }
 else for (const r of results.out) ok(r.ok, r.label, r.ok ? '' : r.detail);
 
-ok(errors.length === 0, `zero page errors`, errors.join(' | '));
 
-await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

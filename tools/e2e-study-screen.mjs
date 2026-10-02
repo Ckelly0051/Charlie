@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 /* Phase 2 Study UI: real query/compare/view/watch wiring over the built bundle. */
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
@@ -20,8 +20,7 @@ const capture = async name => {
   await page.screenshot({ path: `${screenshotDir}/${name}.png`, fullPage: false });
 };
 page.on('pageerror', error => errors.push(error.stack || error.message));
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(resolve => setTimeout(resolve, 500));
+await gotoApp(page, URL);
 
 await page.evaluate(async () => {
   const app = window.app;

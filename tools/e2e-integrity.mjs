@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 /* DATA-INTEGRITY STRESS HARNESS — the test the suite was missing.
    Loads COPIES of the coach's real seasons into the built bundle (headless,
    isolated storage — never touches AppData/Documents) and fuzzes the REAL data
@@ -17,21 +17,18 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    Run after build:  node tools/e2e-integrity.mjs */
 import puppeteer from './test-browser.mjs';
 import fs from 'fs';
+import { CANONICAL_SEASON } from './canonical-season.mjs';
+import { assertCurrentFixture } from './fixture-validation.mjs';
+import { integritySeason } from './fixtures/integrity-season.mjs';
 
-const FIXTURE_PATHS = [
-  'C:/Users/charl/Downloads/GridIronIQ-mavericks-2025-RECOVERED.json',  // the coach's real 6-game season, when present
-];
-// Portable fallback so the gate runs anywhere — a synthetic multi-game season
-// with distinct clip names per game (enough to exercise every invariant).
-function buildSynthetic() {
-  const games = [];
-  for (let g = 0; g < 4; g++) {
-    const plays = [];
-    for (let p = 0; p < 12; p++) plays.push({ id: p + 1, timestamp: { start: 0, end: 5 }, clipName: `g${g}_clip${p}`, notes: '', tags: { unit: ['offense', 'defense', 'special'][p % 3], down: String(1 + p % 4), distance: '10', formationFamily: 'Spread', backfield: 'Single', strength: 'Right', playType: p % 3 === 0 ? 'Run Inside' : 'Short Pass', runPass: p % 3 === 0 ? 'Run' : 'Pass', result: 'Gain', yardage: String(p % 9), stType: p % 3 === 2 ? 'Punt' : '', defFront: p % 3 === 1 ? '4-3' : '', coverage: p % 3 === 1 ? 'Cover 3' : '', players: {}, grades: {}, custom: [] } });
-    games.push({ id: `synG${g}`, name: `Game ${g + 1}`, gameInfo: { opponent: `Team ${g + 1}` }, status: 'active', plays, annotations: [], nextId: 13, currentPlayId: null, videoFileName: '', clipNames: plays.map(p => p.clipName), isMultiClip: true });
-  }
-  return { version: 5, type: 'season', id: 'synthetic', seasonName: 'Synthetic Stress Season', games, activeGameId: 'synG0' };
-}
+// Validate raw fixture bytes before a browser or normalization can conceal a
+// retired shape. The canonical path is a test copy, never the live catalog.
+const sources = process.env.FFA_INTEGRITY_SYNTHETIC || !fs.existsSync(CANONICAL_SEASON)
+  ? [] : [{ path: CANONICAL_SEASON, bytes: fs.readFileSync(CANONICAL_SEASON) }];
+const synthetic = assertCurrentFixture(integritySeason(), 'integrity synthetic');
+const fixtures = sources.length
+  ? sources.map(source => assertCurrentFixture(JSON.parse(source.bytes.toString('utf8')), source.path))
+  : [synthetic];
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const OPS_PER_SEED = 80;
 
@@ -51,8 +48,7 @@ const URL = TEST_APP_URL;
 // The whole campaign for one (fixture, seed) runs IN-PAGE and returns a report,
 // so each op's mutations + invariant checks happen against the live app objects.
 const campaign = async (fixture, seed, nOps) => {
-  await page.goto(URL, { waitUntil: 'networkidle0' });
-  await new Promise(r => setTimeout(r, 350));
+  await gotoApp(page, URL);
   pageErrors = [];
   const rep = await page.evaluate(async (fixture, seed, nOps) => {
     // ---- seeded RNG (mulberry32) ----
@@ -172,12 +168,6 @@ const campaign = async (fixture, seed, nOps) => {
   return rep;
 };
 
-// CI/review can force the portable fixture when a large private season exceeds
-// the local browser protocol budget; the default still prefers real data.
-const realFixtures = process.env.FFA_INTEGRITY_SYNTHETIC
-  ? []
-  : FIXTURE_PATHS.filter(f => fs.existsSync(f)).map(f => JSON.parse(fs.readFileSync(f, 'utf-8')));
-const fixtures = realFixtures.length ? realFixtures : [buildSynthetic()];
 for (const fixture of fixtures) {
   console.log(`\n${'='.repeat(72)}\nFIXTURE: ${fixture.seasonName || '(synthetic)'}  (${(fixture.games || []).length} games)`);
   let allViol = [], allErrs = [];
@@ -198,6 +188,9 @@ for (const fixture of fixtures) {
   ok(allErrs.length === 0, 'no console/page errors during the stress run', allErrs.slice(0, 2).map(x => x.e).join(' | '));
 }
 
+for (const source of sources) {
+  ok(source.bytes.equals(fs.readFileSync(source.path)), 'canonical fixture source stays byte-identical');
+}
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
 process.exit(fail ? 1 : 0);

@@ -1,24 +1,15 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* P0-c analytics registry contract. Runs against the built bundle so module
-   ordering and App wiring are covered as well as the pure registry surface. */
-import puppeteer from './test-browser.mjs';
+import { StatsEngine } from '../js/stats-engine.js';
+import { AnalyticsRegistry } from '../js/analytics-registry.js';
+/* P0-c analytics registry contract. Runs model contracts in Node; App wiring stays in e2e-native-reports. */
 
-const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`); }
 };
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage();
-const errors = [];
-page.on('pageerror', e => errors.push(e.message));
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
-
-const result = await page.evaluate(() => {
-  const registry = window.app?.analyticsRegistry;
+const result = (() => {
+  const registry = new AnalyticsRegistry(new StatsEngine(null));
   if (!registry) return { missing: true };
   const ids = xs => xs.map(x => x.id);
   const play = { id: 7, __gid: 'g2', penalties: [
@@ -112,9 +103,9 @@ const result = await page.evaluate(() => {
     matrixValues,
     matrixCells: Object.values(matrix.cells),
   };
-});
+})();
 
-ok(!result.missing, 'App exposes the P0-c analytics registry');
+ok(!result.missing, 'Registry constructs from the production StatsEngine');
 if (!result.missing) {
   const requiredDims = ['team','season','game','opponent','date','quarter','drive','unit','down','distance','fieldZone','hash','scoreSituation','formationFamily','backfield','strength','personnel','motion','playType','playDir','defFront','coverage','blitz','playerRole','grade','specialTeamsPhase','customTag','customField','result','runPass'];
   const requiredMeasures = ['plays','frequency','runShare','passShare','yardsPerPlay','successRate','conversionRate','explosiveRate','negativeRate','turnovers','scoring','havocRate','stopRate','epaPerPlay','sampleSize','dataCompleteness'];
@@ -167,7 +158,5 @@ if (!result.missing) {
   ok(result.matrixCells.length === 2 && result.matrixCells.every(c => c.count === 1 && c.passes === 1), 'Representative multi-value Matrix cross-product is pinned (a play with two play types lands in both cells)');
 }
 
-ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-await browser.close();
 process.exit(fail ? 1 : 0);

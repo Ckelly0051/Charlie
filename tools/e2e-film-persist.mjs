@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 /* REGRESSION (P1-2 / P1-3): every film-add path must persist to the desktop
    library, and a managed import/repair must record filmMode:'managed' (clearing
    a stale 'linked') while a linked game is never copied.
@@ -19,8 +19,7 @@ const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout
 const page = await browser.newPage();
 page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
 const URL = TEST_APP_URL;
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
+await gotoApp(page, URL);
 
 const res = await page.evaluate(async () => {
   const sm = window.app.storage, store = sm.seasonStore, pl = window.app.tagger.playlist;

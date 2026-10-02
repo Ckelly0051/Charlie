@@ -35,7 +35,7 @@ npm run build   # vite build -> dist/
 npm run dev
 ```
 
-- Tests load the app through `tools/app-entry.mjs` (serves `dist/` over
+- Browser harnesses load the app through `tools/app-entry.mjs` (serves `dist/` over
   loopback; Chromium blocks split assets over `file://`). Build and test in one
   command: mtimes shift between steps and false-fail the stale-bundle guard.
 - Version lives in four owners that must match: `js/app.js` `APP_VERSION`,

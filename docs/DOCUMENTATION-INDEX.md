@@ -39,6 +39,13 @@ This section is the one place release state is kept current.
   Installed Plan-export behavior still needs smoke. `1.12.0-108` below remains
   the last installed approval; this source work is not included in it.
 
+- **Gate efficiency follow-up, 2026-10-02:** readiness-based startup in 12
+  harnesses, three model-only harnesses moved to Node with browser wiring
+  retained, and current-format integrity fixtures validated before loading.
+  18 focused harnesses pass; runner/readiness 43/43 and fixture contracts
+  10/10. No full gate or package; no coach data changed. Deferred gate-quality
+  enhancements are recorded in the roadmap.
+
 - **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
   Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.
   Full gate 141/141 green, zero skipped and zero failed, at `0163da45`.

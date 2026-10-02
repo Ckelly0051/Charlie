@@ -204,6 +204,45 @@ The same native-tagging (89/89), native-reports (102/102) and Study screen
 browser harness changes were checked against HEAD: only the Puppeteer import
 changed (apart from end-of-file newline normalization), not their assertions.
 
+### Readiness, Model Tests and Fixtures
+
+2026-10-02 follow-up: 12 browser harnesses now use `gotoApp()` from
+`tools/app-entry.mjs` for normal library-first startup, including every
+integrity campaign navigation. It waits for DOM content, the Home route,
+Home's ready state, its rendered root and loaded fonts instead of network-idle
+plus a guessed 350/500ms delay. Route/animation/film-specific waits are not
+blindly removed; they need their own observable completion condition.
+The runner self-test is now 43/43, including negative readiness cases.
+Its readiness helper has no `dist/` dependency: the self-test also passed with
+`GIQ_APP_ROOT` pointing at a nonexistent build, preserving CI's pre-build order.
+
+`e2e-analytics-registry` (32), `e2e-analytics-projection` (39) and
+`e2e-crosstab` (19) run their model assertions directly in Node, with the same
+cohorts and expected values. App owner binding is retained in
+`e2e-native-reports`: actual registry/stats/metrics ownership, live-tagging
+filter binding and Matrix dimensions, alongside its existing page-error checks
+(105/105). Browser-only error checks were consolidated there, not treated as
+model assertions. Unexpected Node exceptions still fail the harness.
+
+`e2e-fixture-contract` (10/10) validates the portable integrity fixture and the
+shared parity/Study fixture against `SeasonFormat` before normalization, and
+rejects retired keys, missing units, malformed seasons and invalid Special
+Teams events. Ordinary fixtures use `assertCurrentFixture()`; deliberately
+invalid rejection fixtures must stay explicitly separate.
+
+Integrity now prefers the current canonical fixture from
+`tools/canonical-season.mjs`, not the retired recovered download. Its portable
+fixture uses `PlayTagger.blankTags()` and structured punt events, with the same
+4 games, 48 plays, three units, 12 seeds and 80 operations per seed. Both raw
+inputs are validated before browser startup; real fixture bytes are checked
+unchanged afterward. `FFA_INTEGRITY_SYNTHETIC=1` still forces the portable path.
+18 affected harnesses passed on a fresh build, including canonical integrity
+and unchanged parity. The portable integrity path also passed all 960 operations
+(2/2), with no console errors or invariant violations. No full gate or installer
+was run. Future coverage
+consolidation, deadlines/logging and release receipts are recorded in
+`GRIDIRON-IQ-PLAN-V2.md` > Gate Efficiency and Quality.
+
 Plus Windows CI (`.github/workflows/gate.yml`), the installer built from the
 reviewed commit with all four version owners matching (`e2e-p0-exit`), and the
 installed WebView2 smoke, which nothing above replaces.

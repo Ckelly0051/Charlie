@@ -1,6 +1,6 @@
 import puppeteer from './test-browser.mjs';
 import fs from 'fs';
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
 
 let pass=0, fail=0;
 const ok=(value,label,detail='')=>value?(pass++,console.log('  PASS  '+label)):(fail++,console.log('  FAIL  '+label+(detail?' -- '+detail:'')));
@@ -14,7 +14,7 @@ page.on('console',message=>{if(message.text().startsWith('S4:'))console.log('   
 // collected', 2026-09-25): name the step reached and any navigation.
 page.on('framenavigated',frame=>{if(frame===page.mainFrame())console.log('        navigated: '+frame.url())});
 await page.setViewport({width:1440,height:900});
-await page.goto(APP_URL,{waitUntil:'networkidle0'});
+await gotoApp(page, APP_URL);
 await page.waitForFunction(()=>window.app?.nativeTagging&&document.querySelector('[data-native-home]'));
 
 console.log('\n== 1. Native owner and complete capability manifest ==');
