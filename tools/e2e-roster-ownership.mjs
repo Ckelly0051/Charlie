@@ -37,7 +37,7 @@
  * check to `roster.length` reds 1; and exposing a target after a failed
  * migration write reds 2. Recorded in docs/OPEN-DEFECTS.md.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

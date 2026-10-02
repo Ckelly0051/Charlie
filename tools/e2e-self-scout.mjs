@@ -11,7 +11,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
      4. generateDefensiveSelfScout runs once per dashboard render, not twice.
 
    Run after build:  npm run build && node tools/e2e-self-scout.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

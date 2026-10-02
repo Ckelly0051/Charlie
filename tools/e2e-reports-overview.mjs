@@ -31,7 +31,7 @@
  * design authority for anything here.
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { StatsEngine } from '../js/stats-engine.js';
 import { overviewKpis } from '../js/reports-view.js';

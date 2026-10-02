@@ -19,7 +19,7 @@ import { APP_ENTRY_PATH, APP_URL as TEST_APP_URL } from './app-entry.mjs';
    so ANY future analytics change (incl. the metric registry / Study query engine)
    is checked against them. When the registry lands, its query output is asserted
    equal to these same snapshots — that is how parity is proven before Study ships. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

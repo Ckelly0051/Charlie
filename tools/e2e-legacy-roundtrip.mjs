@@ -18,7 +18,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { LIVE_CATALOG } from './audit-legacy.mjs';
 import { CANONICAL_SEASON, CANONICAL_SOURCE_MIRROR } from './canonical-season.mjs';
 import { SeasonFormat } from '../js/season-format.js';

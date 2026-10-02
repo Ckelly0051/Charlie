@@ -5,7 +5,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 //  2. Quarter carries across possession changes; defense field position advances.
 //  3. Takeaway role credits INT/FR without a phantom tackle.
 //  4. Carry-scheme toggle fills blank alignment fields on advance.
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 

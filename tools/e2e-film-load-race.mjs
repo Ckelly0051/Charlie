@@ -20,7 +20,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    slow genuinely progresses — while still current — down to the real gate
    before fast supersedes it. This matches the real-world shape of the bug: two
    game-opens separated by actual time, not two calls issued in the same tick. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond

@@ -1,5 +1,5 @@
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 /* Current onboarding journey. Home is the sole first-run, season-library,
    and game-entry presentation. TeamHubScreen remains the canonical service

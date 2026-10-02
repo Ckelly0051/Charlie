@@ -1,5 +1,5 @@
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition

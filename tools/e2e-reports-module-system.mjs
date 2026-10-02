@@ -14,7 +14,7 @@
  *   - no page-level horizontal overflow.
  */
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { CANONICAL_SEASON } from './canonical-season.mjs';

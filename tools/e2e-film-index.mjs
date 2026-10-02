@@ -11,7 +11,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    Drives the REAL StorageManager._serialize().
 
    Run after build:  node tools/e2e-film-index.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

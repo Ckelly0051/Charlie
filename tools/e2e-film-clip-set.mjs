@@ -20,7 +20,7 @@
  * season, catalog row or film file is read or written.
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

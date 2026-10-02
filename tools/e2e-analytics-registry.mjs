@@ -1,7 +1,7 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* P0-c analytics registry contract. Runs against the built bundle so module
    ordering and App wiring are covered as well as the pure registry surface. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

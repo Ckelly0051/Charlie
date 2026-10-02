@@ -17,7 +17,7 @@
    Sections 6-8 cover the independently reproduced e3930fb findings. */
 import fs from 'node:fs';
 import path from 'node:path';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';
 

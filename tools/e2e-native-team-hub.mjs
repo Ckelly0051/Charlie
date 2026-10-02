@@ -3,7 +3,7 @@
  * focused dialogs remain the canonical season/team operation boundary. */
 import fs from 'node:fs';
 import path from 'node:path';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

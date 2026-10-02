@@ -26,7 +26,7 @@
  * backend substitution is restored.
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import {
   groupPlaysByDrive, drivePossessionSide, driveNumberOf, driveLabel,
 } from '../js/football-rules.js';

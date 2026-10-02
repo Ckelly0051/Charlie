@@ -6,7 +6,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    undo cancels it. Desktop film I/O stubbed to count deleteFilm calls.
 
    Run after build:  node tools/e2e-delete-undo-film.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { TauriBackend } from '../js/storage-backend.js';
 
 let pass = 0, fail = 0;

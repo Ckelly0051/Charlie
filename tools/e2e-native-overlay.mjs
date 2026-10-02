@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 // Final Engine Independence: #app and #giLegacyEngineHost are both deleted.

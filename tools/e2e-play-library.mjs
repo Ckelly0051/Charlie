@@ -18,7 +18,7 @@
  * localStorage key it touches is namespaced to that team. No coach season,
  * catalog row or film file is read or written.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { TagLibrary } from '../js/tag-library.js';
 import { PlayTagger } from '../js/play-tagger.js';

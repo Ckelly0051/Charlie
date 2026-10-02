@@ -19,7 +19,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
  *   3. The shell's own navigation landmarks stay fully inside the viewport, so
  *      the left-edge clipping the coach reported cannot come back.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = process.env.FFA_APP_URL || TEST_APP_URL;
 let pass = 0, fail = 0;

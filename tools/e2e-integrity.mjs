@@ -15,7 +15,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    Seeded + reproducible; logs the exact op sequence on the first violation.
 
    Run after build:  node tools/e2e-integrity.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 
 const FIXTURE_PATHS = [

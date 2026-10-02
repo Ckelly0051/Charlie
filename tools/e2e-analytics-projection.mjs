@@ -8,7 +8,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 
    Runs against the BUILT bundle so module wiring + App bootstrap are covered.
    Run: node tools/e2e-analytics-projection.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

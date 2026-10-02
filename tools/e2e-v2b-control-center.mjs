@@ -1,7 +1,7 @@
 /* V2-B control-center journey: program/scout front doors and canonical isolation. */
 import fs from 'node:fs';
 import path from 'node:path';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

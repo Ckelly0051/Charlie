@@ -1,6 +1,6 @@
 /* S4-c native New/Edit Game journey. Pins one owner, one durable write, and
    complete fail-closed rollback across create/edit/race paths. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

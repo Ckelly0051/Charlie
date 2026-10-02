@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import { APP_URL } from './app-entry.mjs';
 

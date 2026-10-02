@@ -9,7 +9,7 @@
  */
 import { APP_URL } from './app-entry.mjs';
 import { createFirstTeam } from './hub-setup.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { mkdirSync } from 'node:fs';
 
 const SHOTS = process.env.GIQ_HOME_RAIL_SHOTS_DIR || '';

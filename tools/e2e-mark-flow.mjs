@@ -18,7 +18,7 @@ import { createFirstTeam } from './hub-setup.mjs';
    `e2e-native-tagging.mjs` already drives the same route.
 
    Run after build:  npm run build && node tools/e2e-mark-flow.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 const URL = TEST_APP_URL;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

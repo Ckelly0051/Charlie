@@ -17,7 +17,7 @@
  *
  * Screenshots are implementation evidence only and confer no design approval.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';

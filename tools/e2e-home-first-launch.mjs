@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import {mkdirSync} from 'node:fs';
 import {APP_URL} from './app-entry.mjs';
 // The captures below write into `artifacts/`, which is untracked and absent from

@@ -12,7 +12,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 // Asserts: auto-recovery rebuilds the registry from season files, the team
 // card shows the original name (no setup screen), the seasons list shows the
 // season, and opening it restores both plays and its season-owned roster.
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 

@@ -15,7 +15,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
          and e2e-analytics-registry.mjs suites, not re-tested here.
    All measures ride the SAME run()/compare()/readMeasures() path every legacy
    flat measure already used before this checkpoint -- no parallel query engine. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

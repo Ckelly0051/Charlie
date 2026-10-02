@@ -17,7 +17,7 @@
  *
  * Read-only with respect to coach data: it runs on the demo season.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

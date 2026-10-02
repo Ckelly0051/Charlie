@@ -17,7 +17,7 @@ import { setupTeamAndDemo } from './hub-setup.mjs';
    classic-only UI affordance (localStorage ffa_film_room_collapsed) that has
    no native equivalent -- that concept was already retired by the S5d
    ownership flip, well before this milestone, and is not reintroduced here. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 // Plays are current format (legacy excision step 7): each look field is its
 // own field, and an edit writes only the field edited.
 

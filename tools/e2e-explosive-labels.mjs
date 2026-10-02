@@ -22,7 +22,7 @@
  *     same wording with no clipping and no errors.
  */
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { CANONICAL_SEASON } from './canonical-season.mjs';

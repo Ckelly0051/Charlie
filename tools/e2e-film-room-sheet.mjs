@@ -12,7 +12,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 let pass = 0, fail = 0;

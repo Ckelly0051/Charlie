@@ -10,7 +10,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    failure (retry succeeds) MUST latch it so a 69-clip game retries once.
 
    Run after build:  npm run build && node tools/e2e-video-cors.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

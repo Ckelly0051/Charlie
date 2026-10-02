@@ -31,6 +31,14 @@
 
 This section is the one place release state is kept current.
 
+- **Unpackaged source work, 2026-10-02:** `576a0981` repairs CR-1..CR-8 and
+  two runtime duplicate computations/writes. Codex reviewed the fixes and
+  verified the affected paths in a 12-harness focused run. Gate infrastructure
+  now shares Chromium with isolated per-harness contexts; its 37-check
+  self-test passes. No full gate or installer has run on these changes.
+  Installed Plan-export behavior still needs smoke. `1.12.0-108` below remains
+  the last installed approval; this source work is not included in it.
+
 - **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
   Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.
   Full gate 141/141 green, zero skipped and zero failed, at `0163da45`.

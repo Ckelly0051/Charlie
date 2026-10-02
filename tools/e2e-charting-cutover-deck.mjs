@@ -2,7 +2,7 @@
    (Formation, Receiver Alignment, Gap, motion path, RPO, QB run, Reverse), driven
    through real clicks. GRIDIRON-IQ-PLAN-V2.md, "Approved Break Down charting comp -
    build contract". Run after build: node tools/e2e-charting-cutover-deck.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

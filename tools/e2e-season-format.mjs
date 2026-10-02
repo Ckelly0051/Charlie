@@ -15,7 +15,7 @@
  * Run:  node tools/e2e-season-format.mjs
  */
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { SeasonFormat } from '../js/season-format.js';
 import { DemoSeason } from '../js/demo-season.js';
 import { SnapshotEnvelope } from '../js/snapshot-envelope.js';

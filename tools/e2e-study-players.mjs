@@ -18,7 +18,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
         metric's own eligible refs, never a group's broader raw sample).
    Every metric here rides the existing AnalyticsMetrics/StudyQuery/registry
    engine -- no parallel player-stat formula is added in study-screen.js. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

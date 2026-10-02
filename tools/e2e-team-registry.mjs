@@ -11,7 +11,7 @@
  * Read-only with respect to coach data: every case runs on identity keys and
  * synthetic season metas. No season is written.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

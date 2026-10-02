@@ -1,6 +1,6 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* Phase 2 Study UI: real query/compare/view/watch wiring over the built bundle. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
 const URL = process.env.FFA_STUDY_URL || TEST_APP_URL;

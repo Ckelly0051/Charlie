@@ -294,8 +294,10 @@ a reviewed correction named in the diff.
 - **Working tree:** never `git add -A` or `git add .`; stage named paths. Never
   reset, clean, stash or absorb another agent's uncommitted work — the tree holds
   untracked installers, artifacts, comps and real film.
-- **Shell on this host:** the Bash tool fails here; use PowerShell. Run the gate
-  through Git Bash's explicit path:
+- **Shell on this host:** use PowerShell. The canonical gate is now
+  `node tools/run-gate.mjs`; `--only` runs named focused harnesses. See
+  `docs/TESTING.md` for shared-browser isolation and `--fresh-browser` diagnosis.
+  The existing Git Bash wrapper remains valid:
   `& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh'`.
 - Never commit `dist/`, `node_modules/` or `src-tauri/target/`.
 

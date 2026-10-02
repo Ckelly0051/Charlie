@@ -1,6 +1,6 @@
 /* Season roster ownership regression.
    Two seasons under one program must never share ambient roster state. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

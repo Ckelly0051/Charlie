@@ -1,5 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const file = TEST_APP_URL;
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });

@@ -14,7 +14,7 @@
  * because `table-layout:fixed` overflows silently rather than growing.
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
 let pass = 0, fail = 0;

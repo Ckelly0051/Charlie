@@ -20,7 +20,7 @@
  *    charts at 1440, 1280 and 768 -- IMPLEMENTATION EVIDENCE ONLY.
  */
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { CANONICAL_SEASON } from './canonical-season.mjs';

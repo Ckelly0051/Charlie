@@ -10,7 +10,7 @@
  * of Play Direction, S107-4), and a stored value the library does not offer is
  * read in full. Geometry here is regression evidence, not visual approval.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

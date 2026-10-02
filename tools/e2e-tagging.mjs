@@ -18,7 +18,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    <select> "More results" dropdown (native-tagging.jsx's ResultField) — the
    dropdown's placeholder option text shows a "(N)" count when a rare result
    is active, replacing the old show/hide/auto-open behavior. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

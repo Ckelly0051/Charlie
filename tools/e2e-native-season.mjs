@@ -1,6 +1,6 @@
 /* S4-e: the dead season modal is deleted; native Home/Reports retain the live
    season workflow and aggregate analytics without mutating canonical data. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

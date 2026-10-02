@@ -10,7 +10,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    e2e-csv-roundtrip and e2e-charting-cutover-csv pin.
 
    Run after build:  node tools/e2e-csv-projection.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };

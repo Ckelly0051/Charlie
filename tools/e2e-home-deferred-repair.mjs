@@ -5,7 +5,7 @@
 //   4/5. The approved Home / Team Hub copy
 // Exercises the rendered UI and real controller state; never asserts that a
 // selector merely exists.
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { readFileSync } from 'node:fs';
 import { APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';

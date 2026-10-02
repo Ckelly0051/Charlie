@@ -22,7 +22,7 @@
  * empty or wrong season cannot pass unnoticed.
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { CANONICAL_SEASON } from './canonical-season.mjs';

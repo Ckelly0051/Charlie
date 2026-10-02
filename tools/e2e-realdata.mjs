@@ -10,7 +10,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    normalize to confirm the self-healing strip fired.
 
    Usage:  node tools/e2e-realdata.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import path from 'path';
 import { CANONICAL_SEASON } from './canonical-season.mjs';

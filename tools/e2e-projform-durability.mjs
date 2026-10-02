@@ -43,7 +43,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    written back to).
 
    Run after build: npm run build && node tools/e2e-projform-durability.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import path from 'path';
 import { CANONICAL_SEASON } from './canonical-season.mjs';

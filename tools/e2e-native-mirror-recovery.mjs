@@ -13,7 +13,7 @@
    a real click on a real button the coach chose.
 
    Run:  node tools/e2e-native-mirror-recovery.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { createFirstTeam } from './hub-setup.mjs';
 import { APP_URL } from './app-entry.mjs';
 

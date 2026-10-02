@@ -34,7 +34,16 @@ Runtime duplicates from the same review: a hidden Reports scorebug no longer
 computes the full stats model (Defense did it twice per render, discarded), and
 the shown one computes once. On desktop the deferred 2.5s disk sync no longer
 re-saves the season; the canonical save already writes the Documents mirror.
-The third bloat item (gate harnesses each launching Chromium) is not started.
+The third bloat item is repaired in test infrastructure (2026-10-02): the
+canonical runner shares Chromium, not state. Every harness remains a separate
+Node process with fresh browser contexts. Contexts are reclaimed after each
+child, including failures; Chromium is recycled after 20 harnesses. Nonstandard
+launch options keep their own browser. Existing assertions are unchanged.
+Runner self-test: 37/37. A fresh build plus 12 focused harnesses passed through
+the shared path (one shared Chromium launch, plus dedicated launches for the
+runner's isolation proof and mark-flow's autoplay flags). No full gate,
+installer or coach-data write; full-suite elapsed-time improvement is not yet
+measured. See `docs/TESTING.md` for commands and isolation coverage.
 
 Evidence: `e2e-context-ownership` 35/35 (28 red on `080d665d`),
 `e2e-pass-loss-and-play-order` 12/12 (9 red on `080d665d`). 70 focused

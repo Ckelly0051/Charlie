@@ -1,7 +1,7 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 /* Phase 1 shell/Home contract. The flag is opt-in; classic launch remains the
    default. This test drives the built bundle through real route adapters. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
 const URL = TEST_APP_URL;

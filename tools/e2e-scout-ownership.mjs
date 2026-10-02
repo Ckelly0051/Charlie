@@ -26,7 +26,7 @@
  * ambiguous legacy parent each turn a specific section red. Recorded in
  * docs/OPEN-DEFECTS.md.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { WorkspaceContext } from '../js/workspace-context.js';
 

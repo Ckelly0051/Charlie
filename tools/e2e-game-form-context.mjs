@@ -12,7 +12,7 @@
  * These assertions fail loudly if the control -- or any other writer of
  * `perspective` from the form -- comes back.
  */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { readFileSync } from 'node:fs';
 

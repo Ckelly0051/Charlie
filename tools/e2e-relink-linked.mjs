@@ -6,7 +6,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    still map 1:1 (by folder order), tags preserved, no duplicate clips, no orphans.
 
    Run after build:  node tools/e2e-relink-linked.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };

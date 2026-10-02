@@ -171,13 +171,38 @@ with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.
 ## Release checkpoint
 
 ```powershell
-# build + full gate (bash is not on this host's PowerShell PATH)
-& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh'
+# build + full gate, only after coach authorization
+node tools/run-gate.mjs
 # gate only, when dist/ is fresh
-& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --no-build'
-# prove the runner's own pass/fail detector
-& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/Users/charl/Charlie && bash tools/run-gate.sh --self-test'
+node tools/run-gate.mjs --no-build
+# prove scoring, process ownership, storage isolation and cleanup
+node tools/run-gate.mjs --self-test
+# build + an explicit focused subset, not a full gate
+node tools/run-gate.mjs --only e2e-native-tagging.mjs,e2e-native-reports.mjs
 ```
+
+`bash tools/run-gate.sh` remains a wrapper for the same runner, including in
+Windows CI. `--fresh-browser` disables sharing for diagnosis; direct
+`node tools/e2e-*.mjs` invocations also retain their original launch behavior.
+
+The runner keeps harnesses serial and in separate Node processes. Compatible
+launches share Chromium but receive fresh isolated browser contexts; extra
+contexts belong to that child too. Local storage, cookies, IndexedDB and Cache
+Storage do not survive to the next harness. Cleanup runs after failed children,
+and Chromium recycles after 20 harnesses to bound accumulated process state.
+Special launch flags/profiles/executables use dedicated browsers instead of
+silently changing their semantics. Protocol timeouts and viewport settings are
+retained. There are no automatic retries or removed assertions.
+
+`e2e-gate-runner` covers the old detector cases, failed-build rejection, buried
+failure evidence, recycling, failure propagation and orphan cleanup, plus
+separate real Chromium children proving storage isolation. 2026-10-02: 37/37;
+12 focused harnesses passed on a fresh build through the shared path. The full
+gate has not run on this infrastructure; no full-run speed claim is made.
+The same native-tagging (89/89), native-reports (102/102) and Study screen
+(115/115) harnesses also passed with `--fresh-browser`. All 108 existing
+browser harness changes were checked against HEAD: only the Puppeteer import
+changed (apart from end-of-file newline normalization), not their assertions.
 
 Plus Windows CI (`.github/workflows/gate.yml`), the installer built from the
 reviewed commit with all four version owners matching (`e2e-p0-exit`), and the

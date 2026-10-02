@@ -15,7 +15,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    QB alignment is its own field; the qbAlignment axis reads it directly.
 
    Run: node tools/e2e-crosstab.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

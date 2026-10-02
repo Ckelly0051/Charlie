@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass=0,fail=0;const ok=(v,l,d='')=>v?(pass++,console.log(`  PASS  ${l}`)):(fail++,console.log(`  FAIL  ${l}${d?` -- ${d}`:''}`));

@@ -14,7 +14,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
    1:1 with NO duplicates. A genuinely-new file must still auto-create one play.
 
    Run after build:  node tools/e2e-relink-legacy.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;

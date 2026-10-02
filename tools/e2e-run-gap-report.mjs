@@ -2,7 +2,7 @@
    performance, the eligible sample, multi-value attribution, strength where
    charted, exact contributing clips, and export parity. Drives the real Reports
    route. Run after build: node tools/e2e-run-gap-report.mjs */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
 let pass = 0, fail = 0;

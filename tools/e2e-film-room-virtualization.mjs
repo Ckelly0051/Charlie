@@ -10,7 +10,7 @@
  * handoff in CLAUDE.md / GRIDIRON-IQ-PLAN-V2.md for the measured numbers.
  */
 import { APP_URL } from './app-entry.mjs';
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition

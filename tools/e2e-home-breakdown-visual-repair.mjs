@@ -1,7 +1,7 @@
 // Permanent regression for the Home + Breakdown visual repair batch
 // (baseline a32277b). Exercises the RENDERED UI and inspects computed
 // geometry/styles -- never asserts that a selector merely exists.
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';
 

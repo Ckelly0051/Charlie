@@ -10,7 +10,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
      3. min-sample warnings, non-cut dimension grouping, and fail-loud guards.
    Runs against the BUILT bundle using the SHARED synthetic-edge fixture so the
    golden and this test exercise the identical season. */
-import puppeteer from 'puppeteer';
+import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
