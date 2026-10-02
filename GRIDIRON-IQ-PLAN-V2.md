@@ -98,16 +98,22 @@ wiring in browser tests, and validate ordinary fixtures before normalization.
 Implemented in source; verification and exact scope live in `docs/TESTING.md`.
 This is test infrastructure, not a product change or installed approval.
 
+First follow-up checkpoint complete in source (`f84c8be0`): harness deadlines
+and full local diagnostics. Ordinary children have three minutes; integrity,
+catalog fuzzing and SQL fuzzing have ten minutes; the three pure analytics
+contracts have one minute. Build has five minutes. Timeouts fail explicitly,
+terminate the child process tree and retain partial output; the runner reclaims
+shared contexts and continues serially with no retry. Complete stdout/stderr
+logs live in gitignored `artifacts/gate-logs/`, including successful children
+and failed builds. Runner proof 56/56; focused coverage is recorded in Testing.
+No full gate or package on this checkpoint.
+
 Future enhancements, recorded on coach direction; not authorization to build:
 
 - **Behavior-based coverage consolidation.** Remove repeated setup and genuinely
   identical assertions only after mapping their failure contracts. Preserve
   distinct UI, persistence, ownership and analytics paths; do not retire checks
   merely because they are old. No timing-baseline project is required.
-- **Harness deadlines and durable diagnostics.** Fail an over-deadline child
-  explicitly, reclaim its resources and retain complete failure output. Choose
-  budgets appropriate to deterministic checks versus seeded stress tests; do
-  not hide failures with automatic retries or silently reduce stress coverage.
 - **Auditable release receipts.** Record the tested commit, build fingerprint,
   fixture identities and individual outcomes in a machine-readable receipt.
   Distinguish focused runs, full runs, skips and failures. A receipt must never

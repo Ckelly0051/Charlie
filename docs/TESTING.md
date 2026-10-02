@@ -194,6 +194,37 @@ Special launch flags/profiles/executables use dedicated browsers instead of
 silently changing their semantics. Protocol timeouts and viewport settings are
 retained. There are no automatic retries or removed assertions.
 
+### Deadlines and Full Logs
+
+Source checkpoint `f84c8be0` (2026-10-02): each harness child has a three-minute
+execution deadline, except `e2e-integrity`, `e2e-catalog-fuzzer` and
+`e2e-sql-fuzzer` (ten minutes), and the pure analytics registry, projection and
+crosstab checks (one minute). Build has five minutes. These are execution
+budgets, not reduced operation counts or timing baselines.
+
+A timeout or external interruption is an explicit nonzero result, even if a
+child previously printed a green result line. The runner kills its process
+tree (Windows `taskkill /T /F`; a dedicated process group on POSIX), awaits its
+close, and reclaims shared browser contexts. Timeout failures do not retry;
+remaining harnesses run serially. External interruption stops the run.
+
+Complete stdout/stderr is written as it arrives to unique files under
+`artifacts/gate-logs/`; console summaries name the full-log paths. Build output
+is retained too, including failed builds. Logs are gitignored and may contain
+coach-data diagnostics: never commit or publish them automatically. Existing
+console tails remain summaries, not the only evidence. No automatic log pruning.
+
+Verification: runner 56/56, including hung children, killing a live descendant,
+interruption, complete early/stdout/stderr evidence, distinct log paths,
+timeout failure propagation, actual shared-browser survival and clean next
+child execution. Fresh-build focused coverage also passed analytics-registry
+32/32, canonical integrity 3/3 (960 operations), mark-flow 13/13, native-tagging
+89/89, p0-capabilities 10/10 and p0-exit 20/20. The first focused run was 6/7:
+one new test wrongly required contexts to survive disconnect; Chromium can
+dispose them automatically. The corrected contract requires browser survival,
+cleanup and clean next-child execution; the focused rerun passed 2/2.
+No full gate or installer on these changes.
+
 `e2e-gate-runner` covers the old detector cases, failed-build rejection, buried
 failure evidence, recycling, failure propagation and orphan cleanup, plus
 separate real Chromium children proving storage isolation. 2026-10-02: 37/37;

@@ -31,6 +31,14 @@
 
 This section is the one place release state is kept current.
 
+- **Gate deadline/logging checkpoint, 2026-10-02, `f84c8be0`:** complete in
+  source, not full-gated or packaged. Per-child deadlines, process-tree
+  termination and complete local-only build/harness logs; runner 56/56 and
+  focused browser/model/stress coverage green after correcting one new test's
+  disconnect assumption. The full green gate at `07bf04aa` below predates this
+  checkpoint and does not certify it. Coverage consolidation and release
+  receipts remain future work; no product or live-data changes.
+
 - **Unpackaged source work, 2026-10-02:** `576a0981` repairs CR-1..CR-8 and
   two runtime duplicate computations/writes. Codex reviewed the fixes and
   verified the affected paths in a 12-harness focused run. Gate infrastructure

@@ -1,5 +1,24 @@
 # GridIron IQ Open Defects
 
+## Gate deadlines and durable diagnostics, 2026-10-02
+
+**Complete in source (`f84c8be0`), not full-gated or packaged.** Child budgets
+are three minutes normally, ten for the three seeded stress harnesses, one for
+the three pure analytics checks, and five for build. A timeout is red, kills
+the child's process tree, retains full partial output and reclaims shared
+contexts before continuing serially. External interruption stops execution.
+Build and harness stdout/stderr logs are unique, complete and local-only under
+gitignored `artifacts/gate-logs/`. No retries, operation-count reductions,
+automatic log deletion or live-data changes.
+
+Runner 56/56; six other focused suites passed, including canonical integrity
+(960 operations), native-tagging, mark-flow and P0 evidence. The initial 6/7
+focused run exposed one incorrect new test assumption (disconnected contexts
+may be automatically disposed). Correcting it to test shared-browser survival,
+cleanup and the next child's isolation yielded a 2/2 focused rerun. Full gate
+145/145 at `07bf04aa` is historical and predates this checkpoint. Remaining
+gate follow-ups: behavior-based coverage consolidation and release receipts.
+
 ## Full gate at `fec0aba9`, 2026-10-02
 
 **Historical full result: RED, 141 green, zero skipped, four failed out of 145
