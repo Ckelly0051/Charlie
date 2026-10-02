@@ -74,7 +74,9 @@ console.log('\n-- B1-1 desktop managed-film path (pinned in source) --');
   ok(progressCalls.length === 3 && progressCalls.every(call => /game\.id, (film|repair)SeasonId/.test(call)),
     'Every film write reports progress against a season id pinned before its await', progressCalls);
   const clearCalls = storageSrc.match(/clearFilmOperation\([^)]*\)/g) || [];
-  ok(clearCalls.length === 3 && clearCalls.every(call => /game\.id, (film|repair)SeasonId/.test(call)),
+  ok(clearCalls.length === 4 && clearCalls.every(call => /game\.id, (film|repair|owner)SeasonId/.test(call))
+    && clearCalls.filter(call => /game\.id, ownerSeasonId/.test(call)).length === 1
+    && /const moved = \(\) => \{[\s\S]*?clearFilmOperation\(game\.id, ownerSeasonId\)/.test(storageSrc),
     'Every film-write failure path clears the operation it actually created', clearCalls);
 }
 

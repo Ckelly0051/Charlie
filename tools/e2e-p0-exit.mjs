@@ -48,7 +48,14 @@ const lockVersion = cargoLock.match(/name = "gridiron-iq"\s+version = "([^"]+)"/
 ok(Boolean(appVersion) && appVersion === cargoVersion && appVersion === lockVersion && appVersion === tauriConfig.version,
   'web and all three desktop version owners match exactly',
   JSON.stringify({ appVersion, cargoVersion, lockVersion, tauri: tauriConfig.version }));
-ok(/npm run build/.test(gate) && /for f in tools\/e2e-\*\.mjs/.test(gate),
+const gateRunner = await read('tools/run-gate.mjs');
+ok(/exec node tools\/run-gate\.mjs "\$@"/.test(gate)
+  && /await execute\('npm', \['run', 'build'\]\)/.test(gateRunner)
+  && /npm run build/.test(gateRunner)
+  && /await readdir\(resolve\(ROOT, 'tools'\)\)/.test(gateRunner)
+  && gateRunner.includes("filter(name => /^e2e-.*\\.mjs$/.test(name)).sort()")
+  && /if \(!buildAccepted\(build\)\)[^\n]*return 1/.test(gateRunner)
+  && /return runHarnesses\(files,/.test(gateRunner),
   'canonical gate builds Vite and discovers every e2e harness');
 
 const toolFiles = (await readdir(resolve(root, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name));
@@ -56,7 +63,15 @@ const browserHarnesses = [];
 const staleBrowserEntries = [];
 for (const name of toolFiles) {
   const source = await read(`tools/${name}`);
-  if (!source.includes("from 'puppeteer'")) continue;
+  if (!/from ['"](?:puppeteer|\.\/test-browser\.mjs)['"]/.test(source)) continue;
+  // This is a runner/context isolation test, not a product journey. It must
+  // work before dist exists; its pages are served by its own synthetic server.
+  if (name === 'e2e-gate-runner.mjs') {
+    ok(source.includes("from './run-gate.mjs'") && /createServer\(/.test(source)
+      && !source.includes('APP_URL'),
+    'gate isolation self-test uses synthetic pages, not the product entry');
+    continue;
+  }
   browserHarnesses.push(name);
   if (!source.includes("from './app-entry.mjs'")) staleBrowserEntries.push(name);
 }

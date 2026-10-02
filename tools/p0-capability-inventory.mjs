@@ -94,7 +94,7 @@ export const P0_CAPABILITIES = [
 
   // Plan
   { id:'plan.reorder', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan items reorder through accessible buttons and desktop drag without losing items' },
-  { id:'plan.export', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan export downloads the same ordered, audience-aware presentation data' },
+  { id:'plan.export', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan export saves through the shared save seam with the same ordered, audience-aware presentation data' },
   { id:'plan.presentation', surface:'plan', evidence:'behavior', harness:'e2e-study-screen.mjs', assertion:'Presentation advances by keyboard and keeps resolved film links' },
   { id:'plan.exact-film', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan item and whole-plan Watch use the same composite film refs' },
   { id:'plan.sections', surface:'plan', evidence:'data', harness:'e2e-study-screen.mjs', assertion:'Plan groups consecutive findings into sections that report their de-duplicated linked-play count' },
