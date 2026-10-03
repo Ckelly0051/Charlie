@@ -360,6 +360,17 @@ three green, zero skipped/failed. Canonical source bytes remained unchanged.
 Complete local logs: `artifacts/gate-logs/2026-10-02T23-49-48-145Z-vnxHz4/`;
 build log in sibling `2026-10-02T23-49-47-049Z-6dtA29/`. Full gate was not run.
 
+Subsequent coach-authorized full gate at `e80aba33`: **145/145 green, zero
+skipped and zero failed**, fresh build. Runner 63/63; terminology 48/48 in
+20 seconds; exact typography 34/34; analytics parity and all Reports suites
+green. Canonical integrity completed 12 seeds x 80 operations with source
+bytes unchanged. Eight shared Chromium launches; special options retained
+dedicated browsers. No retry, real timeout or logging failure. Verified all
+145 nonempty harness logs contain final result evidence; local logs:
+`artifacts/gate-logs/2026-10-02T23-54-41-741Z-pvwaTy/`, build log in sibling
+`2026-10-02T23-54-40-656Z-6fHGt2/`. No installer, version bump, push or
+live-data write; installed approval remains `1.12.0-108`.
+
 ## Rules
 
 - **Build and test in one command.** The environment bumps mtimes between steps,

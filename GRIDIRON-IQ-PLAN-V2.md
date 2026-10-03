@@ -124,7 +124,12 @@ their failure contracts differ. The coverage-owner mapping and focused proof
 are in `docs/TESTING.md`. No harness or stress operation was retired, and no
 product or live data changed. This is bounded consolidation, not a claim that
 every possible overlap in 145 harnesses has been eliminated. Next: release
-receipts. The latest full gate above predates this checkpoint.
+receipts. Subsequent coach-authorized full gate at `e80aba33`: fresh build,
+145/145 green, zero skipped/failed; runner 63/63, terminology 48/48 in 20
+seconds, exact typography 34/34, analytics parity and canonical integrity
+(960 operations, source bytes unchanged). Eight shared Chromium launches,
+with dedicated browsers for special options. Logs verified and indexed in
+Testing. No installer, version bump, push or live-data write.
 
 Future enhancements, recorded on coach direction; not authorization to build:
 

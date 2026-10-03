@@ -35,10 +35,10 @@ This section is the one place release state is kept current.
   observations consolidated without retiring contracts or harnesses. Six added
   guards and active-control/render readiness; separate canonical typography,
   multi-game board and navigation checks retained. Focused proof in
-  `docs/TESTING.md`; the latest full gate below predates this change. No
+  `docs/TESTING.md`; full-gated at `e80aba33` below. No
   product, package, live-data write or installed approval.
 
-- **Latest full gate, 2026-10-02, `12ca4a03`: GREEN.** Fresh build and all 145
+- **Latest full gate, 2026-10-02, `e80aba33`: GREEN.** Fresh build and all 145
   harnesses passed, zero skipped and zero failed. Runner 63/63, canonical
   integrity 960 operations with source bytes unchanged, analytics parity and
   all Reports suites passed. Eight shared Chromium launches; special-option
@@ -46,6 +46,9 @@ This section is the one place release state is kept current.
   the build log under local-only `artifacts/gate-logs/`. No real harness
   timeout or logging failure. No installer, version bump, push or live-data
   changes; installed approval remains `1.12.0-108`.
+  Consolidated terminology passed 48/48 in 20 seconds, exact typography
+  34/34. Local logs: `artifacts/gate-logs/2026-10-02T23-54-41-741Z-pvwaTy/`;
+  build log in sibling `2026-10-02T23-54-40-656Z-6fHGt2/`.
 
 - **Gate adversarial repairs, 2026-10-02, `2683d866`:** all three review findings
   fixed: bounded browser teardown, controlled partial/failed logging, and
@@ -61,8 +64,8 @@ This section is the one place release state is kept current.
   focused browser/model/stress coverage green after correcting one new test's
   disconnect assumption. The full green gate at `07bf04aa` below predates this
   checkpoint; the newer `12ca4a03` run certifies the repaired checkpoint.
-  Coverage consolidation and release
-  receipts remain future work; no product or live-data changes.
+  Coverage consolidation is now built and full-gated above; release receipts
+  remain future work. No product or live-data changes.
 
 - **Unpackaged source work, 2026-10-02:** `576a0981` repairs CR-1..CR-8 and
   two runtime duplicate computations/writes. Codex reviewed the fixes and

@@ -2,7 +2,8 @@
 
 ## Gate coverage consolidation, 2026-10-02
 
-**Built in source (`ad0807ea`); focused verification only, not a full gate.**
+**Built in source (`ad0807ea`); full gate GREEN at `e80aba33`, 145/145,
+zero skipped and zero failed. Not packaged.**
 The Reports terminology harness reuses one observation for wording, clipping,
 Defense KPI/header geometry and page overflow. Duplicate initial-page reads
 and its second Defense traversal are removed. All 42 prior assertions remain,
@@ -16,6 +17,12 @@ receipts remain the next approved gate enhancement.
 Proof: fresh build; terminology 48/48, typography census 34/34 and runner
 63/63, zero skipped/failed. Omitted-page mutation is rejected; canonical source
 hash is unchanged. Complete local logs are indexed in Testing.
+Full-gate proof: fresh build; runner 63/63, terminology 48/48 in 20 seconds,
+exact typography 34/34, all Reports suites and analytics parity green.
+Canonical integrity completed all 960 operations with source bytes unchanged.
+Verified 145 nonempty harness logs, each with final result evidence, plus the
+build log. Eight shared Chromium launches; special options retained dedicated
+browsers. No retry, timeout, package or live-data change.
 
 ## Gate adversarial review repairs, 2026-10-02
 
