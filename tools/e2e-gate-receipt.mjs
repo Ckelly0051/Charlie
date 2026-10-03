@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { resolve, dirname } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import fs from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
 import { buildIdentity, sourceIdentity, newReceipt, recordResult, finishReceipt, saveReceipt, evidenceFile } from './gate-receipt.mjs';
 
 let pass = 0, fail = 0;
@@ -148,6 +150,23 @@ try {
     await assert.rejects(saveReceipt(path, receipt), /EEXIST/);
     assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), receipt);
   });
+  for (const mode of ['error', 'mismatch']) await check(`receipt read-back ${mode} cannot publish eligible evidence`, async () => {
+    const target = resolve(scratch, `verification-${mode}.json`);
+    const incomplete = newReceipt({ scope: 'full', files: ['one.mjs'], source, fixtures, buildRoot: 'dist' });
+    await saveReceipt(target, incomplete);
+    const read = fs.readFile;
+    fs.readFile = async (...args) => {
+      if (args[0] === target || args[0] === `${target}.pending`) {
+        if (mode === 'error') throw new Error('injected verification failure');
+        return 'corrupt receipt bytes';
+      }
+      return read(...args);
+    };
+    syncBuiltinESMExports();
+    try { await assert.rejects(saveReceipt(target, finish(ready())), mode === 'error' ? /verification failure/ : /read-back mismatch/); }
+    finally { fs.readFile = read; syncBuiltinESMExports(); }
+    assert.deepEqual(JSON.parse(await readFile(target, 'utf8')), incomplete);
+  });
   const repo = resolve(scratch, 'repo'); await mkdir(repo);
   const git = (args) => promisify(execFile)('git', args, { cwd: repo, windowsHide: true });
   await git(['init', '-q']);
@@ -157,6 +176,21 @@ try {
   await git(['-c', 'user.name=Receipt Test', '-c', 'user.email=receipt@example.invalid', 'commit', '-qm', 'fixture']);
   const clean = await sourceIdentity(repo);
   await check('source identity records a real clean commit', () => assert(clean.commit.length === 40 && !clean.dirty && clean.sha256.length === 64));
+  for (const flags of [['--assume-unchanged'], ['--skip-worktree'], ['--assume-unchanged', '--skip-worktree']]) {
+    await check(`hidden tracked edits are refused with ${flags.join(' + ')}`, async () => {
+      await writeFile(resolve(repo, 'app.js'), 'first');
+      for (const flag of flags) await git(['update-index', flag, '--', 'app.js']);
+      try {
+        await writeFile(resolve(repo, 'app.js'), 'hidden change');
+        assert.equal((await git(['status', '--porcelain'])).stdout, '');
+        await assert.rejects(sourceIdentity(repo), /hidden-change index flags/);
+      } finally {
+        await git(['update-index', '--no-assume-unchanged', '--', 'app.js']);
+        await git(['update-index', '--no-skip-worktree', '--', 'app.js']);
+        await writeFile(resolve(repo, 'app.js'), 'first');
+      }
+    });
+  }
   await writeFile(resolve(repo, 'app.js'), 'second');
   const edited = await sourceIdentity(repo);
   await check('tracked edits are dirty and change the source fingerprint', () => assert(edited.dirty && edited.sha256 !== clean.sha256));

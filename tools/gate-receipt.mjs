@@ -43,6 +43,9 @@ export async function buildIdentity(root) {
 export async function sourceIdentity(root) {
   const options = { cwd: root, windowsHide: true, maxBuffer: 16 * 1024 * 1024 };
   const commit = (await git('git', ['rev-parse', 'HEAD'], options)).stdout.trim();
+  const index = (await git('git', ['ls-files', '-v', '-z', '--cached'], options)).stdout;
+  const hidden = index.split('\0').filter(entry => /^[a-zS] /.test(entry));
+  if (hidden.length) throw new Error(`Source certification refuses hidden-change index flags: ${hidden.map(entry => entry.slice(2)).join(', ')}`);
   const status = (await git('git', ['status', '--porcelain', '--untracked-files=all'], options)).stdout;
   const names = (await git('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], options)).stdout;
   const files = [];
@@ -124,6 +127,6 @@ export async function saveReceipt(path, receipt) {
   const temporary = `${path}.pending`;
   const bytes = JSON.stringify(receipt, null, 2) + '\n';
   await writeFile(temporary, bytes, { flag: 'wx' });
+  if (await readFile(temporary, 'utf8') !== bytes) throw new Error('Receipt read-back mismatch');
   await rename(temporary, path);
-  if (await readFile(path, 'utf8') !== bytes) throw new Error('Receipt read-back mismatch');
 }
