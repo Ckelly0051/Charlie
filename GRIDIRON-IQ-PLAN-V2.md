@@ -141,6 +141,11 @@ Fresh-build focused verification: receipts 40/40, runner 67/67, terminology
 verified. Testing owns interpretation and evidence links. All three agreed
 gate enhancements are built; receipts still await a coach-authorized full
 gate (now 146 harnesses). No package, installed approval or live-data change.
+Adversarial repairs in `7e755c71` reject source-hidden Git flags and verify
+receipt bytes before publication. All five regressions fail on the prior
+code; fresh build plus receipts 45/45, runner 67/67 and parity 2/2 pass on
+the clean committed repairs. Exact focused receipt evidence is in Testing.
+The 146-harness full gate is still pending; no package or live-data change.
 
 ### Approved Break Down charting comp - build contract (2026-09-28)
 

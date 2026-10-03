@@ -396,7 +396,7 @@ Schema version 1 records:
   pre-existing bundle as if it were freshly built.
 
 Receipts start incomplete and ineligible, update after each harness, and are
-written through a temporary sibling plus rename and exact read-back. Write
+written through a temporary sibling, exact staged read-back, then rename. Write
 failure is nonzero, stops the run and still closes owned browser resources.
 An externally killed process may leave an incomplete receipt; it is never
 green evidence. No automatic upload, publication, cleanup or installed-data
@@ -420,6 +420,19 @@ passing-but-ineligible `--no-build`, and standalone self-test receipts.
 Tests cover asset changes/additions, source edits/deletions/untracked files,
 ignored-log exclusion, skips, interruptions, missing log hashes, atomic-write
 failure and symlink refusal. No full gate, installer or live-data change.
+
+Adversarial repairs (`7e755c71`): source certification rejects Git
+assume-unchanged/skip-worktree flags rather than trusting a potentially hidden
+`git status`. No index flags are changed. Receipt verification happens before
+publication; errors or mismatched bytes cannot replace an incomplete receipt
+with eligible evidence. Failed staging may leave a `.pending` diagnostic,
+which is not a published receipt. Five failing-first checks cover both
+verification failures and all three hidden-flag combinations. Fresh build and
+focused verification at clean committed source: receipts 45/45, runner 67/67,
+parity 2/2, zero skipped/failed. Read-back confirms stable source, build and
+fixtures; only focused scope disqualifies the receipt. Evidence:
+`artifacts/gate-logs/2026-10-03T00-34-53-798Z-UagkNE/receipt.json`.
+Full gate (146 harnesses) remains pending; no package or live-data change.
 
 ## Rules
 

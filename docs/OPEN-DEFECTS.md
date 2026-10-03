@@ -1,5 +1,26 @@
 # GridIron IQ Open Defects
 
+## Gate receipt review repairs, 2026-10-02
+
+**Both P2 findings repaired in source (`7e755c71`); focused-verified, not
+full-gated or packaged.**
+
+- **RECEIPT-R1:** `git status` can hide tracked edits under assume-unchanged
+  or skip-worktree. Source certification now refuses those index flags,
+  including their combined form, before claiming clean source. It does not
+  change the index flags or coach data.
+- **RECEIPT-R2:** verification after rename could report a save failure while
+  leaving an eligible final receipt. The staged bytes are now verified before
+  rename. Read errors/mismatches leave the previous incomplete receipt intact;
+  pending files are not published receipt evidence.
+
+All five new regressions failed on the old code and pass on the repairs.
+Fresh-build focused proof at the clean commit: receipts 45/45, runner 67/67
+and parity 2/2; zero skipped/failed. Receipt read-back confirms unchanged
+source/build/fixtures, with focused scope as its only disqualifier. Testing
+owns the evidence link. Full gate remains pending (146 harnesses). No version,
+installer, push or live-data change.
+
 ## Gate run receipts, 2026-10-02
 
 **Built in source (`19f5dab4`); focused verification only, not packaged.**

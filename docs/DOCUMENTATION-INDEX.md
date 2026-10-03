@@ -31,6 +31,14 @@
 
 This section is the one place release state is kept current.
 
+- **Receipt review repairs, 2026-10-02, `7e755c71`:** both P2 findings fixed:
+  refuse Git flags that can hide tracked edits; verify staged receipt bytes
+  before publishing them. Five new regressions fail on the prior code.
+  Fresh-build focused proof: receipts 45/45, runner 67/67, parity 2/2; clean
+  receipt read-back confirms stable source/build/fixtures and focused-only
+  disqualification. Details in Testing and Open Defects. Full gate remains
+  pending (146 harnesses); no installed-data write or package.
+
 - **Run receipts, 2026-10-02, `19f5dab4`: built, focused verification only.**
   Local machine-readable receipts identify source, actually served build,
   fixtures, individual outcomes and log hashes; incomplete, focused, skipped,
