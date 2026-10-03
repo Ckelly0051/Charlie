@@ -31,13 +31,21 @@
 
 This section is the one place release state is kept current.
 
+- **Latest full gate, 2026-10-02, `e3ba2b24`: RED.** Fresh build;
+  145/146 harnesses passed, zero skipped. Only `e2e-p0-exit` failed
+  (19/20): its source assertion still expects the runner's pre-receipt
+  return statements. Receipts 45/45, runner 67/67 and parity 2/2 passed.
+  All 147 log hashes/sizes verified; source/build/fixtures unchanged.
+  Final receipt correctly records failure and release ineligibility.
+  Repair and a newly authorized gate remain; no package or live-data write.
+
 - **Receipt review repairs, 2026-10-02, `7e755c71`:** both P2 findings fixed:
   refuse Git flags that can hide tracked edits; verify staged receipt bytes
   before publishing them. Five new regressions fail on the prior code.
   Fresh-build focused proof: receipts 45/45, runner 67/67, parity 2/2; clean
   receipt read-back confirms stable source/build/fixtures and focused-only
   disqualification. Details in Testing and Open Defects. Full gate remains
-  pending (146 harnesses); no installed-data write or package.
+  RED at `e3ba2b24` as recorded above; no installed-data write or package.
 
 - **Run receipts, 2026-10-02, `19f5dab4`: built, focused verification only.**
   Local machine-readable receipts identify source, actually served build,
@@ -46,8 +54,8 @@ This section is the one place release state is kept current.
   approval is never inferred. Fresh build plus four focused suites green:
   receipts 40/40, runner 67/67, terminology 48/48, parity 2/2. Clean receipt
   read-back and failed-build/no-build/self-test CLI cases verified. Testing
-  owns schema, interpretation and log links. Next full gate has 146 harnesses;
-  latest full result below predates this checkpoint. No package or live write.
+  owns schema, interpretation and log links. The 146-harness full run is RED
+  as recorded above. No package or live write.
 
 - **Coverage consolidation, 2026-10-02, `ad0807ea`:** Reports terminology
   observations consolidated without retiring contracts or harnesses. Six added
@@ -56,7 +64,7 @@ This section is the one place release state is kept current.
   `docs/TESTING.md`; full-gated at `e80aba33` below. No
   product, package, live-data write or installed approval.
 
-- **Latest full gate, 2026-10-02, `e80aba33`: GREEN.** Fresh build and all 145
+- **Previous green full gate, 2026-10-02, `e80aba33`: GREEN.** Fresh build and all 145
   harnesses passed, zero skipped and zero failed. Runner 63/63, canonical
   integrity 960 operations with source bytes unchanged, analytics parity and
   all Reports suites passed. Eight shared Chromium launches; special-option

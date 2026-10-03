@@ -1,5 +1,20 @@
 # GridIron IQ Open Defects
 
+## Full gate, 2026-10-02: RED at `e3ba2b24`
+
+145/146 harnesses passed; zero skipped. **RECEIPT-GATE-1 (P2, open):**
+`tools/e2e-p0-exit.mjs:57-58` expects an immediate build-failure return and
+a direct `return runHarnesses(...)`. Receipt integration instead throws on
+build failure and awaits the harness verdict before finalizing evidence.
+The stale source assertion fails (19/20); no runtime suite failed.
+Repair the check without removing its build/discovery/failure contracts,
+then obtain authorization for another full gate. No repair or rerun made here.
+
+Receipts 45/45, runner 67/67 and parity 2/2 passed. Independent verification
+matched all 147 log hashes/sizes and unchanged source/build/fixture identities.
+The final receipt is failed and release-ineligible; Testing owns its path.
+No installer, version bump, push or coach-data change.
+
 ## Gate receipt review repairs, 2026-10-02
 
 **Both P2 findings repaired in source (`7e755c71`); focused-verified, not
@@ -18,7 +33,7 @@ All five new regressions failed on the old code and pass on the repairs.
 Fresh-build focused proof at the clean commit: receipts 45/45, runner 67/67
 and parity 2/2; zero skipped/failed. Receipt read-back confirms unchanged
 source/build/fixtures, with focused scope as its only disqualifier. Testing
-owns the evidence link. Full gate remains pending (146 harnesses). No version,
+owns the evidence link. Full gate is RED at `e3ba2b24` above. No version,
 installer, push or live-data change.
 
 ## Gate run receipts, 2026-10-02
@@ -34,8 +49,9 @@ Atomic receipt failures stop execution and close owned browsers.
 Fresh-build focused proof: receipts 40/40, runner 67/67, terminology 48/48,
 parity 2/2. Independent read-back plus actual failed-build, no-build and
 self-test CLI receipts verified. The current full-gate inventory is 146; the
-latest 145/145 full result at `e80aba33` predates this change. Full gate was
-not run. No coach data, version, installer or push changed. Details in Testing.
+previous 145/145 green result at `e80aba33` predates this change. The subsequent
+full run is RED above. No coach data, version, installer or push changed.
+Details in Testing.
 
 ## Gate coverage consolidation, 2026-10-02
 

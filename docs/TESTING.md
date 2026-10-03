@@ -374,7 +374,7 @@ live-data write; installed approval remains `1.12.0-108`.
 ## Machine-Readable Run Receipts (2026-10-02)
 
 `19f5dab4` adds `tools/gate-receipt.mjs`, `e2e-gate-receipt` and runner
-integration. The next full gate discovers **146 harnesses**; the latest full
+integration. The full gate discovers **146 harnesses**; the previous full
 green result at `e80aba33` remains 145/145 and predates these changes.
 
 Every CLI gate invocation now writes `receipt.json` beside its build and
@@ -432,7 +432,16 @@ focused verification at clean committed source: receipts 45/45, runner 67/67,
 parity 2/2, zero skipped/failed. Read-back confirms stable source, build and
 fixtures; only focused scope disqualifies the receipt. Evidence:
 `artifacts/gate-logs/2026-10-03T00-34-53-798Z-UagkNE/receipt.json`.
-Full gate (146 harnesses) remains pending; no package or live-data change.
+Subsequent full gate at `e3ba2b24` (2026-10-02): **RED, 145/146 passed,
+zero skipped**. Fresh build; receipts 45/45, runner 67/67, integrity 3/3
+and parity 2/2 passed. Only `e2e-p0-exit` failed (19/20): its source
+assertion expects the old direct returns instead of receipt finalization.
+See RECEIPT-GATE-1 in Open Defects; it remains unfixed.
+Evidence: `artifacts/gate-logs/2026-10-03T00-40-22-417Z-0oPcNs/receipt.json`.
+Independent read-back verified 147 log hashes/sizes, all 146 recorded results,
+and stable source/commit/build/fixtures. The finalized receipt correctly says
+`fail`, `releaseEligible: false`, `installedApproval: not-assessed`.
+No retries, package or live-data change.
 
 ## Rules
 
