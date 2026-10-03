@@ -436,12 +436,27 @@ Subsequent full gate at `e3ba2b24` (2026-10-02): **RED, 145/146 passed,
 zero skipped**. Fresh build; receipts 45/45, runner 67/67, integrity 3/3
 and parity 2/2 passed. Only `e2e-p0-exit` failed (19/20): its source
 assertion expects the old direct returns instead of receipt finalization.
-See RECEIPT-GATE-1 in Open Defects; it remains unfixed.
+See RECEIPT-GATE-1 in Open Defects; subsequently repaired below.
 Evidence: `artifacts/gate-logs/2026-10-03T00-40-22-417Z-0oPcNs/receipt.json`.
 Independent read-back verified 147 log hashes/sizes, all 146 recorded results,
 and stable source/commit/build/fixtures. The finalized receipt correctly says
 `fail`, `releaseEligible: false`, `installedApproval: not-assessed`.
 No retries, package or live-data change.
+
+Repair and authorized full rerun at `06a1ffcf` (2026-10-02): **GREEN,
+146/146 passed, zero skipped or failed**, fresh build, 15m34s. The P0
+composition assertion follows the current build refusal, awaited harness
+verdict, receipt finalization and failed-receipt exit; no contract removed.
+Standalone P0 20/20; five in-memory source mutations rejected (build refusal,
+discovery, invocation, finalization and failure verdict).
+Full-run P0 20/20, receipts 45/45, runner 67/67 and parity 2/2.
+Canonical integrity: 12 seeds x 80 operations, source bytes unchanged.
+Eight shared Chromium launches; special-option browsers remain dedicated.
+Evidence: `artifacts/gate-logs/2026-10-03T02-32-13-133Z-kj7RWh/receipt.json`.
+Independent verification matched all 147 log hashes/sizes, all 146 passing
+results, and stable source/commit/build/fixtures. Final receipt: `pass`,
+`releaseEligible: true`, `installedApproval: not-assessed`.
+No retries, package, version bump, push or live-data write.
 
 ## Rules
 

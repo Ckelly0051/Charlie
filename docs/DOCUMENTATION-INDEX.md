@@ -31,13 +31,21 @@
 
 This section is the one place release state is kept current.
 
-- **Latest full gate, 2026-10-02, `e3ba2b24`: RED.** Fresh build;
+- **Latest full gate, 2026-10-02, `06a1ffcf`: GREEN.** Fresh build;
+  146/146 harnesses passed, zero skipped or failed, in 15m34s.
+  P0 composition 20/20, receipts 45/45, runner 67/67 and parity 2/2.
+  Canonical integrity: 960 operations, source bytes unchanged. Eight shared
+  Chromium launches. Independent verification matched all 147 log hashes/sizes
+  and stable source/commit/build/fixtures. Final receipt is release-eligible;
+  installed approval remains not assessed. No package, push or live-data write.
+
+- **Previous full gate, 2026-10-02, `e3ba2b24`: RED.** Fresh build;
   145/146 harnesses passed, zero skipped. Only `e2e-p0-exit` failed
   (19/20): its source assertion still expects the runner's pre-receipt
   return statements. Receipts 45/45, runner 67/67 and parity 2/2 passed.
   All 147 log hashes/sizes verified; source/build/fixtures unchanged.
   Final receipt correctly records failure and release ineligibility.
-  Repair and a newly authorized gate remain; no package or live-data write.
+  Subsequently repaired and full-gated at `06a1ffcf` above; no package or live-data write.
 
 - **Receipt review repairs, 2026-10-02, `7e755c71`:** both P2 findings fixed:
   refuse Git flags that can hide tracked edits; verify staged receipt bytes
@@ -45,7 +53,7 @@ This section is the one place release state is kept current.
   Fresh-build focused proof: receipts 45/45, runner 67/67, parity 2/2; clean
   receipt read-back confirms stable source/build/fixtures and focused-only
   disqualification. Details in Testing and Open Defects. Full gate remains
-  RED at `e3ba2b24` as recorded above; no installed-data write or package.
+  GREEN at `06a1ffcf` as recorded above; no installed-data write or package.
 
 - **Run receipts, 2026-10-02, `19f5dab4`: built, focused verification only.**
   Local machine-readable receipts identify source, actually served build,
@@ -54,7 +62,7 @@ This section is the one place release state is kept current.
   approval is never inferred. Fresh build plus four focused suites green:
   receipts 40/40, runner 67/67, terminology 48/48, parity 2/2. Clean receipt
   read-back and failed-build/no-build/self-test CLI cases verified. Testing
-  owns schema, interpretation and log links. The 146-harness full run is RED
+  owns schema, interpretation and log links. The 146-harness full run is GREEN
   as recorded above. No package or live write.
 
 - **Coverage consolidation, 2026-10-02, `ad0807ea`:** Reports terminology

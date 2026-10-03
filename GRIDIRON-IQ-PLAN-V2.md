@@ -139,8 +139,8 @@ runs cannot qualify as full-gate evidence. Installed approval is never inferred.
 Fresh-build focused verification: receipts 40/40, runner 67/67, terminology
 48/48 and parity 2/2; independent CLI failure/skip-build/self-test evidence
 verified. Testing owns interpretation and evidence links. All three agreed
-gate enhancements are built; the subsequent full gate at `e3ba2b24` is RED:
-145/146 passed, zero skipped. No package, installed approval or live-data change.
+gate enhancements are built and full-gated at `06a1ffcf`: GREEN, 146/146
+passed, zero skipped/failed. No package, installed approval or live-data change.
 Adversarial repairs in `7e755c71` reject source-hidden Git flags and verify
 receipt bytes before publication. All five regressions fail on the prior
 code; fresh build plus receipts 45/45, runner 67/67 and parity 2/2 pass on
@@ -148,8 +148,12 @@ the clean committed repairs. Exact focused receipt evidence is in Testing.
 Only the stale runner source assertion in `e2e-p0-exit` failed (19/20).
 Receipts 45/45, runner 67/67 and parity 2/2 passed; all log hashes and stable
 source/build/fixture identities verified. The receipt correctly remains
-release-ineligible. Repair RECEIPT-GATE-1, then run a newly authorized full
-gate; no repair, package or live-data change in this run.
+release-ineligible for that run. RECEIPT-GATE-1 was subsequently repaired in
+`06a1ffcf`; standalone P0 20/20 and five source mutations rejected.
+Authorized fresh-build full rerun: 146/146 GREEN, 15m34s, eight shared browsers.
+All 147 log hashes/sizes verified; source/build/fixtures unchanged. Receipt
+is passing and release-eligible, not installed approval. Testing owns the
+evidence link. No package, version bump, push or live-data change.
 
 ### Approved Break Down charting comp - build contract (2026-09-28)
 

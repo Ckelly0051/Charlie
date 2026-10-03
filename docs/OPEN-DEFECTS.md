@@ -1,14 +1,32 @@
 # GridIron IQ Open Defects
 
+## Full gate repair and rerun, 2026-10-02
+
+**RECEIPT-GATE-1 repaired and full-gated in `06a1ffcf`.** The P0 composition
+check now recognizes build-failure refusal and the awaited harness verdict,
+receipt finalization and failed-receipt exit. No assertion was dropped.
+Standalone P0: 20/20. Five in-memory source mutations (build refusal,
+discovery, harness invocation, finalization and failure verdict) were rejected.
+No production code or coach data changed.
+
+Authorized fresh-build full gate: **146/146 GREEN, zero skipped/failed**, 15m34s,
+eight shared Chromium launches. P0 20/20, receipts 45/45, runner 67/67 and
+parity 2/2. Canonical integrity completed 960 operations, source bytes unchanged.
+Independent verification matched all 147 log hashes/sizes and stable source,
+commit, build and fixtures. Receipt is passing and release-eligible;
+installed approval is not assessed. Testing owns the evidence path.
+No package, version bump, push or live-data write.
+
 ## Full gate, 2026-10-02: RED at `e3ba2b24`
 
-145/146 harnesses passed; zero skipped. **RECEIPT-GATE-1 (P2, open):**
+145/146 harnesses passed; zero skipped. **RECEIPT-GATE-1 (P2, subsequently repaired above):**
 `tools/e2e-p0-exit.mjs:57-58` expects an immediate build-failure return and
 a direct `return runHarnesses(...)`. Receipt integration instead throws on
 build failure and awaits the harness verdict before finalizing evidence.
 The stale source assertion fails (19/20); no runtime suite failed.
 Repair the check without removing its build/discovery/failure contracts,
-then obtain authorization for another full gate. No repair or rerun made here.
+then obtain authorization for another full gate. That authorized repair and
+rerun subsequently passed at `06a1ffcf` above.
 
 Receipts 45/45, runner 67/67 and parity 2/2 passed. Independent verification
 matched all 147 log hashes/sizes and unchanged source/build/fixture identities.
@@ -33,7 +51,7 @@ All five new regressions failed on the old code and pass on the repairs.
 Fresh-build focused proof at the clean commit: receipts 45/45, runner 67/67
 and parity 2/2; zero skipped/failed. Receipt read-back confirms unchanged
 source/build/fixtures, with focused scope as its only disqualifier. Testing
-owns the evidence link. Full gate is RED at `e3ba2b24` above. No version,
+owns the evidence link. Full gate is GREEN at `06a1ffcf` above. No version,
 installer, push or live-data change.
 
 ## Gate run receipts, 2026-10-02
@@ -50,7 +68,7 @@ Fresh-build focused proof: receipts 40/40, runner 67/67, terminology 48/48,
 parity 2/2. Independent read-back plus actual failed-build, no-build and
 self-test CLI receipts verified. The current full-gate inventory is 146; the
 previous 145/145 green result at `e80aba33` predates this change. The subsequent
-full run is RED above. No coach data, version, installer or push changed.
+full run is GREEN above. No coach data, version, installer or push changed.
 Details in Testing.
 
 ## Gate coverage consolidation, 2026-10-02
