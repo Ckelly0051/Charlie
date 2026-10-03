@@ -54,8 +54,10 @@ ok(/exec node tools\/run-gate\.mjs "\$@"/.test(gate)
   && /npm run build/.test(gateRunner)
   && /await readdir\(resolve\(ROOT, 'tools'\)\)/.test(gateRunner)
   && gateRunner.includes("filter(name => /^e2e-.*\\.mjs$/.test(name)).sort()")
-  && /if \(!buildAccepted\(build\)\)[^\n]*return 1/.test(gateRunner)
-  && /return runHarnesses\(files,/.test(gateRunner),
+  && /if \(!buildAccepted\(build\)\)[^\n]*throw new Error/.test(gateRunner)
+  && /exitCode = await runHarnesses\(files,/.test(gateRunner)
+  && /finishReceipt\(receipt, \{ source, fixtures, build, exitCode, error: failure \}\)/.test(gateRunner)
+  && /return receipt\.outcome === 'fail' \? 1 : exitCode/.test(gateRunner),
   'canonical gate builds Vite and discovers every e2e harness');
 
 const toolFiles = (await readdir(resolve(root, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name));
