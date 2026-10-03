@@ -4,6 +4,8 @@ import { openSync, writeSync, closeSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import puppeteer from 'puppeteer';
+import { buildIdentity, sourceIdentity, fixtureIdentity, evidenceFile,
+  newReceipt, recordResult, finishReceipt, saveReceipt } from './gate-receipt.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export function harnessDeadline(file) {
@@ -118,7 +120,7 @@ export function execute(command, args, env = process.env, signal,
 
 export async function runHarnesses(files, { freshBrowser = false, recycleEvery = 20,
   launchBrowser = options => puppeteer.launch(options), executeHarness = execute,
-  logDir, deadlineFor = harnessDeadline, cleanupTimeoutMs = 10000 } = {}) {
+  logDir, deadlineFor = harnessDeadline, cleanupTimeoutMs = 10000, onResult = async () => {} } = {}) {
   logDir ||= await logDirectory();
   console.log(`Full harness logs: ${logDir}`);
   let browser = null, runs = 0, launches = 0;
@@ -166,6 +168,10 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       runs++;
       const secs = Math.round((Date.now() - started) / 1000);
       const { status, line } = classify(result.output, result.code);
+      await onResult({ file, status, code: result.code, resultLine: line,
+        durationMs: Date.now() - started, deadlineMs: deadlineFor(file),
+        timedOut: !!result.timedOut, interrupted: !!result.aborted, logError: result.logError || null,
+        logPath: resolve(logDir, `${index}-${file}.log`) });
       totals[status]++;
       console.log(`${status === 'pass' ? 'ok  ' : status === 'skip' ? 'skip' : 'FAIL'} ${file.padEnd(42)} ${String(secs).padStart(4)}s  ${status === 'fail' ? `(exit ${result.code}) ` : ''}${line || '<no result line>'}`);
       if (secs >= 25) slow.push(`  ${secs}s  ${file}`);
@@ -190,12 +196,9 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.includes('--self-test')) {
-    const result = await execute(process.execPath, ['tools/e2e-gate-runner.mjs']);
-    console.log(result.output);
-    return result.code;
-  }
-  const known = new Set(['--no-build', '--fresh-browser', '--only']);
+  const selfTest = args.includes('--self-test');
+  if (selfTest && args.length !== 1) throw new Error('--self-test cannot be combined with other options');
+  const known = new Set(['--no-build', '--fresh-browser', '--only', '--self-test']);
   let only = null;
   for (let i = 0; i < args.length; i++) {
     if (!known.has(args[i])) throw new Error(`Unknown gate option: ${args[i]}`);
@@ -205,23 +208,59 @@ async function main() {
     }
   }
   let files = (await readdir(resolve(ROOT, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name)).sort();
+  if (selfTest) only = ['e2e-gate-runner.mjs'];
   if (only) {
     for (const file of only) if (!files.includes(file)) throw new Error(`Unknown harness: ${file}`);
     files = files.filter(file => only.includes(file));
   }
-  if (!args.includes('--no-build')) {
-    const logDir = await logDirectory();
-    const logPath = resolve(logDir, 'build.log');
-    console.log('=== BUILD ===');
-    console.log(`Full build log: ${logPath}`);
-    const build = process.platform === 'win32'
-      ? await execute(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], process.env, undefined, { timeoutMs: 300000, logPath })
-      : await execute('npm', ['run', 'build'], process.env, undefined, { timeoutMs: 300000, logPath });
-    console.log(build.output.split(/\r?\n/).slice(-3).join('\n'));
-    if (!buildAccepted(build)) { console.error(`BUILD FAILED (exit ${build.code}); refusing to gate a stale bundle.`); return 1; }
-  }
-  console.log(only ? '=== FOCUSED HARNESS RUN (not the full gate) ===' : '=== GATE ===');
-  return runHarnesses(files, { freshBrowser: args.includes('--fresh-browser') });
+  const logDir = await logDirectory();
+  const receiptPath = resolve(logDir, 'receipt.json');
+  const buildRoot = resolve(process.env.GIQ_APP_ROOT || resolve(ROOT, 'dist'));
+  const receipt = newReceipt({ scope: selfTest ? 'self-test' : only ? 'focused' : 'full', files,
+    source: await sourceIdentity(ROOT), fixtures: await fixtureIdentity(ROOT), buildRoot,
+    environment: { node: process.version, platform: process.platform,
+      appRootOverride: process.env.GIQ_APP_ROOT || null,
+      realDataOptional: process.env.GIQ_REALDATA_OPTIONAL === '1',
+      freshBrowser: args.includes('--fresh-browser') } });
+  await saveReceipt(receiptPath, receipt);
+  console.log(`Run receipt: ${receiptPath}`);
+  let exitCode = 1, failure = null;
+  try {
+    if (!args.includes('--no-build') && !selfTest) {
+      const logPath = resolve(logDir, 'build.log');
+      console.log('=== BUILD ===');
+      console.log(`Full build log: ${logPath}`);
+      const build = process.platform === 'win32'
+        ? await execute(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], process.env, undefined, { timeoutMs: 300000, logPath })
+        : await execute('npm', ['run', 'build'], process.env, undefined, { timeoutMs: 300000, logPath });
+      console.log(build.output.split(/\r?\n/).slice(-3).join('\n'));
+      receipt.build = { ...receipt.build, state: buildAccepted(build) ? 'pass' : 'fail',
+        code: build.code, timedOut: !!build.timedOut, logError: build.logError || null,
+        log: await evidenceFile(logPath, ROOT) };
+      if (!buildAccepted(build)) throw new Error(`BUILD FAILED (exit ${build.code}); refusing to gate a stale bundle.`);
+    } else {
+      receipt.build.state = selfTest ? 'not-required' : 'skipped';
+    }
+    if (!selfTest) receipt.build.before = await buildIdentity(buildRoot);
+    await saveReceipt(receiptPath, receipt);
+    console.log(only ? '=== FOCUSED HARNESS RUN (not the full gate) ===' : '=== GATE ===');
+    exitCode = await runHarnesses(files, { freshBrowser: args.includes('--fresh-browser'), logDir,
+      onResult: async result => {
+        const { logPath, ...evidence } = result;
+        recordResult(receipt, { ...evidence, log: await evidenceFile(logPath, ROOT) });
+        await saveReceipt(receiptPath, receipt);
+      } });
+  } catch (error) { failure = error.message; console.error(error); }
+  let source = null, fixtures = null, build = null;
+  try {
+    source = await sourceIdentity(ROOT);
+    fixtures = await fixtureIdentity(ROOT);
+    if (receipt.build.before) build = await buildIdentity(buildRoot);
+  } catch (error) { failure = [failure, error.message].filter(Boolean).join('; '); exitCode = 1; }
+  finishReceipt(receipt, { source, fixtures, build, exitCode, error: failure });
+  await saveReceipt(receiptPath, receipt);
+  console.log(`Receipt: ${receipt.outcome}; release evidence eligible: ${receipt.releaseEligible}; installed approval: not assessed`);
+  return receipt.outcome === 'fail' ? 1 : exitCode;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

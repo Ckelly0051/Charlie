@@ -167,8 +167,9 @@ export async function runTests() {
 
   const launched = [], endpoints = [];
   let calls = 0, cleaned = 0;
-  const deadlines = [];
+  const deadlines = [], recorded = [];
   const exit = await runHarnesses(Array(3).fill('e2e-native-reports.mjs'), {
+    onResult: async result => recorded.push(result),
     recycleEvery: 2,
     launchBrowser: async () => {
       const defaultContext = {};
@@ -196,6 +197,22 @@ export async function runTests() {
   check('runner cleans orphan contexts after green and red children', () => assert.equal(cleaned, 3));
   check('runner closes recycled and final Chromium instances', () => assert(launched.every(browser => browser.closed)));
   check('runner passes deadlines and distinct log paths to every child', () => assert(deadlines.every(item => item.timeoutMs === 180000) && new Set(deadlines.map(item => item.logPath)).size === 3));
+  check('receipt callback receives classified outcomes including a timeout after a green line', () => {
+    assert.deepEqual(recorded.map(result => result.status), ['pass', 'fail', 'pass']);
+    assert.equal(recorded[1].timedOut, true); assert.equal(recorded[1].code, 1);
+    assert(recorded.every(result => result.deadlineMs === 180000 && result.durationMs >= 0 && result.resultLine));
+  });
+  check('receipt callback receives each child log path independently', () => assert.equal(new Set(recorded.map(result => result.logPath)).size, 3));
+
+  let stoppedCalls = 0, stoppedClosed = false;
+  const rootContext = {};
+  await assert.rejects(runHarnesses(['e2e-native-reports.mjs', 'e2e-native-tagging.mjs'], {
+    launchBrowser: async () => ({ wsEndpoint: () => 'synthetic', defaultBrowserContext: () => rootContext,
+      browserContexts: () => [rootContext], close: async () => { stoppedClosed = true; } }),
+    executeHarness: async () => { stoppedCalls++; return { code: 0, output: '== RESULT: 1 passed, 0 failed ==' }; },
+    onResult: async () => { throw new Error('Receipt disk failure'); },
+  }), /Receipt disk failure/);
+  check('receipt write failure stops execution and still closes the owned browser', () => assert(stoppedCalls === 1 && stoppedClosed));
 
   await assert.rejects(cleanupContexts({ browserContexts: () => [{close: () => new Promise(() => {})}],
     defaultBrowserContext: () => null }, 20), /cleanup exceeded/);
@@ -208,7 +225,9 @@ export async function runTests() {
   await browserExited;
   check('stalled browser shutdown force-terminates its owned process and disconnects', () => assert(disconnected));
   let cleanupRuns = 0, recoveryLaunches = 0, recoveryCloses = 0;
+  const cleanupEvidence = [];
   const recoveryResult = await runHarnesses(Array(2).fill('e2e-native-reports.mjs'), {
+    onResult: async result => cleanupEvidence.push(result),
     cleanupTimeoutMs: 20,
     launchBrowser: async () => {
       const first = ++recoveryLaunches === 1;
@@ -220,6 +239,7 @@ export async function runTests() {
     executeHarness: async () => { cleanupRuns++; return {code:0,output:'== RESULT: 1 passed, 0 failed =='}; },
   });
   check('stalled cleanup makes the journey red, replaces Chromium and runs the next child', () => assert(recoveryResult === 1 && cleanupRuns === 2 && recoveryLaunches === 2 && recoveryCloses === 2));
+  check('receipt callback records cleanup failure rather than the child green line', () => assert.deepEqual(cleanupEvidence.map(result => result.status), ['fail', 'pass']));
 
   const server = createServer((request, response) => response.end('<!doctype html><title>Gate isolation</title>'));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
