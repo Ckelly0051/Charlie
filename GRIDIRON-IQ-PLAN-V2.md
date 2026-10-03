@@ -123,20 +123,24 @@ canonical OLL typography census and multi-game/navigation suites remain:
 their failure contracts differ. The coverage-owner mapping and focused proof
 are in `docs/TESTING.md`. No harness or stress operation was retired, and no
 product or live data changed. This is bounded consolidation, not a claim that
-every possible overlap in 145 harnesses has been eliminated. Next: release
-receipts. Subsequent coach-authorized full gate at `e80aba33`: fresh build,
+every possible overlap in 145 harnesses has been eliminated. Subsequent
+coach-authorized full gate at `e80aba33`: fresh build,
 145/145 green, zero skipped/failed; runner 63/63, terminology 48/48 in 20
 seconds, exact typography 34/34, analytics parity and canonical integrity
 (960 operations, source bytes unchanged). Eight shared Chromium launches,
 with dedicated browsers for special options. Logs verified and indexed in
 Testing. No installer, version bump, push or live-data write.
 
-Future enhancements, recorded on coach direction; not authorization to build:
-
-- **Auditable release receipts.** Record the tested commit, build fingerprint,
-  fixture identities and individual outcomes in a machine-readable receipt.
-  Distinguish focused runs, full runs, skips and failures. A receipt must never
-  imply installed approval or bless a different build.
+Auditable run receipts are built in `19f5dab4`. Each CLI run writes a local
+versioned JSON receipt beside full logs, with before/after source, commit,
+served-bundle and registered-fixture fingerprints and individual outcomes.
+Incomplete, failed, skipped, dirty, no-build, focused and overridden-root
+runs cannot qualify as full-gate evidence. Installed approval is never inferred.
+Fresh-build focused verification: receipts 40/40, runner 67/67, terminology
+48/48 and parity 2/2; independent CLI failure/skip-build/self-test evidence
+verified. Testing owns interpretation and evidence links. All three agreed
+gate enhancements are built; receipts still await a coach-authorized full
+gate (now 146 harnesses). No package, installed approval or live-data change.
 
 ### Approved Break Down charting comp - build contract (2026-09-28)
 

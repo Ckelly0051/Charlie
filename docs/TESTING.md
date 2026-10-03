@@ -371,6 +371,56 @@ dedicated browsers. No retry, real timeout or logging failure. Verified all
 `2026-10-02T23-54-40-656Z-6fHGt2/`. No installer, version bump, push or
 live-data write; installed approval remains `1.12.0-108`.
 
+## Machine-Readable Run Receipts (2026-10-02)
+
+`19f5dab4` adds `tools/gate-receipt.mjs`, `e2e-gate-receipt` and runner
+integration. The next full gate discovers **146 harnesses**; the latest full
+green result at `e80aba33` remains 145/145 and predates these changes.
+
+Every CLI gate invocation now writes `receipt.json` beside its build and
+harness logs under the unique, gitignored `artifacts/gate-logs/<run>/` folder.
+Schema version 1 records:
+
+- Full, focused or standalone self-test scope; timestamps, unfinished/finished
+  state, passing/failed/skipped outcome and explicit disqualification reasons.
+- Commit, clean/dirty state and source-content hashes before/after the run.
+  Tracked and nonignored untracked files participate; generated logs do not.
+- The actually served bundle root, per-file SHA-256 manifest and before/after
+  aggregate fingerprint. App-root overrides are explicit and ineligible.
+- Canonical fixture ID/path/hash, both parity goldens, and shared synthetic
+  fixture-source hashes before/after. Inline fixtures/seeds are pinned through
+  the harness/source fingerprint; external film contents are not attested.
+- Every planned harness, including not-run entries; status, exit code, result
+  line, duration, deadline, timeout/interruption/log failures and log hash/path.
+- Build outcome and its log identity. A failed build never fingerprints a
+  pre-existing bundle as if it were freshly built.
+
+Receipts start incomplete and ineligible, update after each harness, and are
+written through a temporary sibling plus rename and exact read-back. Write
+failure is nonzero, stops the run and still closes owned browser resources.
+An externally killed process may leave an incomplete receipt; it is never
+green evidence. No automatic upload, publication, cleanup or installed-data
+write. These are audit artifacts, not cryptographically signed attestations.
+
+`releaseEligible` means only clean, complete full-gate evidence: fresh build,
+zero failures/skips, consistent per-harness evidence, all registered fixtures
+present, and matching before/after source, commit, fixtures and build hashes.
+Focused runs, `--no-build`, dirty source and root overrides may record passing
+tests but are ineligible. Standalone `--self-test` requires no app bundle and
+is always ineligible. `installedApproval` is always `not-assessed`; a receipt
+cannot certify a later commit/build or replace coach smoke.
+
+Proof at clean committed `19f5dab4`: fresh-build focused run, receipt 40/40,
+runner 67/67, terminology 48/48 and parity 2/2; zero skipped/failed. The
+read-back receipt is `pass`, with unchanged source/build/fixtures and only
+`Not a full gate` disqualifying it. Evidence:
+`artifacts/gate-logs/2026-10-03T00-22-59-133Z-Pn7ujO/receipt.json`.
+Independent CLI checks also verified failed-build/not-run evidence,
+passing-but-ineligible `--no-build`, and standalone self-test receipts.
+Tests cover asset changes/additions, source edits/deletions/untracked files,
+ignored-log exclusion, skips, interruptions, missing log hashes, atomic-write
+failure and symlink refusal. No full gate, installer or live-data change.
+
 ## Rules
 
 - **Build and test in one command.** The environment bumps mtimes between steps,

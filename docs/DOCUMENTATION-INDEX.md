@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-09-30.
+> **Status:** CURRENT AUTHORITY MAP. Updated 2026-10-02.
 
 ## Current Authority
 
@@ -30,6 +30,16 @@
 ## Current Snapshot
 
 This section is the one place release state is kept current.
+
+- **Run receipts, 2026-10-02, `19f5dab4`: built, focused verification only.**
+  Local machine-readable receipts identify source, actually served build,
+  fixtures, individual outcomes and log hashes; incomplete, focused, skipped,
+  dirty or changed runs cannot qualify as full-gate evidence. Installed
+  approval is never inferred. Fresh build plus four focused suites green:
+  receipts 40/40, runner 67/67, terminology 48/48, parity 2/2. Clean receipt
+  read-back and failed-build/no-build/self-test CLI cases verified. Testing
+  owns schema, interpretation and log links. Next full gate has 146 harnesses;
+  latest full result below predates this checkpoint. No package or live write.
 
 - **Coverage consolidation, 2026-10-02, `ad0807ea`:** Reports terminology
   observations consolidated without retiring contracts or harnesses. Six added
@@ -64,8 +74,8 @@ This section is the one place release state is kept current.
   focused browser/model/stress coverage green after correcting one new test's
   disconnect assumption. The full green gate at `07bf04aa` below predates this
   checkpoint; the newer `12ca4a03` run certifies the repaired checkpoint.
-  Coverage consolidation is now built and full-gated above; release receipts
-  remain future work. No product or live-data changes.
+  Coverage consolidation is now built and full-gated above; run receipts are
+  built but only focused-verified. No product or live-data changes.
 
 - **Unpackaged source work, 2026-10-02:** `576a0981` repairs CR-1..CR-8 and
   two runtime duplicate computations/writes. Codex reviewed the fixes and

@@ -1,5 +1,21 @@
 # GridIron IQ Open Defects
 
+## Gate run receipts, 2026-10-02
+
+**Built in source (`19f5dab4`); focused verification only, not packaged.**
+Every CLI run records the exact source/commit, served bundle, registered
+fixtures, build result, per-harness status and hashed local logs. Partial runs
+remain incomplete; changed source/build/fixtures and failures produce failed
+evidence. Focused, skipped, dirty, no-build and overridden-root runs cannot
+qualify as full-gate release evidence. Installed approval is not assessed.
+Atomic receipt failures stop execution and close owned browsers.
+
+Fresh-build focused proof: receipts 40/40, runner 67/67, terminology 48/48,
+parity 2/2. Independent read-back plus actual failed-build, no-build and
+self-test CLI receipts verified. The current full-gate inventory is 146; the
+latest 145/145 full result at `e80aba33` predates this change. Full gate was
+not run. No coach data, version, installer or push changed. Details in Testing.
+
 ## Gate coverage consolidation, 2026-10-02
 
 **Built in source (`ad0807ea`); full gate GREEN at `e80aba33`, 145/145,
@@ -13,7 +29,7 @@ Traversal delays are replaced by active-control/font/rendered-frame readiness.
 Separate OLL typography, multi-game board and navigation contracts remain.
 The ownership mapping is in `docs/TESTING.md`. No product or coach-data change,
 seed reduction, harness retirement, package or installed approval. Release
-receipts remain the next approved gate enhancement.
+receipts were the next enhancement and are now built, focused-verified above.
 Proof: fresh build; terminology 48/48, typography census 34/34 and runner
 63/63, zero skipped/failed. Omitted-page mutation is rejected; canonical source
 hash is unchanged. Complete local logs are indexed in Testing.
