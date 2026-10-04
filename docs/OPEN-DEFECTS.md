@@ -24,6 +24,10 @@ it. The next installed smoke must cover each.
   Blocker input; the active role holds after edits.
 - **Gate infrastructure** (`f84c8be0` .. `06a1ffcf`): deadlines, shared
   browsers, run receipts. Test-only; no smoke item.
+- **No silent startup import** (2026-10-04): desktop catalog startup no longer
+  imports a leftover per-season `season.json`; the files are left untouched.
+  Explicit mirror recovery is unchanged. Smoke: the library opens normally and
+  Recovery still lists mirror snapshots.
 
 ## Open defects
 
@@ -62,13 +66,12 @@ it. The next installed smoke must cover each.
   keep 12px cells (`gi-off-narrow-fit`). Recomposing that band so the exception
   can be deleted is open.
 
-- **Catalog startup still auto-imports per-season `season.json`.**
-  `TauriBackend._ensureCatalog()` runs `CatalogPersistence.migrateJsonSeasons()`
-  on every start: a library entry with no catalog row and a current-format
-  `season.json` on disk is imported silently. That one-time migration finished
-  long ago, and an automatic sidecar import contradicts "recovery is explicit
-  and confirmed". Found 2026-10-04 during comment cleanup; behavior unchanged.
-  Decide whether to delete it (and `readJson`) or route it through recovery.
+- **Off-gate persistence matrix: one lock fails at HEAD.**
+  `node tools/pc-adversarial-matrix.mjs` (not in the gate): "a commit never
+  mirrors an EMPTY roster/playbook over a populated one" reports
+  `{"roster":0,"calls":1}`. Same result at `76910435` before the 2026-10-04
+  startup-import removal. Determine whether the lock is stale (rosters became
+  season-owned) or a real empty-roster overwrite.
 
 ## Coach decisions pending
 

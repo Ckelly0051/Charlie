@@ -1308,29 +1308,6 @@ section('7. Version ownership: the scoped production seam is closed (LOCK, PC-1)
 flush();
 
 // ============================================================================
-// 8. LOCK — the current closest analog to the plan's future "duplicate
-//    snapshot import" contract. Repair of 529d8ae finding 5: honestly
-//    relabeled -- the general PC-3 snapshot-import/recovery envelope does
-//    not exist yet, so this tests JSON->catalog migration idempotence, which
-//    is a real, already-shipped, already-correct guarantee, not a
-//    substitute for the future contract. See the coverage table below.
-// ============================================================================
-section('8. JSON-to-catalog migration is idempotent -- current analog of the future duplicate-snapshot-import contract [LOCK]');
-{
-  const fs = makeFs();
-  fs.state.json.set('s1', season('s1', 'Original'));
-  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const first = await cp.migrateJsonSeasons(['s1']);
-  ok('lock', first === 1, 'the first migration run imports the season exactly once', `migrated=${first}`);
-  fs.state.json.set('s1', season('s1', 'Mutated after first migration'));
-  const second = await cp.migrateJsonSeasons(['s1']);
-  ok('lock', second === 0, 'a second migration run does not re-import (idempotent)', `migrated=${second}`);
-  const finalName = (await cp.loadSeason('s1')).data.seasonName;
-  ok('lock', finalName === 'Original', 'the catalog retains the ORIGINALLY migrated data, unaffected by the later json mutation', `catalog seasonName='${finalName}'`);
-}
-flush();
-
-// ============================================================================
 // 9. LOCK — new: does NOT throw on a genuinely legitimate startup where the
 //    JSON sidecar is simply STALE (out of date) while SQLite is fine. Direct
 //    contrast with section 2 (corrupt db). "Stale JSON/library sidecars

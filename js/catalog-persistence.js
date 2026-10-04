@@ -1,17 +1,15 @@
-import { SeasonFormat } from './season-format.js';
 /**
  * CatalogPersistence makes the SQLite catalog the one canonical season store on
- * desktop. It owns only orchestration (the canonical write, the startup JSON
- * import, the recovery mirror); all filesystem access is injected, so the
+ * desktop. It owns only orchestration (the canonical write and the recovery
+ * mirror); all filesystem access is injected, so the
  * canonical write path is tested in Node (tools/e2e-catalog-persistence.mjs)
  * with a fake fs and real sql.js.
  *
  * Model: one library-wide db (`seasons/library.db`) held open in memory; every
  * save re-exports its bytes to disk.
  *
- * Per-season `season.json` is not a live authority: nothing here reads or
- * writes it in normal operation. The exception is `migrateJsonSeasons()` at
- * catalog startup. The Documents mirror is a recovery snapshot written after a
+ * Per-season `season.json` is not data: nothing here reads or writes it, and
+ * a leftover file is never imported. The Documents mirror is a recovery snapshot written after a
  * successful commit, never read by a normal load; recovering from it is the
  * explicit, previewed, confirmed recovery flow. A load with no db row returns
  * null; there is no weaker fallback source.
@@ -24,13 +22,12 @@ import { SeasonFormat } from './season-format.js';
  *   readDb()            -> Uint8Array | null   (null only for a confirmed-absent file;
  *                                                any other failure throws)
  *   writeDb(bytes)      -> void                (canonical write; a failure propagates)
- *   readJson(id)        -> object | null       (startup JSON import only; best-effort)
  *   writeMirror(id,data)-> void  (optional)    (Documents recovery snapshot; failures swallowed)
  */
 export class CatalogPersistence {
   constructor({ catalog, fs }) {
     if (!catalog || typeof catalog.saveSeason !== 'function') throw new TypeError('CatalogPersistence requires a SqlCatalog');
-    if (!fs || typeof fs.readDb !== 'function' || typeof fs.writeDb !== 'function') throw new TypeError('CatalogPersistence requires an fs adapter (readDb/writeDb, plus readJson for legacy migration)');
+    if (!fs || typeof fs.readDb !== 'function' || typeof fs.writeDb !== 'function') throw new TypeError('CatalogPersistence requires an fs adapter (readDb/writeDb)');
     this.catalog = catalog;
     this.fs = fs;
     this._loaded = false;   // has the shared db been opened from disk this session?
@@ -321,50 +318,4 @@ export class CatalogPersistence {
     return r.ok && r.value === true;
   }
 
-  /**
-   * One-time migration (A3 increment 3): import the coach's existing per-season
-   * `season.json` files into the shared library db on first flag-on. Idempotent —
-   * a season already present in the db is skipped, so re-running never duplicates
-   * or clobbers. Returns the count migrated. Never throws (a bad json is skipped).
-   */
-  async migrateJsonSeasons(ids) {
-    return this._exclusive(async () => {
-      if (!Array.isArray(ids) || !ids.length) return 0;
-      await this._ensureLoaded();
-      const snapshot = this.catalog.toBytes();
-      if (!snapshot || !snapshot.length) throw new Error('Could not snapshot catalog before migration');
-      let migrated = 0;
-      // Old-format seasons are not imported; they are named so startup can tell
-      // the coach.
-      this.oldFormatRefusals = [];
-      for (const id of ids) {
-        let inDb = false;
-        try { inDb = !!this.catalog.loadSeason(id); } catch (e) { inDb = false; }
-        if (inDb) continue;
-        let json = null;
-        try { json = await this.fs.readJson(id); } catch (e) { json = null; }
-        // An old-format per-season file is left on disk and not imported (step 6).
-        if (json && Array.isArray(json.games) && !SeasonFormat.isCurrentSeason(json)) {
-          this.oldFormatRefusals.push({ id, name: json.seasonName || id });
-          continue;
-        }
-        if (json && Array.isArray(json.games)) {
-          json.id = json.id || id;
-          this.catalog.setCurrentSeason(id);
-          try { this.catalog.importSeasonJson(json); migrated++; } catch (e) {}
-        }
-      }
-      if (migrated) {
-        try { await this.fs.writeDb(this.catalog.toBytes()); }
-        catch (e) {
-          this.catalog.close();
-          this._loaded = false;
-          await this.catalog.open(snapshot);
-          this._loaded = true;
-          throw new Error('Catalog migration did not reach disk', { cause: e });
-        }
-      }
-      return migrated;
-    });
-  }
 }

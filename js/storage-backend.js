@@ -529,7 +529,6 @@ export class TauriBackend extends StorageBackend {
 
   _ok() { return !!this.fs; }
   _seasonDir(id) { return `seasons/${id}`; }
-  _seasonFile(id) { return `seasons/${id}/season.json`; }
   _backupsDir(id) { return `seasons/${id}/backups`; }
   // Durable mirror paths (relative to the Documents base dir).
   _mirrorSeasonDir(id) { return `${this.MIRROR_ROOT}/seasons/${id}`; }
@@ -861,8 +860,7 @@ export class TauriBackend extends StorageBackend {
     }
   }
 
-  // No `writeJson`: per-season season.json is not a write authority.
-  // `readJson` serves only CatalogPersistence.migrateJsonSeasons() at startup.
+  // No per-season season.json reader or writer: a leftover file is not data.
   _catalogFs() {
     const dbPath = 'seasons/library.db';
     return {
@@ -886,7 +884,6 @@ export class TauriBackend extends StorageBackend {
           throw e;
         }
       },
-      readJson: async (id) => this._readJson(this._seasonFile(id)),
       writeMirror: async (id, data) => { await this._mirrorToDocuments(id, data); },
     };
   }
@@ -899,19 +896,15 @@ export class TauriBackend extends StorageBackend {
       try {
         const SQL = await this._loadSqlEngine();
         if (!SQL) return null;
+        // Opening the catalog reads only library.db. A leftover per-season
+        // season.json is never imported; recovery is the explicit mirror flow.
         const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: this._catalogFs() });
-        // First flag-on: import existing per-season season.json into the shared db.
-        const lib = await this._readLib();
-        await cp.migrateJsonSeasons(lib.map(s => s.id));
-        this._oldFormatSeasons = cp.oldFormatRefusals || [];
         this._catalog = cp;
         return cp;
       } catch (e) { console.warn('Catalog init failed; no fallback store will be used', e); return null; }
     })();
     return this._catalogInit;
   }
-  /** Seasons the first-run import refused as old format, handed over once. */
-  takeOldFormatRefusals() { const list = this._oldFormatSeasons || []; this._oldFormatSeasons = []; return list; }
   async _touchMeta(seasonId, data) {
     if (!data || (data.id && String(data.id) !== String(seasonId))) return false;
     const lib = await this._readLib();

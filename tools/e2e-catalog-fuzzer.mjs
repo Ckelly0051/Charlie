@@ -124,16 +124,12 @@ async function fuzzOne(seed, ops) {
       } else {
         model.delete(id);
       }
-    } else if (op < 0.9) {
+    } else {
       // LOAD (read; occasionally with a transient read fault — must not corrupt)
       fs.state.readDbFail = fault;
       await cp.loadSeason(id);
       fs.state.readDbFail = false;
       log.push(`op${n} LOAD ${id} fault=${fault}`);
-    } else {
-      // MIGRATE (idempotent import of any json-only seasons) — must be a no-op here
-      const nmig = await cp.migrateJsonSeasons(ids);
-      log.push(`op${n} MIGRATE n=${nmig} json=${[...fs.state.json.keys()]}`);
     }
     try { await checkAll(`seed ${seed} op ${n}`); }
     catch (e) { console.error('OP LOG:\n' + log.slice(-12).join('\n')); throw e; }

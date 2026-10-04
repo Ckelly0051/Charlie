@@ -20,8 +20,6 @@ import { SeasonFormat } from '../js/season-format.js';
 import { DemoSeason } from '../js/demo-season.js';
 import { SnapshotEnvelope } from '../js/snapshot-envelope.js';
 import { TauriBackend } from '../js/storage-backend.js';
-import { CatalogPersistence } from '../js/catalog-persistence.js';
-import { SqlCatalog } from '../js/sql-catalog.js';
 
 let pass = 0, fail = 0;
 const ok = (c, label, d = '') => c ? (pass++, console.log('  PASS  ' + label)) : (fail++, console.log('  FAIL  ' + label + (d ? ' -- ' + d : '')));
@@ -58,7 +56,7 @@ ok(!SeasonFormat.isCurrentGame({}) && SeasonFormat.gameProblems({})[0]?.problem 
 ok(SeasonFormat.isCurrentGame({ plays: [] }) && SeasonFormat.isCurrentGame({ plays: [play(1, { formationFamily: 'Spread', receiverSet: '3x1' })] }), 'a game version with plays (or an empty list) is current');
 ok(!SeasonFormat.isCurrentGame({ plays: [play(1, { formation: 'Trips' })] }), 'a game version carrying the retired Formation is refused');
 
-console.log('\n== 2. Mirror recovery and first-run import refuse old seasons ==');
+console.log('\n== 2. Mirror recovery refuses old seasons ==');
 {
   const old = season('old-mirror', [play(1, { formation: 'Shotgun + Trips' })]);
   const env = SnapshotEnvelope.wrap('old-mirror', old);
@@ -82,20 +80,6 @@ console.log('\n== 2. Mirror recovery and first-run import refuse old seasons =='
   ok(bare.length === 1 && bare[0].reason === 'old-format' && bare[0].gameCount === null && bare[0].playCount === null,
     'a bare pre-envelope mirror copy is Old format with unknown counts, not 0 games and 0 plays', JSON.stringify(bare));
 
-  const SQL = await (await import('sql.js')).default();
-  const cat = new SqlCatalog(SQL); await cat.open();
-  let writes = 0;
-  const cp = new CatalogPersistence({ catalog: cat, fs: {
-    readDb: async () => null, writeDb: async () => { writes++; },
-    readJson: async id => id === 'old' ? season('old', [play(1, { stType: 'Punt', unit: 'special' })]) : season('fresh', [play(1, { formationFamily: 'Spread' })]),
-  } });
-  const migrated = await cp.migrateJsonSeasons(['old', 'fresh']);
-  ok(migrated === 1 && !cat.loadSeason('old') && !!cat.loadSeason('fresh'), 'first-run JSON import skips an old season and imports a current one', JSON.stringify({ migrated, writes }));
-  ok(JSON.stringify(cp.oldFormatRefusals) === JSON.stringify([{ id: 'old', name: 'old' }]), 'the refused season is named, not silently dropped', JSON.stringify(cp.oldFormatRefusals));
-  const backendThis = { _oldFormatSeasons: cp.oldFormatRefusals };
-  const handed = TauriBackend.prototype.takeOldFormatRefusals.call(backendThis);
-  const again = TauriBackend.prototype.takeOldFormatRefusals.call(backendThis);
-  ok(handed.length === 1 && again.length === 0, 'the backend hands the refusals over once', JSON.stringify({ handed, again }));
 }
 
 console.log('\n== 3. In the app: refused with nothing written ==');
@@ -155,15 +139,6 @@ const r = await page.evaluate(async ({ CURRENT, MESSAGE, RESTORE }) => {
   out.emptyVersion = { ve, confirmAsked, unchanged: JSON.stringify(app.tagger.plays) === playsBefore2, plays: app.tagger.plays.length };
   app.tagger._confirmDialog = origConfirm;
 
-  // First-run refusals reach the coach once, through the library listing.
-  const origTake = store.backend.takeOldFormatRefusals;
-  let pending = [{ id: 'x', name: 'Old Season' }];
-  store.backend.takeOldFormatRefusals = () => { const l = pending; pending = []; return l; };
-  const t0 = toasts.length; await sm.listSeasons(); const firstToasts = toasts.slice(t0);
-  const t1 = toasts.length; await sm.listSeasons(); const secondToasts = toasts.slice(t1);
-  store.backend.takeOldFormatRefusals = origTake;
-  out.firstRun = { firstToasts, secondToasts };
-
   // A template saved before the conversion applies no retired value.
   const store2 = app.tagger._templateStore(); store2['Old tpl'] = { stType: 'Punt', kickOutcome: 'Downed', formation: 'Shotgun + Trips', playType: 'Short Pass' };
   app.tagger._saveTemplateStore(store2);
@@ -190,8 +165,6 @@ ok(r.version.vr === false && !r.version.confirmAsked && r.version.unchanged && r
   'an old game version is refused before the confirmation: no backup version, game unchanged', JSON.stringify(r.version));
 ok(r.emptyVersion.ve === false && !r.emptyVersion.confirmAsked && r.emptyVersion.unchanged && r.emptyVersion.plays > 0,
   'a malformed game version ({}) is refused before the confirmation; the game keeps its plays', JSON.stringify(r.emptyVersion));
-ok(r.firstRun.firstToasts.length === 1 && /1 season file uses an old GridIron IQ format and was not opened: Old Season\. Export it again/.test(r.firstRun.firstToasts[0]) && r.firstRun.secondToasts.length === 0,
-  'a season the first-run import refused is named to the coach once', JSON.stringify(r.firstRun));
 ok(!r.template.stType && !r.template.kickOutcome && r.template.playType === 'Short Pass'
   && !r.template.formationKey && r.template.family === r.template.before.family && r.template.qb === r.template.before.qb,
   'an old template applies its current values only; its retired Formation is not applied', JSON.stringify(r.template));

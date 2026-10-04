@@ -14,7 +14,6 @@ const makeFs = () => {
       if (state.fail) throw new Error('disk down');
       state.db = bytes.slice();
     },
-    readJson: async () => ({ id: 'legacy', seasonName: 'Legacy', games: [] }),
   };
 };
 const catalog = fs => new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
@@ -35,17 +34,6 @@ await check('a failed version delete reports failure and keeps the row in memory
   assert.equal(await cp.deleteVersionScoped('season', 'game', 'keep'), false);
   assert.deepEqual(await cp.getVersionScoped('season', 'game', 'keep'), { owner: 'A' });
   assert.deepEqual(await catalog(fs).getVersionScoped('season', 'game', 'keep'), { owner: 'A' });
-});
-
-await check('a failed first-run import neither claims success nor leaves an in-memory season', async () => {
-  const fs = makeFs(), cp = catalog(fs);
-  fs.state.fail = true;
-  await assert.rejects(cp.migrateJsonSeasons(['legacy']), /did not reach disk/);
-  assert.deepEqual(await cp.listSeasons(), []);
-  assert.equal(fs.state.db, null);
-  fs.state.fail = false;
-  assert.equal(await cp.migrateJsonSeasons(['legacy']), 1);
-  assert.equal((await catalog(fs).listSeasons()).length, 1);
 });
 
 await check('desktop catalog writes stage first and never overwrite the live db on failure', async () => {

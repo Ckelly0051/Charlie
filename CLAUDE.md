@@ -97,8 +97,9 @@ passing yards; called Run/Pass is unchanged (`docs/REPORTS-CONTRACTS.md`).
 - **One season format, no old-format reader.** The live seasons were converted
   once (2026-09-26). `js/season-format.js` alone knows the retired shapes and
   only detects them: an old import, restore point, game version, mirror copy,
-  first-run JSON import, CSV with a combined look, or stored season is REFUSED
-  with a plain message and nothing is written. No charting path (library,
+  CSV with a combined look, or stored season is REFUSED with a plain message
+  and nothing is written. A leftover per-season `season.json` is never read or
+  imported; only explicit, confirmed mirror recovery brings a season back. No charting path (library,
   templates, auto-detect) can create an old shape.
 - A failed durable write reports failure; never report success for a write that
   did not land.

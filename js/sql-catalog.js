@@ -357,9 +357,6 @@ export class SqlCatalog {
   }
   touchOpened(id) { this._run('UPDATE seasons SET last_opened = ? WHERE id = ?', [new Date().toISOString(), id]); }
 
-  /** Import an existing season.json (post-_normalize) into the catalog. Idempotent per id. */
-  importSeasonJson(seasonObj) { return this.saveSeason(seasonObj); }
-
   // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
   // Every method below takes seasonId as an explicit first parameter. The
   // caller (CatalogPersistence) passes it straight through -- it no longer
