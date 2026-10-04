@@ -287,7 +287,7 @@ export class PlaylistManager {
         // real duration is backfilled by _backfillDurations once it resolves.
         timestamp: { start: 0, end: clip.duration || 999 },
         // The unit being charted seeds the new play; its drive is not charted
-        // yet, so an imported clip gets none (Codex review of ecbe8b4).
+        // yet, so an imported clip gets none.
         tags: this.tagger.constructor.blankTags({ unit: this.tagger.defaultUnit || 'offense' }),
         annotations: [],
         notes: '',

@@ -1,31 +1,21 @@
 /**
- * plan-export.js — PURE plan → export serializer (Phase 3 ordering/presentation/
- * export, the data half). Turns a game plan + the season's games into an ORDERED,
- * film-linked export structure and a self-contained printable HTML document.
- *
- * WHY PURE + UNWIRED (like clip-identity.js / study-plan.js): resolving a plan's
- * composite `gameId::playId` refs to play context, ordering, and escaping are data
- * concerns the Plan UI (Codex) shouldn't re-implement. `build()` gives the
- * presentation/teaching view AND the export the SAME resolved structure (items in
- * plan order, each ref resolved to its game + situation), so on-screen and printed
- * output can't drift. `html()` renders a standalone printable doc. Node-tested; the
- * Plan screen wires an Export/Print button + presentation view to these.
+ * plan-export.js: pure plan to export serializer. Turns a game plan and the
+ * season's games into an ordered, film-linked structure and a self-contained
+ * printable HTML document. `build()` feeds both the presentation view and the
+ * export, so on-screen and printed output cannot drift; `html()` renders the
+ * standalone document.
  *
  *   const exp = PlanExport.build(plan, seasonStore.data.games);
  *   printWindow.document.write(PlanExport.html(exp));   // or feed exp to a view
  *
- * Escaping: plan name/notes/labels + play notes travel in importable seasons, so
- * html() escapes every interpolated string (stored-XSS boundary, lesson #18).
+ * Escaping: plan names, notes, labels and play notes travel in importable
+ * seasons, so html() escapes every interpolated string.
  *
- * E3b: `look` here is TagProjection.lookLabel — a presentation STRING
- * (alignment + structure, e.g. "Shotgun Trips"), not a raw `tags.formation`
- * read and not a Formation ANALYTICS column. It is deliberately named `look`,
- * not `formation` — labeling a combined alignment+structure phrase "Formation"
- * would repeat the exact classification mistake E1-E3 corrected (a coach
- * reading "Shotgun Trips" under a literal "Formation" heading would reasonably
- * conclude Shotgun IS a formation). Refs and order are untouched; only the
- * label is projected. See tag-projection.js `lookLabel` for why this
- * composition is deliberate here but forbidden in a column-shaped surface.
+ * `look` is TagProjection.lookLabel, a presentation string combining
+ * alignment and structure (e.g. "Shotgun Trips"). It is deliberately not
+ * called Formation, which would imply Shotgun is a formation; such a
+ * combined label is allowed here but never in a column-shaped surface (see
+ * tag-projection.js `lookLabel`).
  */
 import { TagProjection } from './tag-projection.js';
 

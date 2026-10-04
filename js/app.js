@@ -318,12 +318,10 @@ class App {
    * re-persist, or reload film. A failed switch opens nothing and returns false.
    */
   /**
-   * The one authoritative game-entry command (C1). `opts.route` lets the S6-4a
-   * shell game switcher land back on the route the coach was already reading
-   * instead of bouncing every switch through Break Down. It is a destination
-   * argument only: commit/persist/history-reset/film-load ordering below is
-   * untouched, and omitting it keeps the historical Break Down default, so no
-   * existing caller changes behavior.
+   * The one game-entry command. `opts.route` is the destination route (the
+   * shell game switcher keeps the coach on the route they were reading);
+   * omitted, it opens Break Down. Commit, persist, history reset and film load
+   * order are the same either way.
    */
   async openGame(gid, opts = {}) {
     const store = this.storage?.seasonStore;
@@ -1246,13 +1244,9 @@ class App {
       return;
     }
 
-    // D-projform (E4 review fix): Save & Next/Enter is the app's "explicit
-    // save" gesture for the play being LEFT, during NORMAL chronological
-    // advance only — not Skip (deliberately excluded: it means "moving on
-    // without committing anything here," the same reason it doesn't carry
-    // situation forward), and not filtered cut-up navigation (already handled
-    // and returned above — a curated Study/Film Room review queue isn't the
-    // coach's "I'm done with this play" moment the way ordinary charting is).
+    // Save & Next (Enter) is the explicit save for the play being left, during
+    // normal chronological advance only: not Skip, which moves on without
+    // committing, and not a filtered cut-up queue, handled above.
 
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.
@@ -1333,7 +1327,7 @@ class App {
 
     const curPlay = this.tagger.getCurrentPlay();
     // The unit on screen: a play's counted unit, never the carried one, which
-    // only seeds a play that does not exist yet (code review CR-1).
+    // only seeds a play that does not exist yet.
     const curUnit = curPlay ? countedUnit(curPlay) : (this.tagger.defaultUnit || 'offense');
 
     // Y jumps to the yardage input (type the number, Enter advances) —

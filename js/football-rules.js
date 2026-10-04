@@ -40,11 +40,10 @@ export const DRIVE_ENDERS = new Set([
  * carries no proven owner, so possession is never inferred there.
  */
 /**
- * The unit a play COUNTS as: its stored unit, and offense when none is stored,
- * which is how every report already counts a legacy play. Chart, the play card
- * and Film Room all read this one rule, so a play can never show one unit in
- * one view and another elsewhere (1.12.0-99 smoke, S99-2). Reading never
- * writes; a unit is stored only when the coach chooses one.
+ * The unit a play counts as: its stored unit, and offense when none is stored.
+ * Chart, the play card, Film Room and every report read this one rule, so a
+ * play never shows different units in different views. Reading never writes; a
+ * unit is stored only when the coach chooses one.
  */
 export function countedUnit(play) {
   const unit = play?.tags?.unit;

@@ -2,23 +2,20 @@ import { TagProjection } from './tag-projection.js';
 import { ChartingDetails } from './charting-details.js';
 
 /**
- * THE CURRENT SEASON FORMAT, and the one place that knows the retired shapes
- * (legacy excision Pass 2, step 6).
+ * The current season format, and the one place that knows the retired shapes.
  *
- * The live catalog was converted once on 2026-09-26 (tools/convert-legacy-once.mjs, deleted after use; commit 71761f5).
- * Nothing in the app reads an old shape any more; instead every path that brings
- * data IN from somewhere else -- a season file import, a season restore point, a
- * game version, the Documents mirror, a first-run JSON import -- asks this owner
+ * The live catalog was converted once on 2026-09-26. Nothing in the app reads
+ * an old shape; every path that brings data in (a season file import, a
+ * restore point, a game version, the Documents mirror, a CSV) asks this owner
  * first and refuses an old file before anything is written. The file on disk
- * stays exactly as it is.
+ * is unchanged.
  *
- * It detects; it never converts. The checks are the conversion's own:
+ * It detects; it never converts. The checks:
  *   - a charted play with no unit
  *   - a combined look (an alignment inside the Formation, Empty inside
- *     it, a family inside Coverage): the look commit would still change it
+ *     it, a family inside Coverage)
  *   - the retired Formation field (one field that mixed family, receiver and
- *     package words; converted once into Formation and Receiver Alignment), on a
- *     play or as a play call's saved default
+ *     package words), on a play or as a play call's saved default
  *   - a retired Special Teams tag (stType, kickOutcome, scoreFor, kickDistance,
  *     returnYards, hangTime, kickedTo)
  *   - an extra point stored on a Field Goal unit

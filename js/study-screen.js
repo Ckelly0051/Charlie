@@ -2,17 +2,9 @@ import { mountNativeStudy } from './native-study.jsx';
 /** Interactive Study workspace over the parity-locked StudyQuery engine. */
 export class StudyScreen {
   static get DIMENSIONS() {
-    // E3b review finding: qbAlignment/coverageFamily were 'ready' in the
-    // AnalyticsRegistry and fully proven at the query-engine level (registry-set
-    // equality, completeness), but this hardcoded list never listed them — so a
-    // coach could not select either dimension in Study at all. Positioned next to
-    // their structural counterpart (qbAlignment after formation, coverageFamily
-    // after coverage), mirroring the Film Room column placement.
-    // Study expansion (2026-08-15): fieldZone joins the list now that it is a
-    // real 'ready' registry dimension (was deferred -- see analytics-registry.js).
-    // scoreSituation is NOT added: it remains deliberately deferred (no
-    // per-play score-at-snap reconstruction exists), so it is honestly absent
-    // rather than offered and silently unusable.
+    // Every 'ready' registry dimension a coach can pick, ordered like the Film
+    // Room columns. scoreSituation is absent on purpose: there is no per-play
+    // score-at-snap reconstruction, so it would be unusable.
     return ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion', 'motionStart', 'motionEnd',
       'playDir', 'gap', 'rpoRead', 'rpoDecision', 'qbRun', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
@@ -67,17 +59,12 @@ export class StudyScreen {
   }
 
   /**
-   * Study expansion (2026-08-15) -- core coaching analysis. Five football
-   * concepts, each an offense-produced/defense-allowed pair sharing one
-   * AnalyticsMetrics formula (see analytics-metrics.js's "POLARITY IS PER
-   * UNIT" docblock). A coach never picks "successRate" and gets a universal
-   * higher-is-better number regardless of who's on the field -- picking a
-   * CONCEPT plus a Unit resolves the ONE correct, unambiguous metric id, via
-   * `_richMetricId()`. This deliberately REPLACES the old unit-blind
-   * `successRate`/`explosiveRate`/`negativeRate`/`havocRate` selector entries
-   * (still present in `MEASURES` above for `run()`/`compare()`'s own
-   * backward-compatible flat contract, which stays byte-unchanged) --
-   * offense/defense framing was exactly the bug this pairing fixes.
+   * Core coaching concepts, each an offense-produced / defense-allowed pair
+   * sharing one AnalyticsMetrics formula (see "POLARITY IS PER UNIT" in
+   * analytics-metrics.js). A concept plus a Unit resolves one unambiguous
+   * metric id through `_richMetricId()`, so no measure is a unit-blind
+   * higher-is-better number. The flat measures in `MEASURES` remain for
+   * `run()`/`compare()`.
    */
   static get RICH_METRIC_PAIRS() {
     return {
@@ -89,14 +76,9 @@ export class StudyScreen {
     };
   }
   static get RICH_METRIC_IDS() { return Object.keys(StudyScreen.RICH_METRIC_PAIRS); }
-  /** The flat, registry-backed measures still selectable alongside the rich
-   *  concepts -- no AnalyticsMetrics equivalent exists for these, so they
-   *  stay on the original `run()`/`compare()` path untouched.
-   *  Review fix (b8a0ab4): `runShare`/`passShare` are real, working measures
-   *  on that legacy path -- there is no reason to retire them, and doing so
-   *  silently changed a coach's saved play-mix question into a different one
-   *  (Success Rate) on reopen. They belong here, restorable exactly, same as
-   *  `epaPerPlay`/`touchdowns`/`turnovers`. */
+  /** Flat registry measures still selectable beside the rich concepts; they
+   *  have no AnalyticsMetrics equivalent and stay on the `run()`/`compare()`
+   *  path. A saved view naming one reopens exactly. */
   static get ADVANCED_MEASURES() { return ['runShare', 'passShare', 'epaPerPlay', 'touchdowns', 'turnovers']; }
   // Study expansion Phase 2: penalty/Special Teams measures are selectable
   // primary metrics too -- they ride the same picker + lens grouping as the
@@ -113,17 +95,9 @@ export class StudyScreen {
   static get DEFAULT_UNIT() { return 'offense'; }
 
   /**
-   * AX-7 — the lenses applied to the primary-metric picker.
-   *
-   * Study expansion (2026-08-15): the picker's option SET changed from the
-   * old unit-blind flat measures to `SELECTABLE_METRICS` (the five rich
-   * offense/defense concept pairs plus the three legacy flat measures with
-   * no AnalyticsMetrics equivalent). Grouping does NOT preserve overall
-   * option order, so anything that depended on "the first option" has to be
-   * pinned explicitly -- `_bind()` restores the historical default for
-   * exactly that reason (now `DEFAULT_METRIC`, 'success'). Option VALUES for
-   * the legacy three are untouched, so a saved view referencing them is
-   * still byte-identical.
+   * The lenses applied to the primary-metric picker over `SELECTABLE_METRICS`.
+   * Grouping does not preserve option order, so the default is pinned
+   * explicitly (`DEFAULT_METRIC`), never "the first option".
    */
   static get MEASURE_LENSES() {
     return [
@@ -238,17 +212,11 @@ export class StudyScreen {
   }
 
   /**
-   * S8-2: dimensions whose values exist ONLY on `unit:'special'` plays.
-   * Selecting one while Unit reads Offense/Defense/blank always empties the
-   * result -- the exact silent dead-end reported for "Break Down By: Special
-   * Teams Unit" + "Unit: Offense". Every OTHER dimension (Formation, Play
-   * Type, Front, Coverage, Blitz, ...) is genuinely chartable from more than
-   * one unit's snap -- the redesign's own dual-charting model, where an
-   * offensive snap can carry "Defense Faced" and a defensive snap can carry
-   * "Offense Faced" (see the DIMENSION_GROUPS comment and CLAUDE.md's
-   * already-played opponent-scout shortcut) -- so none of those are ever
-   * forced, per the product rule that a dimension must never be locked
-   * merely because it is MOSTLY tagged from one side of the ball.
+   * Dimensions whose values exist only on Special Teams plays: picking one
+   * with Unit Offense, Defense or blank would always be empty, so Unit is
+   * forced. Every other dimension can be charted from more than one unit's
+   * snap (an offensive snap can carry Defense Faced and vice versa), so none of
+   * those is ever locked to a unit.
    */
   static get UNIT_FORCED_DIMENSIONS() {
     return {
@@ -271,10 +239,9 @@ export class StudyScreen {
     this._bound = false;
     this._pendingPlanItems = [];
     this._saveCohorts = [];
-    // Review fix (2026-08-15, bc0f677 finding #2): the exact cohort/label the
-    // "Watch results" button represents, set only by `_setWatchAll`. The click
-    // handler consumes THESE fields -- never `this.rows` -- so the button can
-    // never open a wider cohort than what it displays (see `_setWatchAll`).
+    // The exact cohort and label "Watch results" represents, set only by
+    // `_setWatchAll`; the click handler reads these, never `this.rows`, so it
+    // cannot open a wider cohort than it displays.
     this._watchAllRefs = [];
     this._watchAllLabel = 'Watch results';
     this._nativeSeasonId = null;
@@ -361,14 +328,9 @@ export class StudyScreen {
   }
 
   /**
-   * Codex review finding #1: the exact metric-eligible refs for `measure`
-   * within `group`, when the measure declares `refsPath` (Study expansion
-   * Phase 2's penalty/Special Teams measures); falls back to the group's
-   * raw `matchingPlayIds` for every measure that predates this checkpoint
-   * (`group.measureRefs[measure]` is `null` for those -- a documented,
-   * additive no-op). This is the SINGLE seam every row/bar/Watch-Results/
-   * compare/pivot use so none of them can independently drift back to the
-   * broader cohort.
+   * The metric-eligible refs for `measure` in `group` when the measure
+   * declares `refsPath`; otherwise the group's `matchingPlayIds`. The one seam
+   * every row, bar, Watch Results, compare and pivot uses.
    */
   _groupRefs(group, measure) {
     const scoped = group.measureRefs?.[measure];
@@ -376,19 +338,11 @@ export class StudyScreen {
   }
 
   /**
-   * Codex re-review finding: the displayed Plays count must derive from the
-   * measure's own exact refs (the same `_groupRefs` every Watch action
-   * already consumes) whenever they exist -- never the raw group sample, and
-   * never an unrelated `denominatorMeasure` that answers a different
-   * question than "how many clips does Watch open." The prior mechanism
-   * (`_measureDenominatorText`, still used as the fallback below) predates
-   * `measureRefs` and reads `denominatorMeasure` off the SAME group's
-   * `measures` map -- correct for a RATE whose eligible cohort equals its
-   * own attempted count, but wrong for a plain COUNT like "Onside Kicks
-   * Recovered", whose `denominatorMeasure` (attempted onsides) is a larger,
-   * different set than what Watch actually opens (recovered onsides only).
-   * Falls back to `_measureDenominatorText` for any measure with no
-   * `refsPath` -- unchanged behavior for every pre-existing measure.
+   * The displayed Plays count comes from the measure's own refs (the same
+   * `_groupRefs` Watch opens) whenever they exist, never the raw group sample
+   * or a `denominatorMeasure` answering a different question: for a count like
+   * Onside Kicks Recovered, attempted onsides is a larger set than what Watch
+   * opens. Measures without `refsPath` use `_measureDenominatorText`.
    */
   _playsText(scope, measure) {
     const refs = scope?.measureRefs?.[measure];
@@ -450,11 +404,9 @@ export class StudyScreen {
     return Number.isFinite(n) ? this._playerNumber(metric, n) : '—';
   }
 
-  /** Review fix (bc0f677 finding #1): the Plays column must report the SAME
-   *  cohort the metric was actually computed over, never the group's wider
-   *  raw sample -- disclosed explicitly ("7 of 10") whenever eligibility
-   *  excluded a play, rather than silently swapping in a smaller number with
-   *  no explanation (the per-metric state badge already names why). */
+  /** The Plays column reports the cohort the metric was computed over, and
+   *  says "7 of 10" when eligibility excluded plays rather than silently
+   *  showing a smaller number. */
   _metricPlaysText(m, rawSampleSize) {
     const denom = m?.denominator ?? 0;
     return denom === rawSampleSize ? String(denom) : `${denom} of ${rawSampleSize}`;
@@ -497,18 +449,11 @@ export class StudyScreen {
   }
 
   /**
-   * Codex review finding #4 (this checkpoint): `_lowerIsBetter` was boolean,
-   * so every measure NOT on that list silently defaulted to higher-is-better
-   * -- including genuinely neutral/context-dependent ones (a phase-scoped
-   * penalty count that could belong to either team; a punt touchback rate,
-   * where forcing a touchback vs. allowing a return is a strategic tradeoff,
-   * not a scored outcome). Explicit three-state polarity: a measure is
-   * 'higher' or 'lower' ONLY when it is on one of these two lists; anything
-   * else, including every measure this checkpoint could not classify with
-   * confidence, is 'neutral' and renders with NO favorable/unfavorable
-   * color at all. The RICH_METRIC_PAIRS path is unaffected -- it already
-   * carries real per-metric polarity from AnalyticsMetrics and never reaches
-   * this fallback.
+   * Three-state polarity for flat measures: 'higher' or 'lower' only when
+   * listed below; anything else is 'neutral' and gets no favorable or
+   * unfavorable color (a phase-scoped penalty count can belong to either team;
+   * a punt touchback rate is a strategic tradeoff). Rich metric pairs carry
+   * their own polarity and never reach this.
    */
   static get HIGHER_IS_BETTER_MEASURES() {
     return new Set([
@@ -574,19 +519,15 @@ export class StudyScreen {
   _saveView() {
     const state = this._state();
     const dimension = this.app.analyticsRegistry.getDimension(state.dimension)?.name || state.dimension;
-    // Review fix (bc0f677 finding #4): 'recent' had no comparison-label case
-    // and fell through to the (irrelevant, disabled-during-compare) scope
-    // branch; a 2-game and a 5-game recent comparison must read as distinct
-    // questions, both in the visible name and in the dedup identity below.
+    // A 2-game and a 5-game recent comparison are distinct questions, in the
+    // visible name and in the identity below.
     const comparison = state.compare === 'rangePrior' ? 'Range vs prior'
       : state.compare === 'recent' ? `Recent ${state.periodGames} vs prior ${state.periodGames}`
       : state.compare === 'prior' ? 'Game vs prior' : state.compare === 'season' ? 'Game vs season'
       : state.scope === 'game' ? 'Current game' : state.scope === 'range' ? 'Date range' : 'Season';
-    // Codex review finding #3: a player question's saved NAME must describe
-    // what it actually asks (role + player metric, optionally the specific
-    // player), never the "Break down by"/Unit/Measure controls -- those are
-    // either disabled placeholders (Measure) or repurposed for a different
-    // purpose (Dimension, only meaningful in single-player breakdown mode).
+    // A player question's saved name describes what it asks (role and player
+    // metric, optionally the player), not the Break down by / Unit / Measure
+    // controls, which it disables or repurposes.
     const roleConfig = state.playerRole ? StudyScreen.PLAYER_ROLES[state.playerRole] : null;
     const playerMetric = roleConfig ? (state.playerMetric && roleConfig.metrics.includes(state.playerMetric) ? state.playerMetric : roleConfig.metrics[0]) : null;
     const playerMetricLabel = roleConfig ? (StudyScreen.PLAYER_METRIC_LABELS[state.playerRole]?.[playerMetric] || playerMetric) : null;
@@ -594,11 +535,8 @@ export class StudyScreen {
       ? `${roleConfig.name} — ${playerMetricLabel}${state.player ? ` (#${state.player})` : ''} · ${comparison}`
       : `${dimension} · ${comparison}${state.unit ? ` · ${state.unit}` : ''}${state.filters.length ? ` · ${state.filters.length} filter${state.filters.length === 1 ? '' : 's'}` : ''}`;
     const views = this._views();
-    // periodGames included so a 2-game and a 5-game recent-comparison view
-    // (otherwise identical) never collide and silently overwrite each other.
-    // playerRole/player/playerMetric included so a player question and an
-    // ordinary query (or two distinct player questions) never collide on
-    // identity -- Codex review finding #3.
+    // periodGames, playerRole, player and playerMetric are part of the
+    // identity, so otherwise-identical views never overwrite each other.
     const id = `${state.dimension}|${state.scope}|${state.unit}|${state.measure}|${state.minSample}|${state.compare}|${state.periodGames}|${state.dateFrom}|${state.dateTo}|${JSON.stringify(state.filters)}|${state.playerRole}|${state.player}|${state.playerMetric}`;
     const next = [...views.filter(view => view.id !== id), { id, name, state }].slice(-12);
     try { localStorage.setItem('ffa_study_views_v1', JSON.stringify(next)); }
@@ -608,18 +546,11 @@ export class StudyScreen {
   }
   _saveToPlan() {
     const state = this._state();
-    // Codex review finding #4: a player question actually queries a
-    // role-specific dimension (or, in single-player breakdown, the "Break
-    // down by" dimension filtered to that player) with the player metric --
-    // NOT `state.dimension`/`state.measure`, which for a player question are
-    // either a stale carryover from before the role was picked (measure is
-    // disabled but its value isn't cleared) or repurposed for a different
-    // job (dimension, only meaningful once a specific player is chosen).
-    // Saving a Tackler/Sacks leaderboard finding with the raw fields would
-    // have recorded "Formation - Success Rate" -- refs were correct, but the
-    // label and the stored query metadata described a different question
-    // entirely. Mirrors the native view model's dimension/metric resolution so
-    // the saved finding always matches what was actually queried.
+    // A player question queries a role dimension (or, for one player, the
+    // Break down by dimension filtered to that player) with the player
+    // metric, not `state.dimension`/`state.measure`, which may be stale or
+    // repurposed. Mirrors the native view model, so a saved finding records
+    // what was actually queried.
     const roleConfig = state.playerRole ? StudyScreen.PLAYER_ROLES[state.playerRole] : null;
     let dimensionName, measureName, dimensionId, measureId;
     if (roleConfig) {
@@ -693,7 +624,7 @@ export class StudyScreen {
     const view = this._views().find(item => item.id === id);
     if (!view || !this._native) return;
     const savedMeasure = view.state.measure;
-    // Renamed measures in saved views were converted once on the coach's profile (legacy excision Pass 2b; the converter was deleted after the 1.12.0-103 smoke confirmed it).
+    // An unknown saved measure falls back to the default metric.
     const measure = StudyScreen.SELECTABLE_METRICS.includes(savedMeasure) ? savedMeasure : StudyScreen.DEFAULT_METRIC;
     const role = view.state.playerRole || '';
     const roleConfig = StudyScreen.PLAYER_ROLES[role];

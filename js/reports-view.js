@@ -651,14 +651,11 @@ export function individualStats(stats, group, playerLabel, board = null) {
     rows: withStats('tackles', ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) }))) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
-    /* ONE RETURN COHORT ACROSS BOTH SURFACES. Return production is measured
-       over the returns carrying a charted `returnYards`, the same dedicated
-       field the team Return Production reads — and `Ret` is that same measured
-       count, not the return EVENTS. Counting every event here reported 11
-       returns beside 5 yards and a 5.0 average, three numbers from two
-       different cohorts, above a team report stating 1 return for 5 yards.
-       An unmeasured return is still a special-teams snap and stays in the
-       unit's snap count; it is not production. Coach ruling 2026-09-10. */
+    /* One return cohort across both surfaces: return production and `Ret`
+       count only returns with a charted `returnYards`, the same field the team
+       Return Production reads, so count, yards and average never mix
+       cohorts. An unmeasured return still counts as a special-teams snap.
+       Coach ruling 2026-09-10. */
     rows: withStats('returns', ind.returners.map(r => ({ ...player(r.num), ret: r.measured,
       yds: r.measured ? r.yards : PLAYER_NO_DATA,
       avg: r.measured ? (r.yards / r.measured).toFixed(1) : PLAYER_NO_DATA,
@@ -799,17 +796,11 @@ export function specialTeamsKpis(stats, summary) {
         ? [[['Returns', retAtt], ['Yards', retYards], ['Long', `${retLong} yds`]]]
         : null,
       refs: [...new Set([...(kickRet.refs?.attempts || []), ...(puntRet.refs?.attempts || [])])].sort() },
-    // "Coverage Allowed" was an invented name for punt and kickoff coverage
-    // averaged TOGETHER -- one yards-per-return over two different units'
-    // denominators, which is the blend this report is not allowed to make, and
-    // duplicating a number each unit already reports correctly on its own.
-    // Counts of the SAME event do combine, so the slot states the outcome a
-    // coordinator actually tracks: a return that went the distance, whichever
-    // coverage unit gave it up. Coach, 2026-09-04.
-    // Coach (2026-09-04): listing only touchdowns ALLOWED in a general Special
-    // Teams grouping is wrong -- both directions belong. For = our return
-    // units reaching the end zone; Allowed = a return that went the distance
-    // against our coverage. Counts of the same event, so they combine.
+    // Counts of the same event combine across units, so this slot states
+    // return touchdowns both ways: For (our return units) and Allowed (a
+    // return against our coverage). Yards per return are never averaged across
+    // punt and kickoff coverage, which have different denominators. Coach,
+    // 2026-09-04.
     { label: 'Touchdowns',
       stats: [[
         ['For', (st.returns?.kick?.td ?? 0) + (st.returns?.punt?.td ?? 0)],

@@ -259,23 +259,19 @@ export function CreateScoutForm({ onSubmit, onOpenExisting, onCancel }) {
     <div class="gi-hub-form-actions"><button type="button" onClick={onCancel}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Creating…' : 'Create scout'}</button></div>
   </form>;
 }
-/* PC-3 explicit recovery (Convergence Plan Invariant #6): the coach-triggered
-   preview-and-confirm replacement for the removed automatic mirror import.
-   `candidates` is the already-fetched scanRecoverableSeasons() result --
-   fetched once by the screen before this opens, never re-fetched here, so
-   the list a coach reviews cannot silently change mid-decision. Every row's
-   own Recover click re-validates and re-confirms at the point of action
-   (onRecover), never trusting this snapshot as authorization by itself. */
+/* Explicit recovery: the coach-triggered preview and confirm. `candidates` is
+   the scanRecoverableSeasons() result fetched once before this opens, so the
+   list cannot change mid-decision. Each row's Recover click re-validates and
+   re-confirms at the point of action (onRecover). */
 function RecoverCandidate({ candidate, onRecover }) {
   const [state, setState] = useState('idle'); // idle | confirming | busy | error
   const [error, setError] = useState('');
   const label = candidate.valid ? 'Recoverable'
     : candidate.reason === 'old-format' ? 'Old format'
     : `Not recoverable (${candidate.reason || 'unreadable'})`;
-  // Every invalid candidate stays VISIBLE, so the coach knows the file exists,
-  // and offers no action: the reason is visible text in the row. A disabled
-  // Recover button looked enabled and kept its reason in a `title` a disabled
-  // button never shows (installed smoke 1.12.0-103, S103-1).
+  // An invalid candidate stays visible, so the coach knows the file exists,
+  // with its reason as visible text and no action (a disabled button would
+  // hide the reason in a tooltip it never shows).
   const reason = candidate.valid ? null
     : candidate.reason === 'old-format' ? 'Saved in an old GridIron IQ format. It cannot be recovered.'
     : 'It cannot be recovered.';

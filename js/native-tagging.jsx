@@ -173,8 +173,8 @@ function ResultField({screen, state}) {
   </div>;
 }
 
-/** Gap sits directly under Play Direction and is independent of it (S107-4):
- *  the ten choices always show in one row (ChartingDetails.GAPS). */
+/** Gap sits directly under Play Direction and is independent of it: the ten
+ *  choices always show in one row (ChartingDetails.GAPS). */
 function GapField({screen, state}) {
   const gap = state.values.gap || '';
   return <div class="gi-tag-field" data-native-field="gap">

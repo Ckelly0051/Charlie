@@ -65,16 +65,9 @@ export class AnalyticsRegistry {
       ready('unit', 'Unit', p => [countedUnit(p)], 'legacy blank => offense'),
       ready('down', 'Down', tag('down'), 'play.tags.down'),
       ready('distance', 'Distance', tag('distance'), 'play.tags.distance'),
-      // Study expansion (2026-08-15): the "no shared bucketing function"
-      // reason is now stale -- StatsEngine._fieldZone() (extracted from the
-      // Play Call report's own Field Position dimension, so this is the SAME
-      // six-band convention a coach already sees there: Backed up / Own
-      // 11-39 / Midfield / Opp 40-20 / Red zone / Goal line) is that shared
-      // function. Deliberately unit-agnostic -- it reads only the play's own
-      // tagged field position, so it is equally meaningful grouping our
-      // offense's production or our defense's field-position situation
-      // (e.g. "how did our defense perform with the opponent in OUR red
-      // zone"). The caller's `unit` filter decides which snaps it applies to.
+      // The shared six-band bucketer (StatsEngine._fieldZone), the same bands
+      // the Play Call report shows. Unit-agnostic: the caller's `unit` filter
+      // decides whether it groups our offense or our defense's situations.
       ready('fieldZone', 'Field Zone', p => this._one(this.stats._fieldZone(p?.tags || {})), 'StatsEngine._fieldZone'),
       ready('hash', 'Hash', tag('hash'), 'play.tags.hash'),
       // scoreSituation stays deferred, deliberately: there is no per-play
@@ -212,18 +205,11 @@ export class AnalyticsRegistry {
       ready('penaltyRuling', 'Penalty Ruling', p => penalties(p).map(item => item.disposition), 'PenaltyModel.normalizeList.disposition', { multi: true }),
       ready('penaltyPhase', 'Penalty Phase', p => penalties(p).map(item => item.phase), 'PenaltyModel.normalizeList.phase', { multi: true }),
       ready('penaltyPlayCounts', 'Penalty Play Counts', p => penalties(p).map(item => item.playCounts === true ? 'Play counts' : item.playCounts === false ? 'No play' : 'Unknown'), 'PenaltyModel.normalizeList.playCounts', { multi: true }),
-      // Codex review (bc0f677-class finding, this checkpoint's own review):
-      // NO pre-snap-vs-live-ball dimension is registered. `phase` records
-      // WHICH SIDE OF THE BALL a foul happened on (or 'deadBall' for
-      // after-the-play responsibility, per GRIDIRON-IQ-PENALTY-MODEL.md §5's
-      // semantics) -- it is NOT a timing field, and 'deadBall' does not mean
-      // "pre-snap." The model doc's own roadmap (§6) lists "pre-snap vs
-      // live-ball" as explicitly DEFERRED "once foul metadata supports that
-      // grouping" -- that metadata does not exist yet. A prior version of
-      // this checkpoint shipped a `penaltyTiming` dimension inferring timing
-      // from `phase`; it fabricated a distinction the stored data cannot
-      // support and was removed on review. Do not reintroduce it without a
-      // real timing field.
+      // No pre-snap vs live-ball dimension: `phase` records which side of
+      // the ball a foul happened on ('deadBall' is after-the-play
+      // responsibility, GRIDIRON-IQ-PENALTY-MODEL.md §5), not timing. Timing
+      // needs a real field, deferred in that model's §6; never infer it from
+      // `phase`.
       ready('customTag', 'Custom Tag', p => (p?.tags?.custom || []).filter(Boolean).map(String), 'play.tags.custom', { multi: true }),
       ready('customField', 'Custom Field', p => pairs(p?.tags?.customFields), 'play.tags.customFields', { multi: true }),
       ready('result', 'Result', p => SE.splitResults(p?.tags?.result), 'StatsEngine.splitResults', { multi: true }),
@@ -239,20 +225,10 @@ export class AnalyticsRegistry {
       deferred('frequency', 'Frequency', 'Requires an explicit parent-cohort denominator'),
       ready('runShare', 'Run Share', ['tendencies', 'runPct'], 'StatsEngine._tendencyStats'),
       ready('passShare', 'Pass Share', ['tendencies', 'passPct'], 'StatsEngine._tendencyStats'),
-      // yardsPerPlay/stopRate stay 'requires-context' for THIS path-based
-      // readMeasures() interface specifically -- it reads a pre-aggregated
-      // field off a compute()-for-one-cohort snapshot, and neither metric has
-      // a single such field (StatsEngine.compute() computes offense- and
-      // defense-side aggregates on the SAME object; there's no one path that
-      // means "yards/play" or "stop rate" without knowing which side you
-      // want). That is still true and this deferral is correct for
-      // readMeasures(). It does NOT mean the metric is uncomputable: as of
-      // the bounded analytics-architecture cleanup (2026-08-14),
-      // `AnalyticsRegistry.metricsEngine()` below is the canonical,
-      // ready-today way to compute both from an ad-hoc cohort, complete with
-      // eligible/denominator/polarity/state and exact film refs -- the two
-      // registries are not competing sources of truth, they answer different
-      // questions (a compute()-snapshot field vs. an arbitrary-cohort metric).
+      // yardsPerPlay and stopRate are deferred for readMeasures() only:
+      // compute() holds offense- and defense-side aggregates on one object, so
+      // no single path means either one. metricsEngine() below computes both
+      // for any cohort, with eligibility, polarity, state and exact refs.
       deferred('yardsPerPlay', 'Yards / Play', 'No single compute()-output field for either offense- or defense-framed yards/play; use AnalyticsRegistry.metricsEngine().metric(cohort, "yardsPerPlay"|"yardsAllowedPerPlay") for an ad-hoc cohort'),
       ready('successRate', 'Success Rate', ['efficiency', 'successRate'], 'StatsEngine._efficiencyStats'),
       deferred('conversionRate', 'Conversion Rate', 'Requires conversion type/down context'),
@@ -267,22 +243,14 @@ export class AnalyticsRegistry {
       ready('sampleSize', 'Sample Size', ['allPlays'], 'StatsEngine.compute().allPlays'),
       deferred('dataCompleteness', 'Data Completeness', 'No canonical production completeness measure'),
 
-      // ---- Study expansion Phase 2: Penalties -----------------------------
-      // All read PenaltyModel.summarize()'s output off StatsEngine.compute()
-      // -- no formula is reimplemented here. `stats.penalties` is only
-      // present when the cohort has real records (PenaltyModel's own
-      // `hasData` gate), so an empty cohort resolves every one of these to
-      // `undefined` -- rendered as "Not charted", never a fabricated zero.
-      // Counts are genuine denominators on their own (0 declined penalties is
-      // real information); only the YARDS totals carry the accepted-only
-      // rule, enforced inside PenaltyModel itself, never re-derived here.
-      //
-      // Codex review finding #1: every measure also declares `refsPath` --
-      // the path to PenaltyModel.summarize()'s own per-bucket `refs`, the
-      // EXACT composite refs of the plays whose records produced this
-      // number (see PenaltyModel.summarize()'s docblock). study-screen.js
-      // reads this for Watch/bars/compare/pivot instead of the group's
-      // broader `matchingPlayIds`.
+      // ---- Penalties ----
+      // All read PenaltyModel.summarize() off StatsEngine.compute(); no
+      // formula here. `stats.penalties` exists only when the cohort has
+      // records, so an empty cohort reads "Not charted", never zero. Counts
+      // are real denominators (0 declined is information); only yard totals
+      // follow the accepted-only rule, inside PenaltyModel. Each measure's
+      // `refsPath` points at the exact plays behind its number; study-screen
+      // uses it for Watch, bars, compare and pivot.
       ready('penaltyFlaggedPlays', 'Flagged Plays', ['penalties', 'flaggedPlays'], 'PenaltyModel.summarize().flaggedPlays', { refsPath: ['penalties', 'refs', 'fouls'] }),
       ready('penaltyFouls', 'Penalty Fouls (All)', ['penalties', 'fouls'], 'PenaltyModel.summarize().fouls', { refsPath: ['penalties', 'refs', 'fouls'] }),
       ready('penaltyAccepted', 'Penalties Accepted (All)', ['penalties', 'accepted'], 'PenaltyModel.summarize().accepted', { refsPath: ['penalties', 'refs', 'accepted'] }),
@@ -306,28 +274,18 @@ export class AnalyticsRegistry {
       ready('penaltyYardsOffense', 'Offensive Penalty Yards', ['penalties', 'byPhase', 'offense', 'yards'], 'PenaltyModel.summarize().byPhase.offense.yards -- accepted only', { refsPath: ['penalties', 'byPhase', 'offense', 'refs', 'yards'] }),
       ready('penaltyYardsDefense', 'Defensive Penalty Yards', ['penalties', 'byPhase', 'defense', 'yards'], 'PenaltyModel.summarize().byPhase.defense.yards -- accepted only', { refsPath: ['penalties', 'byPhase', 'defense', 'refs', 'yards'] }),
 
-      // ---- Study expansion Phase 2: Special Teams --------------------------
-      // Every measure below reads StatsEngine._specialTeamsStats()'s existing
-      // output (`stats.specialTeams`, always present) or `stats.conversions`
-      // (the accepted try contract, unchanged) -- no formula duplicated.
-      // `zeroDenominatorPath`/`denominatorMeasure` mark the handful of RATE
-      // fields whose underlying StatsEngine computation intentionally stays
-      // `0` (not `null`) on an empty cohort, to preserve every EXISTING
-      // Reports consumer's byte-identical output; `readMeasures()` below
-      // coerces those specific measures to `null` here instead, so Study
-      // never shows "0%" when the true answer is "never charted". `refsPath`
-      // (Codex review finding #1) points at the same row-group's `refs` the
-      // value itself was computed from -- a RATE's refs are its denominator
-      // set (matches AnalyticsMetrics' established convention), so multiple
-      // sibling measures sharing one denominator (e.g. every `punts.*` field
-      // dividing by the same punt-row count) correctly share one refs array.
+      // ---- Special Teams ----
+      // Read StatsEngine._specialTeamsStats() (`stats.specialTeams`) or
+      // `stats.conversions`; no formula duplicated. `zeroDenominatorPath` /
+      // `denominatorMeasure` mark rate fields that stay 0 on an empty cohort
+      // for the Reports boards; readMeasures() turns those into null so Study
+      // never shows 0% for "never charted". `refsPath` points at the row
+      // group the value came from; a rate's refs are its denominator set, so
+      // siblings sharing a denominator share one refs array.
       ready('stPuntCount', 'Punts', ['specialTeams', 'punts', 'n'], 'StatsEngine._specialTeamsStats().punts.n', { refsPath: ['specialTeams', 'punts', 'refs', 'all'] }),
-      // Codex re-review finding #2: an average's own eligible cohort can be
-      // NARROWER than `refs.all` when a row is missing that specific
-      // measurement (a punt with no charted hang time still counts toward
-      // `n`/`tbPct`, but not toward `hangAvg`). Each average now points at
-      // its own `refs.<field>` -- the exact rows StatsEngine actually
-      // divided by -- rather than the full row group.
+      // An average's eligible rows can be narrower than `refs.all` (a punt
+      // with no hang time counts toward `n` but not `hangAvg`), so each
+      // average points at its own `refs.<field>`.
       ready('stPuntGrossAvg', 'Punt Gross Avg (yds)', ['specialTeams', 'punts', 'grossAvg'], 'StatsEngine._specialTeamsStats().punts.grossAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'grossAvg'] }),
       ready('stPuntNetAvg', 'Punt Net Avg (yds)', ['specialTeams', 'punts', 'netAvg'], 'StatsEngine._specialTeamsStats().punts.netAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'netAvg'] }),
       ready('stPuntHangAvg', 'Punt Hang Time (sec)', ['specialTeams', 'punts', 'hangAvg'], 'StatsEngine._specialTeamsStats().punts.hangAvg', { refsPath: ['specialTeams', 'punts', 'refs', 'hangAvg'] }),
@@ -341,9 +299,8 @@ export class AnalyticsRegistry {
       ready('stKickoffFairCatchPct', 'Kickoff Fair Catch Rate', ['specialTeams', 'kickoffs', 'fairCatchPct'], 'StatsEngine._specialTeamsStats().kickoffs.fairCatchPct', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'n'], denominatorMeasure: 'stKickoffCount', refsPath: ['specialTeams', 'kickoffs', 'refs', 'all'] }),
       ready('stKickoffReturnAllowedAvg', 'Kickoff Return Allowed (yds)', ['specialTeams', 'kickoffs', 'retAllowedAvg'], 'StatsEngine._specialTeamsStats().kickoffs.retAllowedAvg', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'retAllowedAvg'] }),
       ready('stKickoffOnsideAtt', 'Onside Kicks Attempted', ['specialTeams', 'kickoffs', 'onside', 'n'], 'StatsEngine._specialTeamsStats().kickoffs.onside.n -- structured data only', { refsPath: ['specialTeams', 'kickoffs', 'refs', 'onside'] }),
-      // Codex re-review finding #3: "Recovered" is a strict SUBSET of
-      // "Attempted" -- it must not share the attempted-cohort's refs, or a
-      // failed-recovery clip opens under a Watch labeled "Recovered".
+      // Recovered is a subset of attempted, with its own refs, so Watch on
+      // Recovered never opens a failed recovery.
       ready('stKickoffOnsideRecovered', 'Onside Kicks Recovered', ['specialTeams', 'kickoffs', 'onside', 'recovered'], 'StatsEngine._specialTeamsStats().kickoffs.onside.recovered', { zeroDenominatorPath: ['specialTeams', 'kickoffs', 'onside', 'n'], denominatorMeasure: 'stKickoffOnsideAtt', refsPath: ['specialTeams', 'kickoffs', 'refs', 'onsideRecovered'] }),
       ready('stFieldGoalAtt', 'Field Goals Attempted', ['specialTeams', 'fg', 'att'], 'StatsEngine._specialTeamsStats().fg.att', { refsPath: ['specialTeams', 'fg', 'refs', 'all'] }),
       ready('stFieldGoalMade', 'Field Goals Made', ['specialTeams', 'fg', 'made'], 'StatsEngine._specialTeamsStats().fg.made', { refsPath: ['specialTeams', 'fg', 'refs', 'made'] }),
@@ -411,23 +368,12 @@ export class AnalyticsRegistry {
   }
 
   /**
-   * `readMeasures()`/`values()` remain the canonical path for measures/
-   * dimensions that already have a field inside `StatsEngine.compute()`'s
-   * output for a given cohort; `metricsEngine()` is the canonical path for
-   * ad-hoc-cohort metrics (yardsPerPlay/stopRate and their offense/
-   * defense-framed siblings) that `compute()` has no single field for -- see
-   * the `deferred(...)` reasons above, both of which point here.
-   *
-   * Delegates to `StatsEngine.metricsEngine()` rather than constructing its
-   * own `AnalyticsMetrics` binding. Repair, 2026-08-14 (Codex re-review,
-   * finding #2): the FIRST fix for "two competing metric registries" gave
-   * `AnalyticsRegistry` its own construction site, cached here, while
-   * `StatsEngine.defensivePerformance()` still built a structurally-identical
-   * SECOND copy independently -- so Study and Reports could still drift onto
-   * two different engines with nothing to catch it. `StatsEngine` is now the
-   * sole owner (it already has to hold every instance method the binding
-   * needs); this method is a thin pass-through so existing callers
-   * (`StudyQuery._metricsEngine()`) don't have to change.
+   * `readMeasures()`/`values()` serve measures and dimensions that have a
+   * field in `StatsEngine.compute()`'s output; `metricsEngine()` serves
+   * ad-hoc-cohort metrics (yardsPerPlay, stopRate and their framed siblings)
+   * that compute() has no single field for. A pass-through to
+   * StatsEngine.metricsEngine(), the sole owner, so Study and Reports share one
+   * engine.
    */
   metricsEngine() {
     return this.stats.metricsEngine();
@@ -474,14 +420,10 @@ export class AnalyticsRegistry {
   }
 
   /**
-   * Codex review finding #1 (Study expansion Phase 2): the exact composite
-   * `gameId::playId` refs behind a measure's value, for measures that
-   * declare `refsPath` (penalty/Special Teams measures whose eligible
-   * cohort can be narrower than -- or simply different from -- the group's
-   * raw play sample). Returns `null` for a measure with no `refsPath`
-   * (every measure that predates this checkpoint), so callers can fall back
-   * to the group's own `matchingPlayIds` unchanged -- this is purely
-   * additive and never required for existing measures to keep working.
+   * The exact composite refs behind a measure's value, for measures that
+   * declare `refsPath` (penalty and Special Teams measures, whose eligible
+   * plays can differ from the group's sample). Null otherwise; callers then
+   * use the group's `matchingPlayIds`.
    */
   readRefs(stats, measureId) {
     const entry = this.getMeasure(measureId);

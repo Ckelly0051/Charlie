@@ -15,14 +15,11 @@ export class WorkspaceShell {
     this._btnRedo = null;
     this._historyUnsub = null;
   }
-  /** Read-only compatibility pointer: HomeScreen owns the actual preview
-   *  selection now (2026-08-31 Home rebuild); kept so anything still reading
-   *  the shell for the previewed-but-not-active game id has one stable
-   *  place to look. */
+  /** Read-only pointer to HomeScreen's preview selection, the previewed but
+   *  not active game id. */
   get _homeSelectedGameId() { return this.app.homeScreen?.selectedGameId || null; }
-  // The redesigned workspace is THE product — there is no classic-layout escape
-  // hatch and no second game-entry route (C1, binding amendment 2026-07-23). The
-  // shell mounts unconditionally on every build.
+  // The shell mounts unconditionally; there is no classic layout and no
+  // second game-entry route.
   async init() { await this.enable(); }
   async enable() {
     if (!this.root) this._mount();
@@ -66,10 +63,8 @@ export class WorkspaceShell {
     this.app.planScreen?.mount(root.querySelector('#wsPlan'));
     this._bind();
   }
-  // The `|| '•'` is load-bearing, not defensive noise: adding the Reports route
-  // without adding its icon rendered the literal string "undefined" in all three
-  // navs (coach smoke, 2026-07-25). A missing icon must degrade to a neutral
-  // glyph, never leak a JS value into the UI.
+  // The `|| '•'` fallback matters: a route without an icon must show a
+  // neutral glyph, never the string "undefined".
   _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', reports:'▥', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id] || '•'}</span>${r.name}</button>`).join(''); }
   _bind() {
     this.root.addEventListener('click', async e => {
@@ -92,10 +87,8 @@ export class WorkspaceShell {
       }
       if (action === 'seasons') await this._openLibrary();
       // Home's own actions (Add game, Continue Charting, preview selection,
-      // Open Study/Reports for the previewed game, Season report) are owned
-      // by the native HomeScreen/native-home.jsx component now (2026-08-31
-      // Home rebuild) -- wired directly as onClick handlers there, not
-      // through this delegated shell handler.
+      // Open Study/Reports, Season report) are handled in native-home.jsx,
+      // not by this delegated handler.
       if (action === 'settings') this.app.settingsScreen?.open?.({ returnFocus: e.target.closest('[data-ws-action]') });
       if (action === 'more') { this._openMore(e.target.closest('[data-ws-action]')); return; }
       if (action === 'game-switch') { await this._openGameSwitch(e.target.closest('[data-ws-action]')); return; }
@@ -117,9 +110,8 @@ export class WorkspaceShell {
     this.root.dataset.route = routeId;
     this.root.querySelectorAll('[data-ws-route]').forEach(b => b.classList.toggle('active', b.dataset.wsRoute === routeId));
     this._setRouteVisibility(routeId);
-    // HomeScreen owns preview-reset itself: a preview belongs only to the
-    // current Home visit, so it resets on a genuine season change AND on any
-    // route round trip back to Home (2026-08-31 Home rebuild).
+    // HomeScreen owns preview reset: a preview belongs to the current Home
+    // visit, so it resets on a season change and on any route round trip.
     if (routeId==='home') { await this.app.homeScreen?.show(previousRoute); }
     // Every route's Preact tree stays mounted (hidden), never torn down, for
     // the app's whole life -- this is what lets Home's season rail flag
@@ -179,11 +171,9 @@ export class WorkspaceShell {
     this.root.querySelectorAll('[data-ws-route="breakdown"]').forEach(b => b.disabled = !c.capabilities.canBreakDown);
     this.root.querySelectorAll('[data-ws-route="study"],[data-ws-route="reports"],[data-ws-route="plan"]').forEach(b => b.disabled = !c.capabilities.canStudy);
   }
-  /** Season/game presentation formatting still shared with `_switchDetail`
-   *  (the Game context-switcher popover, still shell-owned) -- Home's own
-   *  rendering moved entirely to `HomeScreen`/`native-home.jsx` in the
-   *  2026-08-31 rebuild, which carries its own copies of these formulas
-   *  rather than reaching back into the shell. */
+  /** Season/game formatting shared with `_switchDetail` (the Game
+   *  context-switcher popover, shell-owned). Home keeps its own copies in
+   *  HomeScreen/native-home.jsx. */
   /** Progress is per unit, not just a play count per unit: a coach needs to see
    *  WHICH side is behind, and "O 24 · D 18 · ST 6" never said that. Charted
    *  uses the same isPlayTagged predicate as the overall figure, so the unit
@@ -221,10 +211,8 @@ export class WorkspaceShell {
     return true;
   }
   async closeTeamHub(){ return this.show('home'); }
-  /** Home's direct "New game" action (C1 finding 4), reused by the mobile More
-   *  menu -- HomeScreen.addGame() owns the one transaction (GameScreen create
-   *  + the authoritative App.openGame() open, or a trip to the library with no
-   *  season open) so there is exactly one implementation. */
+  /** Home's "New game" action, reused by the mobile More menu.
+   *  HomeScreen.addGame() owns the one transaction. */
   async _newGame(){ await this.app.homeScreen?.addGame?.(); }
   /** Own global chrome directly: real buttons rendered by this class, wired
    *  to the underlying services in _bind()'s data-ws-tool branch. Append
@@ -251,17 +239,15 @@ export class WorkspaceShell {
     if(this._btnRedo)this._btnRedo.disabled=!canRedo;
   }
   /**
-   * UX-2 (S6-4a). Game context is switchable from every route instead of
-   * requiring a Home round trip. Shared SHELL ownership — one control the five
-   * routes inherit, not five route-specific selectors — and selection goes
-   * through the canonical `App.openGame()` with the CURRENT route as its
-   * destination, so a coach comparing two games in Reports stays in Reports.
+   * The game context switches from every route, not only Home. One shared
+   * shell control; selection goes through `App.openGame()` with the current
+   * route as the destination, so a coach comparing games in Reports stays in
+   * Reports.
    *
-   * Deliberate limit, stated rather than faked: the popover lists the games of
-   * the OPEN season, because those are the only games in memory. Other seasons
-   * are listed as seasons and say so — reading their game rows would mean
-   * loading every season on every popover open. The switcher never claims to
-   * know a game it has not read.
+   * The popover lists games of the open season only, because those are in
+   * memory. Other seasons are listed as seasons; reading their games would
+   * load every season on every open. It never claims to know a game it has
+   * not read.
    */
   /** V2-A Program selector. Reads the SAME TeamRegistry every other program
    *  surface (Team Hub) already uses; switching reuses TeamHubScreen.switchTeam
@@ -292,10 +278,8 @@ export class WorkspaceShell {
   async _openSeasonSwitch(anchor){
     if(!anchor||!this.app.overlays)return;
     const store=this.app.storage.seasonStore, currentId=store?.currentSeasonId||'';
-    // PC-2 (Invariant #4): a genuine read failure must never render as an empty
-    // list — that reads as "you have no other seasons" when the truth is "this
-    // could not be checked." failed is surfaced as one disabled honest item
-    // rather than a silently-shrunk menu.
+    // A read failure must not render as an empty list ("no other seasons"):
+    // it shows one disabled item saying the list could not be checked.
     let seasons=[], failed=false; try{seasons=await this.app.storage.listSeasons();}catch(e){failed=true;console.error('listSeasons failed',e);}
     try{const r=this.app.teamRegistry;if(!failed&&r?.teams().length)seasons=r.seasonsForTeam(seasons,r.activeTeamId());}catch{}
     const scoutMode=this._isScoutWorkspace();

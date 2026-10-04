@@ -562,13 +562,6 @@ function IdentityStrip({ items, screen }) {
   })}</div>;
 }
 
-/** A module that states why it is thin instead of rendering an empty table. */
-/* NO LONGER USED BY OffenseTab. It swapped a module's whole table for a single
-   line when the cohort was empty, which is a different module height — the
-   board then measured 5102..5478px across six real games. Offense modules hold
-   their approved rows instead (`fitRows`), so the absence is stated inside the
-   schema rather than by replacing it. Kept for the tabs that have not had their
-
 /* The six approved zones are PAGES (coach-approved comp,
    design-comps/reports-secondary-nav-2026-09-23): one on screen at a time,
    selected from the shared secondary bar. Every module keeps its zone; the
@@ -704,9 +697,9 @@ export function OffenseTab({ stats, screen }) {
   return <div class="gi-overview-board gi-offense-board" data-offense-page={page}>
     <ReportSectionBar screen={screen} label="Offense report sections" navClass="gi-offense-pages" numbered
       sections={OFFENSE_PAGES.map(([id, label]) => ({ id, label }))} active={page} onSelect={setPage} />
-    {/* The page heading, in the Defense board's hierarchy (coach direction,
-        1.12.0-97 smoke S97-1): number, the zone's full name, then its cohort.
-        The count is compute()'s offensive cohort, which is the classified one. */}
+    {/* The page heading follows the Defense board's hierarchy: number, the
+        zone's full name, then its cohort (compute()'s classified offensive
+        cohort). */}
     {(() => {
       const index = OFFENSE_PAGES.findIndex(([id]) => id === page);
       return <header class="gi-off-heading">
@@ -1271,8 +1264,8 @@ export function PlayersTab({ stats, scoped = null, screen, labels = null, fixedS
         scope={fixedScope ? null : [['game', 'Current game'], ['season', 'Full season'], ['selected', 'Selected games']].map(([id, label]) => ({
           id, label, active: screen.playersScope === id, onSelect: () => screen.setPlayersScope(id), attrs: { 'data-players-scope': id } }))}
         scopeExtra={!fixedScope && screen.playersScope === 'selected' ? <GamePicker screen={screen} /> : null} />
-      {/* The page heading, the Defense board's hierarchy (coach direction,
-          1.12.0-97 smoke S97-1). A player's detail view keeps its own heading. */}
+      {/* The page heading follows the Defense board's hierarchy. A player's
+          detail view keeps its own heading. */}
       {/* The role count keeps its denominator whenever a role is unattributed:
           `5 roles` reads as the whole set, `5/6 roles` says one is missing.
           A full six drops the denominator, because there is nothing absent
@@ -1605,8 +1598,8 @@ export function SpecialTeamsTab({ stats, summary, screen, fixedScope = false, ti
       sections={ST_SECTIONS.map(s => ({ id: s.id, label: s.label, count: `${sectionCounts[s.id]} ${s.counts}`,
         none: !sectionCounts[s.id], attrs: { 'data-st-section': s.id } }))}
       active={section} onSelect={setSection} scope={scope} exportAction={exportAction} />
-    {/* The page heading, the Defense board's hierarchy (coach direction,
-        1.12.0-97 smoke S97-1): number, the section's name, its count. */}
+    {/* The page heading follows the Defense board's hierarchy: number, the
+        section's name, its count. */}
     {(() => {
       const index = ST_SECTIONS.findIndex(s => s.id === section);
       const current = ST_SECTIONS[index];
@@ -1987,8 +1980,8 @@ export function SeasonTab({ model, screen }) {
       exportAction={{ label: 'Export report', attrs: { class: 'gi-secbar-export', 'data-report-export': 'season' }, onSelect: () => screen.export('season-html') }} />
     <div class="gi-season-report">
       <div class="gi-season-sections" data-subpane={active}>
-        {/* Season's own sections take the page heading of the Defense board's
-            hierarchy (coach direction, 1.12.0-97 smoke S97-1). An embedded
+        {/* Season's own sections take the Defense board's page-heading
+            hierarchy. An embedded
             board (Offense, Defense, Special Teams, Players, Self-Scout) brings
             its own heading, so Season adds none above it. */}
         {active === 'overview' || active === 'trends' ? (() => {
@@ -2229,8 +2222,8 @@ export function MatchupTab({ model, screen }) {
             onChange={event => { screen.matchupOpponent = event.currentTarget.value; screen._renderActiveTab(); }}>
             {opponents.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}
           </select></label>} />
-      {/* The page heading, the Defense board's hierarchy (coach direction,
-          1.12.0-97 smoke S97-1); the opponent sample is its cohort statement. */}
+      {/* The page heading follows the Defense board's hierarchy; the opponent
+          sample is its cohort statement. */}
       {(() => {
         const index = MATCHUP_TABS.findIndex(([id]) => id === active);
         return <header class="gi-report-heading">
@@ -2649,8 +2642,8 @@ export function SelfScoutTab({ report, defScout, performance, callRows, screen }
         active={section} onSelect={setSection}
         exportAction={{ label: 'Export report', attrs: { class: 'gi-secbar-export', 'data-report-export': 'selfscout' },
           onSelect: () => (screen.exportSelfScout ? screen.exportSelfScout(report, defScout, performance, rows) : screen.export('season-html')) }} />
-      {/* The page heading, the Defense board's hierarchy (coach direction,
-          1.12.0-97 smoke S97-1); the sample line is its cohort statement. */}
+      {/* The page heading follows the Defense board's hierarchy; the sample
+          line is its cohort statement. */}
       {(() => {
         const index = SELF_SCOUT_SECTIONS.findIndex(([id]) => id === section);
         return <header class="gi-report-heading">

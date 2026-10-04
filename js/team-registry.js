@@ -135,19 +135,14 @@ export class TeamRegistry {
   }
 
   /**
-   * Rename / recolor the active team. Writes the profile, mirrors it into the
-   * registry entry, and propagates the identity fields into the active
-   * game's canonical metadata through the injected hook.
+   * Rename or recolor the active team. Writes the profile, mirrors it into the
+   * registry entry, and propagates the identity fields into the active game's
+   * metadata through the injected hook.
    *
-   * The hook matters: this used to write through the hidden #gameTeamName /
-   * #gameJerseyColor inputs inside #app, which S7-d deletes — it would have
-   * become a silent no-op that still reported success.
-   *
-   * `school`/`nickname` are additive companion fields (2026-08-31 Home
-   * naming contract): `teamName` stays the composed compatibility identity
-   * every existing reader (Team Hub, chrome, checklist) already consumes
-   * unchanged. Passing only a school (blank nickname) reproduces the exact
-   * prior `teamName` — never a heuristic split of an existing name.
+   * `school`/`nickname` are companion fields: `teamName` stays the composed
+   * identity every reader uses. Passing only a school (blank nickname)
+   * reproduces the exact prior `teamName`; an existing name is never split by
+   * guesswork.
    *
    * Returns true when the identity was saved. Presentation is the caller's.
    */

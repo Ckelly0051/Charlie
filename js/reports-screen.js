@@ -165,18 +165,8 @@ export class ReportsScreen {
     this.app.stats._lastTab = tab;
     this._mode = 'main';
     this._syncTabState();
-    // Reports redesign (item A): the persistent KPI rail hides itself on the
-    // Season tab (which carries its own equivalent header) — but only
-    // _syncHeader() re-evaluated that, and selectTab() never called it, so
-    // switching tabs left the game-scope rail showing on top of the Season
-    // tab's own hero. Found by screenshot review, not by the harness: every
-    // e2e assertion drives selectTab() once from a fresh route, which never
-    // exercises a SECOND tab switch. A second, deeper cause: _setChrome()
-    // used to force `hidden=false` on every `data-reports-main-chrome` node
-    // unconditionally, which would have re-revealed the rail the instant it
-    // (or the MutationObserver-driven _syncPresentation) ran again — the rail
-    // markup no longer carries that attribute, so _syncKpiRail() is its only
-    // owner.
+    // Re-evaluate the header on every tab switch; _syncKpiRail() is the only
+    // owner of the score's visibility.
     this._syncHeader();
     this._setChrome(true);
     this._renderActiveTab();
@@ -280,12 +270,9 @@ export class ReportsScreen {
   }
 
   /**
-   * Special Teams export. Coach decision, 2026-09-04: reuse the existing
-   * Reports export mechanism, do NOT build a Special-Teams-only exporter. So
-   * this is the same shape `exportDefense`/`exportSelfScout` already use --
-   * compose the report's own model, render it through the shared HTML report
-   * builder, and save through the one `window.ffaSaveBlob` seam. No new save
-   * path, no second export subsystem.
+   * Special Teams export through the shared Reports export path (coach,
+   * 2026-09-04): the report's own model, the shared HTML report builder and
+   * the one `window.ffaSaveBlob` seam. No Special-Teams-only exporter.
    */
   exportSpecialTeams(stats, summary) {
     if (!stats) return false;
@@ -313,11 +300,10 @@ export class ReportsScreen {
     return this.app.workspaceShell?.show?.('breakdown');
   }
 
-  /** The Overview score is the only game-summary chrome left. The generic game
-   *  KPI rail that repeated on every detail tab is DELETED (coach-approved comp,
-   *  2026-09-23): each detail report opens on its own content, and the rail's
-   *  non-score facts - plays charted and turnover margin - live in the compact
-   *  Overview score. The name is kept because every presentation sync calls it. */
+  /** The Overview score is the only game-summary chrome; detail tabs open on
+   *  their own content (coach-approved comp, 2026-09-23). Its non-score
+   *  facts, plays charted and turnover margin, live in the compact Overview
+   *  score. Every presentation sync calls this. */
   _syncKpiRail() {
     // A hidden scorebug needs no stats: skip the full compute (Defense syncs its
     // presentation twice per board render).

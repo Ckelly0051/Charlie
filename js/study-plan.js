@@ -1,14 +1,11 @@
 /**
- * StudyPlan — the DATA half of Phase 3 step 2: save a Study finding into a
- * game-plan workspace, and resolve a plan back into a watchable cross-game reel.
+ * StudyPlan: save a Study finding into a game-plan workspace, and resolve a
+ * plan back into a watchable cross-game reel.
  *
- * PURE + UNWIRED (like clip-identity.js): no DOM, no store, no film. Persistence is
- * SeasonStore's (`createPlan` / `addPlanItem` — the plans:[] contract, `64c284f`);
- * ordering + film is CrossGameCutup's; the Plan UI is Codex's. This module gives
- * all three ONE canonical label + payload shape so a saved finding is consistent
- * and re-watchable, and a plan flattens to the exact composite `gameId::playId`
- * refs the cross-game player already consumes. Node-tested; the Study/Plan screens
- * wire it up (e.g. `app.studyPlan`) when the UI lands.
+ * Pure: no DOM, store or film. Persistence is SeasonStore's (`createPlan`,
+ * `addPlanItem`); ordering and film are CrossGameCutup's. This module gives
+ * them one label and payload shape, and flattens a plan to the composite
+ * `gameId::playId` refs the cross-game player consumes.
  *
  *   const item = StudyPlan.finding({ dimensionName:'Formation', measureName:'Success Rate',
  *       scopeLabel:'full season', groupValue:'Wing-T', sampleSize:18,

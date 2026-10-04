@@ -24,9 +24,9 @@ export class PlayGrid {
    * `notes` edits play.notes (the call), not a tag.
    */
   static COLUMNS = [
-    // UNIT, like Hudl's ODK: always shown first and edited in the row, so a
-    // play's unit is charted where the coach is charting. Pinned: not in the
-    // Columns list and not part of any stored set (1.12.0-99 smoke, S99-2).
+    // Unit is always shown first and edited in the row, so a play's unit is
+    // charted where the coach is charting. Pinned: not in the Columns list
+    // and not part of any stored set.
     { key: 'unit',      label: 'Unit',      type: 'enum', pinned: true },
     { key: 'sit',       label: 'Dn & Dist', type: 'sit' },
     { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
@@ -113,14 +113,12 @@ export class PlayGrid {
 
   // ---------- Persistence ----------
 
-  /* COLUMN SETS PER UNIT (coach direction, 2026-09-24). The table keeps four
-     column sets -- Offense, Defense, Special Teams, and All plays -- and the
-     unit FILTER picks which one is on screen, so turning on Blitz while viewing
-     Defense changes only the defense table. `cols` is the active set, so every
-     existing reader and writer keeps working. Sets belong to the program: one
-     settings key per team, read lazily so a program switch brings its own; a
-     program with none starts from the presets. The old global list is
-     converted once on the coach's profile (legacy excision Pass 2b; the converter was deleted after the 1.12.0-103 smoke confirmed it). */
+  /* Column sets per unit (coach direction, 2026-09-24). The table keeps four
+     sets (Offense, Defense, Special Teams, All plays) and the unit filter picks
+     the one on screen, so turning on Blitz while viewing Defense changes only
+     the defense table. `cols` is the active set. Sets belong to the program:
+     one settings key per team, read lazily so a program switch brings its own;
+     a program with none starts from the presets. */
   static COLUMN_SCOPES = Object.freeze(['all', 'offense', 'defense', 'special']);
   static SCOPE_PRESET = Object.freeze({ all: 'default', offense: 'offense', defense: 'defense', special: 'special' });
   static SCOPE_LABEL = Object.freeze({ all: 'All plays', offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
@@ -249,10 +247,10 @@ export class PlayGrid {
   /**
    * Whether a play's unit cannot hold a column: the Special Teams columns on an
    * offensive or defensive snap, and the offense and defense look columns on a
-   * Special Teams snap (which holds none of them). An offensive snap charts the
-   * defense it faced and a defensive snap the offense it faced, so Formation and
-   * Front belong on both (1.12.0-99 smoke, S99-1). The one rule for the
-   * snapshot, the editor and the commit, whatever the scope or column set.
+   * Special Teams snap. An offensive snap charts the defense it faced and a
+   * defensive snap the offense it faced, so Formation and Front belong on both.
+   * The one rule for the snapshot, the editor and the commit, in every scope
+   * and column set.
    */
   static cellLocked(play, col) {
     // A detail cell (Motion start, RPO read, QB run type) is locked while the
@@ -280,10 +278,9 @@ export class PlayGrid {
 
   /** One-line tendency under a column header, over the VISIBLE plays. */
   _tendency(col, visible) {
-    // The Yds header states the shown plays' yards per play, which the Film
-    // Room screen fills from StatsEngine.playSetSummary -- the boards' own
-    // cohort. Averaging only the plays with charted yardage printed avg 4.4
-    // beside a board and a summary reading 3.4 (review, 97b2f37).
+    // The Yds header shows the visible plays' yards per play, filled by the
+    // Film Room screen from StatsEngine.playSetSummary, the boards' own
+    // cohort, so it matches the board.
     if (col.type === 'yds' || col.key === 'unit') return '';
     if (col.key === 'runPass') {
       const rp = visible.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
@@ -504,7 +501,7 @@ export class PlayGrid {
     const selected = new Set(this.selected);
     // A cell is blank and locked where the row's unit cannot hold the column
     // (PlayGrid.cellLocked), in every scope: a custom Offense set can carry a
-    // Special Teams column (Codex review of 48cbf5d).
+    // Special Teams column.
     const scope = this._colScope();
     const visibleCols = this._visibleCols();
     const rows = visible.map(play => {

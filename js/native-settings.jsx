@@ -130,9 +130,8 @@ function TeamSettings({ screen, initialPlayCall = '' }) {
   const [school, setSchool] = useState(draft ? draft.school : (profile.school || profile.teamName || ''));
   const [nickname, setNickname] = useState(draft ? draft.nickname : (profile.nickname || ''));
   const [color, setColor] = useState(draft ? draft.color : (profile.jerseyColor || ''));
-  // The draft is written IN the input handler, not a deferred effect: a close
-  // right after typing runs before any effect and would save nothing (Codex,
-  // 9b1136d P2).
+  // The draft is written in the input handler, not a deferred effect: a close
+  // right after typing runs before any effect and would save nothing.
   const edit = next => {
     const values = { school, nickname, color, ...next };
     if ('school' in next) setSchool(next.school);

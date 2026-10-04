@@ -66,10 +66,8 @@ export class TagLibrary {
     return { version: TagLibrary.VERSION, groups, presets: [] };
   }
   _read(key) { try { return JSON.parse(this.storage?.getItem(key) || 'null'); } catch { return null; } }
-  /** Writes and records why a write failed. It used to swallow every error, so
-   *  a full localStorage (QuotaExceededError) surfaced only as a failed readback
-   *  and a generic message (installed finding, 2026-09-24). lastError names the
-   *  real cause for the caller and the console. */
+  /** Writes and records why a write failed (e.g. a full localStorage), so
+   *  lastError names the real cause for the caller and the console. */
   _write(state) {
     this.lastError = null;
     if (!this.storage) { this.lastError = { name: 'NoStorage', message: 'No settings storage is available.' }; return false; }

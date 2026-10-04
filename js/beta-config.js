@@ -1,6 +1,6 @@
 /** Apply beta-only desktop defaults once per beta version, while preserving
  *  later coach choices. One key holds the version the defaults were applied
- *  for (the per-version markers it replaced were converted once on the coach's profile (legacy excision Pass 2b; the converter was deleted after the 1.12.0-103 smoke confirmed it)). */
+ *  for. */
 export function configureBetaDefaults(storage, isDesktop, version) {
   if (!isDesktop || !/-\d+$/.test(String(version))) return false;
   try {

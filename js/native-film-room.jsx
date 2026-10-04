@@ -10,15 +10,11 @@ import '../css/native-film-room.css';
 const ROW_HEIGHT_FALLBACK = 34;
 const OVERSCAN_PX = 480;
 
-// V2-H repair (Codex review): the active row used to be pinned by EXPANDING
-// the single contiguous scroll window to also cover it -- so a coach parked
-// on row 1 who scrolled to row 700 got a window spanning rows 0..700,
-// rendering almost the whole table and defeating the point of windowing.
-// This instead returns disjoint, non-overlapping row ranges: the scroll
-// window, plus (only when the active row falls outside it) one separate
-// single-row range for the active cell. Overlapping/adjacent ranges are
-// merged so a zero-width gap never renders its own spacer. Pure and
-// exported so the bounded-DOM guarantee is directly unit-testable.
+// Disjoint row ranges for the virtualized table: the scroll window, plus one
+// single-row range for the active row only when it falls outside the window,
+// so a parked active row never stretches the window across the whole table.
+// Overlapping or adjacent ranges merge, so no zero-width spacer renders. Pure
+// and exported so the bounded-DOM guarantee is unit-testable.
 export function computeRowSegments(total, windowStart, windowEnd, activeRowIndex) {
   const ranges = [];
   if (windowStart < windowEnd) ranges.push([windowStart, windowEnd]);
@@ -183,7 +179,7 @@ export function FilmRoomControls({ screen }) {
   useAttached(screen, 'controls', root);
   // The Columns sheet edits one unit's set and is non-modal. When the unit
   // filter changes the set on screen, the sheet closes rather than keep
-  // showing, and naming, the set it was opened for (Codex, c1cce33).
+  // showing the set it was opened for.
   const columnsSheet = useRef(null);
   useEffect(() => {
     const open = columnsSheet.current;
@@ -265,12 +261,8 @@ export function NativeFilmRoom({ screen }) {
   // self-correcting re-render, never a lasting inaccuracy.
   const [viewport, setViewport] = useState({ height: 800, rowHeight: ROW_HEIGHT_FALLBACK });
   const scrollRaf = useRef(null);
-  // V2-H repair (Codex review): the scroll handler used to capture scrollTop
-  // once per animation frame and DROP every scroll event that landed before
-  // that frame fired -- a fast scrollbar drag could leave the rendered window
-  // one or more events behind the real position. This ref always holds the
-  // MOST RECENT position; the queued frame reads it, not whatever value was
-  // current when the frame was scheduled.
+  // Always the most recent scroll position; the queued frame reads it, so a
+  // fast scrollbar drag never leaves the rendered window behind.
   const latestScrollTop = useRef(0);
   useEffect(() => screen.subscribe(setState), [screen]);
   // A wholesale play-list replacement (game switch, season open, a full

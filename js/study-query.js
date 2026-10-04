@@ -1,44 +1,27 @@
 import { PenaltyModel } from './penalty-model.js';
 
 /**
- * StudyQuery — the redesign's pure query executor over the accepted P0-c
- * AnalyticsRegistry. It groups a play set by ONE dimension, computes the
- * requested registry measures per group from the canonical `StatsEngine.compute`
- * over that group's plays, and returns each group's `matchingPlayIds` so every
- * Study result stays film-linked (Watch / cut-ups / Plan).
+ * StudyQuery: the pure query executor over AnalyticsRegistry. It groups a play
+ * set by one dimension, computes the requested registry measures per group
+ * from `StatsEngine.compute` over that group's plays, and returns each group's
+ * `matchingPlayIds` so every Study result stays film-linked (Watch, cut-ups,
+ * Plan).
  *
- * PARITY CONTRACT (the release gate, tools/e2e-study-query.mjs):
- *   For a dimension that maps to an existing report drilldown (DIMENSION_CUT),
- *   a group's `matchingPlayIds` are produced by the SAME `_buildCutFilter`
- *   predicate the current reports use — so a Study "formation = Shotgun" query
- *   returns the EXACT play set as the old report's Shotgun drilldown
- *   (`tools/e2e-parity.mjs` golden). No lost film link, no changed denominator:
- *   the numbers ride on `compute()`, which the parity harness already pins.
+ * PARITY CONTRACT (tools/e2e-study-query.mjs): for a dimension with a report
+ * drilldown (DIMENSION_CUT), a group's `matchingPlayIds` come from the same
+ * `_buildCutFilter` predicate the reports use, so a Study query returns exactly
+ * the report drilldown's play set. Measures ride on `compute()`, which
+ * `e2e-parity` pins. Dimensions without a canonical cut (quarter, result,
+ * grade, player role, custom tag or field, drive, distance, unit) group and
+ * film-link through the registry's value extractor.
  *
- * It reimplements NO analytics. Grouping/film links go through the registry +
- * `_buildCutFilter`; measures go through `registry.readMeasures(compute(group))`.
- * Dimensions without a canonical cut (quarter, result, grade, player role,
- * custom tag/field, drive, distance, unit) still group + film-link via the
- * registry's value extractor — new query surfaces, honestly outside the report
- * golden.
- *
- * RECORD-SCOPED AGGREGATION (Codex review finding #2, Study expansion Phase
- * 2): `penaltyTeam`/`penaltyFoul`/`penaltyRuling`/`penaltyPhase` are
- * RECORD-valued dimensions -- a play belongs to group "subject" because it
- * carries ONE matching penalty record, but that same play may carry OTHER
- * records too (an offsetting pair charges both teams on ONE play). Computing
- * a penalty measure from `compute(groupPlays)` unfiltered sums EVERY record
- * on those plays, including the sibling that does not belong to this row --
- * `penaltyFouls` for `penaltyTeam=subject` returning 3 when only 2 records
- * are actually subject-charged. `PENALTY_RECORD_FILTER` + `_recordScopedPlays`
- * give the measure computation a SYNTHETIC view of each group's plays whose
- * `.penalties` array is pre-filtered to ONLY the records matching this
- * group's value, before `stats.compute()` ever sees them -- the play
- * objects (and therefore `matchingPlayIds`/composite refs) are untouched;
- * only which of a play's OWN penalty records feed the aggregate changes.
- * Scoped to exactly these four dimensions -- an unrelated dimension (e.g.
- * `unit`) has no "this group is supposed to represent only these records"
- * contract, so filtering there would be wrong, not more honest.
+ * RECORD-SCOPED AGGREGATION. `penaltyTeam`, `penaltyFoul`, `penaltyRuling` and
+ * `penaltyPhase` group by penalty record: a play joins the group through one
+ * matching record but may carry others (an offsetting pair charges both teams
+ * on one play). Measures for these groups compute from a view of the plays
+ * whose `.penalties` holds only the matching records
+ * (`PENALTY_RECORD_FILTER`, `_recordScopedPlays`); the plays themselves, and so
+ * `matchingPlayIds` and refs, are untouched. No other dimension is scoped.
  */
 export class StudyQuery {
   static get PENALTY_RECORD_FILTER() {
@@ -104,12 +87,9 @@ export class StudyQuery {
     return cohort.filter(p => this.registry.values(dimension, p, context).includes(value));
   }
 
-  /** Codex review finding #2: for the four penalty RECORD-valued dimensions,
-   *  returns shallow play copies whose `.penalties` array is filtered to
-   *  only the records matching this group's value -- see the module
-   *  docblock's "RECORD-SCOPED AGGREGATION" section. A no-op (returns
-   *  `groupPlays` unchanged, by reference) for every other dimension, so
-   *  every pre-existing dimension/measure combination is untouched. */
+  /** For the four penalty record dimensions, shallow play copies whose
+   *  `.penalties` holds only the records matching this group's value (see the
+   *  module doc). Returns `groupPlays` unchanged for every other dimension. */
   _recordScopedPlays(groupPlays, dimension, value) {
     const test = StudyQuery.PENALTY_RECORD_FILTER[dimension];
     if (!test) return groupPlays;
@@ -142,18 +122,14 @@ export class StudyQuery {
       const belowMinSample = minSample > 0 && sampleSize < minSample;
       if (belowMinSample) warnings.push(`${value}: sample ${sampleSize} below minimum ${minSample}`);
       const matchingPlayIds = groupPlays.map(p => this.registry.playRef(p, context)).sort();
-      // Codex review finding #2: measures compute from the record-scoped
-      // view when applicable (see `_recordScopedPlays`) -- `matchingPlayIds`
-      // above stay derived from the REAL, unfiltered `groupPlays`, since
-      // every one of those plays genuinely has a matching record and its
-      // film ref belongs in the row regardless of sibling records.
+      // Measures use the record-scoped view; `matchingPlayIds` above come from
+      // the real plays, each of which carries a matching record.
       const scopedPlays = this._recordScopedPlays(groupPlays, dimension, value);
       const scopedStats = measures.length ? this.stats.compute(scopedPlays) : null;
       const groupMeasures = scopedStats ? this.registry.readMeasures(scopedStats, measures) : {};
-      // Codex review finding #1: `measureRefs[id]` is the metric-eligible
-      // composite refs for measures that declare `refsPath` (`null` for
-      // every measure that doesn't -- study-screen.js falls back to
-      // `matchingPlayIds` for those, unchanged).
+      // `measureRefs[id]`: the metric-eligible refs for measures that declare
+      // `refsPath`; null otherwise (study-screen.js then uses
+      // `matchingPlayIds`).
       const measureRefs = {};
       if (scopedStats) for (const id of measures) measureRefs[id] = this.registry.readRefs(scopedStats, id);
       return { value, sampleSize, belowMinSample, matchingPlayIds, measures: groupMeasures, measureRefs };
@@ -166,13 +142,9 @@ export class StudyQuery {
     return Number.isFinite(n) ? n : null;
   }
 
-  /** Delegates to `AnalyticsRegistry.metricsEngine()` -- the one place that
-   *  constructs a correctly-bound `AnalyticsMetrics` instance for the live
-   *  `registry.stats` StatsEngine (Codex review, 2026-08-14, finding #4: two
-   *  competing metric registries). `StudyQuery` no longer derives its own
-   *  binding. The pure-Node contract tests in tools/e2e-analytics-metrics.mjs
-   *  bind the same static/instance methods to `{}` directly, since they
-   *  never need a real DOM or registry. */
+  /** The AnalyticsMetrics instance bound to `registry.stats`, from
+   *  AnalyticsRegistry.metricsEngine(); StudyQuery never builds its own
+   *  binding. */
   _metricsEngine() {
     return this.registry.metricsEngine();
   }
@@ -262,13 +234,8 @@ export class StudyQuery {
     const b = this.run({ plays: against, dimension, measures, filters, minSample, context });
     const aMap = new Map(a.groups.map(g => [g.value, g]));
     const bMap = new Map(b.groups.map(g => [g.value, g]));
-    // Codex re-review finding #1: `blank()` and the constructed row sides
-    // below used to omit `measureRefs`, so `run()`'s per-measure eligible
-    // refs (added for the FIRST review's finding #1) never survived into a
-    // comparison -- `study-screen.js`'s `_groupRefs` had nothing to read but
-    // `matchingPlayIds`, silently falling back to the group's broader raw
-    // sample for every comparison Watch action. `measureRefs` now carries
-    // through both sides exactly as `run()` produced it.
+    // Both comparison sides carry `measureRefs`, so a comparison's Watch
+    // action opens each measure's own eligible plays.
     const blank = () => ({ sampleSize: 0, belowMinSample: minSample > 0, matchingPlayIds: [], measures: {}, measureRefs: {} });
     const values = [...new Set([...aMap.keys(), ...bMap.keys()])].sort();
     const rows = values.map(value => {
@@ -299,17 +266,11 @@ export class StudyQuery {
    * compareMetrics({ base, against, dimension, metricIds?, filters?, minSample?,
    *                  context?, labels?, missingAsZero?, allowUnlinkedPlays? })
    *
-   * Study expansion (2026-08-15) -- the `runMetrics()` sibling of `compare()`,
-   * additive next to it exactly the way `runMetrics()` was additive next to
-   * `run()`. Runs the SAME two-cohort comparison, but each side's measures are
-   * the full AnalyticsMetrics contract (value/count/eligible/denominator/
-   * polarity/state/refs) instead of a flat number, so a comparison can show
-   * "insufficient"/"unavailable"/"partial-film" honestly per side per metric,
-   * and a delta is only ever computed between two genuinely `ok` values.
-   *
-   * `refs` on each side are that metric's OWN film cohort (not the group's
-   * broader `matchingPlayIds`) -- the exact contract `metric()` already
-   * guarantees; this method does not re-derive or widen it.
+   * The two-cohort comparison with each side's measures in the full
+   * AnalyticsMetrics contract (value/count/eligible/denominator/polarity/
+   * state/refs), so each side shows insufficient, unavailable or partial-film
+   * honestly, and a delta is computed only between two `ok` values. `refs` on
+   * each side are that metric's own film cohort.
    *
    *   -> { dimension, metricIds, minSample,
    *        a: { label, total }, b: { label, total },

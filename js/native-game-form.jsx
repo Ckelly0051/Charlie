@@ -15,15 +15,10 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
       week: clean(values.week), opponent: clean(values.opponent), opponentNickname: clean(values.opponentNickname),
       sourceTeamA: clean(values.sourceTeamA), sourceTeamANickname: clean(values.sourceTeamANickname),
       sourceTeamB: clean(values.sourceTeamB), sourceTeamBNickname: clean(values.sourceTeamBNickname), date: clean(values.date),
-      // NO `perspective`. Program versus Opponent Scout is derived from the
-      // owning season in `GameScreen.save()`, and the per-play charting unit is
-      // selected in Break Down, which already derives perspective from it
-      // (`native-tagging-screen.js` _derivePerspective). This form asked for
-      // both under the label `Film source`, which is neither: choosing
-      // `Opponent film · Scout` inside a Program season produced a program game
-      // marked scout, and `SeasonManager._selfGames()` excludes scout games, so
-      // that game silently left our record, yardage, success rate and turnover
-      // margin. Removed by coach decision 2026-09-13.
+      // No `perspective`: Program versus Opponent Scout comes from the owning
+      // season in `GameScreen.save()`, and the charting unit is chosen in Break
+      // Down. A per-game choice could mark a program game as scout, which
+      // silently drops it from our record and totals.
       homeAway: clean(values.homeAway), gameType: clean(values.gameType) || 'game',
       scoreUs: clean(values.scoreUs), scoreThem: clean(values.scoreThem),
     });

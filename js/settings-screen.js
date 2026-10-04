@@ -106,9 +106,8 @@ export class SettingsScreen {
     const result = handle.result.finally(() => {
       if (this.handle === handle) this.handle = null;
       this.activeTab = null;
-      // Closing Settings (Done, the close button, Escape) keeps a team identity
-      // the coach typed; it used to be discarded unless Save was pressed first
-      // (installed smoke 1.12.0-105, S105-1).
+      // Closing Settings (Done, the close button, Escape) keeps a team
+      // identity the coach typed.
       this._flushTeamDraft();
       // S7-c: the legacy overlay is gone; the native Team Hub owns this view.
       this.app.teamHubScreen?.load?.();
@@ -451,9 +450,8 @@ export class SettingsScreen {
     if (ok) this.app.customChips.reload();
     return { ok, message:ok ? '' : this._libraryWriteMessage(library.lastError), group:this.chartingSnapshot(group) };
   }
-  /** Names the actual failure. The old text blamed "available app storage" for
-   *  every failure, which pointed at the disk; the real limit was the WebView's
-   *  settings storage (2026-09-24). */
+  /** Names the actual failure; settings storage, not the disk, is usually
+   *  the limit. */
   _libraryWriteMessage(error) {
     if (error?.name === 'ReservedValue') return `${error.message} Chart it under ${error.owner}.`;
     if (error?.name === 'QuotaExceededError') return 'Could not save that choice: the app settings storage is full.';

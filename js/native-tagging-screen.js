@@ -288,11 +288,8 @@ export class NativeTaggingScreen {
   setScoreboardRegion() { this.app.ocr?.startRegionSelect?.(); }
   readScoreboard() { this.app.ocr?.readNow?.(); }
   setAutoOcr(value) { return this.app.ocr?.setAutoOcr?.(value); }
-  // Final Engine Independence: opens the real native Auto-Detect operation/
-  // state API (js/auto-detect-screen.js) as a visible overlay sheet -- no
-  // hidden host, no synthetic click. The scan orchestration itself (progress,
-  // settings, results, Review, Apply) lives in AutoDetectScreen; this is just
-  // the entry point, matching every other screen.open() call in this file.
+  // Opens the native Auto-Detect sheet (js/auto-detect-screen.js), which
+  // owns the scan, progress, settings, results, Review and Apply.
   runAutoDetect() { return this.app.autoDetectScreen?.open?.(); }
   newDrive() { return this.tagger?.newDrive?.(); }
   addNoteTimestamp() { return this.app.notes?.insertTimestamp?.(); }

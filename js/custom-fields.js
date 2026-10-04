@@ -2,7 +2,7 @@ import { h } from 'preact';
 import { NativeCustomFields } from './native-custom-fields.jsx';
 
 /**
- * CustomFieldsManager — user-defined tag fields.
+ * CustomFieldsManager: user-defined tag fields.
  *
  * Coaches can add their own categories (e.g. "Coverage Beater", "MOFO/MOFC",
  * "Blitz Pickup") without a code change. Each field is either a set of chip
@@ -14,8 +14,7 @@ import { NativeCustomFields } from './native-custom-fields.jsx';
  *
  * The charting deck renders the per-play inputs (native-tagging.jsx) and writes
  * through `_write`; its "Edit custom fields" button opens `openManager`, a sheet
- * on the overlay service (native-custom-fields.jsx; rebuilt 2026-09-27 from a
- * hand-built dialog).
+ * on the overlay service (native-custom-fields.jsx).
  */
 export class CustomFieldsManager {
   constructor(tagger) {

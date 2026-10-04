@@ -19,8 +19,7 @@ const WORKSPACE_ROUTES = Object.freeze([
  * Study, and Plan, plus an async film-health view model over StorageBackend.
  */
 export class WorkspaceContext {
-  /** The one durable key for the Home parent context (the mode-only key it
-   *  replaced was converted once, legacy excision Pass 2b). */
+  /** The one durable key for the Home parent context. */
   static PARENT_KEY = 'giq_home_parent';
 
   constructor(app) {
@@ -293,12 +292,9 @@ export class WorkspaceContext {
       } : null,
       game: game ? {
         id: game.id,
-        // ONE naming rule (S6-4a). This used to prefer the raw stored
-        // `game.name`, so the shell context bar could read "New Game" while the
-        // games panel, schedule and game switcher all read "Week 3 vs Rivals"
-        // for the same game — `SeasonStore.gameName()` is football-first
-        // (week + opponent) and is what every other surface already uses.
-        // Building the switcher beside the context bar is what exposed it.
+        // One naming rule: SeasonStore.gameName() (week + opponent), the same
+        // name the games panel, schedule and switcher show, never the raw
+        // stored `game.name`.
         name: (store?.gameName ? store.gameName(game, games.indexOf(game)) : '')
           || game.name || gameInfo.projectName || gameInfo.opponent || 'Untitled Game',
         opponent: gameInfo.opponent || '', date: gameInfo.date || '',
@@ -482,17 +478,12 @@ export class WorkspaceContext {
     const foundIds = new Set((files || []).map(file => this._identity(file)).filter(Boolean));
     const missing = expectedIds.filter(id => !foundIds.has(id)).length;
     const found = Math.max(0, expected - missing);
-    // LINKED film is the coach's own folder, and the binding rule is exact set
-    // EQUALITY between the durable clip index and that folder's videos. Only the
-    // app-only direction was ever checked, so a video sitting in the folder with
-    // no record in the game was invisible — the coach could not tell a complete
-    // game from one silently short a clip. Managed film is app-owned storage and
-    // keeps its existing one-way rule: extra files there are the app's own
-    // business, not a coach-facing mismatch.
-    // Both directions are mismatches; they keep DIFFERENT states so the coach is
-    // told which one, and so the long-standing app-only contract every consumer
-    // already renders (`missing`, with its count and repair/reconnect action) is
-    // not renamed out from under them.
+    // Linked film is the coach's own folder, so the rule is exact set
+    // equality between the durable clip index and the folder's videos, checked
+    // both ways. Managed film is app-owned and keeps its one-way rule: extra
+    // files there are not a coach-facing mismatch. The two directions keep
+    // different states so the coach is told which; the app-only direction
+    // stays `missing`, with its count and repair/reconnect action.
     const expectedSet = new Set(expectedIds);
     const extraIds = linked ? [...foundIds].filter(id => !expectedSet.has(id)) : [];
     const extra = extraIds.length;

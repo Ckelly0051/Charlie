@@ -87,23 +87,17 @@ export class PenaltyModel {
   }
 
   /**
-   * Study expansion Phase 2 (penalties + Special Teams): `bucket()` is the
-   * ONE classification formula, applied to the full record set for the
-   * top-level fields (byte-identical to the pre-Phase-2 inline computation)
-   * and to team/phase SUBSETS for `byTeam`/`byPhase` -- so "penalties we
-   * committed on defense" is never approximated by filtering the COHORT and
-   * re-summing every record on those plays (which would double-count a play
-   * carrying both a subject and an opponent penalty, e.g. offsetting fouls).
-   * `byTeam`/`byPhase` are keyed by every value in TEAMS/PHASES, including
-   * 'unknown', so an unresolved team/phase is visible as its own bucket
-   * rather than silently absorbed into another team's count.
+   * `bucket()` is the one classification formula, applied to the full record
+   * set for the top-level fields and to team and phase subsets for
+   * `byTeam`/`byPhase`, so "penalties we committed on defense" never comes
+   * from re-summing every record on a filtered set of plays (which would
+   * double-count offsetting fouls). `byTeam`/`byPhase` include 'unknown', so an
+   * unresolved team or phase is its own visible bucket.
    *
-   * Codex review finding #1 (this checkpoint): every count also carries its
-   * OWN `refs` -- the exact composite refs of the plays whose records
-   * produced that number, not the broader play set a Study row might be
-   * grouped by. A play with an accepted AND a declined foul contributes to
-   * `refs.accepted` and `refs.declined` independently; `refs.yards` mirrors
-   * `refs.accepted` (yards are accepted-only, same records).
+   * Every count carries its own `refs`: the plays whose records produced it. A
+   * play with an accepted and a declined foul appears in both `refs.accepted`
+   * and `refs.declined`; `refs.yards` mirrors `refs.accepted` (yards are
+   * accepted-only).
    */
   static summarize(plays) {
     const records = [];

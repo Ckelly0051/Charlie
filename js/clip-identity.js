@@ -1,18 +1,12 @@
 /**
- * clip-identity.js — PURE clip↔play matching, the foundation for the ghost-plays
- * fix (GRIDIRON-IQ-REDESIGN-PLAN requirements R2/R3).
+ * clip-identity.js: pure clip-to-play matching. A clip that fails to match
+ * must never become a new whole-clip play, and two things defeat a filename
+ * match: Windows duplicate-copy renames (`foo (1).mp4`) and genuinely
+ * duplicate basenames in saved data.
  *
- * WHY: today relink/repair guess a play's clip from its filename across scattered
- * code (playlist-manager `_relinkSavedPlays`/`rehydrateFromDisk`, storage
- * `_planClipRepair`). A clip that fails to match auto-creates a ghost whole-clip
- * play (the "139-for-69" duplicate). Two things defeat the filename match and are
- * defended nowhere: (a) Windows/browser dup-copy RENAME — `foo.mp4` copied into a
- * folder that has it becomes `foo (1).mp4`, `foo (2).mp4`; (b) genuinely
- * duplicate basenames in the saved data.
- *
- * SCOPE: this pure matcher drives PlaylistManager's add/re-add and rehydrate
- * safety paths. Catalog identity is the first tier; filename matching remains the
- * backward-compatible fallback for legacy rows and newly selected local files.
+ * This matcher drives PlaylistManager's add, re-add and rehydrate paths.
+ * Catalog identity is the first tier; filename matching is the fallback for
+ * older rows and newly selected local files.
  */
 
 /** Normalize separators and strip the file extension. */

@@ -3,21 +3,12 @@ import { AutoDetectContent } from './native-autodetect.jsx';
 import { SeasonFormat } from './season-format.js';
 
 /**
- * Native Auto-Detect operation + state API.
- *
- * This replaced an earlier implementation that read settings off hidden DOM
- * and wrote progress/results into elements no coach could see. The scan
- * orchestration itself (PlayDetector + Vision/local-CV fallback + tag
- * stamping) is UNCHANGED -- only its presentation moved. This class owns
- * live state (settings, status, progress, results) and a native
- * subscribe()/snapshot() seam; `native-autodetect.jsx` renders it inside a
- * real NativeOverlayService sheet, opened from the visible "Auto-detect
- * plays" command in the tag form. There is no hidden host any more.
- *
- * The detection-review step (`openReview()`) is unchanged from its prior
- * App._openDetectionReview() implementation: it already built its modal
- * directly onto `document.body`, not inside the hidden host, so it was
- * always genuinely reachable -- only relocated here for one owner.
+ * Native Auto-Detect operation and state API. The scan (PlayDetector, the
+ * vision / local-CV fallback, tag stamping) is owned here with live state
+ * (settings, status, progress, results) behind a subscribe()/snapshot() seam;
+ * `native-autodetect.jsx` renders it in a NativeOverlayService sheet opened
+ * from the deck's "Auto-detect plays" command. The review step
+ * (`openReview()`) builds its own modal on `document.body`.
  */
 export class AutoDetectScreen {
   constructor(app, overlays) {
@@ -416,9 +407,7 @@ export class AutoDetectScreen {
     return stamped;
   }
 
-  /** Open the scrub/trim/accept review modal. Unchanged from its prior
-   *  App._openDetectionReview() implementation -- it already appends
-   *  directly to document.body, so it was never part of the hidden host. */
+  /** Open the scrub/trim/accept review modal, appended to document.body. */
   openReview() {
     if (!this.canReview || !this._guardContext()) return;
     const plays = (this.detector.detectedPlays || []).map((p, i) => ({

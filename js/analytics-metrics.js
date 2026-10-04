@@ -1,123 +1,57 @@
 /**
- * AnalyticsMetrics — pure, DOM-free canonical cohort filtering + metric
- * calculation, extracted as the shared seam Study's expansion will build on.
+ * AnalyticsMetrics: pure, DOM-free cohort filtering and metric calculation
+ * shared by Reports and Study, so a rate is computed once and returned as one
+ * typed result. Formulas that already have one home in stats-engine.js stay
+ * there.
  *
- * This is NOT a stats-engine.js rewrite. It does not reimplement analytics
- * formulas that already have one home (e.g. `_efficiencyStats`,
- * `_tendencyStats`) — those stay exactly where they are. It exists for the
- * metrics that were duplicated inline per-consumer (Reports' defensive
- * Best-Calls builder, and soon Study), so a future consumer computes a rate
- * exactly once and gets back one typed result instead of re-deriving a
- * cohort or a formula by hand.
- *
- * THE SHARED RESULT CONTRACT (returned by `metric()`):
+ * RESULT CONTRACT (`metric()`):
  *   {
  *     id:           string,              // metric id, e.g. 'stopRate'
  *     value:        number|null,         // null when unavailable
- *     count:        number,               // the raw numerator behind `value`
- *                                          // (a classified-play count for rate
- *                                          // metrics; total yards for yardsPerPlay)
- *     eligible:     number,               // plays with REAL underlying data for
- *                                          // this metric -- never a play whose
- *                                          // classification came from a fallback
- *                                          // default, regardless of `missingAsZero`
- *     denominator:  number,               // divisor actually used for `value`
- *     polarity:     'higher'|'lower',     // which direction is better; a fixed,
- *                                          // unambiguous property of the metric
- *                                          // ID itself (see "polarity is per unit"
- *                                          // below) -- never guessed by a caller
+ *     count:        number,              // raw numerator (a play count for rates;
+ *                                         // total yards for yardsPerPlay)
+ *     eligible:     number,              // plays with real underlying data, never
+ *                                         // one classified from a fallback default
+ *     denominator:  number,              // divisor actually used for `value`
+ *     polarity:     'higher'|'lower',    // fixed by the metric id
  *     state:        'ok'|'insufficient'|'partial-film'|'unavailable',
- *     unlinkedCount: number,              // cohort plays counted in the numerator/
- *                                          // denominator whose film ref could not
- *                                          // be resolved (only nonzero when
- *                                          // `allowUnlinkedPlays` is set -- see below)
- *     refs:         string[],             // composite gameId::playId, sorted, deduped
+ *     unlinkedCount: number,             // counted plays with no resolvable film
+ *                                         // ref (only with allowUnlinkedPlays)
+ *     refs:         string[],            // composite gameId::playId, sorted, deduped
  *   }
  *
- * STATE is a priority, evaluated in this order:
- *   'unavailable'   denominator === 0 -- no data at all, never a fabricated zero.
- *   'insufficient'  denominator > 0 but below `options.minSample` -- some data,
- *                   not enough to trust. (`minSample` is per-metric here, not a
- *                   query-grouping concept; `StudyQuery.runMetrics` threads its
- *                   own `minSample` into every metric() call so a group can be
- *                   `insufficient` on one metric's denominator while another
- *                   metric in the SAME group has enough eligible plays to be `ok`.)
- *   'partial-film'  a play informed the numerator/denominator but its film ref
- *                   could not be resolved (only reachable with
- *                   `allowUnlinkedPlays: true` -- see below).
+ * STATE, in priority order:
+ *   'unavailable'   denominator === 0; never a fabricated zero.
+ *   'insufficient'  denominator below `options.minSample` (per metric, so one
+ *                   group can be insufficient on one metric and ok on another).
+ *   'partial-film'  a counted play's film ref could not be resolved
+ *                   (only with `allowUnlinkedPlays: true`).
  *   'ok'            otherwise.
  *
- * `eligible` vs `denominator`: a play with no REAL underlying data for a metric
- * (no tagged yardage; no tagged down/distance for stop/success classification)
- * is excluded from BOTH by default (`missingAsZero: false`) -- the honest
- * behavior Study's expansion needs, and the fix for a real correctness gap
- * (Codex review, 2026-08-14, finding #3): `defensivePerformance`'s legacy
- * formulas, and `_isSuccessfulPlay` itself, silently treated a missing tag as
- * a fabricated default (missing yardage -> 0, missing distance -> 10) and
- * folded the result in as if it were real. `missingAsZero: true` is the
- * explicit, opt-in compatibility switch that reproduces that exact legacy
- * division (`denominator = cohort.length`, ineligible plays fall through each
- * metric's own zero/false default) -- `eligible` still reports the TRUE count
- * either way, so the gap is never hidden, only which divisor is *used* changes.
+ * ELIGIBILITY. A play with no real data for a metric (no yardage; no
+ * down/distance for stop/success) is excluded from both `eligible` and
+ * `denominator` by default. `missingAsZero: true` opts into the legacy
+ * division (`denominator = cohort.length`, missing values fall to each
+ * metric's default); `eligible` still reports the true count.
  *
- * POLARITY IS PER UNIT, NOT UNIVERSAL (Codex review, 2026-08-14, finding #1):
- * a rate like "explosive plays per snap" is good when YOUR offense produces
- * it and bad when your defense allows it -- the polarity is a property of
- * *whose* plays the cohort represents, which this module cannot see (it only
- * sees whatever cohort the caller passed in). The fix is that every metric ID
- * here names its own unambiguous framing, so polarity never has to be guessed
- * from the cohort: `explosiveRate`/`yardsPerPlay`/`havocRateAllowed`/
- * `negativeRate` are offense-produced (this team's own plays; higher is worse
- * only for negativeRate/havocRateAllowed, matching Study's existing
- * `_lowerIsBetter` convention in study-screen.js), while
- * `explosivesAllowedRate`/`yardsAllowedPerPlay`/`havocRate`/`negativeRateForced`
- * are defense-framed (what this team's defense did TO an opponent). Each pair
- * shares the identical formula -- only the polarity label differs -- because
- * the FRAMING lives entirely in which cohort the caller passes (offensive
- * snaps vs. defensive snaps), never in the formula. `stopRate`/`successRate`
- * are the one pair that needs no "allowed"/"forced" sibling: they are already
- * unambiguous by name (a "stop" is inherently the defense's accomplishment; a
- * "success" is inherently the offense's), and each is exactly the complement
- * of the other over the same underlying classification.
+ * POLARITY IS PER UNIT. The same formula is good when our offense produces it
+ * and bad when our defense allows it, and this module only sees the cohort it
+ * is given. So each metric id names its framing: `explosiveRate`,
+ * `yardsPerPlay`, `havocRateAllowed`, `negativeRate` are offense-framed;
+ * `explosivesAllowedRate`, `yardsAllowedPerPlay`, `havocRate`,
+ * `negativeRateForced` are defense-framed. Each pair shares a formula.
+ * `stopRate` and `successRate` are unambiguous by name and complements.
  *
- * FILM-COHORT HONESTY (Codex review, 2026-08-14, finding #2, TWICE): a play
- * that counts toward the numerator/denominator but cannot produce a composite
- * ref used to silently vanish from `refs` -- "N% based on D plays" could open
- * fewer than D clips with no signal that happened. The default now FAILS
- * LOUDLY the moment that happens (`allowUnlinkedPlays: false`, matching
- * `compositeRef`'s existing fail-loud contract for direct callers).
- * `allowUnlinkedPlays: true` is the explicit compatibility escape hatch
- * `defensivePerformance` uses to preserve its historical closure, which never
- * let one malformed play fail an entire report -- even there, `unlinkedCount`
- * is always reported in the contract, so the gap is visible rather than
- * silently absorbed, and `state` becomes `'partial-film'` to say so.
+ * FILM. Refs come from each metric's `refSource`, the exact plays that formed
+ * `denominator`. A play with no resolvable ref, or a duplicate ref, throws by
+ * default; with `allowUnlinkedPlays: true` (used by defensivePerformance so one
+ * malformed play cannot fail a report) it is counted in `unlinkedCount` and
+ * `state` becomes 'partial-film'. Invariant:
+ * `refs.length + unlinkedCount === denominator`.
  *
- * The first attempt at this closed the identity half but not the eligibility
- * half: `metric()` resolved refs from the ORIGINAL cohort passed in, while
- * `denominator` came from each metric's own eligible/legacy SUBSET of that
- * cohort -- so in honest mode (the default) an ineligible play was correctly
- * excluded from `denominator` but its ref still landed in `refs`, and a
- * one-play denominator could open two clips. Fixed by having every metric's
- * `compute()` also return `refSource` -- the EXACT play list that produced
- * `denominator` -- and resolving refs from THAT, never from the raw cohort.
- * `resolveRefs` also now counts a DUPLICATE composite ref (two entries in
- * `refSource` resolving to the same `gameId::playId`) the same way as an
- * unresolvable one: it fails loudly by default, and under
- * `allowUnlinkedPlays: true` it increments `unlinkedCount` and excludes the
- * duplicate from `refs` rather than silently collapsing it via `Set`
- * dedup with no accounting. This makes `refs.length + unlinkedCount ===
- * denominator` an INVARIANT, always -- every play the denominator counted
- * either produced a ref or was counted as unlinked; none can vanish silently.
- *
- * Composite refs use the SAME `${gameId}::${playId}` contract as
- * `AnalyticsRegistry.playRef` / the historical `defensivePerformance`
- * closures -- this module deliberately does not import AnalyticsRegistry (no
- * need to couple a pure metrics module to the registry's StatsEngine-instance
- * dependency), so the three-line composite-ref rule is duplicated here rather
- * than shared. `AnalyticsRegistry.metricsEngine()` is the one place that
- * constructs a correctly-bound `AnalyticsMetrics` instance for the live app
- * (Codex review, 2026-08-14, finding #4) -- consumers should get their engine
- * from there rather than re-deriving the `deps` binding.
+ * Composite refs follow the `${gameId}::${playId}` rule of
+ * AnalyticsRegistry.playRef; it is repeated here so this module needs no
+ * registry dependency. Get a bound instance from StatsEngine.metricsEngine().
  */
 
 export const MetricPolarity = Object.freeze({ HIGHER: 'higher', LOWER: 'lower' });
@@ -447,12 +381,9 @@ const METRICS = {
   // real, honest zero sub-count is never reported as "insufficient" or
   // "unavailable".
   touchdowns: {
-    // Reused for ball carrier/passer/receiver/returner touchdown counts --
-    // one classification, four roles. `deps.isScoredTouchdown` (Codex
-    // review, 2026-08-15, finding #2) reads a structured event's own
-    // `outcome.score === 'touchdown'` for a genuine kick/return event --
-    // without it a structured return touchdown was invisible unless the
-    // coach redundantly copied 'Touchdown' into legacy tags.result too.
+    // Touchdowns for ball carrier, passer, receiver and returner: one
+    // classification, four roles. `deps.isScoredTouchdown` reads a structured
+    // return touchdown from its own event.
     polarity: MetricPolarity.HIGHER, countMetric: true,
     compute(cohort, deps) { return countResult(cohort, p => deps.isScoredTouchdown(p)); },
   },

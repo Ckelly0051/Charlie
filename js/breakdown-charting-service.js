@@ -187,12 +187,11 @@ export class BreakdownChartingService {
   /** Kick XP, Run/Pass or Fake. A Fake is a run/pass try with `isFake`. Leaving
    *  Run/Pass or Fake for Kick XP clears the snap's run/pass detail (look fields
    *  are stripped by the Special Teams rule; the rest is cleared here), after a
-   *  confirmation when any was charted.
-   *  The change applies to the play the coach acted on, captured before the
-   *  confirmation: selecting another play while it is open must not move the
-   *  change there (Codex, 67d1ee0 P1). Clearing and the attempt land in one
+   *  confirmation when any was charted. The change applies to the play the
+   *  coach acted on, captured before the confirmation, so selecting another
+   *  play meanwhile cannot move it. Clearing and the attempt land in one
    *  update. Switching between Run/Pass and Fake keeps a charted score; a new
-   *  attempt kind takes its own default (P2). */
+   *  attempt kind takes its own default. */
   async _setTryAttempt(value) {
     const play = this.tagger.getCurrentPlay();
     if (!play || !SpecialTeamsModel.normalize(play.specialTeams)) return false;

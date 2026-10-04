@@ -1,7 +1,8 @@
 import { SeasonFormat } from './season-format.js';
 /**
- * VersionManager - per-game save points (named and automatic), stored by the
- * storage backend: the SQLite catalog on the desktop, IndexedDB in a browser.
+ * VersionManager: per-game save points (named and automatic), stored by the
+ * storage backend: the SQLite catalog on desktop, IndexedDB in a browser,
+ * never localStorage (whole-game snapshots would exhaust its quota).
  *
  * Snapshots are taken:
  *   - manually (Settings > Recovery > Save game version, with a label)
@@ -9,19 +10,7 @@ import { SeasonFormat } from './season-format.js';
  *   - automatically every M minutes if any changes occurred (default 5)
  *
  * Capped at 20 per game by the backend; automatic saves are evicted before
- * named ones.
- *
- * HISTORY (2026-09-24). These snapshots used to live in localStorage under
- * `ffa_versions_<season>::<game>`. A whole-game snapshot is tens of KB and a
- * game keeps up to 20, so they filled the WebView's ~5 MB origin quota; after
- * that EVERY small settings write in the app failed (the installed `Could not
- * save that choice` finding) while this class dropped its own writes silently.
- * The one-time move into the backend ran on the coach's profile and is deleted
- * (legacy excision Pass 2b, row 9); the unscoped `ffa_versions_default` key was
- * archived and removed once (legacy excision Pass 2b, 2026-09-27).
- *
- * The old list renderer (#versionList, #btnSaveVersion) is gone: no such DOM
- * exists, and Settings > Recovery is the only presentation owner.
+ * named ones. Settings > Recovery is the only presentation owner.
  */
 export class VersionManager {
   constructor(storage, tagger) {
@@ -113,8 +102,8 @@ export class VersionManager {
       this.tagger.toast?.('That version is not available for this game.');
       return false;
     }
-    // A version saved before the 2026-09-26 conversion is in the old format:
-    // refused before the confirmation, so nothing is backed up or replaced (step 6).
+    // An old-format version is refused before the confirmation, so nothing
+    // is backed up or replaced.
     if (!SeasonFormat.isCurrentGame(data)) {
       this.tagger.toast?.(SeasonFormat.RESTORE_MESSAGE);
       return false;

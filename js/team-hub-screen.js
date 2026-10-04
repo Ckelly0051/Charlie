@@ -240,13 +240,9 @@ export class TeamHubScreen {
         .filter(season => season.kind === 'scout'
           && WorkspaceContext.resolveScoutParent(season, teamSeasons).status === 'unassigned')
         .map(season => this._seasonRowShell(season, currentSeasonId));
-      // Season rows render immediately from list metadata (name, counts,
-      // current) so a large library or a slow film check never blocks Team
-      // Hub from appearing. Film health resolves in the background per row
-      // (S8-1) — every row starts 'checking' and is patched in place once its
-      // real status is known, instead of a permanent, honest-sounding-but-
-      // wrong "not checked" placeholder that never resolves for a season the
-      // coach has not personally reopened this session.
+      // Season rows render immediately from list metadata so a large library
+      // or a slow film check never blocks Team Hub. Each row starts
+      // 'checking' and is patched in place once its film health is known.
       const rows = seasons.map(season => this._seasonRowShell(season, currentSeasonId));
       const railRows = teamSeasons.map(season => this._seasonRowShell(season, currentSeasonId));
       const items = teams.length ? registry.checklistItems(seasons) : [];
@@ -492,10 +488,9 @@ export class TeamHubScreen {
   }
 
   /** Duplicate program/year/level/opponent detection for a new opponent
-   *  scout, at the actual shared creation boundary (2026-08-31 Home naming
-   *  contract) — never bypassable by a stale form snapshot, since it reads
-   *  the live library fresh at submit time (`listSeasons()`, not cached
-   *  state), including a submission that overlaps another in-flight one. */
+   *  scout, at the shared creation boundary. Reads the live library at submit
+   *  time (`listSeasons()`, not cached state), so a stale form or an
+   *  overlapping submission cannot bypass it. */
   async _findDuplicateScout(year, level, opponentSchool) {
     const all = await this._storage().listSeasons();
     const candidates = all.filter(s => s.kind === 'scout' && String(s.teamId || '') === this._state.activeTeamId
@@ -756,12 +751,10 @@ export class TeamHubScreen {
     } catch (error) { return { ok: false, message: String(error?.message || 'The season could not be created.') }; }
   }
 
-  /** Explicit metadata correction for the OPEN season (2026-08-31 Home naming
-   *  contract: "allow explicit metadata correction without reconstructing
-   *  their IDs or ownership"). Never touches the season id, games, roster,
-   *  or film — only the year/level/generated-name fields, and only for a
-   *  program season (a scout season's identity is its opponent, corrected
-   *  through `createScout`'s own form, not this one). */
+  /** Explicit metadata correction for the open program season: only the
+   *  year, level and generated name; never the season id, games, roster or
+   *  film. A scout's identity is its opponent, corrected through
+   *  `createScout`'s form. */
   updateSeasonDetails(values) {
     return this._changeSeason(current => this._updateSeasonDetails(values, current), this._store()?.currentSeasonId);
   }
@@ -810,15 +803,13 @@ export class TeamHubScreen {
     return handle.result;
   }
 
-  /** PC-3 (Convergence Plan Invariant #6): desktop-only capability check for
-   *  the explicit recovery flow. Read synchronously by the JSX render, so
-   *  it must not be async. */
+  /** Desktop-only check for the explicit recovery flow. Synchronous, because
+   *  the JSX render reads it. */
   canRecoverSeasons() { return !!this._storage()?.canRecoverSeasons?.(); }
 
-  /** PC-3 explicit recovery: fetch the preview ONCE, hand it to a dialog the
-   *  coach reviews and confirms per-row. Never auto-imports (Invariant #6).
-   *  Each row's own confirmed recovery reloads Team Hub so the newly
-   *  recovered season appears immediately. */
+  /** Explicit recovery: fetch the preview once and hand it to a dialog the
+   *  coach confirms row by row. Never automatic. Each confirmed recovery
+   *  reloads Team Hub so the season appears immediately. */
   async recoverSeasons(invoker) {
     const candidates = await this._storage().scanRecoverableSeasons();
     if (!candidates.length) {

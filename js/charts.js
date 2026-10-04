@@ -145,10 +145,9 @@ export class Charts {
       return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.5"
         style="fill:${a.isBest ? 'var(--gi-first-down)' : 'var(--gi-los)'}"><title>${Charts._esc(a.label)}: ${Charts._esc(String(a.valueLabel ?? a.value))}${a.isBest ? ' — season best' : ''}</title></circle>`;
     }).join('');
-    /* A label longer than the margin holds WRAPS onto two lines at the space
-       nearest its middle, at the same type size. "Explosive Plays Rate" (the
-       2026-09-23 terminology) ran past the viewBox edge as one line; shrinking
-       the type or re-growing the canvas would have been the wrong fixes. */
+    /* A label longer than the margin wraps onto two lines at the space
+       nearest its middle, at the same type size, rather than shrinking the
+       type or growing the canvas. */
     const lines = label => {
       const text = String(label);
       if (text.length <= 14 || !text.includes(' ')) return [text];

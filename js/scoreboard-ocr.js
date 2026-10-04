@@ -1,23 +1,20 @@
 /**
- * ScoreboardOCR - Read down/distance/quarter/score from a user-defined
+ * ScoreboardOCR: read down/distance/quarter/score from a coach-defined
  * scoreboard region of the video frame using Tesseract.js.
  *
  * Workflow:
- *   1. User clicks "Set Scoreboard Region" → drag a box over the on-screen
- *      scoreboard. Region is saved per-video in localStorage as normalized
- *      (0..1) coordinates so it works across resolutions.
- *   2. User clicks "Read Scoreboard" (or auto-read on play start). Current
- *      frame is captured, cropped to the region, OCR'd, parsed.
- *   3. Parsed values appear in a confirmation strip — accept to apply,
- *      reject to ignore. Manual override always available.
+ *   1. Set Scoreboard Region: drag a box over the on-screen scoreboard. The
+ *      region is saved per video in localStorage as normalized (0..1)
+ *      coordinates so it works across resolutions.
+ *   2. Read Scoreboard (or auto-read on play start): the frame is captured,
+ *      cropped, OCR'd and parsed.
+ *   3. Parsed values appear in a confirmation strip to accept or reject.
  *
- * Tesseract.js is loaded from CDN on first use only (~1MB).
+ * Tesseract.js loads on first use only (~1MB).
  *
- * The charting deck drives it (Set region, Read, Auto OCR in native-tagging.jsx).
- * KNOWN GAP (2026-09-27): the confirmation strip and status render into
- * #ocrPreview / #ocrStatus, which no longer exist, so a read shows nothing and
- * is never applied. Whether to rebuild that strip or drop the feature is an open
- * coach decision (docs/OPEN-DEFECTS.md). The old legacy buttons were deleted.
+ * Parked by the coach (2026-09-27): the confirmation strip and status render
+ * into #ocrPreview / #ocrStatus, which no longer exist, so a read shows
+ * nothing and is never applied. Kept for future use (docs/OPEN-DEFECTS.md).
  */
 export class ScoreboardOCR {
   constructor(videoController, playTagger) {

@@ -357,12 +357,9 @@ export class SqlCatalog {
   }
   touchOpened(id) { this._run('UPDATE seasons SET last_opened = ? WHERE id = ?', [new Date().toISOString(), id]); }
 
-  // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
-  // Every method below takes seasonId as an explicit first parameter. The
-  // caller (CatalogPersistence) passes it straight through -- it no longer
-  // needs to call setCurrentSeason() before reaching any of these, closing
-  // the "below the seam" half of the explicit-identity requirement (the
-  // "above" half is CatalogPersistence itself, already explicit since A3).
+  // ---- backup ring (explicit seasonId) ----
+  // Every method takes seasonId explicitly; CatalogPersistence passes it
+  // straight through.
   createBackup(seasonId, data, label) {
     const id = this._newId('bk');
     this._run('INSERT INTO backups (id,season_id,t,label,games_count,plays_count,season_name,body_json) VALUES (?,?,?,?,?,?,?,?)',
@@ -414,13 +411,8 @@ export class SqlCatalog {
   getVersion(id) { const r = this._get('SELECT body_json FROM versions WHERE id = ?', [String(id)]); return r ? JSON.parse(r.body_json) : null; }
   deleteVersion(id) { this._run('DELETE FROM versions WHERE id = ?', [String(id)]); }
 
-  // PC-1: the explicit-identity contract for version ownership (documented in
-  // docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Unlike getBackup/deleteBackup
-  // above, this takes EXPLICIT seasonId/gameId parameters rather than trusting
-  // the ambient this.currentId -- these are new methods with no existing
-  // caller to preserve compatibility with, so there is no reason to repeat the
-  // implicit-pointer pattern here. The legacy bare getVersion(id)/deleteVersion(id)
-  // remain for any caller that has not migrated to the scoped seam.
+  // Version ownership is explicit: seasonId and gameId are parameters, never
+  // the ambient this.currentId.
   getVersionScoped(seasonId, gameId, id) {
     const r = this._get('SELECT body_json FROM versions WHERE id = ? AND season_id = ? AND game_id = ?', [String(id), seasonId, gameId]);
     return r ? JSON.parse(r.body_json) : null;

@@ -48,11 +48,9 @@ export class PlayTagger {
   }
 
   /**
-   * THE BLANK TAG SCHEMA — every new or cleared play starts from this one
-   * object (LG-1, 2026-09-25). Five hand-written copies had drifted: clip
-   * import's omitted `unit` (33 unit-less plays in a live season), players,
-   * grades and eleven more fields; CSV import's omitted grades and stType.
-   * `unit` is always set: a play that did not exist yet takes the carried unit.
+   * The blank tag schema: every new or cleared play starts from this one
+   * object, so no creation path can omit a field. `unit` is always set: a play
+   * that did not exist yet takes the carried unit.
    */
   static blankTags({ unit = 'offense', driveNumber = '' } = {}) {
     return {
@@ -269,7 +267,7 @@ export class PlayTagger {
     if (!ok) return;
 
     if (play) {
-      // Clearing keeps the play's drive and the unit on screen (code review CR-2).
+      // Clearing keeps the play's drive and the unit on screen.
       play.tags = PlayTagger.blankTags({ unit: countedUnit(play), driveNumber: play.tags.driveNumber || this.currentDrive.toString() });
       play.notes = '';
       this._emit('play-updated', play);
@@ -551,12 +549,11 @@ export class PlayTagger {
   }
 
   /**
-   * THE CHARTING WRITE (legacy excision Pass 2, step 1). Writes one tag of a
-   * play from an explicit value: projection reconcile, the manual-situation
-   * flag, auto Run/Pass, auto Gain and the yardage sign, then one play-updated
-   * emit (one undoable transaction). It reads no form field: Chart, Film Room
-   * and the keyboard all pass the value, so what is shown and what is stored
-   * cannot drift the way a mirrored form field let them (S99-2).
+   * The charting write. Writes one tag of a play from an explicit value:
+   * projection reconcile, the manual-situation flag, auto Run/Pass, auto Gain
+   * and the yardage sign, then one play-updated emit (one undoable
+   * transaction). It reads no form field: Chart, Film Room and the keyboard all
+   * pass the value, so what is shown and what is stored cannot drift.
    */
   setTagValue(key, value, play = this.getCurrentPlay()) {
     if (!play) return false;
@@ -774,8 +771,7 @@ export class PlayTagger {
    */
   setChartingUnit(unit) {
     if (!['offense', 'defense', 'special'].includes(unit)) return false;
-    // Writes only when the play does not already STORE this unit (a display
-    // mirror once made a play with no stored unit keep none, S99-2).
+    // Writes only when the play does not already store this unit.
     const play = this.getCurrentPlay();
     if (play && play.tags.unit !== unit) this.setPlayUnit(play, unit);
     // Sticky: the coach's choice seeds the next new play (Save & Next).
@@ -839,9 +835,9 @@ export class PlayTagger {
    */
   nextPlayWithSituation() {
     const prev = this.getCurrentPlay();
-    // The unit shown on the previous play, never the carried one: after a play
-    // with no stored unit this stamped the carried unit, Special Teams
-    // included, and stripped the next play's look fields (code review CR-3).
+    // The unit shown on the previous play, never the carried one, so a play
+    // with no stored unit cannot stamp a stale carried unit (Special Teams
+    // included, which would strip the next play's look fields).
     const carryUnit = prev ? countedUnit(prev) : this.defaultUnit;
     const advanced = this.nextPlay();
     if (advanced) {
@@ -912,8 +908,8 @@ export class PlayTagger {
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
   setUnit(unit) {
     unit = unit || 'offense';
-    // The carry-forward write goes through the one unit write (Codex review of
-    // 48cbf5d), so it cannot drift from Chart's and Film Room's.
+    // The carry-forward goes through the one unit write, so it matches Chart
+    // and Film Room.
     const play = this.getCurrentPlay();
     if (play) this.setPlayUnit(play, unit);
   }

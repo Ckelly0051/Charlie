@@ -1,8 +1,7 @@
 /**
  * The run and motion details a play can carry beside its call, and the rules
- * that tie each detail to the field that opens it (docs/archive/plans/GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md,
- * "Approved Break Down charting comp - build contract"). Pure and DOM-free:
- * Chart, Film Room, CSV import and the analytics registry all read it.
+ * that tie each detail to the field that opens it. Pure and DOM-free: Chart,
+ * Film Room, CSV import and the analytics registry all read it.
  *
  *   Gap            where the ball actually hit (not the called gap). One value,
  *                  independent of the coach's Play Direction.

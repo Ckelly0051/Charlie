@@ -1,23 +1,15 @@
 /**
- * SnapshotEnvelope — the versioned wrapper PC-3 requires around every
- * Documents-mirror recovery snapshot (Convergence Plan Invariant #5/#6).
- * A snapshot is written ONLY from the canonical-commit path, after
- * SQLite has already accepted the write, or by an explicit coach export
- * -- never speculatively, and never as a normal read authority.
+ * SnapshotEnvelope: the versioned wrapper around every Documents-mirror
+ * recovery snapshot. A snapshot is written only after the catalog accepted a
+ * commit, or by an explicit coach export; it is never a normal read source.
  *
- * The envelope carries enough identity/count/checksum information for
- * the EXPLICIT recovery flow (a coach-triggered scan, never automatic)
- * to preview a candidate and reject a corrupt/tampered/mismatched one
- * BEFORE importing it, without first having to trust-and-parse the
- * whole season body.
+ * The envelope carries identity, counts and a checksum so the explicit
+ * recovery flow can preview a candidate and reject a corrupt, tampered or
+ * mismatched one before importing it.
  *
- * Pure and DOM-free -- no filesystem access, no SqlCatalog dependency,
- * no external hashing library (this codebase's standing "no external
- * libraries" rule). wrap()/unwrap() are total functions: wrap() never
- * throws on a well-formed season object, and unwrap() never throws on
- * ANY input -- a malformed/legacy/tampered snapshot is reported through
- * the returned `{ ok:false, reason }` shape, never as an exception the
- * caller must remember to catch.
+ * Pure and DOM-free, with no hashing library. wrap() never throws on a
+ * well-formed season; unwrap() never throws on any input and reports a bad
+ * snapshot as `{ ok:false, reason }`.
  */
 export const SnapshotEnvelope = {
   VERSION: 1,
@@ -59,17 +51,9 @@ export const SnapshotEnvelope = {
   /**
    * Wrap a season object for a Documents-mirror snapshot write.
    *
-   * `revision` is the recency marker the explicit recovery preview compares
-   * against the live season. PC-4 wired this to the REAL monotonic commit
-   * counter (`data.revision`, stamped by SeasonStore on every dispatched
-   * durable write), so a recovery candidate can now be compared to the live
-   * catalog by commit order rather than by wall-clock timestamp -- two
-   * snapshots written in the same second are still strictly ordered, and a
-   * machine whose clock moved cannot make an older snapshot look newer.
-   *
-   * The timestamp fallback is retained for a season written before PC-4 (no
-   * `revision` key) and for any caller wrapping a bare object, so this stays
-   * backward-compatible with every envelope already on disk.
+   * `revision` is the season's commit counter (`data.revision`), so recovery
+   * compares a candidate to the live season by commit order, not clock time.
+   * The timestamp fallback covers a season or bare object without one.
    */
   wrap(seasonId, data, { revision } = {}) {
     const { gameCount, playCount } = SnapshotEnvelope._counts(data);

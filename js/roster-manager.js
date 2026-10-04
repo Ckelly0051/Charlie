@@ -1,13 +1,11 @@
 import { SpecialTeamsModel } from './special-teams.js';
 /**
- * RosterManager — the team roster and the charting deck's active player role.
+ * RosterManager: the team roster and the charting deck's active player role.
  *
  * Owns the roster (jersey #, name, position, side), CSV/paste import and the
  * depth-chart print, all driven from Settings > Roster, and the role the deck's
  * player chips stamp (`activeRole`, defaulted from the selected play's unit).
- * The deck itself renders the chips (native-tagging.jsx). The old imperative
- * roster list, quick-pick bar and add/import forms wrote into elements that no
- * longer exist and were deleted 2026-09-27.
+ * The deck itself renders the chips (native-tagging.jsx).
  *
  * The active season owns the roster. StorageManager hydrates this service when
  * a season opens and writes edits back to that season. Per-play attribution
