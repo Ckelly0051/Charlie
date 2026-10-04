@@ -184,7 +184,7 @@ await page.evaluate(() => {
 for (const [i, unit, ownRole, opponentRole] of [
   [10, 'Kick Return', 'returner', 'kicker'], [11, 'Punt Return / Block', 'returner', 'kicker'],
   [12, 'Kickoff', 'kicker', 'returner'], [13, 'Punt', 'kicker', 'returner'],
-  [14, 'Field Goal', 'kicker', 'returner'], [15, 'Field Goal Block', null, 'kicker'],
+  [14, 'Field Goal', 'kicker', 'returner'], [15, 'Field Goal Block', 'returner', 'kicker'],
 ]) {
   await page.evaluate(id => window.app.tagger.selectPlay(id), i); await settle(page);
   ok(await choose('Unit', unit), `${unit}: unit selected`);
@@ -200,6 +200,15 @@ for (const [i, unit, ownRole, opponentRole] of [
     `${unit}: only our specialist can pick from our roster`, JSON.stringify(pickers));
   ok(pickers.ownOpen && pickers.opponentLabel?.startsWith('Opponent '),
     `${unit}: our picker opens by default and the opposing role is named`, JSON.stringify(pickers));
+  if (['Kick Return', 'Punt Return / Block', 'Field Goal Block'].includes(unit)) {
+    const layout = await page.evaluate(() => ({
+      roles: [...document.querySelectorAll('.gi-tag-players > div > strong')].map(n => n.textContent.trim()),
+      blockers: [...document.querySelectorAll('[data-native-tagging] input')].filter(input =>
+        input.getAttribute('aria-label') === 'blocker player number' || input.closest('label')?.textContent.includes('Blocker #')).length,
+    }));
+    ok(layout.roles.join('|') === 'Opponent Kicker|Returner', `${unit}: approved Kicker then Returner order is unchanged`, JSON.stringify(layout));
+    if (unit === 'Field Goal Block') ok(layout.blockers === 1, 'Field Goal Block has exactly one Blocker input', JSON.stringify(layout));
+  }
 }
 await page.evaluate(() => window.app.tagger.selectPlay(10)); await settle(page);
 await page.evaluate(() => {
@@ -232,7 +241,7 @@ const scoutLabel = await page.$eval('[aria-label="kicker player number"]', input
 ok(scoutLabel === 'Other team Kicker', 'scout receiving unit names the other team kicker', scoutLabel);
 await page.evaluate(() => { window.app.storage.gameInfo.perspective = 'offense'; window.app.nativeTagging._queuePublish(); });
 await settle(page);
-for (const [id, role, unit, attempt] of [[15, 'blocker', 'Field Goal Block', null], [2, 'tackler', 'Defending a Try', 'Run/Pass'], [4, 'ballCarrier', 'Try', 'Run/Pass']]) {
+for (const [id, role, unit, attempt] of [[15, 'returner', 'Field Goal Block', null], [2, 'tackler', 'Defending a Try', 'Run/Pass'], [4, 'ballCarrier', 'Try', 'Run/Pass']]) {
   await page.evaluate(id => window.app.tagger.selectPlay(id), id); await settle(page);
   await choose('Unit', unit);
   if (attempt) await choose('Attempt', attempt);

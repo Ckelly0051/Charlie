@@ -376,10 +376,8 @@ function Players({screen, state}) {
   const st = state.special, side = lookSide(state);
   const roles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
     : SpecialTeamsModel.playerRoles(st);
-  const opposingSpecialist = role => !side && st && (
-    (role === 'kicker' && ['receiving','defending'].includes(SpecialTeamsModel.ROLES[st.unit]))
-    || (role === 'returner' && ['kicking','attempting'].includes(SpecialTeamsModel.ROLES[st.unit])));
-  const defaultRole = roles.find(role => !opposingSpecialist(role)) || roles[0];
+  const opposingSpecialist = role => !side && SpecialTeamsModel.isOpposingPlayerRole(st, role);
+  const defaultRole = state.unit === 'special' ? SpecialTeamsModel.defaultPlayerRole(st) : roles[0];
   const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) && !opposingSpecialist(state.activeRole) ? state.activeRole : defaultRole]));
   const openRole = role => setOpenRoles(current => new Set([...current, role]));
   useLayoutEffect(() => {

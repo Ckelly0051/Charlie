@@ -39,7 +39,7 @@ export class SpecialTeamsModel {
     return Object.keys(this.ROLES).map(unit => [unit, this.UNIT_LABELS[unit] || unit]);
   }
 
-  /** Ordered charting roles; the first is the subject's default active role. */
+  /** Charting rows in the approved display order, independent of active role. */
   static playerRoles(value) {
     const event = this.normalize(value);
     if (this.isRunPassTry({ specialTeams: event })) {
@@ -47,10 +47,20 @@ export class SpecialTeamsModel {
     }
     if (event?.unit === 'try') return ['kicker'];
     if (event?.unit === 'tryDefense') return ['blocker'];
-    const role = this.ROLES[event?.unit];
-    if (role === 'receiving') return ['returner', 'kicker'];
-    if (role === 'defending') return ['blocker', 'returner', 'kicker'];
     return ['kicker', 'returner'];
+  }
+
+  static isOpposingPlayerRole(value, role) {
+    const event = this.normalize(value);
+    if (!event || this.isRunPassTry({ specialTeams: event })) return false;
+    const ownership = this.ROLES[event.unit];
+    return (role === 'kicker' && ['receiving', 'defending'].includes(ownership))
+      || (role === 'returner' && ['kicking', 'attempting'].includes(ownership));
+  }
+
+  static defaultPlayerRole(value) {
+    const roles = this.playerRoles(value);
+    return roles.find(role => !this.isOpposingPlayerRole(value, role)) || roles[0];
   }
 
   static STATUSES = new Set([

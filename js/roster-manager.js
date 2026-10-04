@@ -94,7 +94,7 @@ export class RosterManager {
     const cur = this.tagger?.getCurrentPlay();
     const turnover = unit === 'defense' && /Interception|Fumble/.test(String(cur?.tags?.result || ''));
     const wanted = unit === 'defense' ? (turnover ? 'takeaway' : 'tackler')
-      : unit === 'special' ? SpecialTeamsModel.playerRoles(cur?.specialTeams)[0]
+      : unit === 'special' ? SpecialTeamsModel.defaultPlayerRole(cur?.specialTeams)
       : 'ballCarrier';
     this.activeRole = wanted;
   }
