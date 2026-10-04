@@ -296,16 +296,6 @@ export class CatalogPersistence {
     await this._ensureLoaded();
     try { return this.catalog.listVersions(seasonId, gameId); } catch (e) { return []; }
   }
-  async getVersion(id) {
-    if (id == null) return null;
-    await this._ensureLoaded();
-    try { return this.catalog.getVersion(id); } catch (e) { return null; }
-  }
-  async deleteVersion(id) {
-    if (id == null) return false;
-    return (await this._durably(() => this.catalog.deleteVersion(id))).ok;
-  }
-
   // Explicit identity: seasonId/gameId go straight to SqlCatalog.
   async getVersionScoped(seasonId, gameId, id) {
     if (!seasonId || !gameId || id == null) return null;

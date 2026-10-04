@@ -408,9 +408,6 @@ export class SqlCatalog {
     return this._all('SELECT id,t,label,manual,play_count FROM versions WHERE season_id = ? AND game_id = ? ORDER BY t ASC', [seasonId, gameId])
       .map(r => ({ id: r.id, time: r.t, label: r.label || '', manual: !!r.manual, playCount: r.play_count || 0 }));
   }
-  getVersion(id) { const r = this._get('SELECT body_json FROM versions WHERE id = ?', [String(id)]); return r ? JSON.parse(r.body_json) : null; }
-  deleteVersion(id) { this._run('DELETE FROM versions WHERE id = ?', [String(id)]); }
-
   // Version ownership is explicit: seasonId and gameId are parameters, never
   // the ambient this.currentId.
   getVersionScoped(seasonId, gameId, id) {

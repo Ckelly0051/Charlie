@@ -1230,7 +1230,7 @@ flush();
 //    records, foreign get/delete), not by function arity. Repair of 529d8ae
 //    finding 4.
 // ============================================================================
-section('7. Version ownership: the scoped production seam is closed (LOCK, PC-1); the legacy bare getVersion/deleteVersion remain a disclosed, dormant, unscoped fallback with zero production callers (TARGET, not scheduled -- see comment)');
+section('7. Version ownership: only the scoped seam exists [LOCK]');
 {
   const cat = new SqlCatalog(SQL);
   await cat.open();
@@ -1239,29 +1239,10 @@ section('7. Version ownership: the scoped production seam is closed (LOCK, PC-1)
   // LOCK: positive control -- own-scope reads must keep working, or the
   // target reds below could be "achieved" by a broken save/read, not by a
   // real ownership check (Codex 6ed3bb1 finding 2).
-  ok('lock', !!cat.getVersion(vA), 'positive control: a version genuinely exists and reads back for its own scope');
-
-  // DISCLOSED, DORMANT LEGACY FALLBACK -- deliberately NOT closed this
-  // checkpoint. SqlCatalog.getVersion(id)/deleteVersion(id) (the bare,
-  // unscoped originals) have ZERO callers anywhere in js/ today (grep-
-  // verified) -- CatalogPersistence.getVersion/deleteVersion delegate to
-  // them but are themselves never called; the only live production path is
-  // the new getVersionScoped/deleteVersionScoped seam proven below. They are
-  // intentionally left in place rather than deleted, because
-  // tools/e2e-catalog-versions.mjs (an existing, unrelated, already-passing
-  // regression suite) exercises their plain CRUD/eviction behavior directly
-  // and has no ownership dimension to it -- deleting them would force
-  // rewriting that file's fixture for zero live-vulnerability benefit, since
-  // nothing in production can reach this path unscoped. This is a real,
-  // permanently-disclosed gap in a dormant method, not a scheduled PC-2 item
-  // -- PC-2 wires VersionManager onto the SCOPED seam, not this one.
-  const leaked = cat.getVersion(vB);
-  ok('target', leaked === null, "getVersion(id) refuses a version id that belongs to a different season/game scope (legacy unscoped method, zero production callers, deliberately not closed)",
-    leaked ? `returned '${leaked.seasonName}' instead of null` : '');
-  cat.deleteVersion(vB);
-  const stillThere = cat.getVersion(vB);
-  ok('target', stillThere !== null, "deleteVersion(id) must not delete a version outside the caller's scope (legacy unscoped method, zero production callers, deliberately not closed)",
-    stillThere ? '' : "season-B/game-B's version was deleted while nominally acting on season-A/game-A");
+  ok('lock', !!cat.getVersionScoped('season-A', 'game-A', vA), 'positive control: a version genuinely exists and reads back for its own scope');
+  // The unscoped getVersion(id)/deleteVersion(id) were deleted (2026-10-04):
+  // no production caller, and they crossed season/game scope.
+  ok('lock', typeof cat.getVersion !== 'function' && typeof cat.deleteVersion !== 'function', 'no unscoped version read or delete exists on SqlCatalog');
 
   // PRODUCTION CONTRACT, CLOSED PC-1 (js/sql-catalog.js, js/catalog-persistence.js):
   //   getVersionScoped(seasonId, gameId, id)    -> the version's body if it

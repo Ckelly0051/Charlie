@@ -42,8 +42,8 @@ function makeFs() {
   const g2 = await cp.listVersions('s1', 'g2');
   ok(g1.length === 2 && g2.length === 1, 'versions are scoped per season::game (g1=2, g2=1)', JSON.stringify({ g1: g1.length, g2: g2.length }));
   ok(g1[0].label === 'First' && g1[0].manual === true, 'listVersions returns oldest-first with meta (label/manual/playCount)', JSON.stringify(g1[0]));
-  const got = await cp.getVersion(a1);
-  ok(got && got.plays.length === 3, 'getVersion returns the full snapshot payload (data)', JSON.stringify(got && got.plays.length));
+  const got = await cp.getVersionScoped('s1', 'g1', a1);
+  ok(got && got.plays.length === 3, 'getVersionScoped returns the full snapshot payload (data)', JSON.stringify(got && got.plays.length));
 }
 
 // ---- 2. delete + reopen durability -----------------------------------------
@@ -55,9 +55,9 @@ function makeFs() {
   // Reopen a fresh session from the same db bytes.
   const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   ok((await cp2.listVersions('s1', 'g1')).length === 2, 'versions survive a reopen from the on-disk db');
-  await cp2.deleteVersion(id);
+  await cp2.deleteVersionScoped('s1', 'g1', id);
   const after = await cp2.listVersions('s1', 'g1');
-  ok(after.length === 1 && after[0].label === 'Drop', 'deleteVersion removes exactly that version', JSON.stringify(after));
+  ok(after.length === 1 && after[0].label === 'Drop', 'deleteVersionScoped removes exactly that version', JSON.stringify(after));
 }
 
 // ---- 3. prune to VMAX, evicting AUTO-saves before MANUAL --------------------
@@ -76,7 +76,7 @@ function makeFs() {
   // Now overflow with manuals too: 20 more manual → must evict oldest manual.
   for (let i = 0; i < 20; i++) await cp.saveVersion('s1', 'g1', snap(`M2_${i}`, true, 1));
   const list2 = await cp.listVersions('s1', 'g1');
-  ok(list2.length === 20 && (await cp.getVersion(manualIds[0])) === null, 'when only manual points remain, the OLDEST manual is evicted', JSON.stringify({ n: list2.length }));
+  ok(list2.length === 20 && (await cp.getVersionScoped('s1', 'g1', manualIds[0])) === null, 'when only manual points remain, the OLDEST manual is evicted', JSON.stringify({ n: list2.length }));
 }
 
 // ---- 4. Durability (wired into VersionManager, 2026-09-24) -----------------
