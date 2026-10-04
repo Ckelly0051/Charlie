@@ -10,7 +10,7 @@
 
 > **Current release snapshot (2026-09-28):** `docs/DOCUMENTATION-INDEX.md`
 > is the release-status authority. The latest installer is `1.12.0-106`, and
-> the coach approved its installed smoke (`SMOKE-1.12.0-106.md`). The new
+> the coach approved its installed smoke (`docs/archive/smoke/SMOKE-1.12.0-106.md`). The new
 > Break Down charting fields and BD-UX-1/2 visual work are not in that build.
 > Home and Reports remain formally `REJECTED` in their design manifests;
 > bounded installed-smoke decisions do not change those statuses. Nothing is
@@ -30,11 +30,11 @@
 > below the strip and verify canonical data after implementation.
 > **Status:** implemented and included in the `1.12.0-98` Reports smoke. The
 > coach said the remaining navigation/composition checks looked good; the
-> approval registry has not moved. See `SMOKE-1.12.0-98.md` and the later
+> approval registry has not moved. See `docs/archive/smoke/SMOKE-1.12.0-98.md` and the later
 > label repairs in `docs/OPEN-DEFECTS.md`.
 >
 > **Reports OLL live-data repairs, 2026-09-10.** The ten findings in
-> `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
+> `docs/archive/plans/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`, plus one found in passing, are
 > repaired in code across the commits beginning `d3c71e6`, with three further
 > repairs from Codex's review of that work. Three product decisions
 > reached in that work and binding going forward: Reports name the cohort they
@@ -75,7 +75,7 @@ finding ledger and `docs/DOCUMENTATION-INDEX.md` owns release status.
    919 live plays, 42 retained restore points and 52 retained versions verified
    independently; 496 populated Formation values mapped, four deliberately
    blanked. Temporary conversion code and the Previous formations bridge are
-   deleted. See `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md` and its
+   deleted. See `docs/archive/plans/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md` and its
    verification receipt. Final gate 140/140 at `a449b59e`; `1.12.0-107`
    installer built from `72bea85a`, installed smoke remains.
 3. **Film Room — built, specific smoke outstanding.** The table docks below
@@ -491,7 +491,7 @@ and delete the copies. And a coach-authorized one-time normalization gave the 19
 2025 JV season alone and emptied both 2026 seasons, with identity verified from
 stable game ids rather than a directory name. The full ledger, including the
 catalog-versus-mirror divergence and the backup hashes, is
-`docs/ROSTER-NORMALIZATION-2026-09-13.md`.
+`docs/archive/plans/ROSTER-NORMALIZATION-2026-09-13.md`.
 
 **Add Game's `Film source` selector is deleted (2026-09-13).** It wrote
 `perspective`, and choosing `Opponent film · Scout` inside a Program season made
@@ -1200,7 +1200,7 @@ Retain every meaningful production field while reducing everyday clutter.
 > composition drift, and full layout-integrity verification. All ten are closed
 > in code, as are one item found in passing and three from Codex's review of
 > the repairs. The durable ledger is
-> `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; open questions are in
+> `docs/archive/plans/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; open questions are in
 > `docs/OPEN-DEFECTS.md`. Every approved comp remained the static schema and no
 > dashboard resizes with its data. Codex re-review and a Charlie Gate remain.
 >
