@@ -552,15 +552,15 @@ Coach reports completing the four requested re-charts (2025 JV, Week 6 vs Holy
 Family Wildcats, plays 3, 4, 23, 60). A read-only live-catalog/browser audit now
 verifies those edits: 1,529 checks passed, no defects in the tested scope.
 Evidence and limits: `docs/smoke-data-verification-1.12.0-107-2026-09-30.json`
-and `SMOKE-1.12.0-107.md`. The pre-smoke hash is historical. Overall smoke
-acceptance remains pending. Checklist/feedback: `SMOKE-1.12.0-107.md`.
+and `docs/archive/smoke/SMOKE-1.12.0-107.md`. The pre-smoke hash is historical. Overall smoke
+acceptance remains pending. Checklist/feedback: `docs/archive/smoke/SMOKE-1.12.0-107.md`.
 
 ## Charting adversarial review, 2026-09-29
 
 Packaging checkpoint, 2026-09-30: coach-authorized full gate **140/140 green,
 zero skipped, zero failed** at `a449b59e`. Version-only bump to `1.12.0-107`;
 installer built from clean `72bea85a` after green. Build, artifact hash and
-pending checklist recorded in `SMOKE-1.12.0-107.md`. No installed smoke or
+pending checklist recorded in `docs/archive/smoke/SMOKE-1.12.0-107.md`. No installed smoke or
 acceptance yet; live catalog hash unchanged by gate/build.
 
 Current cutover status, 2026-09-30: live conversion completed on explicit coach
@@ -573,7 +573,7 @@ are deleted. Installed library checked from a profile copy: Beast is its only
 old custom Formation and is already a current built-in. Settings and mirror
 files were not rewritten. Final gate/package/smoke remain outstanding.
 Receipt, impact and final re-chart list:
-`docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
+`docs/archive/plans/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
 
 Earlier entries below are historical checkpoint evidence, superseded by the
 current status above; their pending-write language is not an open task.
@@ -594,11 +594,11 @@ no live write. Mapping and report recorded in the dated cutover evidence.
 under the superseded model. Identity, film, unrelated fields and read-back
 proofs pass; current-format checks and formation-driven top-five takeaway
 differences still block live conversion. Exact counts and decision groups:
-`docs/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`. Live catalog hash unchanged.
+`docs/archive/plans/CHARTING-CUTOVER-REHEARSAL-2026-09-30.md`. Live catalog hash unchanged.
 
 2026-09-30 packaging decision: coach deferred the installer until cutover
 readiness. No installer build started; the uncommitted bump was undone.
-`docs/CHARTING-CUTOVER.md` now lists the three remaining checkpoints: mapping
+`docs/archive/plans/CHARTING-CUTOVER.md` now lists the three remaining checkpoints: mapping
 and copy rehearsal; confirmed conversion and cleanup; final verification and
 packaging. No live-data write was authorized.
 
@@ -683,7 +683,7 @@ or dual-write tail; see `GRIDIRON-IQ-PLAN-V2.md`.
 source; live data NOT converted.** Family and Receiver Set, Gap under Play
 Direction, motion Starts/Ends, RPO read/defender/decision, QB Run and Reverse
 play types, the 27px chips, the Film Room and CSV columns, the run-gap report
-and the single-format refusals are in the branch (`docs/CHARTING-CUTOVER.md`
+and the single-format refusals are in the branch (`docs/archive/plans/CHARTING-CUTOVER.md`
 has the counts, the field mapping and the rehearsal proof). Open until the
 coach decides compound mappings. Exact single names remain coach-named
 Formation choices under the 2026-09-29 correction. The full live/snapshot
@@ -753,7 +753,7 @@ verified.
 ## Installed smoke, 1.12.0-105 (list complete, 2026-09-28)
 
 Findings logged as the coach lists them; no repair starts until the coach
-says the list is complete. Checklist: `SMOKE-1.12.0-105.md`.
+says the list is complete. Checklist: `docs/archive/smoke/SMOKE-1.12.0-105.md`.
 
 **S105-1 — CLOSED 2026-09-28; repaired in 1.12.0-106 and installed smoke approved. Changing the team name in Settings does not save.** Coach:
 "changing Team name via the settings menu does not save." Reproduced on the
@@ -768,7 +768,7 @@ The coach's smoke list is otherwise complete ("the rest looks good").
 
 ## Installed smoke, 1.12.0-103 (2026-09-27)
 
-Run on the installed build (checklist `SMOKE-1.12.0-103.md`). First launch:
+Run on the installed build (checklist `docs/archive/smoke/SMOKE-1.12.0-103.md`). First launch:
 the storage-cleanup receipt and `giq_settings_format_2026_09_26` both read back
 with no failed step from a copy of the profile. Every other check run passed;
 details are in the smoke record.
@@ -792,7 +792,7 @@ red on `[0,0]` first, 29/29 after).
 ## Installed smoke, 1.12.0-102 (in progress, 2026-09-25)
 
 Findings logged as the coach lists them; no repair starts until the coach
-says the list is complete. Checklist: `SMOKE-1.12.0-102.md`.
+says the list is complete. Checklist: `docs/archive/smoke/SMOKE-1.12.0-102.md`.
 
 **Catalog integrity review — REPAIRED IN SOURCE 2026-09-25; installed smoke
 pending.** Four paths were fixed: a version ID collision could overwrite
@@ -839,7 +839,7 @@ from the installed one — is a structural finding for the excision plan.
 
 ## Legacy excision (2026-09-25)
 
-Plan: `docs/LEGACY-EXCISION-PLAN.md` (approved; Codex audit next). The live
+Plan: `docs/archive/plans/LEGACY-EXCISION-PLAN.md` (approved; Codex audit next). The live
 retag list (42 plays in 2025 JV) is recorded there.
 
 **LG-1 — OPEN. Plays are created without a unit.** SJM Varsity 2026 holds 33
@@ -874,7 +874,7 @@ subject is on screen before interacting); 5/5 runs 10/10.
 
 **LEGACY EXCISION STEP 7 — DONE IN SOURCE 2026-09-26; full gate 135/135 at `42e4097`; installed smoke pending (step 8).** Every
 old-format season reader is deleted (`b84e207`..`5c53b44`; record in
-`docs/LEGACY-EXCISION-PLAN.md` step 7). ST-GAPS below is now unblocked: there is one
+`docs/archive/plans/LEGACY-EXCISION-PLAN.md` step 7). ST-GAPS below is now unblocked: there is one
 data format to extend. What changed for the coach, to check in the step 8 smoke:
 - **A stored season in an old format no longer opens.** It used to be converted on
   open (game rosters) or read through projections; now it is refused by name, the
@@ -892,21 +892,21 @@ Earlier entries in this file that describe `adoptLegacyRoster`, the roster
 migration, `migratePlayFormation`, the look projection or legacy Special Teams
 branches are history; those readers no longer exist. **Next, Pass 2b (coach,
 2026-09-26):** old app-settings keys are removed as a separate bounded cleanup
-(12-row inventory in `docs/LEGACY-EXCISION-PLAN.md` Pass 2b); version history and
+(12-row inventory in `docs/archive/plans/LEGACY-EXCISION-PLAN.md` Pass 2b); version history and
 the season-file layouts keep the coach-data rules. A step 7 leftover found by that
 inventory: the `tags.custom` coercion in `_normalize` (row 12). The
 tag-form write and the Film Room grid commit have no write-level refusal of a
 reserved look value; nothing in the app offers one to them.
 **SETTINGS FORMAT CONVERSION — DONE AND RETIRED.** Old app-settings keys were converted once at boot (`js/settings-format.js`, `7b9b09a`) and their readers deleted. The installed check passed on 2026-09-27 (profile copy read after the `1.12.0-103` first launch, re-read after `1.12.0-104`); `js/settings-format.js`, `js/storage-cleanup.js` and their harnesses were then deleted (efficiency audit batch 2). The check was: `giq_settings_format_2026_09_26` records the run with no failed step; `giq_home_workspace`, `ffa_film_room_cols_claimed_by`, the per-version `ffa_beta_defaults_*` markers and the dead UI keys are gone; `ffa_beta_defaults` holds the installed version; the charting library, Film Room columns and Home mode are unchanged in the app. Rows 9 and 11 are done (`6e8d156`): no version migrator; an old pre-library save is named once (`An old-format GridIron IQ save was found and not opened. It was left where it is.`) and left in place. The 23 old-layout restore-point files for `2025 St. Joseph Mavericks - JV` (storage id `2026-varsity-demo`: `seasons/2026-varsity-demo/backups/season_*.json`, 14,543,375 bytes) were archived to `C:\Users\charl\GridIronIQ-Backups\retired-file-restore-points-2026-09-26` (manifest and read-back verified 23/23) and the originals removed from active storage, verified by `REMOVAL-RECEIPT.json` (`REMOVED_AND_VERIFIED`, coach-authorized 2026-09-26). Closed.
 
-**STORAGE CLEANUP CHECKPOINT — IN SOURCE 2026-09-26 (`a70c52e`), installed check pending (step 8).** Three retired keys (`ffa_versions_default`: 20 unscoped game snapshots; `ffa_roster`: a copy of the 2025 JV roster; `ffa_roster_mavericks`: `[]`) are archived and verified in `C:\Users\charl\GridIronIQ-Backups` and removed once at boot only when each still matches its archived hash. After the step 8 install's first launch, re-read a copy of the profile: the three keys gone, `giq_storage_cleanup_2026_09_26` listing three `removed`. Record in `docs/LEGACY-EXCISION-PLAN.md` Pass 2b.
+**STORAGE CLEANUP CHECKPOINT — IN SOURCE 2026-09-26 (`a70c52e`), installed check pending (step 8).** Three retired keys (`ffa_versions_default`: 20 unscoped game snapshots; `ffa_roster`: a copy of the 2025 JV roster; `ffa_roster_mavericks`: `[]`) are archived and verified in `C:\Users\charl\GridIronIQ-Backups` and removed once at boot only when each still matches its archived hash. After the step 8 install's first launch, re-read a copy of the profile: the three keys gone, `giq_storage_cleanup_2026_09_26` listing three `removed`. Record in `docs/archive/plans/LEGACY-EXCISION-PLAN.md` Pass 2b.
 
 **ST-GAPS — CLOSED.** Items 1-2 and three coach additions were repaired on
 2026-09-27 (`67d1ee0c`, review fix `206551e9`). They shipped in `1.12.0-105`,
 and its installed smoke on 2026-09-28 covered them; its only finding was
 S105-1, which is unrelated. They are in every later build through
 `1.12.0-108`. No further Special Teams gaps are recorded; any new one is a new
-entry, not this one. Verified against git and `SMOKE-1.12.0-105.md` on
+entry, not this one. Verified against git and `docs/archive/smoke/SMOKE-1.12.0-105.md` on
 2026-10-01, after Codex flagged the stale "open" heading.
 History of the repair:
 Attempt is now Kick XP / Run/Pass / Fake; every try records 1 or 2 points (kick
@@ -1003,7 +1003,7 @@ The app-wide dead-code list from 2026-09-24 is under Deferred Beta Maintenance.
 
 Findings logged as the coach lists them; no repair starts until the coach
 says the list is complete (smoke-findings protocol). Checklist:
-`SMOKE-1.12.0-99.md`.
+`docs/archive/smoke/SMOKE-1.12.0-99.md`.
 
 **S99-1 — REPAIRED (`48cbf5d`, `125c6f5`), PACKAGED IN `1.12.0-102`, INSTALLED CHECK PENDING. Film Room table did not show formation data the charting
 deck shows, and does not accept new entries.** Coach: "Charting shows
@@ -1125,7 +1125,7 @@ formation in the tagging deck. **The play-action data is correct; no repair.**
 ## Installed smoke, 1.12.0-97 (stopped at S97-1, 2026-09-23; continues on 1.12.0-98)
 
 **Finding S97-1 — repaired in source 2026-09-24 (`77aea58`) at the coach's
-direction to proceed; packaged in `1.12.0-98` (`SMOKE-1.12.0-98.md`), whose installed
+direction to proceed; packaged in `1.12.0-98` (`docs/archive/smoke/SMOKE-1.12.0-98.md`), whose installed
 smoke ran on 2026-09-24 with label findings only (above). The Offense pages carried several unrelated
 visual treatments.** Coach, on Identity, Situations and Structure: different header
 styles, headline styles and fonts per page, as though the old long board was
@@ -1354,7 +1354,7 @@ Distance table's charted Snaps (e.g. season 1st & 7+: 56 run/pass vs 60
 charted), and the header says which cohort it is. Review finding repaired
 (`cd0fb40`): a selected cell holding only untyped snaps listed `No play type
 charted` beside the counted `No play type N` row; it now shows the counted row
-alone. **`1.12.0-97` (`SMOKE-1.12.0-97.md`) is the combined package carrying the
+alone. **`1.12.0-97` (`docs/archive/smoke/SMOKE-1.12.0-97.md`) is the combined package carrying the
 secondary bar and this chart; Reports approval waits on Charlie's installed
 smoke of it.**
 Evidence: `tools/e2e-reports-down-distance.mjs` (47) and captures in `artifacts/reports-down-distance/`.
@@ -1362,7 +1362,7 @@ Evidence: `tools/e2e-reports-down-distance.mjs` (47) and captures in `artifacts/
 ## Installed Reports smoke, 1.12.0-94 (2026-09-22)
 
 **IN PROGRESS, NOT APPROVED AS A RELEASE.** Coach findings from the installed
-candidate are open; `SMOKE-1.12.0-94.md` identifies the package. The approved
+candidate are open; `docs/archive/smoke/SMOKE-1.12.0-94.md` identifies the package. The approved
 navigation concept is
 `design-comps/reports-global-strip-2026-09-22.html`.
 It is a standalone comp, not a full report-board redesign.
@@ -1643,7 +1643,7 @@ authority, with the `1.12.0-92` rail revision visually approved by the coach.
 **Installed Home visual verdict, 2026-09-22:** Charlie approved the `1.12.0-92`
 composition. Claude's installed smoke was partial; 1440×900 and 1280×800
 captures, real-data independent tree scrolling and an installed console check
-were not completed. See `SMOKE-1.12.0-92.md`. Approval does not close these
+were not completed. See `docs/archive/smoke/SMOKE-1.12.0-92.md`. Approval does not close these
 newly observed findings:
 - Season setup checks only the first stored game, which can be an untouched
   starter even when later games are configured. First game and Ready to chart
@@ -2054,7 +2054,7 @@ alignment. The populated Defense-deck capture was inspected and
    belongs only to the 2025 St. Joseph Mavericks JV season; no roster was
    entered for 2026 JV or 2026 Varsity, so both are empty. Identity was verified
    from stable game ids and metadata, never a directory name — see the ledger in
-   `docs/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
+   `docs/archive/plans/ROSTER-NORMALIZATION-2026-09-13.md`. `tools/audit-roster-ownership.mjs`
    is the read-only auditor; `tools/normalize-roster-ownership.mjs` performed the
    one-time write behind `--apply` with timestamped backups.
 
@@ -2370,7 +2370,7 @@ edge-to-edge by design; the top bar's 18px inset is not.
    Gate.** All ten items plus one found in passing are closed in code across
    the commits beginning `d3c71e6`, with three further repairs from Codex's
    2026-09-10 review. Detail, reconciliation and mutation evidence are in
-   `docs/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; the production decision record
+   `docs/archive/plans/REPORTS-OLL-LIVE-AUDIT-2026-09-10.md`; the production decision record
    is `design-comps/reports-oll-repairs-2026-09-10/RATIONALE.md`. No surface
    advanced past `REJECTED`. Installed `1.12.0-94` smoke is in progress, but
    it has not accepted this work as production state.
@@ -2876,16 +2876,16 @@ one-character keys and asserts that a one-character write fails too;
 mutation-verified by swallowing the `QuotaExceededError` in `TagLibrary`.
 
 **Break Down rebuild, steps 1-4 in source (2026-09-24); full gate 130/130 at
-`b7e2f32`; packaged in `1.12.0-99` and `1.12.0-102` (`SMOKE-1.12.0-102.md`),
+`b7e2f32`; packaged in `1.12.0-99` and `1.12.0-102` (`docs/archive/smoke/SMOKE-1.12.0-102.md`),
 installed smoke pending.**
 One tree replaces the five mounted roots and the HTML string; no visual
 change (20 screenshots byte-identical to `c1f6cc1`). Record:
-`docs/BREAKDOWN-REBUILD-PLAN.md` > Progress.
+`docs/archive/plans/BREAKDOWN-REBUILD-PLAN.md` > Progress.
 
 **Packaged with the rebuild in `1.12.0-99`.** The coach first ruled out an
 installer for this batch because Break Down was being rebuilt; the Film Room
 work, the version-history move and the library save fix ship in the rebuild's
-installer instead (`SMOKE-1.12.0-102.md`). None of it is
+installer instead (`docs/archive/smoke/SMOKE-1.12.0-102.md`). None of it is
 installed or approved until that smoke.
 
 **Codex review of `c1cce33`, both REPAIRED (`5cd5313`).** The old global
@@ -3180,7 +3180,7 @@ editing work in both docks with real film.
     restoring the original padding, the `nowrap` chip row and `scrollbar-width`
     (4 red, reporting the measured `{"distinct":[3,15,23]}`). The canonical gate
     is 119/119 on this baseline, and the repair is packaged as `1.12.0-88`
-    (`SMOKE-1.12.0-88.md`) for the re-smoke. **The coach approved that installed
+    (`docs/archive/smoke/SMOKE-1.12.0-88.md`) for the re-smoke. **The coach approved that installed
     smoke on 2026-09-16, closing this item for beta use.** Installed acceptance,
     not Chromium, closes the arrow, horizontal-track and spacing checkpoint.
     No additional viewport/DPI matrix is claimed.
@@ -3246,7 +3246,7 @@ Breakdown film-state defects above.
    statuses. The manifest now records `REJECTED`, the formal state already
    documented for Home after its partial `1.12.0-92` smoke and pending
    follow-up repairs. The coach's approval of Home's visual composition remains
-   recorded in the manifest note and `SMOKE-1.12.0-92.md`; it does not imply
+   recorded in the manifest note and `docs/archive/smoke/SMOKE-1.12.0-92.md`; it does not imply
    formal production acceptance. The registry audit can now inspect all nine
    surfaces.
 
@@ -3310,7 +3310,7 @@ Breakdown film-state defects above.
      names the QB-alignment result `formation`; `js/html-report.js:32,543`
      still headline the Family table "Formation". Names only, no behavior.5. **Structural limits, recorded 2026-09-24 (planning inputs, not defects).**
    (a) Break Down was five mounted roots kept in step by events — rebuilt
-   (`docs/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87
+   (`docs/archive/plans/BREAKDOWN-REBUILD-PLAN.md`). (b) Settings live in localStorage (87
    call sites): the 5 MB quota already failed once, settings do not travel with
    a season, and nothing can sync them; this blocks the V2-I mobile companion.
    (c) The browser target is why film plays through HTML `<video>` and the
@@ -3330,7 +3330,7 @@ Breakdown film-state defects above.
   manifest: beta smoke acceptance is not formal design approval or publication.
 - Installed `1.12.0-92` Home visual composition was **APPROVED by the coach** on
   2026-09-22. Its partial installed smoke and unrun checks are recorded in
-  `SMOKE-1.12.0-92.md`; the newly reported setup, typography and identity defects
+  `docs/archive/smoke/SMOKE-1.12.0-92.md`; the newly reported setup, typography and identity defects
   above remain open. This is not registry acceptance or whole-app sign-off.
 - Installed `1.12.0-86` is **APPROVED FOR BETA USE** for FILM-01 after the
   2026-09-15 coach smoke. It also contains Repair Batch 1. The deferred visual
