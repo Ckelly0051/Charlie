@@ -373,6 +373,15 @@ live-data write; installed approval remains `1.12.0-108`.
 
 ## Special Teams Specialist Roster Ownership (2026-10-03)
 
+Review repairs in `76e592f1` add five failing-first assertions: scout Other team
+label, and active roles after real quarter writes on Field Goal Block, run/pass
+Try Defense, run/pass Try and kicked Try Defense. All five fail before the fix.
+Clean-commit fresh-build focused proof: try/ownership 56/56, native deck 89/89,
+tries 17/17, roster ownership 45/45 and parity 2/2. Passing focused receipt with
+stable source/build/fixtures:
+`artifacts/gate-logs/2026-10-04T03-13-43-209Z-jRemSf/receipt.json`.
+No full gate, package or live-data change on these review repairs.
+
 `06b66829`: `e2e-st-try-charting` now covers six kicking/receiving units,
 subject-only roster access, default owned-role disclosure, opponent labels,
 and preservation of manual opponent numbers beside a quick-picked returner.

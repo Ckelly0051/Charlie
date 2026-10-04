@@ -1,5 +1,22 @@
 # GridIron IQ Open Defects
 
+## Special Teams roster review, 2026-10-03
+
+**ST-ROSTER-R1/R2 (P3): repaired in source (`76e592f1`), focused-verified only.**
+- R1: hardcoded Opponent mislabeled the non-subject team in scout seasons.
+  The prefix now follows perspective: Other team for scout, Opponent for program.
+- R2: `RosterManager` reset Special Teams active roles on every play-updated
+  using a Return-name heuristic. Model-owned `playerRoles` now supplies the
+  deck's Special Teams rows and roster defaults. Field Goal Block defaults to
+  Blocker; kicked Try Defense stays Blocker; run/pass Try and Try Defense
+  default to Ball Carrier and Tackler respectively. No attribution is cleared.
+
+Five regression assertions fail on the old code and pass on the repairs:
+scout label and post-charting-edit active roles for all four cases above.
+Fresh-build proof at clean committed source: try/ownership 56/56, native deck
+89/89, tries 17/17, roster ownership 45/45, parity 2/2. No full gate, installer,
+push or coach-data write. Include scout labels and active-role stability in smoke.
+
 ## Special Teams roster picker, 2026-10-03
 
 **ST-ROSTER-1: repaired in source (`06b66829`), not packaged or smoked.**

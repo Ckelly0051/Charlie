@@ -100,6 +100,12 @@ Four focused suites pass (51/51, 89/89, 17/17, parity 2/2); no full gate or
 installer on this repair. Include roster ownership in the next installed smoke.
 The green full gate below predates this product change.
 
+Review follow-up `76e592f1`: scout opponent-role labels use Other team;
+model-owned player roles keep deck and roster defaults consistent after edits,
+including Field Goal Block and both kinds of Try Defense. Five failing-first
+checks; five focused suites green (56/56, 89/89, 17/17, 45/45, parity 2/2).
+No full gate, package or data write. Add both review cases to installed smoke.
+
 Coach-approved current work: replace guessed startup delays with readiness
 conditions, move pure analytics contracts to Node while retaining built-App
 wiring in browser tests, and validate ordinary fixtures before normalization.
