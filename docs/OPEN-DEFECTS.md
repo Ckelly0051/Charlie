@@ -1,5 +1,24 @@
 # GridIron IQ Open Defects
 
+## Specialist layout review, 2026-10-03
+
+**ST-ROSTER-R3/R4 (P3): repaired in source (`84b43520`), focused-verified only.**
+The prior repair introduced two unrequested layout changes, initially omitted
+from the docs: a second Blocker input on Field Goal Block and Returner-before-
+Kicker ordering on receiving units. Both are reverted to the approved rows.
+Field Goal Block retains its single Blocker metric, not a new Players row.
+The active Players role defaults to Returner (first subject-owned existing row).
+`playerRoles` owns display order; `defaultPlayerRole` and
+`isOpposingPlayerRole` own subject-role selection, independent of order.
+Scout labels, ownership restrictions and all try fixes remain unchanged.
+
+Four added layout assertions fail before repair: receiving row order on each
+return unit, original Field Goal Block rows, and exactly one Blocker input.
+The Field Goal Block active-role regression now pins the original owned
+Returner row rather than the unapproved Blocker row. Fresh-build clean-commit
+focused proof: try/ownership 60/60, deck 89/89, tries 17/17, roster 45/45,
+parity 2/2. No full gate, installer, push or coach-data write.
+
 ## Special Teams roster review, 2026-10-03
 
 **ST-ROSTER-R1/R2 (P3): repaired in source (`76e592f1`), focused-verified only.**
@@ -7,8 +26,9 @@
   The prefix now follows perspective: Other team for scout, Opponent for program.
 - R2: `RosterManager` reset Special Teams active roles on every play-updated
   using a Return-name heuristic. Model-owned `playerRoles` now supplies the
-  deck's Special Teams rows and roster defaults. Field Goal Block defaults to
-  Blocker; kicked Try Defense stays Blocker; run/pass Try and Try Defense
+  deck's Special Teams rows and roster defaults. Field Goal Block's added
+  Blocker row was subsequently reverted in ST-ROSTER-R3/R4 above; its default
+  is the existing owned Returner row. Kicked Try Defense stays Blocker; run/pass Try and Try Defense
   default to Ball Carrier and Tackler respectively. No attribution is cleared.
 
 Five regression assertions fail on the old code and pass on the repairs:

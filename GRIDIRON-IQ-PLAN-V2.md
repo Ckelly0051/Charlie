@@ -106,6 +106,14 @@ including Field Goal Block and both kinds of Try Defense. Five failing-first
 checks; five focused suites green (56/56, 89/89, 17/17, 45/45, parity 2/2).
 No full gate, package or data write. Add both review cases to installed smoke.
 
+Layout follow-up `84b43520` reverts two unrequested changes from that repair:
+receiving rows retain Kicker then Returner; Field Goal Block keeps its original
+rows and sole Blocker metric. Model-owned role defaults select the first owned
+row without reordering it (Returner on Field Goal Block). Four failing-first
+layout checks; five focused suites green (60/60, 89/89, 17/17, 45/45, parity 2/2).
+No full gate, package or live-data write. Include row order and single-control
+checks in installed smoke.
+
 Coach-approved current work: replace guessed startup delays with readiness
 conditions, move pure analytics contracts to Node while retaining built-App
 wiring in browser tests, and validate ordinary fixtures before normalization.

@@ -31,14 +31,25 @@
 
 This section is the one place release state is kept current.
 
+- **Specialist layout corrections, 2026-10-03, `84b43520`:** the previous
+  role repair accidentally reordered receiving rows and added a duplicate
+  Field Goal Block Blocker control. Both unapproved changes are reverted.
+  Kicker then Returner remains the display order; Field Goal Block keeps its
+  sole Blocker metric and defaults to the owned Returner row. Model-owned
+  default-role selection is independent of row order. Scout labels and try
+  role fixes remain. Four layout checks failed before repair. Fresh-build
+  focused proof: try/ownership 60/60, deck 89/89, tries 17/17, roster 45/45,
+  parity 2/2. No full gate, package or coach-data write.
+
 - **Special Teams roster review repairs, 2026-10-03, `76e592f1`:** both P3s
   repaired in source. Scout opponent-role labels say Other team. The deck and
   roster manager share model-owned Special Teams role defaults, including
-  Blocker for Field Goal Block/kicked Try Defense and scrimmage roles for
+  Blocker for kicked Try Defense and scrimmage roles for
   run/pass tries. Five new checks fail before the repair. Fresh-build focused
   proof: try/ownership 56/56, deck 89/89, tries 17/17, roster 45/45, parity 2/2.
   Clean receipt verified; source/build/fixtures unchanged. Not full-gated,
-  packaged or smoked; existing charting untouched.
+  packaged or smoked; existing charting untouched. Its Field Goal Block row
+  addition and receiving-row reorder were subsequently reverted above.
 
 - **Special Teams roster ownership, 2026-10-03, `06b66829`: repaired in source.**
   Receiving/defending units no longer offer our roster for the opposing kicker;

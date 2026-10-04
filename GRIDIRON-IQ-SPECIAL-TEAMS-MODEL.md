@@ -429,10 +429,14 @@ opponent numbers remain manually editable and explicitly labeled. Changing
 unit changes picker eligibility, never existing attribution. The subject's
 specialist picker opens by default.
 
-`SpecialTeamsModel.playerRoles` owns the ordered Special Teams charting roles
-used by the deck and roster defaults on selection/update. Field Goal Block
-starts with Blocker; kicked Try Defense is Blocker; run/pass Try/Defense use
-their offensive/defensive roles. Non-subject labels say Other team in scout
+`SpecialTeamsModel.playerRoles` owns the approved display order. Ordinary kick
+and return units retain Kicker then Returner. Field Goal Block retains these
+rows and its single Blocker metric, not a second Players Blocker control.
+`defaultPlayerRole` selects the first subject-owned row using
+`isOpposingPlayerRole`, independently of display order: Field Goal Block and
+return units default to Returner; kicked Try Defense defaults to Blocker;
+run/pass Try/Defense use their offensive/defensive roles.
+Non-subject labels say Other team in scout
 perspective and Opponent in program perspective.
 
 **A kicked try has no returner.** Try (Kick) offers Kicker only; Defending a Try

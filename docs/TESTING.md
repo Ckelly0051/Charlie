@@ -373,6 +373,16 @@ live-data write; installed approval remains `1.12.0-108`.
 
 ## Special Teams Specialist Roster Ownership (2026-10-03)
 
+Layout corrections `84b43520`: four added assertions fail on the previous
+repair and pass now: original Kicker/Returner ordering on both return units,
+Field Goal Block's original Players rows and exactly one Blocker input.
+The Field Goal Block post-edit active-role assertion pins Returner, the
+first owned row in that original layout, instead of the unapproved Blocker row.
+Clean-commit fresh-build focused proof: try/ownership 60/60, native deck 89/89,
+tries 17/17, roster 45/45, parity 2/2; zero skipped/failed. Evidence:
+`artifacts/gate-logs/2026-10-04T03-19-15-800Z-Iya3Om/receipt.json`.
+No full gate, package or live-data change on this correction.
+
 Review repairs in `76e592f1` add five failing-first assertions: scout Other team
 label, and active roles after real quarter writes on Field Goal Block, run/pass
 Try Defense, run/pass Try and kicked Try Defense. All five fail before the fix.
