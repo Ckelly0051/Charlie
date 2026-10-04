@@ -516,13 +516,9 @@ export class StatsEngine {
     return (tags.fieldSide || 'own') === 'opp' ? (100 - yl) : yl;
   }
 
-  /** Canonical six-band field-zone bucketer, extracted from the closure that
-   *  had lived only inside `_playCallAnalysis()` -- the SAME bucketing this
-   *  app already used for the Play Call report's Field Position dimension,
-   *  now the single source of truth for any consumer that needs it
-   *  (Study expansion, 2026-08-15). Unit-agnostic: it reads only the play's
-   *  own tagged field position, so it is equally meaningful on an offensive
-   *  or a defensive snap -- the caller decides which unit's plays to bucket. */
+  /** The six-band field-zone bucketer, the one source for every consumer.
+   *  Reads only the play's own field position, so it applies equally to an
+   *  offensive or a defensive snap; the caller picks the unit. */
   _fieldZone(tags) {
     const yard = this._absYardLine(tags);
     if (yard === null) return '';
@@ -606,16 +602,10 @@ export class StatsEngine {
     return StatsEngine.isSuccessfulPlay(p);
   }
 
-  /** Whether `_isSuccessfulPlay` classifies this play from REAL tagged data
-   *  rather than one of its own missing-data defaults (yardage -> 0,
-   *  distance -> 10, an untagged down falling into the flat 4-yard
-   *  heuristic). Added for AnalyticsMetrics (Codex review, 2026-08-14,
-   *  finding #3): stopRate/successRate previously reported every play as
-   *  "eligible" even when `_isSuccessfulPlay` had silently invented the
-   *  down/distance/yardage it classified on. Mirrors `_isSuccessfulPlay`'s
-   *  branch structure -- kept in sync by hand, since the two must agree on
-   *  which branch a play falls into -- but never fills a gap with a
-   *  fallback; it reports whether one exists. */
+  /** Whether `_isSuccessfulPlay` classifies this play from real tagged data
+   *  rather than its own missing-data defaults (yardage 0, distance 10, an
+   *  untagged down). Mirrors `_isSuccessfulPlay`'s branches, kept in sync by
+   *  hand, but never fills a gap; it reports whether one exists. */
   _isSuccessfulPlayEligible(p) {
     if (StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'No Good')) return true;
     if (p.tags.custom?.includes('1st Down')) return true;
@@ -861,24 +851,19 @@ export class StatsEngine {
     return { opponents, yourOff, yourDef };
   }
 
-  /* ══ Reports > Matchup — the approved 2026-09-06 situational join ════════
-     Comp and decision record: design-comps/reports-matchup-2026-09-06
-     (`matchup.html`, `RATIONALE.md`).
+  /* ══ Reports > Matchup: the situational join ════════════════════════════
+     Decision record: design-comps/reports-matchup-2026-09-06/RATIONALE.md.
 
-     Every football VALUE below is measured by an existing owner: compute()
-     for offensive production, defensiveCohortMetrics() for defensive
-     production, isRun / isExplosive / _isSuccessfulPlay for classification,
-     _absYardLine for field position, and the established splitters for every
-     multi-value tag. This block introduces no formula and no second metric
-     owner. What it owns is the JOIN — which opponent snaps form a situation,
-     which call identity they carry, and which season snaps match that exact
-     displayed look.
+     Every football value is measured by an existing owner (compute(),
+     defensiveCohortMetrics(), isRun / isExplosive / _isSuccessfulPlay,
+     _absYardLine, the splitters). This block owns only the join: which
+     opponent snaps form a situation, which call identity they carry, and
+     which season snaps match that look.
 
-     Polarity is preserved throughout: an offensive cohort reports Yards /
-     Play and Success Rate, a defensive cohort Yards / Play Allowed and Stop
-     Rate. Neither is ever labelled as the other. No matchup score,
-     prediction, recommendation or claimed advantage is derived from the two
-     unequal samples.
+     Polarity is preserved: an offensive cohort reports Yards / Play and
+     Success Rate, a defensive cohort Yards / Play Allowed and Stop Rate. No
+     matchup score, prediction or advantage is derived from the two unequal
+     samples.
      ───────────────────────────────────────────────────────────────────── */
   static get MATCHUP_NO_BLITZ() { return 'No Blitz'; }
   static get MATCHUP_NO_MATCH() { return 'No matching snaps'; }
@@ -1317,8 +1302,7 @@ export class StatsEngine {
     })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
 
     const dirVsStrength = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
-    // Delegates to the extracted `_fieldZone()` (Study expansion, 2026-08-15)
-    // -- was a private copy of the same six-band logic; now the one source.
+    // The shared six-band bucketer.
     const fieldZone = play => this._fieldZone(play.tags);
     const dimensions = [
       { id: 'downDistance', label: 'Down & Distance', values: play => { const key = this._ddKey(play.tags); return key ? this._ddPretty(key) : ''; } },
@@ -1348,28 +1332,14 @@ export class StatsEngine {
   }
   /** Rushing direction relative to declared strength.
    *
-   *  The Offense board's `Direction vs Strength` module rendered one of
-   *  `_playCallAnalysis`'s situational lenses, which groups a situation's
-   *  snaps by `playCall` and reports the most frequent one. That analysis
-   *  filters its source to plays CARRYING a `playCall`, so a season charting
-   *  none renders the module structurally empty -- while `playDir` and
-   *  `strength`, the two tags the module is NAMED for, are charted on most
-   *  snaps. On the canonical 2025 JV season that is 0 of 449 calls against 19
-   *  Week 5 offensive snaps carrying both direction and strength: a module
-   *  reporting nothing about a dimension the coach charted. Found at the
-   *  board, 2026-09-12.
+   *  Reads `playDir` and `strength` through `_matrixDimensions()`'s
+   *  `dirVsStrength` extractor, the one owner of the toward/away rule, so the
+   *  module measures what its title says even when no play calls are charted.
+   *  Each bucket reports run/pass counts and rates with production and success.
    *
-   *  This reads those two tags through `_matrixDimensions()`'s canonical
-   *  `dirVsStrength` extractor -- the one owner of the toward/away rule and of
-   *  the side convention, already shared with the tendency pivot -- so the
-   *  module measures what its title says. Each direction bucket reports the
-   *  run/pass counts and rates within that bucket, alongside production and
-   *  success, so the coach sees both usage and effectiveness without deriving
-   *  either rate from a compressed mixed-value cell.
-   *
-   *  `DIR_STRENGTH_BUCKETS` is a FIXED football set in a fixed order. A bucket
-   *  no snap reached is HELD -- `held: true`, keeping its label and carrying no
-   *  measurement -- never a fabricated zero, and never a row that vanishes. */
+   *  `DIR_STRENGTH_BUCKETS` is a fixed set in a fixed order. A bucket no snap
+   *  reached is `held: true`, keeping its label with no measurement, never a
+   *  zero and never a missing row. */
   _dirStrengthStats(plays) {
     const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
     const groups = new Map(StatsEngine.DIR_STRENGTH_BUCKETS.map(name => [name, []]));
@@ -1546,14 +1516,10 @@ export class StatsEngine {
    * run/pass, down, distance and yardage are the dimensions being defended.
    */
   /**
-   * The ONE shared `AnalyticsMetrics` instance bound to THIS StatsEngine,
-   * constructed once and lazily reused by every caller. Before this,
-   * `defensivePerformance()` (Reports) and `AnalyticsRegistry.metricsEngine()`
-   * (Study) each built their OWN `deps` binding independently -- structurally
-   * identical today, but two separate hand-written copies that could drift
-   * apart on the next edit with nothing to catch it (Codex review, 2026-08-14,
-   * finding #2: two competing metric-engine owners). `AnalyticsRegistry.
-   * metricsEngine()` now delegates here rather than constructing its own.
+   * The one AnalyticsMetrics instance bound to this StatsEngine, built once and
+   * reused. Reports (`defensivePerformance()`) and Study
+   * (`AnalyticsRegistry.metricsEngine()`) both use it, so their metric
+   * bindings cannot drift apart.
    */
   metricsEngine() {
     if (!this._metricsEngine) {
@@ -1572,9 +1538,8 @@ export class StatsEngine {
         // comment for why one function safely covers both a completed pass
         // and a made structured kick).
         isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult),
-        // "Did this play score a touchdown", structured or legacy -- see
-        // StatsEngine.isScoredTouchdown's own comment (Codex review,
-        // 2026-08-15, finding #2).
+        // "Did this play score a touchdown", structured or legacy; see
+        // StatsEngine.isScoredTouchdown.
         isScoredTouchdown: p => StatsEngine.isScoredTouchdown(p, StatsEngine.hasResult),
       });
     }
@@ -1745,46 +1710,21 @@ export class StatsEngine {
         explosives: null, touchdowns: null, turnovers: null, refs: [], plays: [] };
       const runs = rows.filter(StatsEngine.isRun);
       const passes = rows.filter(StatsEngine.isPass);
-      /* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT.
+      /* Total yards is the sum of the two columns beside it. All three come
+       * from the same classified run/pass cohort; penalty-only yardage is not
+       * yards allowed. Runs and passes are unioned, not added, so a snap
+       * tagged both counts once. `ypp` divides by that same cohort.
        *
-       * `yards` summed EVERY defensive snap while `runYards` and `passYards`
-       * summed the classified run and pass subsets, so the three columns were
-       * never one cohort and the residual was invisible: OLL showed 132 above
-       * 72 + 55, Week 3 showed 130 above 120, and Week 6 showed 28 above 43 —
-       * components EXCEEDING the total, because five unclassified
-       * `Penalty + Loss` snaps carried -15 yards between them. The season
-       * reconciled only by coincidence: -5 + 0 + 10 + 5 + 5 - 15 = 0.
+       * Two cohorts, both named, neither standing in for the other:
+       *   `charted`  every defensive snap here. Frequency: the displayed Snaps
+       *              count, every ranking, every call or blitz percentage.
+       *              `n` is its alias.
+       *   `measured` the run/pass-classified subset. Production: total, rush
+       *              and pass yards, yards per play, explosives.
        *
-       * Penalty-only yardage is not offensive yards allowed, so all three
-       * columns come from the same classified run/pass cohort. Runs and passes
-       * are disjoint on this data, but the union is taken rather than added so
-       * a snap tagged both could never be counted twice.
-       *
-       * `ypp` DIVIDES BY THAT SAME COHORT. Left on `rows.length` it charged the
-       * reduced yardage against every defensive snap, so each excluded penalty
-       * row read as a zero-yard play and flattered the defense. The approved
-       * 2.9 was a value printed in a comp fixture, not an approved formula: a
-       * rate whose numerator and denominator describe different cohorts is not
-       * a measurement. Coach ruling 2026-09-10.
-       *
-       * TWO COHORTS, BOTH NAMED, NEITHER STANDING IN FOR THE OTHER. The first
-       * repair made the displayed count classified too, which fixed the
-       * arithmetic and broke the football: a Trade motion the opponent charted
-       * once, with no play type on it, printed `0 snaps` — a look the coach
-       * charted reported as a look nobody ran, and the same artifact pushed it
-       * to the bottom of a frequency ranking.
-       *
-       *   `charted`  — every defensive snap in this cohort. FREQUENCY: the
-       *                displayed Snaps count, every ranking, and every call or
-       *                blitz percentage. `n` is its alias, because `n` is what
-       *                every consumer already reads for a displayed count.
-       *   `measured` — the run/pass-classified subset. PRODUCTION: total, rush
-       *                and pass yards, yards per play, explosives.
-       *
-       * With `measured === 0` there is no production to report, so every
-       * production field is null and renders the board's dash. A charted look
-       * with nothing measured is an absence of measurement, never a zero.
-       * Coach ruling 2026-09-11. */
+       * With `measured === 0` every production field is null and renders a
+       * dash; a charted look with nothing measured is not a zero. Coach
+       * rulings 2026-09-10 and 2026-09-11. */
       const scrimmage = [...new Set([...runs, ...passes])];
       const measured = scrimmage.length;
       const yards = measured ? scrimmage.reduce((sum, p) => sum + yard(p), 0) : null;
@@ -2475,13 +2415,9 @@ export class StatsEngine {
         return false;
       });
       const madePlays = att.filter(p => made(p, wanted));
-      // Codex review finding #1 (Study expansion Phase 2): refs for the exact
-      // plays behind `att`/`made`, so a Study row for "Extra Points Attempted"
-      // can never Watch anything beyond the actual XP attempts.
-      // Special Teams Presentation Independence: `missed` is the exact
-      // complement of `made` within `att` -- the film a coach reaches when
-      // clicking "Field Goals Missed"/"Tries Missed" must be attempts that
-      // did NOT succeed, never the full attempted set.
+      // `refs` are the exact plays behind `att` and `made`; `missed` is the
+      // complement of `made` within `att`, so Watch on a missed row shows only
+      // attempts that failed.
       return { att: att.length, made: madePlays.length, pct: att.length ? Math.round(madePlays.length / att.length * 100) : 0,
         refs: { att: StatsEngine._refsOf(att), made: StatsEngine._refsOf(madePlays), missed: StatsEngine._refsOf(att.filter(p => !made(p, wanted))) } };
     };
@@ -2491,19 +2427,10 @@ export class StatsEngine {
   }
 
   /**
-   * The canonical Field Goal cohort, and the canonical made test over it.
-   *
-   * There is exactly ONE definition of "a field goal attempt" and both the
-   * team report and the individual kicker rollup call it. They used to answer
-   * differently: `_individualStats` counted `stType === 'XP'` as a field-goal
-   * attempt, so a coach with 21 charted extra points and zero field goals saw
-   * a kicker credited 0/1 FG beside a unit reporting 0 attempts. An extra
-   * point is not a field goal, in football or here.
-   *
-   * Tries are counted by `_conversionStats`, which owns them.
-   *
-   * Coach decision, 2026-09-04: "A player cannot receive an FG attempt that
-   * the unit does not recognize."
+   * The one Field Goal cohort and made test, used by both the team report
+   * and the kicker rollup. An extra point is not a field goal; tries are
+   * counted by `_conversionStats`. Coach, 2026-09-04: "A player cannot
+   * receive an FG attempt that the unit does not recognize."
    */
   static isFieldGoalAttempt(play, structuredEvent) {
     const event = structuredEvent !== undefined
@@ -2523,14 +2450,9 @@ export class StatsEngine {
   // (made-att + by distance), tries, blocks and the return game.
   _specialTeamsStats(plays) {
     const structured = (plays || []).map(p => ({ p, st: SpecialTeamsModel.normalize(p?.specialTeams) })).filter(x => x.st);
-    // Codex review finding #1: every leaf below carries its own `refs` --
-    // the exact composite refs of the ROWS that produced that number, not
-    // the whole cohort. A rate/mean's refs are its DENOMINATOR set (matches
-    // AnalyticsMetrics' established "refs = refSource, the exact plays that
-    // produced `denominator`" contract); a raw count's refs are simply the
-    // matching plays. Sibling fields sharing one denominator (n/grossAvg/
-    // hangAvg/tbPct/fairCatchPct all divide by the same row-group) share one
-    // `refs.all` array rather than each computing an identical set anew.
+    // Every leaf carries the refs of the rows that produced it. A rate or
+    // mean's refs are its denominator set; a count's refs are the matching
+    // plays. Fields sharing one denominator share one `refs.all` array.
     const getPlay = x => x.p;
     /**
      * The outcome distribution for a unit -- how its snaps actually ended,
@@ -2567,13 +2489,9 @@ export class StatsEngine {
     };
     {
       const rows = unit => structured.filter(x => x.st.unit === unit);
-      // Codex re-review finding #2: `avg()` silently excludes a row missing
-      // its own measurement (e.g. a punt with no charted hang time) from the
-      // CALCULATION, but every caller kept pointing that measure's `refs` at
-      // the full row group -- so the displayed count/refs included plays the
-      // average itself never touched. `avgStat` returns the mean AND the
-      // exact eligible rows that produced it, so refs can never claim more
-      // (or fewer) plays than the number was actually computed from.
+      // `avgStat` returns the mean and the exact rows it used: a row missing
+      // its measurement (e.g. a punt with no hang time) is excluded from both,
+      // so refs never claim more plays than the number was computed from.
       const avgStat = (arr, get) => {
         const eligible = arr.filter(x => Number.isFinite(get(x)));
         const value = eligible.length ? +(eligible.reduce((s, x) => s + get(x), 0) / eligible.length).toFixed(1) : null;
@@ -2645,10 +2563,7 @@ export class StatsEngine {
           all: StatsEngine._refsOf(koRows, getPlay),
           returned: StatsEngine._refsOf(koReturnedRows, getPlay),
           onside: StatsEngine._refsOf(onsideRows, getPlay),
-          // Codex re-review finding #3: "Onside Kicks Recovered" is a strict
-          // SUBSET of `onside` (attempted) -- its own refs, not the full
-          // attempt list, so Watch can't surface a failed-recovery clip under
-          // a "Recovered" row.
+          // Recovered onside kicks are a subset of attempts, with their own refs.
           onsideRecovered: StatsEngine._refsOf(onsideRecoveredRows, getPlay),
           avg: koAvg.refs, retAllowedAvg: koRetAllowed.refs,
           tdAllowed: StatsEngine._refsOf(tdAllowedRows(koRows), getPlay),
@@ -2916,24 +2831,13 @@ export class StatsEngine {
    * drift apart and show one number while playing another.
    */
   /**
-   * G5 — what the derived measures actually mean.
-   *
-   * Several headline numbers are computed on a rule the coach cannot see, and
-   * the report states them with total confidence. Counted against source there
-   * are ten such terms — too thin for a glossary destination and scattered
-   * across five tabs, so the definition arrives where the number is.
-   *
-   * THE RULE THAT MATTERS: these are written from the constants the engine
-   * computes with. A glossary written from memory drifts, and a confidently
-   * wrong definition is worse than none — it invites checking a number against
-   * a rule the code does not use. `e2e-native-reports` asserts each stated
-   * threshold against the value in use.
-   *
-   * "Low sample" deliberately names its own surface rather than one number:
-   * the gate is 4 for self-scout tells, 5 for formation tendencies and 2 for
-   * the coverage list. One sentence covering all three would be untrue on two
-   * of them. (Coach, 2026-08-04: keep the thresholds, variance genuinely
-   * differs between those things.)
+   * Definitions for derived measures, shown where the number appears.
+   * Written from the constants the engine computes with, because a definition
+   * that drifts from the code invites checking a number against the wrong
+   * rule; `e2e-native-reports` asserts each stated threshold against the value
+   * in use. "Low sample" names its surface rather than one number: the gate is
+   * 4 for self-scout tells, 5 for formation tendencies and 2 for the coverage
+   * list (coach, 2026-08-04: keep the thresholds; variance differs).
    */
   static DEFINITIONS = {
     successRate: SUCCESS_RATE_TIP,
@@ -3525,28 +3429,14 @@ export class StatsEngine {
       : countedUnit(play) !== 'special' || StatsEngine.isRun(play) || StatsEngine.isPass(play);
   }
 
-  /** Study Phase 3: "this attempt succeeded" -- the concept AnalyticsMetrics'
-   *  `completionRate`/`completions` reuse across three genuinely different
-   *  attempt shapes (a completed pass, a made field goal, a legacy-tagged
-   *  field goal). Mirrors the branch structure `_conversionStats`' own
-   *  `made()` closure already established (stats-engine.js's
-   *  `_conversionStats`, ~line 1296) rather than inventing a new one:
-   *  - A genuine (non-fake) structured kick event's success signal is its
-   *    own `outcome.status === 'good'`, the SAME field `_specialTeamsStats`'
-   *    `fgRows`/`made()` already reads.
-   *  - A FAKE special-teams play (Codex review, 2026-08-15, finding #2) is a
-   *    real snap dressed as a kick -- `outcome.status` describes the kick
-   *    that never happened, not the play that did. It is judged by the SAME
-   *    tags.result signal as any ordinary pass/run
-   *    (`countsFootballRoles`already admits a fake into the passer/receiver
-   *    cohort on this same reasoning; this closes the matching classifier
-   *    gap for whether that credited attempt was MADE).
-   *  - No structured data at all is a legacy play -- its signal is
-   *    `tags.result` (Gain/Touchdown/No Gain for a pass, OR the legacy
-   *    Good/kickOutcome convention `_conversionStats` already reads for a
-   *    pre-Special-Teams-model field goal/XP/2-Pt). Codex review finding
-   *    #2 caught this branch missing 'Good' entirely, which made every
-   *    legacy-tagged field goal silently report 0% Field Goal Rate. */
+  /** "This attempt succeeded", reused by AnalyticsMetrics' completions and
+   *  completion rate across passes, made field goals and legacy kicks:
+   *  - a genuine structured kick: its own `outcome.status === 'good'`;
+   *  - a fake: a real snap dressed as a kick, judged by `tags.result` like any
+   *    pass or run, since its kick status describes a kick that never
+   *    happened;
+   *  - no structured data: `tags.result` (Gain, No Gain, Loss or Touchdown for
+   *    a pass; Good for a legacy kick). */
   static isMadeAttempt(play, hasResult) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     if (structured && !structured.isFake) return structured.outcome?.status === 'good';
@@ -3554,36 +3444,13 @@ export class StatsEngine {
       || hasResult(play, 'Loss') || hasResult(play, 'Good');
   }
 
-  /** Study Phase 3 (Codex review, 2026-08-15, finding #2): "did WE score a
-   *  touchdown on this play", structured or legacy -- the raw-count sibling
-   *  of `isMadeAttempt`, reused by AnalyticsMetrics' `touchdowns` metric
-   *  across ballCarrier/passer/receiver/returner. A genuine (non-fake)
-   *  structured event's own `outcome.score === 'touchdown'` is the SAME
-   *  field `_conversionStats`' `made()` reads for a scored-by-type check;
-   *  without it, a structured kick/punt return touchdown was invisible
-   *  unless the coach redundantly copied 'Touchdown' into the legacy
-   *  multi-select `tags.result` too. A fake ST play (no real kick to grade)
-   *  and every ordinary offensive play fall through to the same
-   *  `tags.result` check `touchdowns` already used before this fix -- no
-   *  regression for ballCarrier/passer/receiver, whose plays never carry
-   *  structured data.
-   *
-   *  Codex re-review, 2026-08-15, one remaining P1: `score === 'touchdown'`
-   *  alone says a touchdown happened on the play, not WHO scored it -- a
-   *  muffed return recovered and run back by the coverage team is a
-   *  structured event with `score:'touchdown', scoredBy:'opponent'`, and the
-   *  original check credited it to OUR returner anyway (direct probe:
-   *  `{classifier:true, owner:'opponent'}`). Ownership must be resolved the
-   *  SAME way every other structured-score consumer already does --
-   *  `SpecialTeamsModel.scoringTeam(play)`, which does not just trust a
-   *  blank `outcome.scoredBy`: it falls back to `outcome.recoveredBy` and
-   *  then `subjectRole` for exactly this return-touchdown case (see
-   *  `scoringTeam`'s own comment, special-teams.js ~line 160), and fails
-   *  closed to `'unknown'` rather than guessing. Reusing it here (instead of
-   *  a bare `scoredBy === 'subject'` check) means a touchdown whose
-   *  ownership `scoringTeam` can already infer from `recoveredBy`/
-   *  `subjectRole` alone still counts, while a genuinely ambiguous one
-   *  correctly counts for nobody. */
+  /** "Did we score a touchdown on this play", structured or legacy, used by
+   *  AnalyticsMetrics' `touchdowns` across ball carrier, passer, receiver and
+   *  returner. A genuine structured event counts only when
+   *  `SpecialTeamsModel.scoringTeam(play)` says we scored: a muffed return run
+   *  back by the coverage team is a touchdown, but not ours. That resolver
+   *  falls back from `scoredBy` to `recoveredBy` and `subjectRole`, and fails
+   *  closed to 'unknown'. A fake and every ordinary play use `tags.result`. */
   static isScoredTouchdown(play, hasResult) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     if (structured && !structured.isFake) {
@@ -4316,31 +4183,17 @@ export class StatsEngine {
       if (Object.hasOwn(units, u)) units[u]++;
     });
     const sb = stats?.scoreboard;
-    // The official score entered in Game Settings (gameInfo.scoreUs/scoreThem)
-    // wins when present -- it is the coach's confirmed final, unlike
-    // stats.scoreboard, which is only ever a reconstruction from tagged
-    // scoring plays and reads as blank/wrong on an incompletely charted game.
-    // Same presence check _gameTitle() already uses. Codex review of
-    // `7532b2e` (2026-08-11) caught this rail ignoring the official score.
+    // The official score in Game Settings wins when present; stats.scoreboard
+    // is only a reconstruction from tagged scoring plays. Same presence check
+    // as _gameTitle().
     const gi = window.app?.storage?.gameInfo || {};
     const hasOfficialScore = gi.scoreUs !== '' && gi.scoreUs != null && gi.scoreThem !== '' && gi.scoreThem != null;
     const finalScore = hasOfficialScore ? { us: gi.scoreUs, them: gi.scoreThem }
       : ((sb && sb.hasData) ? { us: sb.us, them: sb.them } : null);
-    // Broadcast Density Part 2: the rail is silent on turnovers entirely.
-    // Both directions already exist as computed values elsewhere in this same
-    // `stats` object -- giveaways from the offense turnover count, takeaways
-    // from the defensive turnover count -- so this composes them rather than
-    // deriving anything new. `null` (not 0) when the relevant unit has no
-    // plays at all, so a defense-only game doesn't claim "0 giveaways" for an
-    // offense that was never charted, and an offense-only game doesn't claim
-    // "0 takeaways" for a defense that was never charted.
-    //
-    // Codex review of `d567f5c` (2026-08-17) caught the first half of this
-    // missing: `stats.turnovers` is unconditionally produced by compute() from
-    // `offPlays` even when that array is empty, so a defense-only game's
-    // `{total:0}` was being read as an observed zero rather than absence.
-    // Gated the same way takeaways already were, on the unit actually having
-    // plays.
+    // Turnover facts compose existing values: giveaways from the offense
+    // turnover count, takeaways from the defensive one. Each is `null`, not 0,
+    // when its unit has no plays, so a defense-only game never claims
+    // "0 giveaways" (compute() produces `turnovers` even from no plays).
     const giveaways = (units.offense > 0 && stats?.turnovers) ? stats.turnovers.total : null;
     const takeaways = (units.defense > 0 && stats?.defensive) ? stats.defensive.turnovers : null;
     return {
@@ -5266,12 +5119,11 @@ export class StatsEngine {
       rateLabel: null, rate: null, explosives: null, touchdowns: null, turnovers: null };
     if (side === 'special') {
       /* A Special Teams touchdown lives in the structured event
-         (`specialTeams.outcome.score`), which the Special Teams editor saves
-         without necessarily setting a Touchdown result tag (review, 97b2f37).
-         Its side is `SpecialTeamsModel.scoringTeam` -- the scoreboard's own
-         rule, so a loose ball nobody recovered stays unattributed. A legacy
-         snap carries no structured event and no side: its Touchdown result is
-         counted as side not charted. */
+         (`specialTeams.outcome.score`), which may be saved without a Touchdown
+         result tag. Its side is `SpecialTeamsModel.scoringTeam`, the
+         scoreboard's own rule, so a loose ball nobody recovered stays
+         unattributed. A legacy snap has no structured event: its Touchdown
+         result counts as side not charted. */
       out.tdFor = 0; out.tdAgainst = 0; out.tdUnattributed = 0;
       for (const p of rows) {
         const event = SpecialTeamsModel.normalize(p.specialTeams);
@@ -6198,18 +6050,10 @@ export class StatsEngine {
   }
 
   /**
-   * AX-3 (S6-4c): rank a SMALL number of findings, and collapse a repeated
-   * countermeasure into one theme.
-   *
-   * The cap was a flat top-6, so one class could take every slot: a season with
-   * five directional tendencies produced five near-identical rows ending in the
-   * same sentence, which reads as noise and buries every other kind of finding.
-   * Now each class contributes its two strongest rows, and any remainder becomes
-   * ONE themed line naming the rest — the coach still learns that six formations
-   * tip direction, in one line instead of six.
-   *
-   * Ranking, priority and the insight text itself are untouched; this only
-   * decides how many of each are shown. No cohort, count or metric changes.
+   * Show a small number of findings without letting one class take every
+   * slot: each class contributes its two strongest rows, and any remainder
+   * becomes one themed line naming the rest. Ranking, priority and the
+   * insight text are unchanged; this only decides how many are shown.
    */
   static _themeInsights(insights, perType = 2, total = 6) {
     const ranked = [...insights].sort((a, b) => b.priority - a.priority);

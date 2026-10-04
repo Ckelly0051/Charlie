@@ -62,6 +62,14 @@ it. The next installed smoke must cover each.
   keep 12px cells (`gi-off-narrow-fit`). Recomposing that band so the exception
   can be deleted is open.
 
+- **Catalog startup still auto-imports per-season `season.json`.**
+  `TauriBackend._ensureCatalog()` runs `CatalogPersistence.migrateJsonSeasons()`
+  on every start: a library entry with no catalog row and a current-format
+  `season.json` on disk is imported silently. That one-time migration finished
+  long ago, and an automatic sidecar import contradicts "recovery is explicit
+  and confirmed". Found 2026-10-04 during comment cleanup; behavior unchanged.
+  Decide whether to delete it (and `readJson`) or route it through recovery.
+
 ## Coach decisions pending
 
 - **Focus ring color.** `--gi-focus` resolves to blue (`--gi-9`) app-wide;

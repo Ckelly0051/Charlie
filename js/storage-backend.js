@@ -47,13 +47,10 @@ export class StorageBackend {
   async deleteSeason(_id) {}
   async touchOpened(_id) {}                         // bump lastOpened in the index
 
-  // ---- canonical season (PC-1: explicit seasonId, never ambient currentId) --
-  // Every identity-sensitive method below takes seasonId as an EXPLICIT first
-  // parameter. Callers (SeasonStore) always pass this.currentSeasonId; the
-  // ambient this.currentId/setCurrentSeason() pointer is never consulted by
-  // these methods and can no longer choose a write destination on its own
-  // (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). currentId/setCurrentSeason
-  // remain for the out-of-scope film/linked-film surfaces (invariant #8).
+  // ---- canonical season (explicit seasonId) ----
+  // Every identity-sensitive method takes seasonId explicitly; the ambient
+  // currentId/setCurrentSeason() pointer never chooses a write destination. It
+  // remains only for the film and linked-film surfaces.
   async loadSeason(_seasonId) { return null; }
   async saveSeason(_seasonId, _data) { return false; }
   // Read-only peek at an ARBITRARY season's data by id, never touching
@@ -71,15 +68,12 @@ export class StorageBackend {
   async deleteBackup(_seasonId, _backupId) {}
 
   // ---- per-game version history (explicit seasonId + gameId) ----
-  // Named and automatic save points for ONE game. They used to live in
-  // localStorage (`ffa_versions_<season>::<game>`), where whole-game snapshots
-  // filled the WebView's ~5 MB origin quota and made every small settings write
-  // in the app fail (the installed `Could not save that choice` finding,
-  // 2026-09-24). Each backend now keeps them in real storage with no such cap.
+  // Named and automatic save points for one game, kept in real storage, not
+  // localStorage (whole-game snapshots would exhaust its quota).
   // `v` is { id, label, time, manual, playCount, data }. Ids are strings.
   // saveVersion returns success only when the write is durable.
-  /** A retired single-save layout found when the library was first created,
-   *  reported once and never read (legacy excision Pass 2b, row 11). */
+  /** A retired single-save layout found when the library was first created;
+   *  reported once, never read. */
   takeOldLayoutNotice() { const found = !!this._oldLayoutFound; this._oldLayoutFound = false; return found ? "An old-format GridIron IQ save was found and not opened. It was left where it is." : null; }
   async saveVersion(_seasonId, _gameId, _v) { return null; }        // id | null
   async listVersions(_seasonId, _gameId) { return []; }              // [{id,label,time,manual,playCount}] oldest first
@@ -254,7 +248,7 @@ export class BrowserBackend extends StorageBackend {
     if (e) { e.lastOpened = new Date().toISOString(); this._writeLib(lib); }
   }
 
-  // ---- canonical (PC-1: explicit seasonId) ----
+  // ---- canonical (explicit seasonId) ----
   async loadSeason(seasonId) {
     if (!seasonId) return null;
     // Unreadable bytes throw: only a missing key means nothing was saved yet.
@@ -322,7 +316,7 @@ export class BrowserBackend extends StorageBackend {
     }));
   }
 
-  // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
+  // ---- backup ring (explicit seasonId) ----
   async createBackup(seasonId, data, label) {
     if (!seasonId) return null;
     const json = JSON.stringify(data);
@@ -580,16 +574,9 @@ export class TauriBackend extends StorageBackend {
     if (!this._ok()) return [];
     await this._ensureLibrary();
     let lib = await this._readLib();
-    // PC-3 (Invariant #6): an empty library no longer AUTO-triggers a
-    // Documents-mirror import. "Never auto-import merely because app data
-    // appears empty" -- a wiped library.json is exactly as likely to mean
-    // "the coach genuinely has no seasons yet" as "app data was deleted",
-    // and importing without asking risked resurrecting a season the coach
-    // no longer wants, or double-creating one they're mid-recreating.
-    // scanRecoverableSeasons()/recoverSeasonFromMirror() below are the
-    // explicit, previewed, confirmed replacement -- reachable from a coach
-    // action (e.g. a Team Hub "Scan for recoverable seasons" command), not
-    // from this normal listing path.
+    // An empty library never auto-imports from the Documents mirror: it may
+    // simply mean the coach has no seasons. Recovery is the explicit,
+    // previewed scanRecoverableSeasons()/recoverSeasonFromMirror() path.
     const cp = await this._ensureCatalog();
     if (!cp) throw new Error('The canonical season catalog could not be opened. No fallback authority is allowed.');
     try {
@@ -607,14 +594,10 @@ export class TauriBackend extends StorageBackend {
   }
 
   /**
-   * PC-3 explicit recovery: STEP 1, the scan. Reads every Documents-mirror
-   * snapshot, validates its SnapshotEnvelope (identity/counts/checksum),
-   * and returns PREVIEW records only -- WRITES NOTHING, imports nothing,
-   * touches neither the SQLite catalog nor library.json. This is the
-   * "previews the action" half of Invariant #6; the coach reviews this
-   * list before anything is recovered. A bare pre-envelope season.json is an
-   * old format: listed as `valid:false, reason:'old-format'` so it is visible,
-   * and never importable.
+   * Recovery step 1, the scan. Reads every Documents-mirror snapshot,
+   * validates its envelope (identity, counts, checksum) and returns preview
+   * records only; writes nothing. A bare pre-envelope season.json is listed as
+   * `valid:false, reason:'old-format'` so it is visible, and never importable.
    *
    * Returns: [{ id, valid, reason?, name, team, gameCount, playCount,
    *             revision, timestamp, existsInCatalog }]
@@ -644,21 +627,15 @@ export class TauriBackend extends StorageBackend {
       if (!raw) continue;
       const result = SnapshotEnvelope.unwrap(raw);
       const existsInCatalog = liveIds.has(String(id));
-      // PC-2 repair (Codex review 89e34c6, finding 2): unwrap() only proves the
-      // envelope is internally self-consistent (its own seasonId, data.id, and
-      // checksum all agree with EACH OTHER) -- it has no idea what folder it was
-      // read from. A season-A snapshot copied or renamed into season-B's mirror
-      // directory still unwraps `ok:true`, and a valid checksum proves the
-      // CONTENT wasn't tampered with, not that this folder is allowed to become
-      // that content. Bind identity to the folder explicitly: refuse rather than
-      // report it as an importable candidate for the id it was merely found under.
+      // A valid envelope only proves it is self-consistent, not that it belongs
+      // in this folder: a snapshot copied into another season's mirror folder
+      // is refused, not offered under that id.
       if (result.ok && String(result.envelope.seasonId) !== String(id)) {
         out.push({ id, valid: false, reason: 'folder-identity-mismatch', name: id, team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog });
         continue;
       }
       if (result.ok && !SeasonFormat.isCurrentSeason(result.envelope.data)) {
-        // Saved before the 2026-09-26 conversion: listed so the coach sees it,
-        // never importable (legacy excision step 6).
+        // An old-format snapshot is listed so the coach sees it, never importable.
         out.push({ id, valid: false, reason: 'old-format', name: result.envelope.data.seasonName || id, team: '', gameCount: result.envelope.gameCount, playCount: result.envelope.playCount, revision: result.envelope.revision, timestamp: result.envelope.timestamp, existsInCatalog });
         continue;
       }
@@ -671,7 +648,7 @@ export class TauriBackend extends StorageBackend {
           revision: envelope.revision, timestamp: envelope.timestamp, existsInCatalog,
         });
       } else {
-        // Not read, so its counts are unknown -- never a measured 0 (S103-1).
+        // Not read, so its counts are unknown, never a measured 0.
         out.push({ id, valid: false, reason: result.reason, name: id, team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog });
       }
     }
@@ -679,17 +656,12 @@ export class TauriBackend extends StorageBackend {
   }
 
   /**
-   * PC-3 explicit recovery: STEP 2, the confirmed import. Re-reads and
-   * re-validates the ONE candidate at the point of action (never trusts a
-   * cached scan result) and imports it into the SQLite catalog through
-   * the SAME canonical saveSeason() write path every other write uses --
-   * so destination/payload identity agreement and atomicity apply
-   * unchanged. Refuses a season id that already exists live UNLESS the
-   * caller explicitly passes `confirmOverwrite:true`, which the coach
-   * must have already agreed to after seeing scanRecoverableSeasons()'s
-   * preview -- this method performs no UI confirmation of its own.
-   * Fails closed if SQLite cannot be opened; never falls back to writing
-   * app-data season.json directly.
+   * Recovery step 2, the confirmed import. Re-reads and re-validates the one
+   * candidate at the point of action and imports it through the canonical
+   * saveSeason() path. Refuses a season id that already exists unless
+   * `confirmOverwrite:true`, which the coach must have agreed to after the
+   * scan's preview; this method has no confirmation UI. Fails closed if the
+   * catalog cannot be opened.
    */
   async recoverSeasonFromMirror(id, { confirmOverwrite = false } = {}) {
     if (!this._ok() || !id || this.mirrorDir === undefined) return { ok: false, reason: 'unavailable' };
@@ -702,23 +674,13 @@ export class TauriBackend extends StorageBackend {
     } catch (e) { raw = null; }
     if (!raw) return { ok: false, reason: 'not-found' };
     const result = SnapshotEnvelope.unwrap(raw);
-    // PC-2 repair (Codex review 89e34c6, finding 2): re-validate at the point
-    // of action too, not just in the scan preview -- the same folder-copy/
-    // rename vector applies here. A valid checksum proves the content is
-    // exactly what it claims to be; it says nothing about whether THIS folder
-    // is allowed to become that content. Refuse rather than import a season-A
-    // snapshot under season-B's identity merely because it was found in B's
-    // mirror directory.
+    // Re-validate the folder binding at the point of action too.
     if (result.ok && String(result.envelope.seasonId) !== String(id)) {
       return { ok: false, reason: 'folder-identity-mismatch' };
     }
-    // PC-2 repair (Codex review d206b58, finding 1): this is the production
-    // persistence boundary, not merely a UI-gated action -- the Team Hub
-    // recovery button being disabled for an invalid candidate does not, by
-    // itself, stop this method from being called with one, whether by a
-    // future caller, a scripting mistake, or a compromised UI. EVERY
-    // !result.ok outcome -- including a bare pre-envelope snapshot, an old
-    // format -- is refused HERE, before catalog lookup or any write.
+    // This is the persistence boundary, not just a UI-gated action: every
+    // invalid candidate, including an old-format one, is refused here before
+    // any lookup or write.
     if (!result.ok) return { ok: false, reason: result.reason, ...(result.reason === 'old-format' ? { message: SeasonFormat.MESSAGE } : {}) };
     const data = result.envelope.data;
     if (!data || !Array.isArray(data.games)) return { ok: false, reason: 'malformed' };
@@ -729,12 +691,8 @@ export class TauriBackend extends StorageBackend {
     // A validated envelope's identity is never reassigned.
     const cp = await this._ensureCatalog();
     if (!cp) return { ok: false, reason: 'catalog-unavailable' };
-    // PC-2 repair (Codex review 89e34c6, finding 3): a FAILED conflict check
-    // must never default to "no conflict". The old code left `exists` at its
-    // initial `false` on a listSeasons() failure, silently bypassing the
-    // required overwrite confirmation and proceeding to save as though the
-    // destination were empty. Fail closed instead: if we cannot confirm
-    // whether the season already exists, refuse rather than guess safe.
+    // A failed conflict check never means "no conflict": if existence cannot
+    // be confirmed, refuse.
     let exists;
     try {
       exists = (await cp.listSeasons()).some(s => String(s.id) === String(id));
@@ -812,7 +770,7 @@ export class TauriBackend extends StorageBackend {
     return true;
   }
 
-  // ---- canonical (PC-1: explicit seasonId; PC-2: SQLite-only, no JSON fallback) ----
+  // ---- canonical (explicit seasonId; the SQLite catalog is the only authority) ----
   async loadSeason(seasonId) {
     if (!this._ok() || !seasonId) return null;
     const cp = await this._ensureCatalog();
@@ -865,15 +823,12 @@ export class TauriBackend extends StorageBackend {
     }
   }
 
-  // ---- SQLite catalog (desktop canonical, PC-2: the ONLY authority) --------
-  // Behind localStorage `ffa_sql_catalog` (always true -- see _sqlFlag()).
-  // Season load/save/delete/backup delegate to CatalogPersistence: the
-  // SQLite catalog is the ONE canonical desktop store. Per Invariant #4/#5,
-  // this is fail-closed, not fail-safe: if the catalog cannot be opened for
-  // ANY reason (missing wasm resource, corrupt db bytes, a runtime error),
-  // the affected operation refuses rather than silently falling back to a
-  // JSON sidecar. The browser bundle stays sql.js-free: the wasm is a
-  // desktop-only Tauri resource, lazy-loaded here on first use.
+  // ---- SQLite catalog (the only desktop authority) ----
+  // Season load/save/delete/backup delegate to CatalogPersistence. Fail closed:
+  // if the catalog cannot be opened (missing wasm, corrupt bytes, runtime
+  // error) the operation refuses; there is no JSON fallback. The wasm is a
+  // desktop-only Tauri resource, lazy-loaded on first use, so the browser
+  // bundle stays sql.js-free.
   _sqlFlag() {
     // Tauri's catalog is the shipped canonical store. A localStorage flag must
     // never demote durable SQLite data to stale JSON sidecars.
@@ -906,24 +861,14 @@ export class TauriBackend extends StorageBackend {
     }
   }
 
-  // PC-2: `writeJson` is deliberately ABSENT from this interface -- per-season
-  // app-data season.json is retired as a live write authority (Invariant #5).
-  // `readJson` survives ONLY for CatalogPersistence.migrateJsonSeasons()'s
-  // one-time bootstrap read of pre-existing legacy files.
+  // No `writeJson`: per-season season.json is not a write authority.
+  // `readJson` serves only CatalogPersistence.migrateJsonSeasons() at startup.
   _catalogFs() {
     const dbPath = 'seasons/library.db';
     return {
-      // PC-2 repair (Codex review 89e34c6, finding 1): this used to route
-      // through the general-purpose `_exists()` helper, which swallows ANY
-      // error from the existence check and reports `false` -- collapsing "the
-      // db is genuinely there but I can't tell because of a permission/IO
-      // error" into "there is no db", i.e. exactly the fresh-install branch.
-      // A locked or permission-denied EXISTING db would therefore never even
-      // reach `catalog.open(bytes)` to throw -- it looked like a clean slate
-      // before _ensureLoaded() ever got a chance to distinguish it. Now: an
-      // existence-check failure propagates (never assume fresh install), a
-      // confirmed-absent file returns null (genuinely nothing on disk), and a
-      // confirmed-present file's read failure also propagates.
+      // An existence-check or read failure propagates; only a confirmed-absent
+      // file returns null. Treating an unreadable db as a fresh install would
+      // show an empty library.
       readDb: async () => {
         const exists = await this.fs.exists(dbPath, { baseDir: this.baseDir });
         if (!exists) return null;
@@ -978,39 +923,20 @@ export class TauriBackend extends StorageBackend {
     return true;
   }
 
-  // ---- backup ring (PC-1: explicit seasonId, no ambient this.currentId) ----
-  // PC-5 review repair (Codex, `1de3c54`): the prior fix here cached the
-  // created backup's meta to answer an identical-payload duplicate call
-  // honestly -- but a cache is not a substitute for durability. It could
-  // return a truthy result for a call whose OWN write had genuinely failed
-  // (masked because a stale, unrelated cache entry happened to match by
-  // JSON), and it had no way to know a cached backup had since been deleted
-  // or pruned, so a later identical-content call could return an id that no
-  // longer existed on disk. `restoreBackup()`'s safety snapshot depends on
-  // this method's return meaning "durably created, right now" -- a cache
-  // cannot promise that. Removed entirely; every call performs (and, per
-  // CatalogPersistence.createBackup()'s own repair, durably VERIFIES) a real
-  // write. The redundant duplicate call this cache used to paper over
-  // (writeDisk({snapshot:true}) already creating the backup, then
-  // SeasonStore.snapshot()/saveNow() calling this a second time for the
-  // identical payload) is closed structurally instead: writeDisk() now
-  // reports its own internal backup result back to its caller via an out
-  // parameter, so snapshot()/saveNow() never need to call this a second time
-  // at all -- see writeDisk() below and SeasonStore.snapshot()/saveNow().
+  // ---- backup ring (explicit seasonId) ----
+  // Every call performs and durably verifies a real write; restoreBackup()'s
+  // safety snapshot relies on a truthy result meaning "durably created now".
+  // writeDisk() reports its own backup through an out-parameter, so callers
+  // never request the same backup twice.
   async createBackup(seasonId, data, label) {
     if (!this._ok() || !seasonId) return null;
     if (!data || (data.id && String(data.id) !== String(seasonId))) {
       console.error('Blocked cross-season backup', { destinationId: seasonId, payloadId: data && data.id });
       return null;
     }
-    // PC-2: restore points are rows in the shared library db, the ONE
-    // authority for a NEW backup write. Pre-existing legacy season_<ts>.json
-    // restore-point files remain READABLE (listBackups/getBackup/deleteBackup
-    // route by id shape, unconditionally on catalog availability -- a
-    // genuinely legacy id is a different identifier namespace, not the same
-    // authority competing), but this method never creates a new one as a
-    // fallback: a catalog that cannot be opened means the restore point is
-    // not created at all, never silently downgraded to a file.
+    // New restore points are rows in the library db only; a catalog that
+    // cannot be opened means no restore point, never a fallback file. Older
+    // season_<ts>.json restore points stay readable by id.
     const cp = await this._ensureCatalog();
     if (!cp) {
       console.error('Blocked backup: the canonical season catalog could not be opened.');
@@ -1351,13 +1277,12 @@ export class TauriBackend extends StorageBackend {
     return '';   // outside the root — caller stores the absolute path instead
   }
 
-  // ---- P1-7: consent-scoped linked-film access ----------------------------
-  // Tauri asset/fs scope isn't persisted across app restarts, so _autoLoadLinkedFilm
-  // must re-grant a linked game's folder on every open. Granting whatever absolute
-  // path a game's filmDir names would let an IMPORTED season silently widen the
-  // WebView's filesystem scope to an attacker-chosen directory. So we only re-grant
-  // folders the coach actually consented to: those under the library root, or ones
-  // explicitly picked via the native dialog (remembered per-machine in localStorage).
+  // ---- consent-scoped linked-film access ----------------------------
+  // Tauri's asset/fs scope is not persisted across restarts, so a linked game's
+  // folder is re-granted on every open. Only folders the coach consented to are
+  // re-granted (under the library root, or picked in the native dialog and
+  // remembered per machine), so an imported season cannot widen the WebView's
+  // filesystem scope to a directory of its choosing.
   static _normPath(s) { return String(s || '').replace(/\\/g, '/').replace(/\/+$/, ''); }
   /** Pure/testable: is absPath under the root, or under a coach-linked dir? */
   static isDirAllowed(root, linkedDirs, absPath) {
@@ -1436,18 +1361,11 @@ export class TauriBackend extends StorageBackend {
   }
 
   /**
-   * Mirror the season (and, on snapshots, a backup) to the Documents folder.
-   * Best-effort: a failure here must never block the canonical app-data save.
-   * PC-1: explicit seasonId, no ambient this.currentId.
-   *
-   * PC-3: the live mirror file is now a versioned SnapshotEnvelope, not a
-   * bare season object -- id/count/checksum are declared alongside the
-   * data so the explicit recovery scan can validate a candidate BEFORE
-   * importing it (Invariant #6), without first having to trust-and-parse
-   * the whole body. This mirror is written only from the canonical-commit
-   * path (CatalogPersistence.saveSeason/reconcileFallbacks, and
-   * writeDisk() below after its own saveSeason() succeeds) -- never
-   * speculatively, matching Invariant #5.
+   * Mirror the season (and, on snapshots, a backup) to the Documents folder as
+   * a versioned SnapshotEnvelope, so recovery can validate a candidate before
+   * importing it. Best-effort: a failure never blocks the canonical save.
+   * Written only after a canonical commit (CatalogPersistence.saveSeason /
+   * reconcileFallbacks, and writeDisk() after its own save succeeds).
    */
   async _mirrorToDocuments(seasonId, data, opts = {}) {
     if (!this._ok() || !seasonId || this.mirrorDir === undefined) return;
@@ -1497,27 +1415,11 @@ export class TauriBackend extends StorageBackend {
     return dir;
   }
 
-  // PC-1: the canonical write is the gate for BOTH the snapshot backup and
-  // the Documents mirror. Previously the mirror wrote unconditionally, so a
-  // rejected canonical save (wrong destination/payload id, disk full,
-  // catalog unavailable) still landed the rejected data in the recovery
-  // mirror -- reproduced directly before this fix: a rejected import
-  // returned ok:false yet still produced one Documents-mirror write
-  // containing the rejected season name.
-  //
-  // PC-5 review repair (Codex, `1de3c54`): the caller-visible boolean
-  // contract stays exactly as it was (every existing caller reads `ok` as a
-  // plain boolean; changing that would ripple into StorageManager.saveNow()'s
-  // own public return value). But when `opts.snapshot` is true, this method
-  // is now the SOLE owner of backup creation for this write -- it stamps the
-  // result of its own internal createBackup() call onto the caller-owned
-  // `opts` object as `opts.createdBackup`, so SeasonStore.snapshot()/
-  // saveNow() can read the REAL, ALREADY-DURABILITY-VERIFIED result instead
-  // of making a second, separate createBackup() call for the identical
-  // payload (the exact redundant-call shape that produced the PC-5 dry-run
-  // finding in the first place). `opts` is already caller-owned and mutable
-  // for every call site here, so this is a pure additive out-parameter, not
-  // a new argument -- no existing caller that ignores it is affected.
+  // The canonical write gates both the backup and the Documents mirror: a
+  // rejected save writes neither. Returns the canonical boolean. With
+  // `opts.snapshot`, this method owns backup creation and reports the result
+  // in `opts.createdBackup` (meta, or null on failure) so callers never create
+  // the same backup twice.
   async writeDisk(seasonId, data, opts = {}) {
     const ok = await this.saveSeason(seasonId, data);
     if (!ok) return false;

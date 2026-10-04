@@ -109,32 +109,22 @@ export class StorageManager {
     this.tagger.on('play-deleted', () => this._autoSave());
     this.canvas.on('annotations-changed', () => this._autoSave());
     this.canvas.on('annotation-added', () => this._autoSave());
-    // PC-4 lifecycle audit, shutdown (Inventory Sec 3.4): nothing anywhere in
-    // the app flushed a pending debounced save when the window closed, so a
-    // coach closing within ~1s of their last edit lost that edit's canonical
-    // write entirely. Wired here rather than in the constructor because the
-    // season store and tagger are only fully wired by the time app.js calls
-    // this.
+    // Flush a pending debounced save when the window closes, so an edit made
+    // just before closing is not lost. Wired here because the store and tagger
+    // are only fully wired once app.js calls this.
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('beforeunload', () => { try { this.flushPendingSaves(); } catch (e) {} });
     }
-    // PC-4 repair (finding 3): the doc comment on flushPendingSaves() already
-    // disclosed that a browser beforeunload listener cannot await an async
-    // desktop write. This closes that gap for real rather than leaving it
-    // documented: Tauri's own close-requested hook can defer the window close
-    // until the flush resolves, which no browser event can do. No-op on the
-    // browser build (no window.__TAURI__).
+    // Desktop only: Tauri's close-requested hook can defer the close until the
+    // flush resolves, which a browser beforeunload listener cannot.
     this._wireDesktopCloseFlush();
   }
 
   /**
-   * PC-4 repair (finding 3). Desktop only (window.__TAURI__): defers the
-   * window close via Tauri's onCloseRequested, awaits flushPendingSaves()'s
-   * now-genuinely-awaitable promise chain, then invokes a native command that
-   * destroys the window without re-entering the close-request hook. Safe to
-   * call on the browser build or if
-   * the API shape is ever missing/changed -- every step is guarded and a
-   * failure here must never block a real close.
+   * Desktop only (window.__TAURI__): defer the window close via
+   * onCloseRequested, await flushPendingSaves(), then destroy the window
+   * through a native command that does not re-enter the hook. Every step is
+   * guarded; a failure here never blocks a real close.
    */
   async _wireDesktopCloseFlush() {
     const T = (typeof window !== 'undefined') ? window.__TAURI__ : null;
@@ -156,14 +146,9 @@ export class StorageManager {
           let ok = true;
           try { ok = await this.flushPendingSaves(); } catch (e) { ok = false; }
           if (ok === false) {
-            // PC-4 repair (Codex 50e2e50, finding 3): a genuine, OBSERVED save
-            // failure must not be silently discarded by destroying the window
-            // anyway -- the coach would lose work with no signal at all.
-            // flushPendingSaves() now resolves false ONLY on an actual
-            // observed failure (never merely "nothing was pending"), so this
-            // check is safe to gate the close on. Surface it through the
-            // existing onPersistError seam and leave the window open so the
-            // coach can retry or export a backup instead of losing data.
+            // An observed save failure keeps the window open and reports it
+            // through onPersistError, so the coach can retry or export instead
+            // of losing work silently.
             try { this.seasonStore && this.seasonStore.onPersistError && this.seasonStore.onPersistError(); } catch (e) {}
             this._desktopCloseInFlight = false;
             return;
@@ -182,55 +167,24 @@ export class StorageManager {
   }
 
   /**
-   * PC-4: run an armed debounced save NOW instead of waiting out its timer, OR
-   * genuinely await ALL writes already in flight / still landing, from
-   * whichever trigger(s) started them, draining until genuinely stable.
+   * Run an armed debounced save now and await every write in flight until the
+   * season's writes are stable.
    *
-   * Resolves to a durable signal a close handler can safely gate on:
-   *   - `true`  it is genuinely safe to proceed -- either there was nothing
-   *             to flush at all (idle), or every flush/drain completed and
-   *             the LAST underlying canonical save durably SUCCEEDED.
-   *   - `false` ONLY on a genuine, OBSERVED save failure. Never means "there
-   *             was nothing pending" -- that ambiguity was PC-4 repair round
-   *             2's root cause (the close hook could not tell "nothing to
-   *             do" apart from "attempted and failed", so it destroyed the
-   *             window either way).
+   * Resolves:
+   *   - `true`  safe to proceed: nothing to flush, or the last canonical save
+   *             succeeded.
+   *   - `false` only on an observed save failure, never for "nothing pending".
    *
-   * Round 2 fix: the debounce timer being un-armed does NOT mean nothing is
-   * running -- the timer's own callback nulls it the instant it fires,
-   * BEFORE its write settles (see _autoSave()), and this method itself nulls
-   * it the moment it starts a flush. So a SECOND caller in the same close --
-   * the browser `beforeunload` listener and the desktop close-requested hook
-   * both fire for one real close, and either can run second -- would see no
-   * armed timer and wrongly conclude there was nothing to flush while the
-   * first caller's write was still running. It falls back to
-   * SeasonStore.pendingWrite() to find that same in-flight write.
+   * An un-armed timer does not mean nothing is running: the timer nulls
+   * itself when it fires, before its write settles, and the browser
+   * beforeunload listener and the desktop close hook can both call this for
+   * one close. So it falls back to SeasonStore.pendingWrite(), and loops: run
+   * any armed debounce (including one re-armed by an edit during an earlier
+   * await), drain via SeasonStore.drainWrites(), and repeat until no timer is
+   * armed and nothing new was dispatched.
    *
-   * PC-4 repair round 3 (Codex c962437): a SNAPSHOT of "the most recently
-   * dispatched write" is not enough -- if a NEWER write (or a freshly
-   * re-armed debounce, from an edit landing mid-shutdown) appears while THIS
-   * call is still awaiting an older one, a single await/return can settle
-   * and let the caller proceed before that newer work has landed. Reproduced
-   * directly before this fix, in both the timer-armed and the pendingWrite-
-   * fallback branch below: releasing only the FIRST write let the flush
-   * resolve while a SECOND write (dispatched during the flush) was still
-   * gated and pending.
-   *
-   * This loops instead of returning after one pass. Each iteration: if a
-   * debounce is armed (from before this call started, OR newly armed by an
-   * edit that happened during an EARLIER iteration's own await), run it now;
-   * then drain the season's write chain to a genuinely stable tail via
-   * SeasonStore.drainWrites() (which itself loops until nothing newer has
-   * landed). After that drain, the loop goes around again -- an edit could
-   * have re-armed the debounce timer WHILE the drain was awaiting (a
-   * SeasonStore-level drain has no visibility into StorageManager's own
-   * timer field), so only exiting when NEITHER a timer is armed NOR anything
-   * new has been dispatched since the last drain is what makes this genuinely
-   * stable, not merely "waited once more than before."
-   *
-   * The 2.5s Documents-mirror debounce is deliberately NOT drained: it is a
-   * recovery snapshot written only after a successful canonical commit, and
-   * it is rewritten by the next save -- the canonical bytes are what a
+   * The 2.5s Documents-mirror debounce is not drained: it is a recovery
+   * snapshot rewritten by the next save; the canonical bytes are what a
    * shutdown must not lose.
    */
   async flushPendingSaves() {
@@ -273,19 +227,13 @@ export class StorageManager {
     clearTimeout(this.autoSaveTimer);
     this._signalSave('pending');
     // Pin the season the edit belongs to. If the coach switches seasons before
-    // the debounce fires, the backend pointer has moved — flushing then would
-    // write THIS season's data into the OTHER season's slot (reproduced: a 1s
-    // autosave firing during openSeason(B)'s awaited load stamped season A over
-    // B's file). Transitions also cancel this timer; the pin is belt-and-braces.
+    // the debounce fires, flushing would write this season's data into the
+    // other season's slot. Transitions also cancel this timer.
     const sid = this.seasonStore ? this.seasonStore.currentSeasonId : null;
     this.autoSaveTimer = setTimeout(() => {
-      // PC-4 repair (Codex 50e2e50, finding 2): the field is spent the
-      // instant the timer fires, not merely "at some point before the write
-      // settles" -- nulling it here (rather than leaving the now-stale id
-      // sitting in it) is what lets flushPendingSaves() correctly tell "not
-      // yet armed" apart from "already firing/fired", and fall back to
-      // SeasonStore.pendingWrite() to await the write this fire is about to
-      // start instead of redundantly re-triggering it.
+      // The field is spent the instant the timer fires, so flushPendingSaves()
+      // can tell "not armed" from "already fired" and await the write through
+      // SeasonStore.pendingWrite() instead of re-triggering it.
       this.autoSaveTimer = null;
       if (this.seasonStore && this.seasonStore.currentSeasonId !== sid) return;
       this._commitAndPersist();
@@ -308,12 +256,9 @@ export class StorageManager {
     if (this.seasonStore && this.seasonStore.cancelPendingDiskWrite) this.seasonStore.cancelPendingDiskWrite();
   }
 
-  /** Write the live active-game state into the season and persist the season.
-   *  PC-4 repair (finding 3): returns persist()'s own promise chain (was
-   *  fire-and-forget) -- resolving to the REAL durable true/false, not just
-   *  "it started" -- so flushPendingSaves() can both genuinely await it AND
-   *  tell a caller whether it actually succeeded. Every existing caller
-   *  already ignored the return value, so this is additive. */
+  /** Write the live active-game state into the season and persist it.
+   *  Returns persist()'s durable true/false, so flushPendingSaves() can await
+   *  it and know whether it succeeded. */
   _commitAndPersist() {
     if (!this.seasonStore || !this.seasonStore.data) return Promise.resolve(false);
     this.commitActive();
@@ -398,18 +343,15 @@ export class StorageManager {
     this.tagger?.toast?.(`${refused.length} season file${refused.length === 1 ? ' uses' : 's use'} an old GridIron IQ format and ${refused.length === 1 ? 'was' : 'were'} not opened: ${names}. Export ${refused.length === 1 ? 'it' : 'them'} again from the current app.`, 10000);
   }
 
-  /** Whether this backend supports the PC-3 recovery flow (desktop only). */
+  /** Whether this backend supports season recovery (desktop only). */
   canRecoverSeasons() { return this.seasonStore.canRecoverSeasons(); }
 
-  /** PC-3 explicit recovery, step 1: preview candidates from the Documents
-   *  mirror. Never automatic (Invariant #6) -- only ever called from a
-   *  coach-initiated action. */
+  /** Recovery step 1: preview candidates from the Documents mirror. Only ever
+   *  called from a coach action, never automatically. */
   async scanRecoverableSeasons() { return this.seasonStore.scanRecoverableSeasons(); }
 
-  /** PC-3 explicit recovery, step 2: the confirmed import. On success,
-   *  refreshes the season list cache the same way listSeasons() does, so a
-   *  caller's next render sees the newly-recovered season without a second
-   *  round-trip. */
+  /** Recovery step 2: the confirmed import. On success, refreshes the season
+   *  list cache so the next render shows the recovered season. */
   async recoverSeasonFromMirror(id, opts) {
     const result = await this.seasonStore.recoverSeasonFromMirror(id, opts);
     if (result && result.ok) { try { await this.listSeasons(); } catch (e) {} }
@@ -771,10 +713,9 @@ export class StorageManager {
       return this._autoLoadLinkedFilm(gameNode, loadToken);
     }
     if (!backend.supportsFilm || !backend.supportsFilm()) return;
-    // Every toast/message below is guarded by `!stale()` in addition to every
-    // player/playlist mutation (F3, 2026-07-23 self-review): a superseded load
-    // must not tell the coach about the WRONG game's missing/incomplete film —
-    // messaging is a side effect just like the video swap it was already guarding.
+    // Every toast and message below is guarded by `!stale()`, like every
+    // player and playlist change: a superseded load must not report the wrong
+    // game's missing or incomplete film.
     try {
       const filesOnDisk = await backend.listFilmFiles(gameNode.id);
       if (stale()) return;
@@ -1482,12 +1423,10 @@ export class StorageManager {
     if (!id) return false;
     if (this._removedClipIds.has(id)) return true;
     this._removedClipIds.add(id);
-    // The removal has to reach disk on its own. A clip with a play rides the
-    // `play-deleted` autosave, but an UNCHARTED clip — the orphaned-record case
-    // this whole repair exists for — emits no play event, so removing one only
-    // updated memory and closing the app resurrected both the record and the
-    // mismatch. Debounced like every other edit, so the play-backed path
-    // coalesces into the same single write.
+    // The removal reaches disk on its own: an uncharted clip emits no play
+    // event, so without this, closing the app would bring the record back.
+    // Debounced like every edit, so the play-backed path coalesces into one
+    // write.
     this._autoSave();
     return true;
   }
@@ -1625,14 +1564,10 @@ export class StorageManager {
 
   /** Restore a previous save; reloads the active game on success. */
   async restoreBackup(id) {
-    // PC-4 lifecycle audit (Invariant #7): a restore is an explicit decision to
-    // DISCARD the current state, so a debounced autosave still describing that
-    // discarded state must not survive it. Without this, the 1s autosave timer
-    // could fire during the restore's own awaits (snapshot + persist) and run
-    // commitActive(), which stamps the live tagger's PRE-restore plays into the
-    // freshly-restored season -- the _loadedGameId guard does not catch it,
-    // because a restore of the same season normally keeps the same active game
-    // id, so the guard's equality check passes and the write proceeds.
+    // A restore discards the current state, so a pending autosave describing
+    // it must not survive: it could fire during the restore's awaits and stamp
+    // the pre-restore plays into the restored season (the _loadedGameId guard
+    // passes, because the active game id is usually unchanged).
     this._cancelPendingSaves();
     const data = await this.seasonStore.restoreBackup(id);
     // Every failure keeps its caller-owned messaging (an old-format restore
@@ -1665,53 +1600,27 @@ export class StorageManager {
       try { parsed = JSON.parse(e.target.result); }
       catch (err) { alert('Invalid project file.'); return; }
 
-      // An old-format file (a pre-conversion season, or a single-game save) is
-      // refused here, before any scaffold season or the open game is touched;
-      // the file on disk stays exactly as it is (legacy excision step 6).
+      // An old-format file (a pre-conversion season or a single-game save) is
+      // refused before any scaffold season or the open game is touched; the file
+      // on disk is unchanged.
       if (parsed && (Array.isArray(parsed.games) || Array.isArray(parsed.plays)) && !SeasonFormat.isCurrentSeason(parsed)) {
         this.tagger?.toast?.(SeasonFormat.MESSAGE, 8000);
         return;
       }
 
       if (parsed && Array.isArray(parsed.games)) {
-        // First-run / library-only state (e.g. importing a season saved on
-        // the desktop app into a fresh web app): there's no current season,
-        // so register a library entry first — adopt() persists into the
-        // CURRENT season's slot and silently went nowhere without one.
-        //
-        // PC-1 repair (the remaining P0 from Codex's re-review of the prior
-        // atomicity repair): the whole import lifecycle -- scaffold creation,
-        // the durable write, and the final editor reload -- is now ONE
-        // transaction fence, re-validated at every await boundary, not just
-        // the write itself:
-        //   1. Scaffold creation no longer switches the live editor
-        //      unconditionally. createUnclaimedSeasonIfEmpty() durably
-        //      creates the record, then claims it as current ONLY IF nothing
-        //      else opened/created a season while that create was in flight
-        //      (SeasonStore.createSeason()'s own unconditional switch --
-        //      correct for its deliberate "New Season" callers -- was
-        //      exactly this hazard for an implementation-detail scaffold: a
-        //      season the coach opened WHILE the scaffold's own durable
-        //      create was pending could be silently clobbered the instant
-        //      that create resolved).
-        //   2. `destSeasonId` is captured once, synchronously, immediately
-        //      before calling adopt() -- identical to the value adopt()
-        //      itself captures internally (no await separates the two), so
-        //      both agree on exactly which season this import targets.
-        //   3. On failure, the scaffold (if this call created and claimed
-        //      one) is deleted by that captured id -- never a value re-read
-        //      after the await, which could by then name whatever the coach
-        //      has since opened. deleteSeason() is itself scoped to the id
-        //      it's given (it only clears the live editor if that id is
-        //      still the ambient current season), so this is safe regardless
-        //      of what's current now.
-        //   4. On SUCCESS, the final `_afterSeasonLoaded()` reload is gated on
-        //      the store still owning `destSeasonId` too
-        //      -- a stale but genuinely successful import (its own durable
-        //      write to its own destination completed fine) must not yank
-        //      the coach's video/playlist/form out from under them on
-        //      whatever DIFFERENT season they've since opened, for a reason
-        //      that has nothing to do with what they're doing.
+        // First run, or no season open (e.g. importing a desktop season into a
+        // fresh web app): register a library entry first, since adopt() writes
+        // into the current season. The whole import is one fence, re-checked
+        // at every await:
+        //   1. createUnclaimedSeasonIfEmpty() creates the scaffold and makes it
+        //      current only if the coach opened nothing meanwhile.
+        //   2. `destSeasonId` is captured right before adopt(), matching the id
+        //      adopt() captures itself.
+        //   3. On failure, the scaffold this call claimed is deleted by that
+        //      captured id, never a value re-read after an await.
+        //   4. On success, the editor reloads only if `destSeasonId` is still
+        //      the open season.
         let scaffoldSeasonId = null;
         if (!this.seasonStore.hasCurrent()) {
           const { rec, claimed } = await this.seasonStore.createUnclaimedSeasonIfEmpty({
@@ -1731,11 +1640,9 @@ export class StorageManager {
           scaffoldSeasonId = (rec && rec.id) || null;
         }
         const destSeasonId = this.seasonStore.currentSeasonId;   // == what adopt() itself will capture; no await between here and the call below
-        // PC-1: adopt() is now awaitable, atomic, and reports genuine durable
-        // success/failure (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
-        // a rejected write must never be presented as a successful import,
-        // and the live editor/store must be byte-identical to before this
-        // attempt on failure.
+        // adopt() reports the durable result; a rejected write is never shown
+        // as a successful import, and on failure the editor and store are
+        // exactly as before.
         const result = await this.seasonStore.adopt(parsed);
         if (!result || result.ok === false) {
           // A destination season created SOLELY for this failed import is now
@@ -2120,16 +2027,16 @@ export class StorageManager {
       pending.push(play);
     }
 
-    // A row with an old combined look ("Shotgun + Trips" in Formation, a family
-    // in Coverage) means an old export: the whole file is refused and nothing is
-    // added (legacy excision; current exports write each look field on its own).
+    // A row with an old combined look ("Shotgun + Trips" in Formation, a
+    // family in Coverage) means an old export: the whole file is refused and
+    // nothing is added.
     if (pending.some(p => TagProjection.isCombined(p.tags))) {
       this.lastImportRefusal = SeasonFormat.MESSAGE;
       return 0;
     }
-    // A detail with no opening field, a gap that disagrees with the direction, or
-    // a value the app does not offer: the file is refused with the first row's
-    // reason and nothing is added. Nothing is inferred or repaired.
+    // A detail without its opening field, or a value the app does not offer:
+    // the file is refused with the first row's reason and nothing is added.
+    // Nothing is inferred or repaired. Gap and Play Direction are independent.
     for (let i = 0; i < pending.length; i++) {
       const reason = [...ChartingDetails.problems(pending[i].tags), ...ChartingDetails.vocabularyProblems(pending[i].tags)][0];
       if (reason) { this.lastImportRefusal = `Data row ${i + 1}: ${reason}. Nothing was imported.`; return 0; }

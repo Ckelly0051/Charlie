@@ -28,9 +28,9 @@ import { countedUnit } from './football-rules.js';
 import { SeasonFormat } from './season-format.js';
 
 export class SeasonStore {
-  /** PC-4: ceiling for the monotonic commit counter. Far beyond any real
-   *  season's lifetime of saves, and low enough that `revision + 1` always
-   *  genuinely increments (unlike Number.MAX_SAFE_INTEGER, where it does not). */
+  /** Ceiling for the commit counter: far beyond any season's saves, and low
+   *  enough that `revision + 1` always increments (it does not at
+   *  Number.MAX_SAFE_INTEGER). */
   static MAX_REVISION = Number.MAX_SAFE_INTEGER - 1024;
 
   /** The stored marker proving a season's roster ownership has been settled at
@@ -44,22 +44,15 @@ export class SeasonStore {
     this.currentSeasonId = null;
     this.backend = backend || detectBackend();
     this._diskTimer = null;
-    // PC-4 revision fencing (Convergence Plan Invariant #7, Inventory Sec 3.2).
-    // `_writeChain` serializes durable body writes PER SEASON so two overlapping
-    // saves to the SAME season can never complete out of order; `_revision`
-    // tracks the newest revision dispatched for each season, which is what a
-    // delayed frozen-payload write compares itself against to know it is stale.
-    // Both are in-memory only and deliberately so: they order writes within a
-    // session, while `data.revision` is the durable marker that survives a
-    // reload and seeds the next session's sequence.
+    // Revision fencing. `_writeChain` runs durable writes for one season in
+    // dispatch order; `_revision` is the newest revision dispatched per season,
+    // which a delayed frozen-payload write compares against to know it is
+    // stale. Both are per session; `data.revision` is the durable marker that
+    // seeds the next session.
     this._writeChain = new Map();   // seasonId -> tail promise (FIFO ordering)
     this._revision = new Map();     // seasonId -> newest dispatched revision
-    // PC-4 repair (Codex 50e2e50, finding 1): a season currently being
-    // deleted. Ordering a write BEHIND an in-flight delete (the prior
-    // repair) is not enough -- a write that lands in the queue AFTER delete
-    // starts still eventually EXECUTES and resurrects the season the moment
-    // it reaches the front. This is the fence that stops it from ever being
-    // ACCEPTED in the first place. See deleteSeason()/_enqueueWrite().
+    // Seasons being deleted. A write queued behind an in-flight delete would
+    // still run and resurrect the season, so writes are refused outright.
     this._deletingSeasons = new Set();
     this._lastWrite = new Map();    // seasonId -> most recent dispatched write's durable true/false (see pendingWrite())
     // Why the most recent open was refused (a stored season in an old format),
@@ -92,11 +85,10 @@ export class SeasonStore {
   }
 
   /**
-   * The one path that reads a season body off durable storage into the live
-   * store. A stored season is current format -- the live catalog was converted
-   * once on 2026-09-26 (legacy excision Pass 2) -- and one that is not is
-   * REFUSED, never converted or partly read: it returns null, the caller keeps
-   * the season the coach already had, and the bytes on disk stay as they are.
+   * The one path that reads a stored season body into the live store. A season
+   * not in the current format is refused, never converted or partly read: it
+   * returns null, the caller keeps the open season, and the bytes stay as they
+   * are.
    */
   async _hydrate(seasonId, parsed) {
     const problems = SeasonFormat.seasonProblems(parsed);
@@ -130,33 +122,22 @@ export class SeasonStore {
       playbook: { version: 1, calls: [] },
       games: [g], activeGameId: g.id,
       plans: [],
-      // PC-4: monotonic commit counter. Additive and backward-compatible -- a
-      // season saved before this checkpoint simply has no `revision` key and
-      // `_normalize` defaults it to 0, so the very first save in the new world
-      // stamps 1 and the sequence proceeds from there.
+      // Commit counter; a season saved without one normalizes to 0.
       revision: 0,
     };
   }
 
   /**
-   * Phase 3 Plan foundation — a season-level game-plan workspace.
+   * A season-level game-plan workspace. `data.plans` lives on the season, not a
+   * game, because a plan's film references span games. A season with no
+   * `plans` key normalizes to `[]`; plans persist inside the season body.
    *
-   * `data.plans` is a season-scoped array (NOT per-game): a plan collects Study
-   * findings + composite `gameId::playId` film references that legitimately span
-   * games, so it belongs above the game node. Additive + backward-compatible: a
-   * season saved before this contract simply has no `plans` key; `_normalize`
-   * defaults it to `[]` and never touches existing data. Persistence needs no
-   * change — `plans` rides in the season object through saveSeason / the SqlCatalog
-   * body_json / the JSON mirror like any other top-level key.
-   *
-   * Shape (documented here so the Plan UI builds against a stable contract; the
-   * normalizer PRESERVES unknown keys so the shape can grow without a migration):
+   * Shape (the normalizer preserves unknown keys so it can grow):
    *   plan = { id, name, audience, createdAt, updatedAt, notes, items: [planItem] }
    *   planItem = { id, kind, label, refs: ['gameId::playId'], query, note, createdAt }
    *     kind: 'finding' (a saved Study result) | 'film' (bare film refs) | 'note'
-   *     refs: composite film references — the SAME `gameId::playId` identity Study
-   *           + CrossGameCutup already use, so a plan item plays through the proven
-   *           cross-game path with no new resolver.
+   *     refs: the same composite `gameId::playId` identity Study and
+   *           CrossGameCutup use, so a plan item plays through the cross-game path.
    */
   blankPlan(name) {
     const now = new Date().toISOString();
@@ -232,7 +213,7 @@ export class SeasonStore {
     this.data.plans = this.data.plans.filter(p => p.id !== id);
     return this.data.plans.length < before;
   }
-  /** Append a Study finding / film reference to a plan. `item` follows planItem. */
+  /** Append a Study finding or film reference to a plan. `item` follows planItem. */
   addPlanItem(planId, item) {
     const p = this.getPlan(planId); if (!p) return null;
     const it = this._normalizePlanItem(item || {});
@@ -383,15 +364,9 @@ export class SeasonStore {
     d.year = d.year || '';
     d.level = d.level || '';
     d.plans = this._normalizePlans(d.plans);   // Phase 3: season-level game-plan workspace (backward-compat default [])
-    // PC-4: a legacy season (or a hand-edited/corrupted/imported one) normalizes
-    // to 0 rather than being trusted, so a garbage value can never mint a
-    // revision so high that every subsequent legitimate save looks stale against
-    // it. The upper bound matters as much as the lower one: at
-    // Number.MAX_SAFE_INTEGER, `revision + 1` stops actually incrementing, so
-    // every later comparison comes out equal and the fence goes silently inert
-    // -- a failure indistinguishable from working code. Reachable only via a
-    // hand-crafted import, but the whole point of a fence is that it cannot be
-    // switched off by data.
+    // An untrusted revision (missing, malformed or hand-edited) normalizes to 0.
+    // The upper bound matters too: at Number.MAX_SAFE_INTEGER `revision + 1`
+    // stops incrementing and the fence would silently stop working.
     d.revision = (Number.isInteger(d.revision) && d.revision >= 0 && d.revision < SeasonStore.MAX_REVISION)
       ? d.revision : 0;
     return d;
@@ -405,26 +380,21 @@ export class SeasonStore {
   /** List all seasons in the library (metas only — does not load any). */
   async listSeasons() { return this.backend.listSeasons(); }
 
-  /** Whether this backend supports the PC-3 recovery flow at all (desktop
-   *  only — BrowserBackend has no Documents-mirror concept). Mirrors the
-   *  existing canOpenDataDir() capability-check pattern. */
+  /** Whether this backend can recover seasons from the Documents mirror
+   *  (desktop only). */
   canRecoverSeasons() { return typeof this.backend.scanRecoverableSeasons === 'function'; }
 
-  /** PC-3 explicit recovery, step 1 (Invariant #6): preview candidates from
-   *  the Documents-mirror recovery snapshots. WRITES NOTHING. Not every
-   *  backend implements this (BrowserBackend has no Documents mirror
-   *  concept), so this feature-detects and returns [] rather than throwing
-   *  on a backend that simply doesn't support recovery scanning. */
+  /** Recovery step 1: preview candidates from the Documents-mirror snapshots.
+   *  Writes nothing. Returns [] on a backend without recovery scanning. */
   async scanRecoverableSeasons() {
     try { return (await this.backend.scanRecoverableSeasons?.()) || []; }
     catch (e) { return []; }
   }
 
-  /** PC-3 explicit recovery, step 2: the confirmed one-way import of ONE
-   *  candidate into the canonical SQLite catalog. `confirmOverwrite` must
-   *  only ever be true after the coach has explicitly agreed, having seen
-   *  scanRecoverableSeasons()'s own preview of the conflict — this method
-   *  performs no confirmation UI of its own. */
+  /** Recovery step 2: the confirmed one-way import of one candidate into the
+   *  canonical catalog. `confirmOverwrite` is true only after the coach has
+   *  agreed to the conflict shown by scanRecoverableSeasons(); this method has
+   *  no confirmation UI of its own. */
   async recoverSeasonFromMirror(id, opts) {
     if (typeof this.backend.recoverSeasonFromMirror !== 'function') return { ok: false, reason: 'unsupported' };
     try { return await this.backend.recoverSeasonFromMirror(id, opts); }
@@ -487,50 +457,19 @@ export class SeasonStore {
   }
 
   /**
-   * PC-1 repair (Codex review of 4445db4/4d75bca, the remaining P0): durably
-   * create a scaffold season and claim it as current ONLY IF nothing else has
-   * opened or created a season in the meantime -- i.e. hasCurrent() is STILL
-   * false when the durable backend create resolves.
+   * Durably create a scaffold season and make it current only if no season was
+   * opened or created while the create was in flight. Used only by
+   * StorageManager.loadProject()'s first-run import, which needs a real
+   * library id but must never take the editor away from a season the coach
+   * opened meanwhile. A separate method from createSeason(), whose
+   * unconditional switch is right for a deliberate New Season.
    *
-   * Used exclusively by StorageManager.loadProject()'s first-run import
-   * bootstrap, which needs a real library id to write an import INTO but must
-   * never silently steal the live editor from a season the coach opened WHILE
-   * the scaffold's own durable creation was in flight. createSeason()'s
-   * unconditional switch (above) cannot protect against this and does not
-   * need to for its normal callers, where switching unconditionally on a
-   * deliberate coach action is the entire point -- this is a SEPARATE method
-   * rather than a flag on createSeason() so that contract distinction stays
-   * explicit at every call site, matching the explicit-identity discipline
-   * this whole PC-1 checkpoint is built on.
+   * Returns `{ rec, claimed }`. `rec` is set whenever the durable create
+   * succeeded; when `claimed` is false the caller deletes it.
    *
-   * Returns `{ rec, claimed }`. `rec` is the durably-created record whenever
-   * the backend write itself succeeds, REGARDLESS of `claimed` -- the caller
-   * owns cleaning it up (via deleteSeason(rec.id), which is itself safely
-   * scoped to that id) when `claimed` is false. `claimed` is true only when
-   * live state now genuinely points at it.
-   *
-   * PC-1 repair (Codex review of 697dea8, the final remaining P0):
-   * deliberately does NOT persist the blank claimed record. createSeason()
-   * (above) persists its blank state because that IS the season a coach
-   * using the deliberate "New Season" action may genuinely leave untagged --
-   * without it, the only durable trace would be the library meta `rec`, with
-   * no season.json/db body to reopen. This method's sole caller
-   * (StorageManager.loadProject()'s first-run import bootstrap) ALWAYS calls
-   * adopt() immediately afterward, which durably persists the REAL imported
-   * payload to this exact id moments later -- an UPSERT that creates the
-   * body row itself, with no dependency on a pre-existing one. Persisting
-   * the blank body here first bought nothing for this caller and cost a
-   * genuine correctness hazard without revision fencing (PC-4, not yet
-   * built): a fire-and-forget save of blank data and adopt()'s later
-   * AWAITED save of the real data both target the SAME id with nothing
-   * ordering them against each other, so the blank write could complete
-   * AFTER the real one and silently overwrite the successfully imported
-   * season. Reproduced directly before this fix by holding both saveSeason
-   * calls on independently controllable pending Promises and resolving the
-   * scaffold's LAST: the final canonical body held the blank scaffold's
-   * shape, not the imported one. Removing this call closes the class
-   * entirely for this path rather than requiring the two writes to somehow
-   * race correctly.
+   * The blank body is deliberately not persisted: the caller's adopt()
+   * immediately writes the real import to this id, and an unordered blank
+   * write could land after it and overwrite the import.
    */
   async createUnclaimedSeasonIfEmpty(meta) {
     this.cancelPendingDiskWrite();
@@ -592,19 +531,9 @@ export class SeasonStore {
   /** Delete a season from the library (and clear it if it was current). */
   async deleteSeason(id) {
     if (this.currentSeasonId === id) this.cancelPendingDiskWrite();
-    // PC-4 repair (Codex 50e2e50, finding 1): ordering the delete behind any
-    // write already dispatched for `id` (below) is not enough on its own -- a
-    // write dispatched WHILE the delete is still in flight (the season
-    // remains "current" until this await resolves) would queue BEHIND the
-    // delete via the normal FIFO and still eventually EXECUTE, resurrecting
-    // the season the instant it reaches the front. Reproduced directly:
-    // delete durably completing, then a persist() dispatched during its own
-    // await landing afterward and recreating the season. The fence is set
-    // SYNCHRONOUSLY here, before the delete's own write is even dispatched --
-    // nothing else can run between this line and the next in JS -- so no
-    // later dispatch can ever slip in ahead of it. _rawEnqueue() (not the
-    // gated _enqueueWrite()) is used for the delete's own write so it does
-    // not refuse itself.
+    // Set the delete fence synchronously, before the delete's own write is
+    // dispatched, so no later write can slip in and resurrect the season.
+    // _rawEnqueue() bypasses the fence so the delete does not refuse itself.
     this._deletingSeasons.add(id);
     let ok;
     try {
@@ -626,10 +555,8 @@ export class SeasonStore {
     // retained the season (canonical delete failed) keeps it loaded; a legacy
     // backend returning undefined is treated as success (backward compatible).
     if (ok !== false && this.currentSeasonId === id) { this.currentSeasonId = null; this.data = null; }
-    // PC-4: a durably-deleted season's write queue and revision sequence are
-    // dropped with it. If that id is ever recreated it starts a fresh sequence
-    // from its own (absent) stored revision, rather than inheriting a ghost
-    // high-water mark from the season that used to hold the id.
+    // A deleted season's queue and revision sequence go with it; a recreated
+    // id starts fresh rather than inheriting the old high-water mark.
     if (ok !== false) { this._writeChain.delete(id); this._revision.delete(id); this._lastWrite.delete(id); }
     return ok !== false;
   }
@@ -762,19 +689,12 @@ export class SeasonStore {
    * durable disk target (if one is bound). No new snapshot here — snapshots are
    * created on explicit saves / throttled auto-snapshots via snapshot().
    */
-  // DATA-AT-REST barrier for the ST-alignment invariant (GRIDIRON-IQ-TAG-MODEL.md
-  // §7a / E1-R9). _normalize strips on deserialize; the LIVE object is kept clean at
-  // the PlayTagger._emit seam. This is the second barrier: EVERY durable-write path
-  // — persist() (canonical), snapshot()/saveNow() (backups), bindDisk() (disk bind),
-  // and json() (the Save Season download) — calls this first, so a forbidden value
-  // can never reach a saved file, a restore point, or an export, regardless of which
-  // writer produced it. (persist() alone was NOT sufficient — the other paths
-  // serialize this.data independently.) Idempotent; only touches unit:'special'.
-  // `data` defaults to the ambient current season for every ordinary caller
-  // (autosave, explicit field edits, json()/saveNow()/bindDisk()). adopt()
-  // passes an EXPLICIT season object it captured before any await, so its
-  // own strip/save/debounce never reads whatever season happens to be
-  // ambiently current by the time this runs (PC-1 repair, finding 1).
+  // Data-at-rest barrier for the Special Teams alignment rule
+  // (GRIDIRON-IQ-TAG-MODEL.md §7a). _normalize strips on read and
+  // PlayTagger._emit keeps the live object clean; every durable write path
+  // (persist, snapshot/saveNow, bindDisk, json) calls this too, because each
+  // serializes this.data independently. Idempotent; touches only Special Teams
+  // plays. adopt() passes the season object it captured before any await.
   _stripStAlignmentBeforeSave(data = this.data) {
     const games = data && Array.isArray(data.games) ? data.games : [];
     games.forEach(g => (g.plays || []).forEach(p => SeasonStore.stripStAlignment(p)));
@@ -786,16 +706,10 @@ export class SeasonStore {
   // its debounced disk-sync always target the season this call started
   // with, never whatever the ambient store has since switched to.
   /**
-   * PC-4 (Invariant #7, Inventory Sec 3.2): stamp the next monotonic revision
-   * for `seasonId` onto `data` and record it as the newest DISPATCHED revision.
-   *
-   * The next revision is based on the HIGHER of the payload's own stored
-   * revision and the newest revision this session has already dispatched for
-   * that season -- never on the payload alone. That distinction is what keeps
-   * a restore safe: a restored backup carries its ORIGINAL (old) revision, so
-   * basing off the payload would mint a revision below the live season's and
-   * make the restore itself look stale to every later fence. Taking the max
-   * means a restore is correctly a NEW, newer commit of older content.
+   * Stamp the next revision for `seasonId` onto `data` and record it as the
+   * newest dispatched. It is based on the higher of the payload's stored
+   * revision and the newest already dispatched this session: a restored backup
+   * carries its old revision, and must still become a newer commit.
    */
   _nextRevision(seasonId, data) {
     const stored = (data && Number.isInteger(data.revision) && data.revision >= 0) ? data.revision : 0;
@@ -807,10 +721,8 @@ export class SeasonStore {
   }
 
   /**
-   * PC-4: seed the in-memory revision sequence from a season's durable state.
-   * Called by every path that loads a season's stored body, so the first write
-   * of a session continues the persisted sequence instead of restarting at 1
-   * (which would make a legitimate save indistinguishable from a stale one).
+   * Seed the in-memory revision sequence from a season's stored body, so the
+   * first write of a session continues the persisted sequence.
    */
   _seedRevision(seasonId, data) {
     if (!seasonId) return;
@@ -820,25 +732,11 @@ export class SeasonStore {
   }
 
   /**
-   * PC-4: run durable body writes for one season STRICTLY IN DISPATCH ORDER.
-   *
-   * Reproduced before this fix (Inventory Sec 3.2, both cases): two overlapping
-   * `saveSeason` calls for the SAME season completed out of order, so the
-   * chronologically-earlier payload landed last and silently reverted the newer
-   * one -- and a save dispatched before a restore landed after it, durably
-   * undoing the restore while memory showed it had worked. Cross-season fencing
-   * (PC-1) could not catch either: the season never changed.
-   *
-   * Chaining is per season id, so an unrelated season is never blocked, and the
-   * next write runs whether the previous one resolved or rejected -- a failed
-   * save must not strand the queue.
-   *
-   * PC-4 repair (Codex 50e2e50, finding 1): this is now the GATED public
-   * entry -- it refuses to even queue a write for a season whose deletion has
-   * already started (see deleteSeason()). Queuing a write BEHIND an in-flight
-   * delete only orders it; the write still eventually EXECUTES once it
-   * reaches the front, resurrecting the season. deleteSeason() itself bypasses
-   * this gate via _rawEnqueue(), since a delete must never refuse itself.
+   * Run durable writes for one season strictly in dispatch order, so an
+   * earlier payload can never land after a newer one (or after a restore) and
+   * revert it. Chained per season id; the next write runs whether the previous
+   * resolved or rejected. Refuses to queue for a season being deleted;
+   * deleteSeason() uses _rawEnqueue() instead.
    */
   _enqueueWrite(seasonId, run) {
     if (this._deletingSeasons.has(seasonId)) return Promise.resolve(false);
@@ -863,12 +761,8 @@ export class SeasonStore {
       // (8 RELOAD violations across 5 seeds), not by any focused test.
       try { next = Promise.resolve(run()); } catch (e) { next = Promise.reject(e); }
     }
-    // PC-4 repair (Codex 50e2e50, finding 2): track this write's own durable
-    // result separately from the drain-wrapped `settled` chain below, so
-    // pendingWrite() can expose a caller-awaitable true/false -- not merely
-    // "has it settled", which `settled` alone cannot answer (drain() itself
-    // resolves to undefined). Never rejects: a rejected write reports false,
-    // matching every other false/null-on-failure method in this codebase.
+    // This write's own durable result, for pendingWrite(). Never rejects:
+    // a rejected write reports false.
     this._lastWrite.set(seasonId, next.then(v => v !== false, () => false));
     // Drop the tail as soon as it drains, so the next uncontended write again
     // starts synchronously instead of chaining onto an already-resolved
@@ -885,41 +779,20 @@ export class SeasonStore {
   }
 
   /**
-   * PC-4 repair (Codex 50e2e50, finding 2): the promise a caller can await to
-   * know the MOST RECENTLY DISPATCHED write for this season -- whether from
-   * persist(), saveNow(), snapshot(), bindDisk(), or the debounced disk-mirror
-   * timer -- has settled, resolving to its durable true/false result (never
-   * rejects). Returns null when nothing has ever been dispatched for this
-   * season, so a caller can distinguish "nothing to wait for" from "the last
-   * dispatched write already settled". This is what lets a shutdown flush
-   * genuinely await a write that started earlier -- from the debounce timer
-   * firing naturally, or from an EARLIER flush call, since the browser
-   * `beforeunload` listener and the desktop close-requested hook can both
-   * fire for one real close -- instead of seeing no ARMED timer and wrongly
-   * reporting nothing to flush while that write is still running.
+   * Resolves to the durable true/false of the most recently dispatched write
+   * for this season, from any path (persist, saveNow, snapshot, bindDisk, the
+   * disk timer); never rejects. Null when nothing was ever dispatched. Lets a
+   * shutdown flush await a write that is already running.
    */
   pendingWrite(seasonId = this.currentSeasonId) {
     return this._lastWrite.get(seasonId) || null;
   }
 
   /**
-   * PC-4 repair round 3 (Codex c962437): a STABLE drain for one season's
-   * write chain, not a snapshot of whichever write happened to be most
-   * recent when called. `pendingWrite()` alone only ever returns the promise
-   * that was current the instant it was read -- if a NEWER write (write B)
-   * is dispatched for this season while a caller is still awaiting an OLDER
-   * one (write A), the caller's already-captured reference resolves the
-   * moment A settles, oblivious to B. Reproduced directly before this fix:
-   * a caller awaiting `pendingWrite()`'s snapshot of A resolved the instant A
-   * settled, while B (dispatched during that await) was still pending.
-   *
-   * This rechecks `_lastWrite` after every await: if the entry has moved on
-   * to a different promise since the one just awaited, a newer write landed
-   * while waiting, and THAT one is awaited too -- looping until the observed
-   * tail is genuinely unchanged across an await. Resolves the durable
-   * true/false of the LAST write actually observed to settle (never
-   * rejects, mirroring `_lastWrite`'s own entries). Returns null when
-   * nothing has ever been dispatched for this season.
+   * Await this season's write chain until it is stable: after each await,
+   * if a newer write was dispatched meanwhile, await that one too. Resolves the
+   * last observed write's durable true/false (never rejects); null when nothing
+   * was ever dispatched.
    */
   async drainWrites(seasonId = this.currentSeasonId) {
     let last = this._lastWrite.get(seasonId) || null;
@@ -933,7 +806,7 @@ export class SeasonStore {
     }
   }
 
-  /** PC-4: stamp a revision at DISPATCH time, then run the write in order. */
+  /** Stamp a revision at dispatch time, then run the write in order. */
   _dispatchWrite(seasonId, data, write) {
     const revision = this._nextRevision(seasonId, data);
     return this._enqueueWrite(seasonId, () => write(revision));
@@ -952,12 +825,8 @@ export class SeasonStore {
       .then(ok => {
         if (ok === false) { this._persistFailed(); return false; }
         this._persistWarned = false;
-        // PC-1: only arm the debounced disk/mirror sync AFTER the canonical
-        // save is confirmed durable. Scheduling it unconditionally (as this
-        // used to) meant a REJECTED canonical save still armed a timer that
-        // wrote the rejected payload to the Documents mirror 2.5s later,
-        // independent of the canonical result -- reproduced directly before
-        // this fix (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
+        // Arm the disk/mirror sync only after the canonical save is durable,
+        // so a rejected payload never reaches the mirror.
         this._scheduleDiskWrite(seasonId, data, revision);
         return true;
       })
@@ -986,20 +855,12 @@ export class SeasonStore {
     const rev = revision;
     this._diskTimer = setTimeout(() => {
       if (this.currentSeasonId !== sid) return;
-      // PC-4 (Invariant #7, "...or a newer commit"): the payload above was
-      // FROZEN at schedule time. A newer commit for this same season means the
-      // frozen copy is a superseded state, and writing it would move the
-      // Documents recovery snapshot BACKWARD -- the one sidecar PC-3 relies on
-      // to be no older than the canonical row. Unlike an autosave (which
-      // re-reads live state at fire time and is therefore never stale in
-      // content), this work carries its payload with it, so it is exactly the
-      // "delayed save" the invariant names. Fails closed: skip, never write.
+      // The payload was frozen at schedule time. If a newer commit exists,
+      // writing it would move the recovery mirror backward, so skip.
       const newest = this._revision.get(sid);
       if (Number.isInteger(rev) && Number.isInteger(newest) && rev < newest) return;
-      // PC-4 repair: this deferred write reached the backend directly, outside
-      // the per-season write queue -- see the identical fix note on
-      // snapshot(). Queued, not dispatched: it re-writes the already-frozen
-      // payload above, never a new commit.
+      // Queued with the season's other writes; it rewrites the frozen payload
+      // and is not a new commit.
       this._enqueueWrite(sid, () => this.backend.writeDisk(sid, snap, { snapshot: false })).catch(() => {});
     }, 2500);
   }
@@ -1018,40 +879,14 @@ export class SeasonStore {
     const seasonId = this.currentSeasonId;
     const data = JSON.parse(JSON.stringify(this.data));
     if (this.backend.diskStatus().bound) {
-      // PC-4 repair: writeDisk performs a SECOND, unfenced canonical
-      // saveSeason call on desktop (TauriBackend.writeDisk -> this.
-      // saveSeason(...) before the mirror/backup work), so it was reachable
-      // entirely outside the per-season write queue -- an older snapshot's
-      // write could land after a newer persist()'s canonical save and revert
-      // it. Reproduced directly before this fix. Routed through
-      // _enqueueWrite, not _dispatchWrite: a snapshot re-writes already-
-      // committed state, it is not itself a new commit, so it must not bump
-      // revision.
-      //
-      // PC-5 review repair (Codex, `1de3c54`): TauriBackend.writeDisk()
-      // ALREADY creates the backup ring entry internally when
-      // opts.snapshot is true -- a second, separate createBackup() call
-      // below for the identical payload was the exact redundant-call shape
-      // that produced the original PC-5 dry-run finding, and the cache-based
-      // patch for it was itself unsafe (an undurable or since-deleted
-      // backup could be reported as successful). The structural fix: read
-      // writeDisk's OWN result off the writeOpts out-parameter instead of
-      // calling createBackup a second time when it's already run.
-      // `writeOpts.createdBackup` is `undefined` in exactly two cases,
-      // both of which fall through to the direct call below unchanged from
-      // the ORIGINAL (pre-PC-5) behavior: this backend's writeDisk() does
-      // not own backup creation at all (BrowserBackend writes its own
-      // separate file-based mirror snapshot inline and never touches this
-      // out-parameter), or the internal saveSeason() failed before ever
-      // reaching the backup step (writeDisk() returns early in that case,
-      // never setting it) -- in both, a fresh direct attempt is the correct,
-      // unchanged fallback. When it IS set -- a truthy meta object (the
-      // internal call succeeded and was durably verified) or `null` (the
-      // internal call was attempted and genuinely failed) -- it is used
-      // directly and no second attempt is made: repeating a call that just
-      // genuinely failed would defeat "create each backup once," and a
-      // second attempt after a genuine success would just be the same
-      // redundant call this repair exists to remove.
+      // Queued, not dispatched: writeDisk() saves the season canonically again
+      // on desktop, so outside the queue an older snapshot could revert a newer
+      // save; a snapshot rewrites committed state and does not bump revision.
+      // When writeDisk() owns backup creation it reports the result in
+      // `writeOpts.createdBackup` (a meta object, or null on failure) and no
+      // second backup is attempted. `undefined` means it never ran (a backend
+      // without that out-parameter, or the canonical save failed first), so
+      // the direct createBackup() below runs.
       const writeOpts = { snapshot: true, label };
       await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, writeOpts));
       if (writeOpts.createdBackup !== undefined) return writeOpts.createdBackup;
@@ -1060,23 +895,14 @@ export class SeasonStore {
   }
 
   /**
-   * THE CANONICAL WRITE for a scout's parent program season.
+   * The canonical write for a scout's parent program season. It goes through
+   * the per-season queue and revision fence like every season write, so an
+   * in-flight ordinary save cannot write the old parent back. When the scout
+   * is the open season the live `data` changes in the same step. Every other
+   * field is preserved.
    *
-   * It is a season write like any other, so it goes through the same seam every
-   * other durable write uses -- the per-season FIFO queue and the PC-4 revision
-   * fence (`_dispatchWrite`) -- rather than reaching `backend.saveSeason()`
-   * directly. That ordering is the whole point: a body written outside the queue
-   * can be overwritten by an ordinary persist that was already in flight with the
-   * stale parent, so the assignment would silently disappear on the next save.
-   *
-   * When the scout is the OPEN season the live `data` is updated too, in the same
-   * step, so no later `commitActive()`/`persist()` can write the old value back.
-   * Every unrelated field is preserved: the body is the one read from storage
-   * with a single key set on it.
-   *
-   * Returns `{ ok, reason }`. A refused or failed write changes nothing -- the
-   * live object is restored, and success is claimed only after the durable body
-   * is read back and confirmed.
+   * Returns `{ ok, reason }`. A refused or failed write changes nothing, and
+   * success is claimed only after the stored body is read back.
    */
   async assignScoutParent(scoutId, programSeasonId) {
     const scout = String(scoutId || ''), parent = String(programSeasonId || '');
@@ -1115,8 +941,8 @@ export class SeasonStore {
     const data = await this.backend.getBackup(this.currentSeasonId, id);
     this.lastRestoreRefusal = null;
     if (!data || !Array.isArray(data.games)) return null;
-    // A restore point saved before the 2026-09-26 conversion is in the old
-    // format: refused before the safety snapshot, so nothing is written (step 6).
+    // A restore point in an old format is refused before the safety snapshot,
+    // so nothing is written.
     if (!SeasonFormat.isCurrentSeason(data)) { this.lastRestoreRefusal = SeasonFormat.RESTORE_MESSAGE; return null; }
     const safetyId = await this.snapshot('Before restore');
     if (!safetyId) return null;
@@ -1145,9 +971,7 @@ export class SeasonStore {
     this._stripStAlignmentBeforeSave();
     const ok = await this.backend.bindDisk();
     if (ok) {
-      // PC-4 repair: same unfenced-writeDisk class as snapshot() above --
-      // queued against this season's other writes rather than reaching the
-      // backend directly.
+      // Queued with this season's other writes, like snapshot().
       const seasonId = this.currentSeasonId;
       const data = JSON.parse(JSON.stringify(this.data));
       await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, { snapshot: true, label: 'Backup folder linked', prompt: true }));
@@ -1160,43 +984,24 @@ export class SeasonStore {
   async saveNow(label) {
     this._stripStAlignmentBeforeSave();
     const seasonId = this.currentSeasonId;
-    // PC-4: an explicit "Save Season" used to call backend.saveSeason directly,
-    // bypassing persist() and therefore any ordering with an in-flight debounced
-    // autosave for the same season -- the FIRST scenario Inventory Sec 3.2 names
-    // ("a debounced autosave firing at the same moment as an explicit Save
-    // Season click"). Routing it through the same per-season queue makes the two
-    // strictly ordered by dispatch, so neither can revert the other.
-    // Capture the payload reference at DISPATCH time, exactly as persist()'s
-    // default parameter does. Reading `this.data` inside the queued callback
-    // instead would let a season switch landing between dispatch and run write
-    // the NEW season's data into the OLD season's slot -- the cross-season
-    // class PC-1 closed, which a naive queue would have quietly reopened.
+    // Routed through the per-season queue so an explicit Save Season and an
+    // in-flight autosave cannot revert each other. The payload is captured at
+    // dispatch time: reading this.data inside the queued callback would let a
+    // season switch write the new season's data into the old season's slot.
     const payload = this.data;
-    // PC-4 repair: the canonical write's result was discarded, so disk/backup
-    // side effects proceeded even after the canonical save was REJECTED --
-    // reproduced directly before this fix. Bail closed before any side effect
-    // on a genuine failure, exactly as persist()'s own callers already rely
-    // on a false/rejected result to mean "nothing durable happened."
+    // A rejected canonical save stops here, before any disk or backup side
+    // effect.
     let ok;
     try { ok = await this._dispatchWrite(seasonId, payload, () => this.backend.saveSeason(seasonId, payload)); }
     catch (e) { ok = false; }
     if (ok === false) return false;
-    // Snapshot the SAME payload the canonical write just committed, not
-    // whatever this.data holds now -- re-reading this.data here would let a
-    // season switch landing during the earlier await write the NEW season's
-    // data into the OLD season's slot, reopening the cross-season class PC-1
-    // closed.
+    // Snapshot the payload the canonical write just committed, not whatever
+    // this.data holds after the await.
     const data = JSON.parse(JSON.stringify(payload));
     let wroteDisk = false;
-    // PC-5 review repair (Codex, `1de3c54`): this method previously made an
-    // UNCONDITIONAL second createBackup() call below regardless of whether
-    // writeDisk() had already created one internally -- on desktop that was
-    // a genuine duplicate call every single time "Save Season" ran, the same
-    // redundant shape snapshot() had. Same fix: writeDisk's own out-parameter
-    // result is used when it ran; the direct call below is now the fallback
-    // for exactly the two cases where it never ran (disk not bound, or the
-    // canonical write failed before reaching the backup step) -- identical
-    // reasoning to snapshot()'s own comment above.
+    // Use writeDisk()'s own backup result when it ran (see snapshot()); the
+    // direct call below covers a backend that does not own backups or a
+    // canonical save that failed first.
     const writeOpts = { snapshot: true, label: label || 'Manual save', prompt: true };
     if (this.diskStatus().bound) {
       // Queued, not direct: see the identical writeDisk fix on snapshot()/
@@ -1218,46 +1023,19 @@ export class SeasonStore {
   }
 
   /**
-   * Adopt a parsed object (season or legacy single game) as the season.
+   * Adopt a parsed season as the current season's content.
+   *   1. The payload's own `id` is replaced by `destSeasonId`, the destination
+   *      slot captured once up front, so the save's destination/payload guard
+   *      accepts it.
+   *   2. Returns `{ ok, data }`, the durable result.
+   *   3. Atomic: the prior live data is restored if the save is rejected.
+   *   4. Season-switch safe: live `this.data` is touched (stage, rollback or
+   *      read-back) only while `destSeasonId` is still the open season; the
+   *      durable write itself always targets `destSeasonId`.
    *
-   * PC-1: four fixes to the identity/durability contract (documented in
-   * docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
-   *   1. The imported payload's own `id` (whatever machine/season it came
-   *      from) is reassigned to `destSeasonId` -- the destination library
-   *      slot, captured ONCE up front -- BEFORE normalize/persist. Without
-   *      this, an imported file whose id differs from the destination is
-   *      silently rejected by the very destination/payload guard
-   *      `saveSeason()` already enforces (`data.id !== id`), and the import
-   *      looked like it worked while nothing was ever durably saved.
-   *   2. `adopt()` is now `async` and returns `{ ok, data }` -- awaitable, so
-   *      a caller can observe genuine durable success/failure instead of the
-   *      previous fire-and-forget `this.persist()` whose result went nowhere.
-   *   3. ATOMIC: the prior live `this.data` is preserved and restored on a
-   *      rejected persist, mirroring restoreBackup()'s own rollback shape.
-   *      Previously `this.data` was overwritten BEFORE persist() was even
-   *      awaited, so a rejected import still replaced the live in-memory
-   *      season -- reproduced directly before this fix: `ok:false` alongside
-   *      the live season name changing to the imported (rejected) value.
-   *   4. SEASON-SWITCH SAFE: `destSeasonId` is captured once, synchronously,
-   *      before any await, and every subsequent mutation of the LIVE
-   *      `this.data` -- both the initial stage AND the rollback/success
-   *      read-back -- is gated on `this.currentSeasonId === destSeasonId`
-   *      still holding, i.e. this call still owning the season it started
-   *      with. The underlying durable write (persist(), called with the
-   *      EXPLICIT destSeasonId/next, never the ambient current season) still
-   *      completes or fails as scoped either way -- but if the coach has
-   *      switched seasons while this save was pending, the live store
-   *      showing whatever they opened is never touched by this call's own
-   *      stage or rollback. Reproduced directly before this fix: begin an
-   *      import into A, open B while the backend save is pending, resolve
-   *      the A save false -- the store ended as
-   *      { currentSeasonId:'B', data.id:'A', data.seasonName:'Season A' },
-   *      i.e. B's live season was silently replaced by A's stale pre-import
-   *      snapshot (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
-   *
-   * Returns `{ ok: false, data: null }` for an unrecognized shape (no season
-   * open, or a payload with neither `.games` nor `.plays`) -- `this.data` is
-   * never touched in that case either.
+   * An old-format payload returns `{ ok: false, data: null, oldFormat: true }`;
+   * one without games returns `{ ok: false, data: null }`. Neither touches
+   * `this.data`.
    */
   async adopt(parsed) {
     // Old-format payloads are refused before anything is staged (step 6).
