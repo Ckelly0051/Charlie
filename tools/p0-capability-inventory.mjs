@@ -77,11 +77,7 @@ export const P0_CAPABILITIES = [
   { id:'reports.opponent-cohorts', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Watch controls launch the exact displayed unit cohorts' },
   { id:'reports.opponent-special-teams', surface:'reports', evidence:'data', harness:'e2e-native-reports.mjs', assertion:'Opponent Special Teams includes scout film and excludes ambiguous head-to-head ST' },
   { id:'reports.season', surface:'reports', evidence:'data', harness:'e2e-native-season.mjs', assertion:'Native Season report aggregates both games and includes an uncommitted live edit without writing it' },
-  // These four moved off e2e-season-tab.mjs, which was narrowed to a focused
-  // native-Season-report contract (9 assertions) with no remaining coverage
-  // of rushing leaderboards, Special Teams, self-scout tells, the Scout
-  // Opponent action, or play-call composition. Re-homed to the harnesses
-  // that actually cover each capability today.
+  // Each capability below points at the harness that covers it today.
   // Players Revision 2 moved the film affordance off the row: identity opens the
   // player, and each measured statistic opens its own bucket. The live assertion
   // is the stricter per-statistic one, so the capability names that.

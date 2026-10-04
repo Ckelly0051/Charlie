@@ -45,12 +45,13 @@ await page.evaluate(async () => {
     mk(4, 'defense', { down: '1', distance: '10', defFront: '4-3', coverage: 'Cover 3', runPass: 'Run', playType: 'Run Outside', result: 'Gain', yardage: '3', players: { tackler: '55' } }),
     mk(5, 'defense', { down: '3', distance: '5', defFront: '3-4', runPass: 'Pass', playType: 'Short Pass', result: 'Touchdown', yardage: '20' }),
     // A structured punt return touchdown, saved by the Special Teams editor with
-    // no Touchdown result tag (review, 97b2f37), and a legacy one with no side.
-    mk(6, 'special', { stType: 'Punt' }, { specialTeams: { unit: 'puntReturn',
+    // no Touchdown result tag, and a Special Teams touchdown with no structured
+    // event, so no side.
+    mk(6, 'special', {}, { specialTeams: { unit: 'puntReturn',
       kick: { distance: 40, hangTime: 4.1, landing: { fieldSide: 'own', yardLine: '30' } },
       return: { attempted: true, yards: 70, end: { fieldSide: 'opp', yardLine: '0' } },
       outcome: { status: 'returned', score: 'touchdown' }, players: { returner: '88' } } }),
-    mk(7, 'special', { stType: 'Kickoff', result: 'Touchdown' }),
+    mk(7, 'special', { result: 'Touchdown' }),
   ];
   g.nextId = 8;
   app.customFields.defs = [{ id: 'cfPressure', name: 'Pressure' }];

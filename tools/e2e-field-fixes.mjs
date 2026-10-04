@@ -239,13 +239,9 @@ const toggle = await page.evaluate(() => {
 });
 check('carry-scheme toggle wired + persisted', toggle.exists && toggle.stored === '1', JSON.stringify(toggle));
 
-// Takeaway input present in the form, and genuinely writes. Final Engine
-// Independence: #tagPlayerTakeaway/.tag-section is deleted, and with it
-// RosterManager.roleInputs.takeaway (a DOM lookup of the same dead id) --
-// that field is now permanently null, guarded (`if (!el) continue`),
-// harmlessly dead. The real, coach-reachable mechanism is now entirely
-// independent of RosterManager's DOM: NativeTaggingScreen.setPlayer() writes
-// through tagger.setPlayerValue('takeaway', ...). Prove the coach-visible
+// Takeaway input present in the deck, and genuinely writes:
+// NativeTaggingScreen.setPlayer() writes through
+// tagger.setPlayerValue('takeaway', ...). Prove the coach-visible
 // input exists AND that using it end-to-end genuinely tags the play.
 const roleInput = await page.evaluate(() => {
   const nativeInput = !!document.querySelector('input[aria-label="takeaway player number"]');

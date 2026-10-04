@@ -453,7 +453,7 @@ state=await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
   const auto=[...root.querySelectorAll('input[type="checkbox"]')].find(i=>/Auto OCR/.test(i.closest('label')?.textContent||''));
   auto.checked=true;auto.dispatchEvent(new Event('change',{bubbles:true}));
-  return{calls:window.__ocr,auto:!!window.app.ocr.auto||!!auto.checked};
+  return{calls:window.__ocr,auto:!!auto.checked};
 });
 ok(state.calls.set===1&&state.calls.read===1&&state.auto,
   'Scoreboard OCR preserves region, read-now, and auto-read commands',JSON.stringify(state));
