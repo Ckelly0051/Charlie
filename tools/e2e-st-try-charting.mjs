@@ -222,6 +222,38 @@ const attribution = await page.evaluate(() => {
 ok(attribution.picked && attribution.players.kicker === '99' && attribution.players.returner === '22',
   'Kick Return preserves a manually charted opposing kicker and quick-picks our returner', JSON.stringify(attribution));
 
+console.log('\n== 8. Review: scout labels and role stability ==');
+await page.evaluate(() => {
+  window.app.storage.gameInfo.perspective = 'scout';
+  window.app.nativeTagging._queuePublish();
+});
+await settle(page);
+const scoutLabel = await page.$eval('[aria-label="kicker player number"]', input => input.parentElement.querySelector('strong').textContent.trim());
+ok(scoutLabel === 'Other team Kicker', 'scout receiving unit names the other team kicker', scoutLabel);
+await page.evaluate(() => { window.app.storage.gameInfo.perspective = 'offense'; window.app.nativeTagging._queuePublish(); });
+await settle(page);
+for (const [id, role, unit, attempt] of [[15, 'blocker', 'Field Goal Block', null], [2, 'tackler', 'Defending a Try', 'Run/Pass'], [4, 'ballCarrier', 'Try', 'Run/Pass']]) {
+  await page.evaluate(id => window.app.tagger.selectPlay(id), id); await settle(page);
+  await choose('Unit', unit);
+  if (attempt) await choose('Attempt', attempt);
+  await page.evaluate(() => window.app.nativeTagging.setField('quarter', '3'));
+  await settle(page);
+  const active = await page.evaluate(() => ({ role: window.app.roster.activeRole,
+    labels: [...document.querySelectorAll('.gi-tag-players > .is-active > strong')].map(n => n.textContent.trim()) }));
+  ok(active.role === role && active.labels.length === 1 && !active.labels[0].startsWith('Opponent'),
+    `play ${id}: ${role} stays active after an edit`, JSON.stringify(active));
+}
+await page.evaluate(() => window.app.tagger.selectPlay(2)); await settle(page);
+await choose('Attempt', 'Kick XP');
+if (await page.$('#ffaConfirmModal [data-act="ok"]')) await page.click('#ffaConfirmModal [data-act="ok"]');
+await settle(page);
+await page.evaluate(() => window.app.nativeTagging.setField('quarter', '4'));
+await settle(page);
+const kickDefenseRole = await page.evaluate(() => ({ role: window.app.roster.activeRole,
+  active: document.querySelector('.gi-tag-players > .is-active > strong')?.textContent.trim() }));
+ok(kickDefenseRole.role === 'blocker' && kickDefenseRole.active === 'Blocker',
+  'defending a kicked try keeps Blocker active after an edit', JSON.stringify(kickDefenseRole));
+
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

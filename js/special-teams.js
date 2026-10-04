@@ -39,6 +39,20 @@ export class SpecialTeamsModel {
     return Object.keys(this.ROLES).map(unit => [unit, this.UNIT_LABELS[unit] || unit]);
   }
 
+  /** Ordered charting roles; the first is the subject's default active role. */
+  static playerRoles(value) {
+    const event = this.normalize(value);
+    if (this.isRunPassTry({ specialTeams: event })) {
+      return event.unit === 'tryDefense' ? ['tackler', 'takeaway'] : ['ballCarrier', 'passer', 'receiver'];
+    }
+    if (event?.unit === 'try') return ['kicker'];
+    if (event?.unit === 'tryDefense') return ['blocker'];
+    const role = this.ROLES[event?.unit];
+    if (role === 'receiving') return ['returner', 'kicker'];
+    if (role === 'defending') return ['blocker', 'returner', 'kicker'];
+    return ['kicker', 'returner'];
+  }
+
   static STATUSES = new Set([
     'returned', 'touchback', 'fairCatch', 'downed', 'outOfBounds',
     'blocked', 'muffed', 'recovered', 'good', 'noGood', 'badSnap',

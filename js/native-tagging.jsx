@@ -375,7 +375,7 @@ function Players({screen, state}) {
   // is the blocker. A run/pass or Fake try takes its side's roles.
   const st = state.special, side = lookSide(state);
   const roles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
-    : st?.unit === 'try' ? ['kicker'] : st?.unit === 'tryDefense' ? ['blocker'] : ['kicker','returner'];
+    : SpecialTeamsModel.playerRoles(st);
   const opposingSpecialist = role => !side && st && (
     (role === 'kicker' && ['receiving','defending'].includes(SpecialTeamsModel.ROLES[st.unit]))
     || (role === 'returner' && ['kicking','attempting'].includes(SpecialTeamsModel.ROLES[st.unit])));
@@ -398,7 +398,7 @@ function Players({screen, state}) {
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
-        <strong>{opposingSpecialist(role) ? 'Opponent ' : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
+        <strong>{opposingSpecialist(role) ? `${state.perspective === 'scout' ? 'Other team' : 'Opponent'} ` : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
         <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
         <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
