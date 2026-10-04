@@ -172,6 +172,56 @@ ok(askedFor, 'the confirmation opened for play 3', String(askedFor));
 ok(both.three.attempt === 'extraPoint' && !both.three.formationFamily && !both.three.runPass, 'the play the confirmation named becomes Kick XP and is cleared', JSON.stringify(both.three));
 ok(both.four.attempt === 'twoPoint' && both.four.formationFamily === 'Wing-T', 'the play selected during the confirmation is untouched', JSON.stringify(both.four));
 
+console.log('\n== 7. Special Teams roster ownership ==');
+await page.evaluate(() => {
+  const app = window.app;
+  app.roster.players = [{ num: '22', name: 'Our Specialist', side: 'B' }];
+  const g = app.storage.seasonStore.activeGame();
+  for (let id = 10; id < 16; id++) g.plays.push({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [],
+    tags: { unit: 'special', custom: [], players: {}, grades: {} } });
+  app.tagger.plays = g.plays; app.tagger.nextId = 16; app.tagger._emit('plays-loaded');
+});
+for (const [i, unit, ownRole, opponentRole] of [
+  [10, 'Kick Return', 'returner', 'kicker'], [11, 'Punt Return / Block', 'returner', 'kicker'],
+  [12, 'Kickoff', 'kicker', 'returner'], [13, 'Punt', 'kicker', 'returner'],
+  [14, 'Field Goal', 'kicker', 'returner'], [15, 'Field Goal Block', null, 'kicker'],
+]) {
+  await page.evaluate(id => window.app.tagger.selectPlay(id), i); await settle(page);
+  ok(await choose('Unit', unit), `${unit}: unit selected`);
+  const pickers = await page.evaluate(({ ownRole, opponentRole }) => {
+    const row = role => document.querySelector(`[aria-label="${role} player number"]`)?.parentElement;
+    return { own: ownRole ? !!row(ownRole)?.querySelector('.gi-player-roster-toggle') : true,
+      ownOpen: ownRole ? row(ownRole)?.querySelector('.gi-player-roster-toggle')?.getAttribute('aria-expanded') === 'true' : true,
+      opponent: !!row(opponentRole)?.querySelector('.gi-player-roster-toggle'),
+      opponentLabel: row(opponentRole)?.querySelector('strong')?.textContent.trim(),
+      buttons: row(opponentRole)?.querySelectorAll('.gi-player-quick button').length || 0 };
+  }, { ownRole, opponentRole });
+  ok(pickers.own && !pickers.opponent && pickers.buttons === 0,
+    `${unit}: only our specialist can pick from our roster`, JSON.stringify(pickers));
+  ok(pickers.ownOpen && pickers.opponentLabel?.startsWith('Opponent '),
+    `${unit}: our picker opens by default and the opposing role is named`, JSON.stringify(pickers));
+}
+await page.evaluate(() => window.app.tagger.selectPlay(10)); await settle(page);
+await page.evaluate(() => {
+  const kicker = document.querySelector('[aria-label="kicker player number"]');
+  kicker.value = '99'; kicker.dispatchEvent(new Event('change', { bubbles: true }));
+});
+await settle(page);
+await page.evaluate(() => {
+  const row = document.querySelector('[aria-label="returner player number"]').parentElement;
+  const toggle = row.querySelector('.gi-player-roster-toggle');
+  if (toggle?.getAttribute('aria-expanded') !== 'true') toggle?.click();
+});
+await settle(page);
+const attribution = await page.evaluate(() => {
+  const input = document.querySelector('[aria-label="returner player number"]');
+  const button = [...input.parentElement.querySelectorAll('.gi-player-quick button')].find(b => b.textContent.trim() === '22');
+  button?.click();
+  return { picked: !!button, players: { ...window.app.tagger.getCurrentPlay().tags.players } };
+});
+ok(attribution.picked && attribution.players.kicker === '99' && attribution.players.returner === '22',
+  'Kick Return preserves a manually charted opposing kicker and quick-picks our returner', JSON.stringify(attribution));
+
 ok(errors.length === 0, 'no page or console errors', errors.slice(0, 3).join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

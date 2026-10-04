@@ -376,13 +376,17 @@ function Players({screen, state}) {
   const st = state.special, side = lookSide(state);
   const roles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
     : st?.unit === 'try' ? ['kicker'] : st?.unit === 'tryDefense' ? ['blocker'] : ['kicker','returner'];
-  const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) ? state.activeRole : roles[0]]));
+  const opposingSpecialist = role => !side && st && (
+    (role === 'kicker' && ['receiving','defending'].includes(SpecialTeamsModel.ROLES[st.unit]))
+    || (role === 'returner' && ['kicking','attempting'].includes(SpecialTeamsModel.ROLES[st.unit])));
+  const defaultRole = roles.find(role => !opposingSpecialist(role)) || roles[0];
+  const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) && !opposingSpecialist(state.activeRole) ? state.activeRole : defaultRole]));
   const openRole = role => setOpenRoles(current => new Set([...current, role]));
   useLayoutEffect(() => {
-    setOpenRoles(new Set([roles[0]]));
-    if (!roles.includes(state.activeRole)) screen.setActiveRole(roles[0]);
-  }, [roles.join(',')]);
-  const allowed = role => state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'blocker' || role === 'tackler' || role === 'takeaway'
+    setOpenRoles(new Set([defaultRole]));
+    if (!roles.includes(state.activeRole) || opposingSpecialist(state.activeRole)) screen.setActiveRole(defaultRole);
+  }, [roles.join(','), st?.unit]);
+  const allowed = role => opposingSpecialist(role) ? [] : state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'blocker' || role === 'tackler' || role === 'takeaway'
     ? player.side !== 'O' : player.side !== 'D');
   // Player attribution is charted on nearly every snap — tacklers on defense,
   // ball carrier / passer / receiver on offense — so this group opens with the
@@ -394,7 +398,7 @@ function Players({screen, state}) {
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
-        <strong>{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
+        <strong>{opposingSpecialist(role) ? 'Opponent ' : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
         <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
         <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>

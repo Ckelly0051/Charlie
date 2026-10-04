@@ -218,12 +218,9 @@ await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window
   const unitChoice=()=>root().querySelector('[data-native-choice=Unit]');for(let i=0;i<10&&!unitChoice();i++)await new Promise(r=>setTimeout(r,10));if(!unitChoice())throw new Error('No ST unit choice after unit change');const punt=[...unitChoice().querySelectorAll('button')].find(b=>b.textContent.trim()==='Punt');punt.click();await new Promise(r=>setTimeout(r,30));if(!app.tagger.getCurrentPlay().specialTeams)throw new Error('Punt did not create structured model');button('Returned').click();await new Promise(r=>setTimeout(r,30));
   const stInputs=[...root().querySelectorAll('.gi-tag-input')];const returnInput=stInputs.find(l=>l.textContent.includes('Return yards'))?.querySelector('input');returnInput.value='12';returnInput.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,0));
   button('Add penalty').click();await new Promise(r=>setTimeout(r,0));const card=root().querySelector('.gi-penalty-card');const inputs=[...card.querySelectorAll('input')];inputs.find(i=>i.getAttribute('list')) .value='Holding';inputs.find(i=>i.getAttribute('list')).dispatchEvent(new Event('change',{bubbles:true}));button('Play counts').click();await new Promise(r=>setTimeout(r,0));app.nativeTagging.addPenalty();await new Promise(r=>setTimeout(r,0));app.nativeTagging.penaltyInput(1,'foul','Facemask');app.nativeTagging.penaltyAction(1,'disposition','declined');app.nativeTagging.penaltyAction(1,'playCounts','true');
-  // Roles carry football labels, and the roster quick-pick remains jersey
-  // numbers with names in tooltips. The comp keeps one focused picker open at
-  // a time, so prove the returner's disclosure before choosing #22.
-  const returner=[...root().querySelectorAll('.gi-tag-players strong')].find(n=>n.textContent.trim()==='Returner')?.parentElement;
-  console.log('S4: penalty added');returner.querySelector('.gi-player-roster-toggle').click();await new Promise(r=>setTimeout(r,0));console.log('S4: roster opened');
-  [...returner.querySelectorAll('.gi-player-quick button')].find(b=>b.textContent.trim()==='22').click();
+  // On our punt the returner belongs to the opponent, not our roster.
+  const returner=root().querySelector('[aria-label="returner player number"]');
+  console.log('S4: penalty added');returner.value='22';returner.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,0));console.log('S4: opponent returner entered');
   const notes=[...root().querySelectorAll('textarea')][0];notes.value='Punt return right';notes.dispatchEvent(new Event('input',{bubbles:true}));
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
