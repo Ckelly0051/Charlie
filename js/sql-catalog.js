@@ -418,7 +418,7 @@ export class SqlCatalog {
   deleteVersion(id) { this._run('DELETE FROM versions WHERE id = ?', [String(id)]); }
 
   // PC-1: the explicit-identity contract for version ownership (documented in
-  // GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Unlike getBackup/deleteBackup
+  // docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Unlike getBackup/deleteBackup
   // above, this takes EXPLICIT seasonId/gameId parameters rather than trusting
   // the ambient this.currentId -- these are new methods with no existing
   // caller to preserve compatibility with, so there is no reason to repeat the

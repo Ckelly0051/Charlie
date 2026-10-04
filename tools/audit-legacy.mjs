@@ -1,5 +1,5 @@
 /**
- * LEGACY INVENTORY (docs/LEGACY-EXCISION-PLAN.md, Phase 0). A read-only scan
+ * LEGACY INVENTORY (docs/archive/plans/LEGACY-EXCISION-PLAN.md, Phase 0). A read-only scan
  * that MEASURES the legacy surfaces the plan removes, so progress is counted
  * rather than asserted and a new copy of an old pattern is caught.
  *
@@ -155,7 +155,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (process.argv.includes('--json')) {
     console.log(JSON.stringify({ ...inv, canonicalMirrorShapes: canonical, live }, null, 2));
   } else {
-    console.log('Legacy inventory (docs/LEGACY-EXCISION-PLAN.md)\n');
+    console.log('Legacy inventory (docs/archive/plans/LEGACY-EXCISION-PLAN.md)\n');
     for (const [k, v] of Object.entries(inv.counts)) console.log(`  ${k.padEnd(32)} ${v}`);
     console.log(`\n  canonical mirror data shapes     ${canonical ? JSON.stringify(canonical) : 'absent'}`);
     if (live) console.log(`  live catalog data shapes         ${JSON.stringify(live)}`);

@@ -7,7 +7,7 @@
  * regression for the V2-H checkpoint that added row windowing after
  * measuring a real, demonstrated bottleneck (a large game's Chart<->Film
  * Room switch cost scaling with total play count): see the checkpoint
- * handoff in CLAUDE.md / GRIDIRON-IQ-PLAN-V2.md for the measured numbers.
+ * handoff in docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md / docs/archive/plans/GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md for the measured numbers.
  */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';

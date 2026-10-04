@@ -39,7 +39,7 @@
 > triggered detail needs the field that opens it; Gap has no opener. Removing a trigger
 > clears its details in the same write, after the coach confirms. Nothing here is
 > inferred from the call, the result or another tag; blank is uncharted. The
-> conversion of stored data is recorded in `docs/CHARTING-CUTOVER.md`.
+> conversion of stored data is recorded in `docs/archive/plans/CHARTING-CUTOVER.md`.
 
 > **Revision 2026-09-26 (legacy excision Pass 2, step 7) — supersedes the
 > read-time projection.** Each look field (formation, QB alignment, backfield,
@@ -868,7 +868,7 @@ is independently accepted.
 
 ## 18. Coach-approved decisions for E3 / E4 / Lane R (2026-07-18)
 
-Four plan-review questions (`GRIDIRON-IQ-PLAN-REVIEW.md` F1/F3/F4/F5) answered by
+Four plan-review questions (`docs/archive/plans/GRIDIRON-IQ-PLAN-REVIEW.md` F1/F3/F4/F5) answered by
 the coach. All approved; two tightened. **Binding for the implementer.**
 
 ### D-E3split [F1] — E3 ships as two independently-reviewed checkpoints

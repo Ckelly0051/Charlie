@@ -1,6 +1,6 @@
 /**
  * The run and motion details a play can carry beside its call, and the rules
- * that tie each detail to the field that opens it (GRIDIRON-IQ-PLAN-V2.md,
+ * that tie each detail to the field that opens it (docs/archive/plans/GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md,
  * "Approved Break Down charting comp - build contract"). Pure and DOM-free:
  * Chart, Film Room, CSV import and the analytics registry all read it.
  *

@@ -1,5 +1,5 @@
 /**
- * PRUNE DEAD CSS (docs/LEGACY-EXCISION-PLAN.md, Pass 1). Removes selector
+ * PRUNE DEAD CSS (docs/archive/plans/LEGACY-EXCISION-PLAN.md, Pass 1). Removes selector
  * branches the ownership model (tools/css-ownership.mjs) proves DEAD: a branch
  * that requires a class or id no production source can produce. A rule whose
  * branches are all dead is removed; a rule with live branches keeps only them;

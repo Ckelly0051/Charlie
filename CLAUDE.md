@@ -291,6 +291,14 @@ a reviewed correction named in the diff.
   baton pass.
 - A design comp's decisions live in its RATIONALE.md; every commit touching a
   comp names that file.
+- **Code comments** state current behavior and the reason for a non-obvious
+  rule, in a sentence or two. No review IDs, commit hashes, dated repair
+  stories or "before this fix" narratives; those belong in commit messages and
+  `docs/archive/`.
+- **Docs hold current state, not logs.** `docs/OPEN-DEFECTS.md` lists open items
+  only (delete an item when it closes); the snapshot in
+  `docs/DOCUMENTATION-INDEX.md` is replaced, not appended; run evidence goes in
+  the commit message.
 - **Working tree:** never `git add -A` or `git add .`; stage named paths. Never
   reset, clean, stash or absorb another agent's uncommitted work — the tree holds
   untracked installers, artifacts, comps and real film.

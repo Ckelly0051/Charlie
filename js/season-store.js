@@ -957,7 +957,7 @@ export class SeasonStore {
         // used to) meant a REJECTED canonical save still armed a timer that
         // wrote the rejected payload to the Documents mirror 2.5s later,
         // independent of the canonical result -- reproduced directly before
-        // this fix (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
+        // this fix (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
         this._scheduleDiskWrite(seasonId, data, revision);
         return true;
       })
@@ -1221,7 +1221,7 @@ export class SeasonStore {
    * Adopt a parsed object (season or legacy single game) as the season.
    *
    * PC-1: four fixes to the identity/durability contract (documented in
-   * GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
+   * docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
    *   1. The imported payload's own `id` (whatever machine/season it came
    *      from) is reassigned to `destSeasonId` -- the destination library
    *      slot, captured ONCE up front -- BEFORE normalize/persist. Without
@@ -1253,7 +1253,7 @@ export class SeasonStore {
    *      the A save false -- the store ended as
    *      { currentSeasonId:'B', data.id:'A', data.seasonName:'Season A' },
    *      i.e. B's live season was silently replaced by A's stale pre-import
-   *      snapshot (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
+   *      snapshot (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1).
    *
    * Returns `{ ok: false, data: null }` for an unrecognized shape (no season
    * open, or a payload with neither `.games` nor `.plays`) -- `this.data` is

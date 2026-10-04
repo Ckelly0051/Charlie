@@ -1,340 +1,87 @@
 # GridIron IQ Documentation Index
 
-> **Status:** CURRENT AUTHORITY MAP. Updated 2026-10-02.
+Updated 2026-10-04.
 
-## Current Authority
+## Current authority
 
-- `CLAUDE.md` - binding rules, owners and process (always loaded; kept short).
-- `docs/REPORTS-CONTRACTS.md` and `docs/HOME-CONTRACTS.md` - current Reports
-  and Home rules, read when touching those surfaces.
-- `AGENTS.md` - current architecture and module map.
-- `GRIDIRON-IQ-PLAN-V2.md` - active product roadmap and accepted decisions.
-- `docs/OPEN-DEFECTS.md` - canonical index of unresolved defects.
+- `CLAUDE.md` - binding rules, owners and process.
+- `AGENTS.md` - architecture and module map.
+- `GRIDIRON-IQ-PLAN-V2.md` - forward roadmap.
+- `docs/OPEN-DEFECTS.md` - open defects, pending smoke items, coach decisions.
 - `docs/TESTING.md` - testing tiers and execution rules.
-- `docs/AI-RECOGNITION-PLAN.md` - AI recognition proposal: competitor landscape, current assets, phased plan (not approved).
-- `docs/VISUAL-SYSTEM-RULES.md` - coach-approved shared palette, typography,
-  navigation, selector, and static-dashboard composition rules.
-- `TAURI.md` - desktop build, packaging, and installed-smoke requirements.
-- `design-approvals/APPROVALS.json` plus per-surface manifests - design and
-  production acceptance status.
-- `GRIDIRON-IQ-AGENT-WORKING-AGREEMENT.md` and
-  `GRIDIRON-IQ-TRUSTED-ADVISOR-STANDARD.md` - standing collaboration rules.
+- `docs/REPORTS-CONTRACTS.md`, `docs/HOME-CONTRACTS.md` - Reports and Home rules.
+- `docs/VISUAL-SYSTEM-RULES.md` - shared palette, typography, navigation,
+  selector and dashboard composition rules.
 - `GRIDIRON-IQ-TAG-MODEL.md`, `GRIDIRON-IQ-PENALTY-MODEL.md`,
   `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`, `GRIDIRON-IQ-PLAY-CALL-MODEL.md`,
-  `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`, and `GRIDIRON-IQ-OVERLAY-SPEC.md` -
-  binding domain and interaction contracts. Their historical milestone notes do
-  not override the Current Snapshot below or the defect index.
-- `GRIDIRON-IQ-RELEASE-GATE.md` and
-  `GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md` - standing release controls.
+  `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`, `GRIDIRON-IQ-OVERLAY-SPEC.md`,
+  `GRIDIRON-IQ-TEAM-HUB-SPEC.md` - domain and interaction contracts.
+- `GRIDIRON-IQ-AGENT-WORKING-AGREEMENT.md`,
+  `GRIDIRON-IQ-TRUSTED-ADVISOR-STANDARD.md` - standing collaboration rules.
+- `GRIDIRON-IQ-RELEASE-GATE.md`, `GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md` -
+  standing release controls.
+- `TAURI.md` - desktop build, packaging and installed smoke.
+- `design-approvals/APPROVALS.json` and per-surface manifests - design and
+  production acceptance status.
+- `docs/AI-RECOGNITION-PLAN.md` - parked AI recognition plan.
+- `docs/LEGACY-RECHART-LIST.md` - plays the coach still needs to re-chart.
+- `docs/HUDL-DEFENSE-REPORTING-REFERENCE.md` - reference for future Defense
+  reporting.
+- `GRIDIRON-IQ-P0-CAPABILITY-INVENTORY.md` - capability inventory checked by
+  `e2e-p0-exit`.
 
-## Current Snapshot
+## Current snapshot
 
-This section is the one place release state is kept current.
+The one place release state is kept current. Replace entries; do not append a
+log.
 
-- **Specialist layout corrections, 2026-10-03, `84b43520`:** the previous
-  role repair accidentally reordered receiving rows and added a duplicate
-  Field Goal Block Blocker control. Both unapproved changes are reverted.
-  Kicker then Returner remains the display order; Field Goal Block keeps its
-  sole Blocker metric and defaults to the owned Returner row. Model-owned
-  default-role selection is independent of row order. Scout labels and try
-  role fixes remain. Four layout checks failed before repair. Fresh-build
-  focused proof: try/ownership 60/60, deck 89/89, tries 17/17, roster 45/45,
-  parity 2/2. No full gate, package or coach-data write.
+- **Latest coach-smoked installer: `1.12.0-108`** (2026-10-01,
+  `SMOKE-1.12.0-108.md`). Break Down charting cutover and visual finish, S107
+  repairs. Full gate 141/141 at `0163da45`; unsigned NSIS
+  `GridIron IQ_1.12.0-108_x64-setup.exe`, 4,041,437 bytes, SHA-256
+  `DA6C40A96A553881FFD96A9A6215E6F1CE25DD6FA56BDF3C3FD83FC0F24A2E77`. Tagged
+  `v1.12.0-108`.
+- **In source since 108, not packaged:** CR-1..CR-8 (`576a0981`), gate
+  infrastructure (`f84c8be0`..`06a1ffcf`), Special Teams roster ownership and
+  its review repairs (`06b66829`, `76e592f1`, `84b43520`). Smoke items are in
+  `docs/OPEN-DEFECTS.md`.
+- **Latest full gate:** GREEN, 146/146 at `06a1ffcf` (2026-10-02). It predates
+  the Special Teams roster repairs, which are focused-verified only.
+- **Organize pass (2026-10-04):** finished plans, old smoke records, the full
+  defect history and the full roadmap history moved to `docs/archive/`;
+  accumulated test captures moved out of `artifacts/`. Code cleanup in
+  progress (roadmap §5 step 1).
+- **Design registry:** every Reports manifest and Home read
+  `productionStatus: REJECTED`; installed smokes approved bounded changes
+  without moving the registry.
+- Harness inventory is discovered from `tools/e2e-*.mjs`; never a count in
+  prose.
 
-- **Special Teams roster review repairs, 2026-10-03, `76e592f1`:** both P3s
-  repaired in source. Scout opponent-role labels say Other team. The deck and
-  roster manager share model-owned Special Teams role defaults, including
-  Blocker for kicked Try Defense and scrimmage roles for
-  run/pass tries. Five new checks fail before the repair. Fresh-build focused
-  proof: try/ownership 56/56, deck 89/89, tries 17/17, roster 45/45, parity 2/2.
-  Clean receipt verified; source/build/fixtures unchanged. Not full-gated,
-  packaged or smoked; existing charting untouched. Its Field Goal Block row
-  addition and receiving-row reorder were subsequently reverted above.
+## Archive
 
-- **Special Teams roster ownership, 2026-10-03, `06b66829`: repaired in source.**
-  Receiving/defending units no longer offer our roster for the opposing kicker;
-  kicking/attempting units no longer offer it for the opposing returner.
-  Opponent numbers remain manual, explicitly labeled; our specialist picker
-  opens by default. Existing values are not changed. Fresh-build focused proof:
-  try/ownership 51/51, deck 89/89, tries 17/17, parity 2/2. Clean committed
-  receipt verified; source/build/fixtures unchanged. No full gate or package
-  on this repair; latest green full gate below predates it.
+`docs/archive/` is history, not current authority:
 
-- **Latest full gate, 2026-10-02, `06a1ffcf`: GREEN.** Fresh build;
-  146/146 harnesses passed, zero skipped or failed, in 15m34s.
-  P0 composition 20/20, receipts 45/45, runner 67/67 and parity 2/2.
-  Canonical integrity: 960 operations, source bytes unchanged. Eight shared
-  Chromium launches. Independent verification matched all 147 log hashes/sizes
-  and stable source/commit/build/fixtures. Final receipt is release-eligible;
-  installed approval remains not assessed. No package, push or live-data write.
+- `CLAUDE-HISTORY-THROUGH-2026-09-02.md`, `CLAUDE-2026-09-27.md`,
+  `TESTING-2026-09-27.md` - earlier rule sets and test notes.
+- `OPEN-DEFECTS-THROUGH-2026-10-04.md` - every defect record, open and closed.
+- `plans/` - finished plans, audits and closeouts, including
+  `GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md` (full roadmap history, the Break
+  Down charting comp build contract and milestone acceptance records).
+- `smoke/` - installed smoke records before `1.12.0-108`.
 
-- **Previous full gate, 2026-10-02, `e3ba2b24`: RED.** Fresh build;
-  145/146 harnesses passed, zero skipped. Only `e2e-p0-exit` failed
-  (19/20): its source assertion still expects the runner's pre-receipt
-  return statements. Receipts 45/45, runner 67/67 and parity 2/2 passed.
-  All 147 log hashes/sizes verified; source/build/fixtures unchanged.
-  Final receipt correctly records failure and release ineligibility.
-  Subsequently repaired and full-gated at `06a1ffcf` above; no package or live-data write.
+## Update discipline
 
-- **Receipt review repairs, 2026-10-02, `7e755c71`:** both P2 findings fixed:
-  refuse Git flags that can hide tracked edits; verify staged receipt bytes
-  before publishing them. Five new regressions fail on the prior code.
-  Fresh-build focused proof: receipts 45/45, runner 67/67, parity 2/2; clean
-  receipt read-back confirms stable source/build/fixtures and focused-only
-  disqualification. Details in Testing and Open Defects. Full gate remains
-  GREEN at `06a1ffcf` as recorded above; no installed-data write or package.
+Every milestone handoff updates, in the same commit:
 
-- **Run receipts, 2026-10-02, `19f5dab4`: built, focused verification only.**
-  Local machine-readable receipts identify source, actually served build,
-  fixtures, individual outcomes and log hashes; incomplete, focused, skipped,
-  dirty or changed runs cannot qualify as full-gate evidence. Installed
-  approval is never inferred. Fresh build plus four focused suites green:
-  receipts 40/40, runner 67/67, terminology 48/48, parity 2/2. Clean receipt
-  read-back and failed-build/no-build/self-test CLI cases verified. Testing
-  owns schema, interpretation and log links. The 146-harness full run is GREEN
-  as recorded above. No package or live write.
-
-- **Coverage consolidation, 2026-10-02, `ad0807ea`:** Reports terminology
-  observations consolidated without retiring contracts or harnesses. Six added
-  guards and active-control/render readiness; separate canonical typography,
-  multi-game board and navigation checks retained. Focused proof in
-  `docs/TESTING.md`; full-gated at `e80aba33` below. No
-  product, package, live-data write or installed approval.
-
-- **Previous green full gate, 2026-10-02, `e80aba33`: GREEN.** Fresh build and all 145
-  harnesses passed, zero skipped and zero failed. Runner 63/63, canonical
-  integrity 960 operations with source bytes unchanged, analytics parity and
-  all Reports suites passed. Eight shared Chromium launches; special-option
-  tests retained dedicated browsers. Verified 145 complete harness logs plus
-  the build log under local-only `artifacts/gate-logs/`. No real harness
-  timeout or logging failure. No installer, version bump, push or live-data
-  changes; installed approval remains `1.12.0-108`.
-  Consolidated terminology passed 48/48 in 20 seconds, exact typography
-  34/34. Local logs: `artifacts/gate-logs/2026-10-02T23-54-41-741Z-pvwaTy/`;
-  build log in sibling `2026-10-02T23-54-40-656Z-6fHGt2/`.
-
-- **Gate adversarial repairs, 2026-10-02, `2683d866`:** all three review findings
-  fixed: bounded browser teardown, controlled partial/failed logging, and
-  readiness-synchronized termination probes. Fresh build and seven focused
-  harnesses green, zero skipped; runner 63/63 and canonical integrity 960
-  operations with source bytes unchanged. Subsequently full-gated at
-  `12ca4a03` above; no package, product or live-data changes.
-
-- **Gate deadline/logging checkpoint, 2026-10-02, `f84c8be0`:** complete in
-  source; initially focused-only, subsequently repaired and full-gated above.
-  Not packaged. Per-child deadlines, process-tree
-  termination and complete local-only build/harness logs; runner 56/56 and
-  focused browser/model/stress coverage green after correcting one new test's
-  disconnect assumption. The full green gate at `07bf04aa` below predates this
-  checkpoint; the newer `12ca4a03` run certifies the repaired checkpoint.
-  Coverage consolidation is now built and full-gated above; run receipts are
-  built but only focused-verified. No product or live-data changes.
-
-- **Unpackaged source work, 2026-10-02:** `576a0981` repairs CR-1..CR-8 and
-  two runtime duplicate computations/writes. Codex reviewed the fixes and
-  verified the affected paths in a 12-harness focused run. Gate infrastructure
-  now shares Chromium with isolated per-harness contexts; its 37-check
-  self-test passes. The full gate result below supersedes focused-only status;
-  no installer has run on these changes.
-  Installed Plan-export behavior still needs smoke. `1.12.0-108` below remains
-  the last installed approval; this source work is not included in it.
-
-- **Gate efficiency follow-up, 2026-10-02:** readiness-based startup in 12
-  harnesses, three model-only harnesses moved to Node with browser wiring
-  retained, and current-format integrity fixtures validated before loading.
-  18 focused harnesses pass; runner/readiness 43/43 and fixture contracts
-  10/10. No package; no coach data changed. Deferred gate-quality
-  enhancements are recorded in the roadmap.
-
-- **Full gate, 2026-10-02, `fec0aba9`: RED.** Fresh build passed;
-  145 harnesses ran: 141 green, zero skipped, four failed. Failures:
-  `e2e-data-correctness-batch1` (three-call source expectation excludes the
-  new season-scoped repair cancellation), `e2e-legacy-inventory` (that same
-  repair adds one `window.app` reference, 74 versus 73), `e2e-p0-capabilities`
-  (Plan export assertion name changed), and `e2e-p0-exit` (still checks the old
-  shell runner and direct Puppeteer/app-entry imports). No assertions were
-  changed during the run. Packaging was blocked at that checkpoint; no installer or live-data
-  changes. Shared Chromium launched eight times, with special-option tests
-  retaining dedicated browsers.
-
-- **Gate evidence repair, 2026-10-02, `d7cbbdc2`:** all four failed harnesses
-  repaired without product changes. Fresh build plus seven focused harnesses
-  passed, zero skipped; seven source-guard mutations were rejected. The latest
-  full gate was still red at that checkpoint, before the rerun below. No installer,
-  installed approval or live-data changes.
-
-- **Latest full gate, 2026-10-02, `07bf04aa`: GREEN.** Fresh build passed;
-  all 145 harnesses passed, zero skipped and zero failed. All four previously
-  failed harnesses passed. Canonical integrity completed 960 operations and
-  verified source bytes unchanged; analytics parity and every Reports suite
-  passed. Eight shared Chromium launches, plus dedicated browsers for special
-  launch options. No installer, version bump, push or live-data changes.
-  Installed approval remains `1.12.0-108`; Plan export still needs desktop smoke.
-
-- **Latest built and coach-smoked installer: `1.12.0-108`** (2026-10-01). It packages the Break
-  Down visual finish (BD-UX-1/2) and the S107-2 through S107-7 source repairs.
-  Full gate 141/141 green, zero skipped and zero failed, at `0163da45`.
-  Version-only bump `05ec6615`, with `e2e-p0-exit` 19/19 after it.
-  Unsigned NSIS:
-  `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-108_x64-setup.exe`
-  (4,041,437 bytes), SHA-256
-  `DA6C40A96A553881FFD96A9A6215E6F1CE25DD6FA56BDF3C3FD83FC0F24A2E77`.
-  Product and file version `1.12.0-108`. **Installed smoke passed on coach
-  approval, 2026-10-01** (`SMOKE-1.12.0-108.md`); it supersedes `1.12.0-107`
-  and `1.12.0-106`. BD-UX-1/2 and S107-2..7 are closed. The working branch is
-  pushed to GitHub; nothing is tagged or published.
-
-- 2026-10-01: Break Down visual finish (BD-UX-1, BD-UX-2): shipped in
-  `1.12.0-108`; installed smoke passed. Program, Season and Game are the shared
-  two-line control on Break Down, in a 36px row (coach's choice over the comp's
-  49px, 2026-10-01; it also keeps the film floors), and are
-  now also available below 901px. The three menus share one titled pattern with
-  a checked current row and gold commands. The deck has one label-row rhythm,
-  Gap is a plain field on the inset, and an off-library stored value is read in
-  full. Recorded deviations from the supplemental comp are in
-  `docs/OPEN-DEFECTS.md`. `e2e-breakdown-visual-finish` 30/30 plus 26 focused
-  harnesses and parity green.
-
-- 2026-10-01: S107-7 kickoff strip grouping repaired; shipped in `1.12.0-108`.
-  Review follow-up also fixes numbered-kick ownership: explicit numbers win over
-  automatic boundary/scoring grouping and never borrow a mismatched drive's side.
-  Half-ending kicks and return-TD/try sequences stay separate from the following
-  drive. Blank kickoff drive assignment is a bounded read-only grouping, never
-  a stored-data rewrite. Exact live Week 1 43/44 and 2026 JV OLL 40/41 cases
-  verified with unchanged catalog hash. Smoke passed in `1.12.0-108`.
-
-- S107-5 Overview total-turnover tile repaired; shipped in `1.12.0-108`. NDP now
-  reads 1, with the redundant subtext removed; ST losses are included explicitly.
-  S107-6 college sack accounting also repaired and shipped in `1.12.0-108`:
-  passer/team rushing attempts and losses, no pass attempt or passing yards.
-  Sack attribution uses only the charted Passer, regardless of roster position.
-  Independent live/canonical proof passes 437/437, catalog unchanged. Live
-  2025 JV: 191 passing yards / 24 attempts / 8.0 YPA, 866 rushing yards / 148
-  attempts. Previous audit passing-yard figures use the superseded net-of-sacks
-  convention. Smoke passed in `1.12.0-108`.
-
-- 2026-09-30 source repairs: S107-2 passing attempts, S107-3 assigned-drive
-  grouping and S107-4 independent Gap/Direction. Focused regression suites and
-  4,344 independent arithmetic checks pass; coach catalog unchanged. Not in
-  `1.12.0-107`; shipped and smoke-passed in `1.12.0-108`.
-
-- Coach authorized the final gate and packaging on 2026-09-30. Full gate at
-  `a449b59e`: **140/140 green, zero skipped, zero failed** after conversion and
-  temporary-code cleanup. All four version owners now read `1.12.0-107`;
-  unsigned Windows installer built successfully from clean commit `72bea85a`.
-  Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-107_x64-setup.exe`
-  (4,037,422 bytes), SHA-256
-  `AD3D650E69743E1EE1647C6F287C9E2D22885CC1CD648090CD0977D7EE865290`.
-  Product/file versions both `1.12.0-107`; post-bump p0-exit 19/19.
-  Superseded by `1.12.0-108`: its smoke found S107-2..7, all repaired there.
-- Earlier coach-smoked installer: `1.12.0-106` (`cbf1889`),
-  containing the Settings team-name save-on-close repair and its immediate-close
-  regression checks. Full gate 136/136, zero skipped and zero failed at
-  `2f309d6`, before the four-owner version-only bump; `e2e-p0-exit` 19/19
-  after it. The unsigned NSIS installer was built successfully, and the coach
-  approved its installed smoke on 2026-09-28 (`SMOKE-1.12.0-106.md`). The
-  `1.12.0-105` coach smoke found S105-1, accepted as repaired in `1.12.0-106`.
-  `1.12.0-104` was never smoked and was superseded.
-- `1.12.0-103` (legacy excision step 8) passed its installed smoke on
-  2026-09-27 (`SMOKE-1.12.0-103.md`). Earlier installers are superseded; their
-  records are the `SMOKE-1.12.0-*.md` files and
-  `docs/archive/CLAUDE-2026-09-27.md`.
-- Legacy excision: Passes 0-2b done (`docs/LEGACY-EXCISION-PLAN.md`); one
-  season format, every old-format reader deleted, old files refused. The
-  one-time storage cleanup and settings conversion ran on the installed profile
-  (receipts read back 2026-09-27); their modules were deleted after
-  `1.12.0-104` and first shipped without them in `1.12.0-105`.
-- Included in `1.12.0-105`: the efficiency-audit slim-down, the one-time
-  modules and dead renderers deleted, the custom-field editor rebuilt on the
-  overlay service, and Special Teams try charting.
-- Break Down charting cutover (roadmap Step 1): shipped in `1.12.0-107`;
-  installed smoke passed in `1.12.0-108`. Formation and Receiver Set
-  (with a coach-managed Formation library), Gap under Play Direction, motion
-  Starts/Ends, RPO and QB Run details, Reverse and QB Run play types, the
-  film-linked run-gap report, Film Room and CSV columns, and the single-format
-  refusal of the retired `formation` key. The supplemental visual-finish comp
-  supplied only the Gap interaction and spacing. Live coach data was converted
-  on explicit coach authorization on 2026-09-30 and independently verified.
-  The coach's 2026-09-30 mapping resolves
-  all 496 nonblank formations; four are deliberately blanked for re-charting.
-  Exact preservation, current-format and takeaway proofs pass in the final
-  copy rehearsal. Incompatible history was archived, independently verified
-  and removed on coach authorization: 34 backups / 94 versions; 42/52 kept.
-  All 919 live plays and retained 42 backups / 52 versions are current format.
-  Film references, identity and unrelated fields are unchanged. Spent tools,
-  their tests and the Previous formations bridge are deleted. Beast remains
-  available in the current library; installed settings were not rewritten.
-  Current receipt, impact and final re-chart checklist:
-  `docs/CHARTING-CUTOVER-CURRENT-IMPACT-2026-09-30.md`.
-  Additional full current-state backup verified 2026-09-30 under
-  `D:\Football\Film\GridIronIQ-Backups\current-state-2026-09-30-b10094cf`
-  (data, managed film, desktop settings, Documents mirror and source bundle).
-  Source verification: full build and gate
-  140/140, zero skipped and zero failed at `a449b59e` on 2026-09-30;
-  version-only bump p0-exit 19/19. BD-UX-1 and BD-UX-2 are closed (`1.12.0-108`).
-  The coach's 2026-09-29 correction supersedes the receiver-look follow-up:
-  Formation accepts Twins, Trips, Bunch and Tight Bunch; Backfield and QB
-  Alignment stay separate. Personnel follows Formation before QB Alignment.
-  Offensive Line Strength includes Unbalanced Left/Right. Receiver Alignment
-  means left x right (totals 1-5, no 0x0). Receiver Strength and Line Balance
-  are removed, not retained as compatibility readers.
-  No receiver-look reader remains.
-- Registry: every Reports manifest and Home read `productionStatus: REJECTED`;
-  installed smokes approved Players, Defense cohort presentation and Special
-  Teams (`1.12.0-91`), Home's visual composition (`1.12.0-92`) and the Reports
-  navigation work (`1.12.0-98`) without moving the registry.
-- The working branch is pushed to GitHub (2026-10-01); nothing is tagged or published.
-- Harness inventory is discovered from `tools/e2e-*.mjs`; never a count in prose.
-
-## Historical And Reference Material
-
-Versioned smoke files describe only the named installer. Audit, closeout,
-redesign, prototype, and prior-plan documents describe their stated baseline;
-they are evidence, not current status. In particular, do not treat
-`BETA-SMOKE-FINDINGS.md`, `BREAKDOWN-REDESIGN-PARITY.md`, `CODE-AUDIT.md`,
-`CODE-REVIEW-FINDINGS.md`, `DESIGN-REFRESH.md`,
-`GRIDIRON-IQ-CURRENT-PASS-CLOSEOUT.md`,
-`GRIDIRON-IQ-CLOSEOUT-AMENDMENT-2026-07-23.md`,
-`GRIDIRON-IQ-DESIGN-AUDIT.md`, `GRIDIRON-IQ-REDESIGN-PLAN.md`,
-`GRIDIRON-IQ-SHELL-INDEPENDENCE-PLAN.md`,
-`GRIDIRON-IQ-VISUAL-RECOMPOSITION-PLAN.md`, `STATS-REDESIGN-BRIEF.md`, or
-`sample-analytics-report.md` as current-state authority.
-
-`docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md`, `docs/archive/CLAUDE-2026-09-27.md`
-and `docs/archive/TESTING-2026-09-27.md` are append-only history.
-`docs/POST-LEGACY-INSTRUCTION-AUDIT.md` is a completed audit prompt (run 2026-09-27).
-`docs/REPORTS-SECTION-PROMPTS.md` is a retired assignment artifact; its DOCX
-copy is local-only. Untracked historical captures under
-`design-comps/visual-reset-2026-08/part1-verification/` and
-`part2-verification/` are local-only, not clean-checkout evidence; the
-manifest-owned `charlie-gate-density4` set remains tracked. Current Reports
-work starts from the approval manifests, current
-decision records, canonical real data, and the open-defect index.
-
-## Update Discipline
-
-Every milestone handoff must update, in the same commit:
-
-1. Current version and release truth when either changes.
-2. `docs/OPEN-DEFECTS.md` for every opened, reclassified, or closed defect.
+1. The current snapshot above when version or release state changes.
+2. `docs/OPEN-DEFECTS.md` for every opened or closed item (closed items are
+   deleted there, not kept).
 3. `GRIDIRON-IQ-PLAN-V2.md` for roadmap or product-decision changes.
 4. The owning approval manifest when canonical evidence or status changes.
-5. `docs/TESTING.md` only for changed test contracts; derive inventories rather
-   than maintaining volatile totals.
-6. `docs/VISUAL-SYSTEM-RULES.md` whenever a shared palette, typography,
-   navigation, selector, or dashboard-composition decision changes.
-7. The owning manifest's `supersededArtifact` whenever a global token change
-   invalidates canonical pixel evidence. Regenerate under a new tracked path,
-   never overwrite or delete the prior captures, and state what the new evidence
-   supersedes and why.
+5. `docs/TESTING.md` only for changed test contracts.
+6. `docs/VISUAL-SYSTEM-RULES.md` when a shared visual decision changes.
+7. The owning manifest's `supersededArtifact` when a global token change
+   invalidates canonical pixel evidence; regenerate under a new tracked path.
 
 Run `node tools/audit-design-approvals.mjs` after any canonical artifact or
-manifest change. A documentation handoff is incomplete while that audit is red.
-
-Recorded exception: the 2026-09-22 Reports handoff was split across
-`160533c` (code and tests), `c7e9f76` (status docs), `13d3027` (approved comp
-and installed-smoke record), and `58b151d` (comp rationale). These commits
-were not individually self-contained under the same-commit rule above. At
-`58b151d`, the tracked comp, rationale, smoke record, and status docs are all
-present; the split history is not retroactively compliant. Future handoffs
-still follow the same-commit rule.
+manifest change.

@@ -4,7 +4,7 @@ import { NativeTagging } from './native-tagging.jsx';
 import { NativeFilmRoom, FilmRoomControls } from './native-film-room.jsx';
 
 /*
- * THE BREAK DOWN ROUTE (rebuild, 2026-09-24; docs/BREAKDOWN-REBUILD-PLAN.md).
+ * THE BREAK DOWN ROUTE (rebuild, 2026-09-24; docs/archive/plans/BREAKDOWN-REBUILD-PLAN.md).
  * One component owns the toolbar, the composition grid and the splitter, drawn
  * from BreakdownWorkspace's state. It replaced an HTML string whose state was
  * painted by hand (class toggles, aria writes, `hidden` flips), which is why

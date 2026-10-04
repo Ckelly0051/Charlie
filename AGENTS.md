@@ -41,9 +41,7 @@ the view.
 
 `#giLegacyEngineHost`, `#wsClassicOutlet`, `#app`, the classic top bar,
 breadcrumb, game dropdown, settings drawer, and mobile bottom tabs are
-**deleted**. Native routes are the only coach-facing presentation owners. Some
-source comments still describe why a current fallback exists in terms of what
-was removed; that is history, not live structure.
+**deleted**. Native routes are the only coach-facing presentation owners.
 
 | Route | Controller | View |
 |---|---|---|
@@ -139,17 +137,17 @@ play   { id, timestamp{start,end}, clipId, catalogClipId, notes, diagram,
 
 `play.tags` carries the football model: situation (`down`, `distance`,
 `quarter`, `fieldSide`, `yardLine`, `hash`), offensive look (`formationFamily`,
-`receiverSet`, `receiverStrength`, `lineBalance`,
-`backfield`, `strength`, `qbAlignment`, `personnel`, `motion`), the call
-(`playCall`, `playCallId`, `playConcept`), outcome (`runPass`, `playType`,
-`result`, `yardage`, `playDir`), defense (`defFront`, `coverage`,
+`receiverSet`, `backfield`, `strength`, `qbAlignment`, `personnel`, `motion`,
+`motionStart`, `motionEnd`), the call (`playCall`, `playCallId`,
+`playConcept`), outcome (`runPass`, `playType`, `result`, `yardage`,
+`playDir`, `gap`), details (`rpoRead`, `rpoDefender`, `rpoDecision`,
+`qbRun`; owned by `charting-details.js`), defense (`defFront`, `coverage`,
 `coverageFamily`, `blitz`), `unit`, `driveNumber`, `players{}`, `grades{}`,
 and `custom[]`.
 
 Multi-value fields (`playType`, `result`, `defFront`, `blitz`)
-store `" + "`-joined strings so every string consumer keeps working;
-`StatsEngine.splitFormations()` and its siblings are the canonical splitters,
-and analytics attribute a play to each component.
+store `" + "`-joined strings; the `StatsEngine` split helpers are the canonical
+splitters, and analytics attribute a play to each component.
 
 Each look field is stored in its own field; `tag-projection.js` is the plain
 read and the vocabulary of values reserved for another field. The live data was
@@ -174,9 +172,9 @@ optional durable disk target.
 - **Browser** — canonical in `localStorage`, backup ring in IndexedDB, optional
   File System Access folder binding (Chromium only).
 - **Desktop** — canonical is the SQLite catalog (`sql-catalog.js` via
-  `catalog-persistence.js`, `seasons/library.db`), with `season.json` and a
-  `Documents/GridIron IQ/` mirror as recovery copies. The mirror is what
-  post-wipe recovery reads, and it survives "delete application data".
+  `catalog-persistence.js`, `seasons/library.db`), with a
+  `Documents/GridIron IQ/` mirror written after every durable save. The mirror
+  is what post-wipe recovery reads, and it survives "delete application data".
 
 Restore is reversible: a safety point is written before any restore, and a
 failed canonical save rolls the live editor back.

@@ -1732,7 +1732,7 @@ export class StorageManager {
         }
         const destSeasonId = this.seasonStore.currentSeasonId;   // == what adopt() itself will capture; no await between here and the call below
         // PC-1: adopt() is now awaitable, atomic, and reports genuine durable
-        // success/failure (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
+        // success/failure (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.1) —
         // a rejected write must never be presented as a successful import,
         // and the live editor/store must be byte-identical to before this
         // attempt on failure.

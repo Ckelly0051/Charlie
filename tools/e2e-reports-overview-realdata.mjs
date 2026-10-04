@@ -25,7 +25,7 @@
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
-import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { CANONICAL_SEASON } from './canonical-season.mjs';
 
@@ -35,7 +35,8 @@ const SOURCE = CANONICAL_SEASON;
 // Each run owns its evidence directory. A screenshot already open in the app
 // can be locked by Windows, so overwriting a shared filename makes a healthy
 // report fail for an unrelated viewer state.
-const OUT = `artifacts/overview-production-realdata/run-${process.pid}`;
+// One folder, replaced each run, so captures never accumulate.
+const OUT = 'artifacts/overview-production-realdata/latest';
 const VIEWPORTS = [[1440, 900], [1280, 720], [768, 1024], [390, 844]];
 
 let pass = 0, fail = 0;
@@ -459,6 +460,7 @@ ok(prose.length === 0, 'no instructional prose renders on real film', JSON.strin
 
 /* ── Captures at every registered viewport ───────────────────────────────── */
 console.log('\n== Captures ==');
+rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 const shots = [];
 /* Loading a season with no linked film raises the relink toast, which lands

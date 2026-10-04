@@ -52,7 +52,7 @@ export class StorageBackend {
   // parameter. Callers (SeasonStore) always pass this.currentSeasonId; the
   // ambient this.currentId/setCurrentSeason() pointer is never consulted by
   // these methods and can no longer choose a write destination on its own
-  // (GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). currentId/setCurrentSeason
+  // (docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). currentId/setCurrentSeason
   // remain for the out-of-scope film/linked-film surfaces (invariant #8).
   async loadSeason(_seasonId) { return null; }
   async saveSeason(_seasonId, _data) { return false; }

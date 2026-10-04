@@ -1,5 +1,5 @@
 /**
- * COMPARE BUILDS (docs/LEGACY-EXCISION-PLAN.md, Phase 0). Proves a change
+ * COMPARE BUILDS (docs/archive/plans/LEGACY-EXCISION-PLAN.md, Phase 0). Proves a change
  * meant to alter nothing on screen alters nothing: every route is captured
  * from a baseline revision's build and from the current build, same session,
  * same data, and the screenshots must be byte-identical.

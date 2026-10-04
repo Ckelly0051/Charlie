@@ -1,5 +1,5 @@
 /**
- * ROUND TRIP (docs/LEGACY-EXCISION-PLAN.md, Phase 0; source switched in Pass 2
+ * ROUND TRIP (docs/archive/plans/LEGACY-EXCISION-PLAN.md, Phase 0; source switched in Pass 2
  * step 6). The canonical current-format 2025 JV fixture (test-only charting
  * conversion; not the coach's mapping decisions) is adopted through the real
  * import path, persisted, the page reloaded and the season reopened from

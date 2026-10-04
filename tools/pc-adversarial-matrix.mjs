@@ -1,9 +1,9 @@
 /* PC-0 ADVERSARIAL MATRIX — GridIron IQ Desktop Persistence Convergence -------
    Encodes the ten adversarial-matrix scenarios from
-   GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md as runnable Node assertions
+   docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md as runnable Node assertions
    against CURRENT (pre-PC-1) source, repaired across three rounds of Codex
    review (`529d8ae`, `6ed3bb1`, then `f7c09a3` on the round-2 repair). Read
-   GRIDIRON-IQ-PERSISTENCE-INVENTORY.md alongside this file for the "why"
+   docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md alongside this file for the "why"
    behind each section.
 
    REPAIR of `529d8ae` (all six required items, verified against source
@@ -47,7 +47,7 @@
       section, the existing suite that already covers it, or its deferred
       owner/checkpoint -- this file no longer silently substitutes one
       scenario for another without saying so.
-   6. [P2] Fixed in GRIDIRON-IQ-PERSISTENCE-INVENTORY.md itself (companion
+   6. [P2] Fixed in docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md itself (companion
       doc, not this file): the audited baseline is corrected to `bf081fd`
       (this file's true parent -- `037b53d` was four commits stale and predates
       two persistence-affecting commits this inventory's own findings already
@@ -112,7 +112,7 @@
       calls two exact, named production methods that do NOT exist yet --
       `SqlCatalog.getVersionScoped(seasonId, gameId, id)` and
       `deleteVersionScoped(seasonId, gameId, id)`, documented as the
-      intended PC-2 contract in GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3
+      intended PC-2 contract in docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3
       -- via a small `callScoped()` helper that only checks whether the
       method exists and, if so, invokes it; it contains no ownership logic
       of its own. All four assertions now honestly report
@@ -1648,7 +1648,7 @@ flush();
 //     before its mirror/backup work -- confirmed by reading the real method,
 //     not assumed) or to deleteSeason at all. Each finding was reproduced
 //     directly against the real SeasonStore before being fixed, per standing
-//     discipline. Full detail: GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
+//     discipline. Full detail: docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
 // ============================================================================
 section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered against the per-season queue, and a season switch mid-write cannot smear payloads across seasons [LOCK, closed PC-4 repair]');
 {
@@ -1894,7 +1894,7 @@ flush();
 //     only covered the EASY direction of (work queued BEFORE delete; a close
 //     while the debounce timer is still armed). All three reproduced directly
 //     against the committed classes before being fixed, per standing
-//     discipline. Full detail: GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
+//     discipline. Full detail: docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
 // ============================================================================
 section('15. A save dispatched after delete starts cannot resurrect the season, a close awaits an already-running write, and a failed final save keeps the window open [LOCK, closed PC-4 repair round 2]');
 {

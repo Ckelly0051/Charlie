@@ -1,5 +1,5 @@
 /**
- * LEGACY INVENTORY RATCHET (docs/LEGACY-EXCISION-PLAN.md, Phase 0). The legacy
+ * LEGACY INVENTORY RATCHET (docs/archive/plans/LEGACY-EXCISION-PLAN.md, Phase 0). The legacy
  * counts may only fall. A rise means new code copied an old pattern (a second
  * unit rule, a fake form field read, a raw innerHTML sink, a new dead name)
  * and fails here. When a phase removes legacy code, the same commit lowers the

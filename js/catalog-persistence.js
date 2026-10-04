@@ -414,7 +414,7 @@ export class CatalogPersistence {
   }
 
   // PC-1: explicit-identity contract for version ownership (documented in
-  // GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Threads seasonId/gameId
+  // docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md Sec 3.3). Threads seasonId/gameId
   // straight through to SqlCatalog -- no ambient currentId, no scope call.
   async getVersionScoped(seasonId, gameId, id) {
     if (!seasonId || !gameId || id == null) return null;

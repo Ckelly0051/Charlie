@@ -22,12 +22,13 @@
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = CANONICAL_SEASON;
-const OUT = `artifacts/defense-production-realdata/run-${process.pid}`;
+// One folder, replaced each run, so captures never accumulate.
+const OUT = 'artifacts/defense-production-realdata/latest';
 const DESKTOP = [[1440, 900], [1280, 900]];
 const KPI_LABELS = ['Total yards allowed', 'Rush yards allowed', 'Pass yards allowed', 'Yards / play', 'Takeaways',
   'Explosive Plays', 'Touchdowns Allowed', 'Defensive Touchdowns', '3rd Down Stop %', '4th Down Stop %'];
@@ -84,6 +85,7 @@ const season = JSON.parse(raw.toString('utf8'));
 const games = season.games || [];
 const stPeter = games.find(game => /St\. Peter Lutheran/i.test(game.gameInfo?.opponent || ''));
 if (!stPeter) throw new Error('Canonical St. Peter Lutheran game missing');
+rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });

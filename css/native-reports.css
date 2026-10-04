@@ -2228,7 +2228,7 @@
 .gi-reports .gi-offense-board .gi-epa-subhead.is-loss{color:var(--gi-bd-loss)}
 
 /* ── OFFENSE BOARD TYPE: ALIGNED TO THE DESIGN-SYSTEM TOKENS ──────────────
-   PLAN-V2 §"Operational copy uses one readable UI/body family. Condensed and
+   CLAUDE.md Typography: "Operational copy uses one readable UI/body family. Condensed and
    display faces are reserved for true headings and major numbers. Synthetic
    weights and tiny low-contrast metadata fail review."
 
