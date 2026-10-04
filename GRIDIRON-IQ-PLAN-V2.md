@@ -65,17 +65,18 @@ down-and-distance chart and run-gap chart are built.
 
 ## 5. Sequence
 
-1. **Organize (current).** Clear dead code, stale docs and accumulated
-   artifacts before any new feature:
+1. **Organize.** Clear dead code, stale docs and accumulated artifacts before
+   any new feature (done 2026-10-04 except the domain-model docs):
    - finished plans and old smoke records moved to `docs/archive/` (done
      2026-10-04);
    - real-data harness captures replaced each run instead of accumulating
      (done 2026-10-04);
-   - repair history removed from code comments, starting with
-     `stats-engine`, `storage`, `season-store`, `storage-backend` and
-     `catalog-persistence`; each comment-only change proven by an identical
-     build;
-   - unused functions and outputs deleted with focused tests.
+   - repair history removed from code comments across `js/`, proven by
+     byte-identical bundles (done 2026-10-04);
+   - unused functions, CSS and the silent startup import deleted with
+     focused tests (done 2026-10-04);
+   - remaining: trim history out of the domain-model docs
+     (`GRIDIRON-IQ-TAG-MODEL.md`, `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`).
 2. **Reports for every charted field.** Audit every charted field against
    Reports, then add the missing reports. Known gaps: motion start/end, RPO
    read and Give/Keep/Throw decision, and QB-run type (designed / scramble /
