@@ -18,7 +18,7 @@
     "fileCount": 33,
     "supersededOn": "2026-09-11",
     "reason": "Palette and type only. Retained untouched as the approval history and as the record of the approved Overview composition.",
-    "authority": "SMOKE-1.12.0-80.md installed visual approval, 2026-09-11; docs/VISUAL-SYSTEM-RULES.md"
+    "authority": "docs/archive/smoke/SMOKE-1.12.0-80.md installed visual approval, 2026-09-11; docs/VISUAL-SYSTEM-RULES.md"
   },
   "decisionRecord": "design-comps/reports-overview-2026-09-07/RATIONALE.md",
   "priorDecisionRecord": "docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md",

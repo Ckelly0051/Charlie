@@ -32,13 +32,13 @@
     {
       "version": "1.12.0-70",
       "status": "PRODUCTION_ACCEPTED",
-      "evidence": "SMOKE-1.12.0-70.md",
+      "evidence": "docs/archive/smoke/SMOKE-1.12.0-70.md",
       "note": "Last accepted installed smoke candidate."
     },
     {
       "version": "1.12.0-74",
       "status": "REJECTED",
-      "evidence": "SMOKE-1.12.0-74.md",
+      "evidence": "docs/archive/smoke/SMOKE-1.12.0-74.md",
       "note": "Rejected during installed visual smoke on 2026-09-06."
     }
   ]
