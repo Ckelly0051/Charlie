@@ -19,6 +19,8 @@ This file is the binding rules only. Read the others when the task needs them:
 | Football models | `GRIDIRON-IQ-TAG-MODEL.md`, `-PENALTY-MODEL.md`, `-SPECIAL-TEAMS-MODEL.md`, `-PLAY-CALL-MODEL.md`, `-WORKSPACE-CONTRACT.md`, `-OVERLAY-SPEC.md` |
 | Product direction | `GRIDIRON-IQ-PLAN-V2.md` |
 | Desktop packaging | `TAURI.md` |
+| Release cadence, smoke checklist and record | `docs/RELEASE.md` |
+| Roles, decision rights, when to ask the coach | `docs/COLLABORATION.md` |
 | Why a rule exists, dated history | `docs/archive/CLAUDE-2026-09-27.md`, `docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md` |
 
 ---

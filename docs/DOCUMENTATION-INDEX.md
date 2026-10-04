@@ -16,10 +16,9 @@ Updated 2026-10-04.
   `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`, `GRIDIRON-IQ-PLAY-CALL-MODEL.md`,
   `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`, `GRIDIRON-IQ-OVERLAY-SPEC.md`,
   `GRIDIRON-IQ-TEAM-HUB-SPEC.md` - domain and interaction contracts.
-- `GRIDIRON-IQ-AGENT-WORKING-AGREEMENT.md`,
-  `GRIDIRON-IQ-TRUSTED-ADVISOR-STANDARD.md` - standing collaboration rules.
-- `GRIDIRON-IQ-RELEASE-GATE.md`, `GRIDIRON-IQ-MILESTONE-RELEASE-POLICY.md` -
-  standing release controls.
+- `docs/COLLABORATION.md` - roles, decision rights, when to ask the coach.
+- `docs/RELEASE.md` - release cadence, pre-smoke checks, smoke checklist and
+  record format.
 - `TAURI.md` - desktop build, packaging and installed smoke.
 - `design-approvals/APPROVALS.json` and per-surface manifests - design and
   production acceptance status.

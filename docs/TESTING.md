@@ -160,6 +160,20 @@ owns navigation. Keep them separate.
 - **A screenshot comparison must be shown capable of failing**, with the pointer
   parked in a neutral corner and the noise floor measured by capturing the same
   build twice.
+- **A negative assertion needs proven liveness.** "X does not happen" also
+  passes when the mechanism never ran. Prove it ran first with a positive
+  precondition (`liveWrites > 0` before `writesAfterCancel === 0`). Prefer
+  counting whether a code path ran over measuring side effects that depend on
+  layout or loaded data.
+- **Mutation-test the fix, not only the bug.** Watching an assertion fail on the
+  old code proves it detects that bug; removing each defense in turn shows which
+  one actually catches it.
+- **Re-save, never just open.** Persistence checks edit and save, then reopen.
+- **A gate must be shown to fail.** Any runner or checker is verified against a
+  known-green and a known-red run before it is trusted (`--self-test`).
+- **A crash under load is not dismissed as a flake.** A harness that dies only
+  when the machine is busy is chased to its cause; one such "flake" was a real
+  cross-game corruption bug.
 
 ## What automation cannot certify
 
