@@ -32,8 +32,8 @@
         rejects EVERY invalid unwrap() result, including the disclosed
         'legacy-unenveloped' case, at the production boundary itself -- not
         just via a disabled Team Hub button -- with zero catalog writes.
-     9. PC-5 dry-run finding (tools/pc5-real-catalog-dry-run.mjs, run against a
-        copy of the real coach catalog, 2026-08-22): SeasonStore.snapshot()
+     9. Found by a one-time dry run against a copy of the real coach catalog
+        (2026-08-22): SeasonStore.snapshot()
         and StorageManager.saveNow() both called writeDisk({snapshot:true,
         ...}) and then made a SEPARATE, immediate createBackup() call with
         the identical payload. writeDisk()'s own internal createBackup() call
