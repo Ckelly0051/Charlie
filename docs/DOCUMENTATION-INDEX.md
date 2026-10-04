@@ -42,8 +42,8 @@ log.
   `v1.12.0-108`.
 - **In source since 108, not packaged:** CR-1..CR-8 (`576a0981`), gate
   infrastructure (`f84c8be0`..`06a1ffcf`), Special Teams roster ownership and
-  its review repairs (`06b66829`, `76e592f1`, `84b43520`). Smoke items are in
-  `docs/OPEN-DEFECTS.md`.
+  its review repairs (`06b66829`, `76e592f1`, `84b43520`), and Fake tries kept
+  out of player credit (`15b03677`). Smoke items are in `docs/OPEN-DEFECTS.md`.
 - **Latest full gate:** GREEN, 146/146 at `06a1ffcf` (2026-10-02). It predates
   the Special Teams roster repairs, which are focused-verified only.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
@@ -52,8 +52,10 @@ log.
   CSS and repair-history comments removed (every comment-only change proven
   by byte-identical JS/CSS bundles); the silent startup `season.json` import
   and the unscoped version read/delete deleted; obsolete worktrees removed;
-  the tag and Special Teams model docs rewritten as current contracts (Codex
-  review pending).
+  the tag and Special Teams model docs rewritten as current contracts and
+  reviewed by Codex; four standing-rule docs replaced by `docs/RELEASE.md` and
+  `docs/COLLABORATION.md`; the remaining contracts brought to current state;
+  five one-time tools deleted.
   All local, not pushed, not packaged.
 - **Design registry:** every Reports manifest and Home read
   `productionStatus: REJECTED`; installed smokes approved bounded changes

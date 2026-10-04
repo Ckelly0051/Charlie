@@ -33,6 +33,7 @@ Keep the `-N` version suffix: `configureBetaDefaults` gates on it.
 | Real data actually checked | non-builder reviewer | `e2e-realdata` and the canonical-season harnesses passed games, not skipped |
 | Visual review where presentation changed | reviewer captures, coach approves | populated real-data captures at 1440×900, 1280×800, 768×1024, 390×844 (the Charlie Gate) |
 | Version owners agree | builder | `e2e-p0-exit` after the bump |
+| Packaged artifact matches the reviewed build | non-builder reviewer | the installer's required assets, inspected in the packaged bundle itself (not `dist/` or the working tree), match the reviewed commit's build |
 
 If no non-builder reviewer is available, the release waits.
 
