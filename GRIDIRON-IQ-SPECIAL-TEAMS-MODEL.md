@@ -422,6 +422,13 @@ play, the coach records the points:
 `normalize` keeps a charted `extraPoint` score on a `twoPoint` attempt (1 point)
 and otherwise defaults it to `twoPoint`. No season-level ruleset.
 
+**Specialist roster ownership:** a unit's roster is the subject season's roster.
+Receiving/defending units never offer it for the opposing kicker;
+kicking/attempting units never offer it for the opposing returner. These
+opponent numbers remain manually editable and explicitly labeled. Changing
+unit changes picker eligibility, never existing attribution. The subject's
+specialist picker opens by default.
+
 **A kicked try has no returner.** Try (Kick) offers Kicker only; Defending a Try
 (Kick) offers Blocker only (`players.blocker`, synced like kicker and returner).
 

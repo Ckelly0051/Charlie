@@ -92,6 +92,14 @@ substantive analysis feature rather than become a standalone redesign.
 
 ### Gate Efficiency and Quality (2026-10-02)
 
+**Subsequent product repair, 2026-10-03:** ST-ROSTER-1 is fixed in `06b66829`.
+Kick Return/Punt Return no longer quick-pick an opposing kicker from our roster;
+kicking units likewise keep an opposing returner out of that picker. Existing
+values remain, opponent numbers are manual, and our picker opens by default.
+Four focused suites pass (51/51, 89/89, 17/17, parity 2/2); no full gate or
+installer on this repair. Include roster ownership in the next installed smoke.
+The green full gate below predates this product change.
+
 Coach-approved current work: replace guessed startup delays with readiness
 conditions, move pure analytics contracts to Node while retaining built-App
 wiring in browser tests, and validate ordinary fixtures before normalization.

@@ -31,6 +31,15 @@
 
 This section is the one place release state is kept current.
 
+- **Special Teams roster ownership, 2026-10-03, `06b66829`: repaired in source.**
+  Receiving/defending units no longer offer our roster for the opposing kicker;
+  kicking/attempting units no longer offer it for the opposing returner.
+  Opponent numbers remain manual, explicitly labeled; our specialist picker
+  opens by default. Existing values are not changed. Fresh-build focused proof:
+  try/ownership 51/51, deck 89/89, tries 17/17, parity 2/2. Clean committed
+  receipt verified; source/build/fixtures unchanged. No full gate or package
+  on this repair; latest green full gate below predates it.
+
 - **Latest full gate, 2026-10-02, `06a1ffcf`: GREEN.** Fresh build;
   146/146 harnesses passed, zero skipped or failed, in 15m34s.
   P0 composition 20/20, receipts 45/45, runner 67/67 and parity 2/2.

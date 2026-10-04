@@ -1,5 +1,26 @@
 # GridIron IQ Open Defects
 
+## Special Teams roster picker, 2026-10-03
+
+**ST-ROSTER-1: repaired in source (`06b66829`), not packaged or smoked.**
+Coach finding: Kick Return offered our roster for the opponent's kicker.
+The deck's `Players` renderer previously offered the active roster for both
+kicker and returner without considering the structured Special Teams unit.
+The model's canonical unit-role map now gates roster access: receiving and
+defending units cannot quick-pick our kicker; kicking and attempting units
+cannot quick-pick our returner. Opponent fields are explicitly labeled and
+remain manually editable; existing charting is never cleared or migrated.
+The owned specialist's picker opens by default, including after unit changes.
+
+Six unit-ownership regressions fail before the repair; tests also verify
+default disclosure, opponent labels and separate manual opponent/quick-picked
+subject attribution. The older native deck test now enters the opponent's
+punt returner manually, retaining all its structured-data assertions.
+Fresh-build focused proof at the clean commit: try/ownership 51/51, native
+deck 89/89, tries 17/17, parity 2/2. Source/build/fixtures unchanged.
+No full gate, installer, push or coach-data write. Installed verification
+must include Kick Return and Punt Return / Block roster behavior.
+
 ## Full gate repair and rerun, 2026-10-02
 
 **RECEIPT-GATE-1 repaired and full-gated in `06a1ffcf`.** The P0 composition

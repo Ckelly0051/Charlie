@@ -371,6 +371,20 @@ dedicated browsers. No retry, real timeout or logging failure. Verified all
 `2026-10-02T23-54-40-656Z-6fHGt2/`. No installer, version bump, push or
 live-data write; installed approval remains `1.12.0-108`.
 
+## Special Teams Specialist Roster Ownership (2026-10-03)
+
+`06b66829`: `e2e-st-try-charting` now covers six kicking/receiving units,
+subject-only roster access, default owned-role disclosure, opponent labels,
+and preservation of manual opponent numbers beside a quick-picked returner.
+The six ownership assertions fail on the pre-fix code. Existing try assertions
+remain; `e2e-native-tagging` enters the opponent's punt returner manually
+instead of incorrectly picking from our roster, with its data assertions intact.
+Clean-commit fresh-build focused proof: try/ownership 51/51, native deck 89/89,
+tries 17/17 and parity 2/2, zero skipped/failed. Receipt:
+`artifacts/gate-logs/2026-10-04T02-55-46-317Z-boDlMU/receipt.json`.
+Independent read-back confirms passing focused scope and unchanged
+source/build/fixtures. No full gate, package or live-data write on this fix.
+
 ## Machine-Readable Run Receipts (2026-10-02)
 
 `19f5dab4` adds `tools/gate-receipt.mjs`, `e2e-gate-receipt` and runner
