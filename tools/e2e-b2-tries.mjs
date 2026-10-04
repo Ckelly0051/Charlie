@@ -283,6 +283,32 @@ test('a run/pass try is in no analytics cohort (coach: the ST report carries kic
   assert.equal(engine._currentPlays().length, 1);
   assert.equal(stats.specialTeams.tries.n, 2, 'both tries still reach the Special Teams try module');
 });
+test('a Fake or Run/Pass try credits no player on the Players board or any direct credit path', () => {
+  const fakeTry = play(1, special({ isFake: true }), {
+    playType: 'Run Inside', runPass: 'Run', yardage: '2', result: 'Gain', players: { ballCarrier: '7' },
+  });
+  const runTry = play(2, special(), {
+    playType: 'Short Pass', runPass: 'Pass', yardage: '3', result: 'Touchdown', players: { passer: '8', receiver: '81' },
+  });
+  // Positive control: a fake punt's rush is a real rushing attempt and still counts.
+  const fakePunt = play(3, SpecialTeamsModel.normalize(special({
+    unit: 'punt', result: undefined, events: undefined, attemptType: null,
+    outcome: { status: 'returned', score: null }, isFake: true,
+  })), { playType: 'Run Outside', runPass: 'Run', yardage: '8', result: 'Gain', players: { ballCarrier: '4' } });
+  const plays = [fakeTry, runTry, fakePunt];
+  const engine = Object.create(StatsEngine.prototype);
+  const credited = engine._playerCredits(plays);
+  assert.deepEqual([...credited.keys()].sort(), ['4'], `credit index: ${JSON.stringify([...credited.keys()])}`);
+  const board = engine.playersBoard(plays, {});
+  assert.deepEqual(board.players.map(p => p.num), ['4'], `Players board: ${JSON.stringify(board.players.map(p => p.num))}`);
+  assert.equal(board.players[0].roles.find(r => r.key === 'rushing')?.stats.yds.total, 8, 'the fake punt rusher keeps his 8 yards');
+  assert.equal(StatsEngine.countsFootballRoles(fakeTry), false);
+  assert.equal(StatsEngine.countsFootballRoles(runTry), false);
+  assert.equal(StatsEngine.countsFootballRoles(fakePunt), true);
+  const stats = engine._individualStats(plays);
+  assert.deepEqual(stats.rushers.map(row => row.num), ['4']);
+  assert.deepEqual(stats.passers.map(row => row.num), []);
+});
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (process.exitCode) process.exit(process.exitCode);
 

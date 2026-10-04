@@ -3414,9 +3414,12 @@ export class StatsEngine {
    *  dimensions apply the EXACT same rule, not a hand-copied one. A fake
    *  Special Teams play (a run/pass dressed as a kick) counts; an ordinary
    *  kick/punt/return does not, since those plays' "ball carrier" is the
-   *  kicker/returner, tracked separately. */
+   *  kicker/returner, tracked separately. A try never counts, Fake included:
+   *  tries stay out of every player line (GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md
+   *  §6), and Players reads credits without compute()'s try exclusion. */
   static countsFootballRoles(play) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
+    if (structured && (structured.unit === 'try' || structured.unit === 'tryDefense')) return false;
     return structured
       ? structured.isFake
       : countedUnit(play) !== 'special' || StatsEngine.isRun(play) || StatsEngine.isPass(play);

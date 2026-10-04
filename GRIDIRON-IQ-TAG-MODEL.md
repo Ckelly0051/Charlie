@@ -17,9 +17,10 @@ contracts: `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`, `GRIDIRON-IQ-PENALTY-MODEL.md`,
 1. **One question per field.** Each field answers one football question. A
    value never lives in two fields' vocabularies.
 2. **No inference between fields. Ever.** No field is derived from, filled by
-   or cleared by another, except the two explicit conveniences in §5 (Run/Pass
-   from an unambiguous Play Type; Gain from positive yardage with no result),
-   which the coach can override. `Cover 3` is not `Zone`; Shotgun says nothing
+   or cleared by another, with three stated exceptions: the two conveniences in
+   §5 (Run/Pass from an unambiguous Play Type; Gain from positive yardage with
+   no result), which the coach can override, and the confirmed detail clearing
+   in §4 (removing an opening field clears its details after the coach agrees). `Cover 3` is not `Zone`; Shotgun says nothing
    about Formation; Personnel says nothing about Formation.
 3. **Blank is valid and means uncharted.** No chip is required; Save & Next is
    always available. An analysis that needs a field a play lacks omits that
@@ -131,10 +132,33 @@ imports nothing from that file.
 - **Situation**: with Auto D&D on, Save & Next computes the next play's down,
   distance and spot from the previous play; a hand edit marks the situation
   the coach's and stops refreshing it.
-- **Carry**: `SCHEME_KEYS` (unit, the look fields, motion and its path, run/pass,
-  play type, front, coverage call and family, blitz, hash) are what Copy
-  Previous, templates and the opt-in Carry Scheme pre-fill. Result, yardage,
-  players and notes never carry.
+- **Copy Previous and templates** use `SCHEME_KEYS`: unit, the look fields,
+  motion and its path, run/pass, play type, front, coverage call and family,
+  blitz and hash. Copy Previous sets every one of them from the previous play
+  (blank where the previous play is blank); a template stores the non-blank
+  ones and applies only its current-format values.
+- **Carry Scheme** (opt-in, default off) uses the narrower
+  `CARRY_SCHEME_KEYS`: QB alignment, formation, receiver alignment, backfield,
+  offensive line strength, personnel, front, coverage call and coverage family.
+  It fills only fields that are blank on the next play, only when both plays
+  are the same unit, and never onto or across a Special Teams play (front and
+  coverage change meaning across a possession change). It never carries
+  motion, run/pass, play type, blitz or hash.
+- Result, yardage, players and notes never carry by any path.
+
+## 5a. Editing safeguards
+
+These hold for every charting surface (Chart, Film Room, Quick Chart, the
+keyboard):
+
+- Opening or selecting a play never writes; loading a play into a form never
+  marks it changed.
+- An edit writes only the field the coach changed, preserves every unrelated
+  tag, player, penalty, Special Teams and note value, and is one undoable
+  transaction.
+- A displayed number and the Watch cohort behind it are the same plays: every
+  report, Study row and Film Room readout opens exactly the composite
+  `gameId::playId` set it counted.
 
 ## 6. How analytics read tags
 

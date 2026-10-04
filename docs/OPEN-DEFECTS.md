@@ -24,6 +24,11 @@ it. The next installed smoke must cover each.
   Blocker input; the active role holds after edits.
 - **Gate infrastructure** (`f84c8be0` .. `06a1ffcf`): deadlines, shared
   browsers, run receipts. Test-only; no smoke item.
+- **Fake tries out of player stats** (2026-10-04, Codex review): a Fake try
+  credited its ball carrier with rushing on the Players board, which reads
+  player credits without compute()'s try exclusion. `countsFootballRoles` now
+  refuses every try. Smoke: a Fake try adds nothing to Players; a fake punt
+  rush still counts.
 - **No silent startup import** (2026-10-04): desktop catalog startup no longer
   imports a leftover per-season `season.json`; the files are left untouched.
   Explicit mirror recovery is unchanged. Smoke: the library opens normally and

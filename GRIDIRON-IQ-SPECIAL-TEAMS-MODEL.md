@@ -164,7 +164,10 @@ options on Defending a Try, with that side's player roles. They are exempt from
 the look strip (§8), Film Room locks none of their cells, and the unit stays
 Special Teams. Switching back to Kick XP asks, then clears the run/pass detail.
 They are **kept out of every analytics cohort** (coach, 2026-09-27): no yards,
-success rate, player line or tendency. Kick versus go-for-it is reported by the
+success rate, player line or tendency. `compute()` excludes them from the
+classified cohort, and `StatsEngine.countsFootballRoles` refuses every try, so
+no player-credit path (Players board, player detail, Study player dimensions)
+counts one. Kick versus go-for-it is reported by the
 Special Teams try module.
 
 ## 7. Players
