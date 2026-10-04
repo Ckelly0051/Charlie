@@ -31,24 +31,18 @@ export class StatsEngine {
     return String(formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
-  // E3: the ONE seam every analytics consumer reads a play's pre-snap look
-  // through, so legacy mixed-field tags project into the four-dimension model
-  // (GRIDIRON-IQ-TAG-MODEL.md §5) consistently. Returns the projected READ-VIEW of
-  // a play's tags — qbAlignment/coverageFamily lifted out, wrong-field tokens
-  // stripped — WITHOUT mutating the stored play. Every reader of formation/
-  // backfield/strength/coverage/qbAlignment/coverageFamily in this engine and the
-  // analytics registry MUST go through this, never raw p.tags (enforced by
-  // tools/e2e-raw-read-audit.mjs), or Study and the dashboard will disagree.
+  // The one seam every analytics consumer reads a play's look fields through
+  // (GRIDIRON-IQ-TAG-MODEL.md §6): every look field present, blank when
+  // uncharted, without mutating the play. Every reader of the look fields in
+  // this engine and the analytics registry goes through it, never raw p.tags
+  // (enforced by tools/e2e-raw-read-audit.mjs), so Study and the reports agree.
   static proj(p) {
     return TagProjection.project(p && p.tags ? p.tags : {});
   }
 
-  /** E3b: the by-KEY read-side twin of `proj`, for DISPLAY surfaces keyed by a
-   *  runtime column/dimension id (Film Room's `col.key`, EPA's `groupBy(key)`).
-   *  Returns the PROJECTED value for the six projected fields and the raw tag for
-   *  everything else, so one dynamic-key display projects the six and passes the
-   *  rest through unchanged. EDITORS must never call this — they read and write the
-   *  coach's stored value (§20). */
+  /** The by-key twin of `proj`, for display surfaces keyed by a runtime
+   *  column or dimension id (Film Room's `col.key`, EPA's `groupBy(key)`):
+   *  the look read for PROJECTED_FIELDS and the raw tag for everything else. */
   static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
     // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
@@ -626,9 +620,8 @@ export class StatsEngine {
    *  evidence was in the game, one play later, and this function never looked.
    *
    *  Adjacency is the only signal used. Every branch reads the next play's own
-   *  charted kind, and nothing infers possession from `stType` perspective,
-   *  which `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md` §3 names as its central flaw
-   *  and which produced the legacy punt-block defect. A punt on either side of
+   *  charted kind; possession is never inferred from which side's kick unit was
+   *  charted. A punt on either side of
    *  the ball still ends this possession in a punt, so the label holds without
    *  deciding whose punt team was on the field.
    *

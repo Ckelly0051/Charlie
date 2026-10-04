@@ -158,7 +158,7 @@ roster (`SeasonManager._mergeRoster()`).
   (`_stripStAlignmentBeforeSave`). One exemption: a run/pass or Fake try
   (`SpecialTeamsModel.isRunPassTry`) charts its look like a scrimmage snap and
   is kept out of every analytics cohort (`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`
-  §4b.3d).
+  §6).
 - Look fields are separate, one value each, never inferred from or cleared by
   another: Formation (`formationFamily`, coach-named, Trips and Bunch included),
   Personnel, QB Alignment, Backfield, Offensive Line Strength (`strength`) and

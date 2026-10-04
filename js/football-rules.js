@@ -35,9 +35,8 @@ export const DRIVE_ENDERS = new Set([
  * Which team had the ball on this snap, from the CHARTED unit only.
  *
  * `offense` means the charting subject had possession, `defense` means the
- * other team did. Special Teams and untagged snaps return '' — legacy
- * `stType` carries no perspective (SPECIAL-TEAMS-MODEL §3) and field position
- * carries no proven owner, so possession is never inferred there.
+ * other team did. Special Teams and untagged snaps return '': a kick unit and
+ * field position carry no proven owner, so possession is never inferred there.
  */
 /**
  * The unit a play counts as: its stored unit, and offense when none is stored.

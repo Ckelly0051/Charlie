@@ -1,5 +1,5 @@
 /* E2 — tag-model look read + refusal predicate + normalize defaults/cleanup + carry + ST strip.
- * Implements the E2-scoped rows of GRIDIRON-IQ-TAG-MODEL.md §10 (tests 1-13,
+ * Implements the E2-scoped rows of docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §10 (tests 1-13,
  * 16-20). Tests 14/15/23/24/25 are E3 (analytics/parity), 21/22 are E4 (library
  * UI); they are intentionally NOT here and are noted at the bottom.
  * Run: node tools/e2e-tag-model.mjs */

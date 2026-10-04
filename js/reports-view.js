@@ -816,7 +816,7 @@ export function specialTeamsKpis(stats, summary) {
 }
 
 /**
- * The unit ledger -- all six units of SPECIAL-TEAMS-MODEL §1, always all six,
+ * The unit ledger -- all six kick and return units (SPECIAL-TEAMS-MODEL §2), always all six,
  * in the model's own order. This is the one place every unit is visible at
  * once, INCLUDING the units with nothing in them, which is the point: the
  * old report omitted a phase card entirely at zero, so a coach could not tell
@@ -869,7 +869,7 @@ export function specialTeamsUnits(stats) {
  * sentence explaining which kind of absence it is.
  *
  * Kick distance, return yards and net stay three separate measurements with
- * three separate labels (SPECIAL-TEAMS-MODEL §4/§7). They are never summed and
+ * three separate labels (SPECIAL-TEAMS-MODEL §3, §9). They are never summed and
  * never share a row.
  */
 export function specialTeamsUnitRows(stats, key) {

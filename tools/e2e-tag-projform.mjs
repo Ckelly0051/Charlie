@@ -1,6 +1,6 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
-/* E4 (D-projform) — GRIDIRON-IQ-TAG-MODEL.md §18. The tag FORM (not Film
+/* E4 (D-projform) — docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §18. The tag FORM (not Film
    Room's grid, covered separately by e2e-film-room.mjs) shows each look field as
    stored and writes only on the coach's explicit edit. Plays are current format
    (legacy excision step 7): the promote/strip of old combined values is deleted

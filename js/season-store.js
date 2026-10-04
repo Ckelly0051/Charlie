@@ -288,14 +288,8 @@ export class SeasonStore {
   // play as "Under Center"). Strip it. Idempotent and safe — nothing intentional
   // can ever live in these fields on an ST play.
   //
-  // This is the SINGLE SOURCE OF TRUTH for the strip list — play-tagger consumes
-  // it rather than keeping its own copy (GRIDIRON-IQ-TAG-MODEL.md §7). The E1
-  // model split adds four keys: `qbAlignment`/`coverageFamily` (new dimensions)
-  // and `backfield`/`strength`, which E1-R6 also carries forward and therefore
-  // must also be strippable here. The `backfield`/`strength` clear is a
-  // coach-approved, bounded cleanup: on the real six-game season it clears
-  // exactly 12 backfield values (1 of which also has strength) — leaked pre-snap
-  // looks the ST form could never legitimately set (§7b).
+  // The one strip list; play-tagger reads it rather than keeping a copy
+  // (GRIDIRON-IQ-TAG-MODEL.md §8, GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md §8).
   static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formationFamily', 'receiverSet', 'backfield', 'strength',
     'personnel', 'defFront', 'coverage', 'coverageFamily', 'blitz'];
   static stripStAlignment(p) {

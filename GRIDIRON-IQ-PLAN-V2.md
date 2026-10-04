@@ -75,8 +75,9 @@ down-and-distance chart and run-gap chart are built.
      byte-identical bundles (done 2026-10-04);
    - unused functions, CSS and the silent startup import deleted with
      focused tests (done 2026-10-04);
-   - remaining: trim history out of the domain-model docs
-     (`GRIDIRON-IQ-TAG-MODEL.md`, `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`).
+   - domain-model docs (`GRIDIRON-IQ-TAG-MODEL.md`,
+     `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`) rewritten from the current code as
+     short contracts, history archived (2026-10-04; Codex review pending).
 2. **Reports for every charted field.** Audit every charted field against
    Reports, then add the missing reports. Known gaps: motion start/end, RPO
    read and Give/Keep/Throw decision, and QB-run type (designed / scramble /

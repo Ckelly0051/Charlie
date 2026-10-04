@@ -1,5 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* CSV EXPORT/IMPORT of the look fields (GRIDIRON-IQ-TAG-MODEL.md §20, coach
+/* CSV EXPORT/IMPORT of the look fields (docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §20, coach
    contract). Every look field is its own column: Formation, Receiver Alignment,
    QB Alignment, Backfield, Strength, Coverage Call, Coverage Family, and the run
    and motion details (Motion Starts/Ends, Gap, RPO Read/Defender/Decision, QB Run

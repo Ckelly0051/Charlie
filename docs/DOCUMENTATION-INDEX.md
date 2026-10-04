@@ -52,7 +52,9 @@ log.
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
   CSS and repair-history comments removed (every comment-only change proven
   by byte-identical JS/CSS bundles); the silent startup `season.json` import
-  and the unscoped version read/delete deleted; obsolete worktrees removed.
+  and the unscoped version read/delete deleted; obsolete worktrees removed;
+  the tag and Special Teams model docs rewritten as current contracts (Codex
+  review pending).
   All local, not pushed, not packaged.
 - **Design registry:** every Reports manifest and Home read
   `productionStatus: REJECTED`; installed smokes approved bounded changes

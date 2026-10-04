@@ -599,9 +599,8 @@ export class PlayTagger {
 
   /**
    * The chart write with its confirmation: what Chart and Film Room call. A
-   * write that removes the field opening populated details (Motion, the RPO or
-   * QB Run Play Type, or the Play Direction a Gap sits under) says what it
-   * clears and waits for the coach; declining changes nothing. Everything else
+   * write that removes the field opening populated details (Motion, or the RPO
+   * or QB Run Play Type) says what it clears and waits for the coach; declining changes nothing. Everything else
    * writes at once. Returns a boolean, or a promise of one when it asked.
    * `toggle` treats `value` as a chip tap (see toggleTagValue).
    */
@@ -897,8 +896,7 @@ export class PlayTagger {
     // A run/pass or Fake try charts its look like a scrimmage snap.
     if (!play || countedUnit(play) !== 'special' || SpecialTeamsModel.isRunPassTry(play)) return false;
     let changed = false;
-    // Single source of truth (GRIDIRON-IQ-TAG-MODEL.md §7): consume SeasonStore's
-    // list instead of an inline copy that would silently drift from it.
+    // SeasonStore's list is the one strip list (GRIDIRON-IQ-TAG-MODEL.md §8).
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => {
       if (play.tags[k]) { play.tags[k] = ''; changed = true; }
     });

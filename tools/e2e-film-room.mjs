@@ -1111,7 +1111,7 @@ for (const [name, c, stored, otherVal] of [
 }
 
 console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==');
-// P3's exact contract (TAG-MODEL.md §20): Film Room has NO six-field quick
+// P3's exact contract (docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §20): Film Room has NO six-field quick
 // filter, so do not add one here -- instead group the RENDERED row IDs by each
 // projected cell value, assert those sets equal AnalyticsRegistry.matchingRefs
 // (an INDEPENDENT computation, not Film Room's own code), then select one exact

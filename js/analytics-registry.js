@@ -78,10 +78,9 @@ export class AnalyticsRegistry {
       // honesty rule forbids. Building a real per-play score-differential
       // deriver is its own reviewed unit, not a few lines here.
       deferred('scoreSituation', 'Score Situation', 'Requires a per-play score-at-snap reconstruction, which does not exist yet -- see the fieldZone comment above for why this is not silently approximated'),
-      // E3: pre-snap look dimensions read the PROJECTED view (legacy alignment/
-      // family lifted into their own dimensions), never raw tags — see
-      // StatsEngine.proj / GRIDIRON-IQ-TAG-MODEL.md §5. qbAlignment/coverageFamily
-      // are single-value (multi:false) so a cross-tab places each play in one cell.
+      // Look dimensions read through StatsEngine.proj, never raw tags
+      // (GRIDIRON-IQ-TAG-MODEL.md §6). qbAlignment and coverageFamily are
+      // single-value (multi:false), so a cross-tab places each play in one cell.
       ready('qbAlignment', 'QB Alignment', p => this._one(SE.proj(p).qbAlignment), 'TagProjection.project.qbAlignment'),
       ready('formationFamily', 'Formation', p => this._one(SE.proj(p).formationFamily), 'TagProjection.project.formationFamily'),
       ready('receiverSet', 'Receiver Alignment', p => this._one(SE.proj(p).receiverSet), 'TagProjection.project.receiverSet'),
