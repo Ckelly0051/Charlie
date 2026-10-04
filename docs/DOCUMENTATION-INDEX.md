@@ -44,8 +44,8 @@ log.
   infrastructure (`f84c8be0`..`06a1ffcf`), Special Teams roster ownership and
   its review repairs (`06b66829`, `76e592f1`, `84b43520`), and Fake tries kept
   out of player credit (`15b03677`). Smoke items are in `docs/OPEN-DEFECTS.md`.
-- **Latest full gate:** GREEN, 146/146 at `06a1ffcf` (2026-10-02). It predates
-  the Special Teams roster repairs, which are focused-verified only.
+- **Latest full gate:** GREEN, 147/147 at `29cb2768` (2026-10-04), covering
+  everything since 108.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
