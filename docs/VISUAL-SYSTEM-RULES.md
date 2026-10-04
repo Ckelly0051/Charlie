@@ -1,8 +1,7 @@
 # GridIron IQ Visual System Rules
 
-> **Status:** COACH-APPROVED SHARED VISUAL CONTRACT. Updated 2026-09-11.
->
-> Approved in the installed `1.12.0-80` visual smoke. These rules govern shared
+> Coach-approved shared visual contract (installed `1.12.0-80` visual smoke,
+> 2026-09-11). These rules govern shared
 > chrome and ordinary operational UI. A surface's approved comp still governs
 > its module composition, order, row counts, and screen-specific geometry.
 
@@ -125,10 +124,10 @@ regression guard and say so.
 | Defense | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-17) |
 | Special Teams | 12.5px | 0 | 0 | Migrated (acceptance pass, 2026-09-19) |
 | Players | 12.5px | 0 | 0 | Migrated (Revision 2, 2026-09-20) |
-| Self-Scout | 13px | 0 | 0 | Migrated (canonical review; module system 2026-09-24; smoke pending) |
-| Season | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
+| Self-Scout | 13px | 0 | 0 | Migrated (canonical review; module system 2026-09-24) |
+| Season | 12.5px | 0 | 0 | Migrated (canonical review, 2026-09-22) |
 | Overview | 9.5px | 35 | 35 | Broadcast labels only |
-| Matchup | 12.5px | 0 | 0 | Migrated (canonical review; smoke pending) |
+| Matchup | 12.5px | 0 | 0 | Migrated (canonical review, 2026-09-22) |
 | Offense | 10.5px | 46 | 211 | Chart internals + narrow-width exception |
 
 **Defense, Special Teams, Players, Self-Scout, Season and Matchup are the migrated boards.** Revision 2 renders nothing below the
@@ -145,8 +144,8 @@ untouched, so Overview and Offense keep their approved 9.5px labels. Players
 migrated in Revision 2 on 2026-09-20 (46 elements at an 11px minimum, now none):
 its sample line, role navigation and badges, module meta, absent-role summary and
 `No data` cells are at the floor, and the new detail view was authored at it.
-Self-Scout, Season and Matchup migrated in the 2026-09-22 canonical review pass;
-their installed smoke and coach acceptance remain pending. The
+Self-Scout, Season and Matchup migrated in the 2026-09-22 canonical review pass
+and have shipped in every installer since. The
 canonical six-game season has no sub-floor text on any of the three at either
 release width. Overview carries only its approved broadcast micro-labels.
 Offense was previously classified here as migrated; it is not. The 2026-09-24
@@ -212,14 +211,14 @@ meets the floor" when it only means "this board has not got worse."
 - Mobile keeps the same transparent, underline-led selection language in its
   dedicated bottom navigation.
 
-### Reports Global Strip - implemented in source, installed smoke pending
+### Reports Global Strip
 
-Implemented 2026-09-22 in `160533c` (`js/native-reports.jsx`,
-`js/reports-screen.js`, `css/native-reports.css`): a fixed 50px report head,
+Owned by `js/native-reports.jsx`, `js/reports-screen.js` and
+`css/native-reports.css` (coach-approved concept, 2026-09-22): a fixed 50px report head,
 then one 44px strip whose perspective column is 248px, whose eight tabs share
 equal tracks, and whose Export sits at the right; Offense's linescore and
 Defense's linescore/identity band are retired. Pinned by
-`tools/e2e-reports-global-strip.mjs`. Not in any installer yet.
+`tools/e2e-reports-global-strip.mjs`.
 
 Coach-approved 2026-09-22 comp:
 `design-comps/reports-global-strip-2026-09-22.html`. This approves the
@@ -371,11 +370,4 @@ graphite chrome, and neutral secondary copy. That approval does not change any
 surface manifest from `REJECTED`, close unrelated functional defects, or replace
 the full release gate.
 
-**The first implementation of these rules did not deliver them.** An independent
-non-builder review of `7afa94d..44adcc6` failed the pre-gate checkpoint: four
-Reports harnesses were red, two of them against hash-protected approved
-evidence. The repairs are recorded in `docs/OPEN-DEFECTS.md`. `1.12.0-80` remains
-a historical installed visual-scope pass; this repair is un-packaged source work
-made after that installer. Later beta packages contain its descendant source;
-their installed status is recorded in `docs/DOCUMENTATION-INDEX.md` > Current
-Snapshot and the `SMOKE-1.12.0-*.md` records.
+Installed status of later builds is recorded in `docs/DOCUMENTATION-INDEX.md`.

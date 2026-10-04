@@ -1,14 +1,9 @@
 # GridIron IQ — Team Hub interaction specification
 
-**Status:** BINDING INTERACTION REFERENCE. Team Hub is implemented and the native
-route is current; historical milestone-review notes below do not describe the
-current release status. See `CLAUDE.md` and `docs/OPEN-DEFECTS.md`.
-**Owner route:** S3 — native Team Hub / Season Library.
-**Why it exists:** Team Hub is the app's front door *and* was the last surface pinning
-`#wsClassicOutlet` — before S3, `_openLibrary()` had to reveal the outlet because
-the library rendered inside the relocated `#app`. It is also the identity moment: the first
-screen a coach sees. A design card alone is insufficient; this is the behavior
-contract the implementation is reviewed against.
+Binding interaction contract for Team Hub, the season library and the app's
+front door (`js/team-hub-screen.js`, `js/native-team-hub.jsx`). It is the
+first screen a coach sees; this is the behavior the implementation is reviewed
+against.
 
 ---
 
@@ -126,5 +121,4 @@ indicator, not as ready.
 
 - Reads through the canonical loader only; **no schema change, no migration.**
 - The retired schedule grid is **not** reintroduced — Home is the sole game entry.
-- On completion, `_openLibrary()`'s outlet reveal is deleted, not hidden, and
-  `restoreRouteVisibility()` becomes unnecessary.
+

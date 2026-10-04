@@ -2,14 +2,47 @@
 
 ## Status
 
-Built and in production: call and concept snapshot fields on every play, the
-team-scoped Playbook & Calls library (Team Settings), the charting deck's call
-selector, Film Room columns and editing, lossless CSV columns, Study
-dimensions, Reports call performance and situational lenses, and Call Sheet and
-Plan use of exact calls. Every consumer's numbers and Watch actions use the
-same composite play refs. Mapping calls onto plays charted before the library
-existed is not done and follows the rules below. History:
-`docs/archive/plans/GRIDIRON-IQ-PLAY-CALL-MODEL-THROUGH-2026-10-04.md`.
+**IMPLEMENTED AND ACCEPTED — complete consumer range accepted at `6256012`;
+packaged as local smoke build `1.12.0-46` from `5375821` on 2026-08-11.**
+
+This is the binding implementation contract. The first increment adds only
+backward-compatible blank fields and the team-scoped playbook foundation. It is
+not permission to migrate or reinterpret existing season data; that remains a
+separate post-build, dry-run-and-confirm pass.
+
+## Implementation Progress
+
+- **P1 data foundation — accepted; P2 import gap closed (2026-08-11):**
+  additive call/concept snapshot fields, every new-play constructor including
+  CSV/Hudl import, and the DOM-free team-scoped `PlaybookLibrary`. No existing
+  play was reinterpreted or migrated.
+- **P2 durable Playbook & Calls manager — accepted:** Team Settings can add,
+  edit, favorite, and remove exact calls plus canonical optional defaults.
+  Definitions remain team-scoped, mirror into the open season, roll back
+  atomically on save failure, seed a new season, and recover from the newest
+  season mirror alongside team identity and roster.
+- **P3 native charting selector — accepted at `b952106`:** typeahead,
+  favorite/recent choices, explicit one-use or durable Add, exact call/concept
+  snapshots, visible defaults, and one-transaction override-safe call changes.
+- **P4a Film Room + CSV consumers — complete and accepted:** Chart and Film
+  Room now share one DOM-free call-application model. Film Room exposes distinct
+  Play Call, Concept, and Notes columns, upgrades only stock saved presets, and
+  applies saved-call defaults as one undoable transaction. CSV exports/imports
+  Play Call, Play Call ID, and Play Concept losslessly; older CSVs remain valid.
+- **P4b Study consumers — complete and accepted:** Play Call and Play
+  Concept are ready registry/Study dimensions. Their grouped measures and Watch
+  actions are equality-tested against the same canonical composite play refs.
+- **P4c Reports + presentation consumers — complete and accepted:**
+  Reports provide exact-call performance, concept roll-ups, and five situational
+  call lenses over canonical measures. Report film actions use exact composite
+  refs. Call Sheet and Plan prefer exact calls with legacy structural fallback.
+  The old structural combination report is labeled Core Tendencies.
+- **Acceptance and package:** commits `a5d29dc`, `71c0177`, and `bd1a2ad`
+  (`a5d29dc^..bd1a2ad`) were accepted with zero findings at `6256012`.
+  Canonical gate: **85/85 green**. Local smoke build `1.12.0-46` was built
+  from version commit `5375821`; no release or migration has been authorized.
+- **Still deferred:** existing-season mapping/migration, exactly as contracted
+  below.
 
 ## Goal
 
@@ -114,6 +147,16 @@ Required sequence:
 
 Prefer a one-off reviewed mapping file or guided command over permanent migration
 complexity in the customer UI.
+
+## Delivery Sequence
+
+1. Accept the active Reports redesign.
+2. Implement the new fields and team playbook library without touching old data.
+3. Independently review football semantics, persistence, CSV, reports, and film.
+4. Do not package a charting-only installer. Integrate Film Room, CSV, Study,
+   Reports, and exact-film consumers, then run one installer smoke covering
+   charting, persistence, reporting correctness, and visuals together.
+5. Scope, dry-run, approve, back up, and execute any legacy-data mapping later.
 
 ## Non-Goals
 

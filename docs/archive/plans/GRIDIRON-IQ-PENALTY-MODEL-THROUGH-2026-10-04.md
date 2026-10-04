@@ -1,7 +1,12 @@
 # GridIron IQ Structured Penalty Model
 
-> Binding model contract for structured penalties. Open defects live in
+> **Status:** BINDING MODEL CONTRACT. The Phase 4D milestone note below is
+> historical; current implementation and release status live in `CLAUDE.md` and
 > `docs/OPEN-DEFECTS.md`.
+> Phase 4D implemented at `461d0b1`; Codex self-review fixes and functional beta
+> packaging landed at `e6573b1`.
+> This model optimizes trustworthy future charting over semantic migration of
+> the legacy `result: 'Penalty'` workflow.
 
 ## 1. Product Decision
 
@@ -178,17 +183,47 @@ offsetting fouls never inflate accepted penalty yards. Multiple fouls on one
 play count as multiple foul records but one flagged play; both measures must be
 available and clearly labeled.
 
-## 7. Where it lives
+## 7. Implementation Sequence And Gates
 
-Film Room shows read-only Penalty and Pen Yds summaries; the multi-foul editor
-in the charting deck is the one editing surface. CSV round-trips structured
-penalties and the resulting situation as JSON-safe columns. Study groups and
-filters by charged team, foul, ruling, phase and whether the play counts. The
-Game report separates flagged plays from foul records, excludes declined and
-offsetting yards, and links foul rows to exact film. Auto D&D uses a confirmed
-`resultingSituation` and never invents a resulting spot.
+### P4D-a - pure contract and normalization
 
-The original build plan and release gate are in
-`docs/archive/plans/GRIDIRON-IQ-PENALTY-MODEL-THROUGH-2026-10-04.md`. Tests:
-`e2e-penalty-contract`, `e2e-study-penalties-st`, `e2e-csv-roundtrip`,
-`e2e-parity`.
+- Add penalty normalizer/accessors with stable ids and no DOM dependency.
+- Preserve unknown fields for forward compatibility.
+- Add synthetic fixtures for accepted, declined, offsetting, no-play, multiple,
+  half-distance actual yards, change of possession, and legacy incomplete.
+- Failing-first tests pin lossless save/reopen, export/import, backup restore,
+  undo/redo, game switch, and old-season round-trip.
+
+### P4D-b - tagging UI and Auto D&D
+
+- Build the dedicated editor behind `ffa_breakdown_form_v2`.
+- Result remains independently chartable.
+- Auto D&D uses confirmed `resultingSituation`; otherwise it fails honestly
+  rather than guessing complex enforcement.
+- Add keyboard, mobile, multiple-foul, remove/undo, and unit/scout-label tests.
+
+### P4D-c - Film Room, CSV, and analytics
+
+- Add compact Penalty and Penalty Yards columns/editors.
+- Extend CSV with structured JSON-safe columns while retaining legacy import.
+- Add penalty summary and Study dimensions/measures over composite film refs.
+- Extend analytics parity with explicit expected changes; do not overwrite the
+  pre-penalty golden silently.
+
+Implemented: Film Room exposes read-only Penalty/Pen Yds summaries and keeps
+the validated multi-foul editor as the single editing surface. CSV round-trips
+structured penalties and resulting situation as JSON-safe columns. Study can
+group/filter by charged team, foul, ruling, phase, and whether the play counts.
+The Game report separates flagged plays from foul records, excludes declined/
+offsetting yards, and links foul rows to exact film. Legacy parity goldens are
+unchanged.
+
+### Release gate
+
+- Real-season copy opens with all old plays intact.
+- New penalties survive desktop/browser persistence and every recovery path.
+- Multiple fouls never overwrite each other.
+- Accepted/declined/offsetting totals and yards reconcile exactly.
+- Auto D&D never invents a resulting spot.
+- Full e2e, integrity fuzzer, parity, desktop smoke, and viewport QA pass before
+  any default-on or release decision.

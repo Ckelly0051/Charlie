@@ -1,21 +1,21 @@
 # GridIron IQ Workspace Contract
 
-> **Status:** BINDING INTERFACE CONTRACT. The Preact workspace is now the only
-> coach-facing shell; the classic workspace described in historical sections is
-> deleted. Current ownership and status live in `CLAUDE.md` and `AGENTS.md`.
+> Binding interface contract for the workspace shell's route and context state.
+> Route owners are listed in `CLAUDE.md` and `AGENTS.md`.
 
 ## Shell Routes
 
-| ID | Label | Current target | Guard |
+| ID | Label | Target | Guard |
 |---|---|---|---|
-| `home` | Home | Existing team home/library | Always available |
-| `breakdown` | Break Down | Existing classic film workspace | Active game required |
-| `study` | Study | Study query workspace; Advanced Reports fallback | Open season required |
-| `plan` | Plan | Season plan workspace | Open season required |
+| `home` | Home | `team-home` | Always available |
+| `breakdown` | Break Down | `breakdown-workspace` | Open game required |
+| `study` | Study | `study-workspace` | Open season required |
+| `reports` | Reports | `reports-workspace` | Open season required |
+| `plan` | Plan | `plan-workspace` | Open season required |
 
-`WorkspaceContext.navigate()` only validates and records route state. It never
-opens, hides, or replaces production UI. Phase 1 owns the adapter from a route
-target to existing UI actions.
+These are `WORKSPACE_ROUTES` in `js/workspace-context.js`.
+`WorkspaceContext.navigate()` only validates and records route state; it never
+opens, hides or replaces UI. `WorkspaceShell` shows the route.
 
 ## Workspace Snapshot
 
