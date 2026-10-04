@@ -160,11 +160,6 @@ export class MultiAngle {
     }
   }
 
-  get activeVideoElement() {
-    if (this.activeAngle === 2 && this.enabled) return this.video2;
-    return this.vc.videoElement;
-  }
-
   on(event, cb) {
     if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(cb);

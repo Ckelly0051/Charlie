@@ -540,7 +540,6 @@ export class AnalyticsMetrics {
     this._deps = deps;
   }
 
-  static get METRIC_IDS() { return Object.keys(METRICS); }
   static polarityOf(metricId) { return METRICS[metricId]?.polarity || null; }
 
   /**

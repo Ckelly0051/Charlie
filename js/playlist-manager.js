@@ -752,10 +752,6 @@ export class PlaylistManager {
     return this.clips.length > 0;
   }
 
-  get activeClip() {
-    return this.clips[this.activeClipIndex] || null;
-  }
-
   // --- UI ---
 
   _updatePlaylistUI() {

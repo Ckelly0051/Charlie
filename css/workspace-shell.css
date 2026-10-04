@@ -226,8 +226,6 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-game-row:focus-visible{outline:none;box-shadow:var(--gi-focus)}
 .ws-game-row>*{min-width:0;padding:0 12px}
 
-/* Continue-where-you-left-off + season progress, side by side under the list. */
-
 /* Selected-game detail panel. */
 .ws-fact-green{color:var(--ws-green)}
 .ws-fact-warn{color:var(--ws-amber)}

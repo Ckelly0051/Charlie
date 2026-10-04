@@ -56,7 +56,6 @@
 .gi-film-save-filter input:focus-visible,.gi-film-table-wrap td>button:focus-visible{
   outline:none;box-shadow:var(--gi-focus)}
 
-
 @media(max-width:600px){}
 
 /* THE TABLE'S CONTROLS (2026-09-24). Their own region, placed by the Break Down

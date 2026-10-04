@@ -17,12 +17,8 @@ import { DefenseTab } from './native-defense-board.jsx';
 
 const breakdownColumns = [
   { key: 'name', label: 'Name' }, { key: 'count', label: 'Plays', numeric: true },
-  // Run/Pass composition — the same underlying `runs`/`passes` counts every
-  // legacy Formation/Play Type/Personnel/Backfield/Strength row already
-  // carries via Charts.effectivenessRows' stacked bar ("Run: 16 (64%)").
-  // Counts in the "24R/3P" shorthand the Offense hero already uses, plus the
-  // run share legacy's bar leads with, so this row genuinely reads as one
-  // number a coach cross-checks against the bar, not two disconnected facts.
+  // Run/Pass composition in the "24R/3P" shorthand the Offense hero uses, plus
+  // the run share.
   { key: 'runPass', label: 'Run/Pass', render: row => {
     if (!Number.isFinite(row.runs) || !Number.isFinite(row.passes)) return '—';
     const total = row.runs + row.passes;

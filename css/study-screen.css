@@ -89,7 +89,6 @@
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
 .ws-study-kpis span,.ws-study-kpis small{font-size:12px}.ws-study-delta-row.is-favorable>i b{background:var(--ws-green)}.ws-study-delta-row.is-unfavorable>i b{background:var(--ws-red)}
 
-
 /* ══ S6-6d — DESIGN RULES LAST ══════════════════════════════════════════════
    In THIS file, not in workspace-shell.css: index.html loads study-screen.css
    after the shell, so a `.ws-study-*` rule written there loses on source order

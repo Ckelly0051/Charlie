@@ -103,14 +103,6 @@ body {
   color: var(--text-bright);
 }
 
-/* ===== Video Section ===== */
-
-/* ===== Playback Controls ===== */
-
-/* ===== Chip-based tag form ===== */
-
-/* ===== Playlist ===== */
-
 .playlist-item {
   display: flex;
   align-items: center;
@@ -198,12 +190,6 @@ body {
   100% { background-position: -200% 0; }
 }
 
-/* Play type colors */
-
-/* ===== Responsive ===== */
-
-/* ===== Stats Dashboard ===== */
-
 .stats-tabs {
   display: flex;
   border-bottom: 2px solid var(--border);
@@ -249,8 +235,6 @@ body {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
-
-/* (old takeaways-section removed — replaced by .game-plan-section) */
 
 .stats-two-col {
   display: grid;
@@ -401,7 +385,6 @@ body {
   }
 }
 
-
 /* ===== Scoreboard OCR & Suggestions ===== */
 .ocr-fields {
   background: #2c323c;
@@ -425,9 +408,6 @@ body {
   border-radius: 3px;
   word-break: break-all;
 }
-
-
-
 
 /* ===== Cut-Up Recorder ===== */
 .cutup-progress-overlay {
@@ -477,8 +457,6 @@ body {
   margin-bottom: 16px;
 }
 
-
-
 /* ===== EPA / Advanced Metrics ===== */
 .epa-curve-wrap {
   margin: 12px 0 8px;
@@ -489,10 +467,6 @@ body {
 }
 .epa-curve { width: 100%; height: auto; display: block; }
 .epa-table td, .epa-table th { font-size: 12px; padding: 4px 6px; }
-
-/* ================================================================== */
-/* ============  UX PASS — polish, mobile, touch targets  =========== */
-/* ================================================================== */
 
 :root {
   --bg-primary: #0b1020;
@@ -560,10 +534,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   box-shadow: 0 0 0 2px rgba(239,71,102,0.15);
 }
 
-/* --- Playback controls --- */
-
-/* ============  TABLET: <= 1100px  ============ */
-
 /* ============  MOBILE: <= 800px  ============ */
 @media (max-width: 800px) {
 
@@ -576,8 +546,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   /* Stats overlay full screen */
   .stats-tab { padding: 8px 12px; font-size: 12px; }
 }
-
-/* ============  SMALL MOBILE: <= 500px  ============ */
 
 /* --- Focus accessibility --- */
 .btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *) {
@@ -592,16 +560,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   border-radius: var(--radius);
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
-
-/* --- Safe area (iPhone notch) --- */
-
-/* --- Sidebar toggle visibility & style --- */
-
-/* ================================================================== */
-/* ==========  MOBILE-FIRST: bottom tabs, empty CTA, hint  ========== */
-/* ================================================================== */
-
-/* --- Giant empty-state CTA --- */
 
 /* --- Onboarding hint toast --- */
 .onboard-hint {
@@ -640,12 +598,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   font-size: 12px;
 }
 
-/* --- Empty CTA sizing on small phones --- */
-
-/* ================================================================== */
-/* ===================  VISUAL OVERHAUL v2  ======================== */
-/* ================================================================== */
-
 :root {
   /* Softer, more modern SaaS palette */
   --bg-primary:    #0a0e1a;
@@ -677,8 +629,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 
 body { font-size: 14px; letter-spacing: -0.01em; }
 
-/* --- Empty CTA refinement --- */
-
 /* --- Buttons --- */
 .btn:not(.ws-shell *) {
   border-radius: var(--radius-sm);
@@ -701,29 +651,12 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 .stat-card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dim); font-weight: 600; }
 .stat-card-value { font-size: 24px; font-weight: 800; color: var(--text-bright); margin-top: 4px; letter-spacing: -0.02em; }
 
-/* --- Playback controls refined --- */
-
-
-/* ================================================================== */
-/* ================  TAG WORKSPACE — primary view  ================== */
-
 /* Footer with Save & Next */
 @keyframes twBurst {
   0% { opacity: 0; transform: scale(0.6); }
   30% { opacity: 1; transform: scale(1.05); }
   100% { opacity: 0; transform: scale(1); }
 }
-
-/* When workspace is collapsed, video gets the freed space */
-
-/* Tablet */
-
-/* Mobile: workspace takes over */
-@media (max-width: 800px) {
-  /* Hide bottom tab bar Tag tab effect — workspace is always visible now */
-}
-
-/* Review modal ------------------------------------------------ */
 
 .detect-review-modal {
   position: fixed;
@@ -963,12 +896,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
    BACKEND STATUS BADGE — top-bar indicator for local CV server
    =========================================================== */
 
-/* ================================================================== */
-/* =========  VISUAL OVERHAUL v3 — ATHLETIC LIGHT (Blue/White)  ===== */
-/* Final layer: wins the cascade. Light chrome, bold blue accents,    */
-/* white text on filled controls, dark text on light surfaces.        */
-/* ================================================================== */
-
 :root {
   --bg-primary:    #e2e6ed;   /* app canvas */
   --bg-secondary:  #eef1f5;   /* panels, top bar, sidebar */
@@ -1032,10 +959,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* --- Chip tag form --- */
-
-/* --- Playback controls: light bar under the (dark) video --- */
-
 /* --- Field Strip play markers: data ink on turf --- */
 /* Tagged but not run/pass (special teams, penalty, defense w/o run-pass):
    gold — the unit-category ink the Film Room grid already uses for ST. */
@@ -1050,14 +973,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .playlist-item.active .playlist-num { background: var(--accent); color: #fff; }
 /* Generic input focus ring recolor (was rose) */
 input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(.ws-shell *) { box-shadow: 0 0 0 3px var(--accent-soft); }
-
-/* ================================================================== */
-/* ==================  ROSTER & PLAYER ATTRIBUTION  ================= */
-/* ================================================================== */
-
-/* Roster panel add-row */
-
-/* Roster quick-pick chip bar (stamps the active role) */
 
 /* Click-to-film: any stat row that maps to a set of plays. A small ▶ hint
    appears on hover so it's discoverable as a "watch these plays" control. */
@@ -1084,10 +999,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   transition: opacity var(--transition);
 }
 .cut-row:hover td:first-child::before { opacity: 1; }
-
-/* ================================================================== */
-/* ========================  CUT-UP REVIEW  ======================== */
-/* ================================================================== */
 
 .cutup-banner {
   position: fixed;
@@ -1139,11 +1050,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .cutup-btn:hover { background: var(--accent); }
 .cutup-exit:hover { background: var(--danger); }
 
-/* Season modal: player rows aren't clickable (no film loaded) */
-
-/* ================================================================== */
-/* =====================  TOUCH RESPONSIVENESS  ==================== */
-/* Remove the 300ms tap delay / double-tap zoom on interactive bits. */
 /* ================================================================== */
 .btn:not(.ws-shell *), .cutup-btn, .playlist-item {
   touch-action: manipulation;
@@ -1164,12 +1070,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .ffa-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .ffa-confirm-actions .btn:not(.ws-shell *) { min-width: 88px; justify-content: center; }
 
-/* ================================================================== */
-/* ==========  SINGLE-COLUMN LAYOUT — tag form below video  ========= */
-/* Final layer: video on top (sticky), full-width tag form below it,   */
-/* secondary panels live in a slide-in Settings drawer. Wins cascade.  */
-/* ================================================================== */
-
 html { height: auto; }
 body {
   overflow-x: hidden;
@@ -1177,8 +1077,6 @@ body {
   height: auto;
   min-height: 100vh;
 }
-
-/* Video stays in view (sticky) while the tag form scrolls underneath */
 
 /* Timeline strip under the video */
 /* THE FIELD STRIP — the play timeline is a football field: a turf band with
@@ -1188,31 +1086,17 @@ body {
 /* Separation between adjacent markers so a dense strip reads as plays,
    not one smear (active's glow rule overrides this shadow, which is fine). */
 
-/* Mobile: shorter video, comfortable chips, account for bottom tab bar */
-@media (max-width: 800px) {
-}
-
 /* Settings button must be reachable on desktop now that the secondary
    panels live in the slide-in drawer (it was mobile-only in the old
    2-column layout). Hidden on small screens where bottom tabs cover it. */
 
-/* ==========  TWO-COLUMN LAYOUT — widescreen  ===================== */
-/* On wide monitors the single column wastes horizontal space: the    */
-/* film is far wider than it needs to be. Split into video (left,      */
-/* sticky) + tag form (right, scrolls). Below 1100px we fall back to   */
-/* the single-column stack above. Last block => wins the cascade.      */
 /* ================================================================== */
 @media (min-width: 1100px) {
   html { height: 100vh; overflow: hidden; }
   body { height: 100vh; margin: 0; padding: 0; overflow: hidden; }
 
-  /* Left column: video centered in its column, sized to its 16:9 box. */
 }
 
-/* ================================================================== */
-/* =========  DESIGN PASS v4 — crisp, tactile, consumer-grade  ====== */
-/* Visual-only layer: depth, contrast, radius, motion. No layout      */
-/* changes. Appended last so it wins the cascade.                     */
 /* ================================================================== */
 :root {
   --radius-sm: 6px;
@@ -1231,20 +1115,9 @@ body {
 /* ---- Work surfaces ---- */
 body { background: var(--canvas); }
 
-/* ---- Chips: white, tactile, unmistakably tappable ---- */
-
-/* ---- Field groups: drop muddy fills; group by label + spacing ---- */
-
 /* Stats-dashboard visualizations (field zones, spray, quarter bars) */
-.viz-block { margin: 14px 0 18px; }
-.viz-block h4 { margin: 0 0 8px; font-size: 13px; color: var(--text, #e6ebf5); display: flex; align-items: center; gap: 8px; }
 .viz-caption { color: #8b97b0; font-weight: 400; font-size: 11px; }
 .viz-caption { margin: 6px 0 0; }
-.viz-legend { font-size: 11px; font-weight: 400; color: #8b97b0; display: inline-flex; align-items: center; gap: 5px; }
-.viz-legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.dot.run { background: #ffd23f; }
-.dot.pass { background: #6cc4ff; }
-.viz-svg { width: 100%; height: auto; background: #0e1626; border: 1px solid #233049; border-radius: 8px; }
 
 /* Play diagram (X's & O's) */
 .pd-editor { max-width: 700px; width: 96%; text-align: left; }
@@ -1260,9 +1133,6 @@ body { background: var(--canvas); }
   display: block;
 }
 .pd-help { font-size: 11px; color: var(--text-dim, #64748b); margin: 6px 0 4px; }
-
-/* Custom user-defined tag fields */
-/* Field-definition manager modal */
 
 /* ---- Buttons: consistent depth + smooth motion ---- */
 .btn:not(.ws-shell *) {
@@ -1291,12 +1161,6 @@ input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), inpu
 }
 
 /* ================================================================== */
-/* ====  SELECTS v7 — prominent dropdown arrows                    == */
-/* Custom chevron replaces the default browser arrow for all selects. */
-/* !important + high-specificity coverage so class-based selectors    */
-/* (.play-select, .speed-select, .tag-row select…) that set a         */
-/* `background:` shorthand can't wipe out our arrow image.            */
-/* ================================================================== */
 select:not(.ws-shell *) {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -1315,90 +1179,11 @@ select:focus:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 
-/* ================================================================== */
-/* ====  MULTI-ANGLE SYNC                                         == */
-/* ================================================================== */
-
 /* Wrappers — each holds a video (+ canvas on angle 1). Transparent
    when no second angle is loaded; position:absolute fills container. */
 
-/* Placeholder must sit above the wrappers */
-
 /* Subtle app-name "bug" in the top-right of the video, broadcast style.
    Absolutely positioned → never affects the controls/timeline layout. */
-
-/* Angle badges */
-
-/* --- Toggle mode: stack both, z-index controls which is on top --- */
-
-/* --- Side-by-side: both wrappers share space 50/50 --- */
-
-/* --- PiP: primary full, secondary small overlay in corner --- */
-
-/* Angle controls strip */
-
-/* ================================================================== */
-/* ====  BUFFERING v8 — visual feedback while video loads          == */
-/* ================================================================== */
-
-/* ================================================================== */
-/* ====  CHARTS & VISUAL ANALYTICS                                 == */
-/* ================================================================== */
-
-/* --- Donut -------------------------------------------------------- */
-.chart-donut { display: block; }
-
-/* --- Horizontal Bars --------------------------------------------- */
-.chart-hbars { display: flex; flex-direction: column; gap: 5px; }
-.chart-hbar-row { display: flex; align-items: center; gap: 8px; }
-.chart-hbar-label { width: 100px; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
-.chart-hbar-track { flex: 1; height: 18px; background: #1b2436; border-radius: 3px; overflow: hidden; position: relative; }
-.chart-hbar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
-.chart-hbar-sub { position: absolute; left: 4px; top: 0; line-height: 18px; font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
-.chart-hbar-val { width: 52px; text-align: right; font-size: 12px; font-weight: 600; color: var(--text); flex-shrink: 0; }
-
-/* --- Gauge ------------------------------------------------------- */
-.chart-gauge { display: flex; flex-direction: column; align-items: center; }
-.chart-gauge-label { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: -2px; font-weight: 600; letter-spacing: 0.3px; }
-
-/* --- Sparkline --------------------------------------------------- */
-.chart-sparkline { display: block; width: 100%; max-width: 100%; }
-
-/* --- Mini Bar ---------------------------------------------------- */
-.chart-minibar { height: 4px; background: #1b2436; border-radius: 2px; overflow: hidden; width: 100%; }
-.chart-minibar > div { height: 100%; border-radius: 2px; }
-
-/* --- Effectiveness Chart ----------------------------------------- */
-.chart-eff { display: flex; flex-direction: column; gap: 3px; }
-.chart-eff-head { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.chart-eff-head > span:first-child { width: 110px; flex-shrink: 0; }
-.chart-eff-bar-head { flex: 1; }
-.chart-eff-meta-head { display: flex; gap: 0; width: 140px; flex-shrink: 0; }
-.chart-eff-meta-head > span { width: 46px; text-align: right; }
-.chart-eff-label { width: 110px; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
-.chart-eff-bar-wrap { flex: 1; }
-.chart-eff-track { height: 18px; background: #1b2436; border-radius: 3px; overflow: hidden; position: relative; }
-.chart-eff-fill { height: 100%; background: #6cc4ff; border-radius: 3px; position: relative; }
-.chart-eff-run { height: 100%; background: #ffd23f; border-radius: 3px 0 0 3px; }
-.chart-eff-meta { display: flex; gap: 0; width: 140px; flex-shrink: 0; }
-.chart-eff-n { width: 36px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
-.chart-eff-succ { width: 50px; text-align: right; font-size: 12px; font-weight: 700; }
-.chart-eff-avg { width: 50px; text-align: right; font-size: 12px; color: var(--text-dim); }
-
-/* --- Game Flow --------------------------------------------------- */
-.chart-gameflow { max-height: 200px; }
-
-/* --- Run/Pass Dots (shared) -------------------------------------- */
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
-.dot.run { background: #ffd23f; }
-.dot.pass { background: #6cc4ff; }
-
-/* Compact the global toolbar on narrow screens. */
-
-
-/* ================================================================== */
-/* ===================  GRIDIRON PRO — v3  ========================== */
-/* ================================================================== */
 
 /* Run/pass chart colors — only consumed inside the dark dashboard, but
    harmless globally. The full Gridiron Pro palette (gold accent + dark
@@ -1507,29 +1292,6 @@ body {
   color: var(--text);
 }
 
-/* --- Takeaways: gold-themed --- */
-
-/* --- Charts: track backgrounds --- */
-.chart-hbar-track, .chart-eff-track, .chart-minibar {
-  background: var(--bg-tertiary) !important;
-}
-
-/* --- Effectiveness chart: gold run / blue pass --- */
-.chart-eff-fill { background: var(--pass-color); }
-.chart-eff-run { background: var(--run-color); }
-.chart-eff-head {
-  border-bottom-color: rgba(201, 162, 39, 0.15);
-}
-.chart-eff-label { font-weight: 700; }
-.chart-eff-n { font-variant-numeric: tabular-nums; }
-
-/* --- Run/pass dots --- */
-.dot.run { background: var(--run-color) !important; }
-.dot.pass { background: var(--pass-color) !important; }
-
-/* --- Game flow chart background --- */
-.viz-svg { background: var(--bg-tertiary); border-color: var(--border); }
-
 /* --- Tendency matrix hover --- */
 .tm-cell:hover { outline: 1px solid var(--highlight); }
 
@@ -1556,11 +1318,6 @@ body {
   .stat-card-value { font-size: 20px; }
 }
 
-/* ================================================================== */
-/* ==========  Desktop auto-update banner / toast (updater.js)  ===== */
-/* Must live here (not injected from JS): Tauri nonces this \3c style>,   */
-/* disabling 'unsafe-inline', so a runtime-injected \3c style> would be   */
-/* CSP-blocked and the banner/toast would render unstyled/invisible.   */
 /* ================================================================== */
 .gi-update-banner { position: fixed; right: 18px; bottom: 18px; z-index: 99999;
   max-width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -1624,31 +1381,13 @@ body {
 .gp-card .gd-score { font-size: 11px; }
 .gp-card .gd-badge { font-size: 9px; }
 
-/* ================================================================== */
-/* ==========  FILM ROOM — play grid (Phase 2)  ===================== */
-/* The play grid sits between the video and the tag form. Narrow      */
-/* screens: a collapsible block under the sticky video. Widescreen    */
-/* (>=1100px): it fills the dead space under the video in the left    */
-/* column via grid-template-areas (block below). Appended last so it  */
-/* wins the cascade over the layout blocks above.                     */
-/* ================================================================== */
-
 /* Widescreen layout for the grid lives INSIDE the TWO-COLUMN block above
    (grid-template-areas "video tags" / "grid tags") — not in a second
    @media block here, so there's only one place that owns .main-content
    rows at that breakpoint. */
 
-/* ================================================================== */
 /* ====  FILM ROOM v2 — inline editing, columns, saved filters  ===== */
 /* ================================================================== */                 /* many columns scroll sideways */
-
-/* Tendency line under the headers (top value % / run-pass lean / avg yds) */
-
-/* Roving cell focus (spreadsheet navigation) */
-
-/* Head menu buttons (Columns / Filters ▾) */
-
-/* Popover (cell editors, columns chooser, saved filters) */
 
 /* ============================================================
    TAGGING-SPEED PASS — form guard, rare-result expander, hint
@@ -1765,10 +1504,6 @@ body {
    ===================================================================== */
 body { font-size: 13px; }
 
-/* Section micro-labels (DOWN & DISTANCE, FORMATION, PERSONNEL …) */
-
-/* Chips & buttons — one size; selected is heavier not louder */
-
 /* Tabular numerals wherever numbers appear (scorebug discipline) */
 .stat-card-value {
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
@@ -1793,8 +1528,6 @@ body { font-size: 13px; }
    multi-select groups. (An earlier pass gave multi-select a tint+border+✓ as a
    radio-vs-checkbox cue, but in practice it just read as inconsistent.) Multi
    groups now fall through to the plain .pick.active solid fill above. */
-
-/* Hotkey badges — dim, tabular, never brighter than the label. */
 
 /* =====================================================================
    DESIGN REFRESH v2 — buttons & toolbar & dropzone (§4.2–4.4).
@@ -1823,7 +1556,6 @@ body { font-size: 13px; }
 
 /* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
    one accent (the primary). No glow tiles, no cyan. */
-/* Add Folder is subordinate: outline-on-dark so only Add Video carries blue. */
 
 /* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
    single-class, and .btn is later in source). Raise specificity so the primary
@@ -1839,12 +1571,6 @@ body { font-size: 13px; }
    DESIGN REFRESH v2 — play table, transport & the signature D&D badge
    (§4.5–4.7).
    ===================================================================== */
-/* Signature scorebug badge — used in the play table, tagging readout, header. */
-
-/* Play table (§4.6) — quiet header, crisp row states, colored numeric text. */
-/* Tendency summary row under the header — informative, not shouting. */
-
-/* Video transport (§4.7) — thin track, accent progress, hover-only handle. */
 
 /* =====================================================================
    DESIGN REFRESH v2 — overlays & cards (§4.8). Light overlays already
@@ -1933,8 +1659,6 @@ body { font-size: 13px; }
 .btn:active:not(.ws-shell *) { background: var(--bg-tertiary); }
 .btn.btn-accent:active:not(.ws-shell *) { background: var(--accent-hover); }
 
-/* Play-table row focus eases in rather than snapping (background only). */
-
 /* =====================================================================
    THE THEATER — print re-pin. The app is dark; paper is not. A raw
    browser print (Ctrl+P) strips backgrounds by default, which would put
@@ -1959,13 +1683,10 @@ body { font-size: 13px; }
    slate it's how selection reads). Static box-shadow — no motion, so it
    stands under prefers-reduced-motion. Appended last to beat the several
    `box-shadow: none` active rules from the historical light layers. */
-/* keep the lift on hover, just add the halo under it */
-/* the current play row in the Film Room: brighter edge + faint halo */
 
 /* =====================================================================
    UX PASS U1 — the trust layer.
    ===================================================================== */
-
 
 /* =====================================================================
    UX PASS U2 — convention compliance.

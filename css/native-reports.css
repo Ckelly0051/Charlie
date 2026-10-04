@@ -188,7 +188,6 @@
   font:650 11px/1 var(--gi-sans);letter-spacing:var(--gi-track-label);
   text-transform:uppercase;border:0;
 }
-/* The lens a coach is reading, and the board's own title, take the accent. */
 
 /* HAIRLINE JOINS. Sections sat as separate bordered cards with margins between
    them; they now share 1px seams so the page reads as one board. */
@@ -274,7 +273,6 @@
    borders read as separate rows rather than doubling into one thick line. */
 /* The bracket. Children sit inside their parent's total, so they are indented
    under a rule rather than listed as peers. */
-/* F9/F10/F11 (S6-4e), coach smoke on 1.12.0-19. */
 /* F11 — center the tile contents. */
 /* F9 — the score and its team name share a center line. The block was centered
    and the two children were not, so the numbers sat visibly off. */
@@ -380,7 +378,6 @@
 }
 
 /* H8 - a chart is a shape, not a workspace. */
-.gi-reports .viz-block>svg{max-height:230px;height:auto;width:100%}
 .gi-reports .stats-section svg{max-width:100%}
 /* H10 - the radar rendered full-viewport. My own regression, and the same
    source-order failure I had just claimed to fix structurally: the generic
