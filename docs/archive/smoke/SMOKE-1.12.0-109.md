@@ -14,7 +14,8 @@
 
 ## Result
 
-Pending.
+Superseded before smoke by `1.12.0-110` (2026-10-05), which adds the failed-save
+and Run/Pass repairs from Codex's review of `3a159882`. Never installed.
 
 ## What to check
 

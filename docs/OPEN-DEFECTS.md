@@ -35,7 +35,7 @@ it. The next installed smoke must cover each.
   Recovery still lists mirror snapshots.
 
 - **Failed saves roll back only their own owner** (2026-10-05, Codex review,
-  not in the `1.12.0-109` build): a game deletion whose save fails keeps the
+  in `1.12.0-110`): a game deletion whose save fails keeps the
   game and never purges its film; a season restore stops if another season is
   opened during it and a failed restore save rolls back only its own season;
   a failed film link rolls back only the season it started on and never saves
@@ -43,7 +43,7 @@ it. The next installed smoke must cover each.
   own program. `e2e-failed-save-ownership`. Smoke: delete a game and Undo;
   restore a season restore point; link a game folder; add a play call.
 - **Run/Pass decides run/pass stats** (2026-10-05, Codex review, coach ruling;
-  not in `1.12.0-109`): an RPO or Play Action play with Run/Pass blank was
+  in `1.12.0-110`): an RPO or Play Action play with Run/Pass blank was
   counted as a pass, and tendency tables counted every non-run as a pass
   (`4abd7e7a`). Smoke: Week 6 vs Holy Family play 67 counts as the Run/Pass
   the coach charts on it; Opponent scout run % by down and distance reads from

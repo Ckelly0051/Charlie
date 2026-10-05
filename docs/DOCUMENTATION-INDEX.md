@@ -40,18 +40,20 @@ log.
   `GridIron IQ_1.12.0-108_x64-setup.exe`, 4,041,437 bytes, SHA-256
   `DA6C40A96A553881FFD96A9A6215E6F1CE25DD6FA56BDF3C3FD83FC0F24A2E77`. Tagged
   `v1.12.0-108`.
-- **Built, awaiting packaged-asset inspection and coach smoke: `1.12.0-109`**
-  (2026-10-04, `SMOKE-1.12.0-109.md`), bump `9a6bc05f`, unsigned NSIS
-  4,040,963 bytes, SHA-256
-  `D7907EF2C305795D2CB806F18493A6D98AAB72CAC36F9112D22268D011890845`. Not tagged.
-  It predates the failed-save ownership repairs and the Run/Pass
-  classification fix (2026-10-05), which are in source and focused-verified
-  only.
-- **Packaged in 109, not yet smoked:** CR-1..CR-8 (`576a0981`), gate
+- **Built, awaiting packaged-asset inspection and coach smoke: `1.12.0-110`**
+  (2026-10-05, `SMOKE-1.12.0-110.md`), bump `5c058b80`, unsigned NSIS
+  4,037,382 bytes, SHA-256
+  `5262B8F222512617E33349C6B6EAEC9E641B52351FFEC5E2C007FA6285ED7E11`. Not tagged.
+  `1.12.0-109` was superseded before smoke
+  (`docs/archive/smoke/SMOKE-1.12.0-109.md`).
+- **Packaged in 110, not yet smoked:** CR-1..CR-8 (`576a0981`), gate
   infrastructure (`f84c8be0`..`06a1ffcf`), Special Teams roster ownership and
-  its review repairs (`06b66829`, `76e592f1`, `84b43520`), and Fake tries kept
-  out of player credit (`15b03677`). Smoke items are in `docs/OPEN-DEFECTS.md`.
-- **Latest full gate:** GREEN, 147/147 at `29cb2768` (2026-10-04), covering
+  its review repairs (`06b66829`, `76e592f1`, `84b43520`), Fake tries kept out
+  of player credit (`15b03677`), failed saves rolled back only for their own
+  owner (`4f45b200`, `678da80c`), and Run/Pass deciding run/pass stats
+  (`ab3f617e`, `4abd7e7a`, `191384a0`). Smoke items are in
+  `docs/OPEN-DEFECTS.md`.
+- **Latest full gate:** GREEN, 149/149 at `678da80c` (2026-10-05), covering
   everything since 108.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
