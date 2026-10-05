@@ -42,6 +42,10 @@ it. The next installed smoke must cover each.
   into a season opened meanwhile; a failed playbook save rolls back only its
   own program. `e2e-failed-save-ownership`. Smoke: delete a game and Undo;
   restore a season restore point; link a game folder; add a play call.
+- **Run/Pass decides run/pass stats** (2026-10-05, Codex review, coach ruling;
+  not in `1.12.0-109`): an RPO or Play Action play with Run/Pass blank was
+  counted as a pass. Smoke: Week 6 vs Holy Family play 67 counts as the Run/Pass
+  the coach charts on it.
 
 ## Open defects
 

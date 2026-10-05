@@ -168,11 +168,13 @@ export class StatsEngine {
     if (rp === 'Pass') return true;
     if (rp === 'Run') return false;
     const t = StatsEngine._inferredType(p);
-    return t.includes('pass') || t.includes('screen') || t === 'play action' || t === 'rpo';
+    return t.includes('pass') || t.includes('screen');
   }
   /** The play type text Run/Pass may be inferred from when the coach set none.
    *  QB Run and Reverse are left out: a scramble can start as a pass and a reverse
-   *  can throw, so neither says run or pass by its name and the coach sets Run/Pass. */
+   *  can throw, so neither says run or pass by its name and the coach sets Run/Pass.
+   *  RPO and Play Action are ambiguous too (`PlayTagger` leaves Run/Pass blank for
+   *  them), so alone they classify as neither. */
   static _inferredType(p) {
     const type = p && p.tags && p.tags.playType ? String(p.tags.playType) : '';
     return type.split(/\s*\+\s*/).filter(part => part && part !== 'QB Run' && part !== 'Reverse').join(' + ').toLowerCase();

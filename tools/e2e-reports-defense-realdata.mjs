@@ -64,7 +64,7 @@ const INVENTORY = {
   ],
 };
 const KPI_VALUES = {
-  season: ['497', '266', '231', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
+  season: ['490', '266', '224', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
   game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '100.0%', '—'],
 };
 const FIXED = new Set(['Disruption', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
@@ -549,7 +549,9 @@ const canonical = await page.evaluate(() => {
 const cohorts = await page.evaluate(() => {
   const games = window.app.storage.seasonStore.data.games || [];
   const all = games.flatMap(g => g.plays || []);
-  const classified = p => !!(p.tags.playType || p.tags.runPass);
+  // Run/Pass decides; with it blank only an unambiguous play type does (an RPO or
+  // Play Action alone is unclassified, Week 6 play 67).
+  const classified = p => !!p.tags.runPass || /Run Inside|Run Outside|Screen|Pass/.test(p.tags.playType || '');
   const off = p => (p.tags.unit || 'offense') === 'offense';
   const def = p => p.tags.unit === 'defense';
   return {
@@ -561,8 +563,8 @@ const cohorts = await page.evaluate(() => {
   };
 });
 ok(cohorts.charted === 449 && cohorts.offenseCharted === 201 && cohorts.offenseClassified === 173
-  && cohorts.defenseCharted === 174 && cohorts.defenseClassified === 154,
-  'the canonical season reconciles to its four cohorts: 201/173 offensive, 174/154 defensive',
+  && cohorts.defenseCharted === 174 && cohorts.defenseClassified === 153,
+  'the canonical season reconciles to its four cohorts: 201/173 offensive, 174/153 defensive',
   JSON.stringify(cohorts));
 /* TOTAL YARDS IS THE SUM OF THE TWO COLUMNS BESIDE IT, on every row. */
 const unreconciled = canonical.byGame.filter(row => row.yards !== (row.rush || 0) + (row.pass || 0));
@@ -576,7 +578,7 @@ ok(oll && oll.yards === 127 && oll.rush === 67 && oll.pass === 60,
 ok(canonical.byGame.reduce((sum, row) => sum + row.yards, 0) === canonical.yards,
   'the six game rows sum to the season total rather than agreeing by coincidence',
   JSON.stringify({ rows: canonical.byGame.map(r => r.yards), season: canonical.yards }));
-ok(canonical.total === 174 && canonical.yards === 497 && canonical.rush === 266 && canonical.pass === 231
+ok(canonical.total === 174 && canonical.yards === 490 && canonical.rush === 266 && canonical.pass === 224
   && canonical.ypp === 3.2 && canonical.turnovers === 2 && canonical.explosives === 7,
   'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));
 /* A RATE'S TWO HALVES ARE ONE COHORT. */
@@ -640,7 +642,7 @@ ok(JSON.stringify(canonical.dd) === JSON.stringify([
   'the dashboard keeps all 12 down-and-distance buckets in football order, including the empty cohort', JSON.stringify(canonical.dd));
 ok(JSON.stringify(canonical.calls) === JSON.stringify([
   'Maverick + Jumbo Shift | Cover 3 | A-Gap:4',
-  'Maverick | Cover 3:109',
+  'Maverick | Cover 3:108',
   'Maverick + Jumbo Shift | Cover 3:28',
   'Maverick | Cover 3 | A-Gap:7',
 ]) && canonical.worstCalls.length === 4,
@@ -679,7 +681,7 @@ ok(canonical.directions.length === 5
   && canonical.directions.filter(row => !row.isRelative).length === 3
   && canonical.directions.filter(row => row.isRelative).length === 2
   && canonical.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.runs, 0) === 112
-  && canonical.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.passes, 0) === 36
+  && canonical.directions.filter(row => !row.isRelative).reduce((sum, row) => sum + row.passes, 0) === 35
   && canonical.directions.some(row => row.name === 'Toward Strength' && row.isRelative)
   && canonical.directions.some(row => row.name === 'Away from Strength' && row.isRelative),
   'direction adds strength-relative rows without double-counting its absolute legend',

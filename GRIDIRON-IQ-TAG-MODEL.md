@@ -165,6 +165,11 @@ keyboard):
 - `TagProjection.project()` is a plain read: every look field present, blank
   when uncharted. `StatsEngine.PROJECTED_FIELDS` lists the look fields read this
   way.
+- **Run/Pass decides run and pass statistics** (`StatsEngine.isRun` /
+  `isPass`). With it blank, only an unambiguous Play Type classifies the play
+  (Run Inside, Run Outside, Screen and the pass types); RPO, Play Action,
+  Option, QB Run, Reverse and Trick Play alone leave it out of every run/pass
+  measure.
 - A single-value field is never routed through a multi-value splitter, and the
   analytics registry declares it `multi:false`, so a play is never counted
   twice along it.
