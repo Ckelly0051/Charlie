@@ -61,6 +61,13 @@ None. Latest coach-smoked build: `1.12.0-110` (2026-10-05).
   startup-import removal. Determine whether the lock is stale (rosters became
   season-owned) or a real empty-roster overwrite.
 
+## Stale references found in passing
+
+- `design-comps/breakdown-visual-finish-2026-09-28/index.html` loads
+  `../../ux-prototype/assets/all22-frame.png`, deleted with `ux-prototype/` in
+  `c28e7e26`; the comp now renders without its film frame. The comp is not a
+  registered canonical artifact. Not fixed.
+
 ## Coach decisions pending
 
 - **Focus ring color.** `--gi-focus` resolves to blue (`--gi-9`) app-wide;
