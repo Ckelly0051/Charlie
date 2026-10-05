@@ -44,8 +44,10 @@ it. The next installed smoke must cover each.
   restore a season restore point; link a game folder; add a play call.
 - **Run/Pass decides run/pass stats** (2026-10-05, Codex review, coach ruling;
   not in `1.12.0-109`): an RPO or Play Action play with Run/Pass blank was
-  counted as a pass. Smoke: Week 6 vs Holy Family play 67 counts as the Run/Pass
-  the coach charts on it.
+  counted as a pass, and tendency tables counted every non-run as a pass
+  (`4abd7e7a`). Smoke: Week 6 vs Holy Family play 67 counts as the Run/Pass
+  the coach charts on it; Opponent scout run % by down and distance reads from
+  charted run/pass plays only; play-action rate stays at or under 100%.
 
 ## Open defects
 
