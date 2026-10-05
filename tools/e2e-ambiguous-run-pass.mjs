@@ -68,5 +68,72 @@ console.log('\n-- consumers count only charted passes, and shares are of charted
   ok(dt && dt.runs === 1 && dt.passes === 1 && dt.runPct === 50, 'scout down & distance: 1 run, 1 pass, 50% run', JSON.stringify(dt));
 }
 
+/* Codex review of 4abd7e7a: a sample of one run plus three Run/Pass-blank RPOs
+   must not qualify a "100% run" warning, and a row with nothing classified
+   must not render as 0R (0%) / 0P (100%). */
+console.log('\n-- predictability warnings qualify on the classified sample --');
+{
+  const snap = (id, tags) => ({ id, timestamp: { start: 0, end: 5 }, tags: {
+    unit: 'offense', runPass: '', players: {}, down: '1', distance: '10', hash: 'Left', playDir: 'Left',
+    formationFamily: 'Spread', motion: 'Jet', ...tags } });
+  const plays = [
+    snap(1, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '3' }),
+    snap(2, { playType: 'RPO', result: 'Gain', yardage: '4' }),
+    snap(3, { playType: 'RPO', result: 'Gain', yardage: '2' }),
+    snap(4, { playType: 'RPO', result: 'Gain', yardage: '1' }),
+  ];
+  const engine = new StatsEngine(null);
+  const stats = { tendencies: engine._tendencyStats(plays), hash: engine._hashStats(plays), dirMotion: engine._directionMotionStats(plays) };
+  const fix = engine._generateTakeaways(stats).fix.map(f => f.text);
+  ok(!fix.some(text => /run/i.test(text) && /Spread|hash|motion/i.test(text)),
+    'one charted run among four snaps raises no formation, hash or motion run warning', JSON.stringify(fix));
+  const more = [...plays, ...[5, 6, 7].map(id => snap(id, { runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '3' }))];
+  const statsMore = { tendencies: engine._tendencyStats(more), hash: engine._hashStats(more), dirMotion: engine._directionMotionStats(more) };
+  const fixMore = engine._generateTakeaways(statsMore).fix.map(f => f.text);
+  ok(fixMore.some(text => /Spread<\/strong> is 100% run \(4 run\/pass plays\)/.test(text))
+    && fixMore.some(text => /Left hash<\/strong>: 100% run \(4 run\/pass plays\)/.test(text))
+    && fixMore.some(text => /motion, you run <strong>100%<\/strong> of the time \(4 run\/pass plays\)/.test(text)),
+    'four charted runs do raise them, reporting the classified sample', JSON.stringify(fixMore));
+}
+
+console.log('\n-- the built Offense report shows a dash for a row with nothing classified --');
+{
+  const { default: puppeteer } = await import('./test-browser.mjs');
+  const { APP_URL, gotoApp } = await import('./app-entry.mjs');
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
+    await gotoApp(page, APP_URL);
+    const cells = await page.evaluate(async () => {
+      const app = window.app;
+      await app.storage.createSeason({ name: 'RPO Mix', team: 'Mix', year: '2026' });
+      const store = app.storage.seasonStore;
+      const game = store.activeGame();
+      game.gameInfo = { ...(game.gameInfo || {}), opponent: 'Wildcats', perspective: 'self' };
+      game.plays = [1, 2, 3, 4].map(id => ({ id, timestamp: { start: id * 10, end: id * 10 + 5 }, notes: '',
+        tags: { unit: 'offense', runPass: '', playType: 'RPO', formationFamily: 'Spread', result: 'Gain', yardage: '3',
+          down: '1', distance: '10', custom: [], players: {}, grades: {} } }));
+      await store.persist();
+      await app.storage._loadActiveGame({ renderGames: false });
+      await app.workspaceShell.show('reports');
+      app.reportsScreen.selectTab('offense');
+      const seen = [];
+      for (const button of [...document.querySelectorAll('#wsReports .gi-offense-pages button')]) {
+        button.click();
+        await new Promise(r => setTimeout(r, 30));
+        for (const mod of document.querySelectorAll('#wsReports .gi-off-formation, #wsReports .gi-off-play-type')) {
+          for (const row of mod.querySelectorAll('tbody tr')) seen.push(row.textContent.replace(/\s+/g, ' ').trim());
+        }
+        if (seen.length) break;
+      }
+      return seen;
+    });
+    ok(cells.length > 0 && cells.some(text => /Spread|RPO/.test(text)), 'fixture: the Formation and Play type tables list the RPO rows', JSON.stringify(cells));
+    ok(!cells.some(text => /0P \(100%\)/.test(text)) && cells.some(text => /—/.test(text)),
+      'a row with only Run/Pass-blank plays shows a dash, never 0R (0%) / 0P (100%)', JSON.stringify(cells));
+  } finally { await browser.close(); }
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

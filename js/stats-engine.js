@@ -3260,16 +3260,20 @@ export class StatsEngine {
     const MIN_N = 4;
 
     // --- Formation tendencies ---
+    // Run/pass warnings qualify, weigh and report on the classified sample
+    // (runs + passes); a play with Run/Pass blank is not evidence of either.
     (stats.tendencies.formationList || []).forEach(f => {
       if (f.count < MIN_N) return;
-      const runPct = f.runs + f.passes ? (f.runs / (f.runs + f.passes)) * 100 : 50;
       const succPct = parseFloat(f.successPct);
       if (succPct >= 55 && f.count >= 5)
         working.push({ s: succPct * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
+      const n = f.runs + f.passes;
+      if (n < MIN_N) return;
+      const runPct = (f.runs / n) * 100;
       if (runPct >= 75)
-        fix.push({ s: (runPct - 50) * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${runPct.toFixed(0)}% run — add a pass concept to keep the defense honest` });
+        fix.push({ s: (runPct - 50) * Math.min(n, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${runPct.toFixed(0)}% run (${n} run/pass plays) — add a pass concept to keep the defense honest` });
       else if (runPct <= 25)
-        fix.push({ s: (50 - runPct) * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${(100 - runPct).toFixed(0)}% pass — mix in a draw or screen` });
+        fix.push({ s: (50 - runPct) * Math.min(n, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong> is ${(100 - runPct).toFixed(0)}% pass (${n} run/pass plays) — mix in a draw or screen` });
     });
 
     // --- Down & distance buckets ---
@@ -3361,10 +3365,11 @@ export class StatsEngine {
     // --- Hash predictability ---
     if (stats.hash?.hasData) {
       stats.hash.list.forEach(h => {
-        if (h.count < MIN_N) return;
+        const n = h.runs + h.passes;
+        if (n < MIN_N) return;
         const runPct = parseInt(h.runPct);
-        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${runPct}% run (${h.count} snaps) — predictable` });
-        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(h.count, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${100 - runPct}% pass (${h.count} snaps) — predictable` });
+        if (runPct >= 70) fix.push({ s: (runPct - 50) * Math.min(n, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${runPct}% run (${n} run/pass plays) — predictable` });
+        else if (runPct <= 30) fix.push({ s: (50 - runPct) * Math.min(n, 12), cut: ['hash', h.name], text: `<strong>${Charts._esc(h.name)} hash</strong>: ${100 - runPct}% pass (${n} run/pass plays) — predictable` });
       });
     }
 
@@ -3383,10 +3388,11 @@ export class StatsEngine {
     // --- Motion tell ---
     if (stats.dirMotion?.hasMotionData) {
       const m = stats.dirMotion.motionList.reduce((acc, x) => ({ count: acc.count + x.count, runs: acc.runs + x.runs, passes: acc.passes + x.passes }), { count: 0, runs: 0, passes: 0 });
-      if (m.count >= MIN_N) {
-        const runPct = m.runs + m.passes ? (m.runs / (m.runs + m.passes)) * 100 : 50;
-        if (runPct >= 75) fix.push({ s: (runPct - 50) * Math.min(m.count, 12), cut: ['motion', 'Any'], text: `When you motion, you run <strong>${runPct.toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
-        else if (runPct <= 25) fix.push({ s: (50 - runPct) * Math.min(m.count, 12), cut: ['motion', 'Any'], text: `When you motion, you pass <strong>${(100 - runPct).toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
+      const n = m.runs + m.passes;
+      if (n >= MIN_N) {
+        const runPct = (m.runs / n) * 100;
+        if (runPct >= 75) fix.push({ s: (runPct - 50) * Math.min(n, 12), cut: ['motion', 'Any'], text: `When you motion, you run <strong>${runPct.toFixed(0)}%</strong> of the time (${n} run/pass plays) — motion is a tell` });
+        else if (runPct <= 25) fix.push({ s: (50 - runPct) * Math.min(n, 12), cut: ['motion', 'Any'], text: `When you motion, you pass <strong>${(100 - runPct).toFixed(0)}%</strong> of the time (${n} run/pass plays) — motion is a tell` });
       }
     }
 

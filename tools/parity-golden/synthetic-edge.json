@@ -1653,7 +1653,7 @@
        "hash",
        "Middle"
       ],
-      "text": "<strong>Middle hash</strong>: 100% run (7 snaps) — predictable"
+      "text": "<strong>Middle hash</strong>: 100% run (7 run/pass plays) — predictable"
      },
      {
       "s": 249.99999999999994,
@@ -1661,7 +1661,7 @@
        "formationFamily",
        "Spread"
       ],
-      "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
+      "text": "<strong>Spread</strong> is 86% run (7 run/pass plays) — add a pass concept to keep the defense honest"
      },
      {
       "s": 200,
@@ -1669,7 +1669,7 @@
        "hash",
        "Right"
       ],
-      "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+      "text": "<strong>Right hash</strong>: 100% run (4 run/pass plays) — predictable"
      },
      {
       "s": 199.9999999999999,
@@ -4784,7 +4784,7 @@
          "hash",
          "Middle"
         ],
-        "text": "<strong>Middle hash</strong>: 100% run (7 snaps) — predictable"
+        "text": "<strong>Middle hash</strong>: 100% run (7 run/pass plays) — predictable"
        },
        {
         "s": 249.99999999999994,
@@ -4792,7 +4792,7 @@
          "formationFamily",
          "Spread"
         ],
-        "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
+        "text": "<strong>Spread</strong> is 86% run (7 run/pass plays) — add a pass concept to keep the defense honest"
        },
        {
         "s": 200,
@@ -4800,7 +4800,7 @@
          "hash",
          "Right"
         ],
-        "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+        "text": "<strong>Right hash</strong>: 100% run (4 run/pass plays) — predictable"
        },
        {
         "s": 199.9999999999999,
@@ -6549,7 +6549,7 @@
        "hash",
        "Middle"
       ],
-      "text": "<strong>Middle hash</strong>: 100% run (6 snaps) — predictable"
+      "text": "<strong>Middle hash</strong>: 100% run (6 run/pass plays) — predictable"
      },
      {
       "s": 249.99999999999994,
@@ -6557,7 +6557,7 @@
        "formationFamily",
        "Spread"
       ],
-      "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
+      "text": "<strong>Spread</strong> is 86% run (7 run/pass plays) — add a pass concept to keep the defense honest"
      },
      {
       "s": 170,
@@ -8991,7 +8991,7 @@
          "hash",
          "Middle"
         ],
-        "text": "<strong>Middle hash</strong>: 100% run (6 snaps) — predictable"
+        "text": "<strong>Middle hash</strong>: 100% run (6 run/pass plays) — predictable"
        },
        {
         "s": 249.99999999999994,
@@ -8999,7 +8999,7 @@
          "formationFamily",
          "Spread"
         ],
-        "text": "<strong>Spread</strong> is 86% run — add a pass concept to keep the defense honest"
+        "text": "<strong>Spread</strong> is 86% run (7 run/pass plays) — add a pass concept to keep the defense honest"
        },
        {
         "s": 170,
@@ -10156,7 +10156,7 @@
        "hash",
        "Right"
       ],
-      "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+      "text": "<strong>Right hash</strong>: 100% run (4 run/pass plays) — predictable"
      }
     ]
    }
@@ -11796,7 +11796,7 @@
          "hash",
          "Right"
         ],
-        "text": "<strong>Right hash</strong>: 100% run (4 snaps) — predictable"
+        "text": "<strong>Right hash</strong>: 100% run (4 run/pass plays) — predictable"
        }
       ]
      }

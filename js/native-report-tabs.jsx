@@ -15,6 +15,11 @@ import { Charts } from './charts.js';
 import { NativeHeatMaps } from './native-offense-visuals.jsx';
 import { DefenseTab } from './native-defense-board.jsx';
 
+/** A run/pass split cell; a row with no run or pass charted shows a dash, not 0 / 0. */
+const runPassMix = row => (Number(row.runPct) || 0) + (Number(row.passPct) || 0) > 0
+  ? <><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</>
+  : '—';
+
 const breakdownColumns = [
   { key: 'name', label: 'Name' }, { key: 'count', label: 'Plays', numeric: true },
   // Run/Pass composition in the "24R/3P" shorthand the Offense hero uses, plus
@@ -22,7 +27,8 @@ const breakdownColumns = [
   { key: 'runPass', label: 'Run/Pass', render: row => {
     if (!Number.isFinite(row.runs) || !Number.isFinite(row.passes)) return '—';
     const total = row.runs + row.passes;
-    const runPct = total ? Math.round((row.runs / total) * 100) : 0;
+    if (!total) return '—';
+    const runPct = Math.round((row.runs / total) * 100);
     return `${row.runs}R (${runPct}%) / ${row.passes}P (${100 - runPct}%)`;
   } },
   { key: 'ypp', label: 'Yds/play', numeric: true }, { key: 'success', label: 'Success' },
@@ -132,7 +138,7 @@ export function OverviewTab({ stats, screen, gameLabels = null }) {
             ? <tr key={`absent-${i}`} class="is-absent">{Array.from({ length: 6 }, (_, c) => <td key={c}>{view.ABSENT_SLOT}</td>)}</tr>
             : <Watchable key={row.situation} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
             <td>{row.situation}</td><td>{row.snaps}</td>
-            <td><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</td>
+            <td>{runPassMix(row)}</td>
             <td>{row.ypp}</td><td>{row.success}</td><td>{row.conv}</td>
           </Watchable>)}
         </tbody></table>
@@ -722,7 +728,7 @@ export function OffenseTab({ stats, screen }) {
             ? <tr key={`rp-${i}`} class="is-absent"><td>–</td><td>–</td><td>–</td><td>–</td></tr>
             : <Watchable key={row.down} tag="tr" onActivate={cut(row.cutType, row.cutVal, row.cutLabel)} label={row.cutLabel}>
             <td>{row.down}</td><td>{row.snaps}</td>
-            <td><span class="gi-mini-mix"><i style={`--n:${row.runPct}`} /><i style={`--n:${row.passPct}`} /></span>{row.runPct} / {row.passPct}</td>
+            <td>{runPassMix(row)}</td>
             <td>{row.ypp}</td>
           </Watchable>)}
         </tbody></table>
