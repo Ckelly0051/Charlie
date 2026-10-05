@@ -47,3 +47,8 @@ film was written. `current-*` is today's app, `proposed-*` the proposal.
 
 Chip size (27px) and 12px chip text, deck width, film area, route bar,
 context selectors, play-strip order and drive grouping, and every data path.
+
+## Variant
+
+`proposed-badge-neutral-1440x900.png`: the same proposal with the current-play badge (PLAY 39) in neutral graphite instead of gold, at the coach's request for comparison.
+

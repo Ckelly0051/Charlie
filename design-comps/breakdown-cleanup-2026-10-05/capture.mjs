@@ -144,5 +144,12 @@ await page.screenshot({ path: `${OUT}/proposed-more-1440x900.png` });
 await setup(1280, 800);
 await apply();
 await page.screenshot({ path: `${OUT}/proposed-1280x800.png` });
+// Variant: the current-play badge in neutral graphite instead of gold.
+await setup(1440, 900);
+await apply();
+await page.addStyleTag({ content: `.gi-chyron-id { background:#333 !important; color:#f4f4f4 !important; box-shadow:inset 0 0 0 1px #5a5a5a !important; }
+  .gi-chyron-id * { color:inherit !important; }` });
+await new Promise(r => setTimeout(r, 200));
+await page.screenshot({ path: `${OUT}/proposed-badge-neutral-1440x900.png` });
 await browser.close();
 console.log('ok');
