@@ -77,13 +77,32 @@ down-and-distance chart and run-gap chart are built.
      focused tests (done 2026-10-04);
    - domain-model docs (`GRIDIRON-IQ-TAG-MODEL.md`,
      `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`) rewritten from the current code as
-     short contracts, history archived (2026-10-04; Codex review pending).
-2. **Reports for every charted field.** Audit every charted field against
+     short contracts, history archived (2026-10-04; Codex approved).
+2. **Finish charting first** (coach, 2026-10-05). Get charting as close to
+   finished as possible before any reporting work, because the next reporting
+   step is a full rebuild (below) and should be built once against the final
+   charted fields. Known charting work: the Break Down cleanup the coach agreed
+   to (gold everywhere, settings in the toolbar, the two Delete and two Save &
+   Next controls, truncated play-strip results and "Down -"), LG-1 (plays
+   created without a unit) and the pass target / route / missed-tackle fields
+   in step 6.
+3. **Reporting rebuild on the registry** (agreed in principle 2026-10-05,
+   deferred until charting is done). Reports today hand-build each table with
+   its own grouping function in `stats-engine.js` and its own markup, so a new
+   field or rule means rebuilding reports (the 2026-10-05 Run/Pass repair
+   touched about 15 copies of the same run/pass counting). Instead: one generic
+   breakdown module (dimension, measures, sort, minimum sample) fed by
+   `AnalyticsRegistry` and `StudyQuery`, report sections as short specs inside
+   the approved layouts, existing tables migrated one at a time with
+   `e2e-parity` and the real-data numbers unchanged, and new tag-library
+   fields registering their dimension. Approved fixed schemas stay fixed
+   until the coach changes them. Plan for Codex review before any build.
+4. **Reports for every charted field.** Audit every charted field against
    Reports, then add the missing reports. Known gaps: motion start/end, RPO
    read and Give/Keep/Throw decision, and QB-run type (designed / scramble /
    RPO keeper). Each report reuses the analytics registry, shows its eligible
    sample and opens exact film; no parallel formulas.
-3. **Reporting expansion** (each must expose its sample, match its table and
+5. **Reporting expansion** (each must expose its sample, match its table and
    open its film):
    - interactive drive chart: every possession in order with start/end field
      position, play count, outcome, points, and rushing/passing/penalty yards;
@@ -95,7 +114,7 @@ down-and-distance chart and run-gap chart are built.
    - saved composable reports: registered dimensions and approved measures with
      filters, scope and perspective, saved and rerun as games are charted.
      Study stays the query engine.
-4. **Data expansion.** Each new field ships with its report:
+6. **Data expansion.** Each new field ships with its report:
    - pass target and catch location: field side and depth of target and catch,
      separate from total gain, never inferred from play direction;
    - receiver route and release, tied to the identified receiver;
@@ -103,15 +122,15 @@ down-and-distance chart and run-gap chart are built.
      than one player per play; uncharted is not zero.
 
    New fields stay optional on historical plays; uncharted is missing, not zero.
-5. **Coach-owned AI analysis exchange.** Export a versioned season analysis pack
+7. **Coach-owned AI analysis exchange.** Export a versioned season analysis pack
    (one row per play, stable `gameId::playId`, charted fields, data dictionary;
    no video, film paths or player identities by default). Then optionally
    import a schema-validated game-plan draft, previewed and coach-approved;
    imported text never overwrites charted data.
-6. **AI recognition (parked 2026-10-02).** Coach-reviewed suggestions to reduce
+8. **AI recognition (parked 2026-10-02).** Coach-reviewed suggestions to reduce
    charting clicks. Plan, film reality and decisions:
    `docs/AI-RECOGNITION-PLAN.md`. Not approved or started.
-7. **V2-I mobile companion**, after the desktop charting and reporting contract
+9. **V2-I mobile companion**, after the desktop charting and reporting contract
    is competitive: fast single-column charting with large targets, separate
    Review and Study views, clear film-source and save status, desktop-only
    storage operations explained rather than shown broken. Cloud sync and
