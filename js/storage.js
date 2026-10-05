@@ -1328,7 +1328,6 @@ export class StorageManager {
           this._clearForNewGame();
           await this._loadActiveGame();
         }
-        try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
       }
       return false;
     }
