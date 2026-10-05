@@ -1375,7 +1375,7 @@ export class StatsEngine {
       groups[k].count++;
       groups[k].yards += parseInt(p.tags.yardage) || 0;
       if (StatsEngine.isRun(p)) groups[k].runs++;
-      else groups[k].passes++;
+      else if (StatsEngine.isPass(p)) groups[k].passes++;
       if (this._isSuccessfulPlay(p)) groups[k].successes++;
     });
     return Object.values(groups).map(g => ({
@@ -1422,7 +1422,7 @@ export class StatsEngine {
         if (defSuccess) fronts[f].successes++;
         if (isHavoc) fronts[f].havoc++;
         if (StatsEngine.isRun(p)) fronts[f].runs++;
-        else fronts[f].passes++;
+        else if (StatsEngine.isPass(p)) fronts[f].passes++;
         if (ref) fronts[f].refs.push(ref);
       });
 
@@ -2710,7 +2710,7 @@ export class StatsEngine {
         continue;
       }
       const runs = downPlays.filter(p => StatsEngine.isRun(p)).length;
-      const passes = total - runs;
+      const passes = downPlays.filter(p => StatsEngine.isPass(p)).length;
       const yards = downPlays.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       const conversions = downPlays.filter(p => StatsEngine.isConversion(p)).length;
 
@@ -2718,8 +2718,8 @@ export class StatsEngine {
         total,
         runs,
         passes,
-        runPct: ((runs / total) * 100).toFixed(0),
-        passPct: ((passes / total) * 100).toFixed(0),
+        runPct: runs + passes ? ((runs / (runs + passes)) * 100).toFixed(0) : '0',
+        passPct: runs + passes ? ((passes / (runs + passes)) * 100).toFixed(0) : '0',
         avgYards: (yards / total).toFixed(1),
         conversionPct: ((conversions / total) * 100).toFixed(1)
       };
@@ -2763,15 +2763,15 @@ export class StatsEngine {
       const pl = g.plays;
       const n = pl.length;
       const runs = pl.filter(p => StatsEngine.isRun(p)).length;
-      const passes = n - runs;
+      const passes = pl.filter(p => StatsEngine.isPass(p)).length;
       const yards = pl.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
       const conv = pl.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
       const succ = pl.filter(p => this._isSuccessfulPlay(p)).length;
       buckets.push({
         down: g.down, bucket: g.bucket, count: n,
         runs, passes,
-        runPct: ((runs / n) * 100).toFixed(0),
-        passPct: ((passes / n) * 100).toFixed(0),
+        runPct: runs + passes ? ((runs / (runs + passes)) * 100).toFixed(0) : '0',
+        passPct: runs + passes ? ((passes / (runs + passes)) * 100).toFixed(0) : '0',
         avgYards: (yards / n).toFixed(1),
         convPct: ((conv / n) * 100).toFixed(1),
         succPct: ((succ / n) * 100).toFixed(1),
@@ -2893,14 +2893,14 @@ export class StatsEngine {
     const formations = {};
     const formationDetail = {};
     plays.forEach(p => {
-      const isRun = StatsEngine.isRun(p);
+      const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
       StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         formations[f] = (formations[f] || 0) + 1;
         if (!formationDetail[f]) formationDetail[f] = { name: f, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
         formationDetail[f].count++;
-        if (isRun) formationDetail[f].runs++; else formationDetail[f].passes++;
+        if (isRun) formationDetail[f].runs++; else if (isPass) formationDetail[f].passes++;
         formationDetail[f].yards += yds;
         if (succ) formationDetail[f].successes++;
       });
@@ -2912,7 +2912,7 @@ export class StatsEngine {
     const playTypes = {};
     const playTypeDetail = {};
     plays.forEach(p => {
-      const isRun = StatsEngine.isRun(p);
+      const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
       // Play Type is multi-select ("RPO + Short Pass"); attribute to each.
@@ -2920,7 +2920,7 @@ export class StatsEngine {
         playTypes[t] = (playTypes[t] || 0) + 1;
         if (!playTypeDetail[t]) playTypeDetail[t] = { name: t, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
         playTypeDetail[t].count++;
-        if (isRun) playTypeDetail[t].runs++; else playTypeDetail[t].passes++;
+        if (isRun) playTypeDetail[t].runs++; else if (isPass) playTypeDetail[t].passes++;
         playTypeDetail[t].yards += yds;
         if (succ) playTypeDetail[t].successes++;
       });
@@ -2930,7 +2930,7 @@ export class StatsEngine {
       .sort((a, b) => b.count - a.count);
 
     const runs = plays.filter(p => StatsEngine.isRun(p)).length;
-    const passes = plays.length - runs;
+    const passes = plays.filter(p => StatsEngine.isPass(p)).length;
     const runYds = this._rushingStats(plays).yards;
     const passYds = this._passingStats(plays).yards;
     const runSucc = plays.filter(p => StatsEngine.isRun(p) && this._isSuccessfulPlay(p)).length;
@@ -2942,8 +2942,8 @@ export class StatsEngine {
       runSuccRate: runs ? ((runSucc / runs) * 100).toFixed(1) : '0.0',
       passSuccRate: passes ? ((passSucc / passes) * 100).toFixed(1) : '0.0',
       runPassRatio: `${runs}/${passes}`,
-      runPct: plays.length ? ((runs / plays.length) * 100).toFixed(1) : '0.0',
-      passPct: plays.length ? ((passes / plays.length) * 100).toFixed(1) : '0.0'
+      runPct: runs + passes ? ((runs / (runs + passes)) * 100).toFixed(1) : '0.0',
+      passPct: runs + passes ? ((passes / (runs + passes)) * 100).toFixed(1) : '0.0'
     };
   }
 
@@ -3009,7 +3009,7 @@ export class StatsEngine {
         x: parseInt(play.tags.distance) || 0,
         y: parseInt(play.tags.yardage) || 0,
         run: StatsEngine.isRun(play),
-        label: `${play.tags.down ? `${play.tags.down} & ${play.tags.distance}` : play.tags.distance + ' to go'} · ${play.tags.playType || (StatsEngine.isRun(play) ? 'Run' : 'Pass')} · ${parseInt(play.tags.yardage) || 0} yd`,
+        label: `${play.tags.down ? `${play.tags.down} & ${play.tags.distance}` : play.tags.distance + ' to go'} · ${play.tags.playType || (StatsEngine.isRun(play) ? 'Run' : StatsEngine.isPass(play) ? 'Pass' : 'Run/Pass blank')} · ${parseInt(play.tags.yardage) || 0} yd`,
       }))
       .filter(point => point.x > 0);
   }
@@ -3041,7 +3041,7 @@ export class StatsEngine {
       const run = subset.filter(play => StatsEngine.isRun(play)).length;
       const succ = subset.filter(play => this._isSuccessfulPlay(play)).length;
       return { label: `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'} down`,
-        n: subset.length, run, pass: subset.length - run,
+        n: subset.length, run, pass: subset.filter(play => StatsEngine.isPass(play)).length,
         successPct: subset.length ? Math.round(succ / subset.length * 100) : 0 };
     }).filter(item => item.n > 0);
   }
@@ -3065,12 +3065,12 @@ export class StatsEngine {
       if (!hashes[h]) hashes[h] = { name: h, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
       hashes[h].count++;
       hashes[h].yards += parseInt(p.tags.yardage) || 0;
-      if (StatsEngine.isRun(p)) hashes[h].runs++; else hashes[h].passes++;
+      if (StatsEngine.isRun(p)) hashes[h].runs++; else if (StatsEngine.isPass(p)) hashes[h].passes++;
       if (this._isSuccessfulPlay(p)) hashes[h].successes++;
     });
     const list = Object.values(hashes).map(h => ({
       ...h,
-      runPct: h.count ? ((h.runs / h.count) * 100).toFixed(0) : '0',
+      runPct: h.runs + h.passes ? ((h.runs / (h.runs + h.passes)) * 100).toFixed(0) : '0',
       avg: h.count ? (h.yards / h.count).toFixed(1) : '0.0',
       successPct: h.count ? ((h.successes / h.count) * 100).toFixed(0) : '0',
     })).sort((a, b) => b.count - a.count);
@@ -3096,12 +3096,12 @@ export class StatsEngine {
       if (!combos[k]) combos[k] = { personnel: pers, situation: sit, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
       combos[k].count++;
       combos[k].yards += parseInt(p.tags.yardage) || 0;
-      if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
+      if (StatsEngine.isRun(p)) combos[k].runs++; else if (StatsEngine.isPass(p)) combos[k].passes++;
       if (this._isSuccessfulPlay(p)) combos[k].successes++;
     });
     const list = Object.values(combos).map(c => ({
       ...c,
-      runPct: c.count ? ((c.runs / c.count) * 100).toFixed(0) : '0',
+      runPct: c.runs + c.passes ? ((c.runs / (c.runs + c.passes)) * 100).toFixed(0) : '0',
       avg: c.count ? (c.yards / c.count).toFixed(1) : '0.0',
       successPct: c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0',
     })).filter(c => c.count >= 2).sort((a, b) => b.count - a.count);
@@ -3142,7 +3142,7 @@ export class StatsEngine {
         if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
             StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack')))
           combos[k].havoc++;
-        if (StatsEngine.isRun(p)) combos[k].runs++; else combos[k].passes++;
+        if (StatsEngine.isRun(p)) combos[k].runs++; else if (StatsEngine.isPass(p)) combos[k].passes++;
       });
     });
     const list = Object.values(combos).map(c => ({
@@ -3156,11 +3156,9 @@ export class StatsEngine {
 
   // ===== Feature 6: Play-action as first-class metric ====================
   _playActionStats(plays) {
-    const paPlays = plays.filter(p => {
-      const types = StatsEngine.splitPlayTypes(p.tags.playType);
-      return types.includes('Play Action');
-    });
+    // Both cohorts are charted passes, so the play-action rate never exceeds 100%.
     const dropbacks = plays.filter(p => StatsEngine.isPass(p));
+    const paPlays = dropbacks.filter(p => StatsEngine.splitPlayTypes(p.tags.playType).includes('Play Action'));
     const straightDrops = dropbacks.filter(p => {
       const types = StatsEngine.splitPlayTypes(p.tags.playType);
       return !types.includes('Play Action');
@@ -3212,8 +3210,8 @@ export class StatsEngine {
     const mk = name => ({ name, count: 0, runs: 0, passes: 0, yards: 0, succ: 0 });
     const finish = o => ({
       ...o,
-      runPct: o.count ? ((o.runs / o.count) * 100).toFixed(0) : '0',
-      passPct: o.count ? ((o.passes / o.count) * 100).toFixed(0) : '0',
+      runPct: o.runs + o.passes ? ((o.runs / (o.runs + o.passes)) * 100).toFixed(0) : '0',
+      passPct: o.runs + o.passes ? ((o.passes / (o.runs + o.passes)) * 100).toFixed(0) : '0',
       avg: o.count ? (o.yards / o.count).toFixed(1) : '0.0',
       succPct: o.count ? ((o.succ / o.count) * 100).toFixed(0) : '0',
     });
@@ -3224,11 +3222,11 @@ export class StatsEngine {
 
     plays.forEach(p => {
       const yds = parseInt(p.tags.yardage) || 0;
-      const isRun = StatsEngine.isRun(p);
+      const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
       const succ = this._isSuccessfulPlay(p);
       const add = o => {
         o.count++; o.yards += yds;
-        if (isRun) o.runs++; else o.passes++;
+        if (isRun) o.runs++; else if (isPass) o.passes++;
         if (succ) o.succ++;
       };
       if (p.tags.playDir) add(dirs[p.tags.playDir] || (dirs[p.tags.playDir] = mk(p.tags.playDir)));
@@ -3264,7 +3262,7 @@ export class StatsEngine {
     // --- Formation tendencies ---
     (stats.tendencies.formationList || []).forEach(f => {
       if (f.count < MIN_N) return;
-      const runPct = f.count ? (f.runs / f.count) * 100 : 50;
+      const runPct = f.runs + f.passes ? (f.runs / (f.runs + f.passes)) * 100 : 50;
       const succPct = parseFloat(f.successPct);
       if (succPct >= 55 && f.count >= 5)
         working.push({ s: succPct * Math.min(f.count, 15), cut: ['formationFamily', f.name], text: `<strong>${Charts._esc(f.name)}</strong>: ${succPct}% success (${f.count} plays, ${f.avg} avg)` });
@@ -3384,9 +3382,9 @@ export class StatsEngine {
 
     // --- Motion tell ---
     if (stats.dirMotion?.hasMotionData) {
-      const m = stats.dirMotion.motionList.reduce((acc, x) => ({ count: acc.count + x.count, runs: acc.runs + x.runs }), { count: 0, runs: 0 });
+      const m = stats.dirMotion.motionList.reduce((acc, x) => ({ count: acc.count + x.count, runs: acc.runs + x.runs, passes: acc.passes + x.passes }), { count: 0, runs: 0, passes: 0 });
       if (m.count >= MIN_N) {
-        const runPct = (m.runs / m.count) * 100;
+        const runPct = m.runs + m.passes ? (m.runs / (m.runs + m.passes)) * 100 : 50;
         if (runPct >= 75) fix.push({ s: (runPct - 50) * Math.min(m.count, 12), cut: ['motion', 'Any'], text: `When you motion, you run <strong>${runPct.toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
         else if (runPct <= 25) fix.push({ s: (50 - runPct) * Math.min(m.count, 12), cut: ['motion', 'Any'], text: `When you motion, you pass <strong>${(100 - runPct).toFixed(0)}%</strong> of the time (${m.count} plays) — motion is a tell` });
       }
@@ -4289,7 +4287,7 @@ export class StatsEngine {
       { id: 'rpoDecision', label: 'RPO Decision', extract: p => [p.tags.rpoDecision || ''].filter(Boolean) },
       { id: 'motion',     label: 'Motion',      extract: p => [p.tags.motion || 'No Motion'] },
       { id: 'quarter',    label: 'Quarter',     extract: p => [p.tags.quarter || '?'] },
-      { id: 'runPass',    label: 'Run / Pass',  extract: p => [StatsEngine.isRun(p) ? 'Run' : 'Pass'] },
+      { id: 'runPass',    label: 'Run / Pass',  extract: p => StatsEngine.isRun(p) ? ['Run'] : StatsEngine.isPass(p) ? ['Pass'] : [] },
       /* H19 — the two reads a defensive coordinator asks for, as DIMENSIONS
          rather than two hardcoded tables. Registering them here means they
          pivot against formation, down, distance, personnel and each other, and
@@ -4343,7 +4341,7 @@ export class StatsEngine {
       // a cell (§6.5 / §6.4). It still counts in `total`; the gap is `omitted`.
       if (!rows.length || !cols.length) return;
       eligible++;
-      const isRun = StatsEngine.isRun(p);
+      const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
       const yds = parseInt(p.tags.yardage) || 0;
       const succ = this._isSuccessfulPlay(p);
 
@@ -4354,7 +4352,7 @@ export class StatsEngine {
           const key = `${r}\0${c}`;
           if (!cells[key]) cells[key] = { count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
           cells[key].count++;
-          if (isRun) cells[key].runs++; else cells[key].passes++;
+          if (isRun) cells[key].runs++; else if (isPass) cells[key].passes++;
           cells[key].yards += yds;
           if (succ) cells[key].successes++;
           rowCounts[r] = (rowCounts[r] || 0) + 1;
@@ -4402,7 +4400,7 @@ export class StatsEngine {
     const stats = this.compute(plays);
     const formationDetail = {};
     plays.forEach(p => {
-      const isRun = StatsEngine.isRun(p);
+      const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
       const yards = parseInt(p.tags.yardage) || 0;
       const isTd = StatsEngine.hasResult(p, 'Touchdown');
       // Multi-select formation: attribute the play to each component look.
@@ -4410,7 +4408,7 @@ export class StatsEngine {
         if (!formationDetail[f]) formationDetail[f] = { total: 0, runs: 0, passes: 0, yards: 0, tds: 0, refs: [] };
         formationDetail[f].total++;
         if (isRun) formationDetail[f].runs++;
-        else formationDetail[f].passes++;
+        else if (isPass) formationDetail[f].passes++;
         formationDetail[f].yards += yards;
         if (isTd) formationDetail[f].tds++;
         if (p.__gid != null && p.id != null) formationDetail[f].refs.push(`${p.__gid}::${p.id}`);
@@ -4422,7 +4420,7 @@ export class StatsEngine {
       if (!downTendency[key]) downTendency[key] = { runs: 0, passes: 0, total: 0, refs: [] };
       downTendency[key].total++;
       if (StatsEngine.isRun(p)) downTendency[key].runs++;
-      else downTendency[key].passes++;
+      else if (StatsEngine.isPass(p)) downTendency[key].passes++;
       if (p.__gid != null && p.id != null) downTendency[key].refs.push(`${p.__gid}::${p.id}`);
     });
     const fronts = {}, coverages = {};
@@ -4438,12 +4436,12 @@ export class StatsEngine {
     return {
       totalPlays: plays.length, stats,
       formationDetail: Object.entries(formationDetail).sort((a, b) => b[1].total - a[1].total)
-        .map(([name, d]) => ({ name, ...d, refs: [...new Set(d.refs)], runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+        .map(([name, d]) => ({ name, ...d, refs: [...new Set(d.refs)], runPct: d.runs + d.passes ? Math.round(d.runs / (d.runs + d.passes) * 100) : 0 })),
       // G2 — no `.slice(0, 15)`. It silently dropped situations while the header
       // still counted them: 15 rows totalling 30 of 34 snaps, with no "and N
       // more". A report that looks complete and is not.
       downTendency: Object.entries(downTendency).sort((a, b) => b[1].total - a[1].total)
-        .map(([key, d]) => ({ key, ...d, refs: [...new Set(d.refs)], runPct: d.total ? Math.round(d.runs / d.total * 100) : 0 })),
+        .map(([key, d]) => ({ key, ...d, refs: [...new Set(d.refs)], runPct: d.runs + d.passes ? Math.round(d.runs / (d.runs + d.passes) * 100) : 0 })),
       byDown: this._scoutByDown(plays),
       byDistance: this._scoutByDistance(plays),
       fronts: Object.entries(fronts).sort((a, b) => b[1] - a[1]),
@@ -4560,12 +4558,13 @@ export class StatsEngine {
     const rows = ['1', '2', '3', '4'].map(down => {
       const set = (plays || []).filter(p => String(p.tags?.down || '') === down);
       const runs = set.filter(p => StatsEngine.isRun(p)).length;
+      const passes = set.filter(p => StatsEngine.isPass(p)).length;
       const yards = set.reduce((sum, p) => sum + (parseInt(p.tags?.yardage, 10) || 0), 0);
       const refs = [...new Set(set.filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
       return {
         key: down, label: `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'}`,
-        total: set.length, runs, passes: set.length - runs,
-        runPct: set.length ? Math.round(runs / set.length * 100) : 0,
+        total: set.length, runs, passes,
+        runPct: runs + passes ? Math.round(runs / (runs + passes) * 100) : 0,
         avg: set.length ? (yards / set.length).toFixed(1) : '0.0', refs,
       };
     });
@@ -4585,11 +4584,12 @@ export class StatsEngine {
         return Number.isFinite(dist) && dist >= bucket.min && dist <= bucket.max;
       });
       const runs = set.filter(p => StatsEngine.isRun(p)).length;
+      const passes = set.filter(p => StatsEngine.isPass(p)).length;
       const yards = set.reduce((sum, p) => sum + (parseInt(p.tags?.yardage, 10) || 0), 0);
       const refs = [...new Set(set.filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
       return {
-        key: bucket.key, label: bucket.label, total: set.length, runs, passes: set.length - runs,
-        runPct: set.length ? Math.round(runs / set.length * 100) : 0,
+        key: bucket.key, label: bucket.label, total: set.length, runs, passes,
+        runPct: runs + passes ? Math.round(runs / (runs + passes) * 100) : 0,
         avg: set.length ? (yards / set.length).toFixed(1) : '0.0', refs,
       };
     });
@@ -5208,7 +5208,7 @@ export class StatsEngine {
       const refs = [...new Set(rows.map(refOf).filter(Boolean))].sort();
       return {
         key, down, bucket, label: S.ddPretty(key), n: rows.length, held: rows.length === 0,
-        runs, passes: rows.length - runs,
+        runs, passes: rows.filter(S.isPass).length,
         successEligible: eligible.length, successes: eligible.filter(success).length,
         successRate: eligible.length ? eligible.filter(success).length / eligible.length * 100 : null,
         yardsMeasured: yardRows.length,

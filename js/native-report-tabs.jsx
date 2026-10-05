@@ -336,10 +336,11 @@ function MatrixGrid({ matrix }) {
           const intensity = cell.count / maxCount;
           const succPct = Math.round((cell.successes / cell.count) * 100);
           const avg = (cell.yards / cell.count).toFixed(1);
-          const runPct = Math.round((cell.runs / cell.count) * 100);
+          const classified = cell.runs + cell.passes;
+          const runPct = classified ? Math.round((cell.runs / classified) * 100) : null;
           const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
-          return <td key={c} class="tm-cell" style={`background:rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)});border:${border}`} title={`${r} × ${c}: ${cell.count} plays, ${runPct}% run, ${succPct}% success, ${avg} avg`}>
-            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct}R/{100 - runPct}P</div><div class="tm-succ">{succPct}%, {avg}y</div>
+          return <td key={c} class="tm-cell" style={`background:rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)});border:${border}`} title={`${r} × ${c}: ${cell.count} plays, ${runPct == null ? 'Run/Pass blank' : `${runPct}% run`}, ${succPct}% success, ${avg} avg`}>
+            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct == null ? '—' : `${runPct}R/${100 - runPct}P`}</div><div class="tm-succ">{succPct}%, {avg}y</div>
           </td>;
         })}
       </tr>)}</tbody>
@@ -1362,7 +1363,7 @@ export function OpponentOverviewTab({ data, screen }) {
 
 function scoutRows(rows, screen, prefix) {
   return (rows || []).map(row => ({ ...row, id: row.key || row.name || row.label,
-    situation: row.label || row.key, snaps: row.total, runPct: row.runPct, passPct: 100 - row.runPct,
+    situation: row.label || row.key, snaps: row.total, runPct: row.runs + row.passes ? row.runPct : null, passPct: row.runs + row.passes ? 100 - row.runPct : null,
     onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${prefix}: ${row.label || row.key || row.name}`) : undefined,
     label: `${prefix}: ${row.label || row.key || row.name}` }));
 }
@@ -1384,8 +1385,8 @@ export function OpponentOffenseTab({ data, screen }) {
   });
   const bigData = big.total >= 8 ? { to90: big.to90, label: data.opponent, rows: bigRows } : null;
   const columns = [{ key: 'situation', label: 'Situation' }, { key: 'snaps', label: 'Snaps', numeric: true },
-    { key: 'runPct', label: 'Run', numeric: true, render: row => `${row.runPct}%` },
-    { key: 'passPct', label: 'Pass', numeric: true, render: row => `${row.passPct}%` }, { key: 'avg', label: 'Avg', numeric: true }];
+    { key: 'runPct', label: 'Run', numeric: true, render: row => row.runPct == null ? '—' : `${row.runPct}%` },
+    { key: 'passPct', label: 'Pass', numeric: true, render: row => row.passPct == null ? '—' : `${row.passPct}%` }, { key: 'avg', label: 'Avg', numeric: true }];
   const formations = scoutRows(report.formationDetail.map(row => ({ ...row, key: row.name, label: row.name, avg: row.total ? (row.yards / row.total).toFixed(1) : '0.0' })), screen, 'Formation');
   return <div class="gi-overview-board">
     <div class="gi-st-toolbar"><strong class="gi-st-toolbar-label">Their offense</strong><OpponentWatch kind="offense" count={data.offCount} label="Watch opponent offense" screen={screen} /></div>

@@ -169,7 +169,9 @@ keyboard):
   `isPass`). With it blank, only an unambiguous Play Type classifies the play
   (Run Inside, Run Outside, Screen and the pass types); RPO, Play Action,
   Option, QB Run, Reverse and Trick Play alone leave it out of every run/pass
-  measure.
+  measure. Such a play still counts in a row's snaps but is neither a run nor a
+  pass there, and run and pass percentages are shares of the plays that are
+  classified (runs + passes), never of all snaps.
 - A single-value field is never routed through a multi-value splitter, and the
   analytics registry declares it `multi:false`, so a play is never counted
   twice along it.
