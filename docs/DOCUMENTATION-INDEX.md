@@ -44,6 +44,8 @@ log.
   (2026-10-04, `SMOKE-1.12.0-109.md`), bump `9a6bc05f`, unsigned NSIS
   4,040,963 bytes, SHA-256
   `D7907EF2C305795D2CB806F18493A6D98AAB72CAC36F9112D22268D011890845`. Not tagged.
+  It predates the failed-save ownership repairs (2026-10-05), which are in
+  source and focused-verified only.
 - **Packaged in 109, not yet smoked:** CR-1..CR-8 (`576a0981`), gate
   infrastructure (`f84c8be0`..`06a1ffcf`), Special Teams roster ownership and
   its review repairs (`06b66829`, `76e592f1`, `84b43520`), and Fake tries kept

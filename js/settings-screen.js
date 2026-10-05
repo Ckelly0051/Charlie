@@ -197,11 +197,13 @@ export class SettingsScreen {
   async _persistPlaybook(previous) {
     const store = this._store();
     if (!store?.data || !this.app.playbook) return true;
-    store.data.playbook = this.app.playbook.snapshot();
+    // A program or season opened during the save must not receive the rollback.
+    const teamId = this.app.playbook._teamId(), data = store.data;
+    data.playbook = this.app.playbook.snapshot();
     const saved = await store.persist();
     if (saved === false) {
-      this.app.playbook.replace(previous);
-      store.data.playbook = previous;
+      this.app.playbook.replace(previous, teamId);
+      data.playbook = previous;
       this._toast('The playbook change was not saved. Your prior playbook was kept.', 'error');
       return false;
     }

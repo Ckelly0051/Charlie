@@ -932,22 +932,32 @@ export class SeasonStore {
    * restore is itself undoable — you can never strand yourself on bad data.
    */
   async restoreBackup(id) {
-    const data = await this.backend.getBackup(this.currentSeasonId, id);
+    // The restore belongs to the season open when it started. A season opened
+    // during any wait stops it before anything is written, and a failed save
+    // rolls back only that season's own editor.
+    const seasonId = this.currentSeasonId, owner = this.data;
+    const moved = () => this.currentSeasonId !== seasonId || this.data !== owner;
+    const stopped = () => { this.lastRestoreRefusal = 'Another season was opened before the restore finished. Nothing was restored.'; return null; };
     this.lastRestoreRefusal = null;
+    const data = await this.backend.getBackup(seasonId, id);
+    if (moved()) return stopped();
     if (!data || !Array.isArray(data.games)) return null;
     // A restore point in an old format is refused before the safety snapshot,
     // so nothing is written.
     if (!SeasonFormat.isCurrentSeason(data)) { this.lastRestoreRefusal = SeasonFormat.RESTORE_MESSAGE; return null; }
     const safetyId = await this.snapshot('Before restore');
     if (!safetyId) return null;
-    const current = this.data;
-    this.data = this._normalize(data);
-    const persisted = await this.persist();
+    if (moved()) return stopped();
+    const restored = this._normalize(data);
+    this.data = restored;
+    const persisted = await this.persist(seasonId, restored);
     if (persisted === false) {
-      this.data = current;
+      if (this.currentSeasonId === seasonId && this.data === restored) this.data = owner;
       return null;
     }
-    return this.data;
+    if (this.currentSeasonId === seasonId && this.data === restored) return restored;
+    this.lastRestoreRefusal = 'The restore was saved, but another season was opened before it finished. Reopen that season to see it.';
+    return null;
   }
 
   // ---- durable disk target -------------------------------------------------

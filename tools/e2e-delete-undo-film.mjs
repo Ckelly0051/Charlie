@@ -34,7 +34,7 @@ const res = await page.evaluate(async () => {
   const has = (id) => store.data.games.some(x => x.id === id);
 
   // 1) delete a non-active game — film NOT deleted yet (deferred for undo)
-  sm.removeGame('g2');
+  await sm.removeGame('g2');
   const afterDel2 = { deleted: deleted.slice(), g2Present: has('g2') };
 
   // 2) undo — game back, film still never deleted
@@ -42,9 +42,9 @@ const res = await page.evaluate(async () => {
   const afterUndo = { deleted: deleted.slice(), g2Present: has('g2'), undoOk };
 
   // 3) delete g3 (deferred), then g4 — g4's delete closes g3's undo window → purge g3
-  sm.removeGame('g3');
+  await sm.removeGame('g3');
   const afterDel3 = deleted.slice();
-  sm.removeGame('g4');
+  await sm.removeGame('g4');
   const afterDel4 = deleted.slice();
 
   // 4) leaving the season purges the still-pending g4
@@ -78,14 +78,14 @@ const timers = await page.evaluate(async () => {
 
   // (1) delete + walk away → timer purges after the window
   fresh(); deleted.length = 0;
-  sm.removeGame('b');
+  await sm.removeGame('b');
   const beforeTimer = deleted.slice();
   await sleep(140);
   const afterTimer = deleted.slice();
 
   // (2) delete + undo within the window → timer cancelled, film kept
   fresh(); deleted.length = 0;
-  sm.removeGame('c');
+  await sm.removeGame('c');
   sm.undoRemoveGame();
   await sleep(140);
   const afterUndoTimer = deleted.slice();
@@ -114,7 +114,7 @@ const refused = await page.evaluate(async () => {
   await backend.saveSeason('undo-held', structuredClone(store.data));
   sm._loadActiveGame();
 
-  sm.removeGame('b');
+  await sm.removeGame('b');
   const pendingBefore = {
     filmGameId: sm._lastDeletedGame?.filmGameId || null,
     timer: Boolean(sm._filmPurgeTimer),
@@ -171,7 +171,7 @@ const scoped = await page.evaluate(async () => {
   backend.setCurrentSeason('film-outgoing');
   sm._loadActiveGame();
 
-  sm.removeGame('shared-game');
+  await sm.removeGame('shared-game');
   const opened = await sm.openSeasonById('film-incoming');
   const current = store.currentSeasonId;
 

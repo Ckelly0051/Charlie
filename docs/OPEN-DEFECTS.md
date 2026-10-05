@@ -34,6 +34,15 @@ it. The next installed smoke must cover each.
   Explicit mirror recovery is unchanged. Smoke: the library opens normally and
   Recovery still lists mirror snapshots.
 
+- **Failed saves roll back only their own owner** (2026-10-05, Codex review,
+  not in the `1.12.0-109` build): a game deletion whose save fails keeps the
+  game and never purges its film; a season restore stops if another season is
+  opened during it and a failed restore save rolls back only its own season;
+  a failed film link rolls back only the season it started on and never saves
+  into a season opened meanwhile; a failed playbook save rolls back only its
+  own program. `e2e-failed-save-ownership`. Smoke: delete a game and Undo;
+  restore a season restore point; link a game folder; add a play call.
+
 ## Open defects
 
 - **LG-1 — plays created without a unit.** SJM Varsity 2026 holds 33 plays whose

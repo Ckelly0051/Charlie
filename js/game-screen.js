@@ -93,7 +93,10 @@ export class GameScreen {
       this.app.history?._toast('The open game changed. Nothing was deleted.');
       return false;
     }
-    storage.removeGame(context.gameId);
+    if (!await storage.removeGame(context.gameId)) {
+      this.app.history?._toast('The game was not deleted because the season could not be saved.');
+      return false;
+    }
     parentHandle.close('deleted');
     await this.app.workspaceShell?.show?.('home');
     this.app.history?._toast(`Removed "${name}"`, {

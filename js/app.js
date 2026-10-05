@@ -537,8 +537,12 @@ class App {
           }),
         });
         if (await handle.result !== 'delete') return;
-        this.storage.removeGame(g.id);
+        const removed = await this.storage.removeGame(g.id);
         this._renderGamesPanel();
+        if (!removed) {
+          this.history?._toast('The game was not deleted because the season could not be saved.');
+          return;
+        }
         // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
         this.history?._toast(`Removed "${r.name}"`, {
           duration: this.storage.undoGameWindowMs(),

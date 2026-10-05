@@ -847,6 +847,9 @@ export class StorageManager {
     let game = this.seasonStore.activeGame();
     if (!game) { this.tagger.toast?.('Open a game first, then link its film.'); return false; }
     const gameId = game.id;
+    // Game ids repeat across seasons, so the season id is part of the owner.
+    const seasonId = this.seasonStore.currentSeasonId;
+    const moved = () => this.seasonStore.currentSeasonId !== seasonId || this.seasonStore.activeGame()?.id !== gameId;
     let root = backend.getLibraryRoot();
     if (!root) {
       const mode = await window.app?.uiPolish?.ensureFilmStorageMode?.({ force: true });
@@ -855,7 +858,7 @@ export class StorageManager {
     }
     const folder = await backend.pickFolder(root);
     if (!folder) return false;
-    if (this.seasonStore.activeGame()?.id !== gameId) {
+    if (moved()) {
       this.tagger.toast?.('Game changed before the folder was linked. Try again on the intended game.');
       return false;
     }
@@ -890,17 +893,18 @@ export class StorageManager {
     // File discovery and URL resolution cross native async boundaries. Recheck
     // immediately before mutation so a game/root change cannot receive another
     // game's playlist or linked-folder metadata.
-    if (this.seasonStore.activeGame()?.id !== gameId || backend.getLibraryRoot() !== root) {
+    if (moved() || backend.getLibraryRoot() !== root) {
       this.tagger.toast?.('Game or film library changed before linking finished. Try again on the intended game.');
       return false;
     }
 
-
     // Capture the live game before any relink mutation. The canonical write is
-    // the commit point; any exception or false save restores this exact state.
+    // the commit point; any exception or false save restores this exact state,
+    // but only while the season it started on is still the open one.
     this.commitActive();
     this._cancelPendingSaves();
-    const beforeSeason = JSON.parse(JSON.stringify(this.seasonStore.data));
+    const owner = this.seasonStore.data;
+    const beforeSeason = JSON.parse(JSON.stringify(owner));
     this._maybeSnapshot(true, 'Before linking film');
     try {
       game = this.seasonStore.activeGame();
@@ -919,10 +923,11 @@ export class StorageManager {
         }
         await this.playlist._autoCreatePlays();
       }
+      if (moved() || this.seasonStore.data !== owner) throw new Error('season or game changed while linking');
       if (this.playlist.activeClipIndex === -1 && this.playlist.clips.length > 0) this.playlist.switchToClip(0);
       this.videoFileName = null;
       this.commitActive();
-      const saved = await this.seasonStore.persist();
+      const saved = await this.seasonStore.persist(seasonId, owner);
       if (!saved) throw new Error('canonical season save failed');
       backend.rememberLinkedDir?.(folder);
       backend.setFilmStorageMode?.('linked');
@@ -930,11 +935,15 @@ export class StorageManager {
       this.tagger.toast?.(`Linked ${clips.length} clip${clips.length === 1 ? '' : 's'} from ${folder} - no copy made.`, 7000);
       return true;
     } catch (e) {
-      this.seasonStore.cancelPendingDiskWrite?.();
-      this.seasonStore.data = beforeSeason;
-      this._clearForNewGame();
-      await this._loadActiveGame({ renderGames: false });
-      this.tagger.toast?.('Film was not linked because the season could not be saved. Your previous film setup was restored.', 10000);
+      if (this.seasonStore.currentSeasonId === seasonId && this.seasonStore.data === owner) {
+        this.seasonStore.cancelPendingDiskWrite?.();
+        this.seasonStore.data = beforeSeason;
+        this._clearForNewGame();
+        await this._loadActiveGame({ renderGames: false });
+        this.tagger.toast?.('Film was not linked because the season could not be saved. Your previous film setup was restored.', 10000);
+      } else {
+        this.tagger.toast?.('Film was not linked because the season changed before it was saved. Link it again from that game.', 10000);
+      }
       return false;
     }
   }
@@ -1279,10 +1288,15 @@ export class StorageManager {
     return this.seasonStore.activeGame();
   }
 
-  removeGame(id) {
+  /** Delete a game. Resolves true once the deletion is durable; a failed save
+   *  puts the game back, resolves false and never purges its film. */
+  async removeGame(id) {
     // Risky op: force a restore point of the pre-delete state.
     this._maybeSnapshot(true, 'Before deleting game');
-    const wasActive = this.seasonStore.data && id === this.seasonStore.data.activeGameId;
+    const data = this.seasonStore.data;
+    const wasActive = data && id === data.activeGameId;
+    const beforeGames = data ? data.games.slice() : [];
+    const beforeActive = data && data.activeGameId;
     // Stash the node in memory so the post-delete toast can offer Undo (the
     // undo stack is game-scoped by design — lesson #19 — so game deletion
     // needs its own one-shot restore). Session-only, overwritten per delete.
@@ -1291,23 +1305,43 @@ export class StorageManager {
     // A new delete closes the PREVIOUS delete's undo window → purge that game's
     // film now (it was deferred from its own removeGame so undo could restore it).
     this._purgeStaleDeletedFilm();
-    this._lastDeletedGame = gi >= 0
-      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId, filmGameId: id }
+    // The film is not purged until the deletion is durable (`durable`) and its
+    // undo window closes: the timer, a newer delete, or leaving the season. Undo
+    // restores the game node, whose tags reference this film, and cancels the timer.
+    const stash = gi >= 0
+      ? { node: JSON.parse(JSON.stringify(games[gi])), index: gi, seasonId: this.seasonStore.currentSeasonId, filmGameId: id, durable: false }
       : null;
-    // Do NOT delete the film here. undoRemoveGame restores the game node, and its
-    // tags reference this film — deleting it synchronously made undo bring back a
-    // game pointing at gone film. Purge it when the undo window CLOSES: a timer
-    // (so deleting one game and walking away still reclaims the film — the stash
-    // is in-memory and would otherwise leak on app close), a newer delete, or
-    // leaving the season. Undo cancels the timer. (A crash inside the window
-    // leaves it for the storage epic's load-time GC — a belt-and-braces sweep.)
+    this._lastDeletedGame = stash;
     this._cancelFilmPurgeTimer();
-    if (this._lastDeletedGame && this._lastDeletedGame.filmGameId) {
-      this._filmPurgeTimer = setTimeout(() => this._purgeStaleDeletedFilm(), this.undoGameWindowMs());
-    }
     this.seasonStore.removeGame(id);
-    this.seasonStore.persist();
+    const saving = this.seasonStore.persist();
     if (wasActive) { this._clearForNewGame(); this._loadActiveGame(); }
+    const saved = await saving;
+    if (saved === false) {
+      if (stash) stash.filmGameId = null;
+      if (this._lastDeletedGame === stash) this._lastDeletedGame = null;
+      // Put the game back only in the season it was deleted from, if still open.
+      if (this.seasonStore.data === data) {
+        data.games.splice(0, data.games.length, ...beforeGames);
+        if (wasActive) {
+          data.activeGameId = beforeActive;
+          this._clearForNewGame();
+          await this._loadActiveGame();
+        }
+        try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
+      }
+      return false;
+    }
+    if (stash) {
+      stash.durable = true;
+      if (this._lastDeletedGame === stash) {
+        if (stash.filmGameId) this._filmPurgeTimer = setTimeout(() => this._purgeStaleDeletedFilm(), this.undoGameWindowMs());
+      } else {
+        // A newer delete closed this one's undo window while it was saving.
+        this._purgeDeletedFilm(stash);
+      }
+    }
+    return true;
   }
 
   undoGameWindowMs() { return Number(this.UNDO_FILM_WINDOW_MS) || 30000; }
@@ -1320,8 +1354,14 @@ export class StorageManager {
    *  Desktop-only; no film on the browser. */
   _purgeStaleDeletedFilm() {
     this._cancelFilmPurgeTimer();
-    const stash = this._lastDeletedGame;
+    this._purgeDeletedFilm(this._lastDeletedGame);
+  }
+
+  _purgeDeletedFilm(stash) {
     if (!stash || !stash.filmGameId) return;
+    // A deletion still saving purges nothing; removeGame purges or arms the
+    // timer once the deletion is durable.
+    if (stash.durable === false) return;
     const backend = this.seasonStore.backend;
     if (backend.supportsFilm && backend.supportsFilm()) {
       // Game ids can repeat across seasons. Carry the stash's owner all the way
@@ -1343,6 +1383,7 @@ export class StorageManager {
     games.splice(Math.min(stash.index, games.length), 0, stash.node);
     this.seasonStore.persist();
     this._cancelFilmPurgeTimer();   // undo restores the game → its film must NOT be purged
+    stash.filmGameId = null;        // nor by a deletion save that settles after the undo
     this._lastDeletedGame = null;
     // Refresh every games view that may be showing (all display-only).
     try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
