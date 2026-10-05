@@ -52,3 +52,8 @@ context selectors, play-strip order and drive grouping, and every data path.
 
 `proposed-badge-neutral-1440x900.png`: the same proposal with the current-play badge (PLAY 39) in neutral graphite instead of gold, at the coach's request for comparison.
 
+## Coach decisions
+
+- 2026-10-05: the current-play badge is neutral graphite ("neutral for sure").
+  `proposed-badge-neutral-1440x900.png` is the reference for the badge.
+
