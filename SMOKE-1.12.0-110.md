@@ -47,4 +47,13 @@ Standard smoke (`docs/RELEASE.md`), plus the items since 108:
 
 ## Findings
 
-None logged yet.
+1. **Home > Get started says "Create your first season" with 3 seasons in the
+   library** (Claude's read-only check, 2026-10-05). Program St. Joseph
+   Mavericks, Get started pane selected: "Start the football year here /
+   Create your first season". Season library shows 3 seasons, 17 games,
+   1,088 plays.
+
+Claude's read-only check, same date, also passed: 2025 JV opened (6 games, all
+film linked); Week 6 Defense reads 35 = 27 rush + 8 pass with "21 charted /
+19 with Run/Pass charted"; linked film played in Break Down; Restore points
+list 14 saved; More menu reads v1.12.0-110. Nothing was written.
