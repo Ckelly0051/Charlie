@@ -27,6 +27,10 @@ None. Latest coach-smoked build: `1.12.0-110` (2026-10-05).
 - **Two Delete buttons and two Save & Next affordances on Break Down** (coach
   agreed 2026-10-04). Delete Play sits under the film and Delete in the deck
   header; Save & Next also shows an Enter key hint.
+- **The More menu uses the old styling** (coach, 2026-10-05). The shell's More
+  dropdown is a flat list with blue sublabels ("CSV or pasted breakdown",
+  "Create a restore point") and plain dividers, unlike the titled Program /
+  Season / Game menus approved in BD-UX-1.
 - **Gold marks everything on Break Down** (coach agreed 2026-10-04): active
   route, tabs, selected chips, section headers, drive labels, Edit library and
   Save & Next all use gold, so the primary action does not stand out.
