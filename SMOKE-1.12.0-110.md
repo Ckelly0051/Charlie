@@ -13,11 +13,16 @@
   with `cargo tauri build --bundles nsis` and `createUpdaterArtifacts:false`.
   Nothing pushed, tagged or published. Supersedes `1.12.0-109`, which was
   never smoked.
-- Packaged-asset inspection (non-builder, `docs/RELEASE.md`): pending.
+- Packaged-asset inspection (non-builder, `docs/RELEASE.md`): not recorded.
 
 ## Result
 
-Pending.
+**Installed smoke passed - coach approval, 2026-10-05** ("smoke passed").
+The coach re-charted Week 6 vs Holy Family play 67 as RPO + Run Outside
+(Gain 7) and confirmed the Defense numbers moved as expected. One finding,
+logged below and in `docs/OPEN-DEFECTS.md`. This approval does not move the
+design-approval registry. No packaged-asset inspection by Codex was recorded
+before the smoke.
 
 ## What to check
 

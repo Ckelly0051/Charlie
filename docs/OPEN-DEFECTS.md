@@ -7,50 +7,14 @@ open, check its fix and smoke status in git.
 
 ## Repaired in source, awaiting the next installer and smoke
 
-Latest coach-smoked build: `1.12.0-108` (2026-10-01). These are in source after
-it. The next installed smoke must cover each.
-
-- **CR-1..CR-8** (`576a0981`): a failed season read refuses the open; version
-  restore and film repair stop if the game changes; overlapping season opens
-  apply only the latest; film repair reports a failed save; a pass completed for
-  a loss counts as an attempt and completion; Plan export opens the native save
-  dialog; multi-clip cut-ups play in play order. Smoke: Plan export save
-  dialog, a multi-clip cut-up's order, passing totals on a game with a screen
-  for a loss.
-- **ST-ROSTER-1, R1-R4** (`06b66829`, `76e592f1`, `84b43520`): Kick Return and
-  Punt Return / Block offer our roster only for our returner; kicking units only
-  for our kicker; the opposing number is typed and labeled Opponent (Other team
-  in a scout season); row order is Kicker then Returner; Field Goal Block has one
-  Blocker input; the active role holds after edits.
-- **Gate infrastructure** (`f84c8be0` .. `06a1ffcf`): deadlines, shared
-  browsers, run receipts. Test-only; no smoke item.
-- **Fake tries out of player stats** (2026-10-04, Codex review): a Fake try
-  credited its ball carrier with rushing on the Players board, which reads
-  player credits without compute()'s try exclusion. `countsFootballRoles` now
-  refuses every try. Smoke: a Fake try adds nothing to Players; a fake punt
-  rush still counts.
-- **No silent startup import** (2026-10-04): desktop catalog startup no longer
-  imports a leftover per-season `season.json`; the files are left untouched.
-  Explicit mirror recovery is unchanged. Smoke: the library opens normally and
-  Recovery still lists mirror snapshots.
-
-- **Failed saves roll back only their own owner** (2026-10-05, Codex review,
-  in `1.12.0-110`): a game deletion whose save fails keeps the
-  game and never purges its film; a season restore stops if another season is
-  opened during it and a failed restore save rolls back only its own season;
-  a failed film link rolls back only the season it started on and never saves
-  into a season opened meanwhile; a failed playbook save rolls back only its
-  own program. `e2e-failed-save-ownership`. Smoke: delete a game and Undo;
-  restore a season restore point; link a game folder; add a play call.
-- **Run/Pass decides run/pass stats** (2026-10-05, Codex review, coach ruling;
-  in `1.12.0-110`): an RPO or Play Action play with Run/Pass blank was
-  counted as a pass, and tendency tables counted every non-run as a pass
-  (`4abd7e7a`). Smoke: Week 6 vs Holy Family play 67 counts as the Run/Pass
-  the coach charts on it; Opponent scout run % by down and distance reads from
-  charted run/pass plays only; play-action rate stays at or under 100%.
+None. Latest coach-smoked build: `1.12.0-110` (2026-10-05).
 
 ## Open defects
 
+- **Home > Get started says "Create your first season" when seasons exist**
+  (SMOKE-110 finding 1, 2026-10-05). With 3 seasons in St. Joseph Mavericks,
+  the Get started pane still offers "Start the football year here / Create
+  your first season"; Season library lists the seasons correctly.
 - **LG-1 — plays created without a unit.** SJM Varsity 2026 holds 33 plays whose
   tags are blank with no `unit` key (Week 4 vs Oakland Christian plays 31-34 and
   37-64; vs Romeo play 1). Every `PlayTagger` creation path seeds `unit`, so
