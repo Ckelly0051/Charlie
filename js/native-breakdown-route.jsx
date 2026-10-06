@@ -112,7 +112,7 @@ export function BreakdownRoute({ workspace, state }) {
           <button type="button" role="menuitem" data-bd-film-focus {...pressed(filmFocus)} onClick={() => { workspace._closeTools(); workspace._setFilmFocus(!workspace.filmFocus); }}><Icon name="scan" /><span>{filmFocus ? 'Show charting' : 'Film focus'}</span></button>
         </div>
       </div>
-      <span class={`gi-breakdown-save ${saveState === 'pending' ? 'is-pending' : 'is-saved'}`} id="bdSaveState">{saveState === 'pending' ? 'Saving...' : 'Saved'}</span>
+      <span class={`gi-breakdown-save is-${saveState === 'pending' ? 'pending' : saveState === 'failed' ? 'failed' : 'saved'}`} id="bdSaveState">{saveState === 'pending' ? 'Saving...' : saveState === 'failed' ? 'Not saved' : 'Saved'}</span>
     </header>
     <div class="gi-breakdown-composition">
       <section class="gi-breakdown-theater-host" data-breakdown-theater-host>{!theater.standalone && views.theater}</section>

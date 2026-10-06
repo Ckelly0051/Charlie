@@ -34,6 +34,11 @@ export class CutupExporter {
 
   }
 
+  /** After a cancel, ask in the app whether to keep what was recorded. */
+  _keepPartial() {
+    return this.tagger._confirmDialog('Cut-up cancelled. Save partial video anyway?', 'Save partial video');
+  }
+
   async export() {
     if (this.recording) return;
 
@@ -48,7 +53,7 @@ export class CutupExporter {
     }
 
     if (!plays.length) {
-      alert('No plays available to export. Tag some plays or adjust your filters.');
+      this.tagger.toast?.('No plays available to export. Tag some plays or adjust your filters.');
       return;
     }
 
@@ -62,11 +67,12 @@ export class CutupExporter {
     const s = Math.round(estTotal % 60);
     const filterNote = (this.filter && this.filter.active) ? ' (filtered)' : '';
 
-    if (!confirm(
-      `Export ${plays.length} plays${filterNote} as a cut-up video?\n\n` +
-      `Estimated render time: ${m}:${s.toString().padStart(2, '0')} (real-time recording)\n` +
-      `Output: WebM video (~${Math.round(estTotal * 1.5)} MB)\n\n` +
-      `The video will play through automatically. You can cancel anytime.`
+    // The in-app confirm: a native confirm() can be suppressed and return false.
+    if (!await this.tagger._confirmDialog(
+      `Export ${plays.length} plays${filterNote} as a cut-up video? ` +
+      `Estimated render time ${m}:${s.toString().padStart(2, '0')} (real time), ` +
+      `WebM about ${Math.round(estTotal * 1.5)} MB. The video plays through automatically; you can cancel anytime.`,
+      'Export cut-up'
     )) return;
 
     this.recording = true;
@@ -75,7 +81,7 @@ export class CutupExporter {
     try {
       await this._record(plays);
     } catch (e) {
-      alert('Cut-up failed: ' + e.message);
+      this.tagger.toast?.('Cut-up failed: ' + e.message);
       console.error(e);
     } finally {
       this.recording = false;
@@ -175,9 +181,7 @@ export class CutupExporter {
       progress.remove();
     }
 
-    if (this.cancelled) {
-      if (!confirm('Cut-up cancelled. Save partial video anyway?')) return;
-    }
+    if (this.cancelled && !await this._keepPartial()) return;
 
     const blob = new Blob(chunks, { type: mimeType });
     const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');

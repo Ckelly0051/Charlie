@@ -18,6 +18,7 @@
 .gi-breakdown-save{margin-left:auto;padding-left:12px;border-left:1px solid var(--gi-6);flex:0 0 auto;color:var(--gi-bd-copy);font:600 11px var(--gi-sans);text-transform:uppercase}
 .gi-breakdown-save::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;background:var(--gi-ok)}
 .gi-breakdown-save.is-pending::before{background:var(--gi-warn)}
+.gi-breakdown-save.is-failed{color:var(--gi-turnover)}.gi-breakdown-save.is-failed::before{background:var(--gi-turnover)}
 /* One route-owned gutter. Child padding belongs to the film and charting
    components and must not be counted to manufacture page-level symmetry. */
 .gi-breakdown-composition{display:grid;min-width:0;min-height:0;padding-inline:6px;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:minmax(0,1fr) 34px;grid-template-areas:'theater deck' 'rail deck'}

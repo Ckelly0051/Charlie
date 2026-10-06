@@ -240,8 +240,9 @@ export class StorageManager {
     }, 1000);
   }
 
-  /** Surface save-state to the UI (App renders it on the top-bar Save button).
-   *  States: 'pending' (a debounced save is armed) → 'saved' (persisted). */
+  /** Surface save-state to the UI (Break Down's save indicator). States:
+   *  'pending' (a save is armed or running), 'saved' (the canonical write
+   *  landed), 'failed' (it did not). */
   _signalSave(state) {
     try { if (this.onSaveState) this.onSaveState(state); } catch (e) {}
   }
@@ -262,9 +263,10 @@ export class StorageManager {
   _commitAndPersist() {
     if (!this.seasonStore || !this.seasonStore.data) return Promise.resolve(false);
     this.commitActive();
-    const result = Promise.resolve(this.seasonStore.persist());
+    const result = Promise.resolve(this.seasonStore.persist()).then(ok => ok !== false, () => false);
     this._maybeSnapshot();   // throttled auto restore-point
-    this._signalSave('saved');
+    // Saved only once the write lands; a newer armed edit keeps its pending state.
+    result.then(ok => { if (!this.autoSaveTimer) this._signalSave(ok ? 'saved' : 'failed'); });
     return result;
   }
 
@@ -1584,7 +1586,9 @@ export class StorageManager {
    */
   async saveProject() {
     this.commitActive();
-    this.seasonStore.persist();
+    this._signalSave('pending');
+    const saved = await Promise.resolve(this.seasonStore.persist()).then(ok => ok !== false, () => false);
+    if (!saved) { this._signalSave('failed'); return false; }
     this._maybeSnapshot(true, 'Manual save');
     this._signalSave('saved');
     const st = this.seasonStore;

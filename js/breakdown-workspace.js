@@ -169,7 +169,7 @@ export class BreakdownWorkspace {
   }
 
   setSaveState(state) {
-    this.saveState = state === 'pending' ? 'pending' : 'saved';
+    this.saveState = ['pending', 'failed'].includes(state) ? state : 'saved';
     this.render();
   }
 
