@@ -25,25 +25,39 @@ const PARKED = {
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => { if (cond) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 
-// Comments are not code: a removed id named in a comment is history, not a lookup.
-const stripComments = src => src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' ')).replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
+// Comments are not code on either side: an id named in a comment neither
+// creates an element nor looks one up. Blanking keeps line numbers.
+const blank = m => m.replace(/[^\n]/g, ' ');
+const stripComments = src => src.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/<!--[\s\S]*?-->/g, blank).replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
+const PRODUCERS = [/\bid\s*=\s*["'`]([\w-]+)["'`]/g, /\bid\s*=\s*\{\s*["'`]([\w-]+)["'`]\s*\}/g, /\.id\s*=\s*["'`]([\w-]+)["'`]/g, /setAttribute\(\s*['"]id['"]\s*,\s*['"]([\w-]+)['"]/g];
+// \s spans newlines, so a lookup split across lines is still a lookup.
+const LOOKUP = /getElementById\(\s*['"]([\w-]+)['"]\s*\)|querySelector(?:All)?\(\s*['"]#([\w-]+)['"]/g;
+const producedIds = texts => {
+  const ids = new Set();
+  for (const text of texts) for (const re of PRODUCERS) for (const m of stripComments(text).matchAll(re)) ids.add(m[1]);
+  return ids;
+};
+const strandedLookups = (sourceMap, ids) => {
+  const out = [];
+  for (const [f, src] of sourceMap) {
+    const code = stripComments(src);
+    for (const m of code.matchAll(LOOKUP)) {
+      const id = m[1] || m[2];
+      if (!ids.has(id) && !PARKED[id]) out.push(`#${id} ${f}:${code.slice(0, m.index).split('\n').length}`);
+    }
+  }
+  return out;
+};
+
+// The detector must see through both ways a dead reference can hide.
+const selfStranded = strandedLookups(new Map([['probe.js', "const a = document.getElementById(\n  'gone'\n);\nconst b = document.querySelector('#kept');"]]),
+  producedIds(['<!-- <div id="gone"></div> -->', '/* el.id = "gone" */', '<div id="kept"></div>']));
+ok(selfStranded.length === 1 && selfStranded[0] === '#gone probe.js:1', 'the guard ignores ids produced only in comments and catches a lookup split across lines', JSON.stringify(selfStranded));
 
 const files = fs.readdirSync(`${ROOT}/js`).filter(f => /\.(js|jsx)$/.test(f));
 const sources = new Map(files.map(f => [f, fs.readFileSync(`${ROOT}/js/${f}`, 'utf8')]));
-const all = [...sources.values()].join('\n') + '\n' + fs.readFileSync(`${ROOT}/index.html`, 'utf8');
-const produced = new Set();
-for (const re of [/\bid\s*=\s*["'`]([\w-]+)["'`]/g, /\bid\s*=\s*\{\s*["'`]([\w-]+)["'`]\s*\}/g, /\.id\s*=\s*["'`]([\w-]+)["'`]/g, /setAttribute\(\s*['"]id['"]\s*,\s*['"]([\w-]+)['"]/g]) {
-  for (const m of all.matchAll(re)) produced.add(m[1]);
-}
-const stranded = [];
-for (const [f, src] of sources) {
-  stripComments(src).split('\n').forEach((line, i) => {
-    for (const m of line.matchAll(/getElementById\(\s*['"]([\w-]+)['"]\s*\)|querySelector(?:All)?\(\s*['"]#([\w-]+)['"]/g)) {
-      const id = m[1] || m[2];
-      if (!produced.has(id) && !PARKED[id]) stranded.push(`#${id} ${f}:${i + 1}`);
-    }
-  });
-}
+const produced = producedIds([...sources.values(), fs.readFileSync(`${ROOT}/index.html`, 'utf8')]);
+const stranded = strandedLookups(sources, produced);
 ok(!stranded.length, 'no production code looks up an element id that nothing creates', stranded.join(', '));
 const parkedLive = Object.keys(PARKED).filter(id => [...sources.values()].some(src => src.includes(id)));
 ok(parkedLive.length === Object.keys(PARKED).length, 'every parked exception still exists (remove it here when its code goes)',
