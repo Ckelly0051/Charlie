@@ -247,6 +247,19 @@ export class StorageManager {
     try { if (this.onSaveState) this.onSaveState(state); } catch (e) {}
   }
 
+  /** Each save takes a ticket naming its generation and owning season. Only
+   *  the newest save, still on its own season, may report its outcome: an
+   *  older save landing late must not show Saved. */
+  _saveTicket() {
+    this._saveGen = (this._saveGen || 0) + 1;
+    return { gen: this._saveGen, seasonId: this.seasonStore?.currentSeasonId, data: this.seasonStore?.data };
+  }
+
+  _ownsSave(ticket) {
+    return ticket.gen === this._saveGen && this.seasonStore?.currentSeasonId === ticket.seasonId
+      && this.seasonStore?.data === ticket.data;
+  }
+
   /** Cancel debounced writes armed for the CURRENT season (call before leaving it). */
   _cancelPendingSaves() {
     clearTimeout(this.autoSaveTimer);
@@ -263,10 +276,11 @@ export class StorageManager {
   _commitAndPersist() {
     if (!this.seasonStore || !this.seasonStore.data) return Promise.resolve(false);
     this.commitActive();
+    const ticket = this._saveTicket();
     const result = Promise.resolve(this.seasonStore.persist()).then(ok => ok !== false, () => false);
     this._maybeSnapshot();   // throttled auto restore-point
     // Saved only once the write lands; a newer armed edit keeps its pending state.
-    result.then(ok => { if (!this.autoSaveTimer) this._signalSave(ok ? 'saved' : 'failed'); });
+    result.then(ok => { if (this._ownsSave(ticket) && !this.autoSaveTimer) this._signalSave(ok ? 'saved' : 'failed'); });
     return result;
   }
 
@@ -1586,8 +1600,12 @@ export class StorageManager {
    */
   async saveProject() {
     this.commitActive();
+    const ticket = this._saveTicket();
     this._signalSave('pending');
     const saved = await Promise.resolve(this.seasonStore.persist()).then(ok => ok !== false, () => false);
+    // Another season was opened (or a newer save started) while this one ran:
+    // its restore point, download and indicator would describe the wrong data.
+    if (!this._ownsSave(ticket)) return saved;
     if (!saved) { this._signalSave('failed'); return false; }
     this._maybeSnapshot(true, 'Manual save');
     this._signalSave('saved');

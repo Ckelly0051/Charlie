@@ -14,18 +14,18 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 globalThis.window = globalThis.window || {};
 
 const rig = () => {
-  let resolveSave;
+  const resolvers = [];
   const signals = [], log = [];
   const store = {
     data: { id: 'A' }, currentSeasonId: 'A',
-    persist() { log.push('persist'); return new Promise(r => { resolveSave = r; }); },
+    persist() { log.push('persist'); return new Promise(r => { resolvers.push(r); }); },
     supportsDisk: () => false, diskStatus: () => ({ bound: false }),
     downloadFile() { log.push('download'); }, saveNow: async () => { log.push('saveNow'); return true; },
     hasCurrent: () => true,
   };
   const sm = Object.create(StorageManager.prototype);
   Object.assign(sm, { seasonStore: store, onSaveState: s => signals.push(s), commitActive() {}, _maybeSnapshot() { log.push('snapshot'); } });
-  return { sm, signals, log, resolve: v => resolveSave(v) };
+  return { sm, store, signals, log, resolve: v => resolvers.at(-1)(v), resolveAt: (i, v) => resolvers[i](v) };
 };
 
 console.log('\n-- Save season --');
@@ -64,6 +64,39 @@ console.log('\n-- autosave commit --');
   const committing = sm._commitAndPersist();
   resolve(true);
   ok((await committing) === true && signals.at(-1) === 'saved', 'a durable autosave shows Saved', JSON.stringify(signals));
+}
+
+console.log('\n-- races (Codex review of 885026d7) --');
+{
+  // An older save finishing while a newer one is still running is not "Saved".
+  const { sm, signals, resolveAt } = rig();
+  const first = sm._commitAndPersist();
+  const second = sm._commitAndPersist();
+  resolveAt(0, true); await first; await tick();
+  ok(!signals.includes('saved'), 'an older save landing while a newer one runs does not show Saved', JSON.stringify(signals));
+  resolveAt(1, true); await second; await tick();
+  ok(signals.at(-1) === 'saved', 'the newest save landing shows Saved', JSON.stringify(signals));
+}
+{
+  // An older failure after a newer success does not flip the indicator either.
+  const { sm, signals, resolveAt } = rig();
+  const first = sm._commitAndPersist();
+  const second = sm._commitAndPersist();
+  resolveAt(1, true); await second; await tick();
+  resolveAt(0, false); await first; await tick();
+  ok(signals.at(-1) === 'saved', 'a stale result never overwrites the newest one', JSON.stringify(signals));
+}
+{
+  // Save season started on A finishes after the coach opened B.
+  const { sm, store, signals, log, resolve } = rig();
+  const saving = sm.saveProject();
+  await tick();
+  store.currentSeasonId = 'B'; store.data = { id: 'B' };
+  resolve(true);
+  await saving;
+  ok(!log.includes('snapshot') && !log.includes('download') && !log.includes('saveNow'),
+    'Save season stops its restore point and download after a season switch', JSON.stringify(log));
+  ok(!signals.includes('saved'), 'Save season does not show Saved for the season opened meanwhile', JSON.stringify(signals));
 }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
