@@ -579,14 +579,15 @@ export class BreakdownTheaterScreen {
       const result = this._chyronSpecialResult(play).result;
       return { situation: unit, call: '', result: result === '—' ? 'No result' : result };
     }
+    const raw = String(tags.yardage ?? '').trim();
+    const outcome = tags.result || 'No result';
+    const result = raw ? `${outcome}: ${Number(raw) > 0 ? '+' : ''}${raw}` : outcome;
     // Special Teams with no event charted yet: say so, without guessing a unit.
-    if (tags.unit === 'special') return { situation: 'Special Teams', call: '', result: tags.result || 'No result' };
+    if (tags.unit === 'special') return { situation: 'Special Teams', call: '', result };
     const situation = (({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || 'No down')
       + (tags.distance ? ` & ${tags.distance}` : '');
     const call = tags.playType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
-    const result = tags.result || 'No result';
-    const raw = String(tags.yardage ?? '').trim();
-    return { situation, call, result: raw ? `${result}: ${Number(raw) > 0 ? '+' : ''}${raw}` : result };
+    return { situation, call, result };
   }
 
   /** Drive groups on composite possession-side + drive-number identity. The

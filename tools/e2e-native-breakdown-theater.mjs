@@ -252,6 +252,7 @@ const railSpecial = await page.evaluate(() => {
     returned: view({unit:'kickoffReturn',outcome:{status:'returned'}}),
     retry: view({unit:'try',attemptType:'extraPoint',result:'noPlay'}),
     legacy: screen._playView({id:2,tags:{unit:'special',stType:'Punt',kickOutcome:'Downed'}}),
+    yards: screen._playView({id:3,tags:{unit:'special',result:'Gain',yardage:'18'}}),
   };
 });
 ok(railSpecial.selected.situation === 'Kick Return' && railSpecial.selected.call === '' && railSpecial.selected.result === 'No result',
@@ -262,6 +263,8 @@ ok(railSpecial.retry.result === 'No Play / Retry' && railSpecial.legacy.call !==
 // still Special Teams, never "No down", and no kicking unit is inferred.
 ok(railSpecial.legacy.situation === 'Special Teams' && !railSpecial.legacy.label.includes('Punt'),
   'An uncharted Special Teams play reads "Special Teams", not a down, with no inferred unit', JSON.stringify(railSpecial.legacy));
+ok(railSpecial.yards.situation === 'Special Teams' && railSpecial.yards.result === 'Gain: +18',
+  'An uncharted Special Teams play keeps its recorded result and yardage', JSON.stringify(railSpecial.yards));
 ok(state.offTd === 'pos', 'Offense Touchdown is positive');
 ok(state.offInt === 'neg', 'Offense Interception is negative');
 ok(state.offNoGood === 'neg', '"No Good" is negative, not the inverted green from the original defect');
