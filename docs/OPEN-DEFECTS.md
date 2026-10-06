@@ -29,6 +29,27 @@ it. The next installed smoke must cover each.
 
 ## Open defects
 
+- **Save season reports "Saved" before the save lands** (code review
+  2026-10-06). `StorageManager.saveProject` (`js/storage.js`) calls
+  `persist()` without awaiting it and signals Saved immediately, so a failed
+  canonical write still reads as saved on the explicit Save.
+- **"Mark as Final" is unreachable; two toasts point at a missing control**
+  (code review 2026-10-06). `App._finishGame` is called only from the legacy
+  games panel, whose `#gamesPanelList` no longer exists. `_checkFinishHint`
+  and the last-play toast tell the coach to use "the season chip", which does
+  not exist. Needs a coach decision: restore the action somewhere, or retire
+  game status and the toasts.
+- **Cut-up export uses native `confirm()`** (code review 2026-10-06):
+  `js/cutup-exporter.js` asks to start and to keep a partial video with
+  `window.confirm`, which the app's own notes say can be suppressed and return
+  false; native `alert()` also remains in six files.
+- **Stranded legacy DOM layer** (code review 2026-10-06): 24 element ids are
+  read but never produced (games panel, game header summary, tag progress,
+  expand-video, drawing toolbar, playlist panel, video drop zone, play-diagram
+  preview; the OCR ids belong to parked OCR-1). Their methods run as guarded
+  no-ops. `NotesManager.loadNotes` has no caller; `StatsEngine._offensePlays`
+  and `WorkspaceShell._homeSelectedGameId` are reached only by tests.
+
 - **LG-1 — plays created without a unit.** SJM Varsity 2026 holds 33 plays whose
   tags are blank with no `unit` key (Week 4 vs Oakland Christian plays 31-34 and
   37-64; vs Romeo play 1). Every `PlayTagger` creation path seeds `unit`, so
