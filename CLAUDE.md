@@ -289,6 +289,11 @@ a reviewed correction named in the diff.
 - Reproduce before fixing; fix at the root, one change at a time.
 - Sweep the container, not just the file: one stranded reference usually means
   the whole container is stranded.
+- **A replacement removes what it replaces, in the same change** (coach,
+  2026-10-06). When new code takes over a job, delete the old path, its
+  markup, CSS, bindings, tests and comments in that commit, and name what was
+  removed in the commit message. Nothing is left "for later" unless the coach
+  parked it. Every review asks: what did this replace, and is it gone?
 - A check must be as strong as its name.
 - Commit the first working pass locally before revising it. Commit at every
   baton pass.
