@@ -81,11 +81,10 @@ down-and-distance chart and run-gap chart are built.
 2. **Finish charting first** (coach, 2026-10-05). Get charting as close to
    finished as possible before any reporting work, because the next reporting
    step is a full rebuild (below) and should be built once against the final
-   charted fields. Known charting work: the Break Down cleanup the coach agreed
-   to (gold everywhere, settings in the toolbar, the two Delete and two Save &
-   Next controls, truncated play-strip results and "Down -"), LG-1 (plays
-   created without a unit) and the pass target / route / missed-tackle fields
-   in step 6.
+   charted fields. The Break Down cleanup is done (`1.12.0-111`, smoke passed
+   2026-10-06). Remaining charting work: LG-1 (plays created without a unit),
+   removing the stranded legacy DOM layer found in the 2026-10-06 code review,
+   and the pass target / route / missed-tackle fields in step 6.
 3. **Reporting rebuild on the registry** (agreed in principle 2026-10-05,
    deferred until charting is done). Reports today hand-build each table with
    its own grouping function in `stats-engine.js` and its own markup, so a new

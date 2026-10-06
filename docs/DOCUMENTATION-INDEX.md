@@ -41,9 +41,10 @@ log.
   cut-up prompts, Special Teams strip labels and Mark as Final in Game
   settings. Full gate 153/153 at `87612c5a`; bump `4ee0595b`; unsigned NSIS
   `GridIron IQ_1.12.0-111_x64-setup.exe`, 4,040,492 bytes, SHA-256
-  `C98BF2F08AB4FDE0A8D491E4E6E22FDF9381F3141A583C295BD4B7FE94CA1F27`. Not
-  tagged. The design registry still reads IMPLEMENTED_UNVERIFIED for the
-  cleanup (an installed smoke does not move it).
+  `C98BF2F08AB4FDE0A8D491E4E6E22FDF9381F3141A583C295BD4B7FE94CA1F27`. Tagged
+  `v1.12.0-111` (the tag builds the GitHub prerelease); branch pushed. The
+  design registry still reads IMPLEMENTED_UNVERIFIED for the cleanup (an
+  installed smoke does not move it).
 - **Latest full gate:** GREEN, 153/153 at `87612c5a` (2026-10-06), covering
   everything since 110.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
@@ -55,11 +56,12 @@ log.
   the tag and Special Teams model docs rewritten as current contracts and
   reviewed by Codex; four standing-rule docs replaced by `docs/RELEASE.md` and
   `docs/COLLABORATION.md`; the remaining contracts brought to current state;
-  five one-time tools deleted.
-  All local, not pushed, not packaged.
+  five one-time tools deleted. Pushed, and packaged from `1.12.0-110` on.
 - **Design registry:** every Reports manifest and Home read
-  `productionStatus: REJECTED`; installed smokes approved bounded changes
-  without moving the registry.
+  `productionStatus: REJECTED`; Break Down charting is COMP_APPROVED with
+  production DRAFT; the Break Down cleanup is COMP_APPROVED with production
+  IMPLEMENTED_UNVERIFIED. Installed smokes approved bounded changes without
+  moving the registry.
 - Harness inventory is discovered from `tools/e2e-*.mjs`; never a count in
   prose.
 
