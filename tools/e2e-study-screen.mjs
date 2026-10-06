@@ -20,6 +20,28 @@ const capture = async name => {
   await page.screenshot({ path: `${screenshotDir}/${name}.png`, fullPage: false });
 };
 page.on('pageerror', error => errors.push(error.stack || error.message));
+// A Watch toast sits over the bottom-right of the query bar for its 4.5s
+// life and takes any click under it (a click on it dismisses it). Clear the
+// way a coach would -- dismiss the covering toast, then press Clear -- and
+// fail loudly if the filters did not actually empty, so a swallowed click can
+// never leak a filter into later checks.
+const clearStudyFilters = async () => {
+  if (!await page.$('[data-study-action="clear-filters"]:not([hidden])')) return;
+  for (let i = 0; i < 5; i++) {
+    const covered = await page.evaluate(() => {
+      const button = document.querySelector('[data-study-action="clear-filters"]'), rect = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      const toast = hit?.closest('.gi-native-toast');
+      if (toast) toast.click();
+      return !!toast;
+    });
+    if (!covered) break;
+    await page.waitForFunction(() => !document.querySelector('.gi-native-toast'), { timeout: 2000 }).catch(() => {});
+  }
+  await page.click('[data-study-action="clear-filters"]');
+  const left = await page.evaluate(() => document.querySelectorAll('.ws-study-filter-row').length);
+  if (left) throw new Error(`Clear left ${left} Study filter(s) in place`);
+};
 await gotoApp(page, URL);
 
 await page.evaluate(async () => {
@@ -88,7 +110,7 @@ await page.select('[data-study-filter-value="1"]', 'Run');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, filters: document.querySelectorAll('.ws-study-filter-row').length }));
 ok(/3 matching plays/.test(r.summary) && r.filters === 2, 'Separate filters combine with AND', JSON.stringify(r));
 await capture('study-filters-1280x800');
-await page.click('[data-study-action="clear-filters"]');
+await clearStudyFilters();
 
 await page.select('#wsStudyUnit', 'defense');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
@@ -341,7 +363,7 @@ const noSeasonPlan=await page.evaluate(()=>{const app=window.app,store=app.stora
 ok(noSeasonPlan===null,'Exact-target Plan save fails closed when no season is open',String(noSeasonPlan));
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 const savedId = await page.evaluate(() => JSON.parse(localStorage.getItem('ffa_study_views_v1') || '[]')[0]?.id || '');
-await page.click('[data-study-action="clear-filters"]');
+await clearStudyFilters();
 await page.select('#wsStudyMeasure', 'yards');
 await page.select('#wsStudySaved', savedId);
 r = await page.evaluate(() => ({ chips: document.querySelectorAll('.ws-study-filter-chip').length, metric: document.querySelector('#wsStudyMeasure')?.value, compare: document.querySelector('#wsStudyCompare')?.value, from: document.querySelector('#wsStudyDateFrom')?.value, to: document.querySelector('#wsStudyDateTo')?.value, deleteEnabled: !document.querySelector('[data-study-action="delete-view"]')?.disabled }));
@@ -370,7 +392,7 @@ ok(r.outletHidden, 'Reaching Advanced Reports no longer exposes the classic outl
 
 await page.evaluate(() => window.app.workspaceShell.show('study'));
 await page.select('#wsStudyCompare', '');
-await page.click('[data-study-action="clear-filters"]');
+await clearStudyFilters();
 await page.select('#wsStudyScope', 'season');
 const cutupContract = await page.evaluate(async () => {
   const app = window.app;
@@ -572,9 +594,7 @@ await page.evaluate(() => {
 // dimension reachability with Unit blank, and a rich coaching-metric measure
 // fails closed (no rows at all) with no unit chosen -- that is correct
 // product behavior, but it would starve this dimension check of any row.
-if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) {
-  await page.click('[data-study-action="clear-filters"]');
-}
+await clearStudyFilters();
 await page.select('#wsStudyUnit', '');
 await page.select('#wsStudyMeasure', 'epaPerPlay');
 await page.select('#wsStudyCompare', '');
@@ -651,7 +671,7 @@ await page.evaluate(() => {
     { id: 91, timestamp: { start: 65, end: 69 }, tags: { unit: 'special' }, specialTeams: { unit: 'punt', kick: { distance: 40 }, outcome: { status: 'downed' } } },
   );
 });
-if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) await page.click('[data-study-action="clear-filters"]');
+await clearStudyFilters();
 await page.select('#wsStudyScope', 'season');
 await page.select('#wsStudyCompare', '');
 await page.select('#wsStudyColumn', '');
@@ -801,7 +821,7 @@ r = await page.evaluate(() => ({ pivot: !!document.querySelector('.ws-pivot'), r
 ok(!r.pivot && r.rows > 0, 'Clearing the second dimension returns the single-list view unchanged', JSON.stringify(r));
 
 console.log('\n== S8-3 Then By for modern coaching metrics ==');
-if (await page.$('[data-study-action="clear-filters"]:not([hidden])')) await page.click('[data-study-action="clear-filters"]');
+await clearStudyFilters();
 await page.select('#wsStudyMeasure', 'success');
 await page.select('#wsStudyUnit', 'offense');
 await page.select('#wsStudyCompare', '');

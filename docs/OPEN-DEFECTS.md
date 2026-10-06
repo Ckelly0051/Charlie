@@ -11,14 +11,6 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 ## Open defects
 
-- **`e2e-study-screen` now fails deterministically** (2026-10-06, after the
-  gate passed 153/153 at `87612c5a` the same day). Two checks: Season Watch
-  reports "1 skipped" (expects 2) and Coverage Family finds 0 plays. It fails
-  identically at `87612c5a`, `4ee0595b` and `9ef5673d`, so the stranded-code
-  cleanup did not cause it; something outside the code (time, date or local
-  state) changed. Not yet diagnosed. The cleanup's full gate is otherwise
-  153/154 at `69badd5f`.
-
 - **Native `alert()` remains** in four files (code review 2026-10-06):
   `js/storage.js`, `roster-manager.js`, `video-controller.js` and
   `play-diagram.js`.
