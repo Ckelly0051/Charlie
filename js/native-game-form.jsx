@@ -8,6 +8,7 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const update = event => setValues(current => ({ ...current, [event.currentTarget.name]: event.currentTarget.value }));
+  const toggle = event => setValues(current => ({ ...current, [event.currentTarget.name]: event.currentTarget.checked }));
   const submit = async event => {
     event.preventDefault();
     setBusy(true); setError('');
@@ -21,6 +22,7 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
       // silently drops it from our record and totals.
       homeAway: clean(values.homeAway), gameType: clean(values.gameType) || 'game',
       scoreUs: clean(values.scoreUs), scoreThem: clean(values.scoreThem),
+      final: !scout && values.final === true,
     });
     if (!result?.ok) { setError(result?.message || 'The game could not be saved. Nothing changed.'); setBusy(false); }
   };
@@ -69,6 +71,7 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
         <label><span>{scout ? (values.sourceTeamB || 'Team B') : 'Them'}</span><input name="scoreThem" type="number" min="0" inputMode="numeric" value={values.scoreThem} onInput={update} /></label>
       </div>
       <div class="gi-game-tracked"><span>Tagged score <strong>{trackedScore.us}–{trackedScore.them}</strong></span><button type="button" onClick={applyTracked} disabled={!trackedScore.hasData}>Use tagged score</button></div>
+      {!scout && mode !== 'create' && <label class="gi-game-final"><input type="checkbox" name="final" checked={values.final === true} onChange={toggle} /><span>Mark as Final</span></label>}
     </div>
     {error && <p class="gi-game-error" role="alert">{error}</p>}
     <div class="gi-game-actions">{onDelete && <button type="button" class="is-danger" onClick={onDelete} disabled={busy}>Delete game</button>}<button type="button" onClick={onCancel} disabled={busy}>Cancel</button><button class="is-primary" disabled={busy}>{busy ? 'Saving…' : mode === 'create' ? (scout ? 'Create source game' : 'Create game') : 'Save game'}</button></div>

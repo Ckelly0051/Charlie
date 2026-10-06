@@ -41,6 +41,9 @@ export class GameScreen {
       sourceTeamA: source.sourceTeamASchool || source.sourceTeamA || scoutTarget, sourceTeamANickname: source.sourceTeamANickname || '',
       sourceTeamB: source.sourceTeamBSchool || source.sourceTeamB || '', sourceTeamBNickname: source.sourceTeamBNickname || '',
       scoreUs: source.scoreUs ?? '', scoreThem: source.scoreThem ?? '',
+      // Final is the game's status, not game info; the season record counts
+      // only games marked Final.
+      final: mode !== 'create' && store.gameStatus(active) === 'final',
     };
     const context = {
       mode, gameId: String(active.id), before: clone(store.data),
@@ -163,7 +166,10 @@ export class GameScreen {
           ...(context.mode === 'create' ? { perspective: 'offense' } : {}),
         };
       }
+      const { final, ...info } = values;
+      values = info;
       this.app._applyGameInfoDraft(values);
+      if (store.data?.kind !== 'scout') store.setGameStatus(store.data.activeGameId, final ? 'final' : 'active');
       if (store.data?.kind === 'scout') {
         const game = store.activeGame();
         const matchup = [values.sourceTeamA, values.sourceTeamB].filter(Boolean).join(' vs ');

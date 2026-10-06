@@ -82,6 +82,9 @@
 .gi-game-tracked{display:flex;align-items:center;justify-content:space-between;gap:var(--gi-3x);margin-top:var(--gi-3x);color:var(--gi-bd-muted);font-size:12.5px}
 .gi-game-tracked strong{margin-left:var(--gi-2x);color:var(--gi-bd-strong);font:700 16px/1 var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 .gi-game-tracked button{flex:0 0 auto}
+.gi-game-final{display:flex;align-items:center;gap:var(--gi-2x);min-height:32px;margin-top:var(--gi-3x);color:var(--gi-bd-strong);font:600 13px var(--gi-sans);cursor:pointer}
+.gi-game-final input{width:18px;height:18px;margin:0;accent-color:var(--gi-12)}
+.gi-game-final input:focus-visible{outline:2px solid var(--gi-los);outline-offset:2px}
 
 /* ── Actions ──────────────────────────────────────────────────────────────
    Gold primary, neutral secondary, destructive pushed to the far left so it

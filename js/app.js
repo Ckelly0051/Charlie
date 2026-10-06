@@ -570,7 +570,7 @@ class App {
     const isFinal = store.gameStatus(game) === 'final';
     if (hasScore && !isFinal && !this._finishHintShown) {
       this._finishHintShown = true;
-      this.updater._toast('Score entered — you can mark this game as Final from the season chip.');
+      this.updater._toast('Score entered — mark the game Final in Game settings.');
     }
   }
 
@@ -1278,7 +1278,7 @@ class App {
     const store = this.storage?.seasonStore;
     const activeGame = store?.activeGame();
     if (activeGame && store.gameStatus(activeGame) !== 'final') {
-      this.history?._toast('Last play — all tagged. Finish the game from the season chip.');
+      this.history?._toast('Last play — all tagged. Mark the game Final in Game settings.');
     } else {
       this.history?._toast('Last play — all tagged');
     }

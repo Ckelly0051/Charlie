@@ -21,6 +21,12 @@ it. The next installed smoke must cover each.
   Teams snap's unit; More is a titled, grouped menu. Smoke: chart a few plays
   at your normal window size; delete a play from the deck and Cancel; save,
   apply and delete a template; open More and Game settings.
+- **Code review fixes, 2026-10-06:** Save season and autosave show Saved only
+  after the write lands and "Not saved" when it fails; cut-up export asks and
+  reports inside the app (no browser confirm or alert); Mark as Final is in
+  Game settings (coach ruling), and the score and last-play messages point
+  there. Smoke: Save season from More; export a short cut-up and cancel it;
+  mark a scored game Final and see the season record count it.
 - **Home at startup shows the library, not first-run** (SMOKE-110 finding 1):
   until Team Hub's first load finishes, Home shows "Loading seasons…" instead
   of Get started and "Create first season". Smoke: launch the app; Home lists
@@ -29,20 +35,9 @@ it. The next installed smoke must cover each.
 
 ## Open defects
 
-- **Save season reports "Saved" before the save lands** (code review
-  2026-10-06). `StorageManager.saveProject` (`js/storage.js`) calls
-  `persist()` without awaiting it and signals Saved immediately, so a failed
-  canonical write still reads as saved on the explicit Save.
-- **"Mark as Final" is unreachable; two toasts point at a missing control**
-  (code review 2026-10-06). `App._finishGame` is called only from the legacy
-  games panel, whose `#gamesPanelList` no longer exists. `_checkFinishHint`
-  and the last-play toast tell the coach to use "the season chip", which does
-  not exist. Needs a coach decision: restore the action somewhere, or retire
-  game status and the toasts.
-- **Cut-up export uses native `confirm()`** (code review 2026-10-06):
-  `js/cutup-exporter.js` asks to start and to keep a partial video with
-  `window.confirm`, which the app's own notes say can be suppressed and return
-  false; native `alert()` also remains in six files.
+- **Native `alert()` remains** in five files (code review 2026-10-06):
+  `js/storage.js`, `roster-manager.js`, `video-controller.js`,
+  `play-diagram.js` and the retired games panel path.
 - **Stranded legacy DOM layer** (code review 2026-10-06): 24 element ids are
   read but never produced (games panel, game header summary, tag progress,
   expand-video, drawing toolbar, playlist panel, video drop zone, play-diagram
