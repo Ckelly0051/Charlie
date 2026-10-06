@@ -502,10 +502,6 @@ export class StatsEngine {
     return plays;
   }
 
-  _offensePlays() {
-    return this._currentPlays().filter(p => countedUnit(p) === 'offense');
-  }
-
   _absYardLine(tags) {
     const yl = parseInt(tags.yardLine);
     if (!yl) return null;

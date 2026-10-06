@@ -130,7 +130,7 @@ await page.evaluate(() => {
 await page.click('[data-ws-preview="preview-game"]');
 r = await page.evaluate(() => ({
   activeGameId: window.app.storage.seasonStore.data.activeGameId,
-  previewId: window.app.workspaceShell._homeSelectedGameId,
+  previewId: (window.app.homeScreen?.selectedGameId || null),
   name: document.querySelector('#wsDetailName')?.textContent,
   meta: document.querySelector('#wsDetailMeta')?.textContent,
   us: document.querySelector('#wsDetailUsScore')?.textContent,
@@ -1199,7 +1199,7 @@ r = await page.evaluate(async () => {
   await app.workspaceShell.show('home');
   await new Promise(res => setTimeout(res, 300));
   document.querySelector('.ws-game-row')?.click();
-  const previewedBefore = app.workspaceShell._homeSelectedGameId;
+  const previewedBefore = (app.homeScreen?.selectedGameId || null);
   // The colliding id ('preview-game') is deliberately NOT season B's active
   // game -- a stale, uncleared preview id would match this WRONG row by
   // coincidence; only a genuinely cleared preview correctly falls through to
@@ -1226,7 +1226,7 @@ r = await page.evaluate(async () => {
   return {
     previewedBefore,
     seasonId: store.currentSeasonId, targetId: recB.id,
-    homeSelected: app.workspaceShell._homeSelectedGameId,
+    homeSelected: (app.homeScreen?.selectedGameId || null),
     detailName: document.getElementById('wsDetailName')?.textContent,
   };
 });

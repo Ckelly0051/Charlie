@@ -186,7 +186,7 @@ r = await page.evaluate(async () => {
   stats.tagger.plays = [mk({ unit:'offense', runPass:'Run', playType:'Run Inside',
     playCall:'', playConcept:'Counter', result:'Gain', yardage:'5' })];
   const conceptRows = stats._selfScoutRows(stats._selfScoutGroup(
-    stats._offensePlays(), play => play.tags.playCall || play.tags.playConcept || null
+    stats._currentPlays().filter(play => (play.tags.unit || 'offense') === 'offense'), play => play.tags.playCall || play.tags.playConcept || null
   ));
   const conceptMatches = stats.tagger.plays.filter(stats._buildCutFilter('playCallOrConcept', 'Counter')).length;
 

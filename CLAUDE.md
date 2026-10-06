@@ -293,7 +293,9 @@ a reviewed correction named in the diff.
   2026-10-06). When new code takes over a job, delete the old path, its
   markup, CSS, bindings, tests and comments in that commit, and name what was
   removed in the commit message. Nothing is left "for later" unless the coach
-  parked it. Every review asks: what did this replace, and is it gone?
+  parked it. Every review asks: what did this replace, and is it gone? Enforced
+  by `e2e-stranded-code` (no lookup of an id nothing creates, no dead CSS) and
+  `e2e-legacy-inventory` (no unreferenced names; counts only fall).
 - A check must be as strong as its name.
 - Commit the first working pass locally before revising it. Commit at every
   baton pass.

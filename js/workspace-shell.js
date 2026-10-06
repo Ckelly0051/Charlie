@@ -15,9 +15,6 @@ export class WorkspaceShell {
     this._btnRedo = null;
     this._historyUnsub = null;
   }
-  /** Read-only pointer to HomeScreen's preview selection, the previewed but
-   *  not active game id. */
-  get _homeSelectedGameId() { return this.app.homeScreen?.selectedGameId || null; }
   // The shell mounts unconditionally; there is no classic layout and no
   // second game-entry route.
   async init() { await this.enable(); }

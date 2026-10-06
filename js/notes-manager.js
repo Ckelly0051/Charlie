@@ -80,13 +80,6 @@ export class NotesManager {
     return true;
   }
 
-  /** Retained for any remaining caller that hands notes text in directly
-   *  (e.g. project import); flushes any pending debounce first. */
-  loadNotes(notes, play = this.tagger.getCurrentPlay()) {
-    this.flush();
-    if (play) play.notes = notes || '';
-  }
-
   clear() {
     clearTimeout(this.debounceTimer);
     this.pending = null;

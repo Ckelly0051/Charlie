@@ -11,15 +11,9 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 ## Open defects
 
-- **Native `alert()` remains** in five files (code review 2026-10-06):
-  `js/storage.js`, `roster-manager.js`, `video-controller.js`,
-  `play-diagram.js` and the retired games panel path.
-- **Stranded legacy DOM layer** (code review 2026-10-06): 24 element ids are
-  read but never produced (games panel, game header summary, tag progress,
-  expand-video, drawing toolbar, playlist panel, video drop zone, play-diagram
-  preview; the OCR ids belong to parked OCR-1). Their methods run as guarded
-  no-ops. `NotesManager.loadNotes` has no caller; `StatsEngine._offensePlays`
-  and `WorkspaceShell._homeSelectedGameId` are reached only by tests.
+- **Native `alert()` remains** in four files (code review 2026-10-06):
+  `js/storage.js`, `roster-manager.js`, `video-controller.js` and
+  `play-diagram.js`.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
