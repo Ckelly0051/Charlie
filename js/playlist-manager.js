@@ -21,9 +21,6 @@ export class PlaylistManager {
     this.clips = [];
     this.activeClipIndex = -1;
 
-    this.playlistEl = document.getElementById('playlistItems');
-    this.clipCountEl = document.getElementById('clipCount');
-    this.btnAddClips = document.getElementById('btnAddClips');
     this.clipFileInput = document.getElementById('clipFileInput');
 
     this._nextClipId = 1;
@@ -42,11 +39,6 @@ export class PlaylistManager {
   }
 
   _bindEvents() {
-    // Add clips button
-    this.btnAddClips?.addEventListener('click', () => {
-      this.clipFileInput.click();
-    });
-
     this.clipFileInput?.addEventListener('change', (e) => {
       if (e.target.files.length > 0) {
         this.addFiles(Array.from(e.target.files));
@@ -160,8 +152,6 @@ export class PlaylistManager {
 
     const relinked = this._relinkSavedPlays(newClips, liveIds);
 
-    this._updatePlaylistUI();
-    this._updateClipCount();
 
     // Persist genuinely-new film to the desktop library through the single
     // choke point (App wires this to storage.importFilm). BOTH the top-bar
@@ -307,8 +297,6 @@ export class PlaylistManager {
     // correct game, so this can never misplace or lose them.
     this._backfillDurations(newClips);
 
-    this._updatePlaylistUI();
-    this._updateClipCount();
     // Plays were pushed directly (not via tagger.createPlay), so listeners —
     // the Film Room grid, the play strip — only hear about them via this emit
     // (same pattern as the CSV import path in storage.js).
@@ -420,8 +408,6 @@ export class PlaylistManager {
 
     for (const entry of entries) this.clips.push(entry);
 
-    this._updatePlaylistUI();
-    this._updateClipCount();
   }
 
   /**
@@ -454,8 +440,6 @@ export class PlaylistManager {
       play.clipPath = clip.clipPath;
       this.clips.push(clip);
     }
-    this._updatePlaylistUI();
-    this._updateClipCount();
 
     const cur = this.tagger.getCurrentPlay();
     if (cur && cur.clipId != null && this.clips.some(c => c.id === cur.clipId)) {
@@ -561,7 +545,6 @@ export class PlaylistManager {
     if (clip.playId !== null) this._selectPlayNoSeek(clip.playId);
 
     this._preloadNext(index);
-    this._updatePlaylistUI();
     this._emit('clip-switched', { index, clip });
   }
 
@@ -633,8 +616,6 @@ export class PlaylistManager {
     // index > activeClipIndex: the active clip's position is unchanged.
     if (this.clips.length && !wasActive) this._preloadNext(this.activeClipIndex);
 
-    this._updatePlaylistUI();
-    this._updateClipCount();
     // A DELIBERATE in-app deletion, so the durable clip identity goes too —
     // otherwise the game keeps a clip record with no play and no reason.
     // Recorded, never applied blindly: the clip index drops it only when no
@@ -718,8 +699,6 @@ export class PlaylistManager {
         }
       }
     }
-    this._updatePlaylistUI();
-    this._updateClipCount();
     return true;
   }
 
@@ -744,69 +723,10 @@ export class PlaylistManager {
     this.clips = [];
     this.activeClipIndex = -1;
     this._nextClipId = 1;
-    this._updatePlaylistUI();
-    this._updateClipCount();
   }
 
   get hasClips() {
     return this.clips.length > 0;
-  }
-
-  // --- UI ---
-
-  _updatePlaylistUI() {
-    if (!this.playlistEl) return;
-    this.playlistEl.innerHTML = '';
-
-    this.clips.forEach((clip, i) => {
-      const item = document.createElement('div');
-      item.className = 'playlist-item' + (i === this.activeClipIndex ? ' active' : '');
-      item.dataset.index = i;
-
-      const num = document.createElement('span');
-      num.className = 'playlist-num';
-      num.textContent = (i + 1);
-
-      const name = document.createElement('span');
-      name.className = 'playlist-name';
-      name.textContent = clip.name;
-      name.title = clip.file ? this._fileIdentity(clip.file) : (clip.clipPath || clip.name);
-
-      const dur = document.createElement('span');
-      dur.className = 'playlist-dur';
-      dur.textContent = clip.duration ? this._fmt(clip.duration) : '--:--';
-
-      const removeBtn = document.createElement('button');
-      removeBtn.className = 'playlist-remove';
-      removeBtn.innerHTML = '&times;';
-      removeBtn.title = 'Remove clip';
-      removeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.removeClip(i);
-      });
-
-      item.appendChild(num);
-      item.appendChild(name);
-      item.appendChild(dur);
-      item.appendChild(removeBtn);
-
-      item.addEventListener('click', () => this.switchToClip(i));
-
-      this.playlistEl.appendChild(item);
-    });
-  }
-
-
-  _updateClipCount() {
-    if (!this.clipCountEl) return;
-    this.clipCountEl.textContent = `${this.clips.length} clip${this.clips.length !== 1 ? 's' : ''}`;
-  }
-
-  _fmt(sec) {
-    if (!sec || isNaN(sec)) return '--:--';
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
   }
 
   _displayName(fileOrPath) {
