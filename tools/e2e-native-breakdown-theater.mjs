@@ -609,28 +609,17 @@ ok(d2.mediaPieces.length === 6 && d2.retiredControls.length === 0,
 ok(d2.remountedOutsideApp,
   'Re-entering Break Down re-adopts the media without reaching into the legacy shell', JSON.stringify(d2));
 
-// VideoController kept the film name in #fileLabel.textContent and read it back
-// on an error. That top-bar label, its folder badge, and the drop zone were all
-// deleted with #giLegacyEngineHost (Final Engine Independence) -- the name now
-// lives on the controller and the label was always an optional mirror, so
-// removing it at runtime here matches genuine cold-boot absence.
+// The film name lives on VideoController; the retired top-bar label, folder
+// badge and drop zone (and their handles) are gone.
 const d2b = await page.evaluate(() => {
   const vc = window.app.vc;
-  const label = document.getElementById('fileLabel');
-  const badge = document.getElementById('folderLoadBadge');
-  const zone = document.getElementById('videoDropZone');
-  [label, badge, zone].forEach(el => el?.remove());
-  vc.fileLabel = document.getElementById('fileLabel');
-  vc.folderLoadBadge = document.getElementById('folderLoadBadge');
   let threw = null;
-  try {
-    vc.loadUrl('asset://localhost/x.mp4', 'Week 3 vs Alpha.mp4');
-    vc._showFolderBadge([{ name: 'a.mp4' }, { name: 'b.mp4' }]);
-  } catch (e) { threw = String(e); }
-  return { threw, remembered: vc.currentFileName, labelGone: !document.getElementById('fileLabel') };
+  try { vc.loadUrl('asset://localhost/x.mp4', 'Week 3 vs Alpha.mp4'); } catch (e) { threw = String(e); }
+  return { threw, remembered: vc.currentFileName,
+    retired: ['fileLabel', 'folderLoadBadge', 'dropZone', 'btnLoadFolder', '_showFolderBadge'].filter(key => key in vc) };
 });
-ok(d2b.threw === null && d2b.labelGone && d2b.remembered === 'Week 3 vs Alpha.mp4',
-  'Film loading survives the top-bar label and folder badge being gone, and the film name has a real owner', JSON.stringify(d2b));
+ok(d2b.threw === null && d2b.remembered === 'Week 3 vs Alpha.mp4' && !d2b.retired.length,
+  'Loading film records its name on the controller, with no retired label, badge or drop-zone handles', JSON.stringify(d2b));
 
 ok(errors.length === 0, 'Native S5a journey has zero page errors', errors.join(' | '));
 

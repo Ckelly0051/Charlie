@@ -15,17 +15,10 @@ export class VideoController {
     this.loadStateText = document.getElementById('videoLoadStateText');
     this.fileInput = document.getElementById('videoFileInput');
     this.folderInput = document.getElementById('videoFolderInput');
-    this.btnLoadFolder = document.getElementById('btnLoadFolder');
-    this.folderLoadBadge = document.getElementById('folderLoadBadge');
-    this.dropZone = document.getElementById('videoDropZone');
-    this.fileLabel = document.getElementById('fileLabel');
 
     this.fps = 30;
     this.playbackRate = 1;
-    // S7-d2: the loaded film's display name lives here, not in #fileLabel.
-    // _handleMediaError used to read the name back out of that label's
-    // textContent — the top-bar label was acting as state, and it is markup
-    // S7-d8 deletes. The label is now an optional MIRROR of this field.
+    // The loaded film's display name.
     this.currentFileName = '';
     this.objectUrl = null;
     // Loop playback. loopRegion = { start, end }; loopMode = 'play' | 'ab' | null.
@@ -50,7 +43,6 @@ export class VideoController {
       const files = this._filterVideoFiles(Array.from(e.target.files));
       if (files.length > 0) {
         if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) { e.target.value = ''; return; }
-        this._showFolderBadge(files);
         this._emit('files-selected', { files });
       }
     });
@@ -64,24 +56,15 @@ export class VideoController {
             b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
         if (files.length > 0) {
           if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) { e.target.value = ''; return; }
-          this._showFolderBadge(files);
-          this._emit('files-selected', { files });
+            this._emit('files-selected', { files });
         } else {
           alert('No video files found in that folder.');
         }
       });
     }
-    if (this.btnLoadFolder && this.folderInput) {
-      this.btnLoadFolder.addEventListener('click', () => this.folderInput.click());
-    }
 
-    // Drag and drop — supports single files, multi-files, AND dropped folders.
-    //
-    // The live #videoPlaceholder is the drop target. This was once bound only
-    // to a top-bar label that the shell rendered at 0x0, so dropping film was
-    // silently dead while the empty state advertised it. Both targets are
-    // optional here, so a missing element cannot throw in this constructor.
-    this._bindDropTarget(this.dropZone);
+    // Drag and drop onto the film placeholder: single files, several files or
+    // a dropped folder.
     this._bindDropTarget(this.placeholder);
 
     // Video events
@@ -261,7 +244,6 @@ export class VideoController {
     this._setPlaceholderText(`Couldn't play ${name}. Re-link the film or use MP4, MOV, or WebM.`, { error: true });
     this.placeholder.classList.remove('hidden');
     // remember:false — an error message is not the film's name.
-    this._setFilmStatus(`⚠ Couldn't play ${name} — try MP4, MOV, or WebM`, { remember: false });
     if (src && (src.includes('asset.localhost') || src.startsWith('asset:'))) {
       const detail = `Video load failed (asset protocol) | Error code: ${code} | Message: ${msg} | URL: ${src.slice(0, 300)}`;
       console.warn('ASSET-DIAG:', detail);
@@ -299,17 +281,12 @@ export class VideoController {
     this._setPlaceholderText('');
     if (this.placeholder) this.placeholder.classList.remove('hidden');
     this._setFilmStatus('Drop video(s) / folder or click to load');
-    if (this.folderLoadBadge) this.folderLoadBadge.classList.add('hidden');
     this._emit('video-unloaded', {});
   }
 
-  /**
-   * Set the film-name status text. `currentFileName` is the owner; any label
-   * element is optional, so its absence must not throw on the film path.
-   */
-  _setFilmStatus(text, { remember = true } = {}) {
-    if (remember) this.currentFileName = text;
-    if (this.fileLabel) this.fileLabel.textContent = text;
+  /** Record the loaded film's display name. */
+  _setFilmStatus(text) {
+    this.currentFileName = text;
   }
 
   /**
@@ -347,7 +324,6 @@ export class VideoController {
           b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
       if (files.length > 0) {
         if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) return;
-        this._showFolderBadge(files);
         this._emit('files-selected', { files });
       } else if (e.dataTransfer.files.length || (items && items.length)) {
         alert('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
@@ -397,19 +373,6 @@ export class VideoController {
     };
     for (const e of entries) await walk(e);
     return out;
-  }
-
-  /**
-   * Show a small badge on the top bar when a folder of videos was loaded.
-   */
-  _showFolderBadge(files) {
-    if (!this.folderLoadBadge) return;
-    if (files.length <= 1) {
-      this.folderLoadBadge.classList.add('hidden');
-      return;
-    }
-    this.folderLoadBadge.textContent = `📁 ${files.length} clips`;
-    this.folderLoadBadge.classList.remove('hidden');
   }
 
   togglePlay() {
