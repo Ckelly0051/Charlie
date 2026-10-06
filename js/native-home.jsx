@@ -716,7 +716,10 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
       <span><small>Plays</small><b>{totals.plays}</b></span>
       <span><small>{scout ? 'Scout film' : 'Storage'}</small><b class={`library-storage${!totals.checking && !totals.attention && totals.linked ? ' is-good' : totals.attention ? ' is-warn' : ''}`}><i />{storageLabel}</b></span>
     </div> : null}
-    {!hubState.loaded
+    {!hubState.loaded && hubState.status === 'error'
+      ? <div class="ws-empty-panel" data-library-error role="alert"><h3>Seasons could not be loaded</h3><p>{hubState.error}</p>
+          <button type="button" class="ws-btn ws-primary" onClick={() => hub.load()}>Retry</button></div>
+      : !hubState.loaded
       ? <div class="ws-empty-panel" data-library-loading><h3>Loading seasons…</h3></div>
       : ordered.length
       ? <>

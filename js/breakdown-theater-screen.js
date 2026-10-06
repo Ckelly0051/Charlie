@@ -579,6 +579,8 @@ export class BreakdownTheaterScreen {
       const result = this._chyronSpecialResult(play).result;
       return { situation: unit, call: '', result: result === '—' ? 'No result' : result };
     }
+    // Special Teams with no event charted yet: say so, without guessing a unit.
+    if (tags.unit === 'special') return { situation: 'Special Teams', call: '', result: tags.result || 'No result' };
     const situation = (({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || 'No down')
       + (tags.distance ? ` & ${tags.distance}` : '');
     const call = tags.playType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';

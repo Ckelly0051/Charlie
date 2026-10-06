@@ -258,6 +258,10 @@ ok(railSpecial.selected.situation === 'Kick Return' && railSpecial.selected.call
   'Play rail names a Special Teams snap by its unit (no "Down -") without inventing an outcome', JSON.stringify(railSpecial));
 ok(railSpecial.returned.result === 'Returned' && railSpecial.returned.label.includes('Kick Return, Returned'), 'Play rail and accessible label use the structured outcome', JSON.stringify(railSpecial));
 ok(railSpecial.retry.result === 'No Play / Retry' && railSpecial.legacy.call !== 'Punt' && railSpecial.legacy.result !== 'Downed', 'Play rail preserves try rulings and shows no retired stType / kickOutcome', JSON.stringify(railSpecial));
+// Codex review of efb2d0a9: a Special Teams play with no structured event is
+// still Special Teams, never "No down", and no kicking unit is inferred.
+ok(railSpecial.legacy.situation === 'Special Teams' && !railSpecial.legacy.label.includes('Punt'),
+  'An uncharted Special Teams play reads "Special Teams", not a down, with no inferred unit', JSON.stringify(railSpecial.legacy));
 ok(state.offTd === 'pos', 'Offense Touchdown is positive');
 ok(state.offInt === 'neg', 'Offense Interception is negative');
 ok(state.offNoGood === 'neg', '"No Good" is negative, not the inverted green from the original defect');

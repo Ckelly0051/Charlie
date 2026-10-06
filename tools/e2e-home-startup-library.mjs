@@ -49,7 +49,10 @@ try {
       if (!storage || storage.__held) return;
       const real = storage.listSeasons.bind(storage);
       storage.__held = true;
-      storage.listSeasons = () => new Promise(resolve => { window.__releaseList = () => resolve(real()); });
+      storage.listSeasons = () => new Promise((resolve, reject) => {
+        window.__releaseList = () => resolve(real());
+        window.__rejectList = () => reject(new Error('catalog read failed'));
+      });
     } });
   });
   await page.reload({ waitUntil: 'networkidle0' });
@@ -66,6 +69,25 @@ try {
   const done = await read();
   ok(done.status === 'ready' && /2025 Startup JV/.test(done.panel) && /2026 Startup Varsity/.test(done.panel) && !/Get started/.test(done.rail),
     'once loaded, the library and rail list both seasons', done);
+
+  // Codex review of 8ac3db8c: a FAILED first read must say so and offer Retry,
+  // not show "Loading seasons…" forever.
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => window.app?.homeScreen?.snapshot?.().active && window.__rejectList);
+  await page.evaluate(() => window.__rejectList());
+  await new Promise(r => setTimeout(r, 300));
+  const failed = await read();
+  ok(failed.status === 'error', 'fixture: the first season read failed', failed.status);
+  ok(!/Loading seasons/.test(failed.panel) && /could not be loaded|did not load/i.test(failed.panel) && /Retry/.test(failed.panel),
+    'a failed first read shows an error with Retry instead of loading forever', failed.panel);
+  ok(!/Get started/.test(failed.rail) && !/Start the football year here|Create first season/.test(failed.panel),
+    'a failed first read never falls back to first-run', failed);
+  await page.evaluate(() => [...document.querySelectorAll('.library-panel button')].find(b => b.textContent.trim() === 'Retry')?.click());
+  await page.waitForFunction(() => window.__releaseList);
+  await page.evaluate(() => window.__releaseList());
+  await new Promise(r => setTimeout(r, 300));
+  const retried = await read();
+  ok(retried.status === 'ready' && /2025 Startup JV/.test(retried.panel), 'Retry loads the seasons', retried);
 } finally { await browser.close(); }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
