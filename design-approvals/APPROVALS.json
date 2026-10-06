@@ -26,7 +26,8 @@
     "design-approvals/reports/self-scout/manifest.json",
     "design-approvals/reports/season/manifest.json",
     "design-approvals/reports/matchup/manifest.json",
-    "design-approvals/breakdown-charting/manifest.json"
+    "design-approvals/breakdown-charting/manifest.json",
+    "design-approvals/breakdown-cleanup/manifest.json"
   ],
   "releases": [
     {

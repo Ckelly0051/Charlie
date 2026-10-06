@@ -1,7 +1,7 @@
 # Break Down cleanup - review comp, 2026-10-05
 
-Status: **DRAFT for coach review.** Nothing is built and the approval registry
-is unchanged.
+Status: **COMP_APPROVED** by the coach, 2026-10-05 ("Comp approved to build"),
+with the decisions below. Production is not built.
 
 Still screens of the real built app (`1.12.0-110` source) with the canonical
 2025 JV season, Week 6 vs Holy Family, play 39, and the proposed presentation
@@ -12,7 +12,8 @@ film was written. `current-*` is today's app, `proposed-*` the proposal.
 
 1. **Gold marks the primary action only.** Gold stays on Save & Next, the
    active route underline, the Offense unit tab (unit identity; Defense stays
-   cyan), the current-play badge and scoring results in the play strip.
+   cyan) and scoring results in the play strip. The current-play badge is
+   neutral graphite (coach decision below).
    Selected chips and the Chart / Film Room switch become a neutral light fill
    with dark text. Section headers (Situation, Formation & Call, ...) become
    neutral uppercase labels on a hairline instead of gold tabs. The Formation
@@ -56,4 +57,6 @@ context selectors, play-strip order and drive grouping, and every data path.
 
 - 2026-10-05: the current-play badge is neutral graphite ("neutral for sure").
   `proposed-badge-neutral-1440x900.png` is the reference for the badge.
+- 2026-10-05: the Offense unit tab stays gold (unit identity). Templates stays
+  in the deck header beside Same as Last and Delete, as drawn.
 
