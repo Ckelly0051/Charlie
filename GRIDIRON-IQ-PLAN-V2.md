@@ -89,7 +89,6 @@ failed saves that roll back only their own season, game or program, and
    step is a full rebuild (below) and should be built once against the final
    charted fields. The Break Down cleanup is done (`1.12.0-111`, smoke passed
    2026-10-06). Remaining, in order:
-   - LG-1: plays created without a unit;
    - removing the stranded legacy DOM layer found in the 2026-10-06 code review;
    - new charting fields. Each ships with its charting and a Study dimension
      (registered in `AnalyticsRegistry`, film-linked, with its sample); its

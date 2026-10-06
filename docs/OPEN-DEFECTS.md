@@ -21,12 +21,6 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   no-ops. `NotesManager.loadNotes` has no caller; `StatsEngine._offensePlays`
   and `WorkspaceShell._homeSelectedGameId` are reached only by tests.
 
-- **LG-1 — plays created without a unit.** SJM Varsity 2026 holds 33 plays whose
-  tags are blank with no `unit` key (Week 4 vs Oakland Christian plays 31-34 and
-  37-64; vs Romeo play 1). Every `PlayTagger` creation path seeds `unit`, so
-  another path writes `{}` (film link or clip import suspected, not confirmed).
-  Reading is safe (`countedUnit` treats them as offense). Reproduce, find the
-  writer, seed the full tag schema there.
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
   not. Treat as a shared export-delivery defect; do not guess the cause.
