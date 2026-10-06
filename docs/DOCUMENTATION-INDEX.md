@@ -43,12 +43,15 @@ log.
   `5262B8F222512617E33349C6B6EAEC9E641B52351FFEC5E2C007FA6285ED7E11`. Not
   tagged. `1.12.0-109` was superseded before smoke. One finding (Get started
   copy) is open.
-- **In source since 110, not packaged:** the Break Down cleanup
-  (`design-comps/breakdown-cleanup-2026-10-05`, production
-  IMPLEMENTED_UNVERIFIED) and Home's startup loading state (SMOKE-110
-  finding 1). Focused-verified only; smoke items are in `docs/OPEN-DEFECTS.md`.
-- **Latest full gate:** GREEN, 149/149 at `678da80c` (2026-10-05), covering
-  everything since 108.
+- **Built, awaiting packaged-asset inspection and coach smoke: `1.12.0-111`**
+  (2026-10-06, `SMOKE-1.12.0-111.md`), bump `4ee0595b`, unsigned NSIS
+  4,040,492 bytes, SHA-256
+  `C98BF2F08AB4FDE0A8D491E4E6E22FDF9381F3141A583C295BD4B7FE94CA1F27`. Not tagged.
+  Packages the Break Down cleanup, Home's startup loading state, the code
+  review fixes (Saved after the write lands, in-app cut-up prompts, save races)
+  and Mark as Final in Game settings. Smoke items are in `docs/OPEN-DEFECTS.md`.
+- **Latest full gate:** GREEN, 153/153 at `87612c5a` (2026-10-06), covering
+  everything since 110.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
