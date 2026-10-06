@@ -32,7 +32,9 @@ health understandable to the coach.
   explanation and coach confirmation.
 - **Anything charted has a report** (coach, 2026-10-04). A field the coach
   charts is visible in Reports with its sample and film, not only queryable in
-  Study.
+  Study. Time-limited exception (coach, 2026-10-06): fields added before the
+  reporting rebuild (step 3) ship with charting and a Study dimension, and get
+  their Reports in the rebuild, so no report is built twice.
 - **Organize before building** (coach, 2026-10-04). No new feature starts while
   significant dead code, stale docs or repair-history clutter remain.
 
@@ -61,12 +63,16 @@ charting, V2-F Study, V2-G Plan and V2-H playback and large-game performance are
 complete. The Break Down charting cutover (Formation/Receiver Set, Gap, motion
 start/end, RPO read/decision, QB-run type, Reverse; one season format) and the
 Break Down visual finish shipped in `1.12.0-108`, smoked 2026-10-01. The
-down-and-distance chart and run-gap chart are built.
+down-and-distance chart and run-gap chart are built. `1.12.0-111` (smoked
+2026-10-06) shipped the Break Down cleanup (`design-comps/breakdown-cleanup-2026-10-05`),
+Mark as Final in Game settings, Run/Pass deciding run and pass statistics,
+failed saves that roll back only their own season, game or program, and
+"Saved" shown only after a write lands.
 
 ## 5. Sequence
 
 1. **Organize.** Clear dead code, stale docs and accumulated artifacts before
-   any new feature (done 2026-10-04 except the domain-model docs):
+   any new feature (done 2026-10-04):
    - finished plans and old smoke records moved to `docs/archive/` (done
      2026-10-04);
    - real-data harness captures replaced each run instead of accumulating
@@ -113,7 +119,9 @@ down-and-distance chart and run-gap chart are built.
    - saved composable reports: registered dimensions and approved measures with
      filters, scope and perspective, saved and rerun as games are charted.
      Study stays the query engine.
-6. **Data expansion.** Each new field ships with its report:
+6. **Data expansion.** Each new field ships with its charting and a Study
+   dimension (registered in `AnalyticsRegistry`, film-linked, with its
+   sample); its Reports come with the rebuild in step 3 (coach, 2026-10-06):
    - pass target and catch location: field side and depth of target and catch,
      separate from total gain, never inferred from play direction;
    - receiver route and release, tied to the identified receiver;
