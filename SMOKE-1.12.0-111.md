@@ -10,11 +10,13 @@
   Product and file version `1.12.0-111`. Built from a clean tree at `4ee0595b`
   with `cargo tauri build --bundles nsis` and `createUpdaterArtifacts:false`.
   Nothing pushed, tagged or published.
-- Packaged-asset inspection (non-builder, `docs/RELEASE.md`): pending.
+- Packaged-asset inspection (non-builder, `docs/RELEASE.md`): not recorded.
 
 ## Result
 
-Pending.
+**Installed smoke passed - coach approval, 2026-10-06** ("smoke passed").
+No findings. This approval does not move the design-approval registry. No
+packaged-asset inspection by Codex was recorded before the smoke.
 
 ## What to check
 
@@ -42,4 +44,4 @@ Standard smoke (`docs/RELEASE.md`), plus the items since 110:
 
 ## Findings
 
-None logged yet.
+None (coach, 2026-10-06).

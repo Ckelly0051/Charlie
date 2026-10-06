@@ -34,22 +34,16 @@ Updated 2026-10-04.
 The one place release state is kept current. Replace entries; do not append a
 log.
 
-- **Latest coach-smoked installer: `1.12.0-110`** (2026-10-05,
-  `SMOKE-1.12.0-110.md`). Everything since 108: CR-1..CR-8, Special Teams
-  roster ownership, Fake tries out of player credit, no silent startup import,
-  failed saves rolled back only for their own owner, and Run/Pass deciding
-  run/pass stats. Full gate 149/149 at `678da80c`; bump `5c058b80`; unsigned
-  NSIS `GridIron IQ_1.12.0-110_x64-setup.exe`, 4,037,382 bytes, SHA-256
-  `5262B8F222512617E33349C6B6EAEC9E641B52351FFEC5E2C007FA6285ED7E11`. Not
-  tagged. `1.12.0-109` was superseded before smoke. One finding (Get started
-  copy) is open.
-- **Built, awaiting packaged-asset inspection and coach smoke: `1.12.0-111`**
-  (2026-10-06, `SMOKE-1.12.0-111.md`), bump `4ee0595b`, unsigned NSIS
-  4,040,492 bytes, SHA-256
-  `C98BF2F08AB4FDE0A8D491E4E6E22FDF9381F3141A583C295BD4B7FE94CA1F27`. Not tagged.
-  Packages the Break Down cleanup, Home's startup loading state, the code
-  review fixes (Saved after the write lands, in-app cut-up prompts, save races)
-  and Mark as Final in Game settings. Smoke items are in `docs/OPEN-DEFECTS.md`.
+- **Latest coach-smoked installer: `1.12.0-111`** (2026-10-06,
+  `SMOKE-1.12.0-111.md`, no findings). Break Down cleanup
+  (`design-comps/breakdown-cleanup-2026-10-05`), Home's startup loading
+  state, Saved only after the write lands (with the save-race fixes), in-app
+  cut-up prompts, Special Teams strip labels and Mark as Final in Game
+  settings. Full gate 153/153 at `87612c5a`; bump `4ee0595b`; unsigned NSIS
+  `GridIron IQ_1.12.0-111_x64-setup.exe`, 4,040,492 bytes, SHA-256
+  `C98BF2F08AB4FDE0A8D491E4E6E22FDF9381F3141A583C295BD4B7FE94CA1F27`. Not
+  tagged. The design registry still reads IMPLEMENTED_UNVERIFIED for the
+  cleanup (an installed smoke does not move it).
 - **Latest full gate:** GREEN, 153/153 at `87612c5a` (2026-10-06), covering
   everything since 110.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
@@ -79,7 +73,7 @@ log.
 - `plans/` - finished plans, audits and closeouts, including
   `GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md` (full roadmap history, the Break
   Down charting comp build contract and milestone acceptance records).
-- `smoke/` - installed smoke records before `1.12.0-110`.
+- `smoke/` - installed smoke records before `1.12.0-111`.
 
 ## Update discipline
 

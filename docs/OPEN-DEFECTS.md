@@ -7,31 +7,7 @@ open, check its fix and smoke status in git.
 
 ## Repaired in source, awaiting the next installer and smoke
 
-Latest coach-smoked build: `1.12.0-110` (2026-10-05). These are in source after
-it. The next installed smoke must cover each.
-
-- **Break Down cleanup** (comp `design-comps/breakdown-cleanup-2026-10-05`,
-  COMP_APPROVED 2026-10-05; production IMPLEMENTED_UNVERIFIED): gold only on
-  Save & Next, the route underline, the Offense unit tab and scoring results;
-  neutral selected chips, section labels, current-play badge, drive label and
-  Film Room filters; Our Program / Opponent Scout removed from the toolbar;
-  Game settings and Customize fields in More; one Delete (the deck's Delete
-  play; Save and Delete template inside the Templates menu); Save & Next
-  without the Enter hint; play-strip cards show the full result and a Special
-  Teams snap's unit; More is a titled, grouped menu. Smoke: chart a few plays
-  at your normal window size; delete a play from the deck and Cancel; save,
-  apply and delete a template; open More and Game settings.
-- **Code review fixes, 2026-10-06:** Save season and autosave show Saved only
-  after the write lands and "Not saved" when it fails; cut-up export asks and
-  reports inside the app (no browser confirm or alert); Mark as Final is in
-  Game settings (coach ruling), and the score and last-play messages point
-  there. Smoke: Save season from More; export a short cut-up and cancel it;
-  mark a scored game Final and see the season record count it.
-- **Home at startup shows the library, not first-run** (SMOKE-110 finding 1):
-  until Team Hub's first load finishes, Home shows "Loading seasons…" instead
-  of Get started and "Create first season". Smoke: launch the app; Home lists
-  your seasons. If "Loading seasons…" stays for more than a moment, that is a
-  slow or stuck first load and is a new finding.
+None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 ## Open defects
 
