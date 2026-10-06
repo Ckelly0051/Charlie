@@ -2,7 +2,7 @@
   "surfaceId": "breakdown.cleanup",
   "title": "Break Down cleanup",
   "designStatus": "COMP_APPROVED",
-  "productionStatus": "DRAFT",
+  "productionStatus": "IMPLEMENTED_UNVERIFIED",
   "approvedOn": "2026-10-05",
   "approvalNote": "The coach approved the cleanup comp to build: gold for the primary action, route underline, Offense unit tab and scoring results only; neutral selected chips, section labels and current-play badge; settings moved from the toolbar to More; one Delete and one Save & Next; full play-strip results with Special Teams unit names; restyled More menu; Get started copy. Templates stays in the deck header.",
   "canonicalArtifact": {
@@ -11,5 +11,6 @@
     "sha256": "e0ff019571f30ecf7f2db8dff8f68ccfa7437bd44d036620d2f8bf9d0d249cdb",
     "fileCount": 8
   },
-  "decisionRecord": "design-comps/breakdown-cleanup-2026-10-05/RATIONALE.md"
+  "decisionRecord": "design-comps/breakdown-cleanup-2026-10-05/RATIONALE.md",
+  "productionNote": "Built 2026-10-05. Two departures from the comp, both raised with the coach: the deck-header Delete deleted a template, so it became Delete play and Save / Delete template moved into the Templates menu; and the Get started finding was a loading state, not copy, so Home shows \"Loading seasons…\" until the first load instead of new Get started copy."
 }

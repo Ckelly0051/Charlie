@@ -448,10 +448,15 @@ export function NativeTagging({screen}) {
     <div class="gi-tag-actions">
       <button type="button" disabled={!state.canCopyPrevious} onClick={() => screen.copyPrevious()}>Same as Last</button>
 
-      <select value={state.selectedTemplate} onChange={e => screen.applyTemplate(e.currentTarget.value)}>
-        <option value="">Templates</option>{state.templates.map(name => <option key={name}>{name}</option>)}</select>
-      <button type="button" onClick={() => screen.saveTemplate()}>Save Template</button>
-      <button type="button" class="gi-is-risk" disabled={!state.selectedTemplate} onClick={() => screen.deleteTemplate(state.selectedTemplate)}>Delete</button>
+      <select value={state.selectedTemplate} aria-label="Templates" onChange={e => {
+        const value = e.currentTarget.value;
+        e.currentTarget.value = state.selectedTemplate;
+        screen.chooseTemplate(value, state.selectedTemplate);
+      }}>
+        <option value="">Templates</option>{state.templates.map(name => <option key={name}>{name}</option>)}
+        <option value={screen.constructor.TEMPLATE_SAVE}>Save as template…</option>
+        <option value={screen.constructor.TEMPLATE_DELETE} disabled={!state.selectedTemplate}>Delete template{state.selectedTemplate ? ` "${state.selectedTemplate}"` : ''}</option></select>
+      <button type="button" class="gi-is-risk" data-tag-delete-play disabled={!state.enabled} onClick={() => screen.deletePlay()}>Delete play</button>
     </div>
     {!state.enabled ? <div class="gi-tag-empty">Select or mark a play to begin charting.</div> : <main class="gi-native-form">
       <datalist id="giPenaltyFouls">{['False Start','Holding','Illegal Formation','Illegal Motion','Delay of Game','Offside','Encroachment','Defensive Pass Interference','Facemask','Personal Foul','Unsportsmanlike','Block in the Back','Roughing the Kicker'].map(v => <option key={v}>{v}</option>)}</datalist>
@@ -553,7 +558,7 @@ export function NativeTagging({screen}) {
       </Group>
       <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>← Previous</button>
         <button type="button" onClick={() => screen.skip()}>Skip</button>
-        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : <><span>Save & Next</span><kbd>Enter</kbd></>}</button></footer>
+        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : <span>Save & Next</span>}</button></footer>
     </main>}
   </section>;
 }

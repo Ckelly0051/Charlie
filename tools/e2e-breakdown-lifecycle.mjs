@@ -177,12 +177,16 @@ state = await page.evaluate(() => {
     minHit: Math.min(...commands.map(button => button.getBoundingClientRect().height)),
     visible: commands.every(button => button.getClientRects().length),
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    shellMore: window.app.workspaceShell._moreItems(true).map(item => item.key),
   };
 });
 ok(state.open && state.expanded === 'true' && state.visible && state.minHit >= 44 && !state.overflow,
   'Mobile More tools opens a contained touch-sized command menu', JSON.stringify(state));
-ok(JSON.stringify(state.labels) === JSON.stringify(['Quick chart', 'Customize fields', 'Game settings', 'Film focus']),
-  'Mobile menu retains every advanced Break Down command', JSON.stringify(state));
+// design-comps/breakdown-cleanup-2026-10-05: Game settings and Customize
+// fields moved from the Break Down tools to the shell's More menu.
+ok(JSON.stringify(state.labels) === JSON.stringify(['Quick chart', 'Film focus'])
+  && state.shellMore.includes('game-settings') && state.shellMore.includes('customize'),
+  'Mobile menu keeps Quick chart and Film focus; Game settings and Customize fields are in More', JSON.stringify(state));
 await page.keyboard.press('Escape');
 state = await page.evaluate(() => ({
   open: document.querySelector('.gi-breakdown-tools').classList.contains('is-open'),

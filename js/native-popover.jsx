@@ -97,7 +97,7 @@ export function NativePopover({ overlay, service, top }) {
         else if (event.key === 'End') move(event, 'last');
       }}
     >
-      {overlay.variant === 'context' && <p class="gi-popover-title" role="presentation">{overlay.title}</p>}
+      {overlay.variant && <p class="gi-popover-title" role="presentation">{overlay.title}</p>}
       {overlay.content}
       {overlay.items.map(item => item.heading
         ? <p

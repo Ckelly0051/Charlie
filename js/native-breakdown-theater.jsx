@@ -164,7 +164,7 @@ function PlayStrip({ screen, state }) {
           data-native-play-id={play.id}
           onClick={() => { screen.selectPlay(play.id); if (open) dismiss(); }}
           title={play.label}
-        ><span>{play.id}</span><strong>{play.situation}</strong><small><span title={play.call}>{play.call}</span><span title={play.result}>{play.result}</span></small></button>)}</div>
+        ><span>{play.id}</span><strong>{play.situation}</strong><small>{play.call && <span title={play.call}>{play.call}</span>}<span title={play.result}>{play.result}</span></small></button>)}</div>
       </section>) : <p class="gi-drive-empty">Load film or mark a play to begin.</p>}
     </div>
     <button type="button" class="gi-plays-toggle" ref={trigger} aria-label="Show play strip" aria-expanded={open} onClick={() => setOpen(true)}>▤ Plays · {state.playCount}<span>▴ Open</span></button>
@@ -201,7 +201,6 @@ function ChartActions({ screen, state }) {
     <label class="gi-autoplay-toggle"><input type="checkbox" checked={state.autoplay} onChange={event => screen.setAutoplay(event.currentTarget.checked)} /><span>Autoplay next</span></label>
     <div class="gi-theater-actions-risk">
       <button type="button" onClick={() => screen.clearTags()}>Clear tags</button>
-      <button type="button" class="is-danger" onClick={() => screen.deletePlay()}>Delete play</button>
     </div>
   </div>;
 }

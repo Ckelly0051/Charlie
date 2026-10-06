@@ -114,12 +114,17 @@ let state = await page.evaluate(() => {
   const row = long?.getBoundingClientRect();
   const children = [...(long?.children || [])];
   return { widths: [...new Set(cards.map(card => Math.round(card.getBoundingClientRect().width)))],
+    clipped: cards.filter(card => card.scrollWidth > card.clientWidth + 1).map(card => card.dataset.nativePlayId),
+    longWidth: Math.round(document.querySelector('[data-native-play-id="7"]')?.getBoundingClientRect().width || 0),
     text: long?.textContent, fits: children.filter(node => node.getClientRects().length).every(node => node.getBoundingClientRect().right <= row.right + 1),
     fullLabel: document.querySelector('[data-native-play-id="7"]')?.title,
     internal: document.querySelector('[data-drive-scroll]').scrollWidth > document.querySelector('[data-drive-scroll]').clientWidth,
     pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
 });
-ok(state.widths.length === 1 && state.widths[0] === 78, 'Mid-width play strip uses the approved 78px footprint', JSON.stringify(state));
+// design-comps/breakdown-cleanup-2026-10-05: cards keep a 78px minimum and
+// widen to show the whole result instead of truncating it.
+ok(Math.min(...state.widths) === 78 && state.longWidth > 78 && !state.clipped.length,
+  'Mid-width play strip keeps a 78px minimum and widens a card to its full result', JSON.stringify(state));
 ok(state.fits && /Interception \+ Touchdown: -12/.test(state.text || '') && /Interception/.test(state.fullLabel || ''), 'Compact strip preserves full football copy in its accessible label and tooltip', JSON.stringify(state));
 ok(state.internal && !state.pageOverflow, 'High play counts scroll inside the strip without page overflow', JSON.stringify(state));
 
@@ -249,7 +254,8 @@ const railSpecial = await page.evaluate(() => {
     legacy: screen._playView({id:2,tags:{unit:'special',stType:'Punt',kickOutcome:'Downed'}}),
   };
 });
-ok(railSpecial.selected.call === 'Kick Return' && railSpecial.selected.result === 'No result', 'Play rail recognizes a structured phase without inventing an outcome', JSON.stringify(railSpecial));
+ok(railSpecial.selected.situation === 'Kick Return' && railSpecial.selected.call === '' && railSpecial.selected.result === 'No result',
+  'Play rail names a Special Teams snap by its unit (no "Down -") without inventing an outcome', JSON.stringify(railSpecial));
 ok(railSpecial.returned.result === 'Returned' && railSpecial.returned.label.includes('Kick Return, Returned'), 'Play rail and accessible label use the structured outcome', JSON.stringify(railSpecial));
 ok(railSpecial.retry.result === 'No Play / Retry' && railSpecial.legacy.call !== 'Punt' && railSpecial.legacy.result !== 'Downed', 'Play rail preserves try rulings and shows no retired stType / kickOutcome', JSON.stringify(railSpecial));
 ok(state.offTd === 'pos', 'Offense Touchdown is positive');
@@ -506,14 +512,17 @@ ok(transport.every(row => row.speedClipped === false),
   JSON.stringify(transport.map(row => ({ w: row.width, value: row.speedValue, clipped: row.speedClipped }))));
 await page.setViewport({ width: 1440, height: 900 });
 
-console.log('\n== 4. Rendered Delete play removes the selected play ==');
+console.log('\n== 4. The deck\'s Delete play removes the selected play ==');
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluate(() => window.app.tagger.selectPlay(1));
 const deleteBefore = await page.evaluate(() => ({
   count: window.app.tagger.plays.length,
   selected: window.app.tagger.currentPlayId,
 }));
-await page.click('.gi-theater-actions-risk .is-danger');
+ok(!(await page.$('.gi-theater-actions-risk .is-danger')), 'Delete play is no longer under the film (one Delete, in the deck)');
+// This harness mounts the theater alone; the deck's rendered button is
+// clicked in e2e-native-tagging. Here the deck's own action drives the delete.
+await page.evaluate(() => { window.app.nativeTagging.deletePlay(); });
 await page.waitForSelector('#ffaConfirmModal [data-act="ok"]');
 const deletePrompt = await page.$eval('#ffaConfirmModal .ffa-confirm-msg', node => node.textContent.trim());
 await page.$eval('#ffaConfirmModal [data-act="ok"]', node => node.click());

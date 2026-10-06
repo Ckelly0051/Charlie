@@ -123,10 +123,12 @@ ok(/All clips charted|Saved/.test(state.status || ''), 'Save reports an affirmat
 
 await page.click('[data-overlay-id="quick-chart"] .gi-overlay-close');
 await page.waitForFunction(() => !window.app.quickChart.isActive && !document.querySelector('[data-native-quick-chart]')
-  && document.querySelector('[data-bd-context].active')?.dataset.bdContext === 'self'
+  && !document.querySelector('[data-bd-context="quick"]')?.classList.contains('active')
   && document.activeElement?.dataset.bdContext === 'quick');
-state = await page.evaluate(() => ({ context: document.querySelector('[data-bd-context].active')?.dataset.bdContext, focus: document.activeElement?.dataset.bdContext }));
-ok(state.context === 'self' && state.focus === 'quick', 'Close restores the prior film context and invoking control', JSON.stringify(state));
+// The Our Program / Opponent Scout toggle is gone (the season decides it), so
+// the prior context is "Quick chart not pressed".
+state = await page.evaluate(() => ({ quickPressed: document.querySelector('[data-bd-context="quick"]')?.getAttribute('aria-pressed'), focus: document.activeElement?.dataset.bdContext }));
+ok(state.quickPressed === 'false' && state.focus === 'quick', 'Close releases Quick chart and returns focus to its control', JSON.stringify(state));
 
 await page.click('[data-bd-context="quick"]');
 await page.waitForFunction(() => window.app.quickChart.isActive && document.querySelector('[data-native-quick-chart]'));

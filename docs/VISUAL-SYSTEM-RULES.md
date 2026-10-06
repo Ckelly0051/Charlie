@@ -294,9 +294,12 @@ production-to-comp mapping are in
 - **One menu pattern for the three selectors** (the popover's `context`
   variant): a title naming the switch, rows with the name and a muted detail,
   the current row marked by a gold left rule and a gold check, and Season
-  Library / New commands in gold. Names wrap rather than truncate. Other menus
-  (More, Film Room) keep the general popover. Enforced by
-  `e2e-breakdown-visual-finish`.
+  Library / New commands in gold. Names wrap rather than truncate. The shell's
+  More menu is the popover's `menu` variant (2026-10-05,
+  `design-comps/breakdown-cleanup-2026-10-05`): a title, labeled groups (This
+  game, Season, Export, Tools), one-line rows with a grey detail, a neutral
+  hover rule and the version as a footer. Other menus (Film Room) keep the
+  general popover. Enforced by `e2e-breakdown-visual-finish`.
 - Never truncate team names in score or matchup presentation. Team identity and
   its aligned score must remain visually unambiguous.
 

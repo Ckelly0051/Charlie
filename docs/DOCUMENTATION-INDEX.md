@@ -43,6 +43,10 @@ log.
   `5262B8F222512617E33349C6B6EAEC9E641B52351FFEC5E2C007FA6285ED7E11`. Not
   tagged. `1.12.0-109` was superseded before smoke. One finding (Get started
   copy) is open.
+- **In source since 110, not packaged:** the Break Down cleanup
+  (`design-comps/breakdown-cleanup-2026-10-05`, production
+  IMPLEMENTED_UNVERIFIED) and Home's startup loading state (SMOKE-110
+  finding 1). Focused-verified only; smoke items are in `docs/OPEN-DEFECTS.md`.
 - **Latest full gate:** GREEN, 149/149 at `678da80c` (2026-10-05), covering
   everything since 108.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full

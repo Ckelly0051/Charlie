@@ -7,36 +7,34 @@ open, check its fix and smoke status in git.
 
 ## Repaired in source, awaiting the next installer and smoke
 
-None. Latest coach-smoked build: `1.12.0-110` (2026-10-05).
+Latest coach-smoked build: `1.12.0-110` (2026-10-05). These are in source after
+it. The next installed smoke must cover each.
+
+- **Break Down cleanup** (comp `design-comps/breakdown-cleanup-2026-10-05`,
+  COMP_APPROVED 2026-10-05; production IMPLEMENTED_UNVERIFIED): gold only on
+  Save & Next, the route underline, the Offense unit tab and scoring results;
+  neutral selected chips, section labels, current-play badge, drive label and
+  Film Room filters; Our Program / Opponent Scout removed from the toolbar;
+  Game settings and Customize fields in More; one Delete (the deck's Delete
+  play; Save and Delete template inside the Templates menu); Save & Next
+  without the Enter hint; play-strip cards show the full result and a Special
+  Teams snap's unit; More is a titled, grouped menu. Smoke: chart a few plays
+  at your normal window size; delete a play from the deck and Cancel; save,
+  apply and delete a template; open More and Game settings.
+- **Home at startup shows the library, not first-run** (SMOKE-110 finding 1):
+  until Team Hub's first load finishes, Home shows "Loading seasons…" instead
+  of Get started and "Create first season". Smoke: launch the app; Home lists
+  your seasons. If "Loading seasons…" stays for more than a moment, that is a
+  slow or stuck first load and is a new finding.
 
 ## Open defects
 
-- **Home > Get started says "Create your first season" when seasons exist**
-  (SMOKE-110 finding 1, 2026-10-05). With 3 seasons in St. Joseph Mavericks,
-  the Get started pane still offers "Start the football year here / Create
-  your first season"; Season library lists the seasons correctly.
 - **LG-1 — plays created without a unit.** SJM Varsity 2026 holds 33 plays whose
   tags are blank with no `unit` key (Week 4 vs Oakland Christian plays 31-34 and
   37-64; vs Romeo play 1). Every `PlayTagger` creation path seeds `unit`, so
   another path writes `{}` (film link or clip import suspected, not confirmed).
   Reading is safe (`countedUnit` treats them as offense). Reproduce, find the
   writer, seed the full tag schema there.
-- **Play strip truncates results and shows "Down -".** Seen 2026-10-04 on 2025 JV
-  Week 1: `Run Outs...`, `Gain + Touchdow...`; kickoffs and tries read
-  `Down -`. Full text is only in tooltips.
-- **Two Delete buttons and two Save & Next affordances on Break Down** (coach
-  agreed 2026-10-04). Delete Play sits under the film and Delete in the deck
-  header; Save & Next also shows an Enter key hint.
-- **The More menu uses the old styling** (coach, 2026-10-05). The shell's More
-  dropdown is a flat list with blue sublabels ("CSV or pasted breakdown",
-  "Create a restore point") and plain dividers, unlike the titled Program /
-  Season / Game menus approved in BD-UX-1.
-- **Gold marks everything on Break Down** (coach agreed 2026-10-04): active
-  route, tabs, selected chips, section headers, drive labels, Edit library and
-  Save & Next all use gold, so the primary action does not stand out.
-- **Settings sit in the Break Down toolbar** (coach agreed 2026-10-04): Our
-  Program / Opponent Scout repeats the Program selector; Customize fields, Game
-  settings and Templates are once-a-season actions shown on every play.
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
   not. Treat as a shared export-delivery defect; do not guess the cause.

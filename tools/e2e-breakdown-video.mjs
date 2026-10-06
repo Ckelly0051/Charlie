@@ -61,7 +61,10 @@ await page.click('[data-bd-context="quick"]');
 await page.waitForSelector('[data-native-quick-chart]');
 state=await page.evaluate(()=>({active:window.app.quickChart.isActive,native:!!document.querySelector('[data-native-quick-chart]'),legacy:!!document.getElementById('quickChartPanel')}));
 ok(state.active&&state.native&&!state.legacy,'Quick Chart selector opens one native owner with no legacy panel',JSON.stringify(state));
-await page.click('[data-bd-context="self"]');
+// The Our Program / Opponent Scout toggle that used to close Quick Chart is
+// gone (the season decides it); Quick Chart closes from its own panel.
+await page.click('[data-overlay-id="quick-chart"] .gi-overlay-close');
+await page.waitForFunction(()=>!window.app.quickChart.isActive);
 
 console.log('\n== 3. Route state and responsive composition ==');
 await page.evaluate(()=>window.app._renderSaveState('pending'));

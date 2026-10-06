@@ -90,10 +90,6 @@ export function BreakdownRoute({ workspace, state }) {
   const pressed = active => ({ class: active ? 'active' : undefined, 'aria-pressed': String(active) });
   return <div class={`gi-breakdown-route${filmFocus ? ' is-film-focus' : ''}`} data-native-breakdown-route data-fr-dock={layout.dock} style={{ '--fr-video': `${layout[layout.dock]}%` }}>
     <header class="gi-breakdown-toolbar" aria-label="Break Down tools">
-      <div class="gi-breakdown-context" role="group" aria-label="Film context">
-        <button type="button" data-bd-context="self" {...pressed(context === 'self')} onClick={() => workspace._setContext('self')}>Our Program</button>
-        <button type="button" data-bd-context="scout" {...pressed(context === 'scout')} onClick={() => workspace._setContext('scout')}>Opponent Scout</button>
-      </div>
       <div class="gi-breakdown-view" role="group" aria-label="Break Down view">
         <button type="button" data-bd-view="chart" {...pressed(!filmRoom)} onClick={() => workspace._setView('chart', { userInitiated: true })}>Chart</button>
         <button type="button" data-bd-view="film-room" {...pressed(filmRoom)} onClick={() => workspace._setView('film-room', { userInitiated: true })}>Film Room</button>
@@ -113,8 +109,6 @@ export function BreakdownRoute({ workspace, state }) {
         <button type="button" ref={toolsToggle} data-bd-tools-toggle aria-haspopup="menu" aria-controls="bdMoreTools" aria-expanded={String(toolsOpen)} onClick={() => workspace._toggleTools()}>More tools</button>
         <div class="gi-breakdown-commands" id="bdMoreTools" role="menu">
           <button type="button" role="menuitem" data-bd-context="quick" {...pressed(context === 'quick')} onClick={() => workspace._setContext('quick')}><Icon name="chart" />Quick chart</button>
-          <button type="button" role="menuitem" data-bd-customize onClick={() => { workspace._closeTools(); workspace.app.tagLibrarySettings?.open(); }}><Icon name="tag" />Customize fields</button>
-          <button type="button" role="menuitem" data-bd-game onClick={() => { workspace._closeTools(); workspace.app.gameScreen?.open({ mode: 'edit' }); }}><Icon name="notes" />Game settings</button>
           <button type="button" role="menuitem" data-bd-film-focus {...pressed(filmFocus)} onClick={() => { workspace._closeTools(); workspace._setFilmFocus(!workspace.filmFocus); }}><Icon name="scan" /><span>{filmFocus ? 'Show charting' : 'Film focus'}</span></button>
         </div>
       </div>

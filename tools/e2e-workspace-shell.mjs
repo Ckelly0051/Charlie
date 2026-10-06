@@ -246,10 +246,10 @@ ok(r.nativeSettings === 1 && r.retiredOwnersAbsent, 'Shell Settings opens the si
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await page.click('#btnNativeMore');
-await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="open"]');
+await page.waitForSelector('[role="menu"][aria-label="More"] [data-popover-item="open"]');
 await capture('more-1280x800');
 r = await page.evaluate(() => ({
-  moreOpen: !!document.querySelector('[role="menu"][aria-label="More actions"]'),
+  moreOpen: !!document.querySelector('[role="menu"][aria-label="More"]'),
   nativeOwner: !!document.querySelector('#giNativeRoot [data-popover-item="import"]'),
   legacyAbsent: !document.getElementById('moreDropdown') && !document.getElementById('btnMoreMenu') && !document.querySelector('.more-menu'),
   projectInputOutsideLegacy: document.getElementById('projectFileInput')?.parentElement === document.body,
@@ -272,7 +272,7 @@ r = await page.evaluate(() => {
   delete window.__nativeOpenOriginal;
   return {
     calls: window.__nativeOpenCalls,
-    closed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+    closed: !document.querySelector('[role="menu"][aria-label="More"]'),
   };
 });
 ok(r.calls === 1 && r.closed, 'Native Open season file reaches the canonical picker exactly once', JSON.stringify(r));
@@ -306,7 +306,7 @@ const importJourney = await page.evaluate(before => {
     mapped,
     mappingValues,
     legacyGone,
-    popoverClosed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+    popoverClosed: !document.querySelector('[role="menu"][aria-label="More"]'),
     unchanged: before === JSON.stringify((({ revision, ...coachData }) => coachData)(structuredClone(window.app.storage.seasonStore.data))),
   };
 }, beforeImport);
@@ -366,7 +366,7 @@ r = await page.evaluate(() => {
   delete window.__nativeMoreOriginalSave;
   return {
     calls: window.__nativeMoreSaveCalls,
-    closed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+    closed: !document.querySelector('[role="menu"][aria-label="More"]'),
     focus: document.activeElement?.id,
     legacyAbsent: !document.getElementById('moreDropdown') && !document.getElementById('btnMoreMenu'),
   };
@@ -388,7 +388,7 @@ r = await page.evaluate(() => ({
   available: [...document.querySelectorAll('.gi-call-sheet-bucket output')].some(node => Number(node.textContent) > 0),
   preview: document.querySelector('.gi-call-sheet-preview')?.getAttribute('srcdoc') || '',
   modal: document.querySelector('[data-overlay-id="call-sheet-builder"] .gi-overlay-panel')?.getAttribute('aria-modal'),
-  popoverClosed: !document.querySelector('[role="menu"][aria-label="More actions"]'),
+  popoverClosed: !document.querySelector('[role="menu"][aria-label="More"]'),
 }));
 ok(r.native === 1 && r.legacyGone && r.buckets === 13 && r.available && /Call Sheet/.test(r.preview)
     && r.modal === 'true' && r.popoverClosed,
@@ -912,11 +912,11 @@ r = await page.evaluate(() => ({
 ok(r.bottomTabs === 'absent' && r.workspaceNav === 'grid' && r.routeButtons === 5 && r.active === 'breakdown' && !r.routeSelect,
   'Mobile Break Down uses one Home/Break Down/Study/Reports/Plan navigation system', JSON.stringify(r));
 await page.click('#btnNativeMoreMobile');
-await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="settings"]');
+await page.waitForSelector('[role="menu"][aria-label="More"] [data-popover-item="settings"]');
 await capture('more-390x844');
 const mobileMore = await page.evaluate(() => ({
-  items: document.querySelectorAll('[role="menu"][aria-label="More actions"] [role="menuitem"]:not([disabled])').length,
-  minHeight: Math.min(...[...document.querySelectorAll('[role="menu"][aria-label="More actions"] [role="menuitem"]:not([disabled])')].map(item => item.getBoundingClientRect().height)),
+  items: document.querySelectorAll('[role="menu"][aria-label="More"] [role="menuitem"]:not([disabled])').length,
+  minHeight: Math.min(...[...document.querySelectorAll('[role="menu"][aria-label="More"] [role="menuitem"]:not([disabled])')].map(item => item.getBoundingClientRect().height)),
   overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
 }));
 ok(mobileMore.items >= 10 && mobileMore.minHeight >= 44 && !mobileMore.overflow,
@@ -934,9 +934,9 @@ ok(r.modal === 'true' && r.routeInert && !r.overflow,
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await page.click('#btnNativeMoreMobile');
-await page.waitForSelector('[role="menu"][aria-label="More actions"] [data-popover-item="shortcuts"]');
+await page.waitForSelector('[role="menu"][aria-label="More"] [data-popover-item="shortcuts"]');
 r = await page.evaluate(() => {
-  const items = ['undo','redo','shortcuts'].map(key => document.querySelector(`[role="menu"][aria-label="More actions"] [data-popover-item="${key}"]`));
+  const items = ['undo','redo','shortcuts'].map(key => document.querySelector(`[role="menu"][aria-label="More"] [data-popover-item="${key}"]`));
   return {
     allPresent: items.every(Boolean),
     minHeight: Math.min(...items.map(item => item.getBoundingClientRect().height)),

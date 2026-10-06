@@ -99,11 +99,15 @@ const otherPopover = await page.evaluate(async () => {
   window.app.workspaceShell._openMore(anchor);
   await new Promise(resolve => setTimeout(resolve, 300));
   const panel = document.querySelector('.gi-popover-panel');
-  const result = { context: panel?.classList.contains('is-context'), title: !!panel?.querySelector('.gi-popover-title') };
+  const result = { context: panel?.classList.contains('is-context'), menu: panel?.classList.contains('is-menu'), title: panel?.querySelector('.gi-popover-title')?.textContent,
+    groups: [...(panel?.querySelectorAll('.gi-popover-heading') || [])].map(node => node.textContent) };
   window.app.overlays.close?.(window.app.overlays.snapshot().overlays.at(-1)?.id, 'cancel');
   return result;
 });
-ok(otherPopover.context === false && otherPopover.title === false, 'Other menus keep the general popover; only the three selectors take the context pattern', otherPopover);
+// design-comps/breakdown-cleanup-2026-10-05: More is the titled, grouped menu.
+ok(otherPopover.context === false && otherPopover.menu === true && otherPopover.title === 'More'
+  && JSON.stringify(otherPopover.groups) === JSON.stringify(['This game', 'Season', 'Export', 'Tools']),
+  'More is the grouped command menu; only the three selectors take the context pattern', otherPopover);
 
 console.log('\n== BD-UX-2: narrow ==');
 await page.setViewport({ width: 390, height: 844 }); await sleep(400);

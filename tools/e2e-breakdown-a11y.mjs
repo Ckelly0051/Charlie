@@ -36,7 +36,12 @@ ok(/IBM Plex Sans/.test(state.font) && /IBM Plex Sans/.test(state.chipFont), 'Wo
 ok(state.contrast >= 4.5, 'Selected chip text meets WCAG AA contrast', String(state.contrast));
 ok(state.names && state.summaries, 'Header commands and collapsible groups expose keyboard-accessible names');
 
-await page.focus('[data-bd-context="scout"]');
+// Game settings moved from the Break Down toolbar to the shell's More menu
+// (design-comps/breakdown-cleanup-2026-10-05); it is still reached by keyboard.
+await page.focus('#btnNativeMore');
+await page.keyboard.press('Enter');
+await page.waitForSelector('[data-popover-item="game-settings"]');
+await page.focus('[data-popover-item="game-settings"]');
 await page.keyboard.press('Enter');
 // REPOINTED 2026-09-13. This waited on `[name="perspective"]` taking focus --
 // the `Film source` control the coach removed, which now matches nothing and

@@ -566,20 +566,21 @@ export class BreakdownTheaterScreen {
 
   _cardLabel(play) {
     const view = this._playViewShallow(play);
-    return `Play ${play.id}: ${view.situation}, ${view.call}, ${view.result}`;
+    return `Play ${play.id}: ${[view.situation, view.call, view.result].filter(Boolean).join(', ')}`;
   }
 
   _playViewShallow(play) {
     const tags = play.tags || {};
     const down = String(tags.down || '');
-    const situation = (({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || 'Down -')
-      + (tags.distance ? ` & ${tags.distance}` : '');
     const special = SpecialTeamsModel.normalize(play.specialTeams);
     if (special) {
-      const call = ST_UNITS.find(([value]) => value === special.unit)?.[1] || 'Special Teams';
+      // A Special Teams snap has no down: its card names the unit instead.
+      const unit = ST_UNITS.find(([value]) => value === special.unit)?.[1] || 'Special Teams';
       const result = this._chyronSpecialResult(play).result;
-      return { situation, call, result: result === '—' ? 'No result' : result };
+      return { situation: unit, call: '', result: result === '—' ? 'No result' : result };
     }
+    const situation = (({ '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' })[down] || 'No down')
+      + (tags.distance ? ` & ${tags.distance}` : '');
     const call = tags.playType || tags.defFront || TagProjection.lookLabel(tags) || 'Untagged';
     const result = tags.result || 'No result';
     const raw = String(tags.yardage ?? '').trim();
@@ -654,7 +655,6 @@ export class BreakdownTheaterScreen {
   markEnd() { this.app.tagger?.markEnd?.(); this._publish(); }
   copyLast() { this.app.tagger?.copyFromPrevious?.(); this._publish(); }
   clearTags() { return this.app.tagger?.clearCurrentTags?.(); }
-  deletePlay() { return this.app.tagger?.deleteCurrentPlay?.(); }
   setAutoplay(enabled) {
     this.app.autoPlayNext = !!enabled;
     try { localStorage.setItem('ffa_autoplay_next', this.app.autoPlayNext ? '1' : '0'); } catch {}

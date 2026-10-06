@@ -35,8 +35,6 @@ export class BreakdownWorkspace {
     this.filmFocus = (() => { try { return localStorage.getItem('ffa_breakdown_film_focus') === '1'; } catch (e) { return false; } })();
     this.filmLayout = BreakdownWorkspace.readLayout();
     this._filmFocusOpenedStrip = false;
-    this.scoutMode = 'self';
-    this._contextGameId = null;
     this._bound = false;
     this.toolsOpen = false;
   }
@@ -79,7 +77,7 @@ export class BreakdownWorkspace {
     const quick = !!this.app.quickChart?.isActive;
     return {
       view: this.view,
-      context: quick ? 'quick' : this.scoutMode === 'scout' ? 'scout' : 'self',
+      context: quick ? 'quick' : 'chart',
       layout: { ...this.filmLayout },
       filmFocus: this.filmFocus,
       toolsOpen: this.toolsOpen,
@@ -167,32 +165,7 @@ export class BreakdownWorkspace {
       return;
     }
     if (this.app.quickChart?.isActive) this.app.quickChart.toggle();
-    const requestedScout = context === 'scout';
-    if (requestedScout !== this._isScoutFilm()) this._openFilmContextSettings();
     this.render();
-  }
-
-  _activeGameId() {
-    return String(this.app.storage?.seasonStore?.data?.activeGameId || '');
-  }
-
-  _isScoutFilm() {
-    return this.app.gameContext?.isScout() === true;
-  }
-
-  _openFilmContextSettings() {
-    // There is no perspective FIELD any more -- Program versus Opponent Scout
-    // is derived from the owning season and the charting unit is chosen here in
-    // Break Down. Game settings still owns the rest of the game's context, so
-    // this lands on the game's identity instead of a `[name="perspective"]`
-    // selector that would now match nothing and leave the dialog unfocused.
-    this.app.gameScreen?.open({ mode: 'edit', focus: 'opponent' });
-  }
-
-  _syncScoutGame() {
-    const gameId = this._activeGameId();
-    this._contextGameId = gameId;
-    this.scoutMode = this._isScoutFilm() ? 'scout' : 'self';
   }
 
   setSaveState(state) {
@@ -202,7 +175,6 @@ export class BreakdownWorkspace {
 
   render() {
     if (!this.host) return;
-    this._syncScoutGame();
     this._renderRoute();
   }
 

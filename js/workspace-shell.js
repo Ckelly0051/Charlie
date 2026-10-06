@@ -343,7 +343,7 @@ export class WorkspaceShell {
   _openMore(anchor){
     if(!anchor||!this.app.overlays)return;
     anchor.setAttribute('aria-expanded','true');
-    const handle=this.app.overlays.popover({title:'More actions',anchor,returnFocus:anchor,items:this._moreItems(anchor.id==='btnNativeMoreMobile',anchor)});
+    const handle=this.app.overlays.popover({title:'More',variant:'menu',anchor,returnFocus:anchor,items:this._moreItems(anchor.id==='btnNativeMoreMobile',anchor)});
     handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
   }
   _moreItems(compact=false,anchor=null){
@@ -355,26 +355,37 @@ export class WorkspaceShell {
       {key:'redo',label:'Redo',disabled:!this.app.history?.canRedo?.(),onSelect:()=>this.app.history?.redoAll()},
       {key:'shortcuts',label:'Keyboard shortcuts',onSelect:()=>this.app.shortcutsScreen?.open?.(anchor)},
     ]:[];
-    items.push(
-      {key:'teams',label:'Teams & seasons',separator:!compact,onSelect:()=>this._openLibrary()},
-      {key:'open',label:'Open season file',onSelect:()=>storage.projectFileInput?.click()},
-      {key:'import',label:'Import plays',detail:'CSV or pasted breakdown',onSelect:()=>this.app.playImport.open({returnFocus:anchor})},
-      {key:'save',label:'Save season',detail:'Create a restore point',onSelect:()=>storage.saveProject()},
-      {key:'recovery',label:'Restore points & versions',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'recovery',returnFocus:anchor})},
+    const seasonStore=storage.seasonStore;
+    const group=(key,label)=>({key:`group-${key}`,label,heading:true,separator:items.length>0});
+    // Game settings and Customize fields are once-a-season actions, so they
+    // live here rather than in the Break Down toolbar.
+    if(seasonStore?.data)items.push(
+      group('game','This game'),
+      {key:'game-settings',label:'Game settings',onSelect:()=>this.app.gameScreen?.open?.({mode:'edit'})},
+      {key:'customize',label:'Customize fields',onSelect:()=>this.app.tagLibrarySettings?.open?.()},
       {key:'charting',label:'Charting libraries',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'charting',returnFocus:anchor})},
+    );
+    items.push(
+      group('season','Season'),
+      {key:'teams',label:'Teams & seasons',onSelect:()=>this._openLibrary()},
+      {key:'open',label:'Open season file',onSelect:()=>storage.projectFileInput?.click()},
+      {key:'import',label:'Import plays',detail:'CSV',onSelect:()=>this.app.playImport.open({returnFocus:anchor})},
+      {key:'save',label:'Save season',detail:'Restore point',onSelect:()=>storage.saveProject()},
+      {key:'recovery',label:'Restore points & versions',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'recovery',returnFocus:anchor})},
+      group('export','Export'),
+      {key:'season',label:'Season report',onSelect:()=>this.show('reports')},
+      {key:'html',label:'Current game report',onSelect:()=>storage.exportHtmlReport(this.app.stats)},
+      {key:'csv',label:'Plays CSV',onSelect:()=>storage.exportCsv()},
+      {key:'cutup',label:'Cut-up video',onSelect:()=>this.app.cutup.export()},
+      {key:'frame',label:'Current frame',onSelect:()=>storage.exportPng()},
+      {key:'call-sheet',label:'Call sheet',onSelect:()=>this.app.callSheet.show({ returnFocus: anchor })},
+      group('tools','Tools'),
       {key:'drawing',label:'Drawing tools',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'drawing',returnFocus:anchor})},
       {key:'cutup-filter',label:'Cut-up filters',onSelect:()=>this.app.settingsScreen?.open?.({initialTab:'cutup',returnFocus:anchor})},
-      {key:'season',label:'Season report',separator:true,onSelect:()=>this.show('reports')},
-      {key:'html',label:'Current game HTML report',onSelect:()=>storage.exportHtmlReport(this.app.stats)},
-      {key:'csv',label:'Export plays CSV',onSelect:()=>storage.exportCsv()},
-      {key:'cutup',label:'Export cut-up video',onSelect:()=>this.app.cutup.export()},
-      {key:'frame',label:'Export current frame',onSelect:()=>storage.exportPng()},
-      {key:'call-sheet',label:'Build call sheet',onSelect:()=>this.app.callSheet.show({ returnFocus: anchor })},
     );
-    const seasonStore=storage.seasonStore;
-    if(seasonStore?.canOpenDataDir?.())items.push({key:'data-folder',label:'Open data folder',separator:true,onSelect:()=>this._openDataFolder()});
+    if(seasonStore?.canOpenDataDir?.())items.push({key:'data-folder',label:'Open data folder',onSelect:()=>this._openDataFolder()});
     if(this.app.updater?.available)items.push({key:'updates',label:'Check for updates',onSelect:()=>this.app.updater.check(true)});
-    items.push({key:'version',label:this.app.versionLabel?.()||'GridIron IQ',separator:!seasonStore?.canOpenDataDir?.()&&!this.app.updater?.available,disabled:true});
+    items.push({key:'version',label:this.app.versionLabel?.()||'GridIron IQ',tone:'footer',separator:true,disabled:true});
     return items;
   }
   async _openDataFolder(){

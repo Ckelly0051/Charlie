@@ -373,6 +373,24 @@ export class NativeTaggingScreen {
     return deleted;
   }
 
+  /** The Templates menu: a template name applies it; the two commands save or
+   *  delete. Saved names are trimmed, so a leading space marks a command. */
+  chooseTemplate(value, selected) {
+    if (value === NativeTaggingScreen.TEMPLATE_SAVE) return this.saveTemplate();
+    if (value === NativeTaggingScreen.TEMPLATE_DELETE) return this.deleteTemplate(selected);
+    return this.applyTemplate(value);
+  }
+
+  static TEMPLATE_SAVE = ' save';
+  static TEMPLATE_DELETE = ' delete';
+
+  async deletePlay() {
+    if (!this.tagger?.getCurrentPlay?.()) return false;
+    await this.tagger.deleteCurrentPlay();
+    this._queuePublish();
+    return true;
+  }
+
   setDirection(value) {
     if (!this.app.gameContext?.update({ direction: value })) return false;
     this.app._saveGameInfo?.();

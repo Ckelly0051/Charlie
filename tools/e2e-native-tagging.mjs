@@ -47,7 +47,7 @@ let state=await page.evaluate(()=>{
     contextInHeader:[...root.querySelectorAll('.gi-tag-context [data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
     unitButtons:root.querySelectorAll('.gi-unit-switch button').length,
     unitSelects:root.querySelectorAll('.gi-tag-context select').length,
-    capabilities:['Same as Last','Templates','Save Template','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','New Drive','Edit custom fields'].filter(label=>text.includes(label))};
+    capabilities:['Same as Last','Templates','Save as template','Delete play','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','New Drive','Edit custom fields'].filter(label=>text.includes(label))};
 });
 ok(fixture.mounted&&state.roots===1&&state.legacyFormAbsent,'One native owner mounts and the legacy .tag-section markup does not exist in the document at all',JSON.stringify(state));
 ok(state.proxy===0&&!state.ids.some(id=>id.startsWith('tag')||id.startsWith('btn')),'Visible markup is Preact-owned, not a legacy clone',JSON.stringify({ids:state.ids,proxy:state.proxy}));
@@ -62,7 +62,7 @@ ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard off
 ok(state.context.join(',')==='direction,unit','Charting context is unit plus the relocated direction control, with no perspective picker',JSON.stringify(state.context));
 ok(state.contextInHeader.join(',')==='unit','The charting header itself carries only the unit control',JSON.stringify(state.contextInHeader));
 ok(state.unitButtons===3&&state.unitSelects===0,'Unit is a one-click segmented control, not a dropdown',JSON.stringify({buttons:state.unitButtons,selects:state.unitSelects}));
-ok(state.capabilities.length===12,'Templates, diagram, OCR, detection, commit, drive, and customization remain reachable',JSON.stringify(state.capabilities));
+ok(state.capabilities.length===13,'Templates, diagram, OCR, detection, commit, drive, and customization remain reachable',JSON.stringify(state.capabilities));
 state=await page.evaluate(async()=>{
   const root=document.querySelector('[data-native-tagging]'),calls=[],original=app.tagLibrarySettings.open;
   app.tagLibrarySettings.open=group=>calls.push(group);
@@ -462,7 +462,14 @@ ok(state.calls.set===1&&state.calls.read===1&&state.auto,
 await page.evaluate(()=>{localStorage.removeItem('ffa_play_templates');
   const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='Power-I';
   window.app.nativeTagging.refresh?.();});
-await nativeClick('Save Template');
+// Save and Delete live inside the Templates menu (design-comps/breakdown-cleanup-2026-10-05).
+const templateCommand=label=>page.evaluate(label=>{
+  const select=document.querySelector('[data-native-tagging] select[aria-label="Templates"]');
+  const option=[...select.options].find(o=>o.textContent.startsWith(label));
+  if(!option||option.disabled)throw new Error('template command unavailable: '+label);
+  select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));
+},label);
+await templateCommand('Save as template');
 await page.waitForSelector('#ffaConfirmModal .ffa-confirm-input');
 await page.type('#ffaConfirmModal .ffa-confirm-input','Goal Line');
 await page.keyboard.press('Enter');
@@ -481,23 +488,36 @@ await page.waitForFunction(()=>[...document.querySelectorAll('[data-native-taggi
 state={...state,...await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
   const select=[...root.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==='Goal Line'));
-  const del=[...root.querySelectorAll('button')].find(button=>button.textContent.trim()==='Delete');
-  return{selected:select?.value,deleteEnabled:!del?.disabled,legacyHolder:'templateSelect' in window.app.tagger};
+  const del=[...(select?.options||[])].find(o=>o.textContent.startsWith('Delete template'));
+  return{selected:select?.value,deleteEnabled:!!del&&!del.disabled,legacyHolder:'templateSelect' in window.app.tagger};
 })};
 ok(state.stored==='Power-I'&&state.applied==='Power-I'&&state.selected==='Goal Line'&&state.deleteEnabled&&!state.legacyHolder,
   'A saved template applies and remains explicitly selected with no detached compatibility control',JSON.stringify(state));
-await nativeClick('Delete');
+await templateCommand('Delete template');
 await page.waitForSelector('#ffaConfirmModal');
 await page.keyboard.press('Enter');
 await page.waitForFunction(()=>!window.app.tagger._templateStore()['Goal Line']);
 state=await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
-  const select=[...root.querySelectorAll('select')].find(s=>s.getAttribute('aria-label')!=='Charting preset');
-  const del=[...root.querySelectorAll('button')].find(button=>button.textContent.trim()==='Delete');
+  const select=root.querySelector('select[aria-label="Templates"]');
+  const del=[...(select?.options||[])].find(o=>o.textContent.startsWith('Delete template'));
   return{selected:select?.value,deleteDisabled:!!del?.disabled,stored:window.app.tagger._templateStore()['Goal Line']};
 });
 ok(!state.stored&&state.selected===''&&state.deleteDisabled,
   'Deleting the selected template clears durable and visible selection state',JSON.stringify(state));
+
+// --- Delete play: the deck's one Delete asks first; declining keeps the play ---
+state=await page.evaluate(()=>({count:window.app.tagger.plays.length,id:window.app.tagger.currentPlayId,
+  label:document.querySelector('[data-tag-delete-play]')?.textContent.trim()}));
+await page.click('[data-tag-delete-play]');
+await page.waitForSelector('#ffaConfirmModal .ffa-confirm-msg');
+const deletePrompt=await page.$eval('#ffaConfirmModal .ffa-confirm-msg',node=>node.textContent.trim());
+await page.keyboard.press('Escape');
+await page.waitForFunction(()=>!document.getElementById('ffaConfirmModal'));
+const deleteAfter=await page.evaluate(()=>({count:window.app.tagger.plays.length,id:window.app.tagger.currentPlayId}));
+ok(state.label==='Delete play'&&new RegExp(`Delete Play ${state.id}\\?`).test(deletePrompt)
+  &&deleteAfter.count===state.count&&deleteAfter.id===state.id,
+  'The deck Delete play asks before deleting the selected play, and Cancel keeps it',JSON.stringify({state,deletePrompt,deleteAfter}));
 
 // --- Diagram: the editor seam and the scoped write ---
 // Not capability-id assertions, but guarantees the retired preflight owned and
