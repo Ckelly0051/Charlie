@@ -49,7 +49,7 @@ await page.evaluate(async (RUNS, OTHERS) => {
     gameInfo: { opponent: 'Wildcats', date: '2026-09-04', week: '1', projectName: 'Wildcats', perspective: 'self', scoreUs: 21, scoreThem: 14 },
     annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
   store.data.activeGameId = 'g-gap';
-  await window.app.storage._loadActiveGame({ renderGames: false });
+  await window.app.storage._loadActiveGame();
 }, RUNS, OTHERS);
 await sleep(400);
 

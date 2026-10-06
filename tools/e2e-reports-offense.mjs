@@ -54,7 +54,7 @@ const load = async (opts) => {
     }];
     store.data.activeGameId = o.gameId || 'g-off';
     if (o.teamName) window.app.teamRegistry?.saveTeamIdentity?.(o.teamName, '', 'navy');
-    await window.app.storage._loadActiveGame({ renderGames: false });
+    await window.app.storage._loadActiveGame();
   }, opts);
   await sleep(500);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));

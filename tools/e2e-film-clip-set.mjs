@@ -248,7 +248,7 @@ const result = await page.evaluate(async () => {
   // Reopen: the removal set is per game and must start empty, and the reopened
   // index must be exactly what was persisted - not pruned again, not restored.
   store.data.games[0] = persisted;
-  st._loadActiveGame({ renderGames: false });
+  st._loadActiveGame();
   out.reopenRemovedSetEmpty = st._removedClipIds.size === 0;
   out.reopened = ids();
 

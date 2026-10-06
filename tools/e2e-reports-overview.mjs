@@ -393,7 +393,7 @@ const load = async (rushes, passes, defense, st = 3) => {
       annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
     }];
     store.data.activeGameId = 'g-qa';
-    await window.app.storage._loadActiveGame({ renderGames: false });
+    await window.app.storage._loadActiveGame();
   }, rushes, passes, defense, st);
   await sleep(450);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));

@@ -976,7 +976,7 @@ r = await page.evaluate(async () => {
   game.plays = [mk(1,'offense',true), mk(2,'offense',true), mk(3,'offense',true), mk(4,'offense',false),
                 mk(5,'defense',true), mk(6,'defense',false), mk(7,'defense',false)];
   await store.persist();
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   await app.workspaceShell.show('home');
   await new Promise(res => setTimeout(res, 700));
 

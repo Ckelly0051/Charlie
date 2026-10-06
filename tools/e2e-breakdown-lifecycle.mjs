@@ -315,7 +315,7 @@ const ctxOpen = await page.evaluate(async () => {
   b.plays = [{ id: 901, timestamp: { start: 0, end: 4 }, notes: '',
                tags: { unit: 'defense', players: {}, grades: {}, custom: [] } }];
   store.setActive(a.id); await store.persist();
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   const opened = { ...app.storage.gameInfo };
   await app.storage.switchToGame(b.id, { persist: false });
   const switched = { ...app.storage.gameInfo, defaultUnit: app.tagger.defaultUnit };
@@ -351,7 +351,7 @@ const ctxFixture = await page.evaluate(async () => {
   game.gameInfo = { ...(game.gameInfo || {}), opponent: 'Relaunch Rivals', week: '3',
                     gameType: 'game', perspective: 'scout', direction: 'left' };
   await store.persist();
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   window.__s7CtxSentinel = 'must disappear';
   return { seasonId: store.data.id, gameId: String(game.id) };
 });
@@ -359,7 +359,7 @@ await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.workspaceShell?.root);
 const relaunched = await page.evaluate(async probe => {
   await window.app.storage.openSeasonById(probe.seasonId);
-  await window.app.storage._loadActiveGame({ renderGames: false });
+  await window.app.storage._loadActiveGame();
   const play = window.app.tagger.plays[0];
   if (play) window.app.tagger.selectPlay(play.id);
   await window.app.workspaceShell.show('breakdown');

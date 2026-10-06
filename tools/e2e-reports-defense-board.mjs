@@ -577,7 +577,7 @@ const cohortMeta = await page.evaluate(async () => {
     gameInfo: { opponent: 'Cohorts', date: '2026-09-01', week: '1', perspective: 'offense', scoreUs: 10, scoreThem: 0 },
     plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
   store.data.activeGameId = 'g-meta';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.workspaceShell.show('reports');
   app.reportsScreen.selectTab('defense');
   await new Promise(r => setTimeout(r, 300));

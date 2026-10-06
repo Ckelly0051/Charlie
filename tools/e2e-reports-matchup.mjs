@@ -238,7 +238,7 @@ const load = async (games, opponent = '', activeId = 'g1') => {
     const store = window.app.storage.seasonStore;
     store.data.games = list;
     store.data.activeGameId = active;
-    await window.app.storage._loadActiveGame({ renderGames: false });
+    await window.app.storage._loadActiveGame();
   }, games, activeId);
   await sleep(400);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));

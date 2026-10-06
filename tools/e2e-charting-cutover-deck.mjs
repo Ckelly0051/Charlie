@@ -25,7 +25,7 @@ await page.evaluate(async () => {
   game.gameInfo = { ...(game.gameInfo || {}), opponent: 'Alpha', week: '1', gameType: 'game', perspective: 'offense' };
   const blank = () => app.tagger.constructor.blankTags({ unit: 'offense' });
   game.plays = Array.from({ length: 6 }, (_, i) => ({ id: i + 1, timestamp: { start: i * 6, end: i * 6 + 5 }, notes: '', tags: blank() }));
-  store.setActive(game.id); await store.persist(); await app.storage._loadActiveGame({ renderGames: false });
+  store.setActive(game.id); await store.persist(); await app.storage._loadActiveGame();
   app.tagger.selectPlay(1); await app.workspaceShell.show('breakdown');
   app.history.reset();
 });

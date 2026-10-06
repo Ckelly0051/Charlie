@@ -211,7 +211,6 @@ class App {
 
     // Wire game info form
     this._bindGameInfo();
-    this._bindExpandVideo();
 
     // Keyboard shortcuts
     this._bindKeyboard();
@@ -248,14 +247,6 @@ class App {
     // Keyboard shortcuts legend
     this._bindShortcuts();
 
-    // Keep tagging progress updated
-    this.tagger.on('play-created', () => this._updateTagProgress());
-    this.tagger.on('play-deleted', () => this._updateTagProgress());
-    this.tagger.on('play-updated', () => this._updateTagProgress());
-    // Wholesale plays-replacement (open game, new game, undo/redo) emits
-    // plays-loaded, NOT play-created/updated — without this the counter shows
-    // a stale "0 / 0 tagged" on every game open until the first edit.
-    this.tagger.on('plays-loaded', () => this._updateTagProgress());
 
     // The single top-bar undo/redo also drives canvas annotation undo when
     // there's no play-data action left to undo (mirrors Ctrl+Z).
@@ -273,7 +264,6 @@ class App {
     // next tick so `window.app` (referenced by the storage bridge) is set.
     setTimeout(async () => {
       await this.storage.initLibrary();
-      this._bindGamesPanel();
       await this.workspaceShell.init();
       await this.workspaceShell.show('home');
       this.uiPolish.initFilmStorageSetup();
@@ -336,8 +326,6 @@ class App {
       const ok = await this.storage.switchToGame(gid);
       if (ok === false) return false;
     }
-    // Deterministic chrome refresh.
-    this._renderGamesPanel();
     // Workspace transition. Break Down is a shell route: its render relocates the
     // canonical Settings/More chrome, so every entry route lands on identical
     // chrome. The redesigned shell is the unconditional product and owns the
@@ -352,208 +340,6 @@ class App {
     } else {
     }
     return true;
-  }
-
-  /**
-   * Finish Game flow: prompt for final score if missing, mark game as Final.
-   * Reversible — the status can be cleared by re-opening and editing.
-   */
-  async _finishGame() {
-    const store = this.storage?.seasonStore;
-    if (!store?.hasCurrent()) return;
-
-    this.storage.commitActive();
-    const game = store.activeGame();
-    if (!game) return;
-
-    const hasScore = this._hasScore(game.gameInfo);
-
-    const result = await this._showFinishModal(game, hasScore);
-    if (!result) return;
-    // The modal doesn't lock the app; if the coach switched games while it was
-    // open, don't finalize (or write a score into) the wrong game.
-    if (store.activeGame()?.id !== game.id) return;
-
-    if (result.scoreUs !== undefined) {
-      this._setGameScore(result.scoreUs, result.scoreThem);
-    }
-
-    store.setGameStatus(game.id, 'final');
-    this._renderGamesPanel();   // commits live state (incl. status) into the node
-    store.persist();
-
-    const name = store.gameName(game, store.activeIndex());
-    this.updater._toast(`"${name}" marked as Final`);
-  }
-
-  _showFinishModal(game, hasScore) {
-    return new Promise(resolve => {
-      const existing = document.getElementById('finishGameModal');
-      if (existing) existing.remove();
-
-      const name = this.storage.seasonStore.gameName(game, this.storage.seasonStore.activeIndex());
-      const gi = game.gameInfo || {};
-
-      const modal = document.createElement('div');
-      modal.id = 'finishGameModal';
-      modal.className = 'finish-game-modal';
-      modal.innerHTML = `
-        <div class="finish-game-backdrop"></div>
-        <div class="finish-game-card">
-          <button type="button" class="ng-modal-x" data-fg="close" title="Close" aria-label="Close">×</button>
-          <h3>Finish Game: ${this._esc(name)}</h3>
-          ${hasScore
-            ? `<p>Final score: ${this._esc(gi.scoreUs)}-${this._esc(gi.scoreThem)}. Mark this game as complete?</p>`
-            : `<p>Enter the final score, then mark this game as complete.</p>
-               <div class="finish-game-scores">
-                 <label>Us <input type="number" id="finishScoreUs" value="${this._esc(gi.scoreUs || '')}" min="0" placeholder="0"></label>
-                 <label>Them <input type="number" id="finishScoreThem" value="${this._esc(gi.scoreThem || '')}" min="0" placeholder="0"></label>
-               </div>`}
-          <div class="finish-game-btns">
-            <button class="btn btn-sm" id="finishCancel">Cancel</button>
-            <button class="btn btn-sm btn-accent" id="finishConfirm">Mark as Final</button>
-          </div>
-        </div>`;
-
-      document.body.appendChild(modal);
-
-      const close = (val) => {
-        document.removeEventListener('keydown', onKey, true);
-        modal.remove();
-        resolve(val);
-      };
-
-      const confirm = () => {
-        if (hasScore) {
-          close({});
-        } else {
-          close({
-            scoreUs: document.getElementById('finishScoreUs')?.value || '',
-            scoreThem: document.getElementById('finishScoreThem')?.value || '',
-          });
-        }
-      };
-
-      // Capture-phase so Esc/Enter act here first and don't leak to the game
-      // dropdown's Esc handler or the document-level tagging shortcuts (matches
-      // PlayTagger._confirmDialog). Tab is trapped inside the modal.
-      const onKey = (e) => {
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(null); return; }
-        if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); confirm(); return; }
-        if (e.key === 'Tab') {
-          const f = modal.querySelectorAll('input, button');
-          if (!f.length) return;
-          const first = f[0], last = f[f.length - 1];
-          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-      };
-
-      document.addEventListener('keydown', onKey, true);
-      modal.querySelector('.finish-game-backdrop').addEventListener('click', () => close(null));
-      modal.querySelector('[data-fg="close"]')?.addEventListener('click', () => close(null));
-      modal.querySelector('#finishCancel').addEventListener('click', () => close(null));
-      modal.querySelector('#finishConfirm').addEventListener('click', confirm);
-
-      setTimeout(() => {
-        (document.getElementById('finishScoreUs') || modal.querySelector('#finishConfirm'))?.focus();
-      }, 50);
-    });
-  }
-
-  // ---- Games panel (settings drawer) ----------------------------------------
-
-  _bindGamesPanel() {
-    document.getElementById('btnPanelNewGame')?.addEventListener('click', event => {
-      this.gameScreen.open({ mode: 'create', returnFocus: event.currentTarget });
-    });
-  }
-
-  _renderGamesPanel() {
-    const list = document.getElementById('gamesPanelList');
-    const badge = document.getElementById('gamesBadge');
-    const store = this.storage?.seasonStore;
-    if (!list || !store?.hasCurrent()) { if (list) list.innerHTML = ''; if (badge) badge.textContent = '0'; return; }
-
-    this.storage.commitActive();
-    const games = store.gamesChrono();
-    const activeId = store.data.activeGameId;
-    if (badge) badge.textContent = String(games.length);
-
-    if (!games.length) {
-      list.innerHTML = '<div style="padding:12px;text-align:center;color:rgba(255,255,255,.4);font-size:12px">No games yet.</div>';
-      return;
-    }
-
-    list.innerHTML = '';
-    games.forEach((g, idx) => {
-      const r = this._gameRowInfo(g, idx, store, activeId);
-
-      const card = document.createElement('div');
-      card.className = 'gp-card' + (r.isActive ? ' is-active' : '');
-
-      let actions = '';
-      if (!r.isActive) actions += `<button class="btn btn-sm" data-action="open">Open</button>`;
-      if (r.isActive && !r.isFinal) actions += `<button class="btn btn-sm" data-action="finish" style="border-color:rgba(34,197,94,.4);color:#22c55e">Finish Game</button>`;
-      actions += `<button class="btn btn-sm btn-danger" data-action="delete" title="Remove game">Delete</button>`;
-
-      card.innerHTML = `
-        <div class="gp-card-head">
-          <span class="gp-card-name">Game ${idx + 1}: ${this._esc(r.name)}</span>
-          <div class="gp-card-badges">${this._gameBadgesHtml(r)}</div>
-        </div>
-        <div class="gp-card-meta">${r.plays} play${r.plays !== 1 ? 's' : ''}${r.date ? ' · ' + r.date : ''}</div>
-        <div class="gp-card-actions">${actions}</div>`;
-
-      card.querySelector('[data-action=open]')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.openGame(g.id);   // one authoritative open path (C1)
-      });
-
-      card.querySelector('[data-action=finish]')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this._finishGame();
-      });
-
-      card.querySelector('[data-action=delete]')?.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        // J8 — delete-game takes the same type-to-confirm gate as delete-season
-        // (coach: "delete game should get the same gate, yes").
-        //
-        // The 30-second undo below STAYS. The gate and the undo answer different
-        // failures: the gate stops the click you did not mean to make, the undo
-        // recovers the one you did. Removing either because the other exists
-        // would be the cheaper-looking and worse choice — and the undo is the
-        // only thing that brings the film back.
-        const plays = (g.plays || []).length;
-        const handle = this.overlays.dialog({
-          title: `Delete ${r.name}?`, destructive: true,
-          initialFocus: '[name="confirm"]',
-          actions: [{ key: 'cancel', label: 'Cancel', default: true }],
-          content: h(ConfirmDeleteForm, {
-            impact: `${plays} charted play${plays === 1 ? '' : 's'} will be removed from this season. Film stays recoverable for ${Math.round(this.storage.undoGameWindowMs() / 1000)} seconds after deleting.`,
-            confirmLabel: 'Delete game',
-            onSubmit: async () => { handle.close('delete'); return { ok: true }; },
-          }),
-        });
-        if (await handle.result !== 'delete') return;
-        const removed = await this.storage.removeGame(g.id);
-        this._renderGamesPanel();
-        if (!removed) {
-          this.history?._toast('The game was not deleted because the season could not be saved.');
-          return;
-        }
-        // In-situ recovery (UX audit A2): the stash-backed one-shot undo.
-        this.history?._toast(`Removed "${r.name}"`, {
-          duration: this.storage.undoGameWindowMs(),
-          action: { label: 'Undo', fn: () => {
-            if (this.storage.undoRemoveGame()) this.history?._toast('Game restored');
-          } },
-        });
-      });
-
-      list.appendChild(card);
-    });
   }
 
   // ---- Auto-hint: suggest finishing the game when score is entered ----------
@@ -573,8 +359,6 @@ class App {
       this.updater._toast('Score entered — mark the game Final in Game settings.');
     }
   }
-
-  _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   /** `ownerSeasonId` is the season the write belongs to, captured by the caller
    *  when the operation started — a film operation is identified by season AND
@@ -604,13 +388,6 @@ class App {
               gi.scoreThem !== undefined && gi.scoreThem !== '');
   }
 
-  /** Escaped W/L/T score pill. Pass a className for callers with their own CSS. */
-  _scorePillHtml(u, t, className = 'gd-score') {
-    const uN = parseInt(u, 10), tN = parseInt(t, 10);
-    const cls = uN > tN ? 'win' : (uN < tN ? 'loss' : 'tie');
-    return `<span class="${className} ${cls}">${this._esc(u)}-${this._esc(t)}</span>`;
-  }
-
   /**
    * Derive the display fields for a game row. Called once per game per render
    * by the dropdown, games panel, and (via SeasonManager) the season-stats list.
@@ -626,15 +403,6 @@ class App {
     return { isActive, isFinal, name, plays, date, hasScore, u, t };
   }
 
-  /** Standard badge HTML (score pill + Final + open) shared by live game lists. */
-  _gameBadgesHtml(r) {
-    let h = '';
-    if (r.hasScore) h += this._scorePillHtml(r.u, r.t);
-    if (r.isFinal) h += '<span class="gd-badge badge-final">Final</span>';
-    if (r.isActive) h += '<span class="gd-badge badge-active-tag">open</span>';
-    return h;
-  }
-
   _clearGameInfoForm() {
     const carried = this.storage.gameInfo || {};
     this.storage.gameInfo = {
@@ -647,68 +415,7 @@ class App {
     // subscriber still needs to re-render for the new game.
     this.gameContext?.notify({ force: true });
     this._trackedScore = null;
-    this._renderGameSummary();
   }
-  /** Build the always-visible header summary from the active game's info. */
-  _renderGameSummary(giOverride) {
-    const el = document.getElementById('gameHeaderSummary');
-    if (!el) return;
-    const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
-    const gi = giOverride || this.storage.gameInfo || {};
-    const store = this.storage.seasonStore;
-    const hasGame = !!(store && store.hasCurrent && store.hasCurrent());
-    const hasDetails = !!(gi.opponent || String(gi.week || '').trim());
-    let name = '';
-    if (hasGame && hasDetails) {
-      try { name = store.gameName({ gameInfo: gi }, store.activeIndex ? store.activeIndex() : 0); } catch (e) { name = ''; }
-    }
-    const meta = [];
-    if (gi.date) { const d = new Date(gi.date + 'T00:00:00'); if (!isNaN(d)) meta.push(d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })); }
-    if (gi.homeAway) meta.push(cap(gi.homeAway));
-    if (gi.gameType && gi.gameType !== 'game') meta.push(cap(gi.gameType));
-    const us = gi.scoreUs, them = gi.scoreThem;
-    if (us !== '' && us != null && them !== '' && them != null) meta.push(`${us}–${them}`);
-    const label = name || (hasGame ? 'Set up this game' : 'No game open');
-    el.innerHTML = `<span class="${name ? 'ghb-name' : 'ghb-name is-empty'}">${this._esc(label)}</span>`
-      + (name && meta.length ? `<span class="ghb-meta">${this._esc(meta.join(' · '))}</span>` : '');
-  }
-
-  _afterNewGame() {
-    this._renderGamesPanel?.();
-  }
-
-  // "Expand" toggles the video to full screen so a coach can watch a play
-  // bigger; the default size is unchanged. Native Fullscreen API on
-  // #videoContainer (video + canvas + playback controls). The Fullscreen target
-  // is resolved at click time (not bind time) so it stays correct if support
-  // changes. The drawing canvas is re-fit whenever the video resizes.
-  _bindExpandVideo() {
-    const btn = document.getElementById('btnExpandVideo');
-    const target = document.getElementById('videoContainer');
-    if (!btn || !target) return;
-    btn.addEventListener('click', () => {
-      const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
-      if (fsEl) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); return; }
-      const enter = target.requestFullscreen || target.webkitRequestFullscreen;
-      if (!enter) { this.tagger?.toast?.("Full screen isn't supported here."); return; }
-      const p = enter.call(target);
-      if (p && p.catch) p.catch(() => this.tagger?.toast?.("Couldn't enter full screen."));
-    });
-    const onChange = () => {
-      const on = (document.fullscreenElement || document.webkitFullscreenElement) === target;
-      btn.textContent = on ? 'Exit Full Screen' : 'Expand';
-      btn.classList.toggle('is-active', on);
-      this._onVideoResize();
-    };
-    document.addEventListener('fullscreenchange', onChange);
-    document.addEventListener('webkitfullscreenchange', onChange);
-  }
-
-  /** Re-fit the drawing canvas after the video element resizes. */
-  _onVideoResize() {
-    requestAnimationFrame(() => { try { this.canvas && this.canvas._syncSize && this.canvas._syncSize(); } catch (e) {} });
-  }
-
   _wireEvents() {
     // Re-render only when playback enters/leaves an annotated frame. Clearing a
     // full-resolution transparent canvas on every timeupdate caused visible
@@ -936,24 +643,6 @@ class App {
         this.canvas.color = swatch.dataset.color;
       });
     });
-
-    // Line width slider. Guarded: an absent element must not throw here and
-    // abort the rest of the constructor's wiring (the whole app init runs in
-    // one chain, so one missing node used to silently break everything below).
-    const slider = document.getElementById('lineWidthSlider');
-    if (slider) slider.addEventListener('input', () => {
-      this.canvas.lineWidth = parseInt(slider.value, 10);
-    });
-
-    // Clear annotations (undo/redo now live as a single pair in the top bar).
-    // Uses the in-app confirm (lesson #8: native confirm() gets suppressed on
-    // repeat and silently returns false, making the button look broken).
-    const btnClear = document.getElementById('btnClearAnnotations');
-    if (btnClear) btnClear.addEventListener('click', async () => {
-      if (await this.tagger._confirmDialog('Clear all annotations on this play?', 'Clear Annotations')) {
-        this.canvas.clearAllAnnotations();
-      }
-    });
   }
 
   /** Digits switch drawing tools only when drawing is plausibly intended. */
@@ -1002,9 +691,6 @@ class App {
   }
 
   _bindGameInfo() {
-    document.getElementById('btnEditGame')?.addEventListener('click', event => {
-      this.gameScreen.open({ mode: 'edit', returnFocus: event.currentTarget });
-    });
     // S7-d1: the hidden context inputs are gone. GameContext is the bus, and
     // native Settings owns the analysis provider/model, so nothing here binds
     // to legacy form DOM. Vision is seeded straight from storage.
@@ -1090,7 +776,6 @@ class App {
     // `change` on a hidden <select>. notify() no-ops when nothing moved, so a
     // reload does not churn every subscriber.
     if (this.storage.gameInfo.perspective !== priorPerspective) this.gameContext?.notify();
-    this._renderGameSummary();
     this._checkFinishHint();
     return this.storage.gameInfo;
   }
@@ -1153,7 +838,6 @@ class App {
   _loadGameInfo(info) {
     if (!info) return;
     this._loadingGameInfo = true;
-    this._renderGameSummary(info);
     // S7-d1: opening a game republishes the context. force, because the
     // incoming game may share the outgoing game's perspective while every
     // subscriber still has to re-render for the new game.
@@ -1375,16 +1059,6 @@ class App {
     const [field, value] = mapped;
     this.tagger.toggleTagValue(field, value);
     return true;
-  }
-
-  _updateTagProgress() {
-    const label = document.getElementById('tagProgressLabel');
-    const fill = document.getElementById('tagProgressFill');
-    if (!label || !fill) return;
-    const total = this.tagger.plays.length;
-    const tagged = this.tagger.plays.filter(isPlayTagged).length;
-    label.textContent = `${tagged} / ${total} tagged`;
-    fill.style.width = total > 0 ? Math.round((tagged / total) * 100) + '%' : '0%';
   }
 
   // _drawMotionGraph moved to AutoDetectScreen.drawMotionGraph (Final Engine

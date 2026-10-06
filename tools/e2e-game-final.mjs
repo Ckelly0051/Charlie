@@ -21,7 +21,7 @@ try {
     await app.storage.createSeason({ name: 'Final Test', team: 'Final', year: '2026' });
     const store = app.storage.seasonStore;
     store.activeGame().gameInfo = { ...(store.activeGame().gameInfo || {}), opponent: 'Central', scoreUs: '21', scoreThem: '14' };
-    app.storage._loadActiveGame({ renderGames: false });
+    app.storage._loadActiveGame();
     await store.persist();
   });
 

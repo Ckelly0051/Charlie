@@ -151,7 +151,7 @@ const load = async plays => {
       annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
     }];
     store.data.activeGameId = 'g-0';
-    await window.app.storage._loadActiveGame({ renderGames: false });
+    await window.app.storage._loadActiveGame();
   }, plays);
   await sleep(450);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));

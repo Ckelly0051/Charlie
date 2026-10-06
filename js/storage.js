@@ -622,7 +622,7 @@ export class StorageManager {
     return true;
   }
 
-  _loadActiveGame({ renderGames = true } = {}) {
+  _loadActiveGame() {
     const g = this.seasonStore.activeGame();
     if (g) this._deserialize(g);
     this._loadedGameId = g ? g.id : null;   // the tagger now holds THIS game; commitActive guards on it
@@ -638,7 +638,6 @@ export class StorageManager {
       // restore the PREVIOUS game's plays into this one. (Cross-game corruption
       // the integrity harness caught: switchToGame never re-init'd history.)
       if (app.history && app.history.reset) app.history.reset();
-      if (renderGames && app._renderGamesPanel) app._renderGamesPanel();
       app._finishHintShown = false;
     }
     const filmReady = g
@@ -955,7 +954,7 @@ export class StorageManager {
         this.seasonStore.cancelPendingDiskWrite?.();
         this.seasonStore.data = beforeSeason;
         this._clearForNewGame();
-        await this._loadActiveGame({ renderGames: false });
+        await this._loadActiveGame();
         this.tagger.toast?.('Film was not linked because the season could not be saved. Your previous film setup was restored.', 10000);
       } else {
         this.tagger.toast?.('Film was not linked because the season changed before it was saved. Link it again from that game.', 10000);
@@ -1400,8 +1399,6 @@ export class StorageManager {
     this._cancelFilmPurgeTimer();   // undo restores the game → its film must NOT be purged
     stash.filmGameId = null;        // nor by a deletion save that settles after the undo
     this._lastDeletedGame = null;
-    // Refresh every games view that may be showing (all display-only).
-    try { window.app && window.app._renderGamesPanel && window.app._renderGamesPanel(); } catch (e) {}
     return true;
   }
 

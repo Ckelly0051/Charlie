@@ -41,7 +41,7 @@ await page.evaluate(async () => {
   store.data.playbook = app.playbook.snapshot();
   store.setActive(game.id);
   await store.persist();
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
   app.history.reset();

@@ -69,10 +69,7 @@ export class PlayTagger {
     return PlayTagger.blankTags({ unit: this.defaultUnit || 'offense', driveNumber: this.currentDrive.toString() });
   }
 
-  /** "N / M tagged" — the same computation app.js's legacy _updateTagProgress
-   *  wrote into a hidden DOM label; native-tagging-screen.js's snapshot()
-   *  calls this directly instead of reading that label's textContent back
-   *  out, so the coach-visible progress line has one owner, not a DOM round-trip. */
+  /** "N / M tagged": the deck's progress line (native-tagging-screen.js). */
   progressText() {
     const total = this.plays.length;
     const tagged = this.plays.filter(isPlayTagged).length;

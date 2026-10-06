@@ -29,7 +29,7 @@ const fixture = await page.evaluate(async () => {
   second.plays = [{ id: 3, timestamp: { start: 0, end: 5 }, notes: '', tags: { unit: 'offense', playType: 'Run Outside', runPass: 'Run', result: 'Loss', yardage: '-2', players: {}, grades: {}, custom: [] } }];
   store.setActive(first.id);
   await store.persist();
-  await window.app.storage._loadActiveGame({ renderGames: false });
+  await window.app.storage._loadActiveGame();
   await window.app.workspaceShell.show('home');
   const before = JSON.stringify(store.data);
   window.app.tagger.plays = window.app.tagger.plays.map((play, index) => index

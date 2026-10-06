@@ -131,7 +131,7 @@ export class GameScreen {
           game.gameInfo = { ...(game.gameInfo || {}), perspective: store.data?.kind === 'scout' ? 'scout' : 'offense' };
         }
         storage._clearForNewGame();
-        await storage._loadActiveGame({ renderGames: false });
+        await storage._loadActiveGame();
       }
 
       // School/nickname compose into the compatibility identity field here,
@@ -180,7 +180,6 @@ export class GameScreen {
       if (saved === false) throw new Error('The season could not be saved.');
 
       const game = store.activeGame();
-      this.app._afterNewGame();
       this.app.workspaceShell?._syncChrome?.();
       if (context.mode === 'create') {
         const dropzone = document.getElementById('dropzoneTitle');
@@ -194,9 +193,8 @@ export class GameScreen {
       store.data = clone(context.before);
       storage.gameInfo = clone(context.liveInfo);
       storage._clearForNewGame();
-      await storage._loadActiveGame({ renderGames: false });
+      await storage._loadActiveGame();
       if (context.defaultUnit) this.app.tagger.defaultUnit = context.defaultUnit;
-      this.app._renderGamesPanel?.();
       this.app.workspaceShell?._syncChrome?.();
       return { ok: false, message: `${error?.message || 'The game could not be saved.'} Your prior season is unchanged.` };
     }

@@ -22,7 +22,7 @@ const fixture = await page.evaluate(async () => {
   game.gameInfo = { ...(game.gameInfo || {}), week: '1', opponent: 'Alpha', date: '2026-08-20', perspective: 'offense' };
   game.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, tags: { unit: 'offense', formationFamily: 'I-Form', playType: 'Run Inside', result: 'Gain', yardage: '4', players: {}, grades: {}, custom: [] } }];
   await store.persist();
-  await window.app.storage._loadActiveGame({ renderGames: false });
+  await window.app.storage._loadActiveGame();
   return { firstId: game.id };
 });
 

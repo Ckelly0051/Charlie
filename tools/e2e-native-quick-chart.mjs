@@ -26,7 +26,7 @@ const fixture = await page.evaluate(async () => {
   other.plays = [{ id: 9, timestamp: { start: 0, end: 4 }, notes: 'other game', tags: { unit: 'defense', defFront: '4-2-5', players: {}, grades: {}, custom: [] } }];
   store.setActive(first.id);
   await store.persist();
-  await window.app.storage._loadActiveGame({ renderGames: false });
+  await window.app.storage._loadActiveGame();
   window.app.tagger.selectPlay(1);
   await window.app.workspaceShell.show('breakdown');
   window.__qcUpdates = 0;

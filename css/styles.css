@@ -1344,42 +1344,10 @@ body {
 .gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* Individual game row in the dropdown */
-.gd-score { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
-.gd-badge { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
-  padding: 2px 6px; border-radius: 4px; }
-.gd-badge.badge-final { background: rgba(34,197,94,.15); color: #22c55e; }
-.gd-badge.badge-active-tag { background: rgba(6,182,212,.15); color: #06b6d4; }
 
 /* Finish-game modal */
-.finish-game-modal { position: fixed; inset: 0; z-index: 2100; display: flex;
-  align-items: center; justify-content: center; }
-.finish-game-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
-.finish-game-card { position: relative; background: #1e2330; border: 1px solid rgba(255,255,255,.12);
-  border-radius: 12px; padding: 24px; max-width: 380px; width: 90%; color: #e6edf3;
-  box-shadow: 0 16px 48px rgba(0,0,0,.5); }
-.finish-game-card h3 { margin: 0 0 12px; font-size: 16px; color: #06b6d4; }
-.finish-game-card p { margin: 0 0 16px; font-size: 13px; color: rgba(255,255,255,.6); }
-.finish-game-scores { display: flex; gap: 12px; margin-bottom: 20px; }
-.finish-game-scores label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: rgba(255,255,255,.5); }
-.finish-game-scores input:not(.ws-shell *) { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
-  border-radius: 6px; padding: 8px 10px; color: #e6edf3; font-size: 15px; text-align: center; }
-.finish-game-btns { display: flex; gap: 10px; justify-content: flex-end; }
-.finish-game-btns .btn:not(.ws-shell *) { font-size: 13px; }
 
 /* Games panel in the settings drawer */
-.gp-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color .15s; }
-.gp-card:hover { border-color: rgba(6,182,212,.4); }
-.gp-card.is-active { border-color: #06b6d4; background: rgba(6,182,212,.08); }
-.gp-card-head { display: flex; align-items: center; gap: 8px; }
-.gp-card-name { flex: 1; min-width: 0; font-weight: 600; font-size: 13px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gp-card-badges { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
-.gp-card-meta { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 3px; }
-.gp-card-actions { display: flex; gap: 6px; margin-top: 8px; }
-.gp-card-actions .btn:not(.ws-shell *) { font-size: 11px; padding: 3px 8px; }
-.gp-card .gd-score { font-size: 11px; }
-.gp-card .gd-badge { font-size: 9px; }
 
 /* Widescreen layout for the grid lives INSIDE the TWO-COLUMN block above
    (grid-template-areas "video tags" / "grid tags") — not in a second
@@ -1692,14 +1660,6 @@ body { font-size: 13px; }
    UX PASS U2 — convention compliance.
    ===================================================================== */
 /* × close on the larger modals (Game Settings, Finish Game). */
-.finish-game-card { position: relative; }
-.ng-modal-x {
-  position: absolute; top: 10px; right: 12px;
-  background: none; border: none; cursor: pointer;
-  font-size: 20px; line-height: 1; padding: 4px 8px;
-  color: var(--text-hint); border-radius: var(--radius-sm);
-}
-.ng-modal-x:hover { color: var(--text); background: var(--bg-tertiary); }
 
 /* =====================================================================
    UX PASS U3 — IA: menu groups, grid affordance.

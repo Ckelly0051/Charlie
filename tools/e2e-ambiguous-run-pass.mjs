@@ -115,7 +115,7 @@ console.log('\n-- the built Offense report shows a dash for a row with nothing c
         tags: { unit: 'offense', runPass: '', playType: 'RPO', formationFamily: 'Spread', result: 'Gain', yardage: '3',
           down: '1', distance: '10', custom: [], players: {}, grades: {} } }));
       await store.persist();
-      await app.storage._loadActiveGame({ renderGames: false });
+      await app.storage._loadActiveGame();
       await app.workspaceShell.show('reports');
       app.reportsScreen.selectTab('offense');
       const seen = [];

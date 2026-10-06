@@ -119,7 +119,7 @@ const load = async (games, roster = ROSTER) => {
     store.data.activeGameId = `g-${list.length - 1}`;
     window.app.roster.loadFrom(Object.entries(names)
       .map(([num, name]) => ({ num: String(num), name, pos: '', side: 'B' })), { persist: false });
-    await window.app.storage._loadActiveGame({ renderGames: false });
+    await window.app.storage._loadActiveGame();
   }, games, roster);
   await sleep(450);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));
@@ -1215,7 +1215,7 @@ const heterogeneous = await page.evaluate(async () => {
     annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
   }];
   store.data.activeGameId = 'g-het';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.reportsScreen.setPlayersScope('season');
   await new Promise(r => setTimeout(r, 500));
   const scoped = app.reportsScreen._playersScopedPlays || [];
@@ -1294,7 +1294,7 @@ const sortOrder = await page.evaluate(async () => {
     annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
   }];
   store.data.activeGameId = 'g-sort';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.reportsScreen.setPlayersScope('season');
   await new Promise(r => setTimeout(r, 400));
   app.reportsScreen.playersSituRole = 'passing';
@@ -1352,7 +1352,7 @@ const longValues = await page.evaluate(async () => {
     annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
   }];
   store.data.activeGameId = 'g-long';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.reportsScreen.closePlayerDetail();
   app.reportsScreen.setPlayersScope('season');
   await new Promise(r => setTimeout(r, 400));
@@ -1406,7 +1406,7 @@ const exportSummary = await page.evaluate(async () => {
     annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1,
   }];
   store.data.activeGameId = 'g-sum';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.reportsScreen.setPlayersScope('season');
   await new Promise(r => setTimeout(r, 400));
   const capture = async num => {
@@ -1531,7 +1531,7 @@ const composition = await page.evaluate(async () => {
     gameInfo: { opponent: 'Composition', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
     plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
   store.data.activeGameId = 'g-comp';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.reportsScreen.playersPlayer = null;
   app.reportsScreen.playersSection = 'all';
   app.reportsScreen.setPlayersScope('game');
@@ -1645,7 +1645,7 @@ const overflow = await page.evaluate(async () => {
     gameInfo: { opponent: 'Overflow', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },
     plays, annotations: [], clipNames: [], isMultiClip: false, status: 'active', currentPlayId: 1 }];
   store.data.activeGameId = 'g-over';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.reportsScreen.playersSection = 'all';
   app.reportsScreen.setPlayersScope('game');
   await new Promise(r => setTimeout(r, 600));

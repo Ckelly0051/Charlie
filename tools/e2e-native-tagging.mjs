@@ -28,7 +28,7 @@ const fixture=await page.evaluate(async()=>{
   const second=store.addGame();
   second.gameInfo={...(second.gameInfo||{}),opponent:'Beta',week:'2',gameType:'game',perspective:'defense',direction:'right'};
   second.plays=[{id:101,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',defFront:'4-2-5',coverage:'Cover 3',players:{},grades:{},custom:[]}}];
-  store.setActive(first.id);await store.persist();await app.storage._loadActiveGame({renderGames:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
+  store.setActive(first.id);await store.persist();await app.storage._loadActiveGame();app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
   const before={data:JSON.stringify(store.data)};
   const mounted=!!document.querySelector('#wsBreakdown [data-native-tagging]');
   return{seasonId:store.data.id,firstId:first.id,secondId:second.id,mounted,before};
@@ -596,7 +596,7 @@ ok(state.fresh&&state.after===diagramBefore.json
   JSON.stringify({fresh:state.fresh,match:state.after===diagramBefore.json,html:(state.html||'').slice(0,60)}));
 // The relaunch above left a freshly booted page. Section 5 measures the mounted
 // route, so put the coach back where they were before handing over to it.
-await page.evaluate(async()=>{await window.app.storage._loadActiveGame({renderGames:false});
+await page.evaluate(async()=>{await window.app.storage._loadActiveGame();
   window.app.tagger.selectPlay(1);await window.app.workspaceShell.show('breakdown');});
 await page.waitForFunction(()=>document.querySelector('[data-native-tagging]')?.getBoundingClientRect().width>0);
 
@@ -821,7 +821,7 @@ const touchPage=await touchContext.newPage();
 await touchPage.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
 await touchPage.goto(APP_URL,{waitUntil:'networkidle0'});
 await touchPage.waitForFunction(()=>window.app?.nativeTagging&&document.querySelector('[data-native-home]'));
-await touchPage.evaluate(async()=>{const app=window.app;await app.storage.createSeason({name:'Touch target probe',team:'Mavericks',year:'2026'});const store=app.storage.seasonStore,game=store.activeGame();game.plays=[{id:1,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',players:{},grades:{},custom:[]}}];await store.persist();await app.storage._loadActiveGame({renderGames:false});app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');});
+await touchPage.evaluate(async()=>{const app=window.app;await app.storage.createSeason({name:'Touch target probe',team:'Mavericks',year:'2026'});const store=app.storage.seasonStore,game=store.activeGame();game.plays=[{id:1,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',players:{},grades:{},custom:[]}}];await store.persist();await app.storage._loadActiveGame();app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');});
 await touchPage.waitForSelector('[data-native-tagging]');
 state=await touchPage.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');const targets=[...root.querySelectorAll('button,select,input:not([type="checkbox"]),textarea,.gi-tag-check')].filter(n=>n.getClientRects().length);return{coarse:matchMedia('(pointer:coarse)').matches,overflow:document.documentElement.scrollWidth-innerWidth,min:Math.min(...targets.map(n=>n.getBoundingClientRect().height)),small:targets.filter(n=>n.getBoundingClientRect().height<44).map(n=>({tag:n.tagName,text:n.textContent.trim().slice(0,30),h:n.getBoundingClientRect().height,cls:n.className})).slice(0,12),count:targets.length}});
 ok(state.coarse&&state.count>0&&state.overflow<=1&&state.min>=44,'Mobile native form has no page overflow and keeps 44px action targets',JSON.stringify(state));

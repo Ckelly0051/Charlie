@@ -37,7 +37,7 @@ await page.evaluate(async () => {
   game.gameInfo = { ...(game.gameInfo || {}), opponent: 'St. Peter Lutheran Patriots', week: '1', gameType: 'game', perspective: 'offense' };
   const tags = app.tagger.constructor.blankTags({ unit: 'offense' });
   game.plays = [{ id: 1, timestamp: { start: 0, end: 5 }, notes: '', tags: { ...tags, formationFamily: 'Trey Open Wide', playType: 'Run Inside', runPass: 'Run', playDir: 'Left', gap: 'L-B' } }];
-  store.setActive(game.id); await store.persist(); await app.storage._loadActiveGame({ renderGames: false });
+  store.setActive(game.id); await store.persist(); await app.storage._loadActiveGame();
   app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
 });

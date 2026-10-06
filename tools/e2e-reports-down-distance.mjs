@@ -148,7 +148,7 @@ await page.evaluate(async () => {
       gameInfo: { opponent: 'Knights', date: '2026-09-11', week: '2', perspective: 'self', scoreUs: 7, scoreThem: 10 } },
   ];
   store.data.activeGameId = 'syn-a';
-  await app.storage._loadActiveGame({ renderGames: false });
+  await app.storage._loadActiveGame();
   app.workspaceShell.show('reports');
 });
 await sleep(500);

@@ -149,7 +149,7 @@ const load = async (list, rosters = null) => {
     store.data.activeGameId = rows[rows.length - 1].id;
     store.data.roster = (byId && byId.season) || [];
     window.app.roster?.loadFrom?.(store.data.roster, { persist: false });
-    await window.app.storage._loadActiveGame({ renderGames: false });
+    await window.app.storage._loadActiveGame();
   }, list, rosters);
   await sleep(550);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));
