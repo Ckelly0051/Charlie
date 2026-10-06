@@ -24,7 +24,9 @@ export class TeamHubScreen {
     // the mode. Not a second cache: load() reads both back from that owner on
     // every pass, and nothing else writes them.
     this._state = {
-      status: 'idle', teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '',
+      // `loaded` turns true with the first successful load and stays true, so a
+      // view can tell "no teams yet" from "not read yet" during a reload too.
+      status: 'idle', loaded: false, teams: [], seasons: [], railSeasons: [], activeTeamId: '', currentSeasonId: '',
       profile: {}, checklist: { visible: false, items: [], doneCount: 0 },
       workspaceMode: 'program', programSeasonId: '', parentSeasonName: '', unassignedScouts: [],
       allTeamSeasonCount: 0, control: null, error: '',
@@ -252,7 +254,7 @@ export class TeamHubScreen {
       const control = await this._controlStatus(teamSeasons);
       if (token !== this._loadToken) return false;
       this._set({
-        status: 'ready', teams, seasons: rows, railSeasons: railRows, activeTeamId, currentSeasonId,
+        status: 'ready', loaded: true, teams, seasons: rows, railSeasons: railRows, activeTeamId, currentSeasonId,
         profile, checklist, workspaceMode, allTeamSeasonCount: teamSeasons.length, control, error: '',
         // Parent identity travels with the state so BOTH views can name the
         // program season that owns them without re-deriving it.

@@ -465,10 +465,13 @@ function SeasonRail({ screen, hub, hubState }) {
   const programs = all.filter(season => !season.isScout);
   const scouts = all.filter(season => season.isScout);
   const logo = openScout ? '' : screen.teamLogo();
+  // Until the hub's first load the team list is unknown, not empty: offering
+  // Get started then sent a program with seasons to first-run setup.
   const hasTeam = !!hubState.teams?.length;
+  const noTeam = hubState.loaded === true && !hasTeam;
   return <nav class="rail-year" aria-label="Program seasons and opponent scouts">
     <button type="button" class="rail-library-link" onClick={() => hasTeam && screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
-    {!hasTeam && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
+    {noTeam && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
     {/* PROGRAM SEASONS TAKES THE RAIL'S FLEXIBLE HEIGHT. Both trees previously
         held an equal 1fr with a 112px floor, so the season tree was pinned to
         about one row while the fixed tool block held half the rail — the
@@ -713,7 +716,9 @@ function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
       <span><small>Plays</small><b>{totals.plays}</b></span>
       <span><small>{scout ? 'Scout film' : 'Storage'}</small><b class={`library-storage${!totals.checking && !totals.attention && totals.linked ? ' is-good' : totals.attention ? ' is-warn' : ''}`}><i />{storageLabel}</b></span>
     </div> : null}
-    {ordered.length
+    {!hubState.loaded
+      ? <div class="ws-empty-panel" data-library-loading><h3>Loading seasons…</h3></div>
+      : ordered.length
       ? <>
         <div class="library-layout">
           <section class="library-list-wrap" aria-labelledby="libraryListTitle">
@@ -755,7 +760,7 @@ function NativeHome({ screen }) {
   // same answer, but TeamHubScreen is the one that also drives the rail/
   // library components below, so a single source keeps them from disagreeing
   // during the brief window before hub.load() first resolves.
-  const hubReady = hub && hubState.status !== 'loading' && hubState.status !== 'idle';
+  const hubReady = hub && hubState.loaded === true;
   const hasTeam = hubReady ? !!hubState.teams?.length : !!c.team;
   // Opponent Scout with the PARENT program season open is the scout LIBRARY --
   // the parent's own scoped list of opponents, or its empty state. It renders
