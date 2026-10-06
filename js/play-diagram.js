@@ -14,16 +14,6 @@
 export class PlayDiagram {
   constructor(tagger) {
     this.tagger = tagger;
-    this.section = document.getElementById('playDiagramSection');
-    this.preview = document.getElementById('playDiagramPreview');
-    this.btnDraw = document.getElementById('btnDrawDiagram');
-    this.btnClearDiagram = document.getElementById('btnClearDiagram');
-
-    if (this.btnDraw) this.btnDraw.addEventListener('click', () => this.openEditor());
-    if (this.btnClearDiagram) this.btnClearDiagram.addEventListener('click', () => this.clearCurrent());
-
-    this.tagger.on && this.tagger.on('play-selected', () => this.renderPreview());
-    this.renderPreview();
   }
 
   _play() { return this.tagger.getCurrentPlay && this.tagger.getCurrentPlay(); }
@@ -33,19 +23,9 @@ export class PlayDiagram {
     if (!play) return;
     play.diagram = [];
     this.tagger._emit && this.tagger._emit('play-updated', play);
-    this.renderPreview();
   }
 
-  renderPreview() {
-    if (!this.preview) return;
-    const play = this._play();
-    const shapes = (play && play.diagram) || [];
-    const has = shapes.length > 0;
-    if (this.section) this.section.classList.toggle('has-diagram', has);
-    PlayDiagram.draw(this.preview, shapes);
-  }
-
-  // ---- Static rendering (reused by the editor, preview, and call sheet) ----
+  // ---- Static rendering (reused by the editor, the deck's thumbnail and the call sheet) ----
 
   /** Draw the field background + shapes onto a <canvas> element. */
   static draw(canvas, shapes) {
@@ -232,7 +212,6 @@ export class PlayDiagram {
       else if (act === 'save') {
         play.diagram = shapes;
         this.tagger._emit && this.tagger._emit('play-updated', play);
-        this.renderPreview();
         close();
       }
     });
