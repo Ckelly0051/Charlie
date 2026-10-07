@@ -929,7 +929,7 @@ const PLAYER_COL_SIZE = {
   tds: 's', fr: 's',
   att: 'c', rec: 'c', ret: 'c', tkl: 'c', ast: 'c', tfl: 'c', ints: 'c', sacks: 'c',
   yds: 'm', avg: 'm',
-  solo: 'l2',
+  solo: 'l2', mtkl: 'l2',
   long: 'l', fum: 'l', punts: 'l',
   pct: 'pct', ca: 'ca', grade: 'g',
   fg: 'xl', puntAvg: 'xl',
@@ -1109,7 +1109,7 @@ const PLAYER_DETAIL_STATS = {
   rushing: [['att', 'Attempts'], ['yds', 'Yards'], ['td', 'Touchdowns'], ['fum', 'Fumbles']],
   passing: [['att', 'Attempts'], ['cmp', 'Completions'], ['yds', 'Yards'], ['td', 'Touchdowns'], ['int', 'Interceptions'], ['sck', 'Sacks']],
   receiving: [['rec', 'Receptions'], ['yds', 'Yards'], ['td', 'Touchdowns']],
-  tackles: [['tkl', 'Tackles'], ['solo', 'Solo'], ['ast', 'Assists'], ['sack', 'Sacks'], ['tfl', 'Tackles for loss'], ['int', 'Interceptions'], ['fr', 'Fumbles recovered']],
+  tackles: [['tkl', 'Tackles'], ['solo', 'Solo'], ['ast', 'Assists'], ['mtkl', 'Missed Tackles'], ['sack', 'Sacks'], ['tfl', 'Tackles for loss'], ['int', 'Interceptions'], ['fr', 'Fumbles recovered']],
   returns: [['ret', 'Returns'], ['yds', 'Return yards'], ['td', 'Touchdowns']],
   kicking: [['fgAtt', 'Field goal attempts'], ['fgMade', 'Field goals made'], ['punts', 'Punts'], ['puntYds', 'Punt yards']],
 };

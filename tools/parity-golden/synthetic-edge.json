@@ -384,6 +384,7 @@
       "tfl": 0,
       "ints": 0,
       "fumblesRec": 0,
+      "missedTackles": 0,
       "refs": [
        "g1::11",
        "g1::12",
@@ -401,6 +402,7 @@
       "tfl": 0,
       "ints": 0,
       "fumblesRec": 0,
+      "missedTackles": 0,
       "refs": [
        "g1::12",
        "g1::13",
@@ -417,6 +419,7 @@
       "tfl": 0,
       "ints": 1,
       "fumblesRec": 0,
+      "missedTackles": 0,
       "refs": [
        "g2::7",
        "g2::8",
@@ -3578,6 +3581,7 @@
         "tfl": 0,
         "ints": 0,
         "fumblesRec": 0,
+        "missedTackles": 0,
         "refs": [
          "g1::11",
          "g1::12",
@@ -3595,6 +3599,7 @@
         "tfl": 0,
         "ints": 0,
         "fumblesRec": 0,
+        "missedTackles": 0,
         "refs": [
          "g1::12",
          "g1::13",
@@ -3611,6 +3616,7 @@
         "tfl": 0,
         "ints": 1,
         "fumblesRec": 0,
+        "missedTackles": 0,
         "refs": [
          "g2::7",
          "g2::8",
@@ -5476,6 +5482,7 @@
       "tfl": 0,
       "ints": 0,
       "fumblesRec": 0,
+      "missedTackles": 0,
       "refs": [
        "g1::11",
        "g1::12",
@@ -5493,6 +5500,7 @@
       "tfl": 0,
       "ints": 0,
       "fumblesRec": 0,
+      "missedTackles": 0,
       "refs": [
        "g1::12",
        "g1::13",
@@ -7981,6 +7989,7 @@
         "tfl": 0,
         "ints": 0,
         "fumblesRec": 0,
+        "missedTackles": 0,
         "refs": [
          "g1::11",
          "g1::12",
@@ -7998,6 +8007,7 @@
         "tfl": 0,
         "ints": 0,
         "fumblesRec": 0,
+        "missedTackles": 0,
         "refs": [
          "g1::12",
          "g1::13",
@@ -9466,6 +9476,7 @@
       "tfl": 0,
       "ints": 1,
       "fumblesRec": 0,
+      "missedTackles": 0,
       "refs": [
        "g2::7",
        "g2::8",
@@ -11106,6 +11117,7 @@
         "tfl": 0,
         "ints": 1,
         "fumblesRec": 0,
+        "missedTackles": 0,
         "refs": [
          "g2::7",
          "g2::8",

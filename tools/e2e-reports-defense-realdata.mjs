@@ -39,7 +39,8 @@ const SECTIONS = ['Defensive performance', 'Opponent offense', 'Scheme and passi
    is the order after the pairing rule runs. */
 const INVENTORY = {
   season: [
-    ['Game-by-game', 'full', 380], ['Disruption', 'full', 286], ['Season vs Last 3', 'full', 324],
+    // Tackling and the seventh comparison row: design-comps/missed-tackles-reports-2026-10-07.
+    ['Game-by-game', 'full', 380], ['Disruption', 'full', 286], ['Tackling', 'full', 286], ['Season vs Last 3', 'full', 362],
     ['By down', 'half', 248], ['By quarter', 'half', 248], ['Opponent drive outcomes', 'full', 300],
     ['Defensive player contributions', 'full', 460], ['Opponent possessions', 'full', 460], ['Production by play type', 'full', 380],
     ['Performance by Play Direction', 'full', 210], ['Top 10 Formations Faced', 'full', 460], ['Personnel faced', 'half', 300],
@@ -51,7 +52,7 @@ const INVENTORY = {
     ['By hash', 'full', 210], ['Motion', 'full', 300],
   ],
   game: [
-    ['Disruption', 'full', 286], ['Current game vs Season', 'full', 324], ['By down', 'half', 248],
+    ['Disruption', 'full', 286], ['Tackling', 'full', 286], ['Current game vs Season', 'full', 362], ['By down', 'half', 248],
     ['By quarter', 'half', 248], ['Opponent drive outcomes', 'full', 220], ['Defensive player contributions', 'full', 380],
     ['Opponent possessions', 'full', 300], ['Production by play type', 'full', 300], ['Performance by Play Direction', 'full', 210],
     ['Top 10 Formations Faced', 'full', 220], ['Personnel faced', 'half', 220], ['Backfield faced', 'half', 220],
@@ -67,7 +68,7 @@ const KPI_VALUES = {
   season: ['490', '266', '224', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
   game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '100.0%', '—'],
 };
-const FIXED = new Set(['Disruption', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
+const FIXED = new Set(['Disruption', 'Tackling', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
   'Performance by Play Direction', 'Run / Pass vs Strength', 'Blitz Performance', 'Blitz Type Performance',
   'High-leverage field position', 'By hash', 'Passing Defense Summary']);
 

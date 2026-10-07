@@ -595,7 +595,7 @@ export const PLAYER_STAT_BUCKETS = Object.freeze({
   rushing: { att: 'att', yds: 'yds', avg: 'att', long: 'yds:long', tds: 'td', fum: 'fum' },
   passing: { ca: 'att', pct: 'att', yds: 'yds', tds: 'td', ints: 'int', sacks: 'sck' },
   receiving: { rec: 'rec', yds: 'yds', long: 'yds:long', tds: 'td' },
-  tackles: { tkl: 'tkl', solo: 'solo', ast: 'ast', sacks: 'sack', tfl: 'tfl', ints: 'int', fr: 'fr' },
+  tackles: { tkl: 'tkl', solo: 'solo', ast: 'ast', mtkl: 'mtkl', sacks: 'sack', tfl: 'tfl', ints: 'int', fr: 'fr' },
   returns: { ret: 'yds', yds: 'yds', avg: 'yds', long: 'yds:long', tds: 'td' },
   kicking: { fg: 'fgAtt', punts: 'punts', puntAvg: 'puntYds' },
 });
@@ -647,8 +647,8 @@ export function individualStats(stats, group, playerLabel, board = null) {
     columns: [['player', 'Player'], ['rec', 'Rec', true], ['yds', 'Yds', true], ['long', 'Long', true], ['tds', 'TD', true], ['grade', 'Grade', true, 'gradeSort']],
     rows: withStats('receiving', ind.receivers.map(r => ({ ...player(r.num), rec: r.receptions, yds: r.yards, long: r.long, tds: r.tds, ...grade(r), refs: refs(r) }))) });
   if (showDef && ind.tacklers?.length) tables.push({ title: 'Tackles', key: 'tackles',
-    columns: [['player', 'Player'], ['tkl', 'Tkl', true], ['solo', 'Solo', true], ['ast', 'Ast', true], ['sacks', 'Sack', true], ['tfl', 'TFL', true], ['ints', 'INT', true], ['fr', 'FR', true], ['grade', 'Grade', true, 'gradeSort']],
-    rows: withStats('tackles', ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) }))) });
+    columns: [['player', 'Player'], ['tkl', 'Tkl', true], ['solo', 'Solo', true], ['ast', 'Ast', true], ['mtkl', 'MTkl', true], ['sacks', 'Sack', true], ['tfl', 'TFL', true], ['ints', 'INT', true], ['fr', 'FR', true], ['grade', 'Grade', true, 'gradeSort']],
+    rows: withStats('tackles', ind.tacklers.map(t => ({ ...player(t.num), tkl: t.tackles, solo: t.solo || 0, ast: t.assists || 0, mtkl: t.missedTackles || 0, sacks: t.sacks, tfl: t.tfl, ints: t.ints || 0, fr: t.fumblesRec || 0, ...grade(t), refs: refs(t) }))) });
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
     /* One return cohort across both surfaces: return production and `Ret`

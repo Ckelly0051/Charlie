@@ -296,7 +296,8 @@ const ordered = (rows, column, direction) => rows.slice(1).every((row, index) =>
   return direction === 'asc' ? cmp <= 0 : cmp >= 0;
 });
 const players = await readPlayers();
-ok(players.heads.length === 9 && players.heads.every(head => head.tab === 0 && head.sort === 'none'),
+// Ten columns with Missed Tackles (design-comps/missed-tackles-reports-2026-10-07).
+ok(players.heads.length === 10 && players.heads.every(head => head.tab === 0 && head.sort === 'none'),
   'every player column header is keyboard focusable and starts unsorted', JSON.stringify(players.heads));
 const sortBreaks = [];
 let changedOrder = 0;

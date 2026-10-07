@@ -236,7 +236,7 @@ const PLAYER_EXPORT_STATS = {
   rushing: [['att', 'Attempts'], ['yds', 'Yards', true], ['td', 'Touchdowns'], ['fum', 'Fumbles']],
   passing: [['att', 'Attempts'], ['cmp', 'Completions'], ['yds', 'Yards', true], ['td', 'Touchdowns'], ['int', 'Interceptions'], ['sck', 'Sacks']],
   receiving: [['rec', 'Receptions'], ['yds', 'Yards', true], ['td', 'Touchdowns']],
-  tackles: [['tkl', 'Tackles'], ['solo', 'Solo'], ['ast', 'Assists'], ['sack', 'Sacks'], ['tfl', 'Tackles for loss'], ['int', 'Interceptions'], ['fr', 'Fumbles recovered']],
+  tackles: [['tkl', 'Tackles'], ['solo', 'Solo'], ['ast', 'Assists'], ['mtkl', 'Missed Tackles'], ['sack', 'Sacks'], ['tfl', 'Tackles for loss'], ['int', 'Interceptions'], ['fr', 'Fumbles recovered']],
   returns: [['ret', 'Returns'], ['yds', 'Return yards', true], ['td', 'Touchdowns']],
   kicking: [['fgAtt', 'Field goal attempts'], ['fgMade', 'Field goals made'], ['punts', 'Punts'], ['puntYds', 'Punt yards', true]],
 };

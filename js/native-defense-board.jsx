@@ -75,12 +75,15 @@ function buildSections(board, seasonScope) {
   const b = board;
   const performance = [];
   if (seasonScope) performance.push({ title: 'Game-by-game', wide: true, slots: 6,
-    heads: ['Opponent', 'Yards', 'Rush', 'Pass', 'Yds/play', 'Explosive Plays', 'TO', 'Touchdowns Allowed'],
-    rows: b.byGame.map(r => row([r.name, r.yards, r.runYards, r.passYards, r.ypp, r.explosives, r.takeaways, r.touchdownsAllowed], r.refs)) });
+    heads: ['Opponent', 'Yards', 'Rush', 'Pass', 'Yds/play', 'Explosive Plays', 'TO', 'Touchdowns Allowed', 'Missed Tackles'],
+    rows: b.byGame.map(r => row([r.name, r.yards, r.runYards, r.passYards, r.ypp, r.explosives, r.takeaways, r.touchdownsAllowed, r.missedTackles], r.refs)) });
   performance.push(
     { title: 'Disruption', schema: 'fixed', slots: 6, heads: ['Event', 'Plays', 'Rate', 'Eligible snaps'],
       rows: b.disruption.map(r => row([r.name, r.plays, percent(r.rate), r.eligible], r.refs)) },
-    { title: seasonScope ? 'Season vs Last 3' : 'Current game vs Season', schema: 'fixed', slots: 6,
+    // Missed Tackles over the snaps that charted a count; blank is not charted.
+    { title: 'Tackling', wide: true, schema: 'fixed', slots: 5, heads: ['Measure', 'Value', 'Eligible snaps'],
+      rows: b.tackling.map(r => row([r.name, r.kind === 'percent' ? percent(r.value) : r.value, r.eligible], r.refs)) },
+    { title: seasonScope ? 'Season vs Last 3' : 'Current game vs Season', schema: 'fixed', slots: 7,
       heads: ['Measure', seasonScope ? 'Season' : 'Game', seasonScope ? 'Last 3' : 'Season'],
       rows: b.comparison.map(r => row([r.name, r.kind === 'percent' ? percent(r.current) : r.current,
         r.kind === 'percent' ? percent(r.comparison) : r.comparison])) },
@@ -91,8 +94,8 @@ function buildSections(board, seasonScope) {
     { title: 'Opponent drive outcomes', wide: true, slots: 7, heads: ['Outcome', 'Drives', 'Share', 'Avg plays', 'Avg yards'],
       rows: b.driveOutcomes.map(r => row([r.name, r.n, wholePercent(r.share), r.avgPlays, r.avgYards], r.refs)) },
     { title: 'Defensive player contributions', wide: true, slots: 10, sortable: true,
-      heads: ['Player', 'Tackles', 'Solo', 'Ast', 'Sacks', 'TFL', 'INT', 'FR', 'Grade'],
-      rows: b.players.map(r => row([r.name, r.tackles, r.solo, r.assists, r.sacks, r.tfl, r.interceptions, r.fumblesRecovered, r.grade], r.refs)) },
+      heads: ['Player', 'Tackles', 'Solo', 'Ast', 'Missed Tackles', 'Sacks', 'TFL', 'INT', 'FR', 'Grade'],
+      rows: b.players.map(r => row([r.name, r.tackles, r.solo, r.assists, r.missedTackles, r.sacks, r.tfl, r.interceptions, r.fumblesRecovered, r.grade], r.refs)) },
     /* Possessions measure every charted defensive snap and their `Yards*` is the
        drive's tagged yardage WITH penalty movement, which is why they do not
        reconcile with the classified production above them. Both facts are stated

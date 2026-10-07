@@ -5,6 +5,7 @@
  * Nothing is cached — call compute() whenever you need fresh numbers.
  */
 import { AdvancedMetrics } from './advanced-metrics.js';
+import { MissedTackles } from './missed-tackles.js';
 import { Charts } from './charts.js';
 import { AnalyticsMetrics } from './analytics-metrics.js';
 import { countedUnit, gainedFirstDown, DRIVE_ENDERS, isPlayTagged, playbackOrder } from './football-rules.js';
@@ -2026,9 +2027,16 @@ export class StatsEngine {
       thirdDownStop: stop(d.thirdDownAllowed.rate), fourthDownStop: stop(d.fourthDownAllowed.rate),
     };
 
+    /* MISSED TACKLES are counted over the snaps that charted a count (0
+       included); a blank is not charted, so a game with none charted is null,
+       never 0. The total sums the exact counts. */
+    const missedCharted = rows => rows.filter(isDefense).filter(p => MissedTackles.count(p) != null);
+    const missedTotal = rows => { const charted = missedCharted(rows); return charted.length ? charted.reduce((sum, p) => sum + MissedTackles.count(p), 0) : null; };
+    const missedRate = rows => { const charted = missedCharted(rows); return rate(charted.filter(p => MissedTackles.count(p) > 0).length, charted.length); };
+
     const byGame = d.byGame.map(row => ({ name: row.name, yards: row.yards, runYards: row.runYards,
       passYards: row.passYards, ypp: row.ypp, explosives: row.explosives, takeaways: row.turnovers,
-      touchdownsAllowed: touchdownsAllowed(row.plays), refs: row.refs }));
+      touchdownsAllowed: touchdownsAllowed(row.plays), missedTackles: missedTotal(row.plays), refs: row.refs }));
 
     const passSnaps = ps.filter(S.isPass), runSnaps = ps.filter(S.isRun);
     const disruptionRows = [
@@ -2049,6 +2057,18 @@ export class StatsEngine {
       { name: '3rd Down Stop %', kind: 'percent', current: stop(d.thirdDownAllowed.rate), comparison: stop(cd.thirdDownAllowed.rate) },
       { name: '4th Down Stop %', kind: 'percent', current: stop(d.fourthDownAllowed.rate), comparison: stop(cd.fourthDownAllowed.rate) },
       { name: 'Pass completion rate', kind: 'percent', current: passOverview.completionRate, comparison: passing(compare).completionRate },
+      { name: 'Missed Tackle play rate', kind: 'percent', current: missedRate(ps), comparison: missedRate(compare) },
+    ];
+
+    const tackleCharted = missedCharted(ps);
+    const withMiss = tackleCharted.filter(p => MissedTackles.count(p) > 0);
+    const withoutMiss = tackleCharted.filter(p => MissedTackles.count(p) === 0);
+    const tackling = [
+      { name: 'Missed Tackles', kind: 'number', value: missedTotal(ps), eligible: tackleCharted.length, refs: S._refsOf(withMiss) },
+      { name: 'Plays with a Missed Tackle', kind: 'number', value: tackleCharted.length ? withMiss.length : null, eligible: tackleCharted.length, refs: S._refsOf(withMiss) },
+      { name: 'Missed Tackle play rate', kind: 'percent', value: rate(withMiss.length, tackleCharted.length), eligible: tackleCharted.length, refs: S._refsOf(withMiss) },
+      { name: 'Yards / play with a Missed Tackle', kind: 'number', value: ypp(withMiss), eligible: withMiss.length, refs: S._refsOf(withMiss) },
+      { name: 'Yards / play without', kind: 'number', value: ypp(withoutMiss), eligible: withoutMiss.length, refs: S._refsOf(withoutMiss) },
     ];
 
     const downs = d.downs.map(row => ({ name: row.name, yards: row.yards, ypp: row.ypp, explosives: row.explosives, refs: row.refs }));
@@ -2099,7 +2119,7 @@ export class StatsEngine {
 
     const players = this._individualStats(ps).tacklers.map(row => ({
       name: `#${row.num} ${roster[String(row.num)] || ''}`.trim(), num: row.num,
-      tackles: row.tackles, solo: row.solo, assists: row.assists, sacks: row.sacks, tfl: row.tfl,
+      tackles: row.tackles, solo: row.solo, assists: row.assists, missedTackles: row.missedTackles, sacks: row.sacks, tfl: row.tfl,
       interceptions: row.ints, fumblesRecovered: row.fumblesRec,
       grade: row.gradeCount ? row.gradeSum / row.gradeCount : null, refs: row.refs }));
 
@@ -2232,7 +2252,7 @@ export class StatsEngine {
     return {
       // The dashboard rides along unchanged because the Defense export reads it.
       dashboard: d,
-      scope, total: d.total, measured: d.measured, kpis, byGame, disruption: disruptionRows, comparison,
+      scope, total: d.total, measured: d.measured, kpis, byGame, disruption: disruptionRows, tackling, comparison,
       downs, quarters, driveOutcomes, players, possessions, playTypes, directions, formations,
       personnel: d.personnel.map(tendency), backfields: d.backfields.map(tendency), strength, answers,
       passingSummary: passOverview, calls, blitz, pressure, fronts, coverages, blitzTypes, passingByCoverage,
@@ -3597,6 +3617,10 @@ export class StatsEngine {
         grade(id, 'tackles', 'Tackles', p, 'tackler');
       });
       if (isDefPlay) {
+        MissedTackles.players(p).forEach(id => {
+          bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
+          bucket(id, 'tackles', 'Tackles', 'mtkl', p);
+        });
         takeawayIds.forEach(id => {
           bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
           if (StatsEngine.hasResult(p, 'Interception')) bucket(id, 'tackles', 'Tackles', 'int', p);
@@ -3683,7 +3707,8 @@ export class StatsEngine {
         tacklers[num] = { num, tackles: fact(player, 'tackles', 'tkl').n, solo: fact(player, 'tackles', 'solo').n,
           assists: fact(player, 'tackles', 'ast').n, sacks: fact(player, 'tackles', 'sack').n,
           tfl: fact(player, 'tackles', 'tfl').n, ints: fact(player, 'tackles', 'int').n,
-          fumblesRec: fact(player, 'tackles', 'fr').n, refs: allRefs(player, 'tackles'), ...gradeOf(player, 'tackles') };
+          fumblesRec: fact(player, 'tackles', 'fr').n, missedTackles: fact(player, 'tackles', 'mtkl').n,
+          refs: allRefs(player, 'tackles'), ...gradeOf(player, 'tackles') };
       }
       if (player.roles.has('returns')) {
         const yards = fact(player, 'returns', 'yds');
@@ -3740,7 +3765,7 @@ export class StatsEngine {
       stats: ['rec', 'yds', 'td', 'long'],
       measures: [{ key: 'rec', label: 'Rec', read: 'count' }, { key: 'yds', label: 'Yds', read: 'total' }] },
     { key: 'tackles', label: 'Tackles', gradeField: 'tackler',
-      stats: ['tkl', 'solo', 'ast', 'sack', 'tfl', 'int', 'fr'],
+      stats: ['tkl', 'solo', 'ast', 'mtkl', 'sack', 'tfl', 'int', 'fr'],
       // Interceptions and fumble recoveries are the canonical takeaway pair, so a
       // takeaway-only credit states itself instead of reading as zero tackles.
       measures: [{ key: 'tkl', label: 'Tkl', read: 'count' },
