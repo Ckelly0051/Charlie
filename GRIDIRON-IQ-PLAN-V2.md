@@ -112,6 +112,10 @@ failed saves that roll back only their own season, game or program, and
    `e2e-parity` and the real-data numbers unchanged, and new tag-library
    fields registering their dimension. Approved fixed schemas stay fixed
    until the coach changes them. Plan for Codex review before any build.
+   Play renumbering after a deleted play (the play strip skips the number)
+   is paired with this work, not built alone (coach, 2026-10-06): a play's
+   number is its film reference, so renumbering rewrites Plan links and
+   needs an impact report and confirmation.
 4. **Reports for every charted field.** Audit every charted field against
    Reports, then add the missing reports. Known gaps: motion start/end, RPO
    read and Give/Keep/Throw decision, QB-run type (designed / scramble / RPO
