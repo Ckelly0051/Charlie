@@ -40,5 +40,5 @@ module stays full width and fixed, now six rows.
   Allowed; the other ten keep their approved order.
 - Explosive Plays is labeled Explosive Plays Allowed, in full: it wraps to two
   lines like Touchdowns Allowed at 1440 and 1280. This reverses the 2026-09-23
-  rule that the Defense board never prints "Allowed" (2e-explosive-labels).
+  rule that the Defense board never prints "Allowed" (`e2e-explosive-labels`).
 - "Tackles Made" is labeled Total Tackles.
