@@ -97,7 +97,11 @@ failed saves that roll back only their own season, game or program, and
        catch, separate from total gain, never inferred from play direction;
      - receiver route and release, tied to the identified receiver;
      - missed tackles: a play-level event plus optional player attribution,
-       more than one player per play; uncharted is not zero.
+       more than one player per play; uncharted is not zero. Comp approved
+       2026-10-07; charting contract in `GRIDIRON-IQ-TAG-MODEL.md` §3a.
+       Exception to step 4 (coach, 2026-10-07): defensive missed tackles get
+       Reports now, in the Defense, Players (an added column) and Season tabs,
+       each from its own comp; offense and Special Teams reports wait.
 
      New fields stay optional on historical plays; uncharted is missing, not
      zero.

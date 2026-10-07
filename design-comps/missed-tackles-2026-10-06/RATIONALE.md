@@ -1,6 +1,7 @@
 # Missed tackles - review comp, 2026-10-06
 
-Status: proposal, revision 2, not approved. Still screens of the real built
+Status: **COMP_APPROVED** by the coach, 2026-10-07 ("Approved"), revision 2
+with collapsed spacing and comma-separated players. Production is not built. Still screens of the real built
 app (`b10bf0fe` source) with the canonical 2025 JV season, Week 6 vs Holy
 Family, and the proposed controls added in the page (`capture.mjs`).
 Isolated browser data; no coach file or film was written. Counts and jersey
@@ -43,6 +44,11 @@ the Show roster link is 20px tall (was 28px) and rows are 2px apart (was 8px),
 so a collapsed row is 88px instead of 102px. Coarse pointers keep 44px targets.
 This applies to every player row in the deck, not only Missed Tackles.
 
+## Separator (coach, 2026-10-07)
+
+Player numbers are comma-separated ("2, 3"), the format Tackler(s) already
+stores. Multi-value tags elsewhere (Front, Result, Play Type) keep " + ".
+
 ## Not shown, built with it
 
 - Study: a Missed Tackles dimension (the count, unit-split, film-linked, with
@@ -50,4 +56,6 @@ This applies to every player row in the deck, not only Missed Tackles.
 - Film Room: a Missed Tackles column.
 - Field goal and try snaps (no return to tackle) do not show the row; a
   run/pass or Fake try uses its scrimmage side's row.
-- Reports come in roadmap step 4, after the reporting rebuild.
+- Reports: an exception to the plan (coach, 2026-10-07). Defensive missed
+  tackles go into the Defense, Players and Season tabs now, from their own
+  comps; offense and Special Teams reports wait for roadmap step 4.

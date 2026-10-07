@@ -45,7 +45,7 @@ Every new or cleared play starts from `PlayTagger.blankTags()`:
 | Outcome | `runPass`, `playType`, `result`, `yardage`, `playDir`, `fumbleRecovery` |
 | Details | `gap`, `motionStart`, `motionEnd`, `rpoRead`, `rpoDefender`, `rpoDecision`, `qbRun` (§4) |
 | Defense | `defFront`, `coverage`, `coverageFamily`, `blitz` |
-| Attribution | `players` (role to jersey number), `grades` (role to grade) |
+| Attribution | `players` (role to jersey number), `grades` (role to grade), `missedTackles` (§3a) |
 | Coach fields | `custom` (a list of custom tags), `customFields` (custom field id to value) |
 
 `yardage` is stored signed: the coach enters a magnitude, and a `Loss` or `Sack`
@@ -94,6 +94,33 @@ offered):
   distribution like `3x1`, and is never `" + "`-joined.
 - Backfield never holds a QB alignment.
 - Coverage Call never holds a coverage family.
+
+## 3a. Missed tackles
+
+Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); not built yet.
+
+- `missedTackles`: the play's count, one of `0`, `1`, `2`, `3+`. Blank
+  means not charted and is never counted as zero; `0` means checked, none.
+  Single-value. It is independent of the players named: a count with no
+  players is valid, and one player may miss more than once.
+- `players.missedTackler`: our players who missed, comma-separated jersey
+  numbers like Tackler(s) ("2, 3"), picked from the roster; optional.
+- Where it is charted, as one more row in Players & Grades with a Count select
+  in the Grade slot and no grade:
+
+  | Unit | Row after | Players | Meaning |
+  |---|---|---|---|
+  | Defense | Tackler(s) | yes | tackles our defense missed |
+  | Offense | Receiver | no | tackles the defense missed on our ball carrier |
+  | Kickoff, Punt | Opponent Returner | yes | tackles our coverage missed |
+  | Kick Return, Punt Return | Returner | no | tackles the coverage missed on our returner |
+
+  Field Goal, FG Block and kicked tries have no row; a run/pass or Fake try
+  uses its scrimmage side's row. Missed tackles is the one Special Teams
+  attribution allowed outside `ST_ALIGNMENT_KEYS`.
+- Collapsed player rows sit tight on a fine pointer: 6px vertical padding, a
+  20px Show roster link, 2px between rows.
+- It never carries (Copy Previous, templates, Carry Scheme), like players.
 
 ## 4. Details opened by another field
 
