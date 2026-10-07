@@ -194,9 +194,9 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
   displays as `Punt Return / Block` and includes `Blocked`.
 - **A loose ball has no default owner:** a touchdown on `blocked`, `muffed` or
   `recovered` with no recovering side scores for neither team.
-- One absence label, `No data`. Dedicated fields (`kickDistance`,
-  `returnYards`) are authoritative on every surface, player rollups included;
-  `Ret` is the measured count. Outcome bars are absolute percentages.
+- One absence label, `No data`. Kick distance and return yards (from the
+  possession and end spots, `SpecialTeamsModel.returnYards`) are authoritative
+  on every surface, player rollups included; `Ret` is the measured count. Outcome bars are absolute percentages.
 - `StatsEngine.isFieldGoalAttempt` / `isFieldGoalMade` are the one Field Goal
   cohort; an extra point is not a field goal.
 

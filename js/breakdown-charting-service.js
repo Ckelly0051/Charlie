@@ -224,10 +224,6 @@ export class BreakdownChartingService {
       const numeric = value === '' ? null : Number(value);
       if (key === 'kick-distance') st.kick.distance = numeric;
       if (key === 'hang-time') st.kick.hangTime = numeric;
-      if (key === 'return-yards') {
-        st.return.yards = numeric;
-        st.return.attempted = numeric == null ? null : true;
-      }
       if (key === 'landing-yard') st.kick.landing.yardLine = value;
       if (key === 'end-yard') st.return.end.yardLine = value;
       if (key === 'blocker') st.players.blocker = value;

@@ -363,8 +363,8 @@ function SpecialTeams({screen, state}) {
         {kickFields && <><StMetric label="Kick distance" code="kick-distance" value={st.kick.distance} screen={screen} min="0" max="99"/>
           <StMetric label="Hang time" code="hang-time" value={st.kick.hangTime} screen={screen} min="0" max="9.9" step=".1"/></>}
         {landingFields && <Spot label="Possession spot" code="landing" spot={st.kick.landing} screen={screen}/>}
-        {returnFields && <><StMetric label="Return yards" code="return-yards" value={st.return.yards} screen={screen} min="-99" max="109"/>
-          <Spot label="End spot" code="end" spot={st.return.end} screen={screen}/></>}
+        {/* Return yards are measured from the possession spot to the end spot. */}
+        {returnFields && <Spot label="End spot" code="end" spot={st.return.end} screen={screen}/>}
         <StMetric label="Blocker #" code="blocker" value={st.players.blocker} screen={screen} min="0" max="99"/>
         <StMetric label="Recoverer #" code="recoverer" value={st.players.recoverer} screen={screen} min="0" max="99"/>
       </div>

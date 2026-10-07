@@ -354,7 +354,7 @@ export class PlayGrid {
       if (col.key === 'stUnit') return names[special.unit] || special.unit;
       if (col.key === 'stOutcome') return [special.attemptType, special.result || special.outcome.status, special.events?.badSnap ? 'badSnap' : '', special.events?.blocked ? 'blocked' : '', special.events?.turnover || '', special.events?.defensiveReturn ? 'defensiveReturn' : '', special.outcome.returnAward || '', special.outcome.score].filter(Boolean).join(' · ');
       if (col.key === 'stKick') return [special.kick.distance == null ? '' : `${special.kick.distance} yds`, special.kick.hangTime == null ? '' : `${special.kick.hangTime}s`].filter(Boolean).join(' · ');
-      if (col.key === 'stReturn') return [special.return.yards == null ? '' : `${special.return.yards} yds`, special.outcome.recoveredBy ? `possession: ${special.outcome.recoveredBy}` : ''].filter(Boolean).join(' · ');
+      if (col.key === 'stReturn') return [SpecialTeamsModel.returnYards(special) == null ? '' : `${SpecialTeamsModel.returnYards(special)} yds`, special.outcome.recoveredBy ? `possession: ${special.outcome.recoveredBy}` : ''].filter(Boolean).join(' · ');
     }
     if (col.type === 'sit') {
       if (!tags.down) return '—';

@@ -652,8 +652,8 @@ export function individualStats(stats, group, playerLabel, board = null) {
   if (showST && ind.returners?.length) tables.push({ title: 'Return Game', key: 'returns',
     columns: [['player', 'Player'], ['ret', 'Ret', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true]],
     /* One return cohort across both surfaces: return production and `Ret`
-       count only returns with a charted `returnYards`, the same field the team
-       Return Production reads, so count, yards and average never mix
+       count only returns with both spots charted (`SpecialTeamsModel.returnYards`),
+       the same yards the team Return Production reads, so count, yards and average never mix
        cohorts. An unmeasured return still counts as a special-teams snap.
        Coach ruling 2026-09-10. */
     rows: withStats('returns', ind.returners.map(r => ({ ...player(r.num), ret: r.measured,

@@ -216,7 +216,7 @@ await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window
   const button=label=>{const found=[...root().querySelectorAll('button')].find(b=>b.textContent.trim()===label);if(!found)throw new Error('Missing native button '+label+' among '+[...root().querySelectorAll('button')].map(b=>b.textContent.trim()).join('|'));return found};
   app.nativeTagging.setUnit('special');await new Promise(r=>setTimeout(r,30));console.log('S4: special unit set');
   const unitChoice=()=>root().querySelector('[data-native-choice=Unit]');for(let i=0;i<10&&!unitChoice();i++)await new Promise(r=>setTimeout(r,10));if(!unitChoice())throw new Error('No ST unit choice after unit change');const punt=[...unitChoice().querySelectorAll('button')].find(b=>b.textContent.trim()==='Punt');punt.click();await new Promise(r=>setTimeout(r,30));if(!app.tagger.getCurrentPlay().specialTeams)throw new Error('Punt did not create structured model');button('Returned').click();await new Promise(r=>setTimeout(r,30));
-  const stInputs=[...root().querySelectorAll('.gi-tag-input')];const returnInput=stInputs.find(l=>l.textContent.includes('Return yards'))?.querySelector('input');returnInput.value='12';returnInput.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,0));
+  window.__s4ReturnBox=[...root().querySelectorAll('.gi-tag-input')].some(l=>l.textContent.includes('Return yards'));app.nativeTagging.specialAction('spot','landing:opp');app.nativeTagging.specialInput('landing-yard','30');app.nativeTagging.specialAction('spot','end:opp');app.nativeTagging.specialInput('end-yard','42');await new Promise(r=>setTimeout(r,0));
   button('Add penalty').click();await new Promise(r=>setTimeout(r,0));const card=root().querySelector('.gi-penalty-card');const inputs=[...card.querySelectorAll('input')];inputs.find(i=>i.getAttribute('list')) .value='Holding';inputs.find(i=>i.getAttribute('list')).dispatchEvent(new Event('change',{bubbles:true}));button('Play counts').click();await new Promise(r=>setTimeout(r,0));app.nativeTagging.addPenalty();await new Promise(r=>setTimeout(r,0));app.nativeTagging.penaltyInput(1,'foul','Facemask');app.nativeTagging.penaltyAction(1,'disposition','declined');app.nativeTagging.penaltyAction(1,'playCounts','true');
   // On our punt the returner belongs to the opponent, not our roster.
   const returner=root().querySelector('[aria-label="returner player number"]');
@@ -225,12 +225,12 @@ await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
   button('Draw').click();button('Clear').click();button('Set OCR Region').click();button('Read Scoreboard').click();
-  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');window.__s4State={punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
+  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');window.__s4State={returnBox:window.__s4ReturnBox,punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
 })(fixture).then(()=>{window.__s4Done=true},error=>{window.__s4Error=String(error&&error.stack||error);window.__s4Done=true});},fixture);
 await page.waitForFunction(()=>window.__s4Done===true,{timeout:60000});
 const s4Error=await page.evaluate(()=>window.__s4Error);
 if(s4Error)throw new Error('Section 4 page task failed: '+s4Error);
-state=await page.evaluate(()=>window.__s4State);ok(state.punt?.unit==='punt'&&state.punt?.outcome?.status==='returned'&&state.punt?.return?.yards===12&&state.punt?.players?.returner==='22'&&!state.scoredBy,'Native Special Teams stores its structured returner and exposes dedicated kick, return, field-goal, and try units without the legacy Scored-by control',JSON.stringify(state.punt));
+state=await page.evaluate(()=>window.__s4State);ok(state.punt?.unit==='punt'&&state.punt?.outcome?.status==='returned'&&!state.returnBox&&state.punt?.kick?.landing?.fieldSide==='opp'&&state.punt?.kick?.landing?.yardLine==='30'&&state.punt?.return?.end?.yardLine==='42'&&state.punt?.players?.returner==='22'&&!state.scoredBy,'Native Special Teams stores its structured returner and exposes dedicated kick, return, field-goal, and try units without the legacy Scored-by control',JSON.stringify(state.punt));
 ok(state.penalties?.length===2&&state.penalties[0].foul==='Holding'&&state.penalties[0].playCounts===true&&state.penalties[0].phase==='special'&&state.penalties[1].foul==='Facemask'&&state.penalties[1].disposition==='declined'&&!state.manualBox,'Native penalty editor stores independent rulings without a duplicate next-snap form',JSON.stringify({penalties:state.penalties,manualBox:state.manualBox}));
 ok(state.tryPlay?.unit==='try'&&state.tryPlay?.attemptType==='twoPoint'&&state.tryPlay?.events?.turnover==='interception'&&state.tryPlay?.events?.defensiveReturn&&state.tryPlay?.outcome?.returnAward==='opponent','Native try editor preserves compound events and official return ruling',JSON.stringify(state.tryPlay));
 ok(state.player==='22'&&state.notes==='Punt return right','Roster quick-pick and notes write the selected play',JSON.stringify({player:state.player,notes:state.notes}));
@@ -282,7 +282,6 @@ state=await page.evaluate(async()=>{
   await wait();
   chip('Score','Touchdown')?.click();
   await wait();
-  app.nativeTagging.specialInput('return-yards','18');
   app.nativeTagging.specialInput('blocker','55');
   app.nativeTagging.specialInput('recoverer','55');
   await wait();
@@ -301,7 +300,7 @@ ok(state.outcomes?.includes('Blocked'),'Punt Return / Block offers the Blocked o
 ok(state.possessionOffered,'choosing Blocked reveals the existing Possession control');
 ok(state.stored?.unit==='puntReturn'&&state.stored?.outcome?.status==='blocked'
   &&state.stored?.outcome?.recoveredBy==='subject'&&state.stored?.outcome?.score==='touchdown'
-  &&state.stored?.return?.yards===18&&state.stored?.players?.blocker==='55'&&state.stored?.players?.recoverer==='55',
+  &&state.stored?.players?.blocker==='55'&&state.stored?.players?.recoverer==='55',
   'the authored state stores the documented shape on the existing schema',JSON.stringify(state.stored));
 ok(state.report?.blocked===1&&state.report?.td===1&&state.report?.n===1&&state.report?.puntsBlockedAgainst===0
   &&JSON.stringify(state.report?.refs)==='["gx::3"]',

@@ -72,8 +72,14 @@ unknown values become null or blank; nothing is inferred):
 - `outcome.score` is the one scoring field: touchdown, fieldGoal, extraPoint,
   twoPoint, safety. Extra points and two-point scores exist only on tries.
 - `recoveredBy`, `scoredBy`: subject, opponent or unknown.
-- Distance, hang time and operation time are never negative; return yards may
-  be. Kick distance, landing spot, return yards and end spot are independent.
+- Distance, hang time and operation time are never negative. Kick distance,
+  possession (landing) spot and end spot are independent.
+- **Return yards are measured, never entered** (coach, 2026-10-07):
+  `SpecialTeamsModel.returnYards` is the yards from the possession spot to the
+  end spot, both charted from our side, toward the opponent's goal on our
+  return and toward ours on theirs; it may be negative. Null unless both spots
+  are charted on a kickoff, punt or return. A `return.yards` value stored by an
+  older build is kept but never read.
 - The field-goal units' `attemptType` is always `fieldGoal`, seeded at creation
   (`defaultAttemptType`); there is no attempt selector, so no path can store an
   extra point there. A Good field goal scores a field goal.
@@ -82,12 +88,12 @@ unknown values become null or blank; nothing is inferred):
 
 | Unit | Outcomes offered | Modifiers | Fields |
 |---|---|---|---|
-| Kickoff | Returned, Touchback, Fair Catch, Out of Bounds, Recovered | Onside | kick distance, hang time, possession spot, return yards, end spot |
-| Kick Return | Returned, Touchback, Fair Catch, Muffed, Out of Bounds | | possession spot, return yards, end spot |
-| Punt | Returned, Fair Catch, Downed, Out of Bounds, Touchback, Blocked, Muffed | Fake | kick distance, hang time, possession spot, return yards, end spot |
-| Punt Return / Block | Returned, Fair Catch, Let Bounce, Muffed, Out of Bounds, Blocked | | possession spot, return yards, end spot |
+| Kickoff | Returned, Touchback, Fair Catch, Out of Bounds, Recovered | Onside | kick distance, hang time, possession spot, end spot |
+| Kick Return | Returned, Touchback, Fair Catch, Muffed, Out of Bounds | | possession spot, end spot |
+| Punt | Returned, Fair Catch, Downed, Out of Bounds, Touchback, Blocked, Muffed | Fake | kick distance, hang time, possession spot, end spot |
+| Punt Return / Block | Returned, Fair Catch, Let Bounce, Muffed, Out of Bounds, Blocked | | possession spot, end spot |
 | Field Goal | Good, No Good, Blocked, Bad Snap | Fake | kick distance, hang time |
-| Field Goal Block | Good, No Good, Blocked, Bad Snap | Fake | kick distance, hang time, return yards, end spot |
+| Field Goal Block | Good, No Good, Blocked, Bad Snap | Fake | kick distance, hang time, end spot |
 
 - Score choices (Touchdown, Safety) are offered on every unit except Field
   Goal. Possession (who recovered) is asked on Recovered, Muffed and Blocked,
@@ -204,7 +210,7 @@ and on every serialization path. Run/pass and Fake tries are the one exemption.
 - Every Special Teams denominator is named. A missing optional field reduces
   only the measure that needs it; a measured zero is a number, an absence is
   "No data".
-- Return production counts only returns with charted return yards.
+- Return production counts only returns with both spots charted.
 - Punt net is observed only: a touchback has no net unless a ruleset supplies
   the touchback distance, and none is configured.
 - A field-goal attempt is defined once (`StatsEngine.isFieldGoalAttempt`) for

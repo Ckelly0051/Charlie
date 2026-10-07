@@ -212,7 +212,7 @@ test('compute routes untyped structured plays into their own ST report', () => {
 test('compute includes untyped ST specialists without admitting untyped ST tacklers', () => {
   const kickReturn = play(1, SpecialTeamsModel.normalize(special({
     unit: 'kickoffReturn', result: undefined, events: undefined, attemptType: null,
-    return: { attempted: true, yards: 19 }, players: { returner: '7' },
+    kick: { landing: { fieldSide: 'own', yardLine: '20' } }, return: { attempted: true, end: { fieldSide: 'own', yardLine: '39' } }, players: { returner: '7' },
     outcome: { status: 'returned', score: null }, isFake: false,
   })), { players: { tackler: '55' } });
   const punt = play(2, SpecialTeamsModel.normalize(special({

@@ -18,6 +18,11 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   on our snaps; the Count stays for the opponent's misses on offense and
   returns. Smoke: name three defensive missers with no tackler, an offense
   count and a kickoff miss, then read Defense, Players and Study.
+- **Return yards from the spots** (smoke 112 finding 1): the Return Yards box
+  is gone; every report measures possession spot to end spot. The two 2025 JV
+  punt returns with only a stored value now show none (coach, 2026-10-07).
+  Smoke: OLV play 1 shows a 16-yard return for #13 in Special Teams and
+  Players.
 - **Tighter collapsed player rows** in Players & Grades (all units).
 - **Shared dialogs for the tagger**: Delete play, Clear tags, templates and
   the detail-clearing prompts now use the in-app dialog; a destructive one
@@ -28,11 +33,6 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 Installed `1.12.0-112` smoke findings (coach, 2026-10-07), open:
 
-- **1. Return yards never reach Reports.** Varsity 2026 vs OLV play 1: a kick
-  return with possession own 22 and end own 38 shows no production. Decided:
-  remove the Return Yards box; every report derives return yards from the
-  possession and end spots. The 2 stored Return Yards values (2025 JV) are
-  reviewed with the coach before anything touches them.
 - **2. Reopening the app opens the previous game.** Installed only: closing on
   Week 6 vs OLV wrote Week 5 St. George as the season's active game 8 seconds
   before the next launch; plays were intact. Not reproduced in the browser

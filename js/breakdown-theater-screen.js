@@ -266,7 +266,7 @@ export class BreakdownTheaterScreen {
           row('Kick distance', yds(st?.kick?.distance)), row('Hang time', st?.kick?.hangTime != null ? `${st.kick.hangTime} s` : ''),
           row('Operation time', st?.kick?.operationTime != null ? `${st.kick.operationTime} s` : ''),
           row('Landing spot', spot(st?.kick?.landing)),
-          row('Return attempted', yn(st?.return?.attempted)), row('Return yards', yds(st?.return?.yards)),
+          row('Return attempted', yn(st?.return?.attempted)), row('Return yards', yds(SpecialTeamsModel.returnYards(st))),
           row('Return ended', spot(st?.return?.end)),
           row('Recovered by', side(st?.outcome?.recoveredBy)),
           row('Onside', st ? (st.isOnside ? 'Yes' : 'No') : ''), row('Fake', st ? (st.isFake ? 'Yes' : 'No') : ''),

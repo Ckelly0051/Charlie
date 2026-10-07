@@ -267,6 +267,29 @@ export class SpecialTeamsModel {
     return 'unknown';
   }
 
+  /** A spot as yards from our goal line (own 22 is 22, opp 22 is 78), or null
+   *  unless both its side and a yard line from 0 to 50 are charted. */
+  static _absoluteSpot(spot) {
+    const line = Number(spot?.yardLine);
+    if (!['own', 'opp'].includes(spot?.fieldSide) || String(spot?.yardLine ?? '').trim() === '' || !(line >= 0 && line <= 50)) return null;
+    return spot.fieldSide === 'own' ? line : 100 - line;
+  }
+
+  /**
+   * Return yards, from the possession spot to the end spot (coach,
+   * 2026-10-07: there is no Return Yards entry). Spots are charted from our
+   * side; our return gains toward the opponent's goal, theirs toward ours.
+   * Null unless both spots are charted on a kickoff, punt or return.
+   */
+  static returnYards(value) {
+    const event = this.normalize(value && value.specialTeams ? value.specialTeams : value);
+    if (!event) return null;
+    const direction = { kickoffReturn: 1, puntReturn: 1, kickoff: -1, punt: -1 }[event.unit];
+    const from = this._absoluteSpot(event.kick.landing), to = this._absoluteSpot(event.return.end);
+    if (!direction || from == null || to == null) return null;
+    return (to - from) * direction;
+  }
+
   /**
    * Observed punt/kick net. Touchbacks require an explicit ruleset-derived
    * penalty supplied by the caller; no federation value is hard-coded here.
@@ -276,7 +299,8 @@ export class SpecialTeamsModel {
     if (!event || event.kick.distance == null) return null;
     const status = event.outcome.status;
     if (status === 'returned') {
-      return event.return.yards == null ? null : event.kick.distance - event.return.yards;
+      const returned = this.returnYards(event);
+      return returned == null ? null : event.kick.distance - returned;
     }
     if (status === 'touchback') {
       const penalty = this._number(rules.touchbackPenalty);

@@ -164,10 +164,8 @@ export class AnalyticsRegistry {
       // Phase 3 scope): Field Goal only for kicker (a clean make/miss
       // binary, already well-modeled), kick/punt return only for returner.
       // Punting and return-yardage averages are NOT exposed here -- their
-      // yardage lives on `play.specialTeams.return.yards`, a different field
-      // than the `tags.yardage` every AnalyticsMetrics yardage metric reads,
-      // and bridging that is out of this checkpoint's scope (disclosed as a
-      // known limitation in the Phase 3 handoff, not silently omitted).
+      // yardage comes from the return's spots (`SpecialTeamsModel.returnYards`),
+      // not the `tags.yardage` every AnalyticsMetrics yardage metric reads.
       ready('playerKicker', 'Kicker (Field Goal)',
         this._playerRoleValues('kicker', p => {
           const event = special(p);

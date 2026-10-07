@@ -56,9 +56,17 @@ await page.evaluate(async () => {
 /* Structured Special Teams events (the old stType / kickOutcome / returnYards /
    kickDistance shape was retired, 2026-09-26). `__st` rides on a fixture row and
    becomes the play's `specialTeams`. */
+/* Return yards are measured from the possession spot to the end spot
+   (SpecialTeamsModel.returnYards); `yards` charts the two spots that give it. */
+const spotAt = abs => abs <= 50 ? { fieldSide: 'own', yardLine: String(abs) } : { fieldSide: 'opp', yardLine: String(100 - abs) };
+const returnSpots = (unit, yards) => {
+  if (yards == null) return { landing: {}, end: {} };
+  const ours = unit === 'kickoffReturn' || unit === 'puntReturn', from = ours ? 20 : 80;
+  return { landing: spotAt(from), end: spotAt(ours ? from + yards : from - yards) };
+};
 const STE = (unit, { status = null, distance = null, yards = null, score = null } = {}) => ({
   version: 1, unit, attemptType: unit === 'fieldGoal' ? 'fieldGoal' : null,
-  kick: { distance }, return: { attempted: yards != null ? true : null, yards, end: {} },
+  kick: { distance, landing: returnSpots(unit, yards).landing }, return: { attempted: yards != null ? true : null, end: returnSpots(unit, yards).end },
   outcome: { status, score, scoredBy: null, recoveredBy: null },
 });
 const GAME_A = [
@@ -948,6 +956,10 @@ const exact = await page.evaluate(() => {
        implementation against itself. Each predicate below is the football
        meaning of the column, written out here independently. */
     const yards = play => parseInt(play.tags.yardage, 10) || 0;
+    // Possession spot to end spot, from our side; our return gains toward their goal.
+    const abs = spot => spot?.fieldSide === 'own' ? Number(spot.yardLine) : spot?.fieldSide === 'opp' ? 100 - Number(spot.yardLine) : NaN;
+    const retYards = play => { const st = play.specialTeams || {}, dir = { kickoffReturn: 1, puntReturn: 1, kickoff: -1, punt: -1 }[st.unit];
+      const d = (abs(st.return?.end) - abs(st.kick?.landing)) * dir; return Number.isFinite(d) ? d : NaN; };
     const has = (play, result) => String(play.tags.result || '').split('+').map(s => s.trim()).includes(result);
     const cohort = role?.plays || [];
     const predicate = {
@@ -962,16 +974,16 @@ const exact = await page.evaluate(() => {
         ast: p => (String(p.tags.players?.tackler || '').match(/\d+/g)?.length || 0) > 1 && String(p.tags.players?.tackler || '').includes(num),
         sacks: p => has(p, 'Sack'), tfl: p => !has(p, 'Sack') && yards(p) < 0,
         ints: p => has(p, 'Interception'), fr: p => has(p, 'Fumble') },
-      returns: { ret: p => Number.isFinite(p.specialTeams?.return?.yards),
-        yds: p => Number.isFinite(p.specialTeams?.return?.yards),
-        avg: p => Number.isFinite(p.specialTeams?.return?.yards), tds: p => p.specialTeams?.outcome?.score === 'touchdown' },
+      returns: { ret: p => Number.isFinite(retYards(p)),
+        yds: p => Number.isFinite(retYards(p)),
+        avg: p => Number.isFinite(retYards(p)), tds: p => p.specialTeams?.outcome?.score === 'touchdown' },
       kicking: { fg: () => true, punts: () => true, puntAvg: () => true },
     }[roleKey]?.[column];
     let expectedPlays = predicate ? cohort.filter(predicate) : null;
     if (column === 'long') {
       // The long is the play (or plays tying it) that produced the value.
       const measure = roleKey === 'returns'
-        ? play => (Number.isFinite(play.specialTeams?.return?.yards) ? play.specialTeams.return.yards : NaN)
+        ? play => retYards(play)
         : play => yards(play);
       const measured = cohort.filter(play => Number.isFinite(measure(play)));
       const best = measured.length ? Math.max(...measured.map(measure)) : null;
@@ -1526,7 +1538,7 @@ const composition = await page.evaluate(async () => {
     yardage: '9', players: { passer: '12', receiver: '80' } }));
   plays.push(play(id++, { unit: 'defense', runPass: 'Run', playType: 'Run Inside', result: 'Loss',
     yardage: '-2', players: { tackler: '55' } }));
-  plays.push(Object.assign(play(id++, { unit: 'special', players: { returner: '18' } }), { specialTeams: { version: 1, unit: 'kickoffReturn', return: { attempted: true, yards: 12 }, outcome: { status: 'returned' } } }));
+  plays.push(Object.assign(play(id++, { unit: 'special', players: { returner: '18' } }), { specialTeams: { version: 1, unit: 'kickoffReturn', kick: { landing: { fieldSide: 'own', yardLine: '20' } }, return: { attempted: true, end: { fieldSide: 'own', yardLine: '32' } }, outcome: { status: 'returned' } } }));
   plays.push(Object.assign(play(id++, { unit: 'special', players: { kicker: '19' } }), { specialTeams: { version: 1, unit: 'punt', kick: { distance: 35 }, outcome: {} } }));
   store.data.games = [{ id: 'g-comp', name: 'Week 1', nextId: 99,
     gameInfo: { opponent: 'Composition', date: '2026-09-01', week: '1', perspective: 'self', scoreUs: 7, scoreThem: 0 },

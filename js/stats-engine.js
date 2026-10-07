@@ -2537,7 +2537,7 @@ export class StatsEngine {
       const puntGross = avgStat(puntRows, x => x.st.kick.distance);
       const puntNet = avgStat(puntRows, x => SpecialTeamsModel.netYards(x.st));
       const puntHang = avgStat(puntRows, x => x.st.kick.hangTime);
-      const puntRetAllowed = avgStat(puntReturnedRows, x => x.st.return.yards);
+      const puntRetAllowed = avgStat(puntReturnedRows, x => SpecialTeamsModel.returnYards(x.st));
       const punts = {
         n: puntRows.length,
         grossAvg: puntGross.value,
@@ -2554,7 +2554,7 @@ export class StatsEngine {
         // existing average -- a coach-facing coverage KPI needs an honest
         // total (summed across punts AND kickoffs), which an average alone
         // cannot provide without re-deriving avg*n and losing precision.
-        retAllowedYards: puntReturnedRows.reduce((s, x) => s + (Number.isFinite(x.st.return.yards) ? x.st.return.yards : 0), 0),
+        retAllowedYards: puntReturnedRows.reduce((s, x) => s + (SpecialTeamsModel.returnYards(x.st) ?? 0), 0),
         tdAllowed: tdAllowedRows(puntRows).length,
         refs: {
           all: StatsEngine._refsOf(puntRows, getPlay),
@@ -2572,14 +2572,14 @@ export class StatsEngine {
       const onsideRecoveredRows = onsideRows.filter(x => x.st.outcome.recoveredBy === 'subject');
       const koReturnedRows = koRows.filter(x => x.st.outcome.status === 'returned');
       const koAvg = avgStat(koRows, x => x.st.kick.distance);
-      const koRetAllowed = avgStat(koReturnedRows, x => x.st.return.yards);
+      const koRetAllowed = avgStat(koReturnedRows, x => SpecialTeamsModel.returnYards(x.st));
       const kickoffs = {
         n: koRows.length,
         avg: koAvg.value,
         tbPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'touchback').length / koRows.length * 100) : 0,
         fairCatchPct: koRows.length ? Math.round(koRows.filter(x => x.st.outcome.status === 'fairCatch').length / koRows.length * 100) : 0,
         retAllowedAvg: koRetAllowed.value,
-        retAllowedYards: koReturnedRows.reduce((s, x) => s + (Number.isFinite(x.st.return.yards) ? x.st.return.yards : 0), 0),
+        retAllowedYards: koReturnedRows.reduce((s, x) => s + (SpecialTeamsModel.returnYards(x.st) ?? 0), 0),
         tdAllowed: tdAllowedRows(koRows).length,
         // isOnside is a structured modifier (not a separate unit) -- 'recovered'
         // counts only a SUBJECT recovery (the point of an onside attempt).
@@ -2610,7 +2610,7 @@ export class StatsEngine {
       };
       const ret = unit => {
         const arr = rows(unit);
-        const attempts = arr.filter(x => x.st.return.attempted === true && Number.isFinite(x.st.return.yards));
+        const attempts = arr.filter(x => x.st.return.attempted === true && SpecialTeamsModel.returnYards(x.st) != null);
         const tdRows = arr.filter(x => x.st.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(x.st) === 'subject');
         const muffedRows = arr.filter(x => x.st.outcome.status === 'muffed');
         const blockedRows = arr.filter(x => x.st.outcome.status === 'blocked');
@@ -2620,12 +2620,12 @@ export class StatsEngine {
           // avgStat's internal filter is a no-op here -- reused for the mean,
           // its own `.refs` discarded since `refs.attempts` below already
           // covers the identical cohort.
-          avg: avgStat(attempts, x => x.st.return.yards).value,
+          avg: avgStat(attempts, x => SpecialTeamsModel.returnYards(x.st)).value,
           // The raw SUM behind `avg` -- Special Teams Presentation
           // Independence's Return Production KPI needs an honest total across
           // BOTH kick and punt returns, which two averages can't combine.
-          yards: attempts.reduce((s, x) => s + x.st.return.yards, 0),
-          long: attempts.length ? Math.max(...attempts.map(x => x.st.return.yards)) : 0,
+          yards: attempts.reduce((s, x) => s + SpecialTeamsModel.returnYards(x.st), 0),
+          long: attempts.length ? Math.max(...attempts.map(x => SpecialTeamsModel.returnYards(x.st))) : 0,
           // Exact denominator for `long`/`avg` -- distinct from `n` (every ST
           // play of this unit, including fair catches/touchbacks/muffs with no
           // usable return yardage).
@@ -3548,7 +3548,7 @@ export class StatsEngine {
       // no charted yardage is a return that contributed no measured yards.
       const structuredReturn = structured && ['kickoffReturn', 'puntReturn'].includes(structured.unit);
       if (players.returner && structuredReturn) {
-        const returnYards = Number.isFinite(structured.return.yards) ? structured.return.yards : null;
+        const returnYards = SpecialTeamsModel.returnYards(structured);
         const returnTd = structured.outcome.score === 'touchdown' && SpecialTeamsModel.scoringTeam(structured) === 'subject';
         bucket(players.returner, 'returns', 'Return Game', ROLE_COHORT, p);
         bucket(players.returner, 'returns', 'Return Game', 'ret', p);

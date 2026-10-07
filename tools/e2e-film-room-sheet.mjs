@@ -49,7 +49,7 @@ await page.evaluate(async () => {
     // event, so no side.
     mk(6, 'special', {}, { specialTeams: { unit: 'puntReturn',
       kick: { distance: 40, hangTime: 4.1, landing: { fieldSide: 'own', yardLine: '30' } },
-      return: { attempted: true, yards: 70, end: { fieldSide: 'opp', yardLine: '0' } },
+      return: { attempted: true, end: { fieldSide: 'opp', yardLine: '0' } },
       outcome: { status: 'returned', score: 'touchdown' }, players: { returner: '88' } } }),
     mk(7, 'special', { result: 'Touchdown' }),
   ];

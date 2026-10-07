@@ -180,12 +180,35 @@ test('scoreboard tracks ambiguous points without assigning them to either team',
   assert.equal(board.byQuarter.Q1.unattributed, 2);
 });
 
+test('return yards come from the possession and end spots, never a stored value', () => {
+  const spot = (fieldSide, yardLine) => ({ fieldSide, yardLine });
+  const ret = (unit, from, to, extra = {}) => event({ unit, kick: { landing: from }, return: { attempted: true, end: to, ...extra }, outcome: { status: 'returned' } });
+  // Coach smoke 112: OLV opening kick return, own 22 to own 38.
+  assert.equal(SpecialTeamsModel.returnYards(ret('kickoffReturn', spot('own', '22'), spot('own', '38'))), 16);
+  assert.equal(SpecialTeamsModel.returnYards(ret('puntReturn', spot('own', '45'), spot('opp', '30'))), 25);
+  // Their return of our kick runs toward our goal: opp 41 to opp 47 is 6.
+  assert.equal(SpecialTeamsModel.returnYards(ret('kickoff', spot('opp', '41'), spot('opp', '47'))), 6);
+  assert.equal(SpecialTeamsModel.returnYards(ret('punt', spot('own', '40'), spot('own', '44'))), -4);
+  assert.equal(SpecialTeamsModel.returnYards(ret('kickoffReturn', spot('own', '20'), spot('own', '20'))), 0);
+  // A stored Return Yards value is not read; a missing or invalid spot is unmeasured.
+  assert.equal(SpecialTeamsModel.returnYards(ret('puntReturn', spot('', ''), spot('', ''), { yards: 7 })), null);
+  assert.equal(SpecialTeamsModel.returnYards(ret('kickoffReturn', spot('own', '22'), spot('own', ''))), null);
+  assert.equal(SpecialTeamsModel.returnYards(ret('kickoffReturn', spot('own', '22'), spot('own', '60'))), null);
+  assert.equal(SpecialTeamsModel.returnYards(ret('fieldGoalBlock', spot('own', '22'), spot('own', '38'))), null);
+  const play = (id, st) => ({ id, tags: { unit: 'special' }, specialTeams: st });
+  const stats = Object.create(StatsEngine.prototype)._specialTeamsStats([
+    play(1, ret('kickoffReturn', spot('own', '22'), spot('own', '38'))),
+    play(2, ret('kickoffReturn', spot('', ''), spot('', ''), { yards: 30 })),
+  ]);
+  assert.deepEqual({ attempts: stats.returns.kick.attempts, yards: stats.returns.kick.yards }, { attempts: 1, yards: 16 });
+});
+
 test('structured reports ignore quarantined legacy details and reconcile unit metrics', () => {
   const play = (id, st, tags = {}) => ({ id, tags: { unit: 'special', ...tags }, specialTeams: st });
   const plays = [
-    play(1, event({ unit: 'punt', kick: { distance: 45, hangTime: 4.2 }, return: { attempted: true, yards: 10 }, outcome: { status: 'returned' } })),
+    play(1, event({ unit: 'punt', kick: { distance: 45, hangTime: 4.2, landing: { fieldSide: 'opp', yardLine: '30' } }, return: { attempted: true, end: { fieldSide: 'opp', yardLine: '40' } }, outcome: { status: 'returned' } })),
     play(2, event({ unit: 'punt', kick: { distance: 40, hangTime: 4.6 }, return: { attempted: false, yards: null }, outcome: { status: 'touchback' } })),
-    play(3, event({ unit: 'kickoffReturn', return: { attempted: true, yards: -2 }, outcome: { status: 'returned' } })),
+    play(3, event({ unit: 'kickoffReturn', kick: { landing: { fieldSide: 'own', yardLine: '20' } }, return: { attempted: true, end: { fieldSide: 'own', yardLine: '18' } }, outcome: { status: 'returned' } })),
     play(4, event({ unit: 'kickoffReturn', return: { attempted: false, yards: null }, outcome: { status: 'fairCatch' } })),
     play(5, event({ unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 37 }, outcome: { status: 'good', score: 'fieldGoal' } })),
     play(6, event({ unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 42 }, outcome: { status: 'noGood', score: null } })),

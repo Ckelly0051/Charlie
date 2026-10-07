@@ -78,11 +78,16 @@ const section = async id => {
    retired (legacy excision, 2026-09-26); every fixture below is its structured
    equivalent, and a Special Teams snap with no unit charted is a play with no
    `specialTeams` event at all. */
+const spotAt = abs => abs <= 50 ? { fieldSide: 'own', yardLine: String(abs) } : { fieldSide: 'opp', yardLine: String(100 - abs) };
+const ours = unit => unit === 'kickoffReturn' || unit === 'puntReturn';
 const ST = (unit, { status = null, distance = null, returnYards = null, score = null, attemptType = null,
   result = null, recoveredBy = null, players = {}, tags = {} } = {}) => ({
   tags: { players, ...tags },
   specialTeams: { version: 1, unit, attemptType, result,
-    kick: { distance }, return: { attempted: status === 'returned' ? true : null, yards: returnYards, end: {} },
+    // Return yards come from the spots (SpecialTeamsModel.returnYards): ours from
+    // our 20, theirs from our 80, measured toward the other goal.
+    kick: { distance, landing: returnYards == null ? {} : spotAt(ours(unit) ? 20 : 80) },
+    return: { attempted: status === 'returned' ? true : null, end: returnYards == null ? {} : spotAt(ours(unit) ? 20 + returnYards : 80 - returnYards) },
     outcome: { status, recoveredBy, score, scoredBy: null },
     players: { kicker: players.kicker || '', punter: players.punter || '', returner: players.returner || '' } },
 });
@@ -146,8 +151,11 @@ const absence = await page.evaluate(() => {
     hasSub: !!k.querySelector('small'),
     size: parseFloat(getComputedStyle(k.querySelector('strong')).fontSize),
   }));
-  return { rows, kpi, text: pane.textContent };
+  return { rows, kpi, text: pane.textContent,
+    coverage: (({ retAllowedYards, retAllowedAvg }) => ({ retAllowedYards, retAllowedAvg }))(window.app.stats.compute().specialTeams.kickoffs) };
 });
+ok(absence.coverage.retAllowedYards === 34 && absence.coverage.retAllowedAvg === 17,
+  'kickoff coverage counts the yards from each return\'s possession spot to its end spot (20 + 14)', absence.coverage);
 const tbRow = absence.rows.find(r => r.label === 'Touchback rate');
 const distRow = absence.rows.find(r => r.label === 'Kick distance, average');
 ok(tbRow && tbRow.value === '0%' && !tbRow.blank,
