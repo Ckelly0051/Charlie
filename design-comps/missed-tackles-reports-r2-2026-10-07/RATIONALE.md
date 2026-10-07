@@ -1,6 +1,7 @@
 # Missed tackles in Reports, revision 2 - review comp, 2026-10-07
 
-Status: proposal, not approved. Revises the Tackling module of
+Status: **COMP_APPROVED** by the coach, 2026-10-07 ("Comp approved with
+centered text in the strip"). Production is not built. Revises the Tackling module of
 `design-comps/missed-tackles-reports-2026-10-07` (COMP_APPROVED). Still screens
 of the built app (`0d4f3043`) with the canonical 2025 JV season, Full season,
 the proposed rows applied in the page (`capture.mjs`). Isolated browser data;
@@ -42,3 +43,6 @@ module stays full width and fixed, now six rows.
   lines like Touchdowns Allowed at 1440 and 1280. This reverses the 2026-09-23
   rule that the Defense board never prints "Allowed" (`e2e-explosive-labels`).
 - "Tackles Made" is labeled Total Tackles.
+- The strip's labels and values are centered in each tile
+  (`proposed-strip-centered-1440x900.png`). Defense only: the other boards'
+  strips stay left-aligned until the reporting rebuild.
