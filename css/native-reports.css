@@ -3211,6 +3211,10 @@
 .gi-reports .gi-players-board{--mod-accent:var(--gi-bd-draw)}
 .gi-reports .gi-players-board .gi-player-module.is-off{--mod-accent:var(--gi-bd-gold)}
 .gi-reports .gi-players-board .gi-player-module.is-def{--mod-accent:var(--gi-bd-cyan)}
+/* Tackles holds ten columns with MTkl (coach, 2026-10-07): its number columns
+   are narrower here, so the name column keeps room for a long roster name. */
+.gi-reports .gi-players-board .gi-player-module.is-def table.gi-player-table{--p-c:40px;--p-l2:46px;--p-s:36px}
+.gi-reports .gi-players-board .gi-player-module.is-def table.gi-player-table :is(th,td):not(:first-child):not(:last-child){padding-left:8px;padding-right:8px}
 .gi-reports .gi-players-board .gi-players-sections{gap:20px;background:transparent}
 .gi-reports .gi-players-board .gi-players-col,
 .gi-reports .gi-players-board .gi-player-phase{gap:20px;background:transparent}

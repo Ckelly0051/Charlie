@@ -73,7 +73,7 @@ const GAME_A = [
   { unit: 'defense', playType: 'Run Inside', runPass: 'Run', result: 'No Gain', yardage: '1', players: { tackler: '44 + 51' }, grades: { tackler: 1 } },
   { unit: 'defense', playType: 'Dropback', runPass: 'Pass', result: 'Sack', yardage: '-9', players: { tackler: '51' } },
   { unit: 'defense', playType: 'Quick Pass', runPass: 'Pass', result: 'Interception', yardage: '0', players: { tackler: '44', takeaway: '27' } },
-  /* The longest representative roster name in the NINE-column Tackles table --
+  /* The longest representative roster name in the TEN-column Tackles table --
      the tightest identity column on the board, and the one that truncated. */
   { unit: 'defense', playType: 'Run Outside', runPass: 'Run', result: 'No Gain', yardage: '2', players: { tackler: '22' } },
   { unit: 'special', players: { returner: '7' }, __st: STE('kickoffReturn', { status: 'returned', yards: 24 }) },
@@ -210,7 +210,8 @@ const SCHEMA = {
   Rushing: ['Player', 'Att', 'Yds', 'Avg', 'Long', 'TD', 'Fum', 'Grade'],
   Passing: ['Player', 'C/A', 'Pct', 'Yds', 'TD', 'INT', 'Sck', 'Grade'],
   Receiving: ['Player', 'Rec', 'Yds', 'Long', 'TD', 'Grade'],
-  Tackles: ['Player', 'Tkl', 'Solo', 'Ast', 'Sack', 'TFL', 'INT', 'FR', 'Grade'],
+  // MTkl after Ast: design-comps/missed-tackles-reports-2026-10-07.
+  Tackles: ['Player', 'Tkl', 'Solo', 'Ast', 'MTkl', 'Sack', 'TFL', 'INT', 'FR', 'Grade'],
   'Return Game': ['Player', 'Ret', 'Yds', 'Avg', 'Long', 'TD'],
   'Kicking / Punting': ['Player', 'FG (M/A)', 'Punts', 'Punt Avg'],
 };
@@ -703,7 +704,7 @@ await setScope('season');
 await setSection('All roles');
 
 /* 12a. A representative long roster name renders in FULL at 1440, including in
-   the nine-column Tackles table -- the tightest identity column on the board.
+   the ten-column Tackles table -- the tightest identity column on the board.
    Measured against the cell's own content box, not against the ellipsis: an
    ellipsised cell reports its truncated width, so `scrollWidth` alone would
    pass on the very defect this asserts. */
@@ -729,7 +730,7 @@ ok(longName.every(r => r.need <= r.avail && !r.ellipsised),
   JSON.stringify(longName));
 const tackles = longName.find(r => r.role === 'Tackles');
 ok(tackles && tackles.avail - tackles.need >= 0,
-  'the nine-column Tackles identity column holds the name with room to spare',
+  'the ten-column Tackles identity column holds the name with room to spare',
   JSON.stringify(tackles));
 
 /* Revision 2 retired the row marker with the row action. The identity control
