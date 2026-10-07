@@ -29,7 +29,9 @@ const setup = async (width, height, unit) => {
     app.roster.players = data.roster || [];
     await app.workspaceShell.show('breakdown');
     app.breakdownWorkspace._setFilmFocus(false);
-    const play = unit === 'defense'
+    const ST = { kickoff: 20, puntReturn: 24 };
+    if (ST[unit]) { const p = app.tagger.plays.find(p => p.id === ST[unit]); p.specialTeams = { unit, status: 'returned' }; p.tags.players = unit === 'puntReturn' ? { returner: '2' } : { kicker: '99' }; }
+    const play = ST[unit] ? app.tagger.plays.find(p => p.id === ST[unit]) : unit === 'defense'
       ? app.tagger.plays.find(p => p.tags?.unit === 'defense' && p.tags?.players?.tackler)
       : app.tagger.plays.find(p => (p.tags?.unit || 'offense') === 'offense' && p.tags?.players?.ballCarrier && Number(p.tags?.yardage) >= 6);
     app.tagger.selectPlay(play.id);
@@ -43,49 +45,68 @@ const setup = async (width, height, unit) => {
   return picked;
 };
 
-// The proposal: a count row (blank = not charted, 0 = checked, none) at the
-// top of Players & Grades; on defense a Missed Tackle(s) roster row after
-// Tackler(s), no grade. Offense charts the count only.
-const apply = async (unit, count, missedBy) => {
+// The proposal: Missed Tackles is one more player row in Players & Grades,
+// directly after Tackler(s) and built like it: label, jersey-number box,
+// roster picker, and a Count select (blank = not charted, 0 = checked, none)
+// where the other rows have Grade. Offense has the same row after Receiver,
+// count only, because opponents are not on our roster.
+// mode 'ours': our players missed (roster row); 'theirs': the opponent missed on our carrier (count only).
+const apply = async (mode, anchorText, label, count, missedBy) => {
   await page.addStyleTag({ content: '.gi-toast-stack{display:none!important}' });
-  await page.evaluate((unit, count, missedBy) => {
+  await page.evaluate((mode, anchorText, label, count, missedBy) => {
     const group = [...document.querySelectorAll('details.gi-tag-group')].find(d => /Players/.test(d.querySelector('summary')?.textContent || ''));
     group.open = true;
-    const body = group.querySelector('.gi-tag-group-body'), players = body.querySelector('.gi-tag-players');
-    const row = document.createElement('div');
-    row.className = 'gi-tag-field';
-    row.innerHTML = `<div class="gi-tag-field-label"><span>${unit === 'defense' ? 'Missed Tackles' : 'Opponent Missed Tackles'}</span></div>
-      <div class="gi-tag-chips">${['0', '1', '2', '3+'].map(v => `<button type="button" class="${v === count ? 'is-active' : ''}">${v}</button>`).join('')}</div>`;
-    body.insertBefore(row, players);
-    if (unit === 'defense') {
-      const tackler = [...players.children].find(el => /Tackler/.test(el.querySelector('strong')?.textContent || ''));
-      const missed = tackler.cloneNode(true);
-      missed.classList.add('is-active'); tackler.classList.remove('is-active');
-      missed.querySelector('strong').textContent = 'Missed Tackle(s)';
+    const players = group.querySelector('.gi-tag-players');
+    const rowOf = re => [...players.children].find(el => re.test(el.querySelector('strong')?.textContent || ''));
+    const anchor = rowOf(new RegExp(anchorText));
+    // Our players come from the roster: build the row from one of our own rows.
+    const source = mode === 'ours' && !anchor.querySelector('.gi-player-roster-toggle') ? [...players.children].find(el => el.querySelector('.gi-player-roster-toggle')) : anchor;
+    const missed = source.cloneNode(true);
+    missed.querySelector('strong').textContent = label;
+    const select = missed.querySelector('select');
+    select.innerHTML = ['', '0', '1', '2', '3+'].map(v => `<option value="${v}">${v || 'Count'}</option>`).join('');
+    select.value = count;
+    select.setAttribute('aria-label', 'missed tackles count');
+    if (mode === 'ours') {
       missed.querySelector('input').value = missedBy;
-      missed.querySelector('select')?.remove();
-      tackler.querySelector('.gi-player-quick')?.remove();
-      const toggle = tackler.querySelector('.gi-player-roster-toggle');
-      if (toggle) toggle.innerHTML = '<span aria-hidden="true">▸</span>Show roster';
+      for (const row of players.children) {
+        row.classList.remove('is-active');
+        row.querySelector('.gi-player-quick')?.remove();
+        const toggle = row.querySelector('.gi-player-roster-toggle');
+        if (toggle) toggle.innerHTML = '<span aria-hidden="true">▸</span>Show roster';
+      }
+      missed.classList.add('is-active');
       for (const b of missed.querySelectorAll('.gi-player-quick button')) b.classList.toggle('is-active', missedBy.split(' + ').includes(b.textContent.trim()));
-      tackler.after(missed);
+    } else {
+      // No jersey box or roster: the defenders who missed are not ours. The
+      // Count select takes the box's place so the row keeps the grid's columns.
+      missed.querySelector('input').replaceWith(select);
+      missed.querySelector('.gi-player-roster-toggle')?.remove();
+      missed.querySelector('.gi-player-quick')?.remove();
+      missed.classList.remove('is-active');
     }
+    anchor.after(missed);
     group.scrollIntoView({ block: 'start' });
-  }, unit, count, missedBy);
+  }, mode, anchorText, label, count, missedBy);
   await new Promise(r => setTimeout(r, 300));
 };
-
 for (const [w, h] of [[1440, 900], [1280, 800]]) {
   const d = await setup(w, h, 'defense');
   const nums = (season.roster || []).filter(p => p.side !== 'O').map(p => String(p.num));
   const missedBy = nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(' + ');
-  await apply('defense', '2', missedBy);
+  await apply('ours', 'Tackler', 'Missed Tackles', '2', missedBy);
   await page.screenshot({ path: `${OUT}/defense-${w}x${h}.png` });
   console.log('defense play', d.id, 'tackler', d.tackler, 'missed', missedBy);
   const o = await setup(w, h, 'offense');
-  await apply('offense', '1', '');
+  await apply('theirs', 'Receiver', 'Missed Tackles', '1', '');
   await page.screenshot({ path: `${OUT}/offense-${w}x${h}.png` });
   console.log('offense play', o.id, 'carrier', o.carrier);
+  await setup(w, h, 'kickoff');
+  await apply('ours', 'Returner', 'Missed Tackles', '1', missedBy.split(' + ')[0]);
+  await page.screenshot({ path: `${OUT}/kickoff-${w}x${h}.png` });
+  await setup(w, h, 'puntReturn');
+  await apply('theirs', 'Returner', 'Missed Tackles', '2', '');
+  await page.screenshot({ path: `${OUT}/punt-return-${w}x${h}.png` });
 }
 await browser.close();
 console.log('ok');
