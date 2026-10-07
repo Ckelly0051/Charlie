@@ -41,9 +41,8 @@ Read this section before every build. Lower the count here, and in
 delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
 updated 2026-10-07.
 
-**`window.app` reach-through** (52). Code reaching shared services through the
+**`window.app` reach-through** (26). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
-- `js/storage.js` 26
 - `js/season-manager.js` 8
 - `js/version-manager.js` 6
 - `js/custom-chips.js` 3
@@ -61,9 +60,7 @@ native owner; each one is an escaping risk.
 - `js/workspace-shell.js` 2
 - `js/cutup-exporter.js`, `cutup-player.js`, `play-diagram.js`, `updater.js` 1 each
 
-**Native `alert()`** (7). Use the in-app toast or confirm.
-- `js/storage.js` 4: "Invalid project file." (twice), "No video loaded.",
-  "No plays to export."
+**Native `alert()`** (3). Use the in-app toast or confirm.
 - `js/video-controller.js` 2: "No video files found" (folder and drop)
 - `js/play-diagram.js` 1: "Select a play first"
 

@@ -70,7 +70,8 @@ console.log('\n-- B1-1 desktop managed-film path (pinned in source) --');
   ok(/clearFilmOperation\(gameId, seasonId\)/.test(appSrc) && /setFilmOperation\(gameId, operation, \{ done, total \}, seasonId\)/.test(appSrc),
     'The progress seam passes that season id to both operation calls');
   const storageSrc = source('storage.js');
-  const progressCalls = storageSrc.match(/_showFilmImportProgress\([^)]*\)/g) || [];
+  // Storage reports through the hook App injects (storage.deps.showFilmImportProgress).
+  const progressCalls = storageSrc.match(/\bapp\.showFilmImportProgress\([^)]*\)/g) || [];
   ok(progressCalls.length === 3 && progressCalls.every(call => /game\.id, (film|repair)SeasonId/.test(call)),
     'Every film write reports progress against a season id pinned before its await', progressCalls);
   const clearCalls = storageSrc.match(/clearFilmOperation\([^)]*\)/g) || [];

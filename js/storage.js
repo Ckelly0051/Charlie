@@ -34,6 +34,9 @@ export class StorageManager {
     this.gameInfo = {};
     this.filter = null;
     this.seasonStore = new SeasonStore();
+    // The app's live services and hooks, passed in by App (see App wiring);
+    // null where storage runs on its own.
+    this.deps = null;
     this._loadedGameId = null;   // which game the live tagger holds (guards commitActive vs cross-game writes)
     // Clip identities the coach DELIBERATELY removed in this game session.
     // The durable clip index retains everything it has ever recorded, so an
@@ -58,9 +61,9 @@ export class StorageManager {
     // a season/backend switch, or a superseding load cannot reuse stale URLs.
     this._managedFilmManifests = new Map();
     // Tell the coach when a save fails (browser storage full) instead of losing
-    // work silently. window.app/updater resolve lazily — this fires rarely.
+    // work silently. The updater resolves lazily — this fires rarely.
     this.seasonStore.onPersistError = () => {
-      try { window.app.updater._toast('⚠ Save failed — browser storage may be full. Use "Save Season" to export a backup file before you lose work.'); } catch (e) {}
+      try { this.deps.updater._toast('⚠ Save failed — browser storage may be full. Use "Save Season" to export a backup file before you lose work.'); } catch (e) {}
     };
 
     this.projectFileInput = document.getElementById('projectFileInput');
@@ -159,7 +162,7 @@ export class StorageManager {
             await T.core.invoke('close_after_flush');
           } catch (e) {
             this._desktopCloseInFlight = false;
-            try { window.app?.updater?._toast('Unable to close GridIron IQ. Please try again.'); } catch (err) {}
+            try { this.deps?.updater?._toast('Unable to close GridIron IQ. Please try again.'); } catch (err) {}
           }
         })();
       });
@@ -398,7 +401,7 @@ export class StorageManager {
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();
     this._purgeStaleDeletedFilm();   // leaving the season closes any pending delete's undo window
-    const app = window.app;
+    const app = this.deps;
     const rec = await this.seasonStore.createSeason({ ...(meta || {}), playbook: app?.playbook?.snapshot?.() });
     this._afterSeasonLoaded();
     return rec;
@@ -420,7 +423,7 @@ export class StorageManager {
     if (wasDemo) this._teardownDemo();
     if (wasCurrent) {
       this._clearForNewGame();
-      window.app?.roster?.loadFrom?.([], { persist: false });
+      this.deps?.roster?.loadFrom?.([], { persist: false });
     }
     return true;
   }
@@ -534,7 +537,7 @@ export class StorageManager {
    * which the Season Stats view nulls after rendering) so the names survive.
    */
   _applySeasonLabels() {
-    const app = window.app;
+    const app = this.deps;
     if (!app || !app.stats) return;
     app.stats._fixedLabels = this.isDemoSeason(this.seasonStore.currentSeasonId)
       ? DemoSeason.LABELS : null;
@@ -542,7 +545,7 @@ export class StorageManager {
 
   /** After a season becomes current: load its active game + refresh app UI. */
   _afterSeasonLoaded() {
-    const app = window.app;
+    const app = this.deps;
     const teamId = this.seasonStore.data?.teamId || app?.teamRegistry?.activeTeamId?.() || '';
     if (app?.playbook && !app.playbook.hasStored(teamId) && this.seasonStore.data?.playbook) {
       app.playbook.replace(this.seasonStore.data.playbook, teamId);
@@ -590,7 +593,7 @@ export class StorageManager {
     // loaded → skip the write entirely.
     if (this._loadedGameId == null || this._loadedGameId !== this.seasonStore.data.activeGameId) return;
     this.seasonStore.updateActiveGame(this._serialize());
-    const app = window.app;
+    const app = this.deps;
     // The active season is the roster authority. Unlike the former ambient
     // localStorage cache, an intentionally empty roster is meaningful and must
     // replace the prior value rather than retaining players from another season.
@@ -631,14 +634,14 @@ export class StorageManager {
     // next one.
     this._removedClipIds = new Set();
     this._applySeasonLabels();   // demo name overlay on / off for this season
-    const app = window.app;
+    const app = this.deps;
     if (app) {
       // Undo/redo is per-GAME: reset the history on every game load (switch, new,
       // restore — not just season open) so an Undo after switching games can't
       // restore the PREVIOUS game's plays into this one. (Cross-game corruption
       // the integrity harness caught: switchToGame never re-init'd history.)
       if (app.history && app.history.reset) app.history.reset();
-      app._finishHintShown = false;
+      app.finishHintShown = false;
     }
     const filmReady = g
       ? this._autoLoadFilm(g).then(() => true).catch(() => false)
@@ -867,7 +870,7 @@ export class StorageManager {
     const moved = () => this.seasonStore.currentSeasonId !== seasonId || this.seasonStore.activeGame()?.id !== gameId;
     let root = backend.getLibraryRoot();
     if (!root) {
-      const mode = await window.app?.uiPolish?.ensureFilmStorageMode?.({ force: true });
+      const mode = await this.deps?.uiPolish?.ensureFilmStorageMode?.({ force: true });
       root = backend.getLibraryRoot();
       if (mode !== 'linked' || !root) return false;
     }
@@ -969,7 +972,7 @@ export class StorageManager {
     // No desktop film is copied until the coach makes an explicit storage
     // choice. This is the final guard for drag/drop and future import paths.
     if (backend.supportsLinkedFilm?.() && !backend.getFilmStorageMode?.()) {
-      const mode = await window.app?.uiPolish?.ensureFilmStorageMode?.();
+      const mode = await this.deps?.uiPolish?.ensureFilmStorageMode?.();
       if (!mode) {
         this.tagger.toast?.('Choose film storage before adding film.');
         return;
@@ -993,8 +996,8 @@ export class StorageManager {
     const filmSeasonId = this.seasonStore.currentSeasonId;
     try {
       await backend.importFilm(game.id, files, (done, total) => {
-        const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'saving', game.id, filmSeasonId);
+        const app = this.deps;
+        if (app && app.showFilmImportProgress) app.showFilmImportProgress(done, total, 'saving', game.id, filmSeasonId);
       });
       // This game's film now lives in the managed library — record the mode so
       // auto-load takes the managed branch on reopen. (Clears a stale filmMode so
@@ -1006,7 +1009,7 @@ export class StorageManager {
         this.seasonStore.persist();
       }
     } catch (e) {
-      window.app?.workspace?.clearFilmOperation(game.id, filmSeasonId);
+      this.deps?.workspace?.clearFilmOperation(game.id, filmSeasonId);
       console.warn('Film import failed:', e);
       this.tagger.toast?.('Could not save film to the library — it will need re-adding next session.');
     }
@@ -1036,7 +1039,7 @@ export class StorageManager {
     const moved = () => {
       if (this.seasonStore.currentSeasonId === ownerSeasonId && this.seasonStore.data?.activeGameId === game.id
         && this._loadedGameId === game.id) return false;
-      window.app?.workspace?.clearFilmOperation(game.id, ownerSeasonId);
+      this.deps?.workspace?.clearFilmOperation(game.id, ownerSeasonId);
       this.tagger.toast?.('Film repair stopped: the game changed. Open that game and repair its film again.', 10000);
       return true;
     };
@@ -1066,11 +1069,11 @@ export class StorageManager {
       let imported;
       try {
         imported = await backend.importFilm(game.id, [file], (done, total) => {
-          const app = window.app;
-          if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id, filmSeasonId);
+          const app = this.deps;
+          if (app && app.showFilmImportProgress) app.showFilmImportProgress(done, total, 'repairing', game.id, filmSeasonId);
         });
       } catch (e) {
-        window.app?.workspace?.clearFilmOperation(game.id, filmSeasonId);
+        this.deps?.workspace?.clearFilmOperation(game.id, filmSeasonId);
         throw e;
       }
       const ref = (Array.isArray(imported) && imported[0]) || file.name;
@@ -1112,8 +1115,8 @@ export class StorageManager {
       this._maybeSnapshot(true, 'Before film repair');
       const matchedFiles = plan.matches.map(m => m.file);
       const imported = await backend.importFilm(game.id, matchedFiles, (done, total) => {
-        const app = window.app;
-        if (app && app._showFilmImportProgress) app._showFilmImportProgress(done, total, 'repairing', game.id, repairSeasonId);
+        const app = this.deps;
+        if (app && app.showFilmImportProgress) app.showFilmImportProgress(done, total, 'repairing', game.id, repairSeasonId);
       });
       const playableMatches = await Promise.all(plan.matches.map(async (m, i) => {
         const ref = (Array.isArray(imported) && imported[i]) || (m.file && (m.file.webkitRelativePath || m.file.relativePath || m.file.path || m.file.name)) || '';
@@ -1137,7 +1140,7 @@ export class StorageManager {
         : `Film repaired and loaded: ${plan.matches.length} clip${plan.matches.length === 1 ? '' : 's'} linked.`);
       return true;
     } catch (e) {
-      window.app?.workspace?.clearFilmOperation(game.id, repairSeasonId);
+      this.deps?.workspace?.clearFilmOperation(game.id, repairSeasonId);
       console.warn('Film repair failed:', e);
       this.tagger.toast?.('Film repair failed before changes were saved. Try the folder again.');
       return false;
@@ -1260,7 +1263,7 @@ export class StorageManager {
     // ids restart per game, so a stale currentPlayId would silently highlight
     // an unrelated play if the incoming game has no saved selection.
     this.tagger.currentPlayId = null;
-    if (window.app && window.app._clearGameInfoForm) window.app._clearGameInfoForm();
+    this.deps?.clearGameInfoForm?.();
     this.tagger._emit('plays-loaded');   // Film Room grid: re-render + drop stale row selections
   }
 
@@ -1295,7 +1298,7 @@ export class StorageManager {
       const game = this.seasonStore.addGame();
       game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
     } else {
-      window.app?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
+      this.deps?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
     }
     this.seasonStore.persist();
     this._clearForNewGame();
@@ -1575,8 +1578,8 @@ export class StorageManager {
 
     if (data.gameInfo) {
       this.gameInfo = data.gameInfo;
-      if (window.app && window.app._loadGameInfo) {
-        window.app._loadGameInfo(data.gameInfo);
+      if (this.deps?.loadGameInfo) {
+        this.deps.loadGameInfo(data.gameInfo);
       }
     }
 
@@ -1653,7 +1656,7 @@ export class StorageManager {
     reader.onload = async (e) => {
       let parsed;
       try { parsed = JSON.parse(e.target.result); }
-      catch (err) { alert('Invalid project file.'); return; }
+      catch (err) { this.deps?.overlays?.toast?.({ message: 'Invalid project file.', tone: 'error' }); return; }
 
       // An old-format file (a pre-conversion season or a single-game save) is
       // refused before any scaffold season or the open game is touched; the file
@@ -1720,13 +1723,13 @@ export class StorageManager {
         }
         this._afterSeasonLoaded();
       } else {
-        alert('Invalid project file.');
+        this.deps?.overlays?.toast?.({ message: 'Invalid project file.', tone: 'error' });
         return;
       }
       // If the coach is on Team Hub (first-run import), reload it: recovery
       // rebuilds team identity from the imported season's teamProfile, so they
       // land on a populated hub rather than first-run setup.
-      const hub = window.app?.teamHubScreen;
+      const hub = this.deps?.teamHubScreen;
       if (hub && hub.host && !hub.host.hidden) await hub.load();
     };
     reader.readAsText(file);
@@ -1735,7 +1738,7 @@ export class StorageManager {
   exportPng() {
     const video = this.vc.videoElement;
     if (!video.videoWidth) {
-      alert('No video loaded.');
+      this.deps?.overlays?.toast?.({ message: 'No video loaded.', tone: 'warning' });
       return;
     }
 
@@ -1766,7 +1769,7 @@ export class StorageManager {
 
   exportCsv() {
     if (this.tagger.plays.length === 0) {
-      alert('No plays to export.');
+      this.deps?.overlays?.toast?.({ message: 'No plays to export.', tone: 'warning' });
       return;
     }
 

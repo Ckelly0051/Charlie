@@ -248,6 +248,18 @@ class App {
     this.roster.notify = message => this.overlays?.toast?.({ message, tone: 'warning' });
     // Read at call time: season and gameContext are built after the engine.
     const app = this;
+    this.storage.deps = {
+      get updater() { return app.updater; }, get roster() { return app.roster; },
+      get playbook() { return app.playbook; }, get teamRegistry() { return app.teamRegistry; },
+      get workspace() { return app.workspace; }, get history() { return app.history; },
+      get stats() { return app.stats; }, get uiPolish() { return app.uiPolish; },
+      get teamHubScreen() { return app.teamHubScreen; }, get tagger() { return app.tagger; },
+      get overlays() { return app.overlays; },
+      get finishHintShown() { return app._finishHintShown; }, set finishHintShown(value) { app._finishHintShown = value; },
+      showFilmImportProgress: (...args) => app._showFilmImportProgress(...args),
+      clearGameInfoForm: () => app._clearGameInfoForm(),
+      loadGameInfo: info => app._loadGameInfo(info),
+    };
     this.stats.deps = {
       get storage() { return app.storage; }, get season() { return app.season; },
       get gameContext() { return app.gameContext; }, get roster() { return app.roster; },
