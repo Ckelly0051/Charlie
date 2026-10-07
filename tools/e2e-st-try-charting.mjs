@@ -110,13 +110,13 @@ ok(v.groups.includes('Play & Result') && v.tags.formationFamily === 'Spread', 'a
 
 console.log('\n== 4. Back to Kick XP asks, then clears the run/pass detail ==');
 await choose('Attempt', 'Kick XP');
-const asked = await page.evaluate(() => document.querySelector('#ffaConfirmModal .ffa-confirm-msg')?.textContent || '');
+const asked = await page.evaluate(() => document.querySelector('.gi-overlay-dialog .gi-overlay-body > p')?.textContent || '');
 ok(/Kick XP/.test(asked), 'a confirmation names the change', asked);
-await page.click('#ffaConfirmModal [data-act="cancel"]'); await settle(page);
+await page.click('.gi-overlay-dialog [data-overlay-action="cancel"]'); await settle(page);
 v = await view();
 ok(v.st.attemptType === 'twoPoint' && v.tags.formationFamily === 'Spread', 'Cancel keeps the run/pass try untouched', JSON.stringify({ a: v.st.attemptType, f: v.tags.formationFamily }));
 await choose('Attempt', 'Kick XP');
-await page.click('#ffaConfirmModal [data-act="ok"]'); await settle(page);
+await page.click('.gi-overlay-dialog [data-overlay-action="ok"]'); await settle(page);
 v = await view();
 ok(v.st.attemptType === 'extraPoint' && !v.st.isFake, 'confirming makes it a kicked try', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake }));
 ok(!v.tags.formationFamily && !v.tags.runPass && !v.tags.players.ballCarrier, 'the look, run/pass and ball carrier are cleared', JSON.stringify({ f: v.tags.formationFamily, rp: v.tags.runPass, bc: v.tags.players.ballCarrier }));
@@ -162,9 +162,9 @@ await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await chip('fo
 await page.evaluate(() => window.app.tagger.selectPlay(3)); await settle(page);
 await chip('formationFamily', 'Spread'); await chip('runPass', 'Pass');
 await choose('Attempt', 'Kick XP');
-const askedFor = await page.evaluate(() => !!document.querySelector('#ffaConfirmModal'));
+const askedFor = await page.evaluate(() => !!document.querySelector('.gi-overlay-dialog'));
 await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
-await page.click('#ffaConfirmModal [data-act="ok"]'); await settle(page); await settle(page);
+await page.click('.gi-overlay-dialog [data-overlay-action="ok"]'); await settle(page); await settle(page);
 const both = await page.evaluate(() => {
   const p = id => window.app.tagger.getPlay(id);
   const pick = x => ({ attempt: x.specialTeams?.attemptType, formationFamily: x.tags.formationFamily, runPass: x.tags.runPass });
@@ -257,7 +257,7 @@ for (const [id, role, unit, attempt] of [[15, 'returner', 'Field Goal Block', nu
 }
 await page.evaluate(() => window.app.tagger.selectPlay(2)); await settle(page);
 await choose('Attempt', 'Kick XP');
-if (await page.$('#ffaConfirmModal [data-act="ok"]')) await page.click('#ffaConfirmModal [data-act="ok"]');
+if (await page.$('.gi-overlay-dialog [data-overlay-action="ok"]')) await page.click('.gi-overlay-dialog [data-overlay-action="ok"]');
 await settle(page);
 await page.evaluate(() => window.app.nativeTagging.setField('quarter', '4'));
 await settle(page);

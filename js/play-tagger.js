@@ -7,6 +7,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { ChartingDetails } from './charting-details.js';
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
+import { h } from 'preact';
 
 /**
  * PlayTagger - Manages play segmentation, categorization, and timeline display.
@@ -44,6 +45,11 @@ export class PlayTagger {
     // Optional toast hook (App wires this to the shared toast) for inline
     // feedback like "Mark the start first".
     this.toast = null;
+    // Services App injects: the overlay service for decisions, undo history and
+    // the storage seam for clip identity.
+    this.overlays = null;
+    this.history = null;
+    this.storage = null;
 
   }
 
@@ -209,7 +215,7 @@ export class PlayTagger {
     // offer Undo right in the toast instead of requiring Ctrl+Z knowledge.
     const undoToast = () => {
       if (this.toast) this.toast(`Deleted Play ${id}`, {
-        action: { label: 'Undo', fn: () => window.app?.history?.undo() },
+        action: { label: 'Undo', fn: () => this.history?.undo() },
       });
     };
 
@@ -233,7 +239,7 @@ export class PlayTagger {
     // the playlist is empty, so nothing else ever signalled the removal.
     const idx = this.plays.findIndex(p => p.id === id);
     const removedIdentity = ((play?.clipPath || play?.clipName) || '').trim();
-    if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
+    if (removedIdentity) this.storage?.forgetClipIdentity?.(removedIdentity);
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
     this._emit('play-deleted');
@@ -280,7 +286,7 @@ export class PlayTagger {
     // it right here instead of requiring the coach to know Ctrl+Z.
     if (play && this.toast) {
       this.toast(`Cleared tags on Play ${id}`, {
-        action: { label: 'Undo', fn: () => window.app?.history?.undo() },
+        action: { label: 'Undo', fn: () => this.history?.undo() },
       });
     }
   }
@@ -367,161 +373,43 @@ export class PlayTagger {
     return true;
   }
 
-  /**
-   * Lightweight in-app confirmation modal. Returns a Promise<boolean>.
-   * Reliable replacement for window.confirm (which can be suppressed by the
-   * browser). Enter / the Delete button confirm; Esc / Cancel / backdrop reject.
-   */
-  /**
-   * Multi-choice modal (Windows-conflict-dialog style). buttons is an array of
-   * { key, label, variant }; resolves to the chosen key, or null on Esc/backdrop.
-   * Reuses the confirm-modal chrome + capture-phase keydown so the app's global
-   * single-letter shortcuts can't fire underneath.
-   */
-  _choiceDialog(message, buttons) {
-    return new Promise(resolve => {
-      const prev = document.getElementById('ffaConfirmModal');
-      if (prev) prev.remove();
-      const overlay = document.createElement('div');
-      overlay.className = 'ffa-confirm-modal';
-      overlay.id = 'ffaConfirmModal';
-      overlay.innerHTML = `
-        <div class="ffa-confirm-backdrop"></div>
-        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
-          <p class="ffa-confirm-msg"></p>
-          <div class="ffa-confirm-actions"></div>
-        </div>`;
-      overlay.querySelector('.ffa-confirm-msg').textContent = message;
-      const actions = overlay.querySelector('.ffa-confirm-actions');
-      (buttons || []).forEach(b => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn btn-sm ' + (b.variant || '');
-        btn.dataset.key = b.key;
-        btn.textContent = b.label;
-        actions.appendChild(btn);
-      });
-      document.body.appendChild(overlay);
-      const cleanup = (val) => { document.removeEventListener('keydown', onKey, true); overlay.remove(); resolve(val); };
-      const onKey = (e) => {
-        if (this._trapTab(e, overlay)) return;
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
-      };
-      overlay.addEventListener('click', (e) => {
-        const key = e.target.dataset ? e.target.dataset.key : null;
-        if (key) cleanup(key);
-        else if (e.target.classList.contains('ffa-confirm-backdrop')) cleanup(null);
-      });
-      document.addEventListener('keydown', onKey, true);
-      const first = overlay.querySelector('[data-key]');
-      if (first) first.focus();
-    });
+  /* Decisions go through the shared overlay service (GRIDIRON-IQ-OVERLAY-SPEC.md),
+     which owns focus, Escape and the shortcut guard. Each resolves like the
+     modal it replaced: a key or null, true/false, or the entered text or null. */
+  _decide(options) {
+    if (!this.overlays) return Promise.resolve('cancel');
+    return this.overlays.dialog(options).result;
   }
 
-  /** Keep Tab inside an open dialog — cycle its visible buttons/inputs.
-   *  Returns true when the event was a handled Tab (caller returns early). */
-  _trapTab(e, overlay) {
-    if (e.key !== 'Tab') return false;
-    e.preventDefault(); e.stopImmediatePropagation();
-    const f = [...overlay.querySelectorAll('button, input')].filter(el => el.offsetParent !== null);
-    if (!f.length) return true;
-    const i = f.indexOf(document.activeElement);
-    f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
-    return true;
+  /** Several choices; resolves the chosen key, or null on Cancel or Escape. */
+  async _choiceDialog(message, buttons) {
+    const list = Array.isArray(buttons) ? buttons : [];
+    const tone = variant => /danger/.test(variant || '') ? 'danger' : /accent|primary/.test(variant || '') ? 'primary' : 'neutral';
+    const actions = list.map(b => ({ key: b.key, label: b.label, tone: tone(b.variant) }));
+    if (!actions.some(a => a.key === 'cancel')) actions.unshift({ key: 'cancel', label: 'Cancel' });
+    const key = await this._decide({ title: 'Choose an action', message, actions });
+    return list.some(b => b.key === key) ? key : null;
   }
 
-  _confirmDialog(message, confirmLabel = 'Delete') {
-    return new Promise(resolve => {
-      const prev = document.getElementById('ffaConfirmModal');
-      if (prev) prev.remove();
-
-      const overlay = document.createElement('div');
-      overlay.className = 'ffa-confirm-modal';
-      overlay.id = 'ffaConfirmModal';
-      overlay.innerHTML = `
-        <div class="ffa-confirm-backdrop"></div>
-        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
-          <p class="ffa-confirm-msg"></p>
-          <div class="ffa-confirm-actions">
-            <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
-            <button type="button" class="btn btn-sm btn-danger" data-act="ok"></button>
-          </div>
-        </div>`;
-      overlay.querySelector('.ffa-confirm-msg').textContent = message;
-      overlay.querySelector('[data-act="ok"]').textContent = confirmLabel;
-      document.body.appendChild(overlay);
-
-      const cleanup = (val) => {
-        document.removeEventListener('keydown', onKey, true);
-        overlay.remove();
-        resolve(val);
-      };
-      const onKey = (e) => {
-        if (this._trapTab(e, overlay)) return;
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(false); }
-        else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(true); }
-      };
-      overlay.addEventListener('click', (e) => {
-        const act = e.target.dataset ? e.target.dataset.act : null;
-        if (act === 'ok') cleanup(true);
-        else if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) cleanup(false);
-      });
-      // Capture phase so the app's global key shortcuts don't also fire.
-      document.addEventListener('keydown', onKey, true);
-
-      const okBtn = overlay.querySelector('[data-act="ok"]');
-      if (okBtn) okBtn.focus();
-    });
+  /** Confirm one action; resolves true only when it is chosen. */
+  async _confirmDialog(message, confirmLabel = 'Delete') {
+    const danger = /delete|clear|remove/i.test(confirmLabel);
+    const key = await this._decide({ title: confirmLabel, message, destructive: danger,
+      actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'ok', label: confirmLabel, tone: danger ? 'danger' : 'primary', default: !danger }] });
+    return key === 'ok';
   }
 
-  /**
-   * In-app text prompt (same shell as _confirmDialog — window.prompt() gets
-   * suppressed by browsers too). Resolves the entered string, or null on
-   * cancel/Esc/backdrop.
-   */
-  _promptDialog(message, confirmLabel = 'Save', placeholder = '') {
-    return new Promise(resolve => {
-      const prev = document.getElementById('ffaConfirmModal');
-      if (prev) prev.remove();
-
-      const overlay = document.createElement('div');
-      overlay.className = 'ffa-confirm-modal';
-      overlay.id = 'ffaConfirmModal';
-      overlay.innerHTML = `
-        <div class="ffa-confirm-backdrop"></div>
-        <div class="ffa-confirm-card" role="dialog" aria-modal="true">
-          <p class="ffa-confirm-msg"></p>
-          <input type="text" class="ffa-confirm-input" />
-          <div class="ffa-confirm-actions">
-            <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
-            <button type="button" class="btn btn-sm btn-primary" data-act="ok"></button>
-          </div>
-        </div>`;
-      overlay.querySelector('.ffa-confirm-msg').textContent = message;
-      overlay.querySelector('[data-act="ok"]').textContent = confirmLabel;
-      const input = overlay.querySelector('.ffa-confirm-input');
-      input.placeholder = placeholder;
-      document.body.appendChild(overlay);
-
-      const cleanup = (val) => {
-        document.removeEventListener('keydown', onKey, true);
-        overlay.remove();
-        resolve(val);
-      };
-      const onKey = (e) => {
-        if (this._trapTab(e, overlay)) return;
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(null); }
-        else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); cleanup(input.value); }
-        else e.stopPropagation();   // typing must not fire tagging shortcuts
-      };
-      overlay.addEventListener('click', (e) => {
-        const act = e.target.dataset ? e.target.dataset.act : null;
-        if (act === 'ok') cleanup(input.value);
-        else if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) cleanup(null);
-      });
-      document.addEventListener('keydown', onKey, true);
-      input.focus();
-    });
+  /** Ask for one line of text; resolves it, or null on Cancel or Escape. */
+  async _promptDialog(message, confirmLabel = 'Save', placeholder = '') {
+    let value = '', handle = null;
+    const options = { title: confirmLabel, message, initialFocus: '[name="prompt"]',
+      actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'ok', label: confirmLabel, tone: 'primary', default: true }],
+      content: h('input', { type: 'text', name: 'prompt', class: 'gi-overlay-input', placeholder, 'aria-label': message,
+        onInput: event => { value = event.currentTarget.value; },
+        onKeyDown: event => { if (event.key === 'Enter') { event.preventDefault(); handle?.close('ok'); } } }) };
+    if (!this.overlays) return null;
+    handle = this.overlays.dialog(options);
+    return (await handle.result) === 'ok' ? value : null;
   }
 
   selectPlay(id) {
@@ -904,7 +792,8 @@ export class PlayTagger {
 
   /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
   setUnit(unit) {
-    unit = unit || 'offense';
+    // A blank or unknown unit charts as offense: the one unit rule, countedUnit.
+    unit = countedUnit({ tags: { unit } });
     // The carry-forward goes through the one unit write, so it matches Chart
     // and Film Room.
     const play = this.getCurrentPlay();

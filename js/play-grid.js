@@ -92,7 +92,7 @@ export class PlayGrid {
     // list off the legacy .tag-section chip DOM (`#tagFormation .pick` etc.,
     // now deleted). Library-backed vocabulary (formation/backfield/front)
     // comes from CustomChips/TagLibrary -- the same source native-tagging.jsx
-    // reads -- injected explicitly rather than reached for off `window.app`.
+    // reads -- injected explicitly rather than reached for off the global app.
     this.customChips = customChips;
 
     // Filter state: AND across groups, OR within a group.

@@ -38,49 +38,42 @@ Working code built the old way. A change that edits one of these files fixes
 that file's items in the same change, or its commit message says why not.
 Read this section before every build. Lower the count here, and in
 `tools/legacy-inventory-baseline.json`, in the commit that fixes an item;
-delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`
-at `b10bf0fe`.
+delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
+updated 2026-10-07.
 
-**`window.app` reach-through** (71). Code reaching shared services through the
+**`window.app` reach-through** (66). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
 - `js/storage.js` 26
 - `js/stats-engine.js` 14
 - `js/season-manager.js` 8
 - `js/version-manager.js` 6
 - `js/custom-chips.js` 3
-- `js/play-tagger.js` 3
 - `js/app.js` 2
 - `js/playlist-manager.js` 2
 - `js/storage-backend.js` 2
-- `js/play-grid.js`, `roster-manager.js`, `scoreboard-ocr.js`,
-  `tag-library-settings.js`, `video-controller.js` 1 each
+- `js/scoreboard-ocr.js`, `tag-library-settings.js`, `video-controller.js` 1 each
 
-**Raw `innerHTML` writes** (21). HTML built as strings instead of rendered by the
+**Raw `innerHTML` writes** (18). HTML built as strings instead of rendered by the
 native owner; each one is an escaping risk.
 - `js/reports-screen.js` 4
 - `js/scoreboard-ocr.js` 4 (OCR is parked)
-- `js/play-tagger.js` 3
 - `js/auto-detect-screen.js` 2
 - `js/ui-polish.js` 2
 - `js/workspace-shell.js` 2
 - `js/cutup-exporter.js`, `cutup-player.js`, `play-diagram.js`, `updater.js` 1 each
 
-**Native `alert()`** (9). Use the in-app toast or confirm.
+**Native `alert()`** (7). Use the in-app toast or confirm.
 - `js/storage.js` 4: "Invalid project file." (twice), "No video loaded.",
   "No plays to export."
-- `js/roster-manager.js` 2: "Add players to the roster first.", "Popup blocked"
 - `js/video-controller.js` 2: "No video files found" (folder and drop)
 - `js/play-diagram.js` 1: "Select a play first"
 
 **Dialogs outside the overlay spec** (2). They work but miss its focus and Escape
 rules; move them to `js/native-overlay-service.js`.
 - `js/auto-detect-screen.js` `openReview()` builds its own modal
-- `js/play-tagger.js` `_confirmDialog` / `_promptDialog`
+- `js/play-diagram.js` the diagram editor builds its own modal
 
-**Second copy of the unit rule** (1). `js/play-tagger.js` `unit || 'offense'`;
-read `countedUnit()` from `js/football-rules.js`.
-
-**`js/stats-engine.js` size** (6,731 lines). Split by area when a change works in
+**`js/stats-engine.js` size** (6,499 lines). Split by area when a change works in
 it, with `e2e-parity` proving no change.
 
 ## Stale references found in passing

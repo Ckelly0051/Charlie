@@ -470,8 +470,8 @@ const templateCommand=label=>page.evaluate(label=>{
   select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));
 },label);
 await templateCommand('Save as template');
-await page.waitForSelector('#ffaConfirmModal .ffa-confirm-input');
-await page.type('#ffaConfirmModal .ffa-confirm-input','Goal Line');
+await page.waitForSelector('.gi-overlay-dialog input[name="prompt"]');
+await page.type('.gi-overlay-dialog input[name="prompt"]','Goal Line');
 await page.keyboard.press('Enter');
 await page.waitForFunction(()=>!!window.app.tagger._templateStore()['Goal Line']);
 state=await page.evaluate(()=>{
@@ -494,8 +494,9 @@ state={...state,...await page.evaluate(()=>{
 ok(state.stored==='Power-I'&&state.applied==='Power-I'&&state.selected==='Goal Line'&&state.deleteEnabled&&!state.legacyHolder,
   'A saved template applies and remains explicitly selected with no detached compatibility control',JSON.stringify(state));
 await templateCommand('Delete template');
-await page.waitForSelector('#ffaConfirmModal');
-await page.keyboard.press('Enter');
+await page.waitForSelector('.gi-overlay-dialog [data-overlay-action="ok"]');
+// A destructive decision defaults to Cancel (overlay spec), so the test chooses Delete Template.
+await page.click('.gi-overlay-dialog [data-overlay-action="ok"]');
 await page.waitForFunction(()=>!window.app.tagger._templateStore()['Goal Line']);
 state=await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
@@ -510,10 +511,10 @@ ok(!state.stored&&state.selected===''&&state.deleteDisabled,
 state=await page.evaluate(()=>({count:window.app.tagger.plays.length,id:window.app.tagger.currentPlayId,
   label:document.querySelector('[data-tag-delete-play]')?.textContent.trim()}));
 await page.click('[data-tag-delete-play]');
-await page.waitForSelector('#ffaConfirmModal .ffa-confirm-msg');
-const deletePrompt=await page.$eval('#ffaConfirmModal .ffa-confirm-msg',node=>node.textContent.trim());
+await page.waitForSelector('.gi-overlay-dialog .gi-overlay-body > p');
+const deletePrompt=await page.$eval('.gi-overlay-dialog .gi-overlay-body > p',node=>node.textContent.trim());
 await page.keyboard.press('Escape');
-await page.waitForFunction(()=>!document.getElementById('ffaConfirmModal'));
+await page.waitForFunction(()=>!document.querySelector('.gi-overlay-dialog'));
 const deleteAfter=await page.evaluate(()=>({count:window.app.tagger.plays.length,id:window.app.tagger.currentPlayId}));
 ok(state.label==='Delete play'&&new RegExp(`Delete Play ${state.id}\\?`).test(deletePrompt)
   &&deleteAfter.count===state.count&&deleteAfter.id===state.id,

@@ -981,14 +981,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .ffa-confirm-modal { position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center; }
 .ffa-confirm-backdrop { position: absolute; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 .ffa-confirm-card { position: relative; background: var(--surface, #fff); color: var(--text); border: 1px solid var(--chip-border, var(--border)); border-radius: var(--radius-lg, 12px); box-shadow: var(--shadow-lg, 0 22px 50px rgba(15,23,42,.2)); width: 92%; max-width: 380px; padding: 22px 22px 18px; }
-.ffa-confirm-msg { margin: 0 0 18px; font-size: 15px; line-height: 1.45; }
-.ffa-confirm-input {
-  width: 100%; box-sizing: border-box; margin: -8px 0 16px;
-  padding: 9px 11px; font-size: 14px; color: var(--text);
-  background: var(--bg, #fff); border: 1px solid var(--chip-border, var(--border));
-  border-radius: var(--radius-sm, 6px);
-}
-.ffa-confirm-input:focus { outline: 2px solid var(--accent, #1D4ED8); outline-offset: -1px; }
 .ffa-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .ffa-confirm-actions .btn:not(.ws-shell *) { min-width: 88px; justify-content: center; }
 

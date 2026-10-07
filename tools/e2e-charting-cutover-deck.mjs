@@ -43,8 +43,8 @@ const P = {
   }, field, label),
   chips: field => page.evaluate(field => [...document.querySelectorAll(`[data-native-tagging] [data-native-field="${field}"] .gi-tag-chips button`)].map(b => b.textContent.trim()), field),
   active: field => page.evaluate(field => [...document.querySelectorAll(`[data-native-tagging] [data-native-field="${field}"] button.is-active`)].map(b => b.textContent.trim()), field),
-  dialog: () => page.evaluate(() => { const d = document.querySelector('#ffaConfirmModal'); return d ? d.querySelector('.ffa-confirm-msg').textContent : null; }),
-  answer: yes => page.evaluate(yes => { const d = document.querySelector('#ffaConfirmModal'); const b = d && (d.querySelector(yes ? '[data-act="ok"],[data-key="ok"],.btn-primary,.btn-danger' : '[data-act="cancel"],[data-key="cancel"]') || [...d.querySelectorAll('button')][yes ? 1 : 0]); if (b) b.click(); return !!b; }, yes),
+  dialog: () => page.evaluate(() => { const d = document.querySelector('.gi-overlay-dialog'); return d ? d.querySelector('.gi-overlay-body > p').textContent : null; }),
+  answer: yes => page.evaluate(yes => { const d = document.querySelector('.gi-overlay-dialog'); const b = d && (d.querySelector(yes ? '[data-overlay-action]:not([data-overlay-action="cancel"])' : '[data-overlay-action="cancel"]')); if (b) b.click(); return !!b; }, yes),
 };
 const settle = () => sleep(120);
 
@@ -255,7 +255,7 @@ console.log('\n== 7b. Changing a Play Call asks before it clears charting ==');
   // A call with nothing to clear applies at once.
   await page.evaluate(() => { window.app.nativeTagging.selectPlayCall('Sweep Left'); });
   await settle();
-  ok(await page.evaluate(() => !document.querySelector('#ffaConfirmModal')) && (await P.tags()).playDir === 'Left', 'Chart: a call with nothing to clear applies without a prompt');
+  ok(await page.evaluate(() => !document.querySelector('.gi-overlay-dialog')) && (await P.tags()).playDir === 'Left', 'Chart: a call with nothing to clear applies without a prompt');
   // Film Room.
   await P.select(3);
   await page.evaluate(() => { const g = window.app.playGrid; g.nativeCommitEdit(3, 'playCall', 'Sweep Left'); g.nativeCommitEdit(3, 'gap', 'L-B'); });
@@ -293,9 +293,11 @@ console.log('\n== 8. Film Room edits the same fields ==');
     out.thenable = !!pending && typeof pending.then === 'function';
     out.beforeAnswer = [b.tags.playType, b.tags.rpoRead];
     window.__pending = pending; window.__b = b.id;
-    out.message = document.querySelector('#ffaConfirmModal .ffa-confirm-msg')?.textContent || null;
     return out;
   });
+  // The shared overlay renders on the next frame.
+  await page.waitForSelector('.gi-overlay-dialog .gi-overlay-body > p', { timeout: 3000 }).catch(() => {});
+  r.message = await page.evaluate(() => document.querySelector('.gi-overlay-dialog .gi-overlay-body > p')?.textContent || null);
   ok(r.lockedRead === null && r.lockedStart === null, 'a detail cell is locked while the field that opens it is blank');
   ok(r.openGap && r.gapEdit.join() === 'L-A,', 'a Gap edit leaves blank Direction blank', r.gapEdit.join());
   ok(r.dirEdit.join() === 'L-A,Right', 'a Direction edit preserves Gap', r.dirEdit.join());

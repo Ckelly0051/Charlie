@@ -1,11 +1,11 @@
 {
-  "recorded": "2026-10-06 (stranded games panel, finish modal, game header, tag progress, expand-video and drawing-toolbar bindings, then the playlist panel, deleted)",
+  "recorded": "2026-10-07 (missed tackles build: play-tagger, roster-manager and play-grid old patterns fixed)",
   "note": "Phase 0 baseline (docs/archive/plans/LEGACY-EXCISION-PLAN.md). Counts may only fall; lower them here in the commit that removes legacy code. Reviewed exception 2026-10-02: windowAppRefs 73 -> 74 for 576a0981's season-scoped film-repair cancellation cleanup, covered by e2e-data-correctness-batch1 and e2e-context-ownership. No retired reader was restored.",
   "counts": {
     "deadNames": 0,
     "orphanModules": 0,
     "retiredTests": 0,
-    "inlineUnitRules": 1,
+    "inlineUnitRules": 0,
     "projectedPairsAlias": 0,
     "plainFieldRefs": 0,
     "taggerFieldReadsOutsideTagger": 0,
@@ -15,9 +15,9 @@
     "legacySettingsReaders": 0,
     "legacyLayoutReaders": 0,
     "localStorageCalls": 86,
-    "windowAppRefs": 71,
-    "innerHtmlSinks": 21,
-    "statsEngineLines": 6731
+    "windowAppRefs": 66,
+    "innerHtmlSinks": 18,
+    "statsEngineLines": 6499
   },
   "deadNames": [],
   "orphanModules": []

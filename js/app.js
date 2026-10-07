@@ -240,6 +240,12 @@ class App {
     // Surface tagger feedback (e.g. "Mark the start first") through the
     // shared toast. Lazy lambda — history may not exist yet at bind time.
     this.tagger.toast = (msg, opts) => this.history?._toast(msg, opts);
+    // Services the tagger and roster use, passed in rather than read off the global app.
+    this.tagger.overlays = this.overlays;
+    this.tagger.history = this.history;
+    this.tagger.storage = this.storage;
+    this.roster.storage = this.storage;
+    this.roster.notify = message => this.overlays?.toast?.({ message, tone: 'warning' });
 
     // Scout mode UI
     this._bindScoutMode();

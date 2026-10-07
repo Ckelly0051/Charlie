@@ -530,15 +530,15 @@ ok(!(await page.$('.gi-theater-actions-risk .is-danger')), 'Delete play is no lo
 // This harness mounts the theater alone; the deck's rendered button is
 // clicked in e2e-native-tagging. Here the deck's own action drives the delete.
 await page.evaluate(() => { window.app.nativeTagging.deletePlay(); });
-await page.waitForSelector('#ffaConfirmModal [data-act="ok"]');
-const deletePrompt = await page.$eval('#ffaConfirmModal .ffa-confirm-msg', node => node.textContent.trim());
-await page.$eval('#ffaConfirmModal [data-act="ok"]', node => node.click());
+await page.waitForSelector('.gi-overlay-dialog [data-overlay-action="ok"]');
+const deletePrompt = await page.$eval('.gi-overlay-dialog .gi-overlay-body > p', node => node.textContent.trim());
+await page.$eval('.gi-overlay-dialog [data-overlay-action="ok"]', node => node.click());
 await new Promise(resolve => setTimeout(resolve, 250));
 const deleteAfter = await page.evaluate(() => ({
   count: window.app.tagger.plays.length,
   selected: window.app.tagger.currentPlayId,
   deletedStillPresent: !!window.app.tagger.getPlay(1),
-  modalStillOpen: !!document.getElementById('ffaConfirmModal'),
+  modalStillOpen: !!document.querySelector('.gi-overlay-dialog'),
   playlist: { hasClips: !!window.app.tagger.playlist?.hasClips,
     clips: window.app.tagger.playlist?.clips?.length ?? null },
 }));

@@ -22,6 +22,10 @@ export class RosterManager {
     // replacing the single value.
     this.multiRoles = new Set(['tackler', 'missedTackler']);
 
+    // App passes in the storage seam (season roster writes) and a notice hook.
+    this.storage = null;
+    this.notify = null;
+
     this._bind();
   }
 
@@ -31,7 +35,7 @@ export class RosterManager {
    * the roster order; explicit per-position reordering is a future nicety.
    */
   exportDepthChart() {
-    if (!this.players.length) { alert('Add players to the roster first.'); return; }
+    if (!this.players.length) { this.notify?.('Add players to the roster first.'); return; }
     let team = 'Team';
     try { team = (JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}).teamName || 'Team'; } catch (e) {}
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -63,7 +67,7 @@ export class RosterManager {
       .pl{font-size:13px;padding:1px 0}@media print{body{padding:0}}</style></head>
       <body><h1>Depth Chart — ${esc(team)}</h1><div class="cols">${cols}</div></body></html>`;
     const w = window.open('', '_blank');
-    if (!w) { alert('Popup blocked — allow popups and try again.'); return; }
+    if (!w) { this.notify?.('Popup blocked — allow popups and try again.'); return; }
     w.document.open(); w.document.write(html); w.document.close();
     setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 400);
   }
@@ -135,7 +139,7 @@ export class RosterManager {
   }
 
   _save() {
-    window.app?.storage?.updateSeasonRoster?.(this.players);
+    this.storage?.updateSeasonRoster?.(this.players);
   }
 
   // --- Import from CSV / paste ---
