@@ -1,0 +1,15 @@
+{
+  "surfaceId": "breakdown.missed-tackles",
+  "title": "Missed tackles charting",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "DRAFT",
+  "approvedOn": "2026-10-07",
+  "approvalNote": "The coach approved revision 2: Missed Tackles is one more player row in Players & Grades with a Count select (0, 1, 2, 3+) in the Grade slot and no grade; after Tackler(s) on defense and after Opponent Returner on kickoff and punt coverage, with roster attribution; count only after Receiver on offense and after Returner on returns. Collapsed player rows use tight spacing (6px padding, 20px Show roster, 2px row gap). Player numbers are comma-separated.",
+  "canonicalArtifact": {
+    "path": "design-comps/missed-tackles-2026-10-06",
+    "kind": "directory",
+    "sha256": "50c36502ef2eb9bfa12672855c952f01acbb6556a99869bce104f5f0102b3a01",
+    "fileCount": 11
+  },
+  "decisionRecord": "design-comps/missed-tackles-2026-10-06/RATIONALE.md"
+}
