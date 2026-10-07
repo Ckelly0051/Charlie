@@ -56,8 +56,9 @@ log.
   `b10bf0fe..db046e3d`; both findings are fixed (modal shortcut isolation,
   Study's try exclusion for Missed Tackler). The real-data Defense check now
   requires the approved eleven KPI tiles; its six-game rerun passes. Unpushed.
-  Full gate green at `81b327c6`. Next: installer 112 with coach authorization,
-  then installed smoke.
+  Full gate green at `81b327c6`. Installer `1.12.0-112` is authorized and being
+  built after the version-only bump; `SMOKE-1.12.0-112.md` holds its checklist.
+  Installed smoke and independent packaged-asset review are pending.
 - **Latest full gate:** GREEN, 156/156 at `81b327c6` (2026-10-07, run by Codex),
   no skips or failures. Release evidence eligible; installed approval not assessed.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
