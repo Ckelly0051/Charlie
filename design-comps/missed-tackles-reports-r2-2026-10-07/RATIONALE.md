@@ -1,0 +1,35 @@
+# Missed tackles in Reports, revision 2 - review comp, 2026-10-07
+
+Status: proposal, not approved. Revises the Tackling module of
+`design-comps/missed-tackles-reports-2026-10-07` (COMP_APPROVED). Still screens
+of the built app (`0d4f3043`) with the canonical 2025 JV season, Full season,
+the proposed rows applied in the page (`capture.mjs`). Isolated browser data;
+no coach file was written. `current-*` is the built module, `proposed-*` the
+revision.
+
+Tackles Made is the real season. The missed-tackle counts are the same
+illustrative set as revision 1 (no season has them charted yet), so the
+Missed Tackle rate mixes real tackles with made-up misses.
+
+## Why (coach, 2026-10-07)
+
+A module named Tackling that shows only missed tackles is incomplete. It now
+states tackles made and a tackling efficiency rate, so the miss count has a
+denominator.
+
+## The six rows (defensive snaps)
+
+| Row | Value | Eligible snaps |
+|---|---|---|
+| Tackles Made | plays with a tackler named; a shared tackle is one team tackle | every defensive snap |
+| Missed Tackles | the exact sum of the counts | snaps with a count charted (0 included) |
+| Missed Tackle rate | misses / (tackles made + misses), both over the snaps with a count charted | the same snaps |
+| Plays with a Missed Tackle | count | the same snaps |
+| Yards / play with a Missed Tackle | classified yards per play | those plays |
+| Yards / play without | classified yards per play | the rest |
+
+A play with a tackler named but no count charted counts in Tackles Made only,
+never in the rate, so uncharted misses cannot read as perfect tackling.
+
+Season vs Last 3 shows Missed Tackle rate (replacing the play rate). The
+module stays full width and fixed, now six rows.
