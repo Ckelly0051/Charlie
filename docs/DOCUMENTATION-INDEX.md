@@ -52,11 +52,14 @@ log.
   rows, the tagger's dialogs on the shared overlay, and old-pattern fixes in
   five files, plus the complete Tackling module and the eleven-tile centered
   KPI strip (`design-comps/missed-tackles-reports-r2-2026-10-07`). Focused
-  harnesses green; no full gate since `b10bf0fe`. Codex reviewed
+  harnesses green. Codex reviewed
   `b10bf0fe..db046e3d`; both findings are fixed (modal shortcut isolation,
-  Study's try exclusion for Missed Tackler). Unpushed. Next: a full gate and
-  installer 112.
-- **Latest full gate:** GREEN, 154/154 at `b10bf0fe` (2026-10-06, run by Codex).
+  Study's try exclusion for Missed Tackler). The real-data Defense check now
+  requires the approved eleven KPI tiles; its six-game rerun passes. Unpushed.
+  Next: the full-gate rerun, then installer 112 with coach authorization.
+- **Latest full gate:** RED at `0eca9569` (2026-10-07, run by Codex):
+  155/156 green, no skips. The only failure was the real-data harness's retired
+  ten-tile Defense expectation; repaired in source, full rerun pending.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

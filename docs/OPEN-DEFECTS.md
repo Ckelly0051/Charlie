@@ -19,7 +19,8 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 - **Tighter collapsed player rows** in Players & Grades (all units).
 - **Shared dialogs for the tagger**: Delete play, Clear tags, templates and
   the detail-clearing prompts now use the in-app dialog; a destructive one
-  defaults to Cancel.
+  defaults to Cancel. Modal dialogs block charting shortcuts, including when
+  focus moves to a dialog button or falls outside the dialog.
 
 ## Open defects
 
