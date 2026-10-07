@@ -21,15 +21,24 @@ denominator.
 
 | Row | Value | Eligible snaps |
 |---|---|---|
-| Tackles Made | plays with a tackler named; a shared tackle is one team tackle | every defensive snap |
+| Total Tackles | plays with a tackler named; a shared tackle is one team tackle | every defensive snap |
 | Missed Tackles | the exact sum of the counts | snaps with a count charted (0 included) |
 | Missed Tackle rate | misses / (tackles made + misses), both over the snaps with a count charted | the same snaps |
 | Plays with a Missed Tackle | count | the same snaps |
 | Yards / play with a Missed Tackle | classified yards per play | those plays |
 | Yards / play without | classified yards per play | the rest |
 
-A play with a tackler named but no count charted counts in Tackles Made only,
+A play with a tackler named but no count charted counts in Total Tackles only,
 never in the rate, so uncharted misses cannot read as perfect tackling.
 
 Season vs Last 3 shows Missed Tackle rate (replacing the play rate). The
 module stays full width and fixed, now six rows.
+
+## The KPI strip (coach, 2026-10-07)
+
+- Eleven tiles. Missed Tackles (the season total) follows Explosive Plays
+  Allowed; the other ten keep their approved order.
+- Explosive Plays is labeled Explosive Plays Allowed, in full: it wraps to two
+  lines like Touchdowns Allowed at 1440 and 1280. This reverses the 2026-09-23
+  rule that the Defense board never prints "Allowed" (2e-explosive-labels).
+- "Tackles Made" is labeled Total Tackles.

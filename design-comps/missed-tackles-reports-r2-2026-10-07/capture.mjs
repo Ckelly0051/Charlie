@@ -59,7 +59,7 @@ const revise = () => page.evaluate(() => {
   const recent = charted.filter(p => last3.has(String(p.__gid)));
   const recentMiss = recent.reduce((s, p) => s + count(p), 0), recentMade = recent.filter(tackled).length;
   const rows = [
-    ['Tackles Made', madeAll, def.length],
+    ['Total Tackles', madeAll, def.length],
     ['Missed Tackles', misses, charted.length],
     ['Missed Tackle rate', pct(misses, madeCharted + misses), charted.length],
     ['Plays with a Missed Tackle', withMiss.length, charted.length],
@@ -73,8 +73,17 @@ const revise = () => page.evaluate(() => {
   cmp.cells[0].textContent = 'Missed Tackle rate';
   cmp.cells[1].textContent = pct(misses, madeCharted + misses);
   cmp.cells[2].textContent = pct(recentMiss, recentMade + recentMiss);
+  // The strip: Explosive Plays Allowed, then an eleventh tile, Missed Tackles.
+  const strip = document.querySelector('.gi-def2-kpis');
+  strip.style.gridTemplateColumns = 'repeat(11,minmax(0,1fr))';
+  const expl = [...strip.children].find(el => el.querySelector('span')?.textContent.trim() === 'Explosive Plays');
+  if (expl) expl.querySelector('span').textContent = 'Explosive Plays Allowed';
+  const tile = strip.lastElementChild.cloneNode(true);
+  tile.querySelector('span').textContent = 'Missed Tackles'; tile.querySelector('strong').textContent = String(misses);
+  expl.after(tile);
+  const labels = [...strip.querySelectorAll('span')].map(s => [s.textContent, Math.round(s.getBoundingClientRect().height)]);
   module.scrollIntoView({ block: 'center' });
-  return rows;
+  return { rows, labels };
 });
 
 for (const [w, h] of [[1440, 900], [1280, 800]]) {
@@ -83,6 +92,9 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
   const rows = await revise();
   await new Promise(r => setTimeout(r, 300));
   await page.screenshot({ path: `${OUT}/proposed-tackling-${w}x${h}.png` });
-  if (w === 1440) console.log(JSON.stringify(rows));
+  await page.evaluate(() => document.querySelector('.gi-def2-kpis').scrollIntoView({ block: 'center' }));
+  await new Promise(r => setTimeout(r, 200));
+  await page.screenshot({ path: `${OUT}/proposed-strip-${w}x${h}.png` });
+  console.log(w, JSON.stringify(rows.labels));
 }
 await browser.close();
