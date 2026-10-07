@@ -108,5 +108,20 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
   await apply('theirs', 'Returner', 'Missed Tackles', '2', '');
   await page.screenshot({ path: `${OUT}/punt-return-${w}x${h}.png` });
 }
+// Variant: every roster picker collapsed.
+{
+  const d = await setup(1440, 900, 'defense');
+  const nums = (season.roster || []).filter(p => p.side !== 'O').map(p => String(p.num));
+  await apply('ours', 'Tackler', 'Missed Tackles', '2', nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(' + '));
+  await page.evaluate(() => {
+    for (const row of document.querySelectorAll('.gi-tag-players > div')) {
+      row.querySelector('.gi-player-quick')?.remove();
+      const toggle = row.querySelector('.gi-player-roster-toggle');
+      if (toggle) toggle.innerHTML = '<span aria-hidden="true">▸</span>Show roster';
+    }
+  });
+  await new Promise(r => setTimeout(r, 200));
+  await page.screenshot({ path: `${OUT}/defense-collapsed-1440x900.png` });
+}
 await browser.close();
 console.log('ok');
