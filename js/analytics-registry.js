@@ -153,9 +153,11 @@ export class AnalyticsRegistry {
         this._playerRoleValues('tackler', p => countedUnit(p) === 'defense'),
         'StatsEngine.effectivePlayers.tackler (defensive snaps)', { multi: true }),
       // Our players named in Missed Tackles, one per play like Tackler: defensive
-      // snaps and kick coverage, where the row names our players.
+      // snaps and kick coverage, where the row names our players. A try charts
+      // its misses but stays out of every player line, like countsFootballRoles.
       ready('playerMissedTackler', 'Missed Tackler',
-        this._playerRoleValues(MissedTackles.ROLE, p => MissedTackles.modeOf(p) === 'ours'),
+        this._playerRoleValues(MissedTackles.ROLE, p => MissedTackles.modeOf(p) === 'ours'
+          && !['try', 'tryDefense'].includes(special(p)?.unit)),
         'StatsEngine.effectivePlayers.missedTackler (snaps where our players are named)', { multi: true }),
       // Special Teams player analysis stays deliberately minimal (Study
       // Phase 3 scope): Field Goal only for kicker (a clean make/miss

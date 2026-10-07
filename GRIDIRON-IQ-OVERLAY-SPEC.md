@@ -44,6 +44,10 @@ is *always* a dialog.
 
 - **Escape** closes the topmost overlay only, and is `stopPropagation`'d so it does
   not also close the drawer, deselect a drawing tool, or exit a cut-up beneath.
+- **No key reaches the app's shortcuts while a modal is open.** A key inside the
+  modal stops at its layer; a key with focus outside it (focus fell to body) is
+  stopped by the host. An overlay that needs a key of its own (the shortcuts
+  legend's `?`) listens for it while open.
   (The legacy `uiDropdownClosed()` guard existed for exactly this and was removed
   with the dropdown; the host now owns the rule.)
 - **Scrim click** closes dismissible overlays; it does **not** close destructive

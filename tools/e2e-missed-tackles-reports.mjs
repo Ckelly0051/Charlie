@@ -169,6 +169,17 @@ try {
   });
   ok(study.counts.join(',') === ',2,0,1,3,4,0,1', 'Study groups plays by their exact count; a blank yields no value', study.counts);
   ok(study.missed.join(',') === ',5|44,,5,,51,,5' && study.role?.dimension === 'playerMissedTackler', 'Study credits our named players on defense and kick coverage', study);
+  // A run/pass try charts its misses like a defensive snap but stays out of every
+  // player line (GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md §6).
+  const tries = await page.evaluate(() => {
+    const reg = window.app.analyticsRegistry;
+    const play = specialTeams => ({ id: 99, tags: { unit: 'special', runPass: 'Run', result: 'Gain', yardage: '2', missedTackles: '1', players: { missedTackler: '22' } }, specialTeams });
+    return {
+      defending: reg.values('playerMissedTackler', play({ unit: 'tryDefense', attemptType: 'twoPoint' })),
+      fake: reg.values('playerMissedTackler', play({ unit: 'tryDefense', attemptType: 'twoPoint', isFake: true })),
+    };
+  });
+  ok(!tries.defending.length && !tries.fake.length, 'Study credits no missed tackle on a Defending a Try snap, run/pass or Fake', tries);
 } finally {
   await browser.close();
 }

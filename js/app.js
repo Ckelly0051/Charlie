@@ -538,11 +538,9 @@ class App {
           || target?.getAttribute?.('role') === 'button');
       if (ownsKey) return;
 
-      // "?" toggles the shortcuts legend; Esc closes it (handle before others).
-      const shortcutsOpen = this.shortcutsScreen?.isOpen();
-      if (e.key === '?') { e.preventDefault(); this.toggleShortcuts?.(); return; }
-      if (shortcutsOpen && e.code === 'Escape') { e.preventDefault(); this.toggleShortcuts?.(false); return; }
-      if (shortcutsOpen) return; // swallow other keys while the legend is open
+      // "?" opens the shortcuts legend. While it or any modal is open, the
+      // overlay host keeps keys from reaching this handler.
+      if (e.key === '?') { e.preventDefault(); this.toggleShortcuts?.(true); return; }
 
       // Let quick-chart handle its own keys when active
       if (this.quickChart.isActive) return;

@@ -231,6 +231,36 @@ console.log('\n== 7. Templates and carry ==');
   ok(['formationFamily', 'receiverSet', 'motionStart', 'motionEnd'].every(k => carry.keys.includes(k)) && !carry.keys.includes('gap') && !carry.keys.includes('formation'), 'Same as Last copies the look and the path, never the gap');
 }
 
+console.log('\n== 7a. An open dialog keeps charting shortcuts away from the play ==');
+{
+  await P.select(4);
+  await page.evaluate(() => { delete window.app.tagger._promptDialog; document.activeElement?.blur?.(); });   // section 7's stub
+  const before = JSON.stringify(await P.tags());
+  await page.evaluate(() => { window.__savePrompt = window.app.tagger.saveTemplate(); });
+  await page.waitForFunction(() => document.activeElement?.name === 'prompt');
+  await page.keyboard.press('Tab');
+  const onCancel = await page.evaluate(() => document.activeElement?.dataset.overlayAction === 'cancel');
+  ok(onCancel, 'Tab moves from the template name onto Cancel');
+  await page.keyboard.press('KeyR'); await page.keyboard.press('KeyH'); await settle();
+  ok(JSON.stringify(await P.tags()) === before, 'R and H on a focused dialog button do not chart the play underneath', JSON.stringify(await P.tags()));
+  await page.evaluate(() => document.activeElement?.blur?.());
+  await page.keyboard.press('KeyR'); await settle();
+  ok(JSON.stringify(await P.tags()) === before && !!(await P.dialog()), 'R with focus lost inside an open dialog does not chart either', JSON.stringify(await P.tags()));
+  await P.answer(false);
+  await page.evaluate(() => window.__savePrompt);
+  await page.evaluate(() => document.activeElement?.blur?.());
+  await page.keyboard.press('KeyH'); await settle();
+  ok((await P.tags()).playType === 'QB Run', 'shortcuts chart again once the dialog closes');
+  await page.evaluate(() => window.app.tagger.setTagValue('playType', ''));
+  await page.keyboard.press('?');
+  await page.waitForSelector('[data-overlay-id="keyboard-shortcuts"]');
+  await page.keyboard.press('KeyH'); await settle();
+  const underLegend = (await P.tags()).playType;
+  await page.keyboard.press('?');
+  const closed = await page.waitForFunction(() => !document.querySelector('[data-overlay-id="keyboard-shortcuts"]'), { timeout: 2000 }).then(() => true).catch(() => false);
+  ok(underLegend === '' && closed, '? opens the shortcuts legend, H does not chart under it, and ? closes it', underLegend);
+}
+
 console.log('\n== 7b. Changing a Play Call asks before it clears charting ==');
 {
   await page.evaluate(() => {

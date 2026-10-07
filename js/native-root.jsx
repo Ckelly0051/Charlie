@@ -70,7 +70,10 @@ function OverlayPanel({ overlay, service, top, effectiveModal }) {
       }} />
     : null;
   const classes = `gi-overlay-layer gi-overlay-${overlay.type}${effectiveModal ? ' is-modal' : ''}${top ? ' is-top' : ''}`;
-  return <div class={classes} data-overlay-id={overlay.id} inert={!top || undefined} aria-hidden={!top || undefined}>
+  // Keys pressed inside a modal stop here so the app's charting and transport
+  // shortcuts on document never act on the screen underneath.
+  return <div class={classes} data-overlay-id={overlay.id} inert={!top || undefined} aria-hidden={!top || undefined}
+    onKeyDown={effectiveModal ? event => event.stopPropagation() : undefined}>
     {scrim}
     <section
       ref={panelRef}
@@ -179,7 +182,14 @@ function NativeOverlayHost({ service }) {
         if (current.dismissOnEscape) service.close(current.id, 'cancel');
         return;
       }
-      if (event.key !== 'Tab' || !isModal(current)) return;
+      if (!isModal(current)) return;
+      // Focus can fall to body inside a modal (a click on its text); such a key
+      // belongs to no control, so nothing underneath may act on it either.
+      const layer = document.querySelector(`[data-overlay-id="${CSS.escape(current.id)}"]`);
+      if (event.key !== 'Tab') {
+        if (!layer?.contains(event.target)) { event.preventDefault(); event.stopImmediatePropagation(); }
+        return;
+      }
       const panel = document.querySelector(`[data-overlay-id="${CSS.escape(current.id)}"] .gi-overlay-panel`);
       const controls = [...(panel?.querySelectorAll(focusableSelector) || [])].filter(element => element.getClientRects().length);
       if (!controls.length) return;

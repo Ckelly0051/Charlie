@@ -6,7 +6,6 @@ export class ShortcutsScreen {
     this.overlays = overlays;
     this.handle = null;
   }
-  isOpen() { return !!this.handle; }
   open(returnFocus = null) {
     if (this.handle) return this.handle.result;
     const handle = this.overlays.dialog({
@@ -17,7 +16,14 @@ export class ShortcutsScreen {
       actions: [{ key: 'done', label: 'Done', tone: 'primary', default: true }],
     });
     this.handle = handle;
-    return handle.result.finally(() => { if (this.handle === handle) this.handle = null; });
+    // "?" toggles the legend. The modal keeps keys from the app's shortcuts,
+    // so the open legend listens for its own close key.
+    const onKey = event => { if (event.key === '?') { event.preventDefault(); event.stopImmediatePropagation(); this.close('toggle'); } };
+    document.addEventListener('keydown', onKey, true);
+    return handle.result.finally(() => {
+      document.removeEventListener('keydown', onKey, true);
+      if (this.handle === handle) this.handle = null;
+    });
   }
   close(value = 'cancel') {
     const handle = this.handle;
