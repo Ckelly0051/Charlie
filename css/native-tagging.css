@@ -38,7 +38,7 @@
 .gi-tag-group>summary i{justify-self:end;color:var(--gi-bd-copy);font-style:normal}.gi-tag-group:not([open])>summary i{transform:rotate(-90deg)}
 .gi-tag-group-body{display:grid;gap:6px;padding:6px 12px 10px 9px}
 .gi-tag-group:has([data-native-field="defFront"]),.gi-tag-group:has([data-native-field="coverage"]){border-left-color:var(--gi-bd-cyan)}
-.gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
+.gi-tag-group:has([data-native-field="defFront"])[open]>summary strong,.gi-tag-group:has([data-native-field="coverage"])[open]>summary strong{margin-left:-6px;padding:0 6px;background:var(--gi-bd-cyan);color:var(--gi-bd-cyan-ink)}
 .gi-tag-field{display:grid;gap:3px;min-width:0;max-width:100%}
 /* BD-UX-1: every field label row has the same 22px rhythm, whether or not it
    carries a disclosure or an Edit library action, so plain and action-bearing

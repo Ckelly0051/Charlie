@@ -30,6 +30,8 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 - **A picked play call replaces charted values** (smoke 112 finding 6) in the
   fields it has defaults for; other charted fields stay. Smoke: chart Direction
   Middle and Personnel 11, pick a call with a Direction default.
+- **The "Our Defensive Call" heading** (smoke 112 finding 7) has 6px of cyan
+  fill each side of its text, still aligned with the other headings.
 - **Dialogs are centered again** (found during the smoke 112 fixes): since
   `1.12.0-108` every dialog (Delete play, Clear tags, prompts, Remove call)
   filled the window from the top-left because a dead-CSS pass removed its
@@ -49,7 +51,6 @@ Installed `1.12.0-112` smoke findings (coach, 2026-10-07), open:
   Week 6 vs OLV wrote Week 5 St. George as the season's active game 8 seconds
   before the next launch; plays were intact. Not reproduced in the browser
   (Home card, Open game, charting, Settings, routes, close flush).
-- **7. The "Our Defensive Call" heading highlight has no horizontal padding.**
 
 - **Players and the Defense board count some tackles differently.** Full
   season on the canonical 2025 JV data: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7

@@ -396,6 +396,25 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
 }
 
+console.log('\n== The defensive call heading has room around its text (smoke 112 finding 7) ==');
+{
+  await P.select(1);
+  await page.evaluate(() => window.app.nativeTagging.setUnit('defense')); await settle();
+  const heading = await page.evaluate(() => {
+    const groups = [...document.querySelectorAll('[data-native-tagging] details.gi-tag-group')];
+    const cyan = groups.find(g => g.open && g.querySelector('[data-native-field="defFront"]'))?.querySelector(':scope>summary strong');
+    const plain = groups.find(g => !g.querySelector('[data-native-field="defFront"]'))?.querySelector(':scope>summary strong');
+    if (!cyan || !plain) return null;
+    const text = el => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); };
+    const box = cyan.getBoundingClientRect(), inner = text(cyan);
+    return { label: cyan.textContent.trim(), left: Math.round(inner.left - box.left), right: Math.round(box.right - inner.right),
+      textLeft: Math.round(inner.left), plainLeft: Math.round(text(plain).left) };
+  });
+  ok(heading && heading.left >= 6 && heading.right >= 6, 'the cyan heading has at least 6px of fill on each side of its text', JSON.stringify(heading));
+  ok(heading && Math.abs(heading.textLeft - heading.plainLeft) <= 1, 'its text stays aligned with the other group headings', JSON.stringify(heading));
+  await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
+}
+
 ok(errors.length === 0, 'no page errors', errors.slice(0, 2).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
