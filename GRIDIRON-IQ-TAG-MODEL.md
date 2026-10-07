@@ -105,7 +105,9 @@ Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); not built yet.
   Single-value. It is independent of the players named: a count with no
   players is valid, and one player may miss more than once.
 - `players.missedTackler`: our players who missed, comma-separated jersey
-  numbers like Tackler(s) ("2, 3"), picked from the roster; optional.
+  numbers like Tackler(s) ("2, 3"), picked from the roster; optional. Counted
+  like tackles: each player named is credited one missed tackle on that play.
+  The play's `missedTackles` is the team total.
 - Where it is charted, as one more row in Players & Grades with a Count select
   in the Grade slot and no grade:
 

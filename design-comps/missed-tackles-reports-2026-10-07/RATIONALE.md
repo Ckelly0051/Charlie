@@ -47,13 +47,12 @@ game; Game-by-game and Season vs Last 3 stay Full season only, as today.
 - **Labels.** The full words "Missed Tackles" wherever there is room; `MTkl`
   is the abbreviation where columns are abbreviated (Players > Tackles, beside
   Tkl and Sack).
-- **True totals.** Charting records an exact count `0` to `9`, so Missed
-  Tackles is a true sum. A play counts once in every play-based measure.
-
-## Open for the coach
-
-- **Per-player count** is plays named, not misses: a player named on a play
-  with a count of 2 gets 1, because the count is not split by player.
+- **True totals.** Charting records an exact count `0` to `9`, so the team's
+  Missed Tackles is a true sum of the plays' counts. A play counts once in
+  every play-based measure (Plays with a Missed Tackle, the rate, yards).
+- **Players are counted like tackles.** A player's Missed Tackles / MTkl is one
+  missed tackle for each play they are named on, the same rule Tkl uses for
+  Tackler(s). The roster picker toggles a number on and off like Tackler(s).
 - Every number opens its plays' film, like the rows around it.
 
 ## Seen in passing, not part of this comp
