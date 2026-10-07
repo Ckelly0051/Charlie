@@ -80,7 +80,7 @@ function buildSections(board, seasonScope) {
   performance.push(
     { title: 'Disruption', schema: 'fixed', slots: 6, heads: ['Event', 'Plays', 'Rate', 'Eligible snaps'],
       rows: b.disruption.map(r => row([r.name, r.plays, percent(r.rate), r.eligible], r.refs)) },
-    // Missed Tackles over the snaps that charted a count; blank is not charted.
+    // Missed Tackles are the players named, over every defensive snap.
     { title: 'Tackling', wide: true, schema: 'fixed', slots: 6, heads: ['Measure', 'Value', 'Eligible snaps'],
       rows: b.tackling.map(r => row([r.name, r.kind === 'percent' ? percent(r.value) : r.value, r.eligible], r.refs)) },
     { title: seasonScope ? 'Season vs Last 3' : 'Current game vs Season', schema: 'fixed', slots: 7,

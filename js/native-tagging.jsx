@@ -400,23 +400,24 @@ function Players({screen, state}) {
   // without hiding one-click jersey-number attribution.
   const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
     passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner', blocker: 'Blocker', [MissedTackles.ROLE]: 'Missed Tackles' };
-  // The Count select takes the Grade slot; with no players to name it takes the
-  // number box's slot, so the row keeps the grid's columns.
-  const missedCount = () => <select aria-label="Missed Tackles count" value={state.values.missedTackles ?? ''}
-    onFocus={() => screen.setActiveRole(MissedTackles.ROLE)} onChange={event => screen.setField('missedTackles', event.currentTarget.value)}>
-    <option value="">Count</option>{OPTIONS.missedTackles.map(value => <option key={value} value={value}>{value}</option>)}
-  </select>;
+  // Our misses are the players named, one each, so their row has no count or
+  // grade. The opponent's misses have no one to name: a Count only.
+  const missedRole = role => role === MissedTackles.ROLE;
   return <Group title="Players & Grades" open>
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
-      if (role === MissedTackles.ROLE && missedMode !== 'ours') return <div key={role}>
-        <strong>{LABELS[role]}</strong>{missedCount()}
+      if (missedRole(role) && missedMode !== 'ours') return <div key={role}>
+        <strong>{LABELS[role]}</strong>
+        <select aria-label="Missed Tackles count" value={state.values.missedTackles ?? ''}
+          onFocus={() => screen.setActiveRole(role)} onChange={event => screen.setField('missedTackles', event.currentTarget.value)}>
+          <option value="">Count</option>{OPTIONS.missedTackles.map(value => <option key={value} value={value}>{value}</option>)}
+        </select>
       </div>;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
         <strong>{opposingSpecialist(role) ? `${state.perspective === 'scout' ? 'Other team' : 'Opponent'} ` : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
-        <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
+        <input aria-label={`${role} player number`} class={missedRole(role) ? 'is-wide' : undefined} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
-        {role === MissedTackles.ROLE ? missedCount() : <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
+        {!missedRole(role) && <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
           <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
         </select>}
         {allowed(role).length > 0 && <button type="button" class="gi-player-roster-toggle" aria-expanded={rosterOpen}

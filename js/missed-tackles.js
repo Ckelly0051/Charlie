@@ -2,11 +2,12 @@ import { countedUnit } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 
 /**
- * Missed tackles (GRIDIRON-IQ-TAG-MODEL.md §3a). `tags.missedTackles` is the
- * play's exact count, '0'-'9'; blank is not charted and never counts as zero.
- * `tags.players.missedTackler` names our players who missed, comma-separated
- * like Tackler(s), and each name is one missed tackle for that player, the way
- * Tkl credits a tackle.
+ * Missed tackles (GRIDIRON-IQ-TAG-MODEL.md §3a). On our snaps (defense, kick
+ * coverage, Defending a Try) `tags.players.missedTackler` names our players who
+ * missed, comma-separated like Tackler(s); each name is one missed tackle, the
+ * way Tkl credits a tackle, and there is no count box. On the opponent's snaps
+ * (offense, returns, our run/pass try) `tags.missedTackles` is the count of
+ * their misses on our ball carrier, '0'-'9'; blank is not charted.
  */
 export class MissedTackles {
   static COUNTS = Object.freeze(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
@@ -30,8 +31,13 @@ export class MissedTackles {
   }
   static modeOf(play) { return MissedTackles.mode(countedUnit(play), play?.specialTeams); }
 
-  /** The play's count as a number, or null when not charted. */
+  /** The play's misses as a number, or null when it has none to chart: the
+   *  players named on our snaps (0 when no one is named), the Count on the
+   *  opponent's (null while blank). */
   static count(play) {
+    const mode = MissedTackles.modeOf(play);
+    if (mode === 'ours') return MissedTackles.players(play).length;
+    if (mode !== 'theirs') return null;
     const value = String(play?.tags?.missedTackles ?? '').trim();
     return MissedTackles.COUNTS.includes(value) ? Number(value) : null;
   }

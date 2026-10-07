@@ -99,24 +99,27 @@ offered):
 
 Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); owner `js/missed-tackles.js`.
 
-- `missedTackles`: the play's exact count, `0` to `9` (no `3+`: Reports
-  total it exactly). Blank
-  means not charted and is never counted as zero; `0` means checked, none.
-  Single-value. It is independent of the players named: a count with no
-  players is valid, and one player may miss more than once.
-- `players.missedTackler`: our players who missed, comma-separated jersey
-  numbers like Tackler(s) ("2, 3"), picked from the roster; optional. Counted
-  like tackles: each player named is credited one missed tackle on that play.
-  The play's `missedTackles` is the team total.
-- Where it is charted, as one more row in Players & Grades with a Count select
-  in the Grade slot and no grade:
+- **Our misses** (defense, kick coverage, Defending a Try run/pass or Fake):
+  `players.missedTackler`, our players who missed, comma-separated jersey
+  numbers like Tackler(s) ("2, 3"), picked from the roster. Each player named
+  is one missed tackle, like a tackle; the play's misses are the players named
+  (0 when no one is named). There is no count box (coach, 2026-10-07): a
+  `missedTackles` value stored on our snap is never read.
+- **The opponent's misses** on our ball carrier (offense, returns, our run/pass
+  or Fake try): `missedTackles`, a count `0` to `9` (no `3+`). Blank means not
+  charted and is never counted as zero; `0` means checked, none. Single-value.
+- `MissedTackles.count(play)` is the one reader for both.
+- Where it is charted, as one more row in Players & Grades with no grade:
 
-  | Unit | Row after | Players | Meaning |
+  | Unit | Row after | Charted as | Meaning |
   |---|---|---|---|
-  | Defense | Tackler(s) | yes | tackles our defense missed |
-  | Offense | Receiver | no | tackles the defense missed on our ball carrier |
-  | Kickoff, Punt | Opponent Returner | yes | tackles our coverage missed |
-  | Kick Return, Punt Return | Returner | no | tackles the coverage missed on our returner |
+  | Defense | Tackler(s) | players | tackles our defense missed |
+  | Offense | Receiver | Count | tackles the defense missed on our ball carrier |
+  | Kickoff, Punt | Opponent Returner | players | tackles our coverage missed |
+  | Kick Return, Punt Return | Returner | Count | tackles the coverage missed on our returner |
+
+  Film Room's MTkl column edits the Count on the opponent's snaps and shows the
+  players named, read-only, on ours.
 
   Field Goal, FG Block and kicked tries have no row; a run/pass or Fake try
   uses its scrimmage side's row. Missed tackles is the one Special Teams

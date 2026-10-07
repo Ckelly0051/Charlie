@@ -8,6 +8,7 @@ import { SeasonFormat } from './season-format.js';
 import { ChartingDetails } from './charting-details.js';
 // E3b: exportCsv reads the pre-snap look through the projection seam. No cycle —
 // stats-engine.js imports charts/heat-maps/metrics, never storage.js.
+import { MissedTackles } from './missed-tackles.js';
 import { StatsEngine } from './stats-engine.js';
 import { buildGameHtmlReport } from './html-report.js';
 
@@ -1844,7 +1845,7 @@ export class StorageManager {
       p.tags.players?.takeaway || '',
       p.tags.players?.kicker || '',
       p.tags.players?.returner || '',
-      p.tags.missedTackles ?? '',
+      MissedTackles.count(p) ?? '',
       p.tags.players?.missedTackler || '',
       p.tags.grades?.ballCarrier ?? '',
       p.tags.grades?.passer ?? '',

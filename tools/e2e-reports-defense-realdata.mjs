@@ -66,9 +66,9 @@ const INVENTORY = {
   ],
 };
 const KPI_VALUES = {
-  // No season has missed tackles charted yet, so its total is — (never 0).
-  season: ['490', '266', '224', '3.2', '2', '7', '—', '7', '0', '81.4%', '47.1%'],
-  game: ['0', '0', '0', '0.0', '1', '0', '—', '0', '0', '100.0%', '—'],
+  // Missed tackles are the players named; the fixture names none, so 0.
+  season: ['490', '266', '224', '3.2', '2', '7', '0', '7', '0', '81.4%', '47.1%'],
+  game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '0', '100.0%', '—'],
 };
 const FIXED = new Set(['Disruption', 'Tackling', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
   'Performance by Play Direction', 'Run / Pass vs Strength', 'Blitz Performance', 'Blitz Type Performance',

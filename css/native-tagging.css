@@ -127,6 +127,7 @@
 .gi-tag-players strong{grid-column:1/-1;color:var(--gi-bd-copy);font:600 12px var(--gi-sans);text-transform:uppercase}
 .gi-tag-players input,.gi-tag-players select{width:100%;min-height:32px;padding:0 6px}
 .gi-tag-players input{font:500 15px var(--gi-sans);font-variant-numeric:tabular-nums}
+.gi-tag-players input.is-wide{grid-column:1/-1}
 .gi-player-roster-toggle{grid-column:1/-1;justify-self:start;min-height:20px;padding:0;border:0;background:transparent;color:var(--gi-bd-copy);font:500 12px var(--gi-sans)}
 .gi-player-quick{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:3px;max-height:100px;overflow-y:auto;overflow-x:hidden}
 .gi-player-quick button{min-height:24px;padding:0 2px;font:500 12px var(--gi-sans)}

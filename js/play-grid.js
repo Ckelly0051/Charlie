@@ -57,7 +57,8 @@ export class PlayGrid {
     { key: 'rpoDecision', label: 'RPO Dec', type: 'enum', src: 'tagRpoDecision' },
     { key: 'qbRun',     label: 'QB Run',    type: 'enum', src: 'tagQbRun' },
     { key: 'result',    label: 'Result',    type: 'enum', src: 'tagResult',    multi: true },
-    // Exact count, 0-9; locked where the snap has no Missed Tackles row.
+    // The opponent's count, 0-9, editable on their snaps; on ours it shows the
+    // players named and is read-only; locked where the snap has no row.
     { key: 'missedTackles', label: 'MTkl', type: 'enum', src: 'tagMissedTackles' },
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
     { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
@@ -260,7 +261,7 @@ export class PlayGrid {
     // field that opens it is blank (ChartingDetails.TRIGGERS).
     const opener = ChartingDetails.TRIGGERS.find(trigger => trigger.children.includes(col?.key));
     if (opener && !opener.opened(play?.tags || {})) return true;
-    if (col?.key === 'missedTackles') return !MissedTackles.modeOf(play);
+    if (col?.key === 'missedTackles') return MissedTackles.modeOf(play) !== 'theirs';
     if (!col?.unit) return false;
     if (SpecialTeamsModel.isRunPassTry(play)) return false;
     const unit = countedUnit(play);
@@ -320,6 +321,12 @@ export class PlayGrid {
       return `${top[0]} ${Math.round((top[1] / total) * 100)}%`;
     }
     return '';
+  }
+
+  /** A locked cell is blank, except MTkl on our snaps, which shows the count of
+   *  players named in Missed Tackles. */
+  static lockedText(play, col) {
+    return col?.key === 'missedTackles' && MissedTackles.modeOf(play) === 'ours' ? String(MissedTackles.count(play)) : '';
   }
 
   _cellText(play, col) {
@@ -516,7 +523,7 @@ export class PlayGrid {
         current: play.id === this.tagger.currentPlayId,
         selected: selected.has(play.id),
         untagged: PlayGrid.isUntagged(play),
-        cells: Object.fromEntries(columns.map(col => [col.key, na.includes(col.key) ? '' : this._cellText(play, col)])),
+        cells: Object.fromEntries(columns.map(col => [col.key, na.includes(col.key) ? PlayGrid.lockedText(play, col) : this._cellText(play, col)])),
       };
     });
     return {

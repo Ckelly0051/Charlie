@@ -2030,15 +2030,14 @@ export class StatsEngine {
       thirdDownStop: stop(d.thirdDownAllowed.rate), fourthDownStop: stop(d.fourthDownAllowed.rate),
     };
 
-    /* MISSED TACKLES are counted over the snaps that charted a count (0
-       included); a blank is not charted, so a game with none charted is null,
-       never 0. The total sums the exact counts. */
-    const missedCharted = rows => rows.filter(isDefense).filter(p => MissedTackles.count(p) != null);
+    /* MISSED TACKLES are the players named on every defensive snap
+       (MissedTackles.count), one per name; a game with defensive snaps and no
+       one named is 0. */
+    const missedCharted = rows => rows.filter(isDefense);
     const missedTotal = rows => { const charted = missedCharted(rows); return charted.length ? charted.reduce((sum, p) => sum + MissedTackles.count(p), 0) : null; };
     /* TACKLING. A team tackle is a play with a tackler named (a shared tackle
-       is one). The Missed Tackle rate is misses / (tackles + misses), both over
-       the snaps that charted a count, so an uncharted miss never reads as a
-       made tackle. */
+       is one). The Missed Tackle rate is misses / (tackles + misses) over the
+       same defensive snaps. */
     const tackled = p => S.splitPlayers(S.effectivePlayers(p).tackler).length > 0;
     const missedRate = rows => {
       const charted = missedCharted(rows);

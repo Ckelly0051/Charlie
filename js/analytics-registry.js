@@ -101,7 +101,8 @@ export class AnalyticsRegistry {
       ready('rpoRead', 'RPO Read', tag('rpoRead'), 'play.tags.rpoRead'),
       ready('rpoDecision', 'RPO Decision', tag('rpoDecision'), 'play.tags.rpoDecision'),
       ready('qbRun', 'QB Run Type', tag('qbRun'), 'play.tags.qbRun'),
-      // The play's exact count (MissedTackles); blank is uncharted and yields no value.
+      // The play's misses (MissedTackles.count): names on our snaps, the Count on
+      // the opponent's; a blank opponent Count yields no value.
       ready('missedTackles', 'Missed Tackles', p => { const n = MissedTackles.count(p); return n == null ? [] : [String(n)]; }, 'MissedTackles.count'),
       ready('defFront', 'Defensive Front', p => SE.splitFronts(p?.tags?.defFront), 'StatsEngine.splitFronts', { multi: true }),
       ready('coverage', 'Coverage Call', p => this._one(SE.proj(p).coverage), 'TagProjection.project.coverage'),

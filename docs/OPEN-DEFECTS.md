@@ -13,9 +13,11 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   every unit, Film Room MTkl, CSV columns, Study's Missed Tackles and Missed
   Tackler, and the defensive Reports (Tackling module with Total Tackles and
   the Missed Tackle rate, the eleven-tile centered KPI strip, Game-by-game,
-  Season vs Last 3, player columns, Players > Tackles MTkl). Smoke: chart a defensive
-  miss with two players, a zero, an offense count and a kickoff miss, then
-  read Defense and Players.
+  Season vs Last 3, player columns, Players > Tackles MTkl). Smoke 112
+  finding 8: our misses now count from the players named, with no Count box
+  on our snaps; the Count stays for the opponent's misses on offense and
+  returns. Smoke: name three defensive missers with no tackler, an offense
+  count and a kickoff miss, then read Defense, Players and Study.
 - **Tighter collapsed player rows** in Players & Grades (all units).
 - **Shared dialogs for the tagger**: Delete play, Clear tags, templates and
   the detail-clearing prompts now use the in-app dialog; a destructive one
@@ -23,6 +25,25 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   focus moves to a dialog button or falls outside the dialog.
 
 ## Open defects
+
+Installed `1.12.0-112` smoke findings (coach, 2026-10-07), open:
+
+- **1. Return yards never reach Reports.** Varsity 2026 vs OLV play 1: a kick
+  return with possession own 22 and end own 38 shows no production. Decided:
+  remove the Return Yards box; every report derives return yards from the
+  possession and end spots. The 2 stored Return Yards values (2025 JV) are
+  reviewed with the coach before anything touches them.
+- **2. Reopening the app opens the previous game.** Installed only: closing on
+  Week 6 vs OLV wrote Week 5 St. George as the season's active game 8 seconds
+  before the next launch; plays were intact. Not reproduced in the browser
+  (Home card, Open game, charting, Settings, routes, close flush).
+- **3. A new favorite play call shows in Chart only after a restart.**
+- **4. The Settings > Playbook star does not toggle a favorite** and every
+  star looks the same.
+- **5. Edit on a saved play call opens no edit form.**
+- **6. A play call does not replace charted values.** Decided: picking a call
+  overwrites only the fields that call has defaults for.
+- **7. The "Our Defensive Call" heading highlight has no horizontal padding.**
 
 - **Players and the Defense board count some tackles differently.** Full
   season on the canonical 2025 JV data: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7

@@ -175,9 +175,10 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
   without), a Missed Tackles column in Game-by-game, a Missed Tackle rate row in
   Season vs Last 3 and a Missed Tackles column after Ast in Defensive player
   contributions. A team tackle is a play with a tackler named (a shared tackle
-  is one); the rate is misses / (tackles + misses) over the snaps that charted a
-  count. An uncharted game is `—`; a player gets one per play named. Season >
-  Defense shows the same.
+  is one); a missed tackle is a player named in Missed Tackles
+  (`MissedTackles.count`), so every defensive snap is eligible and a game with
+  no one named is 0. The rate is misses / (tackles + misses); a player gets one
+  per play named. Season > Defense shows the same.
 - Every module states its cohort in counts (`15 run/pass snaps`,
   `15 snaps · 18 tags`, `14 direction-tagged snaps`,
   `20 snaps · penalties included`).
