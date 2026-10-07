@@ -1,0 +1,15 @@
+{
+  "surfaceId": "reports.missed-tackles",
+  "title": "Missed tackles in Reports (defense)",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "DRAFT",
+  "approvedOn": "2026-10-07",
+  "approvalNote": "The coach approved defensive missed tackles in Reports as an exception to roadmap step 4: a Tackling module after Disruption, a Missed Tackles column in Game-by-game, a Missed Tackle play rate row in Season vs Last 3 and a Missed Tackles column in Defensive player contributions (Defense board, also Season > Defense), and an MTkl column in Players > Tackles. Full words where there is room, MTkl where columns are abbreviated; exact totals; players counted like tackles.",
+  "canonicalArtifact": {
+    "path": "design-comps/missed-tackles-reports-2026-10-07",
+    "kind": "directory",
+    "sha256": "391ea4fbbd89444b42c0235a8c186809cb24bf529140483fa8199ea5763d21c4",
+    "fileCount": 18
+  },
+  "decisionRecord": "design-comps/missed-tackles-reports-2026-10-07/RATIONALE.md"
+}

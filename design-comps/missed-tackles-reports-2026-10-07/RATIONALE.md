@@ -1,6 +1,7 @@
 # Missed tackles in Reports - review comp, 2026-10-07
 
-Status: proposal, not approved. Still screens of the real built app
+Status: **COMP_APPROVED** by the coach, 2026-10-07 ("approve"). Production is
+not built. Still screens of the real built app
 (`b34ebe27` source) with the canonical 2025 JV season, Full season scope, and
 the proposed modules and columns added in the page (`capture.mjs propose`).
 Isolated browser data; no coach file was written.

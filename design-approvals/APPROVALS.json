@@ -28,7 +28,8 @@
     "design-approvals/reports/matchup/manifest.json",
     "design-approvals/breakdown-charting/manifest.json",
     "design-approvals/breakdown-cleanup/manifest.json",
-    "design-approvals/missed-tackles/manifest.json"
+    "design-approvals/missed-tackles/manifest.json",
+    "design-approvals/reports/missed-tackles/manifest.json"
   ],
   "releases": [
     {
