@@ -16,7 +16,7 @@
 
 ## Result
 
-Installed smoke pending. No acceptance is inferred from the browser gate.
+Coach smoke 2026-10-07: REVISE, eight findings. Seven are repaired in source and wait for the next installer; finding 2 is open.
 
 ## What to check
 
@@ -49,4 +49,29 @@ switch games without duplicate clips; Watch opens exactly the counted plays.
 
 ## Findings
 
-Not assessed; coach smoke pending.
+1. **Reports showed no return yards** (Varsity 2026 vs OLV play 1, a kick
+   return with possession own 22, end own 38). Repaired `27de94f2`: the Return
+   Yards box is removed; every report measures possession spot to end spot.
+   The coach chose to drop two 2025 JV punt returns that had only a stored
+   value.
+2. **Reopening the app opened the previous game** (closed on Week 6 vs OLV,
+   reopened to Week 5 St. George; picking OLV on Home then opened St. George).
+   The close-time save wrote St. George as the season's active game; plays
+   were intact. Not reproduced in the browser. Open.
+3. **A new favorite play call showed in Chart only after a restart.** Repaired
+   `16de2ab1`.
+4. **The Playbook star did nothing** (every star looked the same). Repaired
+   `16de2ab1`.
+5. **Edit on a saved play call opened no edit form.** Repaired `16de2ab1`: Edit
+   opens a dialog.
+6. **A picked play call did not replace charted values.** Repaired `efb416a2`:
+   it replaces the fields it has defaults for, nothing else.
+7. **The Our Defensive Call heading highlight had no horizontal padding.**
+   Repaired `13bab37a`.
+8. **Missed tackles named by player number did not count in Reports.**
+   Repaired `27b53d4c`: our misses count from the names, with no Count box on
+   our snaps; the Count stays for the opponent's misses.
+
+Found during the repairs: every dialog filled the window since `1.12.0-108`.
+Repaired `1df5cef8` (centered 520px dialogs; Escape no longer races the
+overlay host).
