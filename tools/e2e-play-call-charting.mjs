@@ -75,8 +75,11 @@ ok(state.values.formationFamily === 'Power-I' && state.values.backfield === 'I' 
 ok(Object.keys(state.defaults).length === 6 && state.appliedText.includes('Formation: Power-I') && state.history === 1,
   'Applied defaults are disclosed and selection is one undoable action', JSON.stringify(state));
 
+// Smoke 112 finding 6: a picked call replaces what is charted in the fields it
+// has defaults for, and leaves every other charted field alone.
 await page.evaluate(() => {
   app.nativeTagging.setField('playDir', 'Middle');
+  app.nativeTagging.setField('personnel', '11');
   app.history.reset();
   app.nativeTagging.selectPlayCall('24 Iso');
 });
@@ -92,10 +95,12 @@ state = await page.evaluate(() => {
 });
 ok(state.after.playCall === '24 Iso' && state.after.formationFamily === 'I-Form' && state.after.backfield === 'Single'
   && state.after.strength === 'Balanced', 'Changing calls replaces only prior call-owned defaults', JSON.stringify(state.after));
-ok(state.after.playDir === 'Middle' && !Object.hasOwn(state.after.playCallDefaults, 'playDir'),
-  'A coach override survives a later call change and leaves default provenance', JSON.stringify(state.after.playCallDefaults));
+ok(state.after.playDir === 'Left' && state.after.playCallDefaults.playDir === 'Left',
+  'a picked call replaces a hand-charted value in a field it has a default for', JSON.stringify(state.after));
+ok(state.after.personnel === '11' && state.after.runPass === 'Run',
+  'fields the call has no default for keep what is charted', JSON.stringify(state.after));
 ok(state.entries === 1 && state.undone.playCall === '26 Blast' && state.undone.playDir === 'Middle'
-  && state.redone.playCall === '24 Iso' && state.redone.playDir === 'Middle',
+  && state.redone.playCall === '24 Iso' && state.redone.playDir === 'Left',
   'Call change undoes and redoes as one complete transaction', JSON.stringify(state));
 
 state = await page.evaluate(async () => {

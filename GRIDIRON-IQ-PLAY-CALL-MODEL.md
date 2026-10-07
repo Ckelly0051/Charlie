@@ -66,7 +66,10 @@ blank; old plays remain valid without migration.
 - A call can supply optional defaults for concept, run/pass, play type,
   direction, formation, alignment, backfield, strength, personnel, or motion.
 - Selecting a call exposes every applied default so the coach can override it.
-- Changing calls must preserve explicit per-play overrides.
+- Picking a call replaces what is charted in every field it has a default for,
+  in one undoable write; a field the previous call filled and the new one does
+  not is cleared; every other charted field is kept (coach, 2026-10-07). A Gap,
+  motion path or RPO detail it would clear is still confirmed first.
 - Do not include `playCall` in automatic scheme carry-forward. Explicit Copy Last
   may copy it.
 

@@ -267,7 +267,7 @@ console.log('\n== 7b. Changing a Play Call asks before it clears charting ==');
     const pb = window.app.playbook;
     pb.add({ name: 'Sweep Left', concept: '', defaults: { playDir: 'Left' } });
     pb.add({ name: 'Sweep Right', concept: '', defaults: { playDir: 'Right' } });
-    // Earlier sections charted these plays; a call never replaces what the coach charted, so start blank.
+    // Earlier sections charted these plays; start blank so each call's Direction is the only one charted.
     for (const id of [2, 3]) window.app.tagger.getPlay(id).tags = window.app.tagger.constructor.blankTags({ unit: 'offense' });
   });
   const ask = expr => page.evaluate(expr => { window.__callResult = undefined; Promise.resolve(eval(expr)).then(r => { window.__callResult = r; }); }, expr);

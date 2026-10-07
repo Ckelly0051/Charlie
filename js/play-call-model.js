@@ -39,16 +39,18 @@ export class PlayCallModel {
       ? play.tags.playCallDefaults : {};
     const projected = StatsEngine.proj(play);
     const applied = {};
+    // A picked call replaces what is charted in every field it has a default for
+    // (coach, 2026-10-07); a field the previous call filled and this one does
+    // not is cleared; every other charted field is left alone.
     for (const key of (playbook?.constructor?.DEFAULT_KEYS || [])) {
       const current = String(projected?.[key] ?? play.tags[key] ?? '').trim();
       const priorOwned = Object.hasOwn(previous, key) && current === String(previous[key] ?? '').trim();
       const incoming = String(next.defaults?.[key] || '').trim();
-      if (priorOwned) {
-        play.tags[key] = incoming;
-        if (incoming) applied[key] = incoming;
-      } else if (!current && incoming) {
+      if (incoming) {
         play.tags[key] = incoming;
         applied[key] = incoming;
+      } else if (priorOwned) {
+        play.tags[key] = '';
       }
     }
     if (!String(play.tags.runPass || '').trim() && applied.playType) {

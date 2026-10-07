@@ -27,6 +27,9 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   visible toggle (gold when a favorite), Chart's favorites update as soon as it
   is saved, and Edit opens the call in its own dialog. Smoke: star and unstar
   a call with a play open in Chart; edit a call's concept.
+- **A picked play call replaces charted values** (smoke 112 finding 6) in the
+  fields it has defaults for; other charted fields stay. Smoke: chart Direction
+  Middle and Personnel 11, pick a call with a Direction default.
 - **Dialogs are centered again** (found during the smoke 112 fixes): since
   `1.12.0-108` every dialog (Delete play, Clear tags, prompts, Remove call)
   filled the window from the top-left because a dead-CSS pass removed its
@@ -46,8 +49,6 @@ Installed `1.12.0-112` smoke findings (coach, 2026-10-07), open:
   Week 6 vs OLV wrote Week 5 St. George as the season's active game 8 seconds
   before the next launch; plays were intact. Not reproduced in the browser
   (Home card, Open game, charting, Settings, routes, close flush).
-- **6. A play call does not replace charted values.** Decided: picking a call
-  overwrites only the fields that call has defaults for.
 - **7. The "Our Defensive Call" heading highlight has no horizontal padding.**
 
 - **Players and the Defense board count some tackles differently.** Full
