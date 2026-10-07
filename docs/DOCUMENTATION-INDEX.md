@@ -50,7 +50,10 @@ log.
   `design-comps/missed-tackles-2026-10-06` and
   `design-comps/missed-tackles-reports-2026-10-07`), tighter collapsed player
   rows, the tagger's dialogs on the shared overlay, and old-pattern fixes in
-  five files. Focused harnesses green; no full gate since `b10bf0fe`.
+  five files, plus the complete Tackling module and the eleven-tile centered
+  KPI strip (`design-comps/missed-tackles-reports-r2-2026-10-07`). Focused
+  harnesses green; no full gate since `b10bf0fe`. Next: Codex review of
+  `b10bf0fe..db046e3d` (unpushed), then a full gate and installer 112.
 - **Latest full gate:** GREEN, 154/154 at `b10bf0fe` (2026-10-06, run by Codex).
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
