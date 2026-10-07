@@ -23,6 +23,10 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   punt returns with only a stored value now show none (coach, 2026-10-07).
   Smoke: OLV play 1 shows a 16-yard return for #13 in Special Teams and
   Players.
+- **Playbook favorites and Edit** (smoke 112 findings 3-5): the star is a
+  visible toggle (gold when a favorite), Chart's favorites update as soon as it
+  is saved, and Edit opens the call in its own dialog. Smoke: star and unstar
+  a call with a play open in Chart; edit a call's concept.
 - **Dialogs are centered again** (found during the smoke 112 fixes): since
   `1.12.0-108` every dialog (Delete play, Clear tags, prompts, Remove call)
   filled the window from the top-left because a dead-CSS pass removed its
@@ -42,10 +46,6 @@ Installed `1.12.0-112` smoke findings (coach, 2026-10-07), open:
   Week 6 vs OLV wrote Week 5 St. George as the season's active game 8 seconds
   before the next launch; plays were intact. Not reproduced in the browser
   (Home card, Open game, charting, Settings, routes, close flush).
-- **3. A new favorite play call shows in Chart only after a restart.**
-- **4. The Settings > Playbook star does not toggle a favorite** and every
-  star looks the same.
-- **5. Edit on a saved play call opens no edit form.**
 - **6. A play call does not replace charted values.** Decided: picking a call
   overwrites only the fields that call has defaults for.
 - **7. The "Our Defensive Call" heading highlight has no horizontal padding.**

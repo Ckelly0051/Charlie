@@ -43,6 +43,9 @@ export class NativeTaggingScreen {
     // event to ride on -- CustomChips.onChange is the explicit republish
     // seam for exactly that case.
     this.app.customChips?.onChange?.(() => this._queuePublish());
+    // The same for the play-call library: a favorite starred in Settings shows
+    // in Chart's favorites at once.
+    this.app.playbook?.onChange?.(() => this._queuePublish());
   }
 
   static COLLAPSE_KEY = 'ffa_chart_collapsed_fields';

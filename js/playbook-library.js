@@ -16,13 +16,25 @@ export class PlaybookLibrary {
       try { return this.storage?.getItem('ffa_active_team_id') || 'default'; }
       catch { return 'default'; }
     });
+    this._changeListeners = new Set();
+  }
+
+  /** Called after every write, so a view showing the calls (Chart's favorites)
+   *  redraws without waiting for a play event. Returns an unsubscribe. */
+  onChange(listener) {
+    this._changeListeners.add(listener);
+    return () => this._changeListeners.delete(listener);
   }
 
   _teamId() { return typeof this.teamId === 'function' ? this.teamId() : this.teamId; }
   key(teamId = this._teamId()) { return `ffa_playbook_${teamId || 'default'}`; }
   _blank() { return { version: PlaybookLibrary.VERSION, calls: [] }; }
   _read() { try { return JSON.parse(this.storage?.getItem(this.key()) || 'null'); } catch { return null; } }
-  _write(state, teamId) { try { this.storage?.setItem(this.key(teamId), JSON.stringify(state)); } catch {} return state; }
+  _write(state, teamId) {
+    try { this.storage?.setItem(this.key(teamId), JSON.stringify(state)); } catch {}
+    this._changeListeners.forEach(listener => { try { listener(); } catch (e) { console.error('Playbook change listener failed', e); } });
+    return state;
+  }
 
   _cleanDefaults(raw) {
     const defaults = {};

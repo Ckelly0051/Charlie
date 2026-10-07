@@ -150,14 +150,37 @@ ok(r.call?.name === '26 Blast' && r.call?.concept === 'Blast' && r.call?.favorit
   'Team Settings creates an exact favorite call with visible optional defaults', JSON.stringify(r.call));
 ok(JSON.stringify(r.mirror) === JSON.stringify({version:1,calls:[r.call]}) && r.games === playbookBefore,
   'Playbook edits mirror into the open season without touching any game or play', JSON.stringify(r));
+// Smoke 112 finding 5: Edit opens the call in its own dialog.
 await page.click('[data-play-call="call_26_blast"] button:nth-last-child(2)');
-await page.click('[data-playbook-manager] input[placeholder="Blast"]');
+await page.waitForSelector('.gi-overlay-dialog [data-play-call-editor] [name="playCallName"]', { timeout: 3000 }).catch(() => {});
+r = await page.evaluate(() => ({ name:document.querySelector('.gi-overlay-dialog [data-play-call-editor] [name="playCallName"]')?.value,
+  addHead:document.querySelector('[data-playbook-manager] .gi-playbook-form-head strong')?.textContent }));
+ok(r.name === '26 Blast' && r.addHead === 'Add play call', 'Edit opens the call in a dialog; the form below stays Add play call', JSON.stringify(r));
+await page.click('.gi-overlay-dialog [data-play-call-editor] input[placeholder="Blast"]').catch(() => {});
 await page.keyboard.down('Control'); await page.keyboard.press('A'); await page.keyboard.up('Control');
-await page.type('[data-playbook-manager] input[placeholder="Blast"]', 'Power');
-await page.click('[data-playbook-manager] button[type="submit"]');
-r = await page.evaluate(() => ({ call:window.app.playbook.get('call_26_blast'), count:window.app.playbook.list().length }));
-ok(r.call?.id === 'call_26_blast' && r.call?.concept === 'Power' && r.count === 1,
-  'Editing a call preserves its stable id and does not create a duplicate', JSON.stringify(r));
+await page.type('.gi-overlay-dialog [data-play-call-editor] input[placeholder="Blast"]', 'Power').catch(() => {});
+await page.click('.gi-overlay-dialog [data-play-call-editor] button[type="submit"]').catch(() => {});
+await page.waitForFunction(() => !document.querySelector('.gi-overlay-dialog'), { timeout: 3000 }).catch(() => {});
+r = await page.evaluate(() => ({ call:window.app.playbook.get('call_26_blast'), count:window.app.playbook.list().length,
+  row:document.querySelector('[data-play-call="call_26_blast"]')?.textContent, dialog:!!document.querySelector('.gi-overlay-dialog') }));
+ok(r.call?.id === 'call_26_blast' && r.call?.concept === 'Power' && r.count === 1 && /Power/.test(r.row) && !r.dialog,
+  'Saving the edit dialog keeps the call\'s stable id, adds no duplicate and updates the list', JSON.stringify(r));
+
+// Smoke 112 findings 3 and 4: the star is a visible toggle, and Chart shows the change at once.
+await page.evaluate(() => { window.__deckCalls = null; window.app.nativeTagging.subscribe(state => { window.__deckCalls = state.playbookCalls; }); });
+const star = () => page.evaluate(() => { const b = document.querySelector('[data-play-call="call_26_blast"] .gi-playbook-favorite'), cs = getComputedStyle(b);
+  return { pressed:b.getAttribute('aria-pressed'), text:b.textContent, color:cs.color, border:cs.borderTopColor, saved:window.app.playbook.get('call_26_blast').favorite,
+    deck:(window.__deckCalls || []).find(c => c.id === 'call_26_blast')?.favorite }; });
+const on = await star();
+await page.click('[data-play-call="call_26_blast"] .gi-playbook-favorite');
+await new Promise(resolve => setTimeout(resolve, 200));
+const off = await star();
+ok(on.pressed === 'true' && on.saved && off.pressed === 'false' && !off.saved, 'the star toggles the saved favorite', JSON.stringify({ on, off }));
+ok(on.text !== off.text && on.color !== off.color, 'a favorite star looks different from a plain one', JSON.stringify({ on, off }));
+ok(off.deck === false, 'Chart\'s favorites update as soon as the star is saved, without a restart', JSON.stringify(off));
+await page.click('[data-play-call="call_26_blast"] .gi-playbook-favorite');
+await new Promise(resolve => setTimeout(resolve, 200));
+ok((await star()).deck === true, 'starring it again puts it back in Chart\'s favorites');
 r = await page.evaluate(async () => {
   const store=window.app.storage.seasonStore;
   store.persist=async()=>false;

@@ -223,6 +223,14 @@ export class SettingsScreen {
     const durable = await this._persistPlaybook(previous);
     return { ok:durable, durable, call:durable ? call : null, message:durable ? '' : 'That change was not saved.', calls:this.playbookSnapshot() };
   }
+  /** Edit one call in its own dialog over Settings. `render(close)` builds the
+   *  form; resolves 'saved' or 'cancel' (Escape included). */
+  openPlayCallEditor(render) {
+    let handle = null;
+    handle = this.overlays.dialog({ title:'Edit play call', actions:[], initialFocus:'[name="playCallName"]',
+      content:render(value => handle?.close(value)) });
+    return handle.result;
+  }
   async removePlayCall(id) {
     const call = this.app.playbook?.get?.(id);
     if (!call) return { ok:false, calls:this.playbookSnapshot() };
