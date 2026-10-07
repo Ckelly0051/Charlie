@@ -97,4 +97,11 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
   await page.screenshot({ path: `${OUT}/proposed-strip-${w}x${h}.png` });
   console.log(w, JSON.stringify(rows.labels));
 }
+// Variant: the strip with labels and values centered in each tile.
+await open(1440, 900);
+await revise();
+await page.addStyleTag({ content: '.gi-reports .gi-def2-kpis>div{text-align:center}' });
+await page.evaluate(() => document.querySelector('.gi-def2-kpis').scrollIntoView({ block: 'center' }));
+await new Promise(r => setTimeout(r, 300));
+await page.screenshot({ path: `${OUT}/proposed-strip-centered-1440x900.png` });
 await browser.close();
