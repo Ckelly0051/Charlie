@@ -35,6 +35,14 @@ The label is "Missed Tackles" on every unit; the unit says whose miss it is.
 The count stays independent of the players picked: a count without names is
 allowed, and one player may miss more than once.
 
+## Collapsed spacing (coach, 2026-10-07)
+
+`defense-collapsed-1440x900.png`: with every roster picker collapsed the rows sit
+tight. On a fine pointer each player row has 6px vertical padding (was 8px),
+the Show roster link is 20px tall (was 28px) and rows are 2px apart (was 8px),
+so a collapsed row is 88px instead of 102px. Coarse pointers keep 44px targets.
+This applies to every player row in the deck, not only Missed Tackles.
+
 ## Not shown, built with it
 
 - Study: a Missed Tackles dimension (the count, unit-split, film-linked, with

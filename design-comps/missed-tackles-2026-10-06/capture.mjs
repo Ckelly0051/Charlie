@@ -113,6 +113,9 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
   const d = await setup(1440, 900, 'defense');
   const nums = (season.roster || []).filter(p => p.side !== 'O').map(p => String(p.num));
   await apply('ours', 'Tackler', 'Missed Tackles', '2', nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(' + '));
+  // Tight spacing for collapsed rows: 6px row padding, a 20px Show roster
+  // link and a 2px gap between rows. Coarse pointers keep their 44px targets.
+  await page.addStyleTag({ content: '@media (pointer:fine){.gi-tag-players{row-gap:2px}.gi-tag-players>div{padding:6px 8px}.gi-player-roster-toggle{min-height:20px}}' });
   await page.evaluate(() => {
     for (const row of document.querySelectorAll('.gi-tag-players > div')) {
       row.querySelector('.gi-player-quick')?.remove();
