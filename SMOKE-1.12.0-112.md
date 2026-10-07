@@ -3,8 +3,14 @@
 ## Build Record
 
 - Full gate at `81b327c6`: **156/156 green, 0 skipped, 0 failed**, 2026-10-07.
-- Version-only bump: all four owners `1.12.0-112`; `e2e-p0-exit` green, 20/20.
-- Unsigned NSIS build authorized by the coach. Artifact details pending build.
+- Version-only bump `9cdb23f0`: all four owners `1.12.0-112`;
+  `e2e-p0-exit` green, 20/20.
+- Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-112_x64-setup.exe`,
+  4,036,201 bytes, SHA-256
+  `B61DCA23A42DBD59A60A621D4AC65C61F06270120F4D80449255E8E8850F6C28`.
+  Product and file version `1.12.0-112`. Built from a clean tree at `9cdb23f0`
+  with `cargo tauri build --bundles nsis` and an external scratch config setting
+  `createUpdaterArtifacts:false`. Source remained clean after packaging.
 - Independent packaged-asset inspection (`docs/RELEASE.md`): pending.
 - Nothing pushed, tagged or published.
 
