@@ -30,13 +30,14 @@
   display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:20px;
   background:var(--gi-2);border-top:3px solid var(--gi-bd-gold)
 }
-.gi-reports .gi-def2-kpis>div{min-width:0;height:118px;padding:16px 12px;border-right:1px solid var(--gi-5);text-align:center}
+.gi-reports .gi-def2-kpis>div{display:flex;flex-direction:column;min-width:0;padding:10px 12px;border-right:1px solid var(--gi-5);text-align:center}
 .gi-reports .gi-def2-kpis>div:last-child{border-right:0}
 /* Eleven tiles: two rows (six, then five) until one row holds the widest value. */
 .gi-reports .gi-def2-kpis>div:nth-child(6){border-right:0}
 .gi-reports .gi-def2-kpis>div:nth-child(-n+6){border-bottom:1px solid var(--gi-5)}
-.gi-reports .gi-def2-kpis span{display:block;min-height:38px;color:var(--gi-11);font:400 13px/18px var(--gi-sans)}
-.gi-reports .gi-def2-kpis strong{display:block;margin-top:8px;color:var(--gi-12);font:600 34px/38px var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
+/* A label that wraps makes its row taller; the value sits at the bottom, so values stay level. */
+.gi-reports .gi-def2-kpis span{display:block;margin-bottom:4px;color:var(--gi-11);font:400 13px/18px var(--gi-sans)}
+.gi-reports .gi-def2-kpis strong{display:block;margin-top:auto;color:var(--gi-12);font:600 34px/38px var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 
 .gi-reports .gi-def2-bands{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 
@@ -119,6 +120,9 @@
   .gi-reports .gi-def2-kpis{grid-template-columns:repeat(11,minmax(0,1fr))}
   .gi-reports .gi-def2-kpis>div:nth-child(6){border-right:1px solid var(--gi-5)}
   .gi-reports .gi-def2-kpis>div:nth-child(-n+6){border-bottom:0}
+  /* One row: labels may take two lines, so every tile reserves two. */
+  .gi-reports .gi-def2-kpis>div{padding:12px}
+  .gi-reports .gi-def2-kpis span{min-height:36px}
 }
 @media(min-width:1600px){
   .gi-reports .gi-def2-module td{font-size:15px}

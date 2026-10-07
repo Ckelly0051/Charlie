@@ -105,6 +105,11 @@ try {
   ok(strip.tiles.length === 11 && strip.tiles[at - 1]?.[0] === 'Explosive Plays Allowed' && strip.tiles[at]?.[1] === '7',
     'the strip has eleven tiles: Missed Tackles (the exact total) follows Explosive Plays Allowed', strip.tiles);
   ok(strip.align === 'center' && !strip.tall, 'the strip is centered and every label holds two lines', strip);
+  // Two rows sit tight (coach, 2026-10-07): one-line labels, values level across each row.
+  const tight = await page.evaluate(() => [...document.querySelectorAll('.gi-def2-kpis>div')].map(t => ({ h: Math.round(t.getBoundingClientRect().height), v: Math.round(t.querySelector('strong').getBoundingClientRect().top), top: Math.round(t.getBoundingClientRect().top) })));
+  const rowsOf = [...new Set(tight.map(t => t.top))];
+  ok(tight.every(t => t.h <= 82) && rowsOf.every(top => new Set(tight.filter(t => t.top === top).map(t => t.v)).size === 1),
+    'two-row strip tiles are at most 82px tall with values level across each row', tight);
   const pc = await module('Defensive player contributions');
   const mc = pc?.heads.indexOf('Missed Tackles');
   const byPlayer = Object.fromEntries((pc?.rows || []).map(r => [(r[0].match(/#(\d+)/) || [])[1], r[mc]]));
