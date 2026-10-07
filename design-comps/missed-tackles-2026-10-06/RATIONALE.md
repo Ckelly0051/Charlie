@@ -24,7 +24,7 @@ the others: uppercase label, jersey-number box, roster picker, and a **Count**
 select where the other rows have Grade. The row has no grade.
 
 1. **Defense** (`defense-*`): after Tackler(s). Our defenders who missed, more
-   than one allowed (`2 + 3`), plus the count.
+   than one allowed (`2, 3`, comma-separated like Tackler(s)), plus the count.
 2. **Offense** (`offense-*`): after Receiver, count only: the defense missed
    on our ball carrier, and opponents are not on our roster.
 3. **Kickoff / Punt coverage** (`kickoff-*`): after Opponent Returner. Our

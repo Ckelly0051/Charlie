@@ -76,7 +76,7 @@ const apply = async (mode, anchorText, label, count, missedBy) => {
         if (toggle) toggle.innerHTML = '<span aria-hidden="true">▸</span>Show roster';
       }
       missed.classList.add('is-active');
-      for (const b of missed.querySelectorAll('.gi-player-quick button')) b.classList.toggle('is-active', missedBy.split(' + ').includes(b.textContent.trim()));
+      for (const b of missed.querySelectorAll('.gi-player-quick button')) b.classList.toggle('is-active', missedBy.split(', ').includes(b.textContent.trim()));
     } else {
       // No jersey box or roster: the defenders who missed are not ours. The
       // Count select takes the box's place so the row keeps the grid's columns.
@@ -93,7 +93,7 @@ const apply = async (mode, anchorText, label, count, missedBy) => {
 for (const [w, h] of [[1440, 900], [1280, 800]]) {
   const d = await setup(w, h, 'defense');
   const nums = (season.roster || []).filter(p => p.side !== 'O').map(p => String(p.num));
-  const missedBy = nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(' + ');
+  const missedBy = nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(', ');
   await apply('ours', 'Tackler', 'Missed Tackles', '2', missedBy);
   await page.screenshot({ path: `${OUT}/defense-${w}x${h}.png` });
   console.log('defense play', d.id, 'tackler', d.tackler, 'missed', missedBy);
@@ -102,7 +102,7 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
   await page.screenshot({ path: `${OUT}/offense-${w}x${h}.png` });
   console.log('offense play', o.id, 'carrier', o.carrier);
   await setup(w, h, 'kickoff');
-  await apply('ours', 'Returner', 'Missed Tackles', '1', missedBy.split(' + ')[0]);
+  await apply('ours', 'Returner', 'Missed Tackles', '1', missedBy.split(', ')[0]);
   await page.screenshot({ path: `${OUT}/kickoff-${w}x${h}.png` });
   await setup(w, h, 'puntReturn');
   await apply('theirs', 'Returner', 'Missed Tackles', '2', '');
@@ -112,7 +112,7 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
 {
   const d = await setup(1440, 900, 'defense');
   const nums = (season.roster || []).filter(p => p.side !== 'O').map(p => String(p.num));
-  await apply('ours', 'Tackler', 'Missed Tackles', '2', nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(' + '));
+  await apply('ours', 'Tackler', 'Missed Tackles', '2', nums.filter(n => !String(d.tackler).split(/\s*\+\s*|,\s*/).includes(n)).slice(0, 2).join(', '));
   // Tight spacing for collapsed rows: 6px row padding, a 20px Show roster
   // link and a 2px gap between rows. Coarse pointers keep their 44px targets.
   await page.addStyleTag({ content: '@media (pointer:fine){.gi-tag-players{row-gap:2px}.gi-tag-players>div{padding:6px 8px}.gi-player-roster-toggle{min-height:20px}}' });
