@@ -26,26 +26,32 @@ Defense board, Performance page, at Full season (`defense-*`,
 `season-defense-full-1440.png`):
 
 1. **Tackling** (new module, after Disruption, in Disruption's fixed-table
-   format, five rows): Missed tackles (3+ counted as 3), Plays with a missed
-   tackle, Missed-tackle play rate, Yards / play with a missed tackle, Yards /
+   format, five rows): Missed Tackles (the exact total), Plays with a Missed
+   Tackle, Missed Tackle play rate, Yards / play with a Missed Tackle, Yards /
    play without. Eligible snaps are defensive snaps with missed tackles
    charted (`0` included, blank excluded).
 2. **Game-by-game**: a Missed Tackles column. A game with none charted shows
    `—`, never `0`.
-3. **Season vs Last 3**: a Missed-tackle play rate row (seven rows).
-4. **Defensive player contributions**: a Missed column after Ast, sortable,
+3. **Season vs Last 3**: a Missed Tackle play rate row (seven rows).
+4. **Defensive player contributions**: a Missed Tackles column after Ast, sortable,
    the plays on which the player is named in Missed Tackles.
 
-Players tab, Tackles module (`players-tackles-*`): a **Miss** column after
+Players tab, Tackles module (`players-tackles-*`): an **MTkl** column after
 Ast, the same per-player count, opening that player's missed-tackle film.
 
-At Current game scope the Tackling module and the Missed columns show the one
+At Current game scope the Tackling module and the player columns show the one
 game; Game-by-game and Season vs Last 3 stay Full season only, as today.
 
-## Decisions for the coach
+## Coach decisions (2026-10-07)
 
-- **3+ in totals.** A `3+` play adds 3 to Missed tackles, labeled in the row.
-  The play counts once in every play-based measure.
+- **Labels.** The full words "Missed Tackles" wherever there is room; `MTkl`
+  is the abbreviation where columns are abbreviated (Players > Tackles, beside
+  Tkl and Sack).
+- **True totals.** Charting records an exact count `0` to `9`, so Missed
+  Tackles is a true sum. A play counts once in every play-based measure.
+
+## Open for the coach
+
 - **Per-player count** is plays named, not misses: a player named on a play
   with a count of 2 gets 1, because the count is not split by player.
 - Every number opens its plays' film, like the rows around it.

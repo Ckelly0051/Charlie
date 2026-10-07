@@ -76,8 +76,8 @@ const seed = async () => page.evaluate(() => {
     // Longer gains are likelier to include a miss, as on film.
     const r = hash(`${gi}|${p.id}|missed`), y = Math.max(0, Number(p.tags.yardage) || 0);
     const miss = Math.min(.85, .1 + y * .045);
-    p.tags.missedTackles = r >= miss ? '0' : r < miss * .6 ? '1' : r < miss * .9 ? '2' : '3+';
-    const n = { '0': 0, '1': 1, '2': 2, '3+': 3 }[p.tags.missedTackles];
+    p.tags.missedTackles = r >= miss ? '0' : r < miss * .55 ? '1' : r < miss * .82 ? '2' : r < miss * .95 ? '3' : '4';
+    const n = Number(p.tags.missedTackles);
     const pool = ['5', '59', '42', '7', '81', '99', '82', '2', '25'];
     const names = n && hash(`${p.id}:${g.id}`) > .2 ? [...new Set([pool[Math.floor(hash(`a${g.id}${p.id}`) * pool.length)], n > 1 ? pool[Math.floor(hash(`b${g.id}${p.id}`) * pool.length)] : null].filter(Boolean))] : [];
     p.tags.players = { ...(p.tags.players || {}), ...(names.length ? { missedTackler: names.join(', ') } : {}) };
@@ -86,7 +86,7 @@ const seed = async () => page.evaluate(() => {
 });
 const numbers = () => page.evaluate(() => {
   const store = window.app.storage.seasonStore, games = store.data.games;
-  const count = v => ({ '0': 0, '1': 1, '2': 2, '3+': 3 })[v];
+  const count = v => Number(v);
   const yards = p => Number(p.tags?.yardage) || 0;
   const classified = p => /^(run|pass)$/i.test(p.tags?.runPass || '');
   const charted = games.flatMap(g => (g.plays || []).filter(p => p.tags?.unit === 'defense' && p.tags.missedTackles != null).map(p => ({ ...p, __g: g })));
@@ -110,10 +110,10 @@ const injectDefense = async n => page.evaluate(n => {
   tackling.dataset.def2Module = 'Tackling';
   tackling.style.setProperty('--def2-module-height', `${96 + 5 * 38}px`);
   tackling.innerHTML = `<header><h3>Tackling</h3></header><div class="gi-def2-tablewrap"><table><thead><tr><th>Measure</th><th>Value</th><th>Eligible snaps</th></tr></thead><tbody>`
-    + row(['Missed tackles (3+ counted as 3)', n.total, n.eligible])
-    + row(['Plays with a missed tackle', n.plays, n.eligible])
-    + row(['Missed-tackle play rate', n.rate, n.eligible])
-    + row(['Yards / play with a missed tackle', n.yppMiss, n.plays])
+    + row(['Missed Tackles', n.total, n.eligible])
+    + row(['Plays with a Missed Tackle', n.plays, n.eligible])
+    + row(['Missed Tackle play rate', n.rate, n.eligible])
+    + row(['Yards / play with a Missed Tackle', n.yppMiss, n.plays])
     + row(['Yards / play without', n.yppNone, n.eligible - n.plays]) + '</tbody></table></div>';
   mod('Disruption').after(tackling);
   // 2. Game-by-game: a Missed Tackles column; an uncharted game is "—".
@@ -123,11 +123,11 @@ const injectDefense = async n => page.evaluate(n => {
   // 3. Season vs Last 3: one more row.
   const s3 = mod('Season vs Last 3');
   s3.style.setProperty('--def2-module-height', `${96 + 7 * 38}px`);
-  s3.querySelector('tbody').insertAdjacentHTML('beforeend', '<tr class=""><td>Missed-tackle play rate</td><td>' + n.rate + '</td><td>' + n.rateLast3 + '</td></tr>');
+  s3.querySelector('tbody').insertAdjacentHTML('beforeend', '<tr class=""><td>Missed Tackle play rate</td><td>' + n.rate + '</td><td>' + n.rateLast3 + '</td></tr>');
   // 4. Player contributions: a Missed column after Ast.
   const pc = mod('Defensive player contributions');
   const astTh = [...pc.querySelectorAll('thead th')].find(th => th.textContent.startsWith('Ast'));
-  const th = astTh.cloneNode(true); th.firstChild.textContent = 'Missed'; th.title = 'Sort by Missed'; astTh.after(th);
+  const th = astTh.cloneNode(true); th.firstChild.textContent = 'Missed Tackles'; th.title = 'Sort by Missed Tackles'; astTh.after(th);
   const idx = [...astTh.parentNode.children].indexOf(astTh);
   for (const tr of pc.querySelectorAll('tbody tr')) {
     const num = (tr.cells[0].textContent.match(/#(\d+)/) || [])[1];
@@ -140,7 +140,7 @@ const injectPlayers = async n => page.evaluate(n => {
   const cols = mod.querySelector('colgroup'), ths = [...mod.querySelectorAll('thead th')];
   const ast = ths.findIndex(th => th.textContent.trim() === 'Ast');
   cols.children[ast].after(cols.children[ast].cloneNode());
-  const th = ths[ast].cloneNode(true); th.textContent = 'Miss'; th.className = ''; ths[ast].after(th);
+  const th = ths[ast].cloneNode(true); th.textContent = 'MTkl'; th.title = 'Missed Tackles'; th.className = ''; ths[ast].after(th);
   for (const tr of mod.querySelectorAll('tbody tr')) {
     const num = tr.querySelector('[data-player-open]')?.dataset.playerOpen;
     const v = num ? (n.perPlayer[num] || 0) : '–';

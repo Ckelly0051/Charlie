@@ -47,7 +47,7 @@ const setup = async (width, height, unit) => {
 
 // The proposal: Missed Tackles is one more player row in Players & Grades,
 // directly after Tackler(s) and built like it: label, jersey-number box,
-// roster picker, and a Count select (blank = not charted, 0 = checked, none)
+// roster picker, and a Count select, 0-9 exact (blank = not charted, 0 = checked, none)
 // where the other rows have Grade. Offense has the same row after Receiver,
 // count only, because opponents are not on our roster.
 // mode 'ours': our players missed (roster row); 'theirs': the opponent missed on our carrier (count only).
@@ -64,7 +64,7 @@ const apply = async (mode, anchorText, label, count, missedBy) => {
     const missed = source.cloneNode(true);
     missed.querySelector('strong').textContent = label;
     const select = missed.querySelector('select');
-    select.innerHTML = ['', '0', '1', '2', '3+'].map(v => `<option value="${v}">${v || 'Count'}</option>`).join('');
+    select.innerHTML = ['', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map(v => `<option value="${v}">${v || 'Count'}</option>`).join('');
     select.value = count;
     select.setAttribute('aria-label', 'missed tackles count');
     if (mode === 'ours') {

@@ -99,7 +99,8 @@ offered):
 
 Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); not built yet.
 
-- `missedTackles`: the play's count, one of `0`, `1`, `2`, `3+`. Blank
+- `missedTackles`: the play's exact count, `0` to `9` (no `3+`: Reports
+  total it exactly). Blank
   means not charted and is never counted as zero; `0` means checked, none.
   Single-value. It is independent of the players named: a count with no
   players is valid, and one player may miss more than once.

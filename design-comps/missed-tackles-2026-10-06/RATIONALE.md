@@ -12,8 +12,9 @@ page only.
 ## Coach decisions (2026-10-06)
 
 - Charted on offense, defense and Special Teams.
-- The play-level event is a count: `0`, `1`, `2`, `3+`. Blank means not
-  charted; `0` means checked, none. Uncharted is never counted as zero.
+- The play-level event is an exact count, `0` to `9` (revised 2026-10-07 from
+  `0`, `1`, `2`, `3+`: Reports need true totals, and `3+` has none). Blank
+  means not charted; `0` means checked, none. Uncharted is never counted as zero.
 - Revision 1 put the count in its own chip row above Tackler(s). The coach
   rejected it: Missed Tackles goes below Tackler(s), with the same formatting
   and spacing as the player rows.
