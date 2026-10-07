@@ -4,7 +4,7 @@
  * Four PAGES selected from the shared secondary bar (coach-approved comp,
  * design-comps/reports-secondary-nav-2026-09-23) - Performance, Opponent
  * offense, Scheme & passing, Situations - each its existing numbered section
- * of fixed-height modules; Performance opens with the ten-KPI strip. Every value comes
+ * of fixed-height modules; Performance opens with the eleven-KPI strip. Every value comes
  * from `StatsEngine.defenseBoard()`; this file formats and lays out, and derives
  * no football value.
  *
@@ -81,7 +81,7 @@ function buildSections(board, seasonScope) {
     { title: 'Disruption', schema: 'fixed', slots: 6, heads: ['Event', 'Plays', 'Rate', 'Eligible snaps'],
       rows: b.disruption.map(r => row([r.name, r.plays, percent(r.rate), r.eligible], r.refs)) },
     // Missed Tackles over the snaps that charted a count; blank is not charted.
-    { title: 'Tackling', wide: true, schema: 'fixed', slots: 5, heads: ['Measure', 'Value', 'Eligible snaps'],
+    { title: 'Tackling', wide: true, schema: 'fixed', slots: 6, heads: ['Measure', 'Value', 'Eligible snaps'],
       rows: b.tackling.map(r => row([r.name, r.kind === 'percent' ? percent(r.value) : r.value, r.eligible], r.refs)) },
     { title: seasonScope ? 'Season vs Last 3' : 'Current game vs Season', schema: 'fixed', slots: 7,
       heads: ['Measure', seasonScope ? 'Season' : 'Game', seasonScope ? 'Last 3' : 'Season'],
@@ -264,7 +264,7 @@ export function DefenseTab({ board, scoped, screen, fixedScope = false }) {
   const kpis = [
     ['Total yards allowed', cell(k.yards)], ['Rush yards allowed', cell(k.runYards)], ['Pass yards allowed', cell(k.passYards)],
     ['Yards / play', k.ypp == null ? '—' : k.ypp.toFixed(1)], ['Takeaways', cell(k.takeaways)],
-    ['Explosive Plays', cell(k.explosives)], ['Touchdowns Allowed', cell(k.touchdownsAllowed)],
+    ['Explosive Plays Allowed', cell(k.explosives)], ['Missed Tackles', cell(k.missedTackles)], ['Touchdowns Allowed', cell(k.touchdownsAllowed)],
     ['Defensive Touchdowns', cell(k.defensiveTouchdowns)],
     ['3rd Down Stop %', cell(percent(k.thirdDownStop))], ['4th Down Stop %', cell(percent(k.fourthDownStop))],
   ];

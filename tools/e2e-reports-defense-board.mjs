@@ -352,7 +352,7 @@ ok(pages.every((item, i) => item.page === PAGES[i] && item.sections.length === 1
 
 /* ══ 9. Literal labels ═══════════════════════════════════════════════════ */
 seen = await board();
-ok(!/\bTD\b|ADDED/.test(seen.text) && /Touchdowns Allowed/.test(seen.text) && /Explosive Plays\b/.test(seen.text) && !/Explosive Plays Allowed/.test(seen.text)
+ok(!/\bTD\b|ADDED/.test(seen.text) && /Touchdowns Allowed/.test(seen.text) && /Explosive Plays Allowed/.test(seen.text) && /Missed Tackles/.test(seen.text)
   && /with Run\/Pass charted/.test(seen.text) && /1st Downs Allowed/.test(seen.text) && /Allowed %/.test(seen.text)
   && /Red-zone Touchdown Rate/.test(seen.text),
   'the board uses its literal labels and no ambiguous TD abbreviation or proposal marker');

@@ -7,7 +7,7 @@
  *    hold on real data, not just on one fixture.
  * 2. The approved Revision 2 composition, pinned: module inventory, order,
  *    width and external height for both scopes at both desktop widths, and the
- *    ten KPIs with their canonical values.
+ *    eleven KPIs with their canonical values.
  * 3. The dashboard's existing data contracts, unchanged by Revision 2.
  * 4. The four pages in the shared secondary bar (coach-approved comp,
  *    2026-09-23): one section per page, the bar directly under the global
@@ -30,8 +30,9 @@ const SOURCE = CANONICAL_SEASON;
 // One folder, replaced each run, so captures never accumulate.
 const OUT = 'artifacts/defense-production-realdata/latest';
 const DESKTOP = [[1440, 900], [1280, 900]];
+// Eleven tiles (design-comps/missed-tackles-reports-r2-2026-10-07): Explosive Plays Allowed, then Missed Tackles.
 const KPI_LABELS = ['Total yards allowed', 'Rush yards allowed', 'Pass yards allowed', 'Yards / play', 'Takeaways',
-  'Explosive Plays', 'Touchdowns Allowed', 'Defensive Touchdowns', '3rd Down Stop %', '4th Down Stop %'];
+  'Explosive Plays Allowed', 'Missed Tackles', 'Touchdowns Allowed', 'Defensive Touchdowns', '3rd Down Stop %', '4th Down Stop %'];
 const SECTIONS = ['Defensive performance', 'Opponent offense', 'Scheme and passing defense', 'Situational results'];
 
 /* THE APPROVED REVISION 2 COMPOSITION on the canonical season: [title, width,
@@ -40,7 +41,7 @@ const SECTIONS = ['Defensive performance', 'Opponent offense', 'Scheme and passi
 const INVENTORY = {
   season: [
     // Tackling and the seventh comparison row: design-comps/missed-tackles-reports-2026-10-07.
-    ['Game-by-game', 'full', 380], ['Disruption', 'full', 286], ['Tackling', 'full', 286], ['Season vs Last 3', 'full', 362],
+    ['Game-by-game', 'full', 380], ['Disruption', 'full', 286], ['Tackling', 'full', 324], ['Season vs Last 3', 'full', 362],
     ['By down', 'half', 248], ['By quarter', 'half', 248], ['Opponent drive outcomes', 'full', 300],
     ['Defensive player contributions', 'full', 460], ['Opponent possessions', 'full', 460], ['Production by play type', 'full', 380],
     ['Performance by Play Direction', 'full', 210], ['Top 10 Formations Faced', 'full', 460], ['Personnel faced', 'half', 300],
@@ -52,7 +53,7 @@ const INVENTORY = {
     ['By hash', 'full', 210], ['Motion', 'full', 300],
   ],
   game: [
-    ['Disruption', 'full', 286], ['Tackling', 'full', 286], ['Current game vs Season', 'full', 362], ['By down', 'half', 248],
+    ['Disruption', 'full', 286], ['Tackling', 'full', 324], ['Current game vs Season', 'full', 362], ['By down', 'half', 248],
     ['By quarter', 'half', 248], ['Opponent drive outcomes', 'full', 220], ['Defensive player contributions', 'full', 380],
     ['Opponent possessions', 'full', 300], ['Production by play type', 'full', 300], ['Performance by Play Direction', 'full', 210],
     ['Top 10 Formations Faced', 'full', 220], ['Personnel faced', 'half', 220], ['Backfield faced', 'half', 220],
@@ -65,8 +66,9 @@ const INVENTORY = {
   ],
 };
 const KPI_VALUES = {
-  season: ['490', '266', '224', '3.2', '2', '7', '7', '0', '81.4%', '47.1%'],
-  game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '100.0%', '—'],
+  // No season has missed tackles charted yet, so its total is — (never 0).
+  season: ['490', '266', '224', '3.2', '2', '7', '—', '7', '0', '81.4%', '47.1%'],
+  game: ['0', '0', '0', '0.0', '1', '0', '—', '0', '0', '100.0%', '—'],
 };
 const FIXED = new Set(['Disruption', 'Tackling', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
   'Performance by Play Direction', 'Run / Pass vs Strength', 'Blitz Performance', 'Blitz Type Performance',
@@ -288,7 +290,7 @@ for (const game of games) {
 }
 ok(geometry.every(item => item.present), 'the Revision 2 board renders for every real game at both widths');
 ok(geometry.every(item => JSON.stringify(item.kpiLabels) === JSON.stringify(KPI_LABELS)),
-  'every game shows the ten KPIs, in order, with their literal labels',
+  'every game shows the eleven KPIs, in order, with their literal labels',
   JSON.stringify(geometry.find(item => JSON.stringify(item.kpiLabels) !== JSON.stringify(KPI_LABELS))?.kpiLabels));
 ok(geometry.every(item => JSON.stringify(item.sections) === JSON.stringify(SECTIONS)),
   'every game renders the four sections in order', JSON.stringify(geometry.map(item => item.sections).find(s => JSON.stringify(s) !== JSON.stringify(SECTIONS))));
@@ -432,7 +434,7 @@ for (const scope of ['season', 'game']) {
       `${scope} @${width}: module inventory, order, width and height match the approved Revision 2 composition`,
       JSON.stringify(inventory.map((row, i) => JSON.stringify(row) === JSON.stringify(INVENTORY[scope][i]) ? null : { got: row, want: INVENTORY[scope][i] }).filter(Boolean).slice(0, 4)));
     ok(JSON.stringify(seen.kpiValues) === JSON.stringify(KPI_VALUES[scope]),
-      `${scope} @${width}: the ten KPIs carry the canonical values`, JSON.stringify(seen.kpiValues));
+      `${scope} @${width}: the eleven KPIs carry the canonical values`, JSON.stringify(seen.kpiValues));
     if (width === 1440 && scope === 'season') {
       const outcomes = seen.modules.find(module => module.title === 'Opponent drive outcomes')?.firstCells;
       /* A drive's end is read from the NEXT play. On the canonical fixture the
@@ -808,12 +810,13 @@ ok(exportDrives.possessions.filter(name => name === 'Touchdown').length === 7 &&
   'the board possessions carry the same seven opponent touchdowns and 42 points as the export',
   JSON.stringify({ points: exportDrives.points }));
 
-/* KPI VALUES FIT THEIR TILE at every width that keeps the ten-tile row, even
-   when every tile carries the widest value the strip can print. The production
+/* KPI VALUES FIT THEIR TILE at every width, even when every tile carries the
+   widest value the strip can print. Eleven tiles hold one row from 1640px and
+   wrap to six then five below (coach, 2026-10-07; design-comps/missed-tackles-reports-r2-2026-10-07). The production
    condensed face is wider than the comp's, and `100.0%` once ran 16px past its
    tile divider at 1280. */
 const kpiFit = [];
-for (const [width, height] of [[1920, 1080], [1600, 900], [1440, 900], [1421, 900], [1400, 900], [1366, 768], [1301, 900], [1280, 900], [1241, 900], [1239, 900], [1101, 900]]) {
+for (const [width, height] of [[1920, 1080], [1640, 900], [1639, 900], [1600, 900], [1440, 900], [1366, 768], [1280, 900], [1240, 900], [1101, 900]]) {
   await page.setViewport({ width, height });
   await sleep(150);
   kpiFit.push(...await page.evaluate(w => [...document.querySelectorAll('[data-def2-kpi]')].map(tile => {
@@ -830,8 +833,8 @@ for (const [width, height] of [[1920, 1080], [1600, 900], [1440, 900], [1421, 90
     return { w, kpi: tile.dataset.def2Kpi, over: Math.round((text.right - right) * 10) / 10, size: getComputedStyle(strong).fontSize, rows: row };
   }), width));
 }
-ok(kpiFit.every(item => item.over <= 0 && item.rows === (item.w > 1240 ? 1 : 2)),
-  'the widest KPI value fits its tile at every desktop width: ten tiles on one row above 1240px, five a row below',
+ok(kpiFit.every(item => item.over <= 0 && item.size === '34px' && item.rows === (item.w >= 1640 ? 1 : 2)),
+  'the widest KPI value fits its tile at full size at every desktop width: eleven tiles on one row from 1640px, six then five below',
   JSON.stringify(kpiFit.filter(item => item.over > 0 || item.rows !== (item.w > 1240 ? 1 : 2)).slice(0, 4)));
 await page.setViewport({ width: 1440, height: 900 });
 

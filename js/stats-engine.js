@@ -2035,7 +2035,16 @@ export class StatsEngine {
        never 0. The total sums the exact counts. */
     const missedCharted = rows => rows.filter(isDefense).filter(p => MissedTackles.count(p) != null);
     const missedTotal = rows => { const charted = missedCharted(rows); return charted.length ? charted.reduce((sum, p) => sum + MissedTackles.count(p), 0) : null; };
-    const missedRate = rows => { const charted = missedCharted(rows); return rate(charted.filter(p => MissedTackles.count(p) > 0).length, charted.length); };
+    /* TACKLING. A team tackle is a play with a tackler named (a shared tackle
+       is one). The Missed Tackle rate is misses / (tackles + misses), both over
+       the snaps that charted a count, so an uncharted miss never reads as a
+       made tackle. */
+    const tackled = p => S.splitPlayers(S.effectivePlayers(p).tackler).length > 0;
+    const missedRate = rows => {
+      const charted = missedCharted(rows);
+      const misses = charted.reduce((sum, p) => sum + MissedTackles.count(p), 0);
+      return rate(misses, charted.filter(tackled).length + misses);
+    };
 
     const byGame = d.byGame.map(row => ({ name: row.name, yards: row.yards, runYards: row.runYards,
       passYards: row.passYards, ypp: row.ypp, explosives: row.explosives, takeaways: row.turnovers,
@@ -2060,16 +2069,19 @@ export class StatsEngine {
       { name: '3rd Down Stop %', kind: 'percent', current: stop(d.thirdDownAllowed.rate), comparison: stop(cd.thirdDownAllowed.rate) },
       { name: '4th Down Stop %', kind: 'percent', current: stop(d.fourthDownAllowed.rate), comparison: stop(cd.fourthDownAllowed.rate) },
       { name: 'Pass completion rate', kind: 'percent', current: passOverview.completionRate, comparison: passing(compare).completionRate },
-      { name: 'Missed Tackle play rate', kind: 'percent', current: missedRate(ps), comparison: missedRate(compare) },
+      { name: 'Missed Tackle rate', kind: 'percent', current: missedRate(ps), comparison: missedRate(compare) },
     ];
 
     const tackleCharted = missedCharted(ps);
     const withMiss = tackleCharted.filter(p => MissedTackles.count(p) > 0);
     const withoutMiss = tackleCharted.filter(p => MissedTackles.count(p) === 0);
+    const tackles = ps.filter(tackled);
+    kpis.missedTackles = missedTotal(ps);
     const tackling = [
+      { name: 'Total Tackles', kind: 'number', value: tackles.length, eligible: ps.length, refs: S._refsOf(tackles) },
       { name: 'Missed Tackles', kind: 'number', value: missedTotal(ps), eligible: tackleCharted.length, refs: S._refsOf(withMiss) },
+      { name: 'Missed Tackle rate', kind: 'percent', value: missedRate(ps), eligible: tackleCharted.length, refs: S._refsOf(tackleCharted) },
       { name: 'Plays with a Missed Tackle', kind: 'number', value: tackleCharted.length ? withMiss.length : null, eligible: tackleCharted.length, refs: S._refsOf(withMiss) },
-      { name: 'Missed Tackle play rate', kind: 'percent', value: rate(withMiss.length, tackleCharted.length), eligible: tackleCharted.length, refs: S._refsOf(withMiss) },
       { name: 'Yards / play with a Missed Tackle', kind: 'number', value: ypp(withMiss), eligible: withMiss.length, refs: S._refsOf(withMiss) },
       { name: 'Yards / play without', kind: 'number', value: ypp(withoutMiss), eligible: withoutMiss.length, refs: S._refsOf(withoutMiss) },
     ];

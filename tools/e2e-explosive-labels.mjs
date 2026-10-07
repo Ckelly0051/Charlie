@@ -1,8 +1,9 @@
 /** Explosive-play terminology (docs/OPEN-DEFECTS.md, Coach Reports smoke
  *  Finding 3). A count is "Explosive Plays"; a percentage is "Explosive Plays
  *  Rate"; a defensive measure in an export or a mixed report says "Allowed".
- *  ON THE DEFENSE BOARD "Allowed" is implied and is NOT printed (review
- *  correction, 2026-09-23): it wrapped compact KPI tiles and table headers.
+ *  ON THE DEFENSE BOARD the KPI tile reads "Explosive Plays Allowed" (coach,
+ *  2026-10-07, design-comps/missed-tackles-reports-r2-2026-10-07), on two lines
+ *  like its neighbors; table headers there keep "Explosive Plays" (Allowed implied).
  *  Wording only: metric ids, thresholds, formulas, cohorts and stored data are
  *  untouched.
  *
@@ -13,8 +14,8 @@
  *  2. Rendered, canonical 2025 JV (read-only, hash-checked): every Reports tab
  *     and every page of it, Defense and Special Teams at both scopes, and
  *     Study's metric picker. Every label naming the metric uses the approved
- *     wording; the Defense board says exactly "Explosive Plays" / "Explosive
- *     Plays Rate", its KPI label holds one line and its table headers keep
+ *     wording; the Defense board's tables say exactly "Explosive Plays" / "Explosive
+ *     Plays Rate", its KPI tile "Explosive Plays Allowed" in two lines, and its table headers keep
  *     44px; no such label is clipped or below 12.5px at 1440, 1280 and 768.
  *  3. Exports: the game, season, Defense, Special Teams and Self-Scout HTML
  *     reports carry the same wording, with Allowed on defensive tables.
@@ -210,14 +211,15 @@ for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024]]) {
   ok(labels.length >= 20, `${w}: the crawl reaches explosive-play labels across Reports (${labels.length})`, String(labels.length));
   ok(wrong.length === 0, `${w}: every label uses Explosive Plays / Explosive Plays Rate / Allowed`, JSON.stringify(wrong.slice(0, 6)));
   const def = labels.filter(f => f.defense);
-  ok(def.length > 0 && def.every(f => /^Explosive Plays( Rate)?$/.test(f.text)),
-    `${w}: every Defense-board label is "Explosive Plays" or "Explosive Plays Rate", Allowed implied (${def.length})`,
+  const tableLabels = def.filter(f => !/Allowed$/.test(f.text));
+  ok(def.length > 0 && tableLabels.every(f => /^Explosive Plays( Rate)?$/.test(f.text)) && def.filter(f => /Allowed$/.test(f.text)).every(f => f.text === 'Explosive Plays Allowed'),
+    `${w}: Defense-board tables say "Explosive Plays" or "Explosive Plays Rate"; only the KPI tile adds Allowed (${def.length})`,
     JSON.stringify(def.filter(f => !/^Explosive Plays( Rate)?$/.test(f.text)).slice(0, 4)));
-  /* The compact KPI tile: the label holds ONE line (18px line-height). With
-     "Allowed" it took two and pushed its value down against its neighbors. */
+  /* The KPI tile: every label in the strip reserves two lines, so "Explosive
+     Plays Allowed" on two lines keeps its value level with its neighbors. */
   const kpiLabel = observations.find(o => o.where === `${w}/defense#performance`)?.kpi;
-  ok(kpiLabel?.text === 'Explosive Plays' && kpiLabel.lines === 1,
-    `${w}: the Defense KPI label reads "Explosive Plays" on one line`, JSON.stringify(kpiLabel));
+  ok(kpiLabel?.text === 'Explosive Plays Allowed' && kpiLabel.lines <= 2,
+    `${w}: the Defense KPI label reads "Explosive Plays Allowed" within two lines`, JSON.stringify(kpiLabel));
   const clipped = found.filter(f => f.clipped);
   ok(clipped.length === 0, `${w}: no explosive-play label is clipped`, JSON.stringify(clipped.slice(0, 6)));
   const small = found.filter(f => f.font < 12.5 && !f.svg && !f.micro && !f.where.endsWith('/overview'));

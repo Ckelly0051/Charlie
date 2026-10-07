@@ -1,6 +1,7 @@
 /* MISSED TACKLES IN REPORTS (DEFENSE) --------------------------------------------
    Approved comp design-comps/missed-tackles-reports-2026-10-07 (an exception to
-   roadmap step 4, defensive side only): a Tackling module after Disruption, a
+   roadmap step 4, defensive side only), revised by
+   design-comps/missed-tackles-reports-r2-2026-10-07: a Tackling module after Disruption, a
    Missed Tackles column in Game-by-game, a Season vs Last 3 row and a Missed
    Tackles column in Defensive player contributions (also Season > Defense), and
    MTkl in Players > Tackles. Exact totals; a blank is not charted and never 0;
@@ -71,11 +72,15 @@ try {
   await page.evaluate(() => window.app.reportsScreen.selectTab('defense'));
   await sleep(500); await click('Full season'); await sleep(500);
   const t = await module('Tackling');
-  ok(t && t.prev === 'Disruption' && t.schema === 'fixed' && t.height === `${96 + 5 * 38}px` && t.heads.join() === 'Measure,Value,Eligible snaps',
-    'Tackling follows Disruption as a fixed five-row module', t);
+  ok(t && t.prev === 'Disruption' && t.schema === 'fixed' && t.height === `${96 + 6 * 38}px` && t.heads.join() === 'Measure,Value,Eligible snaps'
+    && t.rows.map(r => r[0]).join('|') === 'Total Tackles|Missed Tackles|Missed Tackle rate|Plays with a Missed Tackle|Yards / play with a Missed Tackle|Yards / play without',
+    'Tackling follows Disruption as a fixed six-row module in the approved order', t);
   const val = name => t?.rows.find(r => r[0] === name);
+  ok(val('Total Tackles')?.[1] === '6' && val('Total Tackles')?.[2] === '6', 'Total Tackles counts each play with a tackler once, over every defensive snap', t?.rows);
+  ok(val('Missed Tackle rate')?.[1] === '58.3%' && val('Missed Tackle rate')?.[2] === '5',
+    'Missed Tackle rate is misses / (tackles + misses) over the snaps with a count charted: 7 / (5 + 7)', t?.rows);
   ok(val('Missed Tackles')?.[1] === '7' && val('Missed Tackles')?.[2] === '5', 'Missed Tackles is the exact sum (2+0+1+4+0) over the 5 snaps that charted a count', t?.rows);
-  ok(val('Plays with a Missed Tackle')?.[1] === '3' && /^60(\.0)?%$/.test(val('Missed Tackle play rate')?.[1] || ''), 'plays with a miss and the play rate count each play once', t?.rows);
+  ok(val('Plays with a Missed Tackle')?.[1] === '3' && !val('Missed Tackle play rate'), 'plays with a miss count each play once; the play rate row is gone', t?.rows);
   ok(val('Yards / play with a Missed Tackle')?.[1] === '13.3' && val('Yards / play with a Missed Tackle')?.[2] === '3'
     && val('Yards / play without')?.[1] === '0.5' && val('Yards / play without')?.[2] === '2', 'yards per play with and without a miss', t?.rows);
   const g = await module('Game-by-game');
@@ -83,8 +88,23 @@ try {
   ok(col === g?.heads.length - 1 && g.rows[0][col] === '—' && g.rows[1][col] === '3' && g.rows[2][col] === '4',
     'Game-by-game: a game with no count charted is —, never 0; offense and kick coverage counts are not the defense\'s', g);
   const s3 = await module('Season vs Last 3');
-  const rateRow = s3?.rows.find(r => r[0] === 'Missed Tackle play rate');
-  ok(s3 && s3.height === `${96 + 7 * 38}px` && rateRow && /^60(\.0)?%$/.test(rateRow[1]), 'Season vs Last 3 adds the Missed Tackle play rate row', s3);
+  const rateRow = s3?.rows.find(r => r[0] === 'Missed Tackle rate');
+  ok(s3 && s3.height === `${96 + 7 * 38}px` && rateRow && rateRow[1] === '58.3%' && rateRow[2] === '58.3%', 'Season vs Last 3 shows the Missed Tackle rate', s3);
+  const strip = await page.evaluate(() => {
+    const k = document.querySelector('.gi-def2-kpis');
+    return { tiles: [...k.children].map(el => [el.querySelector('span')?.textContent.trim(), el.querySelector('strong')?.textContent.trim()]),
+      align: getComputedStyle(k.firstElementChild).textAlign, cols: getComputedStyle(k).gridTemplateColumns.split(' ').length,
+      tall: [...k.querySelectorAll('span')].some(span => span.getBoundingClientRect().height > 38) };
+  });
+  const at = strip.tiles.findIndex(([label]) => label === 'Missed Tackles');
+  // Two rows (six, then five) below 1640px; one row of eleven from 1640px.
+  await page.setViewport({ width: 1920, height: 2400 }); await sleep(300);
+  const wide = await page.evaluate(() => getComputedStyle(document.querySelector('.gi-def2-kpis')).gridTemplateColumns.split(' ').length);
+  await page.setViewport({ width: 1440, height: 2400 }); await sleep(300);
+  ok(strip.cols === 6 && wide === 11, 'the strip is two rows at 1440 and one row of eleven at 1920', { at1440: strip.cols, at1920: wide });
+  ok(strip.tiles.length === 11 && strip.tiles[at - 1]?.[0] === 'Explosive Plays Allowed' && strip.tiles[at]?.[1] === '7',
+    'the strip has eleven tiles: Missed Tackles (the exact total) follows Explosive Plays Allowed', strip.tiles);
+  ok(strip.align === 'center' && !strip.tall, 'the strip is centered and every label holds two lines', strip);
   const pc = await module('Defensive player contributions');
   const mc = pc?.heads.indexOf('Missed Tackles');
   const byPlayer = Object.fromEntries((pc?.rows || []).map(r => [(r[0].match(/#(\d+)/) || [])[1], r[mc]]));
@@ -93,7 +113,8 @@ try {
   const refs = await page.evaluate(() => {
     const screen = window.app.reportsScreen, plays = screen._defenseScopedPlays;
     const board = window.app.stats.defenseBoard(plays, { scope: 'season', seasonPlays: plays });
-    return { total: board.tackling[0].refs, without: board.tackling[4].refs, five: board.players.find(p => String(p.num) === '5')?.refs };
+    const row = name => board.tackling.find(r => r.name === name)?.refs;
+    return { total: row('Missed Tackles'), without: row('Yards / play without'), five: board.players.find(p => String(p.num) === '5')?.refs };
   });
   ok(JSON.stringify(refs.total) === JSON.stringify(['g-1::1', 'g-1::3', 'g-2::1']) && JSON.stringify(refs.without) === JSON.stringify(['g-1::2', 'g-2::2']),
     'every Tackling number opens exactly the plays behind it', refs);
@@ -101,7 +122,8 @@ try {
   console.log('\n== Current game ==');
   await click('Current game'); await sleep(500);
   const cg = await module('Tackling');
-  ok(cg?.rows.find(r => r[0] === 'Missed Tackles')?.[1] === '4' && cg?.rows.find(r => r[0] === 'Missed Tackles')?.[2] === '2', 'Current game scope shows the one game', cg?.rows);
+  ok(cg?.rows.find(r => r[0] === 'Missed Tackles')?.[1] === '4' && cg?.rows.find(r => r[0] === 'Missed Tackles')?.[2] === '2'
+    && cg?.rows.find(r => r[0] === 'Total Tackles')?.[1] === '2' && cg?.rows.find(r => r[0] === 'Missed Tackle rate')?.[1] === '66.7%', 'Current game scope shows the one game', cg?.rows);
 
   console.log('\n== Season > Defense ==');
   await page.evaluate(() => window.app.reportsScreen.selectTab('season'));
