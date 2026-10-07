@@ -69,10 +69,10 @@ function OverlayPanel({ overlay, service, top, effectiveModal }) {
         if (event.target === event.currentTarget && overlay.dismissOnScrim) service.close(overlay.id, 'cancel');
       }} />
     : null;
-  const classes = `gi-overlay-layer gi-overlay-${overlay.type}${effectiveModal ? ' is-modal' : ''}${top ? ' is-top' : ''}`;
   // Keys pressed inside a modal stop here so the app's charting and transport
-  // shortcuts on document never act on the screen underneath.
-  return <div class={classes} data-overlay-id={overlay.id} inert={!top || undefined} aria-hidden={!top || undefined}
+  // shortcuts on document never act on the screen underneath. The layer class
+  // names are literal in the attribute so the CSS audits see their rules as live.
+  return <div class={['gi-overlay-layer', overlay.type === 'dialog' ? 'gi-overlay-dialog' : 'gi-overlay-sheet', effectiveModal && 'is-modal', top && 'is-top'].filter(Boolean).join(' ')} data-overlay-id={overlay.id} inert={!top || undefined} aria-hidden={!top || undefined}
     onKeyDown={effectiveModal ? event => event.stopPropagation() : undefined}>
     {scrim}
     <section
@@ -170,8 +170,10 @@ function NativeOverlayHost({ service }) {
     };
   }, [state.overlays, narrow]);
 
+  // One key listener for the host's life, reading the open overlay on each key:
+  // attached only while overlays existed, it went in after the dialog painted,
+  // and an Escape pressed in that gap (a throttled or busy window) was lost.
   useEffect(() => {
-    if (!state.overlays.length) return undefined;
     const onKeyDown = event => {
       const current = service.snapshot().overlays.at(-1);
       if (!current) return;
@@ -199,7 +201,7 @@ function NativeOverlayHost({ service }) {
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [service, state.overlays.length, narrow]);
+  }, [service, narrow]);
 
   return <>
     <div class="gi-overlay-stack" data-overlay-count={state.overlays.length}>

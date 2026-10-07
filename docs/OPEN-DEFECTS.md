@@ -23,6 +23,11 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   punt returns with only a stored value now show none (coach, 2026-10-07).
   Smoke: OLV play 1 shows a 16-yard return for #13 in Special Teams and
   Players.
+- **Dialogs are centered again** (found during the smoke 112 fixes): since
+  `1.12.0-108` every dialog (Delete play, Clear tags, prompts, Remove call)
+  filled the window from the top-left because a dead-CSS pass removed its
+  placement. Escape pressed the instant a dialog opens now closes it. Smoke:
+  Delete play opens a centered 520px dialog.
 - **Tighter collapsed player rows** in Players & Grades (all units).
 - **Shared dialogs for the tagger**: Delete play, Clear tags, templates and
   the detail-clearing prompts now use the in-app dialog; a destructive one

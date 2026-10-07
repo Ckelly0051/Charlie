@@ -60,6 +60,10 @@ state = await page.evaluate(() => ({
   focusOrder: window.__modalFocusOrder,
 }));
 ok(state.active === 'Keep working', 'dialog focuses its declared default action', JSON.stringify(state));
+const placed = await page.evaluate(() => { const r = document.querySelector('.gi-overlay-dialog .gi-overlay-panel').getBoundingClientRect();
+  return { width: Math.round(r.width), centerX: Math.round(r.left + r.width / 2), centerY: Math.round(r.top + r.height / 2), vw: innerWidth, vh: innerHeight }; });
+ok(placed.width <= 520 && Math.abs(placed.centerX - placed.vw / 2) <= 2 && Math.abs(placed.centerY - placed.vh / 2) <= 2,
+  'a dialog is a centered panel at most 520px wide, not the whole screen', JSON.stringify(placed));
 ok(state.focusOrder?.appInert && state.focusOrder?.nativeRouteInert, 'modal route is inert before initial focus enters the dialog', JSON.stringify(state));
 ok(state.appInert && state.nativeRouteInert && state.modal === 'true', 'modal dialog makes legacy and native route content inert', JSON.stringify(state));
 state = await page.evaluate(async () => {
@@ -81,6 +85,14 @@ const escapeFocusRestored = await page.waitForFunction(
   { timeout: 2000 },
 ).then(() => true).catch(() => false);
 ok(escapeFocusRestored, 'Escape closes only the dialog and restores its invoker');
+// Escape pressed in the same tick a dialog opens, before any frame paints,
+// still dismisses it (a throttled or busy window used to lose it).
+state = await page.evaluate(async () => {
+  const handle = window.__GIQ_NATIVE_TEST__.service.dialog({ title: 'Immediate', actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'ok', label: 'OK', default: true }] });
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  return Promise.race([handle.result, new Promise(r => setTimeout(() => r('still open'), 500))]);
+});
+ok(state === 'cancel', 'Escape in the same tick a dialog opens dismisses it', state);
 await page.click('[data-probe-dialog]');
 await page.waitForSelector('[data-overlay-scrim]');
 await page.evaluate(() => document.querySelector('[data-overlay-scrim]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })));
