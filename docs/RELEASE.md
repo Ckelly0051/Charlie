@@ -27,6 +27,7 @@ Keep the `-N` version suffix: `configureBetaDefaults` gates on it.
 
 | Check | Owner | Evidence |
 |---|---|---|
+| Open defects read | builder | `docs/OPEN-DEFECTS.md` read before the build; every Old patterns file the build touched is fixed or named in a commit message |
 | Full gate green on the reviewed bytes | builder runs it | runner receipt: every harness exit 0 with a clean result line |
 | Analytics parity | non-builder reviewer | both goldens unchanged, or the change is named and reviewed; never regenerated to pass |
 | Data integrity | non-builder reviewer | `e2e-integrity` on the canonical fixture, zero violations |

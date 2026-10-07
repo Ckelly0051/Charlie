@@ -11,10 +11,6 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 ## Open defects
 
-- **Native `alert()` remains** in four files (code review 2026-10-06):
-  `js/storage.js`, `roster-manager.js`, `video-controller.js` and
-  `play-diagram.js`.
-
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
   not. Treat as a shared export-delivery defect; do not guess the cause.
@@ -25,9 +21,6 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 - **OCR controls are a visible dead end** (OCR-1, parked by the coach
   2026-09-27). Set region, Read and Auto OCR render into elements that no longer
   exist. Kept for future use; the controls do nothing today.
-- **Two dialogs sit outside the overlay spec**: the auto-detect Review dialog and
-  `PlayTagger._confirmDialog` / `_promptDialog`. They work but miss the spec's
-  focus and Escape rules.
 - **Offense narrow-width exception.** At 1280, eight five-column Offense modules
   keep 12px cells (`gi-off-narrow-fit`). Recomposing that band so the exception
   can be deleted is open.
@@ -38,6 +31,57 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   `{"roster":0,"calls":1}`. Same result at `76910435` before the 2026-10-04
   startup-import removal. Determine whether the lock is stale (rosters became
   season-owned) or a real empty-roster overwrite.
+
+## Old patterns to fix when touched
+
+Working code built the old way. A change that edits one of these files fixes
+that file's items in the same change, or its commit message says why not.
+Read this section before every build. Lower the count here, and in
+`tools/legacy-inventory-baseline.json`, in the commit that fixes an item;
+delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`
+at `b10bf0fe`.
+
+**`window.app` reach-through** (71). Code reaching shared services through the
+global app instead of its owner or an injected dependency.
+- `js/storage.js` 26
+- `js/stats-engine.js` 14
+- `js/season-manager.js` 8
+- `js/version-manager.js` 6
+- `js/custom-chips.js` 3
+- `js/play-tagger.js` 3
+- `js/app.js` 2
+- `js/playlist-manager.js` 2
+- `js/storage-backend.js` 2
+- `js/play-grid.js`, `roster-manager.js`, `scoreboard-ocr.js`,
+  `tag-library-settings.js`, `video-controller.js` 1 each
+
+**Raw `innerHTML` writes** (21). HTML built as strings instead of rendered by the
+native owner; each one is an escaping risk.
+- `js/reports-screen.js` 4
+- `js/scoreboard-ocr.js` 4 (OCR is parked)
+- `js/play-tagger.js` 3
+- `js/auto-detect-screen.js` 2
+- `js/ui-polish.js` 2
+- `js/workspace-shell.js` 2
+- `js/cutup-exporter.js`, `cutup-player.js`, `play-diagram.js`, `updater.js` 1 each
+
+**Native `alert()`** (9). Use the in-app toast or confirm.
+- `js/storage.js` 4: "Invalid project file." (twice), "No video loaded.",
+  "No plays to export."
+- `js/roster-manager.js` 2: "Add players to the roster first.", "Popup blocked"
+- `js/video-controller.js` 2: "No video files found" (folder and drop)
+- `js/play-diagram.js` 1: "Select a play first"
+
+**Dialogs outside the overlay spec** (2). They work but miss its focus and Escape
+rules; move them to `js/native-overlay-service.js`.
+- `js/auto-detect-screen.js` `openReview()` builds its own modal
+- `js/play-tagger.js` `_confirmDialog` / `_promptDialog`
+
+**Second copy of the unit rule** (1). `js/play-tagger.js` `unit || 'offense'`;
+read `countedUnit()` from `js/football-rules.js`.
+
+**`js/stats-engine.js` size** (6,731 lines). Split by area when a change works in
+it, with `e2e-parity` proving no change.
 
 ## Stale references found in passing
 
@@ -71,9 +115,5 @@ None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 - Settings live in localStorage (about 87 call sites): the quota failed once,
   settings do not travel with a season, and nothing syncs them. Blocks the
   mobile companion.
-- Screens share live services through `window.app` and `PlayTagger` events
-  rather than one state store.
-- `stats-engine.js` is about 6,600 lines; splitting it by area is possible with
-  `e2e-parity` proving no change.
 - Chromium harnesses prove behavior and geometry, not installed WebView2
   rendering or visual fidelity; every installer needs an installed smoke.

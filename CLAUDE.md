@@ -296,6 +296,10 @@ a reviewed correction named in the diff.
   parked it. Every review asks: what did this replace, and is it gone? Enforced
   by `e2e-stranded-code` (no lookup of an id nothing creates, no dead CSS) and
   `e2e-legacy-inventory` (no unreferenced names; counts only fall).
+- **Old patterns are fixed when touched.** `docs/OPEN-DEFECTS.md` > Old
+  patterns lists them by file. A change that edits a listed file fixes that
+  file's items in the same change, or its commit message says why not. Read
+  that section before every build.
 - A check must be as strong as its name.
 - Commit the first working pass locally before revising it. Commit at every
   baton pass.
