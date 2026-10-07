@@ -45,8 +45,13 @@ log.
   `v1.12.0-111` (the tag builds the GitHub prerelease); branch pushed. The
   design registry still reads IMPLEMENTED_UNVERIFIED for the cleanup (an
   installed smoke does not move it).
-- **Latest full gate:** GREEN, 153/153 at `87612c5a` (2026-10-06), covering
-  everything since 110.
+- **Unreleased on the branch (not installed):** missed tackles (charting on
+  every unit, Film Room, CSV, Study, defensive Reports; comps
+  `design-comps/missed-tackles-2026-10-06` and
+  `design-comps/missed-tackles-reports-2026-10-07`), tighter collapsed player
+  rows, the tagger's dialogs on the shared overlay, and old-pattern fixes in
+  five files. Focused harnesses green; no full gate since `b10bf0fe`.
+- **Latest full gate:** GREEN, 154/154 at `b10bf0fe` (2026-10-06, run by Codex).
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

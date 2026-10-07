@@ -286,7 +286,7 @@ class App {
     // Library-first startup: open to the Season Library instead of silently
     // loading a save file. Nothing loads until the coach opens/creates a season
     // (which then seeds history via storage._afterSeasonLoaded). Deferred to the
-    // next tick so `window.app` (referenced by the storage bridge) is set.
+    // next tick so the global app is set for the modules that still read it.
     setTimeout(async () => {
       await this.storage.initLibrary();
       await this.workspaceShell.init();

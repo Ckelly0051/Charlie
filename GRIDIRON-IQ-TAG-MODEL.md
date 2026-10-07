@@ -97,7 +97,7 @@ offered):
 
 ## 3a. Missed tackles
 
-Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); not built yet.
+Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); owner `js/missed-tackles.js`.
 
 - `missedTackles`: the play's exact count, `0` to `9` (no `3+`: Reports
   total it exactly). Blank

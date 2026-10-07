@@ -79,6 +79,7 @@ Change behavior at its owner, not at a consumer.
 | Look vocabulary; old-format detection | `js/tag-projection.js`, `js/season-format.js` |
 | Gap, motion path, RPO, QB-run details | `js/charting-details.js` |
 | Penalties, Special Teams | `js/penalty-model.js`, `js/special-teams.js` |
+| Missed tackles (counts, which unit charts what) | `js/missed-tackles.js` |
 
 No test-only production API: nothing publishes engine classes on `globalThis`
 (`e2e-p0-exit`, `tools/audit-shell-deps.mjs`). A harness imports the owning

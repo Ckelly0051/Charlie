@@ -7,9 +7,25 @@ open, check its fix and smoke status in git.
 
 ## Repaired in source, awaiting the next installer and smoke
 
-None. Latest coach-smoked build: `1.12.0-111` (2026-10-06).
+Latest coach-smoked build: `1.12.0-111` (2026-10-06).
+
+- **Missed tackles** (new, built 2026-10-07): the Players & Grades row on
+  every unit, Film Room MTkl, CSV columns, Study's Missed Tackles and Missed
+  Tackler, and the defensive Reports (Tackling module, Game-by-game, Season vs
+  Last 3, player columns, Players > Tackles MTkl). Smoke: chart a defensive
+  miss with two players, a zero, an offense count and a kickoff miss, then
+  read Defense and Players.
+- **Tighter collapsed player rows** in Players & Grades (all units).
+- **Shared dialogs for the tagger**: Delete play, Clear tags, templates and
+  the detail-clearing prompts now use the in-app dialog; a destructive one
+  defaults to Cancel.
 
 ## Open defects
+
+- **Players and the Defense board count some tackles differently.** Full
+  season on the canonical 2025 JV data: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7
+  (Players > Tackles vs Defense > Defensive player contributions). Found
+  2026-10-07 during the missed tackles comp; predates it. Not diagnosed.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
@@ -41,12 +57,13 @@ Read this section before every build. Lower the count here, and in
 delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
 updated 2026-10-07.
 
-**`window.app` reach-through** (26). Code reaching shared services through the
+**`window.app` reach-through** (25). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
 - `js/season-manager.js` 8
 - `js/version-manager.js` 6
 - `js/custom-chips.js` 3
-- `js/app.js` 2
+- `js/app.js` 1: the global itself (`window.app = new App()`), which the remaining
+  reach-throughs and the test harnesses use; it goes last
 - `js/playlist-manager.js` 2
 - `js/storage-backend.js` 2
 - `js/scoreboard-ocr.js`, `tag-library-settings.js`, `video-controller.js` 1 each
@@ -70,7 +87,9 @@ rules; move them to `js/native-overlay-service.js`.
 - `js/play-diagram.js` the diagram editor builds its own modal
 
 **`js/stats-engine.js` size** (6,499 lines). Split by area when a change works in
-it, with `e2e-parity` proving no change.
+it, with `e2e-parity` proving no change. Skipped by the missed tackles build
+(2026-10-07), which edited the file: a split is a restructure with no visible
+change and would bury the feature in a very large diff.
 
 ## Stale references found in passing
 

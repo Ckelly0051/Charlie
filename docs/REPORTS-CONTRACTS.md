@@ -167,8 +167,8 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
 - Opponent drive outcomes are data-driven in football order; whose points a
   drive ended with is decided once, in `opponentDriveList()`, shared with the
   export.
-- **Missed tackles** (comp approved 2026-10-07, not built;
-  `design-comps/missed-tackles-reports-2026-10-07`): a Tackling module after
+- **Missed tackles** (`design-comps/missed-tackles-reports-2026-10-07`): a
+  full-width, fixed five-row Tackling module after
   Disruption (Missed Tackles, Plays with a Missed Tackle, Missed Tackle play
   rate, Yards / play with and without), a Missed Tackles column in
   Game-by-game, a Season vs Last 3 row and a Missed Tackles column after Ast
@@ -215,9 +215,10 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
   `.gi-player-module table.gi-player-table`).
 - No participation counts, targets, pressures, per-player blocking/coverage
   grades or combined rating.
-- **Missed tackles** (comp approved 2026-10-07, not built;
-  `design-comps/missed-tackles-reports-2026-10-07`): Tackles gains an `MTkl`
-  column after Ast, one per play the player is named on, like Tkl.
+- **Missed tackles** (`design-comps/missed-tackles-reports-2026-10-07`):
+  Tackles has an `MTkl` column after Ast, one per defensive play the player is
+  named on, like Tkl. Tackles' number columns are narrower than the other
+  roles' (40 / 46 / 36px, 8px cell padding) so a long name keeps its room.
 
 ## Self-Scout
 
