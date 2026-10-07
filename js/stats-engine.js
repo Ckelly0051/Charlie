@@ -367,6 +367,9 @@ export class StatsEngine {
   constructor(playTagger, playFilter) {
     this.tagger = playTagger;
     this.filter = playFilter || null;
+    // The app's live services (storage, season, game context, roster,
+    // overlays), passed in by App; null where an engine runs on its own.
+    this.deps = null;
     this.advanced = new AdvancedMetrics();
   }
 
@@ -780,7 +783,7 @@ export class StatsEngine {
     // Matchup data: your offense (from your games) + each scouted opponent's
   // defense (from games whose "Film shows" is Opponent Scout, defensive snaps).
   _matchupData() {
-    const app = window.app;
+    const app = this.deps;
     const store = app && app.storage && app.storage.seasonStore;
     const games = app?.season?._effectiveGames?.() || ((store && store.gamesChrono) ? store.gamesChrono() : []);
     const yourOff = [];
@@ -4060,7 +4063,7 @@ export class StatsEngine {
    * and GameContext is the seam over it, so the labels survive its deletion.
    */
   _subjectName(fallback = '') {
-    return window.app?.gameContext?.snapshot?.().teamName || fallback;
+    return this.deps?.gameContext?.snapshot?.().teamName || fallback;
   }
 
     _buildCutFilter(type, val) {
@@ -4162,7 +4165,7 @@ export class StatsEngine {
     const esc = Charts._esc;
     // projectName is derived (week + opponent) and lives on gameInfo now — there
     // is no #gameProjectName input.
-    const gi = window.app?.storage?.gameInfo || {};
+    const gi = this.deps?.storage?.gameInfo || {};
     const name = esc(gi.projectName || '');
     const t = esc(gi.teamName || this._subjectName(''));
     const o = esc(gi.opponent || '');
@@ -4209,7 +4212,7 @@ export class StatsEngine {
     // The official score in Game Settings wins when present; stats.scoreboard
     // is only a reconstruction from tagged scoring plays. Same presence check
     // as _gameTitle().
-    const gi = window.app?.storage?.gameInfo || {};
+    const gi = this.deps?.storage?.gameInfo || {};
     const hasOfficialScore = gi.scoreUs !== '' && gi.scoreUs != null && gi.scoreThem !== '' && gi.scoreThem != null;
     const finalScore = hasOfficialScore ? { us: gi.scoreUs, them: gi.scoreThem }
       : ((sb && sb.hasData) ? { us: sb.us, them: sb.them } : null);
@@ -4410,7 +4413,7 @@ export class StatsEngine {
     if (this._fixedLabels && this._fixedLabels[num]) return `#${num} ${this._fixedLabels[num]}`;
     // Season view supplies a merged name map across loaded games.
     if (this._seasonLabels && this._seasonLabels[num]) return `#${num} ${this._seasonLabels[num]}`;
-    const roster = (typeof window !== 'undefined') && window.app && window.app.roster;
+    const roster = this.deps?.roster;
     return roster ? roster.getLabel(num) : `#${num}`;
   }
 
@@ -4633,11 +4636,11 @@ export class StatsEngine {
   // straight from localStorage (browser: ffa_season_<id>).
   _allSeasonGames() {
     const games = [];
-    const store = window.app && window.app.storage && window.app.storage.seasonStore;
+    const store = this.deps?.storage?.seasonStore;
     let curId = null;
     if (store) {
       curId = store.currentSeasonId;
-      const currentGames = window.app?.season?._effectiveGames?.() || (store.data && Array.isArray(store.data.games) ? store.data.games : []);
+      const currentGames = this.deps?.season?._effectiveGames?.() || (store.data && Array.isArray(store.data.games) ? store.data.games : []);
       currentGames.forEach(g => games.push(g));
     }
     let lib = [];
@@ -4654,14 +4657,14 @@ export class StatsEngine {
 
   _activeOpponent() {
     try {
-      const d = window.app.storage.seasonStore.data;
+      const d = this.deps.storage.seasonStore.data;
       if (d && Array.isArray(d.games)) {
         const g = d.games.find(x => x.id === d.activeGameId) || d.games[0];
         const o = g && g.gameInfo && g.gameInfo.opponent;
         if (o && String(o).trim()) return String(o).trim();
       }
     } catch (e) {}
-    return String(window.app?.storage?.gameInfo?.opponent || '').trim();
+    return String(this.deps?.storage?.gameInfo?.opponent || '').trim();
   }
 
   /**
@@ -6418,8 +6421,8 @@ ${this._printStyles ? this._printStyles() : ''}
     try {
       // `_download` is the same seam exportHtmlReport uses — the one delivery
       // path that already works on desktop.
-      window.app?.storage?._download?.(new Blob([html], { type: 'text/html' }), name);
-      window.app?.overlays?.toast?.({ message: `Report saved as ${name} — open it and print to PDF.` });
+      this.deps?.storage?._download?.(new Blob([html], { type: 'text/html' }), name);
+      this.deps?.overlays?.toast?.({ message: `Report saved as ${name} — open it and print to PDF.` });
     } catch (error) {
       console.warn('[reports] printable export failed', error);
     }

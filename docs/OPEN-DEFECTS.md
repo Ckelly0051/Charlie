@@ -41,10 +41,9 @@ Read this section before every build. Lower the count here, and in
 delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
 updated 2026-10-07.
 
-**`window.app` reach-through** (66). Code reaching shared services through the
+**`window.app` reach-through** (52). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
 - `js/storage.js` 26
-- `js/stats-engine.js` 14
 - `js/season-manager.js` 8
 - `js/version-manager.js` 6
 - `js/custom-chips.js` 3

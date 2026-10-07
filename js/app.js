@@ -246,6 +246,13 @@ class App {
     this.tagger.storage = this.storage;
     this.roster.storage = this.storage;
     this.roster.notify = message => this.overlays?.toast?.({ message, tone: 'warning' });
+    // Read at call time: season and gameContext are built after the engine.
+    const app = this;
+    this.stats.deps = {
+      get storage() { return app.storage; }, get season() { return app.season; },
+      get gameContext() { return app.gameContext; }, get roster() { return app.roster; },
+      get overlays() { return app.overlays; },
+    };
 
     // Scout mode UI
     this._bindScoutMode();
