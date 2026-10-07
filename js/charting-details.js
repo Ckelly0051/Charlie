@@ -1,3 +1,5 @@
+import { MissedTackles } from './missed-tackles.js';
+
 /**
  * The run and motion details a play can carry beside its call, and the rules
  * that tie each detail to the field that opens it. Pure and DOM-free: Chart,
@@ -116,6 +118,7 @@ export class ChartingDetails {
       ['motionStart', 'Motion Starts', ChartingDetails.PATH_POINTS], ['motionEnd', 'Motion Ends', ChartingDetails.PATH_POINTS],
       ['rpoRead', 'RPO Read', ChartingDetails.RPO_READS], ['rpoDecision', 'RPO Decision', ChartingDetails.RPO_DECISIONS],
       ['qbRun', 'QB Run Type', ChartingDetails.QB_RUNS],
+      ['missedTackles', 'Missed Tackles', MissedTackles.COUNTS],
     ];
     const out = [];
     for (const [key, label, allowed] of checks) {

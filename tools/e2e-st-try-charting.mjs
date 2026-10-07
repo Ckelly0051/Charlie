@@ -85,7 +85,9 @@ await choose('Attempt', 'Run/Pass');
 v = await view();
 ok(v.st.attemptType === 'twoPoint' && !v.st.isFake && v.active.join() === 'Run/Pass', 'Run/Pass stores a run/pass try', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake, active: v.active }));
 ok(['Formation & Call', 'Defense Faced', 'Play & Result'].every(g => v.groups.includes(g)), 'the offensive options of an offensive snap appear', JSON.stringify(v.groups));
-ok(v.roles.join('|') === 'Ball Carrier|Passer|Receiver', 'the roles are Ball Carrier, Passer and Receiver', JSON.stringify(v.roles));
+// Missed Tackles is one more row (design-comps/missed-tackles-2026-10-06): a run/pass
+  // try charts its scrimmage side's row.
+  ok(v.roles.join('|') === 'Ball Carrier|Passer|Receiver|Missed Tackles', 'the roles are Ball Carrier, Passer, Receiver and Missed Tackles', JSON.stringify(v.roles));
 ok(!v.locked.offense && !v.locked.defense, 'Film Room locks no look cell on a run/pass try', JSON.stringify(v.locked));
 await chip('formationFamily', 'Spread'); await chip('runPass', 'Run');
 await page.evaluate(() => window.app.nativeTagging.setPlayer('ballCarrier', '22'));
@@ -133,7 +135,7 @@ await choose('Attempt', 'Run/Pass');
 v = await view();
 ok(v.groups.indexOf('Our Defensive Call') >= 0 && v.groups.indexOf('Our Defensive Call') < v.groups.indexOf('Offense Faced') && v.groups.includes('Play & Result'),
   'defending a run/pass try shows the defensive options, our call first', JSON.stringify(v.groups));
-ok(v.roles.join('|') === 'Tackler(s)|Takeaway', 'the roles are Tackler(s) and Takeaway', JSON.stringify(v.roles));
+ok(v.roles.join('|') === 'Tackler(s)|Missed Tackles|Takeaway', 'the roles are Tackler(s), Missed Tackles and Takeaway', JSON.stringify(v.roles));
 await chip('defFront', '4-3');
 v = await view();
 ok(v.tags.defFront === '4-3', 'the defensive call is kept, not stripped', JSON.stringify(v.tags.defFront));
@@ -206,7 +208,8 @@ for (const [i, unit, ownRole, opponentRole] of [
       blockers: [...document.querySelectorAll('[data-native-tagging] input')].filter(input =>
         input.getAttribute('aria-label') === 'blocker player number' || input.closest('label')?.textContent.includes('Blocker #')).length,
     }));
-    ok(layout.roles.join('|') === 'Opponent Kicker|Returner', `${unit}: approved Kicker then Returner order is unchanged`, JSON.stringify(layout));
+    // Returns add Missed Tackles after Returner; a Field Goal Block has no return to tackle.
+  ok(layout.roles.join('|') === (unit === 'Field Goal Block' ? 'Opponent Kicker|Returner' : 'Opponent Kicker|Returner|Missed Tackles'), `${unit}: approved Kicker then Returner order is unchanged; Missed Tackles follows Returner on returns only`, JSON.stringify(layout));
     if (unit === 'Field Goal Block') ok(layout.blockers === 1, 'Field Goal Block has exactly one Blocker input', JSON.stringify(layout));
   }
 }

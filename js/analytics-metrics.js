@@ -417,6 +417,12 @@ const METRICS = {
     polarity: MetricPolarity.HIGHER, countMetric: true,
     compute(cohort) { return countResult(cohort, () => true); },
   },
+  // A Missed Tackler's cohort is the plays they are named on: one missed tackle
+  // each, counted like `tackles`.
+  missedTacklesMade: {
+    polarity: MetricPolarity.LOWER, countMetric: true,
+    compute(cohort) { return countResult(cohort, () => true); },
+  },
   soloTackles: {
     // Shared/solo credit uses the SAME rule `StatsEngine._individualStats`
     // already applies (tacklerIds.length on the play, not this specific

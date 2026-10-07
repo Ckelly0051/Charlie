@@ -14,6 +14,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { PlayCallModel } from './play-call-model.js';
 import { ChartingDetails } from './charting-details.js';
+import { MissedTackles } from './missed-tackles.js';
 import { OPTIONS as TAG_OPTIONS, RESULT_OPTIONS } from './native-tagging.jsx';
 
 export class PlayGrid {
@@ -56,6 +57,8 @@ export class PlayGrid {
     { key: 'rpoDecision', label: 'RPO Dec', type: 'enum', src: 'tagRpoDecision' },
     { key: 'qbRun',     label: 'QB Run',    type: 'enum', src: 'tagQbRun' },
     { key: 'result',    label: 'Result',    type: 'enum', src: 'tagResult',    multi: true },
+    // Exact count, 0-9; locked where the snap has no Missed Tackles row.
+    { key: 'missedTackles', label: 'MTkl', type: 'enum', src: 'tagMissedTackles' },
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
     { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
     { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
@@ -257,6 +260,7 @@ export class PlayGrid {
     // field that opens it is blank (ChartingDetails.TRIGGERS).
     const opener = ChartingDetails.TRIGGERS.find(trigger => trigger.children.includes(col?.key));
     if (opener && !opener.opened(play?.tags || {})) return true;
+    if (col?.key === 'missedTackles') return !MissedTackles.modeOf(play);
     if (!col?.unit) return false;
     if (SpecialTeamsModel.isRunPassTry(play)) return false;
     const unit = countedUnit(play);

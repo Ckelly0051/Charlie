@@ -7,7 +7,7 @@ export class StudyScreen {
     // score-at-snap reconstruction, so it would be unusable.
     return ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion', 'motionStart', 'motionEnd',
-      'playDir', 'gap', 'rpoRead', 'rpoDecision', 'qbRun', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'playerRole', 'grade',
+      'playDir', 'gap', 'rpoRead', 'rpoDecision', 'qbRun', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'missedTackles', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier',
       'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
       'customTag', 'customField'];
@@ -149,6 +149,7 @@ export class StudyScreen {
         name: 'Tackler', dimension: 'playerTackler', gradeRole: 'tackler',
         metrics: ['tackles', 'soloTackles', 'assistedTackles', 'tfl', 'sacksMade', 'stopRate', 'yardsAllowedPerPlay', 'avgGrade', 'positiveGradeRate', 'negativeGradeRate'],
       },
+      missedTackler: { name: 'Missed Tackler', dimension: 'playerMissedTackler', gradeRole: null, metrics: ['missedTacklesMade', 'yardsAllowedPerPlay'] },
       // Special Teams stays deliberately minimal -- see analytics-registry.js's
       // playerKicker/playerReturner comment for the disclosed scope limit
       // (Field Goal only, no punting or return-yardage averages this
@@ -182,6 +183,7 @@ export class StudyScreen {
         completions: 'Receptions', touchdowns: 'Touchdowns', explosiveRate: 'Explosive Plays Rate',
         avgGrade: 'Avg Grade', positiveGradeRate: 'Positive Grade Rate', negativeGradeRate: 'Negative Grade Rate',
       },
+      missedTackler: { missedTacklesMade: 'Missed Tackles', yardsAllowedPerPlay: 'Yards Allowed (plays involving)' },
       tackler: {
         tackles: 'Tackles', soloTackles: 'Solo Tackles', assistedTackles: 'Assisted Tackles', tfl: 'TFL',
         sacksMade: 'Sacks', stopRate: 'Stop Rate (plays involving)', yardsAllowedPerPlay: 'Yards Allowed (plays involving)',
@@ -204,7 +206,7 @@ export class StudyScreen {
       { name: 'Situation', ids: ['down', 'distance', 'fieldZone', 'quarter', 'drive', 'hash'] },
       { name: 'Offensive look', ids: ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'qbAlignment', 'backfield', 'strength', 'personnel', 'motion', 'motionStart', 'motionEnd', 'playDir', 'gap', 'playType', 'runPass', 'rpoRead', 'rpoDecision', 'qbRun'] },
       { name: 'Defensive call', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
-      { name: 'Outcome & risk', ids: ['result', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
+      { name: 'Outcome & risk', ids: ['result', 'missedTackles', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
       { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier'] },
       { name: 'Players', ids: ['unit', 'playerRole', 'grade'] },
       { name: 'Custom', ids: ['customTag', 'customField'] },

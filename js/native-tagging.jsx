@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { TagLibrary } from './tag-library.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { ChartingDetails } from './charting-details.js';
+import { MissedTackles } from './missed-tackles.js';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -32,6 +33,7 @@ export const OPTIONS = {
   receiverSet:ChartingDetails.RECEIVER_SETS.slice(), gap:ChartingDetails.GAPS.slice(),
   motionStart:ChartingDetails.PATH_POINTS.slice(), motionEnd:ChartingDetails.PATH_POINTS.slice(),
   rpoRead:ChartingDetails.RPO_READS.slice(), rpoDecision:ChartingDetails.RPO_DECISIONS.slice(), qbRun:ChartingDetails.QB_RUNS.slice(),
+  missedTackles:MissedTackles.COUNTS.slice(),
 };
 const MULTI = new Set(['playType','result','defFront','blitz']);
 const typeSelected = (value, type) => String(value || '').split(' + ').includes(type);
@@ -374,8 +376,13 @@ function Players({screen, state}) {
   // A kicked try has no returner: Try (Kick) is the kicker; Defending a Try (Kick)
   // is the blocker. A run/pass or Fake try takes its side's roles.
   const st = state.special, side = lookSide(state);
-  const roles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
+  const baseRoles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
     : SpecialTeamsModel.playerRoles(st);
+  // Missed Tackles is one more row (MissedTackles.mode): after Tackler(s) on
+  // defense, after the returner on kicks and returns, last on offense.
+  const missedMode = MissedTackles.mode(state.unit, st);
+  const roles = baseRoles.slice();
+  if (missedMode) roles.splice(side === 'defense' ? roles.indexOf('tackler') + 1 : side ? roles.length : roles.indexOf('returner') + 1, 0, MissedTackles.ROLE);
   const opposingSpecialist = role => !side && SpecialTeamsModel.isOpposingPlayerRole(st, role);
   const defaultRole = state.unit === 'special' ? SpecialTeamsModel.defaultPlayerRole(st) : roles[0];
   const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) && !opposingSpecialist(state.activeRole) ? state.activeRole : defaultRole]));
@@ -384,24 +391,34 @@ function Players({screen, state}) {
     setOpenRoles(new Set([defaultRole]));
     if (!roles.includes(state.activeRole) || opposingSpecialist(state.activeRole)) screen.setActiveRole(defaultRole);
   }, [roles.join(','), st?.unit]);
-  const allowed = role => opposingSpecialist(role) ? [] : state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'blocker' || role === 'tackler' || role === 'takeaway'
+  const allowed = role => opposingSpecialist(role) || (role === MissedTackles.ROLE && missedMode !== 'ours') ? []
+    : state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'blocker' || role === 'tackler' || role === 'takeaway' || role === MissedTackles.ROLE
     ? player.side !== 'O' : player.side !== 'D');
   // Player attribution is charted on nearly every snap — tacklers on defense,
   // ball carrier / passer / receiver on offense — so this group opens with the
   // form. The focused role owns the only open roster picker, matching the comp
   // without hiding one-click jersey-number attribution.
   const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
-    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner', blocker: 'Blocker' };
+    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner', blocker: 'Blocker', [MissedTackles.ROLE]: 'Missed Tackles' };
+  // The Count select takes the Grade slot; with no players to name it takes the
+  // number box's slot, so the row keeps the grid's columns.
+  const missedCount = () => <select aria-label="Missed Tackles count" value={state.values.missedTackles ?? ''}
+    onFocus={() => screen.setActiveRole(MissedTackles.ROLE)} onChange={event => screen.setField('missedTackles', event.currentTarget.value)}>
+    <option value="">Count</option>{OPTIONS.missedTackles.map(value => <option key={value} value={value}>{value}</option>)}
+  </select>;
   return <Group title="Players & Grades" open>
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
+      if (role === MissedTackles.ROLE && missedMode !== 'ours') return <div key={role}>
+        <strong>{LABELS[role]}</strong>{missedCount()}
+      </div>;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
         <strong>{opposingSpecialist(role) ? `${state.perspective === 'scout' ? 'Other team' : 'Opponent'} ` : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
         <input aria-label={`${role} player number`} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
-        <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
+        {role === MissedTackles.ROLE ? missedCount() : <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
           <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
-        </select>
+        </select>}
         {allowed(role).length > 0 && <button type="button" class="gi-player-roster-toggle" aria-expanded={rosterOpen}
           onClick={() => { screen.setActiveRole(role); setOpenRoles(current => { const next = new Set(current); if (rosterOpen) next.delete(role); else next.add(role); return next; }); }}>
           <span aria-hidden="true">{rosterOpen ? '▾' : '▸'}</span>{rosterOpen ? 'Hide roster' : 'Show roster'}

@@ -60,6 +60,8 @@ export class PlayTagger {
       hash: '', quarter: '', yardLine: '', fieldSide: 'own', personnel: '', motion: '', playDir: '',
       // Details opened by the fields above (ChartingDetails): blank is uncharted.
       motionStart: '', motionEnd: '', gap: '', rpoRead: '', rpoDefender: '', rpoDecision: '', qbRun: '',
+      // Missed Tackles is an exact count; blank is not charted (MissedTackles).
+      missedTackles: '',
       driveNumber: String(driveNumber ?? ''), unit,
       players: {}, grades: {}, custom: [], customFields: {},
     };

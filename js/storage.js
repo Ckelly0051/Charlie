@@ -1785,7 +1785,7 @@ export class StorageManager {
       'Run/Pass', 'Play Type', 'Play Dir', 'Gap', 'RPO Read', 'RPO Defender', 'RPO Decision', 'QB Run Type', 'Def Front',
       'Coverage Call', 'Coverage Family', 'Blitz', 'Result', 'Fumble Recovery',
       'Yardage', 'Hash', 'Ball Carrier', 'Passer', 'Receiver', 'Tackler',
-      'Takeaway', 'Kicker', 'Returner',
+      'Takeaway', 'Kicker', 'Returner', 'Missed Tackles', 'Missed Tacklers',
       'BC Grade', 'Passer Grade', 'Receiver Grade', 'Tackler Grade', 'Takeaway Grade',
       'Penalties JSON', 'Resulting Situation JSON', 'Custom Tags', 'Notes'
     ];
@@ -1841,6 +1841,8 @@ export class StorageManager {
       p.tags.players?.takeaway || '',
       p.tags.players?.kicker || '',
       p.tags.players?.returner || '',
+      p.tags.missedTackles ?? '',
+      p.tags.players?.missedTackler || '',
       p.tags.grades?.ballCarrier ?? '',
       p.tags.grades?.passer ?? '',
       p.tags.grades?.receiver ?? '',
@@ -1976,6 +1978,7 @@ export class StorageManager {
       passer: 'passer', qb: 'passer',
       receiver: 'receiver', rec: 'receiver',
       tackler: 'tackler',
+      missedtackles: 'missedTackles', mtkl: 'missedTackles', missedtacklers: 'missedTackler', missedtackler: 'missedTackler',
       penaltiesjson: 'penaltiesJson', structuredpenalties: 'penaltiesJson',
       resultingsituationjson: 'resultingSituationJson', nextsituationjson: 'resultingSituationJson',
       notes: 'notes', note: 'notes',
@@ -2013,7 +2016,7 @@ export class StorageManager {
       mappedFields.set(field, colIdx);
     }
 
-    const playerFields = ['ballCarrier', 'passer', 'receiver', 'tackler'];
+    const playerFields = ['ballCarrier', 'passer', 'receiver', 'tackler', 'missedTackler'];
 
     for (const cells of lines) {
       if (cells.every(c => !c)) continue;

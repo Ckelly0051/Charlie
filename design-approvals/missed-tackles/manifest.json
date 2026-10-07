@@ -8,7 +8,7 @@
   "canonicalArtifact": {
     "path": "design-comps/missed-tackles-2026-10-06",
     "kind": "directory",
-    "sha256": "e38f32d31b28c5ce59b610bcc07f7e22c95b618c383b042011d17be2ee608eb2",
+    "sha256": "d148eed1da33aa07c7416ce48b1c347d3c09ab022a2b2c200b0b99d699ece1ee",
     "fileCount": 11
   },
   "decisionRecord": "design-comps/missed-tackles-2026-10-06/RATIONALE.md"

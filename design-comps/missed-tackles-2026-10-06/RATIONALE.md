@@ -42,7 +42,8 @@ allowed, and one player may miss more than once.
 `defense-collapsed-1440x900.png`: with every roster picker collapsed the rows sit
 tight. On a fine pointer each player row has 6px vertical padding (was 8px),
 the Show roster link is 20px tall (was 28px) and rows are 2px apart (was 8px),
-so a collapsed row is 88px instead of 102px. Coarse pointers keep 44px targets.
+so a collapsed row is 90px instead of 102px (corrected 2026-10-07 from 88px,
+which left out the row's 1px top and bottom borders). Coarse pointers keep 44px targets.
 This applies to every player row in the deck, not only Missed Tackles.
 
 ## Separator (coach, 2026-10-07)

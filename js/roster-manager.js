@@ -20,7 +20,7 @@ export class RosterManager {
     // Roles that accept multiple jersey #s (e.g. shared/assisted tackles).
     // Stamping toggles membership in a comma-separated list instead of
     // replacing the single value.
-    this.multiRoles = new Set(['tackler']);
+    this.multiRoles = new Set(['tackler', 'missedTackler']);
 
     this._bind();
   }

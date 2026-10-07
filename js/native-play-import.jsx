@@ -11,7 +11,8 @@ const FIELD_OPTIONS = [
   ['rpoRead', 'RPO Read'], ['rpoDefender', 'RPO Defender'], ['rpoDecision', 'RPO Decision'], ['qbRun', 'QB Run Type'], ['defFront', 'Defensive Front'],
   ['coverage', 'Coverage Call'], ['coverageFamily', 'Coverage Family'], ['blitz', 'Blitz'], ['result', 'Result'],
   ['yardage', 'Yardage'], ['hash', 'Hash'], ['ballCarrier', 'Ball Carrier'], ['passer', 'Passer'],
-  ['receiver', 'Receiver'], ['tackler', 'Tackler'], ['penaltiesJson', 'Structured Penalties'],
+  ['receiver', 'Receiver'], ['tackler', 'Tackler'], ['missedTackles', 'Missed Tackles'], ['missedTackler', 'Missed Tacklers'],
+  ['penaltiesJson', 'Structured Penalties'],
   ['resultingSituationJson', 'Resulting Situation'], ['notes', 'Notes'],
 ];
 
