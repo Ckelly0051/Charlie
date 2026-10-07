@@ -56,10 +56,10 @@ log.
   `b10bf0fe..db046e3d`; both findings are fixed (modal shortcut isolation,
   Study's try exclusion for Missed Tackler). The real-data Defense check now
   requires the approved eleven KPI tiles; its six-game rerun passes. Unpushed.
-  Next: the full-gate rerun, then installer 112 with coach authorization.
-- **Latest full gate:** RED at `0eca9569` (2026-10-07, run by Codex):
-  155/156 green, no skips. The only failure was the real-data harness's retired
-  ten-tile Defense expectation; repaired in source, full rerun pending.
+  Full gate green at `81b327c6`. Next: installer 112 with coach authorization,
+  then installed smoke.
+- **Latest full gate:** GREEN, 156/156 at `81b327c6` (2026-10-07, run by Codex),
+  no skips or failures. Release evidence eligible; installed approval not assessed.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
