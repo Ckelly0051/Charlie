@@ -11,8 +11,9 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 - **Missed tackles** (new, built 2026-10-07): the Players & Grades row on
   every unit, Film Room MTkl, CSV columns, Study's Missed Tackles and Missed
-  Tackler, and the defensive Reports (Tackling module, Game-by-game, Season vs
-  Last 3, player columns, Players > Tackles MTkl). Smoke: chart a defensive
+  Tackler, and the defensive Reports (Tackling module with Total Tackles and
+  the Missed Tackle rate, the eleven-tile centered KPI strip, Game-by-game,
+  Season vs Last 3, player columns, Players > Tackles MTkl). Smoke: chart a defensive
   miss with two players, a zero, an offense count and a kickoff miss, then
   read Defense and Players.
 - **Tighter collapsed player rows** in Players & Grades (all units).

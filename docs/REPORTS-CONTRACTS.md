@@ -146,10 +146,11 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
   `board.dashboard`) owns every value; `native-defense-board.jsx` lays out;
   `css/native-defense-board.css` owns geometry.
 - Four pages: Performance, Opponent offense, Scheme & passing, Situations, each
-  headed `N charted / M with Run/Pass charted`. Ten KPIs in order: Total yards
-  allowed, Rush yards allowed, Pass yards allowed, Yards / play, Takeaways,
-  Explosive Plays, Touchdowns Allowed, Defensive Touchdowns, 3rd Down Stop %, 4th
-  Down Stop %. Game-by-game only at Full season.
+  headed `N charted / M with Run/Pass charted`. Eleven KPIs in order, centered
+  in their tiles: Total yards allowed, Rush yards allowed, Pass yards allowed,
+  Yards / play, Takeaways, Explosive Plays Allowed, Missed Tackles, Touchdowns
+  Allowed, Defensive Touchdowns, 3rd Down Stop %, 4th Down Stop %. One row from
+  1640px, six then five below, always at full size (coach, 2026-10-07). Game-by-game only at Full season.
 - **Module geometry is a contract:** 96px chrome plus rows at the module pitch;
   fixed-schema modules are exactly their rows; others take the smallest of
   220/300/380/460 and scroll internally past capacity; half-width modules pair
@@ -167,14 +168,16 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
 - Opponent drive outcomes are data-driven in football order; whose points a
   drive ended with is decided once, in `opponentDriveList()`, shared with the
   export.
-- **Missed tackles** (`design-comps/missed-tackles-reports-2026-10-07`): a
-  full-width, fixed five-row Tackling module after
-  Disruption (Missed Tackles, Plays with a Missed Tackle, Missed Tackle play
-  rate, Yards / play with and without), a Missed Tackles column in
-  Game-by-game, a Season vs Last 3 row and a Missed Tackles column after Ast
-  in Defensive player contributions. Eligible snaps are defensive snaps with
-  the count charted; an uncharted game is `—`. The team total sums the exact
-  counts; a player gets one per play named. Season > Defense shows the same.
+- **Missed tackles** (`design-comps/missed-tackles-reports-2026-10-07`, Tackling
+  revised by `design-comps/missed-tackles-reports-r2-2026-10-07`): a full-width,
+  fixed six-row Tackling module after Disruption (Total Tackles, Missed Tackles,
+  Missed Tackle rate, Plays with a Missed Tackle, Yards / play with and
+  without), a Missed Tackles column in Game-by-game, a Missed Tackle rate row in
+  Season vs Last 3 and a Missed Tackles column after Ast in Defensive player
+  contributions. A team tackle is a play with a tackler named (a shared tackle
+  is one); the rate is misses / (tackles + misses) over the snaps that charted a
+  count. An uncharted game is `—`; a player gets one per play named. Season >
+  Defense shows the same.
 - Every module states its cohort in counts (`15 run/pass snaps`,
   `15 snaps · 18 tags`, `14 direction-tagged snaps`,
   `20 snaps · penalties included`).

@@ -2,7 +2,7 @@
   "surfaceId": "reports.missed-tackles.tackling-r2",
   "title": "Defense Tackling module and KPI strip, revision 2",
   "designStatus": "COMP_APPROVED",
-  "productionStatus": "DRAFT",
+  "productionStatus": "IMPLEMENTED_UNVERIFIED",
   "approvedOn": "2026-10-07",
   "approvalNote": "Revises the Tackling module of reports.missed-tackles: Total Tackles, Missed Tackles, Missed Tackle rate (misses / (tackles + misses) over snaps with a count charted), Plays with a Missed Tackle, Yards / play with and without; Season vs Last 3 shows the rate. The Defense KPI strip has eleven centered tiles: Missed Tackles after Explosive Plays Allowed.",
   "canonicalArtifact": {
@@ -11,5 +11,6 @@
     "sha256": "d0bbae4e7ef898ba01f73ee1b50d0ffa569713ae15f3c05597095ff848458e79",
     "fileCount": 9
   },
-  "decisionRecord": "design-comps/missed-tackles-reports-r2-2026-10-07/RATIONALE.md"
+  "decisionRecord": "design-comps/missed-tackles-reports-r2-2026-10-07/RATIONALE.md",
+  "productionNote": "Built 2026-10-07. One departure, decided by the coach: eleven tiles fit the widest value (100.0%) at full size only from 1640px, so the strip wraps to six then five below 1640 instead of shrinking type. Installed smoke pending."
 }
