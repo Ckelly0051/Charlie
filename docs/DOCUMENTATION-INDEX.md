@@ -67,7 +67,14 @@ log.
   2 (reopen lands on the previous game) was never reproduced, stopped recurring,
   and was closed by the coach with no code change. Since then: Drive in
   Situation (comp `design-comps/breakdown-drive-situation-2026-10-07`) and kick
-  coverage tackles. Next: installer 113. Nothing pushed or tagged.
+  coverage tackles. Unsigned NSIS installer `1.12.0-113` is built from the
+  clean version-bump commit `22e83a47`; `e2e-p0-exit` passed 20/20.
+  Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-113_x64-setup.exe`,
+  4,036,887 bytes, SHA-256
+  `2D93D5950C9B16AF3928C170655534B022B58613EFC2D4C926FC8DD771460E87`.
+  Product and file versions verified as `1.12.0-113`. Independent packaged-asset
+  inspection and coach installed smoke are pending in `SMOKE-1.12.0-113.md`.
+  Nothing installed, pushed or tagged by this build.
 - **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
   failures. Release evidence eligible; installed approval not assessed. Covers
   the smoke 112 repairs, Drive in Situation and kick coverage tackles, each

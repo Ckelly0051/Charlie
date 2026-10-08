@@ -5,9 +5,11 @@ the commit; history through 2026-10-04 is in
 `docs/archive/OPEN-DEFECTS-THROUGH-2026-10-04.md`. Before reporting an item as
 open, check its fix and smoke status in git.
 
-## Repaired in source, awaiting the next installer and smoke
+## Packaged in 1.12.0-113, awaiting installed smoke
 
 Latest coach-smoked build: `1.12.0-111` (2026-10-06).
+Installer `1.12.0-113` is built; its checklist and pending result are in
+`SMOKE-1.12.0-113.md`. Packaging does not close these items.
 
 - **Missed tackles** (new, built 2026-10-07): the Players & Grades row on
   every unit, Film Room MTkl, CSV columns, Study's Missed Tackles and Missed
