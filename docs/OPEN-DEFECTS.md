@@ -32,6 +32,9 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   Middle and Personnel 11, pick a call with a Direction default.
 - **The "Our Defensive Call" heading** (smoke 112 finding 7) has 6px of cyan
   fill each side of its text, still aligned with the other headings.
+- **Drive in Situation** (comp `design-comps/breakdown-drive-situation-2026-10-07`):
+  Drive is the last box in Situation's second row; New Drive is gone. Smoke:
+  type a drive on a play and check the play strip groups it.
 - **Dialogs are centered again** (found during the smoke 112 fixes): since
   `1.12.0-108` every dialog (Delete play, Clear tags, prompts, Remove call)
   filled the window from the top-left because a dead-CSS pass removed its

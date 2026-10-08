@@ -22,7 +22,7 @@
 /* The group body already supplies the section inset; the action row adding
    its own 8px put these controls 20px in against every neighbour's 12px. */
 .gi-tag-group-body .gi-tag-actions{flex-wrap:wrap;overflow:visible;padding-inline:0}
-.gi-tag-group-body>button,.gi-tag-drive-row>button{justify-self:start;min-height:30px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans)}
+.gi-tag-group-body>button{justify-self:start;min-height:30px;padding:0 8px;border:1px solid var(--gi-7);background:var(--gi-3);color:var(--gi-bd-copy);font:500 12px var(--gi-sans)}
 /* No `scrollbar-width` / `scrollbar-color` here. Chromium ignores EVERY
    `::-webkit-scrollbar-*` rule for an element that sets either of them, so the
    route's arrow-button suppression was dead on any runtime that draws classic
@@ -103,19 +103,24 @@
    measured content plus a small buffer, which is also why the internal
    charting-pane scrollbar reported on the installed build can't be
    reproduced from a fresh headless measurement alone. */
-.gi-tag-situation-row{display:grid;grid-template-columns:minmax(0,165px) 100px 66px;align-items:end;gap:6px;min-width:0}
+/* Situation is one four-column grid for both rows (Quarter, Down, Distance;
+   Hash, Field position, Yard line, Drive), so the columns line up at every
+   width; the number boxes hold two digits and have no spin arrows. */
+.gi-tag-situation-row{display:grid;grid-template-columns:minmax(0,160px) 100px 54px 40px;align-items:end;gap:6px;min-width:0}
 /* WRAP, never nowrap. This was the one chip row in the deck that could not
    reflow: if its text measures wider than its track in another engine, the row
    has no escape and overflows horizontally. Narrowing the track (the previous
    pass) only moved the threshold; allowing the wrap removes the mechanism. */
 .gi-tag-situation-row .gi-tag-chips{flex-wrap:wrap;gap:3px}
-.gi-tag-situation-row .gi-tag-chips button{padding-inline:6px}
-.gi-tag-input-distance,.gi-tag-input-yardLine{width:66px}
+.gi-tag-situation-row .gi-tag-chips button{padding-inline:5px}
+.gi-tag-input-distance,.gi-tag-input-yardLine{width:54px}
+.gi-tag-input-driveNumber{width:40px}
+.gi-tag-situation-row input{appearance:textfield}
+.gi-tag-situation-row input::-webkit-inner-spin-button,.gi-tag-situation-row input::-webkit-outer-spin-button{appearance:none;margin:0}
 .gi-tag-result-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
 .gi-tag-result-row>.gi-tag-chips{display:contents}
 .gi-tag-more-select{flex:0 0 80px;min-height:30px;padding:0 6px}
 .gi-tag-input-yardage{width:88px}.gi-tag-input-yardage input{font-variant-numeric:tabular-nums}
-.gi-tag-drive-row{grid-template-columns:90px auto;justify-content:start;align-items:end}.gi-tag-drive-row>button{min-height:32px;padding:0 10px}
 .gi-tag-spot-field{justify-self:start;width:176px;max-width:100%}
 .gi-tag-spot-field>.gi-tag-field-label{display:grid;grid-template-columns:102px 66px;gap:8px}
 .gi-tag-spot{display:grid;grid-template-columns:102px 66px;gap:8px;align-items:center}
@@ -157,8 +162,8 @@
 .gi-tag-nav kbd{padding:2px 4px;border:0;background:var(--gi-scrim-soft);color:inherit;font:500 11px var(--gi-sans)}
 .gi-tag-empty{display:grid;min-height:160px;place-items:center;align-self:start;margin:12px;padding:20px;border:1px dashed var(--gi-7);color:var(--gi-bd-copy);font:400 14px/1.5 var(--gi-sans);text-align:center}
 @media(max-width:1000px){.gi-native-tagging{height:auto;grid-template-rows:auto auto auto}.gi-native-form{overflow:visible}.gi-tag-group{scroll-margin-top:12px}}
-@media(max-width:620px){.gi-tag-context{flex-wrap:wrap}.gi-tag-actions{overflow-x:auto}.gi-tag-actions>*{flex-shrink:0}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 108px 66px;gap:6px}.gi-tag-situation-row .gi-tag-chips button{padding-inline:4px}.gi-tag-players{grid-template-columns:1fr}.gi-tag-nav kbd{display:none}}
-@media(pointer:coarse){.gi-native-tagging :is(button,select,input:not([type="checkbox"]),textarea),.gi-tag-check{min-height:44px}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 66px}.gi-tag-situation-row>:first-child{grid-column:1/-1}.gi-tag-situation-row .gi-tag-chips{flex-wrap:wrap}.gi-tag-players{grid-template-columns:1fr}.gi-tag-spot-field{width:182px}.gi-tag-spot-field>.gi-tag-field-label,.gi-tag-spot{grid-template-columns:108px 66px}.gi-player-quick{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));max-height:144px}}
+@media(max-width:620px){.gi-tag-context{flex-wrap:wrap}.gi-tag-actions{overflow-x:auto}.gi-tag-actions>*{flex-shrink:0}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 108px 54px 40px;gap:6px}.gi-tag-situation-row .gi-tag-chips button{padding-inline:4px}.gi-tag-players{grid-template-columns:1fr}.gi-tag-nav kbd{display:none}}
+@media(pointer:coarse){.gi-native-tagging :is(button,select,input:not([type="checkbox"]),textarea),.gi-tag-check{min-height:44px}.gi-tag-situation-row{grid-template-columns:minmax(0,1fr) 66px 66px}.gi-tag-situation-row>:first-child{grid-column:1/-1}.gi-tag-input-distance,.gi-tag-input-yardLine,.gi-tag-input-driveNumber{width:66px}.gi-tag-situation-row .gi-tag-chips{flex-wrap:wrap}.gi-tag-players{grid-template-columns:1fr}.gi-tag-spot-field{width:182px}.gi-tag-spot-field>.gi-tag-field-label,.gi-tag-spot{grid-template-columns:108px 66px}.gi-player-quick{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));max-height:144px}}
 
 /* Charting rail typography follows the same semantic floor as the theater.
    Controls stay compact through geometry, not undersized text. */
@@ -167,7 +172,7 @@
   font-size:13px
 }
 .gi-unit-switch button,.gi-tag-actions button,.gi-tag-actions select,
-.gi-tag-group-body>button,.gi-tag-drive-row>button,
+.gi-tag-group-body>button,
 .gi-tag-field-label,.gi-tag-chips button,.gi-tag-add,.gi-native-form>button,
 .gi-tag-custom button,.gi-player-quick button,.gi-tag-input,.gi-tag-players strong,
 .gi-player-roster-toggle,.gi-play-call-entry button,.gi-play-call-quick button,

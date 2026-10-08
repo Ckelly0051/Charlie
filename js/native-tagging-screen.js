@@ -294,7 +294,6 @@ export class NativeTaggingScreen {
   // Opens the native Auto-Detect sheet (js/auto-detect-screen.js), which
   // owns the scan, progress, settings, results, Review and Apply.
   runAutoDetect() { return this.app.autoDetectScreen?.open?.(); }
-  newDrive() { return this.tagger?.newDrive?.(); }
   addNoteTimestamp() { return this.app.notes?.insertTimestamp?.(); }
 
   setActiveRole(role) { this.activeRole=role; this.app.roster.activeRole=role; this._queuePublish(); }

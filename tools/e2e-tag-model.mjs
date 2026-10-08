@@ -31,7 +31,7 @@ console.log('\n== E2 tag model ==');
 test('1 · a newly created play is born with qbAlignment & coverageFamily = ""', () => {
   // Real creation path: createWholeVideoPlay (loading a video into an empty game).
   const pt = Object.create(PlayTagger.prototype);
-  pt.plays = []; pt.nextId = 1; pt.currentDrive = 1; pt.defaultUnit = 'offense';
+  pt.plays = []; pt.nextId = 1; pt.defaultUnit = 'offense';
   pt._updatePlaySelect = () => {}; pt._updateTimeline = () => {};
   pt.selectPlay = () => {}; pt._emit = () => {};
   const play = pt.createWholeVideoPlay(5);

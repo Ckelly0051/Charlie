@@ -47,7 +47,7 @@ let state=await page.evaluate(()=>{
     contextInHeader:[...root.querySelectorAll('.gi-tag-context [data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
     unitButtons:root.querySelectorAll('.gi-unit-switch button').length,
     unitSelects:root.querySelectorAll('.gi-tag-context select').length,
-    capabilities:['Same as Last','Templates','Save as template','Delete play','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','New Drive','Edit custom fields'].filter(label=>text.includes(label))};
+    capabilities:['Same as Last','Templates','Save as template','Delete play','Play Diagram','Draw','Set OCR Region','Read Scoreboard','Auto OCR','Auto-detect plays','Save & Next','Edit custom fields'].filter(label=>text.includes(label)),newDrive:text.includes('New Drive')};
 });
 ok(fixture.mounted&&state.roots===1&&state.legacyFormAbsent,'One native owner mounts and the legacy .tag-section markup does not exist in the document at all',JSON.stringify(state));
 ok(state.proxy===0&&!state.ids.some(id=>id.startsWith('tag')||id.startsWith('btn')),'Visible markup is Preact-owned, not a legacy clone',JSON.stringify({ids:state.ids,proxy:state.proxy}));
@@ -62,7 +62,8 @@ ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard off
 ok(state.context.join(',')==='direction,unit','Charting context is unit plus the relocated direction control, with no perspective picker',JSON.stringify(state.context));
 ok(state.contextInHeader.join(',')==='unit','The charting header itself carries only the unit control',JSON.stringify(state.contextInHeader));
 ok(state.unitButtons===3&&state.unitSelects===0,'Unit is a one-click segmented control, not a dropdown',JSON.stringify({buttons:state.unitButtons,selects:state.unitSelects}));
-ok(state.capabilities.length===13,'Templates, diagram, OCR, detection, commit, drive, and customization remain reachable',JSON.stringify(state.capabilities));
+ok(state.capabilities.length===12,'Templates, diagram, OCR, detection, commit, and customization remain reachable',JSON.stringify(state.capabilities));
+ok(!state.newDrive,'New Drive is gone: the drive is charted in Situation',JSON.stringify(state.capabilities));
 state=await page.evaluate(async()=>{
   const root=document.querySelector('[data-native-tagging]'),calls=[],original=app.tagLibrarySettings.open;
   app.tagLibrarySettings.open=group=>calls.push(group);
@@ -103,7 +104,7 @@ state=await page.evaluate(()=>{
   return{formations:values('formationFamily'),backfields:values('backfield'),rows,primary,more,yardWidth:yards.getBoundingClientRect().width,resultOverflow:resultRow.scrollWidth-resultRow.clientWidth};
 });
 ok(['I-Form','Split Back'].every(value=>state.formations.includes(value))&&['I','Split'].every(value=>state.backfields.includes(value))&&!state.backfields.includes('I-Form')&&!state.backfields.includes('Split Back'),'Formation and Backfield expose distinct football-correct I/Split vocabularies',JSON.stringify({formations:state.formations,backfields:state.backfields}));
-ok(JSON.stringify(state.rows)===JSON.stringify([{name:'primary',fields:['quarter','down','distance']},{name:'field',fields:['hash','fieldSide','yardLine']}]),'Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position',JSON.stringify(state.rows));
+ok(JSON.stringify(state.rows)===JSON.stringify([{name:'primary',fields:['quarter','down','distance']},{name:'field',fields:['hash','fieldSide','yardLine','driveNumber']}]),'Situation uses two ordered rows: Quarter + D/D, then Hash + Field Position + Drive',JSON.stringify(state.rows));
 ok(state.primary.at(-1)==='Fumble'&&!state.primary.includes('Punt')&&state.more[0]==='Punt','Punt moves behind More while common results remain one row',JSON.stringify({primary:state.primary,more:state.more}));
 ok(state.resultOverflow<=1,'Common results and More fit the production-width tag column without horizontal scrolling',JSON.stringify(state.resultOverflow));
 /* G12b — these two constraints pull against each other: the More control has to

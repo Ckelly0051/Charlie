@@ -487,6 +487,7 @@ export function NativeTagging({screen}) {
           {chips('hash','Hash',OPTIONS.hash)}
           {chips('fieldSide','Field position',[{value:'own',label:'Own'},{value:'opp',label:'Opp'}])}
           <Field screen={screen} field="yardLine" label="Yard line" value={state.values.yardLine} min="1" max="50"/>
+          <Field screen={screen} field="driveNumber" label="Drive" value={state.values.driveNumber} min="1" max="30"/>
         </div>
       </Group>
       {state.unit === 'special' && <SpecialTeams screen={screen} state={state}/>}
@@ -533,10 +534,6 @@ export function NativeTagging({screen}) {
       <Group title="Notes & Details">
         <label class="gi-tag-input"><span>Play notes</span><textarea value={state.notes} onInput={e => screen.setNotes(e.currentTarget.value)}/></label>
         <button type="button" onClick={() => screen.addNoteTimestamp()}>Add video time</button>
-        <div class="gi-tag-grid gi-tag-drive-row">
-          <Field screen={screen} field="driveNumber" label="Drive" value={state.values.driveNumber} min="1" max="30"/>
-          <button type="button" onClick={() => screen.newDrive()}>New Drive</button>
-        </div>
         {state.customFields.map(def => def.options?.length
           ? <Chips key={def.id} screen={{setField:(_,v) => screen.setCustomField(def.id,v)}} field={def.id} label={def.name} options={def.options} value={def.value}/>
           : <label key={def.id} class="gi-tag-input"><span>{def.name}</span><input value={def.value} onChange={e => screen.setCustomField(def.id,e.currentTarget.value)}/></label>)}

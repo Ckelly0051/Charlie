@@ -396,6 +396,31 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
 }
 
+console.log('\n== Drive is charted in Situation (design-comps/breakdown-drive-situation-2026-10-07) ==');
+for (const [w, h] of [[1440, 900], [1280, 800]]) {
+  await page.setViewport({ width: w, height: h }); await settle();
+  await P.select(2);
+  await page.evaluate(() => { const i = document.querySelector('[data-native-tagging] [data-native-field="driveNumber"] input'); i.value = '30'; i.dispatchEvent(new Event('change', { bubbles: true })); });
+  await settle();
+  const g = await page.evaluate(() => {
+    const [top, field] = ['primary', 'field'].map(k => document.querySelector(`[data-situation-row="${k}"]`));
+    const lefts = row => [...row.children].map(el => Math.round(el.getBoundingClientRect().left));
+    const drive = field.querySelector('[data-native-field="driveNumber"]'), input = drive?.querySelector('input');
+    const text = [...document.querySelectorAll('[data-native-tagging] button')].map(b => b.textContent.trim());
+    return { order: [...field.children].map(el => el.dataset.nativeField || el.querySelector('[data-native-field]')?.dataset.nativeField || el.textContent.trim().slice(0, 14)),
+      top: lefts(top), field: lefts(field), driveWidth: Math.round(drive?.getBoundingClientRect().width || 0),
+      fits: input ? input.scrollWidth <= input.clientWidth : false, value: window.app.tagger.getCurrentPlay().tags.driveNumber,
+      rows: [top, field].map(row => row.scrollWidth - row.clientWidth), page: document.documentElement.scrollWidth - innerWidth,
+      newDrive: text.includes('New Drive'), oldRow: !!document.querySelector('.gi-tag-drive-row') };
+  });
+  ok(g.order.at(-1) === 'driveNumber' && g.order.length === 4, `${w}: Drive is the fourth field in Situation's second row`, JSON.stringify(g.order));
+  ok(g.top[1] === g.field[1] && g.top[2] === g.field[2], `${w}: Down sits over Field position and Distance over Yard line`, JSON.stringify(g));
+  ok(g.driveWidth === 40 && g.fits && g.value === '30', `${w}: the 40px Drive box holds two digits and writes the drive`, JSON.stringify(g));
+  ok(g.rows.every(n => n <= 0) && g.page <= 0, `${w}: no Situation row or page overflows`, JSON.stringify(g));
+  ok(!g.newDrive && !g.oldRow, `${w}: New Drive and the Notes & Details drive row are gone`, JSON.stringify(g));
+}
+await page.setViewport({ width: 1440, height: 900 }); await settle();
+
 console.log('\n== The defensive call heading has room around its text (smoke 112 finding 7) ==');
 {
   await P.select(1);

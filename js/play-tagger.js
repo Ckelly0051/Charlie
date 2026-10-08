@@ -40,8 +40,6 @@ export class PlayTagger {
     this.carryScheme = (typeof localStorage !== 'undefined')
       && localStorage.getItem('ffa_carry_scheme') === '1';
 
-    this.currentDrive = 1;
-
     // Optional toast hook (App wires this to the shared toast) for inline
     // feedback like "Mark the start first".
     this.toast = null;
@@ -72,9 +70,9 @@ export class PlayTagger {
       players: {}, grades: {}, custom: [], customFields: {},
     };
   }
-  /** Tags for a play created now: the carried unit and the current drive. */
+  /** Tags for a play created now: the carried unit, on drive 1 until the coach charts its drive. */
   newPlayTags() {
-    return PlayTagger.blankTags({ unit: this.defaultUnit || 'offense', driveNumber: this.currentDrive.toString() });
+    return PlayTagger.blankTags({ unit: this.defaultUnit || 'offense', driveNumber: '1' });
   }
 
   /** "N / M tagged": the deck's progress line (native-tagging-screen.js). */
@@ -273,7 +271,7 @@ export class PlayTagger {
 
     if (play) {
       // Clearing keeps the play's drive and the unit on screen.
-      play.tags = PlayTagger.blankTags({ unit: countedUnit(play), driveNumber: play.tags.driveNumber || this.currentDrive.toString() });
+      play.tags = PlayTagger.blankTags({ unit: countedUnit(play), driveNumber: play.tags.driveNumber || '1' });
       play.notes = '';
       this._emit('play-updated', play);
     }
@@ -675,14 +673,6 @@ export class PlayTagger {
   setCarryScheme(value) {
     this.carryScheme = !!value;
     try { localStorage.setItem('ffa_carry_scheme', this.carryScheme ? '1' : '0'); } catch (e) {}
-    return true;
-  }
-
-  /** Bump the drive counter on the current play. Extracted from the legacy
-   *  button's click handler so native tagging can call it directly. */
-  newDrive() {
-    this.currentDrive++;
-    this.setTagValue('driveNumber', String(this.currentDrive));
     return true;
   }
 

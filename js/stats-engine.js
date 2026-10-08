@@ -2279,8 +2279,8 @@ export class StatsEngine {
   _countThreeAndOuts(plays) {
     // A three-and-out = the defense forced the offense to give the ball back in
     // three plays without a first down. We must NOT rely on the driveNumber
-    // tag: it's only set when the coach clicks "New Drive", so a normally-tagged
-    // game leaves every play on drive "1" — which made this always report 0.
+    // tag: it is charted by hand, so a game charted without drives leaves every
+    // play on drive "1" — which made this always report 0.
     // Instead, reconstruct drives from the play sequence.
     const drives = this._reconstructDrives(plays);
     // Results that mean the possession ended some other way than a forced punt.

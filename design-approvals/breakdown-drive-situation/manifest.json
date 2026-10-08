@@ -2,7 +2,7 @@
   "surfaceId": "breakdown.drive-situation",
   "title": "Drive in Situation",
   "designStatus": "COMP_APPROVED",
-  "productionStatus": "DRAFT",
+  "productionStatus": "IMPLEMENTED_UNVERIFIED",
   "approvedOn": "2026-10-07",
   "approvalNote": "The coach approved revision 2 to build: Drive joins Situation's second row (Hash, Field position, Yard line, Drive) on one four-column grid shared by both rows; Distance and Yard line 54px and Drive 40px, without number arrows; Quarter and Down chips 5px side padding; New Drive removed.",
   "canonicalArtifact": {
@@ -11,5 +11,6 @@
     "sha256": "113f6373465129a01c939796d9a4725cc84f2d1631b7164276d4725d373b10b6",
     "fileCount": 8
   },
-  "decisionRecord": "design-comps/breakdown-drive-situation-2026-10-07/RATIONALE.md"
+  "decisionRecord": "design-comps/breakdown-drive-situation-2026-10-07/RATIONALE.md",
+  "productionNote": "Built 2026-10-07 as drawn: Drive is the fourth field of Situation's second row on the shared four-column grid; New Drive, PlayTagger.newDrive and currentDrive are removed (a new play still starts on drive 1). Narrow (620px) and coarse-pointer layouts keep the same order."
 }

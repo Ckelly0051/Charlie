@@ -93,11 +93,6 @@ const activeChips = (field) => page.evaluate((f) =>
 const allChipValues = (field) => page.evaluate((f) =>
   [...document.querySelectorAll(`[data-native-field="${f}"] .gi-tag-chips button`)].map(b => b.textContent.trim()),
   field);
-const clickButtonByText = (text) => page.evaluate((t) => {
-  const btn = [...document.querySelectorAll('.gi-native-tagging button')].find(b => b.textContent.trim() === t);
-  if (btn) btn.click();
-  return !!btn;
-}, text);
 // Save & Next's own button text flips to "Saved" for 650ms after a click
 // (native-tagging-screen.js's _saveConfirmed flash) -- matching by class
 // (always 'is-primary', text-independent) avoids a silent no-op click if a
@@ -311,13 +306,9 @@ r = await page.evaluate(() => {
 ok(r.cleanUnchanged, 'an untouched play is unchanged by Save & Next', JSON.stringify(r));
 ok(r.noHistoryEntryForClean, 'Save & Next on an untouched play creates NO history entry', JSON.stringify(r));
 
-console.log('\n== 10. "New Drive" writes ONLY Drive Number — every other field is left EXACTLY as it was (Codex E4-1 review finding #3) ==');
-// Before this fix, New Drive called the bulk _saveCurrentTags() path, which
-// re-wrote EVERY displayed field (including Formation/Coverage's PROJECTED
-// display) from a click that only meant to bump the drive counter — a
-// field-level-merge violation regardless of the promote guard it also had.
-// The fix: New Drive now commits ONLY driveNumber via the same single-field
-// setTagValue path every other charting write uses.
+console.log('\n== 10. The Situation Drive box writes ONLY Drive Number — every other field is left EXACTLY as it was ==');
+// Drive is charted in Situation's Drive box (New Drive was removed, coach
+// 2026-10-07); it commits only driveNumber through the single-field write.
 const before10 = await page.evaluate(() => {
   const t = window.app.tagger;
   const id = 9106;
@@ -326,7 +317,7 @@ const before10 = await page.evaluate(() => {
   t.selectPlay(id);
   return JSON.parse(JSON.stringify(t.getPlay(id).tags));
 });
-await clickButtonByText('New Drive');
+await page.evaluate(() => { const input = document.querySelector('[data-native-tagging] [data-native-field="driveNumber"] input'); input.value = '7'; input.dispatchEvent(new Event('change', { bubbles: true })); });
 r = await page.evaluate((before) => {
   const t = window.app.tagger;
   const id = 9106;
@@ -341,8 +332,8 @@ r = await page.evaluate((before) => {
     || JSON.stringify(after.tags[k] ?? null) === JSON.stringify(before[k] ?? null));
   return { formationFamily: after.tags.formationFamily, qbAlignment: after.tags.qbAlignment, driveNumber: after.tags.driveNumber, onlyDriveNumberChanged };
 }, before10);
-ok(r.formationFamily === 'Split Back' && r.qbAlignment === 'Shotgun', '"New Drive" leaves the look exactly as stored', JSON.stringify(r));
-ok(!!r.driveNumber, '"New Drive" DOES write the drive number itself', JSON.stringify(r));
+ok(r.formationFamily === 'Split Back' && r.qbAlignment === 'Shotgun', 'the Drive box leaves the look exactly as stored', JSON.stringify(r));
+ok(r.driveNumber === '7', 'the Drive box writes the drive number itself', JSON.stringify(r));
 ok(r.onlyDriveNumberChanged, 'no field OTHER than driveNumber changed — a genuine single-field commit, not a bulk rewrite', JSON.stringify(r));
 
 console.log('\n== 11. Cross-surface identical play set — the tag form write agrees with Film Room / the registry ==');
