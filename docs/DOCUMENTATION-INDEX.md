@@ -65,10 +65,13 @@ log.
   `SMOKE-1.12.0-112.md`. Findings 1 and 3-8 and a dialog-placement regression
   are repaired in source (`27b53d4c`..`13bab37a`, focused harnesses green); finding
   2 (reopen lands on the previous game) was never reproduced, stopped recurring,
-  and was closed by the coach with no code change. Next: a full gate and
-  installer 113. Nothing pushed or tagged.
-- **Latest full gate:** GREEN, 156/156 at `81b327c6` (2026-10-07, run by Codex),
-  no skips or failures. Release evidence eligible; installed approval not assessed.
+  and was closed by the coach with no code change. Since then: Drive in
+  Situation (comp `design-comps/breakdown-drive-situation-2026-10-07`) and kick
+  coverage tackles. Next: installer 113. Nothing pushed or tagged.
+- **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
+  failures. Release evidence eligible; installed approval not assessed. Covers
+  the smoke 112 repairs, Drive in Situation and kick coverage tackles, each
+  reviewed by Codex with no open findings.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
