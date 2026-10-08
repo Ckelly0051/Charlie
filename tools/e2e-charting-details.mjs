@@ -281,7 +281,7 @@ console.log('\n== Changing a Play Call says what it would clear ==');
   ok(PlayCallModel.losses(play, 'Sweep Left', playbook, () => '').length === 0, 'the same call clears nothing');
   const plain = { tags: { playDir: 'Left', motion: '', gap: 'L-B', playCallDefaults: {} } };
   ok(PlayCallModel.losses(plain, 'Sweep Left', playbook, () => '').length === 0, 'a call that agrees with what is charted clears nothing');
-  ok(PlayCallModel.losses(plain, 'Sweep Right', playbook, () => '').length === 0 && PlayCallModel.apply(plain, 'Sweep Right', playbook, () => '') && plain.tags.playDir === 'Left' && plain.tags.gap === 'L-B', 'a call never replaces a Direction the coach charted, so the Gap stays');
+  ok(PlayCallModel.losses(plain, 'Sweep Right', playbook, () => '').length === 0 && PlayCallModel.apply(plain, 'Sweep Right', playbook, () => '') && plain.tags.playDir === 'Right' && plain.tags.gap === 'L-B', 'a call replaces a charted Direction it has a default for, and the independent Gap stays (smoke 112 finding 6)');
   const free = { tags: { playDir: '', motion: '', gap: 'Other', playCallDefaults: {} } };
   ok(PlayCallModel.losses(free, 'Sweep Right', playbook, () => '').length === 0, 'Other agrees with any direction');
 }
