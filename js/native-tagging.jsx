@@ -379,10 +379,10 @@ function Players({screen, state}) {
   const baseRoles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
     : SpecialTeamsModel.playerRoles(st);
   // Missed Tackles is one more row (MissedTackles.mode): after Tackler(s) on
-  // defense, after the returner on kicks and returns, last on offense.
+  // defense and kick coverage, after the returner on returns, last on offense.
   const missedMode = MissedTackles.mode(state.unit, st);
   const roles = baseRoles.slice();
-  if (missedMode) roles.splice(side === 'defense' ? roles.indexOf('tackler') + 1 : side ? roles.length : roles.indexOf('returner') + 1, 0, MissedTackles.ROLE);
+  if (missedMode) roles.splice(roles.includes('tackler') ? roles.indexOf('tackler') + 1 : side ? roles.length : roles.indexOf('returner') + 1, 0, MissedTackles.ROLE);
   const opposingSpecialist = role => !side && SpecialTeamsModel.isOpposingPlayerRole(st, role);
   const defaultRole = state.unit === 'special' ? SpecialTeamsModel.defaultPlayerRole(st) : roles[0];
   const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) && !opposingSpecialist(state.activeRole) ? state.activeRole : defaultRole]));

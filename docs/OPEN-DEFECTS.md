@@ -32,6 +32,11 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
   Middle and Personnel 11, pick a call with a Direction default.
 - **The "Our Defensive Call" heading** (smoke 112 finding 7) has 6px of cyan
   fill each side of its text, still aligned with the other headings.
+- **Kick coverage tackles** (coach, 2026-10-07): Kickoff and Punt have a
+  Tackler(s) row for our coverage players; their tackles and missed tackles
+  count in Players > Tackles and the Defense board's player contributions, not
+  the team Tackling totals. Smoke: chart a kickoff tackle and a coverage miss,
+  then read Players and Defense.
 - **Drive in Situation** (comp `design-comps/breakdown-drive-situation-2026-10-07`):
   Drive is the last box in Situation's second row; New Drive is gone. Smoke:
   type a drive on a play and check the play strip groups it.

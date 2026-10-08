@@ -220,8 +220,9 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
 - No participation counts, targets, pressures, per-player blocking/coverage
   grades or combined rating.
 - **Missed tackles** (`design-comps/missed-tackles-reports-2026-10-07`):
-  Tackles has an `MTkl` column after Ast, one per defensive play the player is
-  named on, like Tkl. Tackles' number columns are narrower than the other
+  Tackles has an `MTkl` column after Ast, one per defensive or kick coverage
+  play the player is named on, like Tkl. Tkl, Solo, Ast and MTkl include our
+  kickoff and punt coverage (coach, 2026-10-07). Tackles' number columns are narrower than the other
   roles' (40 / 46 / 36px, 8px cell padding) so a long name keeps its room.
 
 ## Self-Scout

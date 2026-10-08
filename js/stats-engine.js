@@ -411,7 +411,10 @@ export class StatsEngine {
         && ['kickoffReturn', 'puntReturn', 'fieldGoal', 'punt'].includes(structured.unit)
         && [eventPlayers.kicker, eventPlayers.punter, eventPlayers.returner,
           tagPlayers.kicker, tagPlayers.returner].some(value => String(value || '').trim());
-      if (hasStructuredSpecialist) {
+      // Our kick coverage's tacklers and missed tacklers count in Tackles.
+      const hasCoverageTackle = structured && !structured.isFake && ['kickoff', 'punt'].includes(structured.unit)
+        && [tagPlayers.tackler, tagPlayers.missedTackler].some(value => String(value || '').trim());
+      if (hasStructuredSpecialist || hasCoverageTackle) {
         individualSource.push(p);
         individualSeen.add(p);
       }
@@ -2131,7 +2134,10 @@ export class StatsEngine {
       });
     });
 
-    const players = this._individualStats(ps).tacklers.map(row => ({
+    // Player lines add our kick coverage (kickoff, punt) tackles and misses to
+    // the defensive snaps (coach, 2026-10-07); the team modules stay defensive.
+    const coverage = p => { const st = SpecialTeamsModel.normalize(p?.specialTeams); return !!st && !st.isFake && (st.unit === 'kickoff' || st.unit === 'punt'); };
+    const players = this._individualStats(all.filter(p => isDefense(p) || coverage(p))).tacklers.map(row => ({
       name: `#${row.num} ${roster[String(row.num)] || ''}`.trim(), num: row.num,
       tackles: row.tackles, solo: row.solo, assists: row.assists, missedTackles: row.missedTackles, sacks: row.sacks, tfl: row.tfl,
       interceptions: row.ints, fumblesRecovered: row.fumblesRec,
@@ -3571,6 +3577,23 @@ export class StatsEngine {
             bucket(specialist, 'kicking', 'Kicking / Punting', 'puntYds', p, structured.kick.distance);
           }
         }
+      }
+
+      // --- Kick coverage. On our kickoff or punt, the coverage players who made
+      // or missed the tackle count in Tackles like a defensive snap (coach,
+      // 2026-10-07); a fake is a scrimmage play and is credited below.
+      if (structured && !structured.isFake && (structured.unit === 'kickoff' || structured.unit === 'punt')) {
+        const coverage = StatsEngine.splitPlayers(players.tackler);
+        coverage.forEach(id => {
+          bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
+          bucket(id, 'tackles', 'Tackles', 'tkl', p);
+          bucket(id, 'tackles', 'Tackles', coverage.length > 1 ? 'ast' : 'solo', p);
+          grade(id, 'tackles', 'Tackles', p, 'tackler');
+        });
+        MissedTackles.players(p).forEach(id => {
+          bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
+          bucket(id, 'tackles', 'Tackles', 'mtkl', p);
+        });
       }
 
       if (!StatsEngine.countsFootballRoles(p)) return;

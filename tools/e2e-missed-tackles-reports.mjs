@@ -31,8 +31,9 @@ const GAMES = [
   // snap is never read.
   [D({ runPass: 'Run', playType: 'Run Inside', result: 'Gain + Touchdown', yardage: '20', missedTackles: '4', players: { missedTackler: '51, 44' } }),
    D({ runPass: 'Run', playType: 'Run Outside', result: 'Loss', yardage: '-1', players: { tackler: '22' } }),
-   // Kick coverage misses wait for the reporting rebuild.
-   { unit: 'special', quarter: 'Q2', missedTackles: '1', players: { missedTackler: '5' }, __st: { unit: 'kickoff' } }],
+   // Kick coverage: #44 makes the tackle, #5 misses. They count in the player
+   // lines (Players, Defensive player contributions), not the team Tackling totals.
+   { unit: 'special', quarter: 'Q2', missedTackles: '1', players: { tackler: '44', missedTackler: '5' }, __st: { unit: 'kickoff' } }],
 ];
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
@@ -115,8 +116,11 @@ try {
   const pc = await module('Defensive player contributions');
   const mc = pc?.heads.indexOf('Missed Tackles');
   const byPlayer = Object.fromEntries((pc?.rows || []).map(r => [(r[0].match(/#(\d+)/) || [])[1], r[mc]]));
-  ok(mc === pc?.heads.indexOf('Ast') + 1 && byPlayer['5'] === '2' && byPlayer['44'] === '2' && byPlayer['51'] === '1' && byPlayer['22'] === '0',
-    'Defensive player contributions: Missed Tackles after Ast, one per play named, kick coverage excluded, a miss-only player listed', byPlayer);
+  const tc = pc?.heads.indexOf('Tackles');
+  const tackles44 = (pc?.rows || []).find(r => /#44\b/.test(r[0]))?.[tc];
+  ok(mc === pc?.heads.indexOf('Ast') + 1 && byPlayer['5'] === '3' && byPlayer['44'] === '2' && byPlayer['51'] === '1' && byPlayer['22'] === '0',
+    'Defensive player contributions: Missed Tackles after Ast, one per play named, kick coverage included, a miss-only player listed', byPlayer);
+  ok(tackles44 === '2', 'Defensive player contributions count a kick coverage tackle in the player\'s Tackles', tackles44);
   const refs = await page.evaluate(() => {
     const screen = window.app.reportsScreen, plays = screen._defenseScopedPlays;
     const board = window.app.stats.defenseBoard(plays, { scope: 'season', seasonPlays: plays });
@@ -151,15 +155,17 @@ try {
     const overflow = [...m.querySelectorAll('th,td')].some(el => el.scrollWidth > el.clientWidth + 1);
     return { heads, at, rows, button: !!button, cols, overflow };
   });
-  ok(pl.at === pl.heads.indexOf('Ast') + 1 && pl.rows['5'] === '2' && pl.rows['44'] === '2' && pl.rows['51'] === '1' && pl.rows['22'] === '0',
-    'MTkl follows Ast with one per play named', pl);
+  ok(pl.at === pl.heads.indexOf('Ast') + 1 && pl.rows['5'] === '3' && pl.rows['44'] === '2' && pl.rows['51'] === '1' && pl.rows['22'] === '0',
+    'MTkl follows Ast with one per play named, kick coverage included', pl);
   ok(pl.button && pl.cols === pl.heads.length && !pl.overflow, 'MTkl opens its film, has its own column width and nothing clips', pl);
   const credits = await page.evaluate(() => {
     const plays = window.app.storage.seasonStore.data.games.flatMap(g => g.plays.map(p => ({ ...p, __gid: g.id })));
-    const five = window.app.stats._playerCredits(plays).get('5')?.roles.get('tackles')?.stats.get('mtkl') || [];
-    return five.map(e => `${e.play.__gid}::${e.play.id}`);
+    const index = window.app.stats._playerCredits(plays), ref = e => `${e.play.__gid}::${e.play.id}`;
+    return { five: (index.get('5')?.roles.get('tackles')?.stats.get('mtkl') || []).map(ref),
+      tkl44: (index.get('44')?.roles.get('tackles')?.stats.get('tkl') || []).map(ref) };
   });
-  ok(JSON.stringify(credits) === JSON.stringify(['g-1::1', 'g-1::3']), 'a player\'s MTkl film is the defensive plays they are named on', credits);
+  ok(JSON.stringify(credits.five) === JSON.stringify(['g-1::1', 'g-1::3', 'g-2::3']), 'a player\'s MTkl film is the defensive and kick coverage plays they are named on', credits);
+  ok(JSON.stringify(credits.tkl44) === JSON.stringify(['g-1::3', 'g-2::3']), 'a kick coverage tackle is one of the player\'s Tkl plays', credits);
 
   console.log('\n== Study ==');
   const study = await page.evaluate(() => {

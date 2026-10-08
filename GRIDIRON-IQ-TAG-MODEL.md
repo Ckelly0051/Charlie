@@ -115,7 +115,7 @@ Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); owner `js/missed
   |---|---|---|---|
   | Defense | Tackler(s) | players | tackles our defense missed |
   | Offense | Receiver | Count | tackles the defense missed on our ball carrier |
-  | Kickoff, Punt | Opponent Returner | players | tackles our coverage missed |
+  | Kickoff, Punt | Tackler(s) | players | tackles our coverage missed |
   | Kick Return, Punt Return | Returner | Count | tackles the coverage missed on our returner |
 
   Film Room's MTkl column edits the Count on the opponent's snaps and shows the

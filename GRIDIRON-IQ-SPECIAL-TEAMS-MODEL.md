@@ -179,8 +179,12 @@ Special Teams try module.
 ## 7. Players
 
 - `SpecialTeamsModel.playerRoles` owns the row order: Kicker then Returner on
-  kick and return units, Kicker only on Try (Kick), Blocker only on Defending a
-  Try (Kick), and the scrimmage roles on a run/pass try.
+  kick and return units, then Tackler(s) on our Kickoff and Punt (our coverage
+  players, coach 2026-10-07), Kicker only on Try (Kick), Blocker only on
+  Defending a Try (Kick), and the scrimmage roles on a run/pass try.
+- Kick coverage tackles and missed tackles count in the player lines (Players >
+  Tackles; the Defense board's Defensive player contributions), not in the
+  Defense team modules.
 - **Roster ownership**: the roster belongs to the subject season. A receiving
   or defending unit never offers it for the opposing kicker; a kicking or
   attempting unit never offers it for the opposing returner

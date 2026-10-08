@@ -47,6 +47,8 @@ export class SpecialTeamsModel {
     }
     if (event?.unit === 'try') return ['kicker'];
     if (event?.unit === 'tryDefense') return ['blocker'];
+    // Our coverage units chart who made the tackle (coach, 2026-10-07).
+    if (event?.unit === 'kickoff' || event?.unit === 'punt') return ['kicker', 'returner', 'tackler'];
     return ['kicker', 'returner'];
   }
 

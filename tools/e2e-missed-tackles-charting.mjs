@@ -109,8 +109,11 @@ try {
     'offense: Missed Tackles follows Receiver, count only', o);
   const k = await rows(3);
   const km = k[at(k, 'Missed Tackles')];
-  ok(at(k, 'Missed Tackles') === at(k, 'Opponent Returner') + 1 && km?.input && km.roster && !km.grade && km.count === null,
-    'kickoff: Missed Tackles follows Opponent Returner with our coverage players', k);
+  const kt = k[at(k, 'Tackler(s)')];
+  ok(at(k, 'Tackler(s)') === at(k, 'Opponent Returner') + 1 && kt?.input && kt.roster && kt.grade,
+    'kickoff: Tackler(s) follows Opponent Returner with our coverage players and a grade (coach, 2026-10-07)', k);
+  ok(at(k, 'Missed Tackles') === at(k, 'Tackler(s)') + 1 && km?.input && km.roster && !km.grade && km.count === null,
+    'kickoff: Missed Tackles follows Tackler(s) with our coverage players', k);
   const r = await rows(4);
   const rm = r[at(r, 'Missed Tackles')];
   ok(at(r, 'Missed Tackles') === at(r, 'Returner') + 1 && rm && !rm.input && !rm.roster, 'punt return: Missed Tackles follows Returner, count only', r);
