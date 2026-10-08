@@ -60,7 +60,43 @@ opens exactly the counted plays.
 Known unrelated open items remain in `docs/OPEN-DEFECTS.md`; this build does
 not claim to fix the player/Defense tackle discrepancy or renamed HTML export.
 
-## Findings
+## Codex Installed UI Check - 2026-10-08
+
+Partial, non-destructive smoke through Windows computer use on the installed
+app. The More menu identified `1.12.0-113`. No charting fields, playbook entries
+or film links were edited; no plays were deleted. Navigation and normal
+close-time persistence ran through the app.
+
+- **Playback:** eight forward/backward timeline drags: two on OLV Play 36,
+  six on the reported Play 26, at windowed and maximized sizes and during
+  playback. Film loaded and frames changed. One buffering state recovered.
+  No Film unavailable overlay reproduced. Serial automation with observation
+  between inputs does not establish rapid-scrubbing stress coverage. Finding 1
+  remains open.
+- **Dialogs:** Delete play and Clear tags opened centered. Escape dismissed
+  Delete; Cancel dismissed Clear. Pressing H with Clear tags open did not
+  change Play 26's Run Outside classification. Play count remained 121.
+  Immediate-after-open Escape timing and template prompts were not tested.
+- **Reports:** OLV Special Teams showed two returns totaling 31 yards, long
+  16. Players showed #13 with 16 return yards and #42 with 15. Defense showed
+  seven missed tackles; the all-unit Players rows summed to eight. These are
+  observed outputs, not an independent play-by-play formula verification.
+  Detail report tabs did not repeat the Overview score banner.
+- **Film Room / Watch:** Special Teams filtered to eight plays, numbered
+  1, 11, 12, 21, 22, 24, 25 and 36. Watch opened an eight-play set; Next moved
+  from Play 1 to Play 11 and loaded its film. Clearing filters restored 121.
+- **Restart selection:** switched from OLV to Oakland Christian and back,
+  closed with X, confirmed the app exited, and relaunched. Continue Season
+  retained OLV as active with 121 plays and 32 charted. Continue charting
+  loaded OLV film. This tests selection persistence, not newly charted edits.
+
+Still untested here: chart/save/restart of new edits, Playbook favorite and
+default application edits, Drive edits, coverage-penalty editing cases,
+CSV/export/import on a disposable copy, and separate managed-film coverage.
+Independent packaged-asset inspection also remains pending. No additional
+confirmed defect was found in these checks; installed smoke is not approved.
+
+## Coach Findings
 
 1. **Scrubbing shows "Film unavailable"** (coach, 2026-10-08). Installed
    113, SJM Varsity 2026, Week 6 vs Our Lady of Victory Cougars, Play 26.
