@@ -67,6 +67,10 @@ Installer `1.12.0-113` is built; its checklist and pending result are in
   deprioritized). Installed WebView2 only; reopening loads the same film. Every
   scrubber `input` sets `video.currentTime`, and `VideoController` treats any
   resulting media `error` as missing film.
+  Recurred during installed 113 smoke (2026-10-08), Varsity 2026 vs OLV,
+  Play 26, clip `20261003_192402`, at 0:04 of 0:16; see
+  `SMOKE-1.12.0-113.md` finding 1. Screenshot confirms the unavailable overlay
+  with a film frame still visible; no new root cause established.
 - **OCR controls are a visible dead end** (OCR-1, parked by the coach
   2026-09-27). Set region, Read and Auto OCR render into elements that no longer
   exist. Kept for future use; the controls do nothing today.

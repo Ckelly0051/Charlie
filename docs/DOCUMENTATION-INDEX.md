@@ -73,7 +73,9 @@ log.
   4,036,887 bytes, SHA-256
   `2D93D5950C9B16AF3928C170655534B022B58613EFC2D4C926FC8DD771460E87`.
   Product and file versions verified as `1.12.0-113`. Independent packaged-asset
-  inspection and coach installed smoke are pending in `SMOKE-1.12.0-113.md`.
+  inspection remains pending. Coach installed smoke is in progress with a
+  scrubbing-error recurrence (finding 1, 2026-10-08) in `SMOKE-1.12.0-113.md`;
+  not approved.
   Nothing installed, pushed or tagged by this build.
 - **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
   failures. Release evidence eligible; installed approval not assessed. Covers

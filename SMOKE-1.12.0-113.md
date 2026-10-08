@@ -20,7 +20,8 @@
 
 ## Result
 
-Pending coach installed smoke. Installer 112 was REVISE; this build includes
+Coach installed smoke in progress; finding 1 recorded 2026-10-08. Not approved.
+Installer 112 was REVISE; this build includes
 its source repairs plus Drive in Situation and kick coverage tackles.
 
 ## What to check
@@ -61,4 +62,11 @@ not claim to fix the player/Defense tackle discrepancy or renamed HTML export.
 
 ## Findings
 
-None recorded yet; smoke pending.
+1. **Scrubbing shows "Film unavailable"** (coach, 2026-10-08). Installed
+   113, SJM Varsity 2026, Week 6 vs Our Lady of Victory Cougars, Play 26.
+   Screenshot shows the film frame behind the error, scrubber at 0:04 of
+   0:16, and "Couldn't play 20261003_192402. Re-link the film or use MP4,
+   MOV, or WebM." Recurrence of the existing timeline-scrubbing defect in
+   `docs/OPEN-DEFECTS.md`; exact media error and trigger sequence not captured.
+   No new root cause established, no fix made. Smoke remains in progress and
+   is not approved.
