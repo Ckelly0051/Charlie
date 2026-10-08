@@ -167,6 +167,32 @@ try {
   ok(JSON.stringify(credits.five) === JSON.stringify(['g-1::1', 'g-1::3', 'g-2::3']), 'a player\'s MTkl film is the defensive and kick coverage plays they are named on', credits);
   ok(JSON.stringify(credits.tkl44) === JSON.stringify(['g-1::3', 'g-2::3']), 'a kick coverage tackle is one of the player\'s Tkl plays', credits);
 
+  console.log('\n== Kick coverage on a penalty snap ==');
+  // A nullified or unresolved snap credits no coverage tackle or miss; a
+  // penalty whose play still counts does (StatsEngine._tryPenaltyResolved).
+  const penalized = await page.evaluate(() => {
+    const engine = window.app.stats;
+    const kick = (id, penalty) => ({ id, __gid: 'g-pen', timestamp: { start: id, end: id + 1 }, notes: '',
+      tags: { unit: 'special', custom: [], customFields: {}, grades: {}, players: { tackler: '44', missedTackler: '5' } },
+      specialTeams: { unit: 'kickoff' }, penalties: [penalty] });
+    const count = (plays) => {
+      const credit = engine._playerCredits(plays);
+      const board = engine.defenseBoard(plays, { scope: 'season', seasonPlays: plays }).players;
+      const row = num => board.find(p => String(p.num) === num);
+      return { tkl: credit.get('44')?.roles.get('tackles')?.stats.get('tkl')?.length || 0,
+        mtkl: credit.get('5')?.roles.get('tackles')?.stats.get('mtkl')?.length || 0,
+        boardTkl: row('44')?.tackles || 0, boardMtkl: row('5')?.missedTackles || 0 };
+    };
+    return {
+      nullified: count([kick(1, { team: 'opponent', foul: 'Holding', disposition: 'accepted', playCounts: false, yards: 10 })]),
+      unresolved: count([kick(2, { team: 'opponent', foul: 'Holding', disposition: 'unknown', playCounts: true, yards: 10 })]),
+      counting: count([kick(3, { team: 'opponent', foul: 'Facemask', disposition: 'accepted', playCounts: true, yards: 15 })]),
+    };
+  });
+  ok(Object.values(penalized.nullified).every(n => n === 0), 'a kickoff nullified by a penalty credits no coverage tackle or miss', penalized.nullified);
+  ok(Object.values(penalized.unresolved).every(n => n === 0), 'a kickoff with an unresolved penalty credits no coverage tackle or miss', penalized.unresolved);
+  ok(Object.values(penalized.counting).every(n => n === 1), 'a kickoff whose penalty lets the play count credits the tackle and the miss', penalized.counting);
+
   console.log('\n== Study ==');
   const study = await page.evaluate(() => {
     const reg = window.app.analyticsRegistry, games = window.app.storage.seasonStore.data.games;

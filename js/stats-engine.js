@@ -412,7 +412,7 @@ export class StatsEngine {
         && [eventPlayers.kicker, eventPlayers.punter, eventPlayers.returner,
           tagPlayers.kicker, tagPlayers.returner].some(value => String(value || '').trim());
       // Our kick coverage's tacklers and missed tacklers count in Tackles.
-      const hasCoverageTackle = structured && !structured.isFake && ['kickoff', 'punt'].includes(structured.unit)
+      const hasCoverageTackle = structured && !structured.isFake && ['kickoff', 'punt'].includes(structured.unit) && StatsEngine._tryPenaltyResolved(p)
         && [tagPlayers.tackler, tagPlayers.missedTackler].some(value => String(value || '').trim());
       if (hasStructuredSpecialist || hasCoverageTackle) {
         individualSource.push(p);
@@ -2136,7 +2136,7 @@ export class StatsEngine {
 
     // Player lines add our kick coverage (kickoff, punt) tackles and misses to
     // the defensive snaps (coach, 2026-10-07); the team modules stay defensive.
-    const coverage = p => { const st = SpecialTeamsModel.normalize(p?.specialTeams); return !!st && !st.isFake && (st.unit === 'kickoff' || st.unit === 'punt'); };
+    const coverage = p => { const st = SpecialTeamsModel.normalize(p?.specialTeams); return !!st && !st.isFake && (st.unit === 'kickoff' || st.unit === 'punt') && S._tryPenaltyResolved(p); };
     const players = this._individualStats(all.filter(p => isDefense(p) || coverage(p))).tacklers.map(row => ({
       name: `#${row.num} ${roster[String(row.num)] || ''}`.trim(), num: row.num,
       tackles: row.tackles, solo: row.solo, assists: row.assists, missedTackles: row.missedTackles, sacks: row.sacks, tfl: row.tfl,
@@ -3581,8 +3581,9 @@ export class StatsEngine {
 
       // --- Kick coverage. On our kickoff or punt, the coverage players who made
       // or missed the tackle count in Tackles like a defensive snap (coach,
-      // 2026-10-07); a fake is a scrimmage play and is credited below.
-      if (structured && !structured.isFake && (structured.unit === 'kickoff' || structured.unit === 'punt')) {
+      // 2026-10-07), unless a penalty nullified or left the snap unresolved; a
+      // fake is a scrimmage play and is credited below.
+      if (structured && !structured.isFake && (structured.unit === 'kickoff' || structured.unit === 'punt') && StatsEngine._tryPenaltyResolved(p)) {
         const coverage = StatsEngine.splitPlayers(players.tackler);
         coverage.forEach(id => {
           bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
