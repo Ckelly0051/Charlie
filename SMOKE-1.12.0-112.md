@@ -16,7 +16,7 @@
 
 ## Result
 
-Coach smoke 2026-10-07: REVISE, eight findings. Seven are repaired in source and wait for the next installer; finding 2 is open.
+Coach smoke 2026-10-07: REVISE, eight findings. Seven are repaired in source and wait for the next installer; finding 2 stopped recurring and was closed by the coach without a code change.
 
 ## What to check
 
@@ -57,7 +57,11 @@ switch games without duplicate clips; Watch opens exactly the counted plays.
 2. **Reopening the app opened the previous game** (closed on Week 6 vs OLV,
    reopened to Week 5 St. George; picking OLV on Home then opened St. George).
    The close-time save wrote St. George as the season's active game; plays
-   were intact. Not reproduced in the browser. Open.
+   were intact. Neither Claude nor Codex found a cause or reproduced it, and it
+   stopped happening in the coach's app. Closed by the coach as resolved
+   (2026-10-07), with no code change. If it returns, the sign is: the season's
+   saved active_game_id changes to another game during the close-time save while
+   that game's plays are untouched.
 3. **A new favorite play call showed in Chart only after a restart.** Repaired
    `16de2ab1`.
 4. **The Playbook star did nothing** (every star looked the same). Repaired

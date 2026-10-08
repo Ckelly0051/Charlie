@@ -45,13 +45,6 @@ Latest coach-smoked build: `1.12.0-111` (2026-10-06).
 
 ## Open defects
 
-Installed `1.12.0-112` smoke findings (coach, 2026-10-07), open:
-
-- **2. Reopening the app opens the previous game.** Installed only: closing on
-  Week 6 vs OLV wrote Week 5 St. George as the season's active game 8 seconds
-  before the next launch; plays were intact. Not reproduced in the browser
-  (Home card, Open game, charting, Settings, routes, close flush).
-
 - **Players and the Defense board count some tackles differently.** Full
   season on the canonical 2025 JV data: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7
   (Players > Tackles vs Defense > Defensive player contributions). Found

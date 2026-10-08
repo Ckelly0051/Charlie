@@ -64,9 +64,9 @@ log.
   Coach smoke of 112 (2026-10-07): REVISE, eight findings in
   `SMOKE-1.12.0-112.md`. Findings 1 and 3-8 and a dialog-placement regression
   are repaired in source (`27b53d4c`..`13bab37a`, focused harnesses green); finding
-  2 (reopen lands on the previous game) is open and not reproduced outside the
-  installed app. Next: reproduce finding 2 on the installed app, then a full
-  gate and installer 113. Nothing pushed or tagged.
+  2 (reopen lands on the previous game) was never reproduced, stopped recurring,
+  and was closed by the coach with no code change. Next: a full gate and
+  installer 113. Nothing pushed or tagged.
 - **Latest full gate:** GREEN, 156/156 at `81b327c6` (2026-10-07, run by Codex),
   no skips or failures. Release evidence eligible; installed approval not assessed.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
