@@ -106,3 +106,7 @@ confirmed defect was found in these checks; installed smoke is not approved.
    `docs/OPEN-DEFECTS.md`; exact media error and trigger sequence not captured.
    No new root cause established, no fix made. Smoke remains in progress and
    is not approved.
+   Follow-up: the coach reproduced it again by quickly seeking forward and
+   back; occurrence is intermittent. Investigation is deferred at the coach's
+   request. No rapid-seek reproduction or root cause was established by Codex,
+   and no playback fix or charting-data change was made for this investigation.

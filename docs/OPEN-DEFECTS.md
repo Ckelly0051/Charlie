@@ -71,6 +71,10 @@ Installer `1.12.0-113` is built; its checklist and pending result are in
   Play 26, clip `20261003_192402`, at 0:04 of 0:16; see
   `SMOKE-1.12.0-113.md` finding 1. Screenshot confirms the unavailable overlay
   with a film frame still visible; no new root cause established.
+  Coach reports another recurrence: quickly seek forward and back; it does
+  not fail every time. Investigation is deferred at the coach's request.
+  Automated seeks with a screenshot between inputs do not reproduce that
+  timing or establish a root cause. No fix or coach-data change made.
 - **OCR controls are a visible dead end** (OCR-1, parked by the coach
   2026-09-27). Set region, Read and Auto OCR render into elements that no longer
   exist. Kept for future use; the controls do nothing today.
