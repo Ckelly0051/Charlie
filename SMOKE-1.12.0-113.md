@@ -20,7 +20,11 @@
 
 ## Result
 
-Coach installed smoke in progress; finding 1 recorded 2026-10-08. Not approved.
+PASS with a known deferred defect (coach, 2026-10-09). The coach reported that
+packaged review passed and there were no further findings, then confirmed
+recording smoke acceptance with the intermittent scrubbing defect deferred.
+Finding 1 remains open; this acceptance does not certify untested paths or
+change the design approval registry.
 Installer 112 was REVISE; this build includes
 its source repairs plus Drive in Situation and kick coverage tackles.
 
@@ -94,7 +98,8 @@ Still untested here: chart/save/restart of new edits, Playbook favorite and
 default application edits, Drive edits, coverage-penalty editing cases,
 CSV/export/import on a disposable copy, and separate managed-film coverage.
 Packaged-asset inspection passed (see Build Record). No additional
-confirmed defect was found in these checks; installed smoke is not approved.
+confirmed defect was found in these checks. These partial checks are separate
+from the coach's smoke acceptance recorded above.
 
 ## Coach Findings
 
@@ -104,8 +109,8 @@ confirmed defect was found in these checks; installed smoke is not approved.
    0:16, and "Couldn't play 20261003_192402. Re-link the film or use MP4,
    MOV, or WebM." Recurrence of the existing timeline-scrubbing defect in
    `docs/OPEN-DEFECTS.md`; exact media error and trigger sequence not captured.
-   No new root cause established, no fix made. Smoke remains in progress and
-   is not approved.
+   No new root cause established, no fix made. Accepted as a known deferred
+   defect in the coach's 2026-10-09 smoke decision.
    Follow-up: the coach reproduced it again by quickly seeking forward and
    back; occurrence is intermittent. Investigation is deferred at the coach's
    request. No rapid-seek reproduction or root cause was established by Codex,

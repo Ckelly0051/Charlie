@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-Updated 2026-10-04.
+Updated 2026-10-09.
 
 ## Current authority
 
@@ -34,49 +34,18 @@ Updated 2026-10-04.
 The one place release state is kept current. Replace entries; do not append a
 log.
 
-- **Latest coach-smoked installer: `1.12.0-111`** (2026-10-06,
-  `SMOKE-1.12.0-111.md`, no findings). Break Down cleanup
-  (`design-comps/breakdown-cleanup-2026-10-05`), Home's startup loading
-  state, Saved only after the write lands (with the save-race fixes), in-app
-  cut-up prompts, Special Teams strip labels and Mark as Final in Game
-  settings. Full gate 153/153 at `87612c5a`; bump `4ee0595b`; unsigned NSIS
-  `GridIron IQ_1.12.0-111_x64-setup.exe`, 4,040,492 bytes, SHA-256
-  `C98BF2F08AB4FDE0A8D491E4E6E22FDF9381F3141A583C295BD4B7FE94CA1F27`. Tagged
-  `v1.12.0-111` (the tag builds the GitHub prerelease); branch pushed. The
-  design registry still reads IMPLEMENTED_UNVERIFIED for the cleanup (an
-  installed smoke does not move it).
-- **Unreleased on the branch (not installed):** missed tackles (charting on
-  every unit, Film Room, CSV, Study, defensive Reports; comps
-  `design-comps/missed-tackles-2026-10-06` and
-  `design-comps/missed-tackles-reports-2026-10-07`), tighter collapsed player
-  rows, the tagger's dialogs on the shared overlay, and old-pattern fixes in
-  five files, plus the complete Tackling module and the eleven-tile centered
-  KPI strip (`design-comps/missed-tackles-reports-r2-2026-10-07`). Focused
-  harnesses green. Codex reviewed
-  `b10bf0fe..db046e3d`; both findings are fixed (modal shortcut isolation,
-  Study's try exclusion for Missed Tackler). The real-data Defense check now
-  requires the approved eleven KPI tiles; its six-game rerun passes. Unpushed.
-  Full gate green at `81b327c6`. Unsigned NSIS installer `1.12.0-112` is built
-  from clean version-bump commit `9cdb23f0`; `e2e-p0-exit` passed 20/20.
-  Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-112_x64-setup.exe`,
-  4,036,201 bytes, SHA-256
-  `B61DCA23A42DBD59A60A621D4AC65C61F06270120F4D80449255E8E8850F6C28`.
-  Coach smoke of 112 (2026-10-07): REVISE, eight findings in
-  `SMOKE-1.12.0-112.md`. Findings 1 and 3-8 and a dialog-placement regression
-  are repaired in source (`27b53d4c`..`13bab37a`, focused harnesses green); finding
-  2 (reopen lands on the previous game) was never reproduced, stopped recurring,
-  and was closed by the coach with no code change. Since then: Drive in
-  Situation (comp `design-comps/breakdown-drive-situation-2026-10-07`) and kick
-  coverage tackles. Unsigned NSIS installer `1.12.0-113` is built from the
-  clean version-bump commit `22e83a47`; `e2e-p0-exit` passed 20/20.
+- **Latest coach-smoked installer: `1.12.0-113`** (2026-10-09,
+  `SMOKE-1.12.0-113.md`): PASS with the intermittent rapid-scrubbing defect
+  deferred in `docs/OPEN-DEFECTS.md`; no further coach findings. Includes missed
+  tackles, smoke 112 repairs, Drive in Situation and kick coverage tackles.
+  Built from clean version-bump commit `22e83a47`; `e2e-p0-exit` passed 20/20.
   Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-113_x64-setup.exe`,
   4,036,887 bytes, SHA-256
   `2D93D5950C9B16AF3928C170655534B022B58613EFC2D4C926FC8DD771460E87`.
-  Product and file versions verified as `1.12.0-113`. Independent packaged-asset
-  inspection PASS (2026-10-09). Coach installed smoke is in progress with a
-  scrubbing-error recurrence (finding 1, 2026-10-08) in `SMOKE-1.12.0-113.md`;
-  not approved.
-  Nothing installed, pushed or tagged by this build.
+  Product and file versions verified. Independent packaged-asset inspection
+  PASS (2026-10-09). Installed smoke acceptance is separate from the gate
+  receipt's historical `installedApproval: not-assessed` and does not move the
+  design approval registry. No push, tag or publication authorized here.
 - **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
   failures. Release evidence eligible; installed approval not assessed. Covers
   the smoke 112 repairs, Drive in Situation and kick coverage tackles, each
@@ -109,7 +78,7 @@ log.
 - `plans/` - finished plans, audits and closeouts, including
   `GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md` (full roadmap history, the Break
   Down charting comp build contract and milestone acceptance records).
-- `smoke/` - installed smoke records before `1.12.0-111`.
+- `smoke/` - earlier passed installed smoke records through `1.12.0-111`.
 
 ## Update discipline
 

@@ -5,53 +5,12 @@ the commit; history through 2026-10-04 is in
 `docs/archive/OPEN-DEFECTS-THROUGH-2026-10-04.md`. Before reporting an item as
 open, check its fix and smoke status in git.
 
-## Packaged in 1.12.0-113, awaiting installed smoke
+## Release Status
 
-Latest coach-smoked build: `1.12.0-111` (2026-10-06).
-Installer `1.12.0-113` is built; its checklist and pending result are in
-`SMOKE-1.12.0-113.md`. Packaging does not close these items.
-
-- **Missed tackles** (new, built 2026-10-07): the Players & Grades row on
-  every unit, Film Room MTkl, CSV columns, Study's Missed Tackles and Missed
-  Tackler, and the defensive Reports (Tackling module with Total Tackles and
-  the Missed Tackle rate, the eleven-tile centered KPI strip, Game-by-game,
-  Season vs Last 3, player columns, Players > Tackles MTkl). Smoke 112
-  finding 8: our misses now count from the players named, with no Count box
-  on our snaps; the Count stays for the opponent's misses on offense and
-  returns. Smoke: name three defensive missers with no tackler, an offense
-  count and a kickoff miss, then read Defense, Players and Study.
-- **Return yards from the spots** (smoke 112 finding 1): the Return Yards box
-  is gone; every report measures possession spot to end spot. The two 2025 JV
-  punt returns with only a stored value now show none (coach, 2026-10-07).
-  Smoke: OLV play 1 shows a 16-yard return for #13 in Special Teams and
-  Players.
-- **Playbook favorites and Edit** (smoke 112 findings 3-5): the star is a
-  visible toggle (gold when a favorite), Chart's favorites update as soon as it
-  is saved, and Edit opens the call in its own dialog. Smoke: star and unstar
-  a call with a play open in Chart; edit a call's concept.
-- **A picked play call replaces charted values** (smoke 112 finding 6) in the
-  fields it has defaults for; other charted fields stay. Smoke: chart Direction
-  Middle and Personnel 11, pick a call with a Direction default.
-- **The "Our Defensive Call" heading** (smoke 112 finding 7) has 6px of cyan
-  fill each side of its text, still aligned with the other headings.
-- **Kick coverage tackles** (coach, 2026-10-07): Kickoff and Punt have a
-  Tackler(s) row for our coverage players; their tackles and missed tackles
-  count in Players > Tackles and the Defense board's player contributions, not
-  the team Tackling totals. Smoke: chart a kickoff tackle and a coverage miss,
-  then read Players and Defense.
-- **Drive in Situation** (comp `design-comps/breakdown-drive-situation-2026-10-07`):
-  Drive is the last box in Situation's second row; New Drive is gone. Smoke:
-  type a drive on a play and check the play strip groups it.
-- **Dialogs are centered again** (found during the smoke 112 fixes): since
-  `1.12.0-108` every dialog (Delete play, Clear tags, prompts, Remove call)
-  filled the window from the top-left because a dead-CSS pass removed its
-  placement. Escape pressed the instant a dialog opens now closes it. Smoke:
-  Delete play opens a centered 520px dialog.
-- **Tighter collapsed player rows** in Players & Grades (all units).
-- **Shared dialogs for the tagger**: Delete play, Clear tags, templates and
-  the detail-clearing prompts now use the in-app dialog; a destructive one
-  defaults to Cancel. Modal dialogs block charting shortcuts, including when
-  focus moves to a dialog button or falls outside the dialog.
+Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
+intermittent scrubbing defect deferred. Packaged-asset inspection passed.
+The smoke record and completed build checklist are in `SMOKE-1.12.0-113.md`.
+Installed smoke does not change the design approval registry.
 
 ## Open defects
 
