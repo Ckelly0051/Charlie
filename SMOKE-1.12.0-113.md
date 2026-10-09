@@ -15,7 +15,7 @@
   at `22e83a47` using `cargo tauri build --bundles nsis` with an external
   scratch config setting `createUpdaterArtifacts:false`. Tracked source stayed
   unchanged; this smoke document was prepared during compilation.
-- Independent packaged-asset inspection (`docs/RELEASE.md`): pending.
+- Independent packaged-asset inspection (Claude, 2026-10-09): PASS. The installed `gridiron-iq.exe` matches the build output except the 3-byte NSIS bundle-type marker; its eight embedded assets match a fresh build of the 22e83a47 source by content-hashed name, with none extra.
 - Nothing pushed, tagged or published.
 
 ## Result
@@ -93,7 +93,7 @@ close-time persistence ran through the app.
 Still untested here: chart/save/restart of new edits, Playbook favorite and
 default application edits, Drive edits, coverage-penalty editing cases,
 CSV/export/import on a disposable copy, and separate managed-film coverage.
-Independent packaged-asset inspection also remains pending. No additional
+Packaged-asset inspection passed (see Build Record). No additional
 confirmed defect was found in these checks; installed smoke is not approved.
 
 ## Coach Findings
