@@ -348,7 +348,9 @@ export class ReportBuilder {
     const metricName = ReportBuilder.metricName(widget.metric, unit);
     if (widget.view === 'kpi') {
       const current = this.measure(widget.metric, cohort, options);
-      const baseline = context.baselinePlays ? this.measure(widget.metric, this._filter(context.baselinePlays, widget.filters), { unit, minSample: 0 }) : null;
+      // Counts are not comparable across scopes; rates and averages are.
+      const comparable = ReportBuilder.metric(widget.metric)?.format !== 'count';
+      const baseline = context.baselinePlays && comparable ? this.measure(widget.metric, this._filter(context.baselinePlays, widget.filters), { unit, minSample: 0 }) : null;
       return { ...head, metricName, current, baseline, baselineLabel: context.baselineLabel || '' };
     }
     if (widget.view === 'trend') {
@@ -409,9 +411,17 @@ export class ReportBuilder {
       return { ...head, rows, columns: widget.metrics.map(id => ({ id, name: ReportBuilder.metricName(id, unit), format: ReportBuilder.metric(id).format })),
         dimensionName: this.dimensionName(widget.dimension) };
     }
-    const rows = groups.map(group => ({ value: group.value, label: group.label, ...this.measure(widget.metric, group.plays, options) }))
+    // A narrower scope marks each bar with the same group's season value.
+    const baseline = new Map();
+    if (context.baselinePlays) {
+      for (const group of this.groups(this._filter(context.baselinePlays, widget.filters), widget.dimension, labels)) {
+        baseline.set(group.value, this.measure(widget.metric, group.plays, { unit, minSample: 0 }).value);
+      }
+    }
+    const rows = groups.map(group => ({ value: group.value, label: group.label, ...this.measure(widget.metric, group.plays, options),
+      baseline: baseline.has(group.value) ? baseline.get(group.value) : null }))
       .slice(0, widget.limit);
-    return { ...head, metricName, rows, dimensionName: this.dimensionName(widget.dimension) };
+    return { ...head, metricName, rows, dimensionName: this.dimensionName(widget.dimension), baselineLabel: context.baselineLabel || '' };
   }
 
   /** The distinct values of a dimension in a cohort, with play counts, for

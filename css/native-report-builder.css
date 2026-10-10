@@ -98,6 +98,10 @@
 .gi-rb-bar-value{min-width:48px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
 .gi-rb-bar-n{color:var(--gi-bd-copy);font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right}
 .gi-rb-bars>li.is-thin .gi-rb-bar-fill{opacity:.45}
+.gi-rb-bar-view{display:flex;flex-direction:column;gap:8px}
+:where(.gi-rb,.gi-rb-editor) .gi-rb-bar-track{position:relative}
+.gi-rb-bar-mark{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--gi-bd-strong)}
+.gi-rb-mark-key{display:inline-block;width:2px;height:12px;margin-right:4px;vertical-align:-1px;background:var(--gi-bd-strong)}
 .gi-rb-bars>li.is-thin .gi-rb-bar-value{color:var(--gi-bd-copy)}
 
 /* ---- Share ---- */

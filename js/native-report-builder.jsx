@@ -98,16 +98,22 @@ function KpiView({ screen, data }) {
 const noneCharted = name => <p class="gi-rb-empty">No {name} charted in this scope.</p>;
 
 function BarView({ screen, data }) {
-  const max = Math.max(0, ...data.rows.map(row => row.value || 0));
+  const max = Math.max(0, ...data.rows.map(row => Math.max(row.value || 0, row.baseline || 0)));
   if (!data.rows.length) return noneCharted(data.dimensionName);
-  return <ol class="gi-rb-bars">{data.rows.map(row => <li key={row.value} class={row.state === 'ok' ? '' : 'is-thin'}>
+  const marked = data.rows.some(row => row.baseline != null);
+  return <div class="gi-rb-bar-view">
+  <ol class="gi-rb-bars">{data.rows.map(row => <li key={row.value} class={row.state === 'ok' ? '' : 'is-thin'}>
     <span class="gi-rb-bar-label">{row.label}</span>
     <Watch screen={screen} refs={row.refs} label={`${data.title}: ${row.label}`} class="gi-rb-bar-track">
       <span class="gi-rb-bar-fill" style={{ width: `${max > 0 ? Math.max(2, (row.value || 0) / max * 100) : 0}%` }} />
+      {row.baseline != null && max > 0 && <span class="gi-rb-bar-mark" title={`${data.baselineLabel}: ${fmt(row.baseline, row.format)}`}
+        style={{ left: `${Math.max(0, row.baseline) / max * 100}%` }} />}
     </Watch>
     <span class="gi-rb-bar-value">{fmt(row.value, row.format)}</span>
     <small class="gi-rb-bar-n">{row.n}</small>
-  </li>)}</ol>;
+  </li>)}</ol>
+  {marked && <p class="gi-rb-muted"><span class="gi-rb-mark-key" /> {data.baselineLabel}</p>}
+  </div>;
 }
 
 const SHARE_TONES = ['gi-rb-tone-1', 'gi-rb-tone-2', 'gi-rb-tone-3', 'gi-rb-tone-4', 'gi-rb-tone-5', 'gi-rb-tone-6'];
@@ -355,6 +361,7 @@ export function NativeReportBuilder({ screen }) {
         </select>
       </label>
       <div class="gi-rb-toolbar-actions">
+        <button type="button" data-rb-export onClick={() => { screen.exportHtml(); }}>Export</button>
         <button type="button" onClick={() => screen.rename()}>Rename</button>
         <button type="button" onClick={() => screen.duplicate()}>Duplicate</button>
         <button type="button" class="is-risk" onClick={() => screen.remove()}>Delete</button>

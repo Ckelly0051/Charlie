@@ -208,6 +208,39 @@ export class ReportBuilderScreen {
     return this.builder.values(plays, dimension, context.labels);
   }
 
+  /**
+   * The open dashboard as one self-contained HTML file to share: the rendered
+   * board with the app's stylesheets, controls hidden. Resolves the HTML (and
+   * saves it through the shared save seam). The stylesheet source is copied as
+   * written: Chromium cannot re-serialize a `font` shorthand that uses a
+   * variable and is followed by one of its longhands, so rule text read back
+   * from CSSOM would drop those declarations.
+   */
+  async exportHtml(root = this.reports?.content) {
+    const dashboard = this.active();
+    const board = root?.querySelector?.('[data-report-builder]');
+    if (!dashboard || !board) return null;
+    const rules = [];
+    for (const node of document.querySelectorAll('link[rel="stylesheet"], style')) {
+      try {
+        const text = node.tagName === 'STYLE' ? node.textContent : await (await fetch(node.href)).text();
+        rules.push(text.replace(/@font-face\s*\{[^}]*\}/g, ''));
+      } catch (e) {}
+    }
+    const esc = value => String(value).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+    const date = new Date().toISOString().slice(0, 10);
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(dashboard.name)}</title><style>${rules.join('\n')}
+body{margin:0;background:var(--gi-bd-stage,#080808)}
+.gi-rb-export-head{padding:16px;color:var(--gi-bd-strong,#f5f5f5);font:600 20px/1.2 system-ui,sans-serif}
+.gi-rb-export-head span{display:block;margin-top:4px;color:var(--gi-bd-copy,#a6a6a6);font:400 13.5px system-ui,sans-serif}
+.gi-rb-export .gi-rb-toolbar-actions,.gi-rb-export .gi-rb-card-actions button,.gi-rb-export .gi-rb-card-actions details,.gi-rb-export [data-rb-add-filter],.gi-rb-export .gi-rb-chip button{display:none}
+</style></head><body><header class="gi-rb-export-head">${esc(dashboard.name)}<span>Exported ${date}. Values as charted; film links open in GridIron IQ.</span></header>
+<div class="gi-rb-export">${board.outerHTML}</div></body></html>`;
+    try { window.ffaSaveBlob?.(new Blob([html], { type: 'text/html' }), `dashboard_${dashboard.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${date}.html`); } catch (e) {}
+    return html;
+  }
+
   watch(refs, label) {
     if (!refs?.length) return false;
     this.reports?.watchRefs?.(refs, label);

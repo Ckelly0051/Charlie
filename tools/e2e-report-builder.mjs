@@ -157,8 +157,31 @@ try {
   });
   ok(stored.unit === 'defense' && stored.filters[0]?.values.join() === '3' && stored.survives === 7, 'the dashboard is saved with the season and survives a reload', stored);
 
+  console.log('\n== Season marks and export ==');
+  const marks = await page.evaluate(async () => {
+    const s = window.app.reportsScreen.dashboards;
+    s.setFilter('down', []); s.setUnit('offense'); s.setScope('game');
+    await new Promise(r => setTimeout(r, 250));
+    const bar = s.evaluate(s.active()).widgets.find(w => w.view === 'bar');
+    const engine = window.app.analyticsRegistry.metricsEngine(), ctx = s.context();
+    const season = s.builder.scopePlays({ ...s.active(), scope: 'season' }, ctx).filter(p => p.tags.down === '1');
+    return { marks: document.querySelectorAll('[data-rb-view="bar"] .gi-rb-bar-mark').length, rows: bar.rows.length,
+      first: bar.rows[0].baseline, direct: engine.metric(season, 'successRate', {}, { allowUnlinkedPlays: true }).value };
+  });
+  ok(marks.marks === marks.rows && marks.first === marks.direct, 'This game marks each bar with its season value', marks);
+  const exported = await page.evaluate(async () => {
+    let saved = null;
+    const original = window.ffaSaveBlob;
+    window.ffaSaveBlob = (blob, name) => { saved = name; return true; };
+    const html = await window.app.reportsScreen.dashboards.exportHtml();
+    window.ffaSaveBlob = original;
+    return { saved, length: html?.length || 0, title: /<title>Offense snapshot<\/title>/.test(html || ''), cards: (html?.match(/data-rb-widget=/g) || []).length, styled: /\.gi-rb-card\s*\{/.test(html || '') && /--gi-bd-panel\s*:/.test(html || '') && /46px\/1 var\(--gi-cond\)/.test(html || '') };
+  });
+  ok(exported.saved?.startsWith('dashboard_offense_snapshot_') && exported.title && exported.cards === 7 && exported.styled,
+    'Export saves one self-contained HTML file of the board with its styles', exported);
+
   console.log('\n== Layout ==');
-  await page.evaluate(() => { const s = window.app.reportsScreen.dashboards; s.setFilter('down', []); s.setUnit('offense'); });
+  await page.evaluate(() => { const s = window.app.reportsScreen.dashboards; s.setScope('season'); });
   for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024], [390, 844]]) {
     await page.setViewport({ width: w, height: h }); await settle(300);
     const geo = await page.evaluate(() => {

@@ -287,14 +287,17 @@ with Back to reports; the approved report strip is unchanged.
   A group holds the plays whose registry value matches, on either unit: the
   report cut filters are unit-gated, and a defense dashboard groups by the
   offense it faced. Distance groups in four bands (1-3, 4-6, 7-10, 11+).
-- **Views.** Number (with the season baseline when the scope is narrower),
-  Bar chart, Share (each row's segments sum to 100% of the plays holding a
+- **Views.** Number (with the season baseline when the scope is narrower;
+  a count has none, counts are not comparable across scopes), Bar chart (a
+  narrower scope marks each bar with that group's season value), Share (each row's segments sum to 100% of the plays holding a
   split value, in one order), Game by game, Heat map (brighter is better, or
   higher for a neutral metric), Table, Leaders.
 - **Honest values.** A value below the widget's small-sample size is faded and
   labeled; nothing charted reads "—" with its reason, never zero.
 - **Film.** Every number, bar, segment, point and cell opens exactly its own
   plays through `ReportsScreen.watchRefs`.
+- **Export** saves the board as one self-contained HTML file (the app's
+  stylesheet source embedded, controls hidden) through `window.ffaSaveBlob`.
 - **Saved with the season** (`data.dashboards`, normalized by SeasonStore),
   like the playbook. Templates (Offense snapshot, Defense snapshot,
   Situational, Play calls, Blank) are copied, never edited in place.
