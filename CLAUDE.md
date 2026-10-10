@@ -65,6 +65,7 @@ Change behavior at its owner, not at a consumer.
 | Film Room grid | `js/native-film-room-screen.js` (model and edits in `js/play-grid.js`) |
 | Study | `js/study-screen.js` + `js/native-study.jsx` |
 | Reports | `js/reports-screen.js` + `js/native-report-tabs.jsx` |
+| Dashboards (Reports) | `js/report-builder.js` (numbers) + `js/report-builder-screen.js` + `js/native-report-builder.jsx` |
 | Plan | `js/plan-screen.js` + `js/native-plan.jsx` |
 | Settings | `js/settings-screen.js` + `js/native-settings.jsx` |
 | Game create/edit | `js/game-screen.js` |

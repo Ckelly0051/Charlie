@@ -59,6 +59,7 @@ function NativeReportsRoute({ screen }) {
           <span>Team</span>
           <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
         </label>
+        <button type="button" class="gi-reports-command" data-rp-action="dashboards" aria-label="Dashboards" title="Dashboards" onClick={() => screen.openDashboards()}><Icon name="chart" />Dashboards</button>
         <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" aria-label="Scout opponent" title="Scout opponent" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
       </div>
     </div>
@@ -98,7 +99,7 @@ function NativeReportsRoute({ screen }) {
 
     <div class="gi-reports-special-head" hidden data-reports-special-chrome>
       <button type="button" class="gi-reports-back" onClick={() => screen.show()}><Icon name="prev-clip" />Back to reports</button>
-      <span>Focused report</span>
+      <span data-reports-special-label>Focused report</span>
     </div>
 
     <main class="gi-reports-content" data-native-report-content aria-live="polite" />

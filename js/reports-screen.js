@@ -3,6 +3,8 @@ import { mountNativeReports } from './native-reports.jsx';
 import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, OpponentOverviewTab, OpponentOffenseTab, OpponentDefenseTab, OpponentSpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Charts } from './charts.js';
 import { buildDefenseHtmlReport, buildSelfScoutHtmlReport, buildSpecialTeamsHtmlReport, buildPlayerHtmlReport } from './html-report.js';
+import { ReportBuilderScreen } from './report-builder-screen.js';
+import { mountReportBuilder } from './native-report-builder.jsx';
 
 const REPORT_TABS = new Set(['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'season', 'matchup']);
 
@@ -172,6 +174,26 @@ export class ReportsScreen {
     this._renderActiveTab();
     this.host.scrollTop = 0;
     return true;
+  }
+
+  /** The coach's own dashboards, a focused view with Back to reports. */
+  openDashboards() {
+    if (!this.content) return false;
+    this.dashboards = this.dashboards || new ReportBuilderScreen(this.app, this);
+    this._mode = 'dashboards';
+    this._setChrome(false);
+    this._setSpecialLabel('Dashboards');
+    this._syncKpiRail();
+    render(null, this.content);
+    mountReportBuilder({ host: this.content, screen: this.dashboards });
+    this.content.classList.remove('hidden');
+    this.host.scrollTop = 0;
+    return true;
+  }
+
+  _setSpecialLabel(text) {
+    const label = this.host?.querySelector('[data-reports-special-label]');
+    if (label) label.textContent = text;
   }
 
   scoutOpponent(opponentName) {
@@ -499,6 +521,7 @@ export class ReportsScreen {
     if (this.content.querySelector('.stats-overlay, .stats-header')) {
       this._mode = 'specialized';
       this._setChrome(false);
+      this._setSpecialLabel('Focused report');
       this._syncKpiRail();
     }
   }

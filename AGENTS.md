@@ -53,6 +53,7 @@ breadcrumb, game dropdown, settings drawer, and mobile bottom tabs are
 | └ Film Room | `native-film-room-screen.js` | `native-film-room.jsx` |
 | Study | `study-screen.js` | `native-study.jsx` |
 | Reports | `reports-screen.js` | `native-report-tabs.jsx`, `native-reports.jsx` |
+| Dashboards (in Reports) | `report-builder-screen.js` (numbers: `report-builder.js`) | `native-report-builder.jsx` |
 | Plan | `plan-screen.js` | `native-plan.jsx` |
 | Settings | `settings-screen.js` | `native-settings.jsx` |
 | Game create/edit | `game-screen.js` | `native-game-form.jsx` |

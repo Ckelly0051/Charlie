@@ -263,3 +263,41 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
   Answer`.
 - Film is two controls, `Opponent` and `Season`. No score, prediction or
   inferred good/bad colour.
+
+## Dashboards
+
+The coach's own reports (coach, 2026-10-10: "self serve reporting"). Opened
+from the Reports head (Dashboards, beside Scout opponent) as a focused view
+with Back to reports; the approved report strip is unchanged.
+
+- **Model.** `js/report-builder.js` (ReportBuilder, pure) owns the catalogs,
+  templates and every widget's numbers; `js/report-builder-screen.js` owns
+  state and persistence; `js/native-report-builder.jsx` lays them out.
+- **Numbers come from the existing owners.** Rates are AnalyticsMetrics
+  (`registry.metricsEngine()`) with their eligibility, state and refs; Run %,
+  Pass %, Turnovers, EPA and penalties are registry measures read off
+  `StatsEngine.compute()`; Leaders read `StatsEngine.playersBoard()`, so a
+  leader equals Players for the same plays. A concept metric (Success, Yards /
+  Play, Explosive, Negative, Havoc) resolves to the offense-produced or
+  defense-framed metric by the dashboard's unit (Stop Rate, Yards Allowed);
+  with All units or Special Teams it reads "Choose Offense or Defense".
+- **Cohort.** Scope (This game, Last 3 games, Season) over the season's
+  own-team games, then the unit, then the dashboard's filters, then each
+  widget's filters (StudyQuery's cohort rule: OR within a filter, AND across).
+  A group holds the plays whose registry value matches, on either unit: the
+  report cut filters are unit-gated, and a defense dashboard groups by the
+  offense it faced. Distance groups in four bands (1-3, 4-6, 7-10, 11+).
+- **Views.** Number (with the season baseline when the scope is narrower),
+  Bar chart, Share (each row's segments sum to 100% of the plays holding a
+  split value, in one order), Game by game, Heat map (brighter is better, or
+  higher for a neutral metric), Table, Leaders.
+- **Honest values.** A value below the widget's small-sample size is faded and
+  labeled; nothing charted reads "—" with its reason, never zero.
+- **Film.** Every number, bar, segment, point and cell opens exactly its own
+  plays through `ReportsScreen.watchRefs`.
+- **Saved with the season** (`data.dashboards`, normalized by SeasonStore),
+  like the playbook. Templates (Offense snapshot, Defense snapshot,
+  Situational, Play calls, Blank) are copied, never edited in place.
+
+Proven by `tools/e2e-report-builder.mjs` (synthetic season, plus the
+canonical season when present).

@@ -349,6 +349,8 @@ export class SeasonStore {
     d.playbook = d.playbook && Array.isArray(d.playbook.calls)
       ? { version: Number(d.playbook.version) || 1, calls: d.playbook.calls }
       : { version: 1, calls: [] };
+    // The coach's dashboards (ReportBuilder), saved with the season.
+    d.dashboards = Array.isArray(d.dashboards) ? d.dashboards : [];
     d.seasonName = d.seasonName || '';
     // Coerced, never inferred: a legacy scout with no stored parent normalizes
     // to '' and is surfaced as needing assignment rather than attached to a

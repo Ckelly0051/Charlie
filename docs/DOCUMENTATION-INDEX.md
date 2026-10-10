@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-Updated 2026-10-09.
+Updated 2026-10-10.
 
 ## Current authority
 
@@ -15,7 +15,10 @@ Updated 2026-10-09.
 - `GRIDIRON-IQ-TAG-MODEL.md`, `GRIDIRON-IQ-PENALTY-MODEL.md`,
   `GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`, `GRIDIRON-IQ-PLAY-CALL-MODEL.md`,
   `GRIDIRON-IQ-WORKSPACE-CONTRACT.md`, `GRIDIRON-IQ-OVERLAY-SPEC.md`,
-  `GRIDIRON-IQ-TEAM-HUB-SPEC.md` - domain and interaction contracts.
+  `GRIDIRON-IQ-TEAM-HUB-SPEC.md`, `GRIDIRON-IQ-SAVE-CONTRACT.md` - domain and
+  interaction contracts.
+- `docs/HIDDEN-VALUES-LIST.md` - plays holding values they cannot show, for
+  the coach to re-chart (`node tools/audit-hidden-values.mjs`).
 - `docs/COLLABORATION.md` - roles, decision rights, when to ask the coach.
 - `docs/RELEASE.md` - release cadence, pre-smoke checks, smoke checklist and
   record format.
@@ -46,6 +49,10 @@ log.
   PASS (2026-10-09). Installed smoke acceptance is separate from the gate
   receipt's historical `installedApproval: not-assessed` and does not move the
   design approval registry. No push, tag or publication authorized here.
+- **Built since 113, not packaged (2026-10-10):** Chart's draft and Save
+  (`GRIDIRON-IQ-SAVE-CONTRACT.md`) and Dashboards (`docs/REPORTS-CONTRACTS.md`
+  > Dashboards). Codex review, full gate and installer pending; focused
+  harnesses green.
 - **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
   failures. Release evidence eligible; installed approval not assessed. Covers
   the smoke 112 repairs, Drive in Situation and kick coverage tackles, each

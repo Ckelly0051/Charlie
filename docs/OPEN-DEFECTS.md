@@ -29,7 +29,25 @@ Installed smoke does not change the design approval registry.
   Offense and Save; click another play with unsaved changes; close the window
   with unsaved changes; reopen after Discard.
 
+- **Dashboards** (coach, 2026-10-10: self-serve reporting; built overnight
+  without a comp, so its composition awaits the coach's review). Reports >
+  Dashboards: templates, Number / Bar / Share / Game by game / Heat map /
+  Table / Leaders widgets, scope, unit and filters, every value film-linked,
+  saved with the season. Smoke: open each template on the real season, add a
+  widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
+  relaunch and reopen the dashboard.
+
 ## Open defects
+
+- **Study groups defensive plays into empty offense-look groups.** Study
+  groups through the report cut filters (`StudyQuery._groupPlays` ->
+  `StatsEngine._buildCutFilter`), which are unit-gated: an offense look (down,
+  formation, play type, run/pass, hash) matches only offensive snaps and a
+  defense look only defensive ones. On the canonical season, Study over the
+  174 defensive plays lists every down, formation and play type with 0 plays.
+  Found 2026-10-10 building Dashboards (which group by registry value
+  instead). Fixing it changes Study's report-cut parity contract
+  (`e2e-study-query`); not changed.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does

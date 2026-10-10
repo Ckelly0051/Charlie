@@ -87,6 +87,12 @@ export class StudyQuery {
     return cohort.filter(p => this.registry.values(dimension, p, context).includes(value));
   }
 
+  /** The plays passing every filter (OR within a filter, AND across), the
+   *  same cohort rule `run()` applies. */
+  cohort(plays, filters = [], context = {}) {
+    return this._cohort(plays || [], filters, context);
+  }
+
   /** For the four penalty record dimensions, shallow play copies whose
    *  `.penalties` holds only the records matching this group's value (see the
    *  module doc). Returns `groupPlays` unchanged for every other dimension. */
