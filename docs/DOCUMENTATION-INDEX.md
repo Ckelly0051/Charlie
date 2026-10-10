@@ -49,16 +49,20 @@ log.
   PASS (2026-10-09). Installed smoke acceptance is separate from the gate
   receipt's historical `installedApproval: not-assessed` and does not move the
   design approval registry. No push, tag or publication authorized here.
-- **Built since 113, not packaged (2026-10-10):** Chart's draft and Save,
-  unit changes as saves with a charted-data prompt, tacklers on a change of
-  possession (`GRIDIRON-IQ-SAVE-CONTRACT.md`), Dashboards rev 1 and Study's
-  defensive grouping (`docs/REPORTS-CONTRACTS.md`), with Codex's first review
-  findings fixed. Codex re-review, full gate and installer pending; focused
-  harnesses green.
-- **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
-  failures. Release evidence eligible; installed approval not assessed. Covers
-  the smoke 112 repairs, Drive in Situation and kick coverage tackles, each
-  reviewed by Codex with no open findings.
+- **Built, awaiting the coach's smoke: `1.12.0-114`** (2026-10-10,
+  `SMOKE-1.12.0-114.md`): Chart's draft and Save, unit changes as saves with a
+  charted-data prompt, tacklers on a change of possession
+  (`GRIDIRON-IQ-SAVE-CONTRACT.md`), Dashboards rev 1 and Study's defensive
+  grouping (`docs/REPORTS-CONTRACTS.md`). Codex review rounds closed with no
+  open findings. Build record, size and SHA-256 in the smoke record.
+- **Latest full gate:** 157/158 green at `075522ce` (2026-10-10); the one red,
+  `e2e-design-system` (raw colors in the Dashboards styles), was fixed in
+  `7dd5dfc5` and re-run green 17/17 with the related reports and CSS
+  harnesses. The Old patterns fix in `playlist-manager.js` (two `window.app`
+  reach-throughs) followed, with its 20 clip and film harnesses green. No
+  full re-run on the final bytes; the coach accepted the focused re-runs for
+  installer 114. Receipt:
+  `artifacts/gate-logs/2026-10-10T18-15-13-470Z-eGCXc2/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

@@ -44,6 +44,10 @@
 - Blue, cyan, gold, green, red, and orange are semantic signals, not neutral
   decoration. Preserve their named roles for selection, unit identity,
   achievement, health, destructive outcomes, and warning states.
+- Violet (`--gi-feature`) marks one feature command that should stand out,
+  today Reports > Dashboards (coach, 2026-10-10). It is kept apart from gold,
+  the offense and defense colors and the warning color; it carries no
+  football meaning.
 - Do not fix a shared color defect with route-local overrides. Correct the
   owning token once and verify every consumer.
 

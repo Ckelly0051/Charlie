@@ -8,11 +8,11 @@ open, check its fix and smoke status in git.
 ## Release Status
 
 Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
-intermittent scrubbing defect deferred. Packaged-asset inspection passed.
-The smoke record and completed build checklist are in `SMOKE-1.12.0-113.md`.
-Installed smoke does not change the design approval registry.
+intermittent scrubbing defect deferred. Built and awaiting the coach's smoke:
+`1.12.0-114` (`SMOKE-1.12.0-114.md`). Installed smoke does not change the
+design approval registry.
 
-## Built, not yet packaged
+## Awaiting the 1.12.0-114 smoke
 
 - **Chart saves only what a play shows** (coach, 2026-10-10;
   `GRIDIRON-IQ-SAVE-CONTRACT.md`). Chart edits a draft; Save (new button,
@@ -25,8 +25,9 @@ Installed smoke does not change the design approval registry.
   keystroke. The unsaved draft is saved with its game for recovery. Film Room
   locks what a play cannot show and settles each edit. An offensive turnover
   shows our Tackler(s) and missed tacklers on the return; any turnover or
-  takeaway shows Opponent Tackler(s). Players, the Defense board and Study's
-  Tackler role credit the same tackles: the canonical 2025 JV mismatch (#5 41
+  takeaway shows Opponent Tackler(s). A return tackle never takes the play's
+  sack or TFL. Players, the Defense board and Study's Tackler role credit the
+  same tackles: the canonical 2025 JV mismatch (#5 41
   vs 40, #7 22 vs 21, #82 8 vs 7) is gone. Existing hidden values are the
   coach's to re-chart: `docs/HIDDEN-VALUES-LIST.md` (50 plays). Smoke: switch
   a charted defensive play to Offense (asks; Cancel keeps it), then a play
@@ -39,7 +40,7 @@ Installed smoke does not change the design approval registry.
   Dashboards: templates, Number / Bar / Share / Game by game / Heat map /
   Table / Leaders widgets, scope, unit and filters, every value film-linked,
   saved with the season. Run % and Pass % read the dashboard's own unit;
-  penalty groups count only their own records. Study now groups defensive
+  penalty groups and matrix cells count only their own records. Study now groups defensive
   plays by the offense they faced. Smoke: open each template on the real season, add a
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
@@ -84,14 +85,13 @@ Read this section before every build. Lower the count here, and in
 delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
 updated 2026-10-07.
 
-**`window.app` reach-through** (25). Code reaching shared services through the
+**`window.app` reach-through** (23). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
 - `js/season-manager.js` 8
 - `js/version-manager.js` 6
 - `js/custom-chips.js` 3
 - `js/app.js` 1: the global itself (`window.app = new App()`), which the remaining
   reach-throughs and the test harnesses use; it goes last
-- `js/playlist-manager.js` 2
 - `js/storage-backend.js` 2
 - `js/scoreboard-ocr.js`, `tag-library-settings.js`, `video-controller.js` 1 each
 
@@ -113,10 +113,9 @@ rules; move them to `js/native-overlay-service.js`.
 - `js/auto-detect-screen.js` `openReview()` builds its own modal
 - `js/play-diagram.js` the diagram editor builds its own modal
 
-**`js/stats-engine.js` size** (6,499 lines). Split by area when a change works in
-it, with `e2e-parity` proving no change. Skipped by the missed tackles build
-(2026-10-07), which edited the file: a split is a restructure with no visible
-change and would bury the feature in a very large diff.
+**`js/stats-engine.js` size** (6,549 lines). Split by area, with `e2e-parity`
+proving no change. The split is part of the reports rebuild
+(`GRIDIRON-IQ-PLAN-V2.md`, coach 2026-10-10), so changes until then skip it.
 
 ## Stale references found in passing
 

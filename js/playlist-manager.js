@@ -631,7 +631,7 @@ export class PlaylistManager {
     // UNCHARTED removal durable — this path emits no play event for it. The
     // coach's source file is never touched.
     // Recorded AFTER the play is gone so the very first serialize already agrees.
-    if (removedIdentity) window.app?.storage?.forgetClipIdentity?.(removedIdentity);
+    if (removedIdentity) this.tagger.storage?.forgetClipIdentity?.(removedIdentity);
 
     // The playlist panel's per-clip ✕ calls this directly (not through
     // tagger.deleteCurrentPlay), so the play removal must be announced here
@@ -660,7 +660,7 @@ export class PlaylistManager {
   _reconcileUndoClips() {
     if (!this._undoClips.size) return false;
     const live = new Set((this.tagger.plays || []).map(p => p.id));
-    const storage = window.app?.storage;
+    const storage = this.tagger.storage;
     // Pinned before any splice: this is the play HistoryManager restored.
     const restoredPlayId = this.tagger.currentPlayId;
     let restoredClip = null;

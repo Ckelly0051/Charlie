@@ -427,7 +427,7 @@ ok(result.libraryAggregate.state === 'partial' && result.libraryAggregate.label 
     'The durable clip index owns the removal signal');
   ok(/this\._removedClipIds = new Set\(\);/.test(storageSrc) && (storageSrc.match(/_removedClipIds = new Set\(\)/g) || []).length >= 2,
     'The removal set is reset per game, like undo history');
-  ok(/window\.app\?\.storage\?\.forgetClipIdentity\?\.\(/.test(source('playlist-manager.js'))
+  ok(/this\.tagger\.storage\?\.forgetClipIdentity\?\.\(/.test(source('playlist-manager.js'))
     && /this\.storage\?\.forgetClipIdentity\?\.\(/.test(source('play-tagger.js')) && /this\.tagger\.storage = this\.storage/.test(source('app.js')),
     'Both deliberate-deletion paths signal the removal');
   ok(!/deleteFilm|fs\.remove|unlink/.test(source('playlist-manager.js')),
