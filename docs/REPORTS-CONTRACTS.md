@@ -268,6 +268,24 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
 - Film is two controls, `Opponent` and `Season`. No score, prediction or
   inferred good/bad colour.
 
+## Yards (coach, 2026-10-10)
+
+One play set for total yards, yards per play, explosive rate and negative
+rate, in the reports, Study and Dashboards:
+
+1. Yards is always the play's own gain; penalty yards live only in the
+   penalty section and are never play yards.
+2. Blank yardage is unknown, not zero: the play is left out until charted.
+3. No Gain and Incomplete mean 0 with Yards left blank.
+4. Only run or pass snaps have yards; a penalty-only play has none.
+5. A play an accepted penalty wipes out does not count, though its gain is
+   recorded.
+6. A play that stands counts its gain, also when an accepted penalty adds
+   yards on top (those go to penalty yards).
+
+Built so far: rule 4 in Study and Dashboards. The reports still count a blank
+run or pass as 0; rules 2, 3 and 5 are not built anywhere.
+
 ## Study grouping
 
 - Study groups a report-backed dimension through the report's cut filter
