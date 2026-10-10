@@ -139,15 +139,24 @@ test('an empty cohort is unavailable, not a fabricated zero', () => {
   assert.deepEqual(result.refs, []);
 });
 test('yardsPerPlay is unavailable (not 0) when every play in a non-empty cohort lacks yardage', () => {
-  const cohort = [play(1, 'gA', {}), play(2, 'gA', {})];
+  const cohort = [play(1, 'gA', { runPass: 'Run' }), play(2, 'gA', { runPass: 'Run' })];
   const result = metrics.metric(cohort, 'yardsPerPlay');
   assert.equal(result.eligible, 0);
   assert.equal(result.denominator, 0);
   assert.equal(result.state, 'unavailable');
   assert.equal(result.value, null, 'must not silently report 0.0 yards/play when there is no real data');
 });
+test('yards per play counts run and pass snaps only: penalty yardage is tracked separately (coach, 2026-10-10)', () => {
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '6' }), play(2, 'gA', { runPass: 'Pass', yardage: '10' }), play(3, 'gA', { result: 'Penalty', yardage: '-5' })];
+  const offense = metrics.metric(cohort, 'yardsPerPlay');
+  const defense = metrics.metric(cohort, 'yardsAllowedPerPlay');
+  assert.equal(offense.denominator, 2, 'the penalty-only play is not a snap with yards');
+  assert.equal(offense.value, 8);
+  assert.equal(defense.value, 8, 'yards allowed uses the same plays');
+  assert.deepEqual(offense.refs, ['gA::1', 'gA::2']);
+});
 test('a group below minSample reports state:insufficient, not ok', () => {
-  const cohort = [play(1, 'gA', { yardage: '4' }), play(2, 'gA', { yardage: '5' })];
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];
   const ok = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 2 });
   const insufficient = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 3 });
   assert.equal(ok.state, 'ok');
@@ -159,8 +168,8 @@ test('state priority: unavailable beats insufficient (denominator 0 is never mer
 });
 test('minSample is a per-metric denominator check, not a raw-cohort-size check -- a metric can be insufficient while its cohort is large', () => {
   const cohort = [
-    play(1, 'gA', { yardage: '4' }), // eligible
-    play(2, 'gA', { yardage: '' }), play(3, 'gA', { yardage: '' }), play(4, 'gA', { yardage: '' }), play(5, 'gA', { yardage: '' }),
+    play(1, 'gA', { runPass: 'Run', yardage: '4' }), // eligible
+    play(2, 'gA', { runPass: 'Run', yardage: '' }), play(3, 'gA', { runPass: 'Run', yardage: '' }), play(4, 'gA', { runPass: 'Run', yardage: '' }), play(5, 'gA', { runPass: 'Run', yardage: '' }),
   ];
   const result = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 2 });
   assert.equal(result.eligible, 1, 'only one of the five plays has real yardage');
@@ -196,8 +205,8 @@ test('unlinkedCount is 0 and state is ok when every play resolves', () => {
   assert.equal(result.state, 'ok');
 });
 test('state priority: insufficient beats partial-film when both apply to the same result', () => {
-  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', yardage: '2' } }; // no __gid
-  const cohort = [play(1, 'gA', { yardage: '6' }), malformed]; // denominator 2, both unlinked-eligible via allowUnlinkedPlays
+  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run', yardage: '2' } }; // no __gid
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '6' }), malformed]; // denominator 2, both unlinked-eligible via allowUnlinkedPlays
   const result = metrics.metric(cohort, 'yardsPerPlay', {}, { allowUnlinkedPlays: true, minSample: 5 });
   assert.equal(result.unlinkedCount, 1, 'partial-film condition is genuinely present');
   assert.equal(result.denominator, 2, 'below minSample:5 -- insufficient condition is genuinely present too');
@@ -234,22 +243,22 @@ test('overlap does not double-count a single play\'s stopRate cohort membership'
 
 console.log('\n== Exact composite gameId::playId film references ==');
 test('two games sharing the same bare play id resolve to distinct composite refs, never collapsed', () => {
-  const cohort = [play(5, 'gA', { yardage: '1' }), play(5, 'gB', { yardage: '2' })];
+  const cohort = [play(5, 'gA', { runPass: 'Run', yardage: '1' }), play(5, 'gB', { runPass: 'Run', yardage: '2' })];
   const result = metrics.metric(cohort, 'yardsPerPlay');
   assert.deepEqual(result.refs, ['gA::5', 'gB::5']);
   assert.equal(result.denominator, 2, 'both plays are counted -- the collision is a ref-identity problem, not a data-loss one');
 });
 test('refs come back sorted', () => {
-  const cohort = [play(9, 'gB', { yardage: '4' }), play(2, 'gA', { yardage: '3' })];
+  const cohort = [play(9, 'gB', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '3' })];
   const result = metrics.metric(cohort, 'yardsPerPlay');
   assert.deepEqual(result.refs, ['gA::2', 'gB::9']);
 });
 test('a genuine duplicate composite ref (two entries resolving to the same clip) FAILS LOUDLY by default, matching an unresolvable ref', () => {
-  const cohort = [play(9, 'gB', { yardage: '4' }), play(9, 'gB', { yardage: '4' })]; // same id, same game -- twice
+  const cohort = [play(9, 'gB', { runPass: 'Run', yardage: '4' }), play(9, 'gB', { runPass: 'Run', yardage: '4' })]; // same id, same game -- twice
   assert.throws(() => metrics.metric(cohort, 'yardsPerPlay'), /duplicate composite play reference/);
 });
 test('allowUnlinkedPlays:true excludes a duplicate from refs and counts it -- never silently keeps one copy while the denominator counts two', () => {
-  const cohort = [play(9, 'gB', { yardage: '4' }), play(9, 'gB', { yardage: '4' }), play(2, 'gA', { yardage: '3' })];
+  const cohort = [play(9, 'gB', { runPass: 'Run', yardage: '4' }), play(9, 'gB', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '3' })];
   const result = metrics.metric(cohort, 'yardsPerPlay', {}, { allowUnlinkedPlays: true });
   assert.equal(result.denominator, 3, 'all three plays still count toward the value');
   assert.deepEqual(result.refs, ['gA::2', 'gB::9'], 'the duplicate contributes exactly one ref, not two, not zero');

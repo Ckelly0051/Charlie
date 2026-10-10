@@ -73,12 +73,13 @@ From `SMOKE-1.12.0-114.md`, coach findings and the installed check:
   - share labels total 100%;
   - Study names its success concept per unit (Stop Rate on defense);
   - the Chart roster grid shows its last row whole.
-- **Yards per play differs by surface** (installed check 10): AnalyticsMetrics
-  (Study, Dashboards) divides by every play with yardage; the Defense board
-  and Overview use only run/pass-classified plays, excluding penalty-only
-  yardage (coach rulings 2026-09-10/11). Week 1 vs St. Peter Lutheran:
-  Dashboards -0.3, Defense report 0.0. Open: aligning AnalyticsMetrics changes
-  Study numbers and the parity goldens, so it waits for the coach.
+- **Yards per play differs by surface** (installed check 10). Decided and
+  built: penalty yardage is never yards (coach, 2026-10-10), so
+  AnalyticsMetrics (Study, Dashboards) now counts run and pass snaps only, as
+  the reports do. Still different: a run or pass snap with blank yardage
+  (an incomplete pass, a no-gain) is 0 yards in the reports and left out of
+  the average in Study and Dashboards. Canonical season: offense 5.8 reports
+  vs 6.9 Dashboards; defense 3.2 vs 3.9. Waiting on the coach.
 - **Rate bars scaled to the largest value** (installed check 14): a design
   question for the coach; unchanged.
 

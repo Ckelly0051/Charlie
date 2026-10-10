@@ -156,6 +156,9 @@ const isHavoc = deps => p =>
   deps.hasResult(p, 'Sack') || deps.hasResult(p, 'Interception') || deps.hasResult(p, 'Fumble')
   || ((yards(p) || 0) < 0 && !deps.hasResult(p, 'Penalty') && !deps.hasResult(p, 'Kneel') && !deps.hasResult(p, 'Spike'));
 
+/** A run or pass snap: the plays whose yardage counts as yards. */
+const isScrimmage = deps => p => deps.isRun(p) || deps.isPass(p);
+
 function yardsPerPlayCompute(cohort, missingAsZero) {
   const eligiblePlays = cohort.filter(hasYardage);
   const source = missingAsZero ? cohort : eligiblePlays;
@@ -271,18 +274,20 @@ const METRICS = {
     },
   },
   yardsPerPlay: {
-    // Offense-produced: yards this cohort's team gained per snap.
+    // Offense-produced: yards this cohort's team gained per run or pass snap.
+    // Penalty yardage is tracked separately and is never yards (coach,
+    // 2026-10-10), the same play set the reports' total yards use.
     polarity: MetricPolarity.HIGHER,
-    compute(cohort, _deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort, missingAsZero);
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return yardsPerPlayCompute(cohort.filter(isScrimmage(deps)), missingAsZero);
     },
   },
   yardsAllowedPerPlay: {
-    // Defense-framed: yards THIS cohort's defense allowed per snap. Identical
-    // formula to yardsPerPlay; lower is better.
+    // Defense-framed: yards THIS cohort's defense allowed per run or pass
+    // snap. Identical formula to yardsPerPlay; lower is better.
     polarity: MetricPolarity.LOWER,
-    compute(cohort, _deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort, missingAsZero);
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return yardsPerPlayCompute(cohort.filter(isScrimmage(deps)), missingAsZero);
     },
   },
 

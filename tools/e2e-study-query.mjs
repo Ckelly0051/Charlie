@@ -145,8 +145,8 @@ const result = await page.evaluate((fixture) => {
   // not a synthetic stand-in.
   const metricsEngine = window.app.analyticsRegistry.metricsEngine();
   const missingYardageCohort = [
-    { id: 9001, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10', yardage: '6' } },
-    { id: 9002, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10' } }, // no yardage tag at all
+    { id: 9001, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run', yardage: '6' } },
+    { id: 9002, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run' } }, // a run with no yardage tag at all
   ];
   const honestYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay');
   const legacyYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay', {}, { missingAsZero: true });

@@ -70,10 +70,10 @@ await page.evaluate(async () => {
     { id: 6, timestamp: t(20), tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Pass', playType: 'Deep Pass', result: 'Interception', yardage: '0', down: '3', distance: '5', players: { passer: '7' } } },
     { id: 7, timestamp: t(24), tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Pass', playType: 'Deep Pass', result: 'Sack', yardage: '-6', down: '1', distance: '10', players: { passer: '7' }, grades: { passer: -2 } } },
     // -- Defense: #5 solo, #5+#44 shared, #5 sack, #22 also a tackler --------
-    { id: 8, timestamp: t(28), tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '1', distance: '10', players: { tackler: '5' } } },
-    { id: 9, timestamp: t(32), tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 2', result: 'Loss', yardage: '-2', down: '2', distance: '8', players: { tackler: '5, 44' } } },
-    { id: 10, timestamp: t(36), tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 3', result: 'Sack', yardage: '-7', down: '1', distance: '10', players: { tackler: '5' } } },
-    { id: 11, timestamp: t(40), tags: { unit: 'defense', defFront: 'Nickel', coverage: 'Cover 1', result: 'Gain', yardage: '1', down: '3', distance: '2', players: { tackler: '22' } } },
+    { id: 8, timestamp: t(28), tags: { unit: 'defense', runPass: 'Run', defFront: '4-3', coverage: 'Cover 3', result: 'Gain', yardage: '3', down: '1', distance: '10', players: { tackler: '5' } } },
+    { id: 9, timestamp: t(32), tags: { unit: 'defense', runPass: 'Run', defFront: '4-3', coverage: 'Cover 2', result: 'Loss', yardage: '-2', down: '2', distance: '8', players: { tackler: '5, 44' } } },
+    { id: 10, timestamp: t(36), tags: { unit: 'defense', runPass: 'Pass', defFront: '4-3', coverage: 'Cover 3', result: 'Sack', yardage: '-7', down: '1', distance: '10', players: { tackler: '5' } } },
+    { id: 11, timestamp: t(40), tags: { unit: 'defense', runPass: 'Run', defFront: 'Nickel', coverage: 'Cover 1', result: 'Gain', yardage: '1', down: '3', distance: '2', players: { tackler: '22' } } },
     // -- Special Teams: kicker #9 (made + missed), returner #3 (return + TD) --
     { id: 12, timestamp: t(44), tags: { unit: 'special', players: { kicker: '9' } }, specialTeams: { unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 32 }, outcome: { status: 'good', score: 'fieldGoal', scoredBy: 'subject' } } },
     { id: 13, timestamp: t(48), tags: { unit: 'special', players: { kicker: '9' } }, specialTeams: { unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 45 }, outcome: { status: 'noGood' } } },
@@ -82,7 +82,7 @@ await page.evaluate(async () => {
   ];
   const g2 = store.addGame({ id: 'g-players-2', name: 'Week 2 vs Tigers', status: 'active', gameInfo: { opponent: 'Tigers', date: '2026-09-08' }, plays: [
     { id: 1, timestamp: t(0), tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10', players: { ballCarrier: '22' }, grades: { ballCarrier: 1 } } },
-    { id: 2, timestamp: t(4), tags: { unit: 'defense', defFront: '4-3', coverage: 'Cover 3', result: 'Gain', yardage: '2', down: '2', distance: '5', players: { tackler: '5' } } },
+    { id: 2, timestamp: t(4), tags: { unit: 'defense', runPass: 'Run', defFront: '4-3', coverage: 'Cover 3', result: 'Gain', yardage: '2', down: '2', distance: '5', players: { tackler: '5' } } },
     { id: 3, timestamp: t(8), tags: { unit: 'special', players: { kicker: '9' } }, specialTeams: { unit: 'fieldGoal', attemptType: 'fieldGoal', kick: { distance: 28 }, outcome: { status: 'good', score: 'fieldGoal', scoredBy: 'subject' } } },
   ] });
   store.data.activeGameId = g1.id;

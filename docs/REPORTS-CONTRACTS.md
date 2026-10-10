@@ -311,6 +311,9 @@ with Back to reports; the approved report strip is unchanged.
   Play, Explosive, Negative, Havoc) resolves to the offense-produced or
   defense-framed metric by the dashboard's unit (Stop Rate, Yards Allowed);
   with All units or Special Teams it reads "Choose Offense or Defense".
+  Yards per play counts run and pass snaps only: penalty yardage is tracked
+  separately and is never yards (coach, 2026-10-10), in Study, Dashboards and
+  the reports alike.
 - **Cohort.** Scope (This game, Last 3 games, Season) over the season's
   own-team games, then the unit, then the dashboard's filters, then each
   widget's filters (StudyQuery's cohort rule: OR within a filter, AND across).
