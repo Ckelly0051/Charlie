@@ -137,6 +137,12 @@ change and would bury the feature in a very large diff.
   a turnover play gets a box for ours and one for theirs.
 - **Study's Tackler role** includes kick coverage and offensive turnover
   tackles, like Players.
+- **Switching units saves the play** (replaces the draft-only unit switch).
+  When the switch would clear values the coach charted, an in-app prompt asks
+  first (Cancel default); values the app filled in (Auto D&D down, distance
+  and field position, carried quarter and drive, carried unit, Carry
+  formation) never trigger it. The Save button (saves, stays on the play) and
+  the leave prompt on Previous already exist.
 - **Dashboards button in coral** (a new color used only for it, about
   #e0703f with dark text), replacing the accent blue.
 - Decided, already built: the Defense board's player lines count turnover
