@@ -106,8 +106,9 @@ Visual and behavior defects found (logged; no fixes started):
    "False Start × 15" instead of False Start × Accepted. The matrix cell's
    measured value overwrites the column value.
 2. Penalty Ruling columns show the raw stored value "accepted", not a label.
-3. Heat-map caption always reads "Brighter is better", including on Penalty
-   Yards on Us and Yards Allowed / Play, where lower is better.
+3. Withdrawn after checking source: Penalty Yards on Us and Yards Allowed /
+   Play are marked lower-is-better and the heat map inverts for them, so
+   "Brighter is better" was accurate.
 4. Share chart with more than six values (Play calls > Play Type by
    Formation): the legend lists six, colors repeat after that (gold and
    white slivers at the ends of the Power-I, Ace and Single Wing bars), and
@@ -178,3 +179,6 @@ every dashboard written in the session. Nothing was pushed or published.
    modules. Recorded with the reports rebuild (`GRIDIRON-IQ-PLAN-V2.md`
    step 3), whose report sections as specs make it possible. Logged; no
    work started.
+6. **Remove unnecessary prose** (coach, 2026-10-10). Explanatory sentences
+   on the new pages (captions, helper lines) that a coach does not need to
+   read the page. The coach closed the findings list with this item.

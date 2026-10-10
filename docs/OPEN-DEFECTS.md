@@ -45,6 +45,43 @@ design approval registry.
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
 
+## Building now: smoke 114 findings (coach closed the list 2026-10-10)
+
+From `SMOKE-1.12.0-114.md`, coach findings and the installed check:
+
+- **Dashboards home** (findings 1-2): one home page that always stays
+  reachable, listing saved dashboards like Home's season rows, plus the
+  templates. It replaces the head dropdown.
+- **Templates are read-only** (finding 3): opening a template shows it; scope,
+  unit and filters only change the view; a widget edit asks for a name and
+  saves a new dashboard. The template never changes.
+- **Segmented control borders** (finding 4): one clean outline on the selected
+  segment.
+- **Prose** (finding 6): drop explanatory sentences on the new pages.
+- **Special Teams accent is teal** (`--gi-cat-6`).
+- **Installed-check defects:**
+  - heat-map Watch label and cell keys use the column, not the value;
+  - penalty ruling, phase and team read as labels;
+  - share charts past five values fold the rest into Other, and the legend
+    lists every segment shown;
+  - negative bars draw left of a zero line;
+  - table hover covers the whole row inside the card; "—" sits on the text line;
+  - "Row limit" replaces the second "Rows";
+  - filter chips use value labels (3rd, Q2);
+  - Reports returns to Dashboards after watching film from one;
+  - a count tile drops the repeated "N plays" subline;
+  - share labels total 100%;
+  - Study names its success concept per unit (Stop Rate on defense);
+  - the Chart roster grid shows its last row whole.
+- **Yards per play differs by surface** (installed check 10): AnalyticsMetrics
+  (Study, Dashboards) divides by every play with yardage; the Defense board
+  and Overview use only run/pass-classified plays, excluding penalty-only
+  yardage (coach rulings 2026-09-10/11). Week 1 vs St. Peter Lutheran:
+  Dashboards -0.3, Defense report 0.0. Open: aligning AnalyticsMetrics changes
+  Study numbers and the parity goldens, so it waits for the coach.
+- **Rate bars scaled to the largest value** (installed check 14): a design
+  question for the coach; unchanged.
+
 ## Open defects
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
