@@ -130,6 +130,10 @@
   --gi-shadow-overlay:0 24px 72px rgba(0,0,0,.62);
   --gi-shadow-toast:0 14px 34px rgba(0,0,0,.44);
   --gi-on-solid:#fafafa;
+  /* A feature command that should stand out (Reports > Dashboards): violet,
+     apart from gold, the defense and offense blues and the warning color. */
+  --gi-feature:#7f5af0;
+  --gi-feature-hover:#977cf4;
   /* A printable-document preview (Call Sheet) shows what will actually print
    * -- genuine white paper, not a themeable UI surface. Named so the native
    * stylesheet consuming it has zero raw color literals of its own. */

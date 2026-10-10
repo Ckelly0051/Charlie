@@ -36,8 +36,8 @@
 .gi-reports-command:hover,.gi-reports-back:hover{background:var(--gi-4);border-color:var(--gi-8)}
 /* Dashboards, the coach's own reports, is called out in violet, a color used
    only here (offense gold, defense cyan and the warning orange are taken). */
-.gi-reports-command.is-feature{border-color:#7f5af0;background:#7f5af0;color:#ffffff}
-.gi-reports-command.is-feature:hover{border-color:#977cf4;background:#977cf4}
+.gi-reports-command.is-feature{border-color:var(--gi-feature);background:var(--gi-feature);color:var(--gi-on-solid)}
+.gi-reports-command.is-feature:hover{border-color:var(--gi-feature-hover);background:var(--gi-feature-hover)}
 .gi-reports-command.is-feature:active{filter:brightness(.88)}
 .gi-reports-command:focus-visible,.gi-reports-back:focus-visible,.gi-reports-tab:focus-visible,.gi-reports-segment button:focus-visible,.gi-reports-menu button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .gi-reports-icon{width:15px;height:15px;flex:0 0 auto}
