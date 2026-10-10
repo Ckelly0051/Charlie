@@ -46,6 +46,13 @@ export class PlayShape {
     return parts.includes('Fumble') && play?.tags?.fumbleRecovery !== 'subject';
   }
 
+  /** Our tackle on the return after our own turnover (an offensive snap or a
+   *  kick Fake). The opponent has the ball, so the play's sack and lost
+   *  yardage are never credited to our tackler. */
+  static isReturnTackle(play) {
+    return (PlayShape.lookSide(play) === 'offense' || PlayShape.isKickFake(play)) && PlayShape.isTurnover(play);
+  }
+
   /** Possession changed on the snap: our turnover on offense, or the
    *  defense's takeaway (an interception, or a fumble the opponent did not
    *  keep). Both teams then tackle, so the play holds each side's tacklers. */
@@ -73,7 +80,7 @@ export class PlayShape {
     else if (side === 'offense') roles = ['ballCarrier', 'passer', 'receiver'];
     else roles = SpecialTeamsModel.playerRoles(st);
     if (PlayShape.isKickFake(play)) roles = [...roles, ...['ballCarrier', 'passer', 'receiver'].filter(role => !roles.includes(role))];
-    if ((side === 'offense' || PlayShape.isKickFake(play)) && PlayShape.isTurnover(play)) {
+    if (PlayShape.isReturnTackle(play)) {
       roles = [...roles.filter(role => role !== 'tackler'), 'tackler', MissedTackles.ROLE];
     }
     if (PlayShape.changedPossession(play)) roles = [...roles, PlayShape.OPPONENT_TACKLER];

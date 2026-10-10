@@ -497,11 +497,12 @@ export class PlayTagger {
       draft.base = draft.coach ? draft.base : json;
       changed.forEach(path => draft.auto.add(path));
     } else {
+      const step = this._draftStep();
       changed.forEach(path => draft.auto.delete(path));
       const group = this._changeGroup || null;
       const now = Date.now();
       if (!(group && draft.group === group && now - draft.groupAt < 1000)) {
-        draft.steps.push(draft.last);
+        draft.steps.push(step);
         if (draft.steps.length > 100) draft.steps.shift();
       }
       draft.group = group;
@@ -591,9 +592,15 @@ export class PlayTagger {
       actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'ok', label: title, tone: 'danger' }],
     }).then(key => (key === 'ok' ? commit() : false));
   }
-  _restoreDraftStep(json) {
+  /** An undo step: the draft's values and which of them the app filled in, so
+   *  Undo restores both. */
+  _draftStep() {
+    return { json: this.draft.last, auto: new Set(this.draft.auto) };
+  }
+  _restoreDraftStep({ json, auto }) {
     const draft = this.draft;
     const values = JSON.parse(json);
+    draft.auto = new Set(auto);
     PlayTagger.DRAFT_FIELDS.forEach((field, index) => {
       if (values[index] === null) delete draft.play[field];
       else draft.play[field] = values[index];
@@ -607,14 +614,14 @@ export class PlayTagger {
   undoDraft() {
     const draft = this.draft;
     if (!draft || !draft.steps.length) return false;
-    draft.redo.push(draft.last);
+    draft.redo.push(this._draftStep());
     this._restoreDraftStep(draft.steps.pop());
     return true;
   }
   redoDraft() {
     const draft = this.draft;
     if (!draft || !draft.redo.length) return false;
-    draft.steps.push(draft.last);
+    draft.steps.push(this._draftStep());
     this._restoreDraftStep(draft.redo.pop());
     return true;
   }
@@ -703,9 +710,10 @@ export class PlayTagger {
       // play only if it is still the one the copy belongs to.
       if (key === 'restore' && this.currentPlayId === saved.id && this.getCurrentPlay()) {
         const open = this.draft;
-        open.steps.push(open.last);
+        open.steps.push(this._draftStep());
         open.coach = true;
-        this._restoreDraftStep(saved.charting);
+        // The restored values are the coach's: none of them was filled in here.
+        this._restoreDraftStep({ json: saved.charting, auto: [] });
       } else this._clearRecovery();
     });
   }

@@ -181,6 +181,14 @@ try {
   s = await state();
   ok(s.dialog.join() === 'Cancel,Change unit' && /Formation \(Spread\)/.test(s.message), 'the same formation charted by the coach asks before it goes', s.message);
   await clickDialog('Cancel');
+  await page.evaluate(() => window.app._advancePlay()); await settle();
+  const undone = await page.evaluate(() => { const t = window.app.tagger; t.setTagValue('formationFamily', 'I-Form'); t.undoDraft(); return { formation: t.getCurrentPlay().tags.formationFamily, current: t.currentPlayId }; });
+  await click('.gi-unit-switch [data-unit="special"]');
+  s = await state();
+  ok(undone.current === 3 && undone.formation === 'Spread' && !s.dialog.length && s.liveUnit === 'special',
+    'Undo of a coach edit restores the carried formation as filled in: switching units still never asks', { undone, dialog: s.dialog, message: s.message });
+  if (s.dialog.length) await clickDialog('Cancel');
+  await click('.gi-unit-switch [data-unit="offense"]');
 
   console.log('\n== Reports read saved plays only ==');
   await select(2);
@@ -230,6 +238,22 @@ try {
   });
   ok(credit.tkl === 1 && credit.mtkl === 1 && credit.board === 1 && !credit.opponent,
     'the interception tackle and the miss count for #9 in Players and the Defense board; the opponent\'s #33 is credited to no one of ours', credit);
+  const returnCredit = await page.evaluate(() => {
+    const app = window.app, base = { grades: {}, custom: [], customFields: {} };
+    const mk = (id, tags) => { const p = { id, timestamp: { start: id, end: id + 1 }, notes: '', annotations: [], tags: { ...base, ...tags } }; Object.defineProperty(p, '__gid', { value: 'r' }); return p; };
+    const plays = [
+      mk(1, { unit: 'offense', runPass: 'Pass', playType: 'Dropback', result: 'Sack + Fumble', fumbleRecovery: 'opponent', yardage: '-7', players: { passer: '12', tackler: '5' } }),
+      mk(2, { unit: 'offense', runPass: 'Pass', result: 'Interception', yardage: '-3', players: { passer: '12', tackler: '9' } }),
+      mk(3, { unit: 'defense', result: 'Sack', yardage: '-6', players: { tackler: '5' } }),
+    ];
+    const tackles = num => app.stats.playersBoard(plays).players.find(p => p.num === num)?.roles?.find(r => r.key === 'tackles')?.stats || {};
+    const engine = app.analyticsRegistry.metricsEngine(), study = id => engine.metric([plays[0], plays[1]], id, {}, { allowUnlinkedPlays: true }).value;
+    return { five: { tkl: tackles('5').tkl?.n ?? 0, sack: tackles('5').sack?.n ?? 0, tfl: tackles('5').tfl?.n ?? 0 }, nine: { tkl: tackles('9').tkl?.n ?? 0, tfl: tackles('9').tfl?.n ?? 0 },
+      study: { sacks: study('sacksMade'), tfl: study('tfl') } };
+  });
+  ok(returnCredit.five.tkl === 2 && returnCredit.five.sack === 1 && returnCredit.five.tfl === 0 && returnCredit.nine.tkl === 1 && returnCredit.nine.tfl === 0,
+    'a return tackle after our turnover is a tackle, never the opponent\'s sack or a tackle for loss; a defensive sack still counts', returnCredit);
+  ok(returnCredit.study.sacks === 0 && returnCredit.study.tfl === 0, 'Study\'s Sacks and TFL never credit a return tackle', returnCredit.study);
   ok(credit.study.turnover.join() === '9' && credit.study.coverage.join() === '5' && !credit.study.gain.length && credit.study.missed.join() === '9',
     'Study\'s Tackler role includes kick coverage and the offensive turnover tackle, not a hidden Tackler; Missed Tackler includes the turnover', credit.study);
 

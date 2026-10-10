@@ -87,6 +87,13 @@ try {
     const turnovers = b.measure('turnovers', dPlays, { unit: 'defense' });
     const fouls = b.evaluate(b.constructor.normalizeWidget({ view: 'table', dimension: 'penaltyFoul', metrics: ['penaltiesUs', 'penaltyYardsUs'] }), plays, { ...ctx, unit: 'offense' })
       .rows.map(r => [r.label, r.cells.map(c => c.value), r.cells[0].refs]);
+    // Accepted Holding and a declined Unsportsmanlike on one snap: a cell is
+    // the records both its row and its column hold.
+    const twoFouls = plays.find(p => p.id === 12);
+    const mixed = { ...twoFouls, penalties: twoFouls.penalties.map(p => (p.foul === 'Unsportsmanlike' ? { ...p, disposition: 'declined' } : p)) };
+    Object.defineProperty(mixed, '__gid', { value: twoFouls.__gid });
+    const matrix = b.evaluate(b.constructor.normalizeWidget({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling' }), [mixed], { ...ctx, unit: 'offense' });
+    const cells = Object.fromEntries(matrix.rows.flatMap(r => r.cells.map((c, i) => [`${r.value}|${matrix.columns[i].value}`, [c.n, c.value]])));
     const catalog = b.dimensionCatalog().flatMap(section => section.items.map(item => item.id));
     const kpi = b.evaluate(b.constructor.normalizeWidget({ view: 'kpi', metric: 'success' }), b.scopePlays({ ...offense, scope: 'game' }, ctx), { ...ctx, unit: 'offense', baselinePlays: plays, baselineLabel: 'Season' });
     return {
@@ -97,7 +104,7 @@ try {
       trend: trend.rows.map(r => [r.label, r.value]),
       faced: faced.rows.map(r => [r.label, r.n]), leaders: leaders.rows.map(r => [r.label, r.metric]), board5: board?.roles.find(r => r.key === 'tackles')?.stats?.tkl?.n,
       kpi: { value: kpi.current.value, baseline: kpi.baseline?.value },
-      defShare: defShare.map(m => [m.value, m.n, m.state]), turnovers: [turnovers.state, turnovers.reason], fouls,
+      defShare: defShare.map(m => [m.value, m.n, m.state]), turnovers: [turnovers.state, turnovers.reason], fouls, cells,
       catalog: ['motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun', 'missedTackles', 'penaltyRuling'].filter(id => !catalog.includes(id)),
     };
   });
@@ -119,6 +126,9 @@ try {
   ok(JSON.stringify(model.fouls.map(([label, values]) => [label, values])) === JSON.stringify([['Holding', [1, 10]], ['Unsportsmanlike', [1, 15]]])
     && model.fouls.every(([, , refs]) => refs.join() === model.fouls[0][2].join() && refs.length === 1),
     'a penalty group counts only its own foul: Holding 1 for 10 yards, Unsportsmanlike 1 for 15, each opening the one play', model.fouls);
+  ok(model.cells['Holding|accepted']?.[0] === 1 && model.cells['Holding|accepted']?.[1] === 10 && model.cells['Holding|declined']?.[0] === 0
+    && model.cells['Unsportsmanlike|accepted']?.[0] === 0 && model.cells['Unsportsmanlike|declined']?.[0] === 1,
+    'a penalty matrix cell holds only the records in both its row and its column: accepted Holding is never in Declined', model.cells);
   ok(!model.catalog.length, 'motion path, RPO, QB run, missed tackles and penalty ruling are groupings', model.catalog);
 
   console.log('\n== Building a dashboard ==');

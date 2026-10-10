@@ -224,8 +224,9 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
   play the player is named on, like Tkl. Tkl, Solo, Ast and MTkl include our
   kickoff and punt coverage (coach, 2026-10-07) and our tackles and misses on
   the return after an offensive turnover (coach, 2026-10-10; the Defense
-  board's player lines count the same). The opponent's tacklers are never
-  credited. Tackles' number columns are narrower than the other
+  board's player lines count the same). A return tackle is a tackle only: the
+  play's sack and lost yardage were the opponent's, so it never adds a Sack or
+  TFL (Players and Study). The opponent's tacklers are never credited. Tackles' number columns are narrower than the other
   roles' (40 / 46 / 36px, 8px cell padding) so a long name keeps its room.
 
 ## Self-Scout
@@ -305,7 +306,9 @@ with Back to reports; the approved report strip is unchanged.
   report cut filters are unit-gated, and a defense dashboard groups by the
   offense it faced. A penalty group (team, foul, ruling, phase) measures only
   its own records, as Study does: a play with two fouls counts once in each
-  foul's row with that foul's yards. Distance groups in four bands (1-3, 4-6,
+  foul's row with that foul's yards; a matrix cell holds only the records in
+  both its row and its column (accepted Holding never lands in a Declined
+  cell). Distance groups in four bands (1-3, 4-6,
   7-10, 11+). Groupings include motion start and end, RPO read and decision,
   QB run type and missed tackles.
 - **Views.** Number (with the season baseline when the scope is narrower;

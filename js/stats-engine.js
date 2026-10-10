@@ -3649,11 +3649,14 @@ export class StatsEngine {
       // A takeaway belongs to its own role when charted; plays tagged before
       // that role existed fall back to crediting the listed tackler(s).
       const creditTakeawayViaTackler = isDefPlay && takeawayIds.length === 0;
+      const returnTackle = PlayShape.isReturnTackle(p);
       tacklerIds.forEach(id => {
         bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
         bucket(id, 'tackles', 'Tackles', 'tkl', p);
         bucket(id, 'tackles', 'Tackles', shared ? 'ast' : 'solo', p);
-        if (StatsEngine.hasResult(p, 'Sack')) bucket(id, 'tackles', 'Tackles', 'sack', p);
+        if (returnTackle) {
+          // The sack and lost yardage were the opponent's, not this tackle's.
+        } else if (StatsEngine.hasResult(p, 'Sack')) bucket(id, 'tackles', 'Tackles', 'sack', p);
         else if (yds < 0) bucket(id, 'tackles', 'Tackles', 'tfl', p); // TFL excludes sacks
         if (creditTakeawayViaTackler && StatsEngine.hasResult(p, 'Interception')) bucket(id, 'tackles', 'Tackles', 'int', p);
         if (creditTakeawayViaTackler && StatsEngine.isFumbleRecovered(p)) bucket(id, 'tackles', 'Tackles', 'fr', p);

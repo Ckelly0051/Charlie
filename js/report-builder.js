@@ -420,14 +420,14 @@ export class ReportBuilder {
     if (widget.view === 'matrix') {
       const rowGroups = this.groups(cohort, widget.dimension, labels).slice(0, widget.limit);
       const colGroups = this.groups(cohort, widget.dimension2, labels).slice(0, 8);
-      const key = play => `${play.__gid}::${play.id}`;
-      const rows = rowGroups.map(group => ({
-        value: group.value, label: group.label,
-        cells: colGroups.map(col => {
-          const members = new Set(col.plays.map(key));
-          return { value: col.value, ...this.measure(widget.metric, group.plays.filter(play => members.has(key(play))), options) };
-        }),
-      }));
+      // Each cell regroups the row's plays by the column, so a penalty row and
+      // a penalty column constrain the same records (accepted Holding never
+      // lands in a Declined cell because the play also had a declined foul).
+      const rows = rowGroups.map(group => {
+        const byCol = new Map(this.groups(group.plays, widget.dimension2, labels).map(col => [col.value, col.plays]));
+        return { value: group.value, label: group.label,
+          cells: colGroups.map(col => ({ value: col.value, ...this.measure(widget.metric, byCol.get(col.value) || [], options) })) };
+      });
       return { ...head, metricName, rows, columns: colGroups.map(col => ({ value: col.value, label: col.label })),
         dimensionName: this.dimensionName(widget.dimension), dimension2Name: this.dimensionName(widget.dimension2) };
     }

@@ -53,7 +53,8 @@ removes what a play cannot show.
   Escape is Stay. A typed note is unsaved from its first keystroke; a run of
   keystrokes is one Undo step.
 - **Undo** steps through the open play's unsaved changes first, then the saved
-  history. Selecting a play does not add an Undo step.
+  history. Each step keeps which values the app filled in, so undoing a coach
+  edit of a filled-in value makes it filled-in again. Selecting a play does not add an Undo step.
 - **Recovery.** While a draft has unsaved changes, a copy is saved with its
   game (the game's `chartDraft`); after a crash or power loss, opening that
   play offers Restore or Discard. It is never counted as charting until saved.
@@ -79,7 +80,8 @@ A tackle counts where the play shows our Tackler(s): defense, kick coverage,
 and an offensive turnover. Our missed tacklers count on defense, kick coverage
 and an offensive turnover. Players, the Defense board's player lines and
 Study's Tackler and Missed Tackler roles read the same plays; the Defense
-board's team modules stay defensive. The opponent's tacklers are never
-credited.
+board's team modules stay defensive. A return tackle after our turnover never
+takes the play's sack or tackle for loss (`PlayShape.isReturnTackle`). The
+opponent's tacklers are never credited.
 
 Proven by `tools/e2e-charting-save.mjs`.

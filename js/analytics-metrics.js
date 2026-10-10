@@ -53,6 +53,7 @@
  * AnalyticsRegistry.playRef; it is repeated here so this module needs no
  * registry dependency. Get a bound instance from StatsEngine.metricsEngine().
  */
+import { PlayShape } from './play-shape.js';
 
 export const MetricPolarity = Object.freeze({ HIGHER: 'higher', LOWER: 'lower' });
 
@@ -407,7 +408,8 @@ const METRICS = {
     // Defense-framed: sacks a tackler's own cohort produced. Identical
     // formula to `sacksTaken`; higher is better (a defender's own sack).
     polarity: MetricPolarity.HIGHER, countMetric: true,
-    compute(cohort, deps) { return countResult(cohort, p => deps.hasResult(p, 'Sack')); },
+    // A return tackle after our own turnover never owns the play's sack.
+    compute(cohort, deps) { return countResult(cohort, p => !PlayShape.isReturnTackle(p) && deps.hasResult(p, 'Sack')); },
   },
   tackles: {
     // The cohort itself (every play in a tackler's cohort is a tackle by
@@ -441,7 +443,7 @@ const METRICS = {
     // exactly (StatsEngine._individualStats' tacklers[id].tfl).
     polarity: MetricPolarity.HIGHER, countMetric: true,
     compute(cohort, deps) {
-      return countResult(cohort, p => !deps.hasResult(p, 'Sack') && (parseInt(p?.tags?.yardage, 10) || 0) < 0);
+      return countResult(cohort, p => !PlayShape.isReturnTackle(p) && !deps.hasResult(p, 'Sack') && (parseInt(p?.tags?.yardage, 10) || 0) < 0);
     },
   },
 };
