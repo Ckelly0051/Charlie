@@ -98,7 +98,7 @@ function NativeReportsRoute({ screen }) {
     <div class="gi-reports-scorebug" data-reports-scorebug hidden></div>
 
     <div class="gi-reports-special-head" hidden data-reports-special-chrome>
-      <button type="button" class="gi-reports-back" onClick={() => screen.show()}><Icon name="prev-clip" />Back to reports</button>
+      <button type="button" class="gi-reports-back" onClick={() => screen.backToReports()}><Icon name="prev-clip" />Back to reports</button>
       <span data-reports-special-label>Focused report</span>
     </div>
 

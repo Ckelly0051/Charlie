@@ -134,6 +134,10 @@
      apart from gold, the defense and offense blues and the warning color. */
   --gi-feature:#7f5af0;
   --gi-feature-hover:#977cf4;
+  /* Special Teams' unit accent beside Offense gold and Defense cyan (coach,
+     2026-10-10): the chart teal, with dark ink for text on it. */
+  --gi-st:var(--gi-cat-6);
+  --gi-st-ink:#0b1a1d;
   /* A printable-document preview (Call Sheet) shows what will actually print
    * -- genuine white paper, not a themeable UI surface. Named so the native
    * stylesheet consuming it has zero raw color literals of its own. */

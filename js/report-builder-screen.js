@@ -3,10 +3,12 @@ import { ReportBuilder } from './report-builder.js';
 import { WidgetEditor } from './native-report-builder.jsx';
 
 /**
- * Dashboards controller (docs/REPORTS-CONTRACTS.md > Dashboards). Owns which
- * dashboard is open, its edits and their persistence; ReportBuilder owns every
- * number. Dashboards belong to the season (`data.dashboards`) and are saved
- * with it, like the playbook.
+ * Dashboards controller (docs/REPORTS-CONTRACTS.md > Dashboards). Owns the
+ * Dashboards home, which dashboard is open, its edits and their persistence;
+ * ReportBuilder owns every number. Saved dashboards belong to the season
+ * (`data.dashboards`) and are saved with it, like the playbook. A template is
+ * shown read-only: scope, unit and filters change only the view, and a widget
+ * edit saves a new dashboard under a name the coach gives.
  */
 export class ReportBuilderScreen {
   constructor(app, reports) {
@@ -14,6 +16,8 @@ export class ReportBuilderScreen {
     this.reports = reports;
     this.builder = new ReportBuilder({ registry: app.analyticsRegistry, study: app.study });
     this.activeId = null;
+    this.view = 'home';
+    this.templateView = null;
     this._listeners = new Set();
   }
 
@@ -29,32 +33,73 @@ export class ReportBuilderScreen {
     if (!Array.isArray(data.dashboards)) data.dashboards = [];
     return data.dashboards;
   }
+  /** The open dashboard: a template being viewed, or a saved one. Null on
+   *  the Dashboards home. */
   active() {
-    const list = this.list();
-    return list.find(item => item.id === this.activeId) || list[0] || null;
+    if (this.view !== 'dashboard') return null;
+    if (this.templateView) return this.templateView;
+    return this.list().find(item => item.id === this.activeId) || null;
   }
+  isTemplate() { return this.view === 'dashboard' && !!this.templateView; }
   _save() {
     this.app.storage?._autoSave?.();
     this._publish();
   }
   _replace(dashboard) {
+    if (this.isTemplate()) {
+      this.templateView = ReportBuilder.normalize(dashboard);
+      this._publish();
+      return this.templateView;
+    }
     const list = this.list();
     const index = list.findIndex(item => item.id === dashboard.id);
     const clean = ReportBuilder.normalize(dashboard);
     if (index >= 0) list[index] = clean; else list.push(clean);
     this.activeId = clean.id;
+    this.view = 'dashboard';
+    this.templateView = null;
     this._save();
     return clean;
   }
 
-  open(id) { this.activeId = id; this._publish(); }
-
-  create(templateId) {
+  home() { this.view = 'home'; this.templateView = null; this._publish(); }
+  open(id) { this.activeId = id; this.templateView = null; this.view = 'dashboard'; this._publish(); }
+  openTemplate(templateId) {
     const template = ReportBuilder.TEMPLATES.find(item => item.id === templateId);
+    if (!template) return null;
+    this.templateView = ReportBuilder.normalize({ ...JSON.parse(JSON.stringify(template)), id: `template:${template.id}` });
+    this.view = 'dashboard';
+    this._publish();
+    return this.templateView;
+  }
+
+  _uniqueName(base) {
     const names = new Set(this.list().map(item => item.name));
-    let name = template?.name || 'Dashboard', n = 2;
-    while (names.has(name)) name = `${template?.name || 'Dashboard'} ${n++}`;
-    return this._replace(ReportBuilder.fromTemplate(templateId, name));
+    let name = base, n = 2;
+    while (names.has(name)) name = `${base} ${n++}`;
+    return name;
+  }
+  async _askName(suggested, action) {
+    const name = String(await this.app.tagger?._promptDialog?.('Dashboard name', action, suggested) || '').trim();
+    return name || null;
+  }
+
+  /** A new, empty saved dashboard under the name the coach gives. */
+  async createBlank() {
+    const name = await this._askName(this._uniqueName('New dashboard'), 'Create');
+    if (!name) return null;
+    return this._replace(ReportBuilder.fromTemplate('blank', name));
+  }
+
+  /** The template being viewed, saved as a new dashboard with `change`
+   *  applied. Nothing is saved when the coach cancels the name. */
+  async saveTemplateAs(change = list => list) {
+    const view = this.templateView;
+    if (!view) return null;
+    const name = await this._askName(this._uniqueName(view.name), 'Save');
+    if (!name || this.templateView !== view) return null;
+    this.templateView = null;
+    return this._replace({ ...JSON.parse(JSON.stringify(view)), id: null, name, widgets: change(view.widgets.slice()) });
   }
 
   async rename() {
@@ -73,13 +118,13 @@ export class ReportBuilderScreen {
       widgets: dashboard.widgets.map(widget => ({ ...widget, id: null })) });
   }
 
-  async remove() {
-    const dashboard = this.active();
+  async remove(id = null) {
+    const dashboard = id ? this.list().find(item => item.id === id) : (this.isTemplate() ? null : this.active());
     if (!dashboard) return false;
     if (!(await this.app.tagger?._confirmDialog?.(`Delete the dashboard "${dashboard.name}"?`, 'Delete Dashboard'))) return false;
     const data = this._store()?.data;
     data.dashboards = this.list().filter(item => item.id !== dashboard.id);
-    this.activeId = data.dashboards[0]?.id || null;
+    if (this.activeId === dashboard.id) { this.activeId = null; this.view = 'home'; }
     this._save();
     return true;
   }
@@ -99,6 +144,7 @@ export class ReportBuilderScreen {
   _widgets(update) {
     const d = this.active();
     if (!d) return;
+    if (this.isTemplate()) { this.saveTemplateAs(update); return; }
     this._replace({ ...d, widgets: update(d.widgets.slice()) });
   }
   saveWidget(widget) {
@@ -235,7 +281,7 @@ body{margin:0;background:var(--gi-bd-stage,#080808)}
 .gi-rb-export-head{padding:16px;color:var(--gi-bd-strong,#f5f5f5);font:600 20px/1.2 system-ui,sans-serif}
 .gi-rb-export-head span{display:block;margin-top:4px;color:var(--gi-bd-copy,#a6a6a6);font:400 13.5px system-ui,sans-serif}
 .gi-rb-export .gi-rb-toolbar-actions,.gi-rb-export .gi-rb-card-actions button,.gi-rb-export .gi-rb-card-actions details,.gi-rb-export [data-rb-add-filter],.gi-rb-export .gi-rb-chip button{display:none}
-</style></head><body><header class="gi-rb-export-head">${esc(dashboard.name)}<span>Exported ${date}. Values as charted; film links open in GridIron IQ.</span></header>
+</style></head><body><header class="gi-rb-export-head">${esc(dashboard.name)}<span>Exported ${date}</span></header>
 <div class="gi-rb-export">${board.outerHTML}</div></body></html>`;
     try { window.ffaSaveBlob?.(new Blob([html], { type: 'text/html' }), `dashboard_${dashboard.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${date}.html`); } catch (e) {}
     return html;
@@ -250,8 +296,12 @@ body{margin:0;background:var(--gi-bd-stage,#080808)}
   snapshot() {
     const dashboard = this.active();
     const context = dashboard ? this.context() : null;
+    const summary = item => ({ id: item.id, name: item.name, unit: item.unit, scope: item.scope, widgets: item.widgets.length });
     return {
-      dashboards: this.list().map(item => ({ id: item.id, name: item.name })),
+      view: this.view,
+      isTemplate: this.isTemplate(),
+      dashboards: this.list().map(summary),
+      templates: ReportBuilder.TEMPLATES.filter(item => item.id !== 'blank').map(summary),
       dashboard,
       result: dashboard ? this.evaluate(dashboard, context) : null,
       dimensions: this.builder.dimensionCatalog(),

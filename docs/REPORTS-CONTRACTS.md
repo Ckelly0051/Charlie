@@ -285,6 +285,18 @@ The coach's own reports (coach, 2026-10-10: "self serve reporting"). Opened
 from the Reports head (Dashboards, beside Scout opponent) as a focused view
 with Back to reports; the approved report strip is unchanged.
 
+- **Home** (smoke 114 findings 1-2). The Dashboards button opens the home:
+  New dashboard, the saved dashboards as rows (name, unit, scope, widgets;
+  Open, Delete) and the templates as rows (Open). An open dashboard's All
+  dashboards returns to it. Returning to Reports after watching film from a
+  dashboard, or from another route, reopens Dashboards where the coach left
+  it; Back to reports leaves for the tabs.
+- **Templates are read-only** (finding 3). A template opens marked Template;
+  scope, unit and filters change only the view. Adding, editing, moving,
+  resizing or removing a widget, or Save as new, asks for a name and saves a
+  new dashboard with the change; cancelling saves nothing. The template never
+  changes.
+
 - **Model.** `js/report-builder.js` (ReportBuilder, pure) owns the catalogs,
   templates and every widget's numbers; `js/report-builder-screen.js` owns
   state and persistence; `js/native-report-builder.jsx` lays them out.
@@ -313,9 +325,15 @@ with Back to reports; the approved report strip is unchanged.
   QB run type and missed tackles.
 - **Views.** Number (with the season baseline when the scope is narrower;
   a count has none, counts are not comparable across scopes), Bar chart (a
-  narrower scope marks each bar with that group's season value), Share (each row's segments sum to 100% of the plays holding a
-  split value, in one order), Game by game, Heat map (brighter is better, or
-  higher for a neutral metric), Table, Leaders.
+  narrower scope marks each bar with that group's season value; bars run
+  from a zero line, so a negative value draws left of it), Share (four split
+  values and Other, in one order, all in the legend; whole-number labels
+  total 100%), Game by game, Heat map (its one line of text: brighter is
+  better, or higher for a neutral metric), Table, Leaders.
+- **Labels.** Values read as a coach reads them everywhere they show (rows,
+  columns, filter chips, film labels): 3rd, Q2, Accepted, Dead ball, Our
+  team. A heat-map cell watches as "row × column". A count tile shows no
+  sample line under its number.
 - **Honest values.** A value below the widget's small-sample size is faded and
   labeled; nothing charted reads "—" with its reason, never zero.
 - **Film.** Every number, bar, segment, point and cell opens exactly its own
@@ -323,8 +341,11 @@ with Back to reports; the approved report strip is unchanged.
 - **Export** saves the board as one self-contained HTML file (the app's
   stylesheet source embedded, controls hidden) through `window.ffaSaveBlob`.
 - **Saved with the season** (`data.dashboards`, normalized by SeasonStore),
-  like the playbook. Templates (Offense snapshot, Defense snapshot,
-  Situational, Play calls, Blank) are copied, never edited in place.
+  like the playbook. Templates: Offense snapshot, Defense snapshot,
+  Situational, Play calls; New dashboard starts empty under a name the coach
+  gives.
+- **Accent** follows the unit: gold offense, cyan defense, teal Special Teams
+  (`--gi-st`), bone for all units.
 
 Proven by `tools/e2e-report-builder.mjs` (synthetic season, plus the
 canonical season when present).

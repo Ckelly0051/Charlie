@@ -267,6 +267,24 @@ try {
   ok(credit.study.turnover.join() === '9' && credit.study.coverage.join() === '5' && !credit.study.gain.length && credit.study.missed.join() === '9',
     'Study\'s Tackler role includes kick coverage and the offensive turnover tackle, not a hidden Tackler; Missed Tackler includes the turnover', credit.study);
 
+  console.log('\n== Roster grid ==');
+  const roster = await page.evaluate(async () => {
+    const app = window.app, kept = app.roster.players;
+    app.roster.players = Array.from({ length: 30 }, (_, i) => ({ num: String(i + 1), name: `P${i + 1}`, side: 'D' }));
+    app.tagger.selectPlay(1); app.nativeTagging.refresh?.();
+    await new Promise(r => setTimeout(r, 250));
+    const toggle = [...document.querySelectorAll('.gi-player-roster-toggle')].find(b => /Show roster/.test(b.textContent));
+    toggle?.click();
+    await new Promise(r => setTimeout(r, 200));
+    const quick = document.querySelector('.gi-player-quick');
+    const row = quick ? parseFloat(getComputedStyle(quick.querySelector('button')).height) : 0;
+    const out = quick ? { height: quick.clientHeight, scroll: quick.scrollHeight, row } : null;
+    app.roster.players = kept;
+    return out;
+  });
+  ok(roster && roster.scroll > roster.height && Math.abs(roster.height - (roster.row * 4 + 9)) <= 1,
+    'a long roster shows four whole rows before it scrolls; no row is cut', roster);
+
   console.log('\n== Film Room edits are saves ==');
   const grid = await page.evaluate(() => {
     const app = window.app, PlayGrid = app.playGrid.constructor;

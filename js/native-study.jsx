@@ -90,7 +90,7 @@ function NativeStudy({ screen }) {
     screen.rows = model.rows || []; screen._saveCohorts = model.saveCohorts || []; screen._watchAllRefs = model.watchAll?.refs || []; screen._watchAllLabel = model.watchAll?.label || 'Watch results';
   screen._native = { getState: () => stateRef.current, setState, refresh: () => force(n => n + 1) };
   const dimName = id => screen.app.analyticsRegistry.getDimension(id)?.name;
-  const metricName = id => screen.constructor.RICH_METRIC_PAIRS[id]?.name || screen.app.analyticsRegistry.getMeasure(id)?.name;
+  const metricName = id => screen.constructor.richName(id, state.unit) || screen.app.analyticsRegistry.getMeasure(id)?.name;
   const columnBlocked = !!state.compare || !!state.playerRole;
   return <>
     <div class="ws-study-head"><div><div class="ws-eyebrow">Study the film</div><h1>FIND THE ANSWER</h1><p>Ask a football question. Every result stays linked to video.</p></div><div class="ws-study-actions">

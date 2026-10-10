@@ -3108,7 +3108,7 @@
    Special Teams has no assigned accent colour, so its rules take the neutral
    bone line rather than borrowing either side's colour. */
 .gi-reports .gi-offense-board{--mod-accent:var(--gi-bd-gold)}
-.gi-reports .gi-st-board{--mod-accent:var(--gi-bd-draw)}.gi-reports :is(.gi-off-heading,.gi-st-heading,.gi-report-heading){display:flex;align-items:center;gap:12px;height:74px}
+.gi-reports .gi-st-board{--mod-accent:var(--gi-st)}.gi-reports :is(.gi-off-heading,.gi-st-heading,.gi-report-heading){display:flex;align-items:center;gap:12px;height:74px}
 .gi-reports :is(.gi-off-heading,.gi-st-heading,.gi-report-heading)>span{color:var(--mod-accent);font:400 14px/1 var(--gi-sans)}
 .gi-reports :is(.gi-off-heading,.gi-st-heading,.gi-report-heading) h2{margin:0;color:var(--gi-12);font:600 21px/1.2 var(--gi-sans);text-transform:none;letter-spacing:0}
 .gi-reports :is(.gi-off-heading,.gi-st-heading,.gi-report-heading) small{margin-left:auto;color:var(--gi-11);font:400 13px/1.2 var(--gi-sans)}

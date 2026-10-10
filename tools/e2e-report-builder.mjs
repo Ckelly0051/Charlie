@@ -94,6 +94,12 @@ try {
     Object.defineProperty(mixed, '__gid', { value: twoFouls.__gid });
     const matrix = b.evaluate(b.constructor.normalizeWidget({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling' }), [mixed], { ...ctx, unit: 'offense' });
     const cells = Object.fromEntries(matrix.rows.flatMap(r => r.cells.map((c, i) => [`${r.value}|${matrix.columns[i].value}`, [c.n, c.value]])));
+    const rulings = b.groups(plays, 'penaltyRuling').map(g => g.label);
+    // Six play types on one down: four named, the rest Other; whole shares total 100.
+    const types = ['Run Inside', 'Run Outside', 'Short Pass', 'Screen', 'RPO', 'Draw'];
+    const six = plays.slice(0, 6).map((p, i) => { const c = { ...p, tags: { ...p.tags, down: '1', playType: types[i] } }; Object.defineProperty(c, '__gid', { value: p.__gid }); return c; });
+    const fold = b.evaluate(b.constructor.normalizeWidget({ view: 'share', dimension: 'down', split: 'playType' }), six, { ...ctx, unit: 'offense' });
+    const thirds = b.constructor.wholeShares([1, 1, 1]);
     const catalog = b.dimensionCatalog().flatMap(section => section.items.map(item => item.id));
     const kpi = b.evaluate(b.constructor.normalizeWidget({ view: 'kpi', metric: 'success' }), b.scopePlays({ ...offense, scope: 'game' }, ctx), { ...ctx, unit: 'offense', baselinePlays: plays, baselineLabel: 'Season' });
     return {
@@ -104,7 +110,8 @@ try {
       trend: trend.rows.map(r => [r.label, r.value]),
       faced: faced.rows.map(r => [r.label, r.n]), leaders: leaders.rows.map(r => [r.label, r.metric]), board5: board?.roles.find(r => r.key === 'tackles')?.stats?.tkl?.n,
       kpi: { value: kpi.current.value, baseline: kpi.baseline?.value },
-      defShare: defShare.map(m => [m.value, m.n, m.state]), turnovers: [turnovers.state, turnovers.reason], fouls, cells,
+      defShare: defShare.map(m => [m.value, m.n, m.state]), turnovers: [turnovers.state, turnovers.reason], fouls, cells, rulings,
+      fold: { keys: fold.keys, other: fold.keyLabels[fold.keys.at(-1)], parts: fold.rows[0].parts.map(p => [p.value, p.n, p.whole]) }, thirds,
       catalog: ['motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun', 'missedTackles', 'penaltyRuling'].filter(id => !catalog.includes(id)),
     };
   });
@@ -129,19 +136,34 @@ try {
   ok(model.cells['Holding|accepted']?.[0] === 1 && model.cells['Holding|accepted']?.[1] === 10 && model.cells['Holding|declined']?.[0] === 0
     && model.cells['Unsportsmanlike|accepted']?.[0] === 0 && model.cells['Unsportsmanlike|declined']?.[0] === 1,
     'a penalty matrix cell holds only the records in both its row and its column: accepted Holding is never in Declined', model.cells);
+  ok(model.rulings.join() === 'Accepted', 'a penalty ruling reads as a label (Accepted), not the stored value', model.rulings);
+  ok(model.fold.keys.length === 5 && model.fold.other === 'Other' && model.fold.parts.at(-1)[1] === 2
+    && model.fold.parts.reduce((sum, p) => sum + p[2], 0) === 100,
+    'a share past four values folds the rest into Other, and its labels total 100%', model.fold);
+  ok(model.thirds.join() === '34,33,33', 'three equal shares read 34, 33 and 33, not 33 three times', model.thirds);
   ok(!model.catalog.length, 'motion path, RPO, QB run, missed tackles and penalty ruling are groupings', model.catalog);
 
-  console.log('\n== Building a dashboard ==');
+  console.log('\n== Dashboards home ==');
   let ui = await page.evaluate(() => ({
-    start: !!document.querySelector('[data-rb-start]'), templates: [...document.querySelectorAll('[data-rb-template]')].map(b => b.dataset.rbTemplate),
+    home: !!document.querySelector('[data-rb-home]'),
+    templates: [...document.querySelectorAll('[data-rb-row^="template:"]')].map(n => n.dataset.rbRow.slice(9)),
+    saved: document.querySelectorAll('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"])').length,
+    picker: !!document.querySelector('[data-report-builder] select[aria-label="Dashboard"]'),
     scorebug: document.querySelector('[data-reports-scorebug]')?.hidden !== false, strip: document.querySelector('[data-reports-strip]')?.hidden === true,
     label: document.querySelector('[data-reports-special-label]')?.textContent,
   }));
-  ok(ui.start && ui.templates.join() === 'offense,defense,situational,calls,blank', 'Dashboards opens on the five starting templates', ui);
+  ok(ui.home && ui.templates.join() === 'offense,defense,situational,calls' && ui.saved === 0 && !ui.picker,
+    'Dashboards opens on its home: the four templates, no saved dashboards yet, no dropdown', ui);
   ok(ui.scorebug && ui.strip && ui.label === 'Dashboards', 'Dashboards is a focused view: no score or report strip, Back to reports', ui);
-  await page.click('[data-rb-template="offense"]'); await settle();
-  ui = await page.evaluate(() => ({ cards: document.querySelectorAll('[data-rb-widget]').length, stored: window.app.storage.seasonStore.data.dashboards.map(d => [d.name, d.widgets.length]) }));
-  ok(ui.cards === 7 && ui.stored.length === 1 && ui.stored[0][0] === 'Offense snapshot', 'a template becomes a saved dashboard with its seven widgets', ui);
+
+  console.log('\n== A template is read-only ==');
+  await page.click('[data-rb-row="template:offense"] .is-primary'); await settle();
+  await page.evaluate(() => [...document.querySelectorAll('[aria-label="Scope"] button')].find(b => b.textContent === 'This game').click()); await settle();
+  ui = await page.evaluate(() => ({ cards: document.querySelectorAll('[data-rb-widget]').length, tag: document.querySelector('.gi-rb-tag')?.textContent,
+    stored: window.app.storage.seasonStore.data.dashboards.length, scope: window.app.reportsScreen.dashboards.active().scope,
+    rename: [...document.querySelectorAll('.gi-rb-toolbar-actions button')].some(b => b.textContent === 'Rename') }));
+  ok(ui.cards === 7 && ui.tag === 'Template' && ui.stored === 0 && ui.scope === 'game' && !ui.rename,
+    'opening a template shows its seven widgets, marked Template; changing its scope saves nothing', ui);
   const watched = await page.evaluate(async () => {
     const calls = [];
     const nav = window.app.filmNavigation, original = nav.watch;
@@ -153,12 +175,29 @@ try {
     return { calls, expected: bar.rows[0].refs };
   });
   ok(watched.calls.length === 1 && JSON.stringify(watched.calls[0].refs) === JSON.stringify(watched.expected), 'clicking a bar watches exactly its plays', watched);
+  const resumed = await page.evaluate(() => { const r = window.app.reportsScreen; r.show(); return { open: !!document.querySelector('[data-rb-widget]'), tag: document.querySelector('.gi-rb-tag')?.textContent }; });
+  ok(resumed.open && resumed.tag === 'Template', 'returning to Reports after watching film reopens the dashboard', resumed);
+  await page.evaluate(() => { window.__prompt = window.app.tagger._promptDialog; window.app.tagger._promptDialog = async () => null; });
+  await page.click('[data-rb-add-widget]'); await settle();
+  ui = await page.evaluate(() => document.querySelector('[data-rb-save]')?.textContent);
+  ok(ui === 'Save as new dashboard', 'adding a widget to a template offers Save as new dashboard', ui);
+  await page.click('[data-rb-save]'); await settle();
+  ui = await page.evaluate(() => ({ stored: window.app.storage.seasonStore.data.dashboards.length, cards: document.querySelectorAll('[data-rb-widget]').length, tag: document.querySelector('.gi-rb-tag')?.textContent }));
+  ok(ui.stored === 0 && ui.cards === 7 && ui.tag === 'Template', 'cancelling the name saves nothing and leaves the template as it was', ui);
+  await page.evaluate(() => { window.app.tagger._promptDialog = async () => 'My offense'; });
   await page.click('[data-rb-add-widget]'); await settle();
   await page.evaluate(() => [...document.querySelectorAll('[data-report-widget-editor] [aria-label="View"] button')].find(b => b.textContent === 'Table').click()); await settle();
   const preview = await page.evaluate(() => !!document.querySelector('[data-report-widget-editor] .gi-rb-table'));
   await page.click('[data-rb-save]'); await settle();
-  ui = await page.evaluate(() => ({ cards: [...document.querySelectorAll('[data-rb-widget]')].map(n => n.dataset.rbView), dialog: !!document.querySelector('[data-report-widget-editor]') }));
-  ok(preview && ui.cards.length === 8 && ui.cards.at(-1) === 'table' && !ui.dialog, 'Add widget previews live and adds the table', { preview, ...ui });
+  ui = await page.evaluate(() => ({ cards: [...document.querySelectorAll('[data-rb-widget]')].map(n => n.dataset.rbView), dialog: !!document.querySelector('[data-report-widget-editor]'),
+    stored: window.app.storage.seasonStore.data.dashboards.map(d => [d.name, d.widgets.length, d.scope]), tag: !!document.querySelector('.gi-rb-tag'),
+    template: window.app.reportsScreen.dashboards.builder.constructor.TEMPLATES.find(t => t.id === 'offense').widgets.length }));
+  ok(preview && ui.cards.length === 8 && ui.cards.at(-1) === 'table' && !ui.dialog && !ui.tag
+    && JSON.stringify(ui.stored) === '[["My offense",8,"game"]]' && ui.template === 7,
+    'a widget added to a template saves a new dashboard under the given name; the template keeps its seven widgets', { preview, ...ui });
+  await page.evaluate(() => { window.app.tagger._promptDialog = window.__prompt; });
+
+  console.log('\n== Building a dashboard ==');
   const lastId = await page.evaluate(() => [...document.querySelectorAll('[data-rb-widget]')].at(-1).dataset.rbWidget);
   await page.evaluate(id => window.app.reportsScreen.dashboards.resizeWidget(id, 's'), lastId); await settle();
   ok(await page.evaluate(id => document.querySelector(`[data-rb-widget="${id}"]`).classList.contains('is-w4'), lastId), 'a widget resizes to a third');
@@ -166,6 +205,7 @@ try {
   ok(await page.evaluate(id => [...document.querySelectorAll('[data-rb-widget]')].at(-2).dataset.rbWidget === id, lastId), 'a widget moves earlier');
   await page.evaluate(id => window.app.reportsScreen.dashboards.removeWidget(id), lastId); await settle();
   ok(await page.evaluate(() => document.querySelectorAll('[data-rb-widget]').length === 7), 'a widget is removed');
+  await page.evaluate(() => window.app.reportsScreen.dashboards.setScope('season')); await settle();
   await page.click('[data-rb-add-filter]'); await settle();
   await page.evaluate(() => {
     const picker = document.querySelector('[data-rb-filter-picker]');
@@ -177,7 +217,7 @@ try {
   }); await settle(100);
   await page.evaluate(() => [...document.querySelectorAll('[data-rb-filter-picker] button')].find(b => b.textContent === 'Apply').click()); await settle();
   ui = await page.evaluate(() => ({ chip: document.querySelector('[data-rb-filter="down"]')?.textContent || '', total: document.querySelector('.gi-rb-total')?.textContent }));
-  ok(/Down:\s*3/.test(ui.chip) && ui.total === '3 plays', 'a dashboard filter narrows every widget: 3rd down, 3 plays', ui);
+  ok(/Down:\s*3rd/.test(ui.chip) && ui.total === '3 plays', 'a dashboard filter narrows every widget, and its chip reads 3rd', ui);
   await page.evaluate(() => [...document.querySelectorAll('[aria-label="Unit"] button')].find(b => b.textContent === 'Defense').click()); await settle();
   ok(await page.evaluate(() => document.querySelector('[data-report-builder]').classList.contains('is-defense')), 'Defense switches the dashboard to the defense framing and color');
   const stored = await page.evaluate(() => {
@@ -186,6 +226,12 @@ try {
     return { unit: store.data.dashboards[0].unit, filters: store.data.dashboards[0].filters, survives: again.dashboards?.[0]?.widgets?.length };
   });
   ok(stored.unit === 'defense' && stored.filters[0]?.values.join() === '3' && stored.survives === 7, 'the dashboard is saved with the season and survives a reload', stored);
+  await page.click('[data-rb-home-link]'); await settle();
+  ui = await page.evaluate(() => ({ home: !!document.querySelector('[data-rb-home]'),
+    saved: [...document.querySelectorAll('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) strong')].map(n => n.textContent) }));
+  ok(ui.home && ui.saved.join() === 'My offense', 'All dashboards returns to the home, listing the saved dashboard', ui);
+  await page.click('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) .is-primary'); await settle();
+  ok(await page.evaluate(() => document.querySelectorAll('[data-rb-widget]').length === 7 && !document.querySelector('.gi-rb-tag')), 'Open reopens the saved dashboard');
 
   console.log('\n== Season marks and export ==');
   const marks = await page.evaluate(async () => {
@@ -205,10 +251,75 @@ try {
     window.ffaSaveBlob = (blob, name) => { saved = name; return true; };
     const html = await window.app.reportsScreen.dashboards.exportHtml();
     window.ffaSaveBlob = original;
-    return { saved, length: html?.length || 0, title: /<title>Offense snapshot<\/title>/.test(html || ''), cards: (html?.match(/data-rb-widget=/g) || []).length, styled: /\.gi-rb-card\s*\{/.test(html || '') && /--gi-bd-panel\s*:/.test(html || '') && /46px\/1 var\(--gi-cond\)/.test(html || '') };
+    return { saved, length: html?.length || 0, title: /<title>My offense<\/title>/.test(html || ''), cards: (html?.match(/data-rb-widget=/g) || []).length, styled: /\.gi-rb-card\s*\{/.test(html || '') && /--gi-bd-panel\s*:/.test(html || '') && /46px\/1 var\(--gi-cond\)/.test(html || '') };
   });
-  ok(exported.saved?.startsWith('dashboard_offense_snapshot_') && exported.title && exported.cards === 7 && exported.styled,
+  ok(exported.saved?.startsWith('dashboard_my_offense_') && exported.title && exported.cards === 7 && exported.styled,
     'Export saves one self-contained HTML file of the board with its styles', exported);
+
+  console.log('\n== Views ==');
+  const views = await page.evaluate(async () => {
+    const s = window.app.reportsScreen.dashboards, B = s.builder.constructor;
+    s._replace(B.fromTemplate('blank', 'Checks'));
+    s.setScope('season'); s.setUnit('offense');
+    s.saveWidget({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling', width: 'l' });
+    s.saveWidget({ view: 'kpi', metric: 'touchdowns', width: 's' });
+    await new Promise(r => setTimeout(r, 250));
+    const calls = [];
+    const nav = window.app.filmNavigation, original = nav.watch;
+    nav.watch = (refs, opts) => { calls.push(opts?.label); return true; };
+    document.querySelector('.gi-rb-matrix button.gi-rb-cell')?.click();
+    nav.watch = original;
+    const head = [...document.querySelectorAll('.gi-rb-matrix thead th')].map(n => n.textContent);
+    const tile = document.querySelector('[data-rb-view="kpi"] .gi-rb-kpi-meta')?.textContent || '';
+    const caption = document.querySelector('.gi-rb-matrix-wrap .gi-rb-muted')?.textContent || '';
+    s.setUnit('defense');
+    s.saveWidget({ view: 'bar', metric: 'yards', dimension: 'down', width: 'm' });
+    // EPA is offense-only, so on defense every value is unavailable: no film, a dash.
+    s.saveWidget({ view: 'table', metrics: ['epa'], dimension: 'down', width: 'm' });
+    await new Promise(r => setTimeout(r, 250));
+    const dashCell = document.querySelector('[data-rb-view="table"] span.gi-rb-cell');
+    const dashBox = dashCell?.getBoundingClientRect(), rowBox = dashCell?.closest('tr').querySelector('th').getBoundingClientRect();
+    const range = document.createRange(); if (dashCell) range.selectNodeContents(dashCell);
+    const textBox = dashCell ? range.getBoundingClientRect() : null;
+    const dash = dashCell ? { text: dashCell.textContent, offset: Math.round(Math.abs((textBox.top + textBox.bottom) / 2 - (dashBox.top + dashBox.bottom) / 2)) } : null;
+    const neg = document.querySelector('[data-rb-view="bar"] .gi-rb-bars li.is-negative');
+    const zero = neg?.querySelector('.gi-rb-bar-zero'), fill = neg?.querySelector('.gi-rb-bar-fill');
+    const negative = neg ? { fillRight: Math.round(fill.getBoundingClientRect().right), zero: Math.round(zero.getBoundingClientRect().left), width: fill.getBoundingClientRect().width } : null;
+    return { calls, head, tile, negative, caption, dash };
+  });
+  ok(views.calls.length === 1 && views.calls[0] === 'Holding × Accepted' && views.head.includes('Accepted'),
+    'a heat-map cell watches under its row and column labels (Holding × Accepted)', views);
+  ok(!/play/.test(views.tile), 'a count tile shows no repeated play count under the number', views.tile);
+  ok(views.negative && views.negative.width > 4 && views.negative.fillRight <= views.negative.zero + 1,
+    'a negative bar draws left of the zero line', views.negative);
+  ok(!views.caption || !/across|Small numbers|faded/.test(views.caption), 'a heat map carries no explanatory sentence', views.caption);
+  ok(views.dash && views.dash.offset <= 1, 'a value without film (a dash) sits on the row\'s text line', views.dash);
+  const rich = await page.evaluate(() => { const S = window.app.studyScreen.constructor; return [S.richName('success', 'defense'), S.richName('success', 'offense')]; });
+  ok(rich.join() === 'Stop Rate,Success Rate', 'Study names its success concept per unit: Stop Rate on defense', rich);
+  await page.evaluate(async () => { const s = window.app.reportsScreen.dashboards; const id = s.active().id; window.app.tagger._confirmDialog = async () => true; await s.remove(id); s.open(s.list()[0].id); s.setUnit('offense'); s.setFilter('down', []); });
+  await settle();
+
+  console.log('\n== Styling ==');
+  await page.evaluate(() => window.app.reportsScreen.dashboards.setScope('season')); await settle();
+  const styling = await page.evaluate(() => {
+    // Offense is selected and first: its right border is on top of Defense's
+    // left border, which follows it and would otherwise paint over it.
+    const pressed = [...document.querySelectorAll('[aria-label="Unit"] button')].find(b => b.getAttribute('aria-pressed') === 'true' && b.nextElementSibling);
+    const box = pressed?.getBoundingClientRect();
+    const onTop = box ? document.elementFromPoint(box.right - 0.5, box.top + box.height / 2) === pressed : false;
+    return { onTop, pressed: pressed?.textContent };
+  });
+  ok(styling.onTop, 'the selected segment draws its whole outline above its neighbor', styling);
+  await page.hover('.gi-rb-table tbody tr:first-child td:last-child'); await settle(100);
+  const hover = await page.evaluate(() => {
+    const row = document.querySelector('.gi-rb-table tbody tr:first-child');
+    return { th: getComputedStyle(row.querySelector('th')).backgroundColor, td: getComputedStyle(row.querySelector('td')).backgroundColor };
+  });
+  ok(hover.th === hover.td && hover.th !== 'rgba(0, 0, 0, 0)', 'a hovered table row lights its label cell with the rest of the row', hover);
+  await page.evaluate(() => window.app.reportsScreen.dashboards.setUnit('special')); await settle();
+  const teal = await page.evaluate(() => getComputedStyle(document.querySelector('.gi-rb-card')).borderTopColor);
+  ok(teal === 'rgb(127, 180, 191)', 'Special Teams dashboards use the teal accent', teal);
+  await page.evaluate(() => window.app.reportsScreen.dashboards.setUnit('offense')); await settle();
 
   console.log('\n== Layout ==');
   await page.evaluate(() => { const s = window.app.reportsScreen.dashboards; s.setScope('season'); });

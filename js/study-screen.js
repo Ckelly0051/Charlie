@@ -68,12 +68,19 @@ export class StudyScreen {
    */
   static get RICH_METRIC_PAIRS() {
     return {
-      success: { offense: 'successRate', defense: 'stopRate', name: 'Success Rate' },
-      yards: { offense: 'yardsPerPlay', defense: 'yardsAllowedPerPlay', name: 'Yards / Play' },
-      explosive: { offense: 'explosiveRate', defense: 'explosivesAllowedRate', name: 'Explosive Plays Rate' },
-      negative: { offense: 'negativeRate', defense: 'negativeRateForced', name: 'Negative Play Rate' },
-      havoc: { offense: 'havocRateAllowed', defense: 'havocRate', name: 'Havoc' },
+      success: { offense: 'successRate', defense: 'stopRate', name: 'Success Rate', defenseName: 'Stop Rate' },
+      yards: { offense: 'yardsPerPlay', defense: 'yardsAllowedPerPlay', name: 'Yards / Play', defenseName: 'Yards Allowed / Play' },
+      explosive: { offense: 'explosiveRate', defense: 'explosivesAllowedRate', name: 'Explosive Plays Rate', defenseName: 'Explosive Plays Allowed' },
+      negative: { offense: 'negativeRate', defense: 'negativeRateForced', name: 'Negative Play Rate', defenseName: 'Negative Plays Forced' },
+      havoc: { offense: 'havocRateAllowed', defense: 'havocRate', name: 'Havoc Allowed', defenseName: 'Havoc Rate' },
     };
+  }
+  /** A coaching concept's name in the chosen unit (Stop Rate on defense), the
+   *  names Dashboards uses; null for an id that is not a concept. */
+  static richName(id, unit) {
+    const pair = StudyScreen.RICH_METRIC_PAIRS[id];
+    if (!pair) return null;
+    return unit === 'defense' ? pair.defenseName : pair.name;
   }
   static get RICH_METRIC_IDS() { return Object.keys(StudyScreen.RICH_METRIC_PAIRS); }
   /** Flat registry measures still selectable beside the rich concepts; they
@@ -572,7 +579,7 @@ export class StudyScreen {
       // -- they resolve to a different registry measure per unit at query
       // time (see `_richMetricId`) -- so the lookup must check
       // RICH_METRIC_PAIRS first, matching `mount()`'s metricName resolver.
-      measureName = StudyScreen.RICH_METRIC_PAIRS[state.measure]?.name || this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
+      measureName = StudyScreen.richName(state.measure, state.unit) || this.app.analyticsRegistry.getMeasure(state.measure)?.name || state.measure;
     }
     const cohorts = this._saveCohorts.filter(cohort => cohort.refs.length).map(cohort => ({
       ...cohort,

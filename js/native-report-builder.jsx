@@ -69,7 +69,7 @@ function FilterPicker({ screen, catalog, filters, onApply, onClose, label = 'Add
 
 function FilterChips({ filters, dimensionName, labels, onRemove }) {
   return filters.map(filter => <span key={filter.dimension} class="gi-rb-chip" data-rb-filter={filter.dimension}>
-    <strong>{dimensionName(filter.dimension)}:</strong> {filter.values.map(value => filter.dimension === 'game' ? (labels[value] || value) : value).join(', ')}
+    <strong>{dimensionName(filter.dimension)}:</strong> {filter.values.map(value => ReportBuilder.valueLabel(filter.dimension, value, labels)).join(', ')}
     <button type="button" aria-label={`Remove ${dimensionName(filter.dimension)} filter`} onClick={() => onRemove(filter.dimension)}>×</button>
   </span>);
 }
@@ -88,7 +88,7 @@ function KpiView({ screen, data }) {
   return <div class="gi-rb-kpi">
     <Watch screen={screen} refs={current.refs} label={data.title} class="gi-rb-kpi-value">{fmt(current.value, current.format)}</Watch>
     <div class="gi-rb-kpi-meta">
-      {data.current.format !== 'count' || data.metricName !== 'Plays' ? <span>{plural(current.n, 'play')}</span> : null}
+      {current.format !== 'count' && <span>{plural(current.n, 'play')}</span>}
       {stateNote(current) && <span class="gi-rb-note">{stateNote(current)}</span>}
       {delta != null && <span class={['gi-rb-delta', better].filter(Boolean).join(' ')}>{delta > 0 ? '+' : ''}{fmt(delta, current.format)} vs {data.baselineLabel}</span>}
     </div>
@@ -98,16 +98,26 @@ function KpiView({ screen, data }) {
 const noneCharted = name => <p class="gi-rb-empty">No {name} charted in this scope.</p>;
 
 function BarView({ screen, data }) {
-  const max = Math.max(0, ...data.rows.map(row => Math.max(row.value || 0, row.baseline || 0)));
   if (!data.rows.length) return noneCharted(data.dimensionName);
+  const values = data.rows.flatMap(row => [row.value, row.baseline]).filter(value => value != null);
+  const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
+  const span = hi - lo;
+  const at = value => span > 0 ? (value - lo) / span * 100 : 0;
+  const zero = at(0);
+  const fill = value => {
+    if (value == null || span <= 0) return { left: `${zero}%`, width: '0%' };
+    const end = at(value);
+    return { left: `${Math.min(zero, end)}%`, width: `${Math.max(Math.abs(end - zero), 1)}%` };
+  };
   const marked = data.rows.some(row => row.baseline != null);
   return <div class="gi-rb-bar-view">
-  <ol class="gi-rb-bars">{data.rows.map(row => <li key={row.value} class={row.state === 'ok' ? '' : 'is-thin'}>
+  <ol class="gi-rb-bars">{data.rows.map(row => <li key={row.value} class={[row.state === 'ok' ? '' : 'is-thin', row.value < 0 ? 'is-negative' : ''].filter(Boolean).join(' ')}>
     <span class="gi-rb-bar-label">{row.label}</span>
     <Watch screen={screen} refs={row.refs} label={`${data.title}: ${row.label}`} class="gi-rb-bar-track">
-      <span class="gi-rb-bar-fill" style={{ width: `${max > 0 ? Math.max(2, (row.value || 0) / max * 100) : 0}%` }} />
-      {row.baseline != null && max > 0 && <span class="gi-rb-bar-mark" title={`${data.baselineLabel}: ${fmt(row.baseline, row.format)}`}
-        style={{ left: `${Math.max(0, row.baseline) / max * 100}%` }} />}
+      <span class="gi-rb-bar-fill" style={fill(row.value)} />
+      {lo < 0 && <span class="gi-rb-bar-zero" style={{ left: `${zero}%` }} />}
+      {row.baseline != null && span > 0 && <span class="gi-rb-bar-mark" title={`${data.baselineLabel}: ${fmt(row.baseline, row.format)}`}
+        style={{ left: `${at(row.baseline)}%` }} />}
     </Watch>
     <span class="gi-rb-bar-value">{fmt(row.value, row.format)}</span>
     <small class="gi-rb-bar-n">{row.n}</small>
@@ -116,16 +126,16 @@ function BarView({ screen, data }) {
   </div>;
 }
 
-const SHARE_TONES = ['gi-rb-tone-1', 'gi-rb-tone-2', 'gi-rb-tone-3', 'gi-rb-tone-4', 'gi-rb-tone-5', 'gi-rb-tone-6'];
+const SHARE_TONES = ['gi-rb-tone-1', 'gi-rb-tone-2', 'gi-rb-tone-3', 'gi-rb-tone-4', 'gi-rb-tone-5'];
 function ShareView({ screen, data }) {
   if (!data.rows.length) return noneCharted(`${data.dimensionName} with ${data.splitName}`);
-  const tone = value => SHARE_TONES[Math.max(0, data.keys.indexOf(value)) % SHARE_TONES.length];
+  const tone = value => value === ReportBuilder.OTHER ? SHARE_TONES[SHARE_TONES.length - 1] : SHARE_TONES[Math.max(0, data.keys.indexOf(value))];
   return <div class="gi-rb-share">
-    <ul class="gi-rb-legend">{data.keys.slice(0, 6).map(key => <li key={key}><span class={['gi-rb-swatch', tone(key)].join(' ')} />{data.keyLabels?.[key] || key}</li>)}</ul>
+    <ul class="gi-rb-legend">{data.keys.map(key => <li key={key}><span class={['gi-rb-swatch', tone(key)].join(' ')} />{data.keyLabels?.[key] || key}</li>)}</ul>
     <ol class="gi-rb-share-rows">{data.rows.map(row => <li key={row.value}>
       <span class="gi-rb-bar-label">{row.label}</span>
       <span class="gi-rb-share-track">{row.parts.map(part => <Watch key={part.value} screen={screen} refs={part.refs} label={`${row.label}: ${part.label}`}
-        class={['gi-rb-share-part', tone(part.value)].join(' ')} style={{ flexBasis: `${part.share}%` }}>{part.share >= 12 ? `${Math.round(part.share)}%` : ''}</Watch>)}</span>
+        class={['gi-rb-share-part', tone(part.value)].join(' ')} style={{ flexBasis: `${part.share}%` }}>{part.share >= 12 ? `${part.whole}%` : ''}</Watch>)}</span>
       <small class="gi-rb-bar-n">{row.n}</small>
     </li>)}</ol>
   </div>;
@@ -172,13 +182,13 @@ function MatrixView({ screen, data }) {
     <table class="gi-rb-matrix">
       <thead><tr><th scope="col">{data.dimensionName}</th>{data.columns.map(col => <th key={col.value} scope="col">{col.label}</th>)}</tr></thead>
       <tbody>{data.rows.map(row => <tr key={row.value}><th scope="row">{row.label}</th>
-        {row.cells.map(cell => <td key={cell.value} style={{ '--rb-heat': heat(cell).toFixed(2) }} class={cell.state === 'ok' ? '' : 'is-thin'}>
-          <Watch screen={screen} refs={cell.refs} label={`${row.label} × ${cell.value}`} class="gi-rb-cell">
+        {row.cells.map(cell => <td key={cell.column} style={{ '--rb-heat': heat(cell).toFixed(2) }} class={cell.state === 'ok' ? '' : 'is-thin'}>
+          <Watch screen={screen} refs={cell.refs} label={`${row.label} × ${cell.columnLabel}`} class="gi-rb-cell">
             <span>{fmt(cell.value, cell.format)}</span><small>{cell.n}</small>
           </Watch>
         </td>)}</tr>)}</tbody>
     </table>
-    <p class="gi-rb-muted">{data.dimension2Name} across. {polarity === 'neutral' ? 'Brighter is higher.' : 'Brighter is better.'} Small numbers are plays; faded cells are small samples.</p>
+    <p class="gi-rb-muted">{polarity === 'neutral' ? 'Brighter is higher' : 'Brighter is better'}</p>
   </div>;
 }
 
@@ -296,7 +306,7 @@ export function WidgetEditor({ screen, widget, isNew, onSave, onCancel }) {
         <div class="gi-rb-field"><span>Width</span>
           <Segment label="Width" options={ReportBuilder.WIDTHS} value={draft.width} onChoose={width => set({ width })} />
         </div>
-        {view !== 'kpi' && view !== 'trend' && <label class="gi-rb-field is-narrow"><span>Rows</span>
+        {view !== 'kpi' && view !== 'trend' && <label class="gi-rb-field is-narrow"><span>Row limit</span>
           <input type="number" min="1" max="40" value={draft.limit} onChange={event => set({ limit: Math.max(1, Math.min(40, parseInt(event.currentTarget.value, 10) || 12)) })} />
         </label>}
         <label class="gi-rb-field is-narrow"><span>Small sample under</span>
@@ -322,23 +332,47 @@ export function WidgetEditor({ screen, widget, isNew, onSave, onCancel }) {
     </section>
     <footer class="gi-rb-editor-actions">
       <button type="button" onClick={onCancel}>Cancel</button>
-      <button type="button" class="is-primary" data-rb-save onClick={() => onSave(draft)}>{isNew ? 'Add widget' : 'Save widget'}</button>
+      <button type="button" class="is-primary" data-rb-save onClick={() => onSave(draft)}>{screen.isTemplate() ? 'Save as new dashboard' : isNew ? 'Add widget' : 'Save widget'}</button>
     </footer>
   </div>;
 }
 
 /* ---- The board ------------------------------------------------------------- */
 
-function EmptyLibrary({ screen }) {
-  return <section class="gi-rb-start" data-rb-start>
-    <h2>Build a dashboard</h2>
-    <p>Start from a template or a blank page. Every number opens its film.</p>
-    <div class="gi-rb-templates">{ReportBuilder.TEMPLATES.map(template => <button key={template.id} type="button" class="gi-rb-template"
-      data-rb-template={template.id} onClick={() => screen.create(template.id)}>
-      <strong>{template.name}</strong>
-      <span>{template.widgets.length ? plural(template.widgets.length, 'widget') : 'Add your own widgets'}</span>
-    </button>)}</div>
-  </section>;
+const UNIT_NAMES = Object.fromEntries(ReportBuilder.UNITS);
+const SCOPE_NAMES = Object.fromEntries(ReportBuilder.SCOPES);
+const describe = item => [UNIT_NAMES[item.unit], SCOPE_NAMES[item.scope], plural(item.widgets, 'widget')].join(' · ');
+
+function DashboardRow({ item, onOpen, onDelete, template }) {
+  return <li class={['gi-rb-home-row', UnitClass(item.unit)].join(' ')} data-rb-row={template ? `template:${item.id}` : item.id}>
+    <div class="gi-rb-home-name"><strong>{item.name}</strong><span>{describe(item)}</span></div>
+    <div class="gi-rb-home-actions">
+      <button type="button" class="is-primary" onClick={onOpen}>Open</button>
+      {onDelete && <button type="button" class="is-risk" onClick={onDelete}>Delete</button>}
+    </div>
+  </li>;
+}
+
+/** Dashboards home: the saved dashboards and the templates, always reachable. */
+function DashboardsHome({ screen, state }) {
+  return <div class="gi-rb-home" data-rb-home>
+    <header class="gi-rb-home-head">
+      <h2>Dashboards</h2>
+      <button type="button" class="is-primary" data-rb-new onClick={() => screen.createBlank()}>New dashboard</button>
+    </header>
+    <section class="gi-rb-home-section" aria-label="Saved dashboards">
+      <h3>Saved</h3>
+      {state.dashboards.length
+        ? <ol class="gi-rb-home-list">{state.dashboards.map(item => <DashboardRow key={item.id} item={item}
+            onOpen={() => screen.open(item.id)} onDelete={() => screen.remove(item.id)} />)}</ol>
+        : <p class="gi-rb-muted">No saved dashboards</p>}
+    </section>
+    <section class="gi-rb-home-section" aria-label="Templates">
+      <h3>Templates</h3>
+      <ol class="gi-rb-home-list">{state.templates.map(item => <DashboardRow key={item.id} item={item} template
+        onOpen={() => screen.openTemplate(item.id)} />)}</ol>
+    </section>
+  </div>;
 }
 
 export function NativeReportBuilder({ screen }) {
@@ -347,24 +381,23 @@ export function NativeReportBuilder({ screen }) {
   // Re-read on subscribe: a change made before this effect ran is not missed.
   useEffect(() => { const off = screen.subscribe(setState); setState(screen.snapshot()); return off; }, [screen]);
   const { dashboard, result } = state;
-  if (!dashboard) return <div class="gi-rb" data-report-builder><EmptyLibrary screen={screen} /></div>;
-  const choose = value => {
-    if (value.startsWith('template:')) screen.create(value.slice(9));
-    else screen.open(value);
-  };
+  if (!dashboard) return <div class="gi-rb" data-report-builder><DashboardsHome screen={screen} state={state} /></div>;
   return <div class={['gi-rb', UnitClass(dashboard.unit)].join(' ')} data-report-builder>
     <div class="gi-rb-toolbar">
-      <label class="gi-rb-field is-inline"><span>Dashboard</span>
-        <select value={dashboard.id} aria-label="Dashboard" onChange={event => choose(event.currentTarget.value)}>
-          <optgroup label="Saved">{state.dashboards.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</optgroup>
-          <optgroup label="New from template">{ReportBuilder.TEMPLATES.map(template => <option key={template.id} value={`template:${template.id}`}>{template.name}</option>)}</optgroup>
-        </select>
-      </label>
+      <div class="gi-rb-title">
+        <button type="button" data-rb-home-link onClick={() => screen.home()}>All dashboards</button>
+        <h2>{dashboard.name}</h2>
+        {state.isTemplate && <span class="gi-rb-tag">Template</span>}
+      </div>
       <div class="gi-rb-toolbar-actions">
         <button type="button" data-rb-export onClick={() => { screen.exportHtml(); }}>Export</button>
-        <button type="button" onClick={() => screen.rename()}>Rename</button>
-        <button type="button" onClick={() => screen.duplicate()}>Duplicate</button>
-        <button type="button" class="is-risk" onClick={() => screen.remove()}>Delete</button>
+        {state.isTemplate
+          ? <button type="button" data-rb-save-as onClick={() => screen.saveTemplateAs()}>Save as new</button>
+          : <>
+            <button type="button" onClick={() => screen.rename()}>Rename</button>
+            <button type="button" onClick={() => screen.duplicate()}>Duplicate</button>
+            <button type="button" class="is-risk" onClick={() => screen.remove()}>Delete</button>
+          </>}
         <button type="button" class="is-primary" data-rb-add-widget onClick={() => screen.editWidget()}>Add widget</button>
       </div>
     </div>
@@ -381,7 +414,7 @@ export function NativeReportBuilder({ screen }) {
       onClose={() => setPicking(false)} onApply={(dimension, values) => { screen.setFilter(dimension, values); setPicking(false); }} />}
     {result.widgets.length
       ? <div class="gi-rb-grid">{result.widgets.map((data, index) => <WidgetCard key={data.id} screen={screen} data={data} index={index} count={result.widgets.length} />)}</div>
-      : <section class="gi-rb-start"><h2>No widgets yet</h2><p>Add a widget to measure this scope.</p>
+      : <section class="gi-rb-start"><h2>No widgets yet</h2>
           <button type="button" class="is-primary" onClick={() => screen.editWidget()}>Add widget</button></section>}
   </div>;
 }

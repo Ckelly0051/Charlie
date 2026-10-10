@@ -127,6 +127,9 @@ export class ReportsScreen {
       this._renderFailure('Reports could not start. Return Home and try again.');
       return false;
     }
+    // Returning to Reports (after watching film from a dashboard, or from
+    // another route) reopens Dashboards where the coach left it.
+    if (this._mode === 'dashboards' && this.dashboards) return this.openDashboards({ resume: true });
     try {
       this._mode = 'main';
       this.perspective = 'self';
@@ -176,10 +179,18 @@ export class ReportsScreen {
     return true;
   }
 
-  /** The coach's own dashboards, a focused view with Back to reports. */
-  openDashboards() {
+  /** Back to reports: leaves Dashboards or a focused report for the tabs. */
+  backToReports() {
+    this._mode = 'main';
+    return this.show();
+  }
+
+  /** The coach's own dashboards, a focused view with Back to reports. The
+   *  Dashboards button opens their home; `resume` keeps the open dashboard. */
+  openDashboards({ resume = false } = {}) {
     if (!this.content) return false;
     this.dashboards = this.dashboards || new ReportBuilderScreen(this.app, this);
+    if (!resume) this.dashboards.home();
     this._mode = 'dashboards';
     this._setChrome(false);
     this._setSpecialLabel('Dashboards');

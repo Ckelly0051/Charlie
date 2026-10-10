@@ -301,14 +301,45 @@ export class ReportBuilder {
     return copy;
   }
 
-  /** A value as a coach reads it: 3rd, Q2, or the game's opponent. */
+  /** Stored penalty values as a coach reads them. Dashboards measure our
+   *  own games, so the subject team is ours. */
+  static VALUE_LABELS = Object.freeze({
+    penaltyTeam: { subject: 'Our team', opponent: 'Opponent', unknown: 'Unknown' },
+    penaltyRuling: { accepted: 'Accepted', declined: 'Declined', offsetting: 'Offsetting', unknown: 'Unknown' },
+    penaltyPhase: { offense: 'Offense', defense: 'Defense', special: 'Special Teams', deadBall: 'Dead ball', unknown: 'Unknown' },
+  });
+
+  /** A value as a coach reads it: 3rd, Q2, Accepted, or the game's opponent. */
   static valueLabel(dimension, value, labels = {}) {
     const text = String(value);
     if (dimension === 'game') return labels[text] || text;
     if (dimension === 'down' && /^[1-4]$/.test(text)) return ['1st', '2nd', '3rd', '4th'][Number(text) - 1];
     if (dimension === 'quarter' && /^[1-4]$/.test(text)) return `Q${text}`;
+    const named = ReportBuilder.VALUE_LABELS[dimension]?.[text];
+    if (named) return named;
+    // Special Teams outcomes are stored as ids (fairCatch); read them as words.
+    if (dimension === 'specialTeamsOutcome' && /^[a-z]+[A-Z]/.test(text)) {
+      const words = text.replace(/([A-Z])/g, ' $1').toLowerCase();
+      return words.charAt(0).toUpperCase() + words.slice(1);
+    }
     return text;
   }
+
+  /** Whole-number shares that total 100 (largest remainder), for labels. */
+  static wholeShares(shares) {
+    const total = shares.reduce((sum, share) => sum + share, 0);
+    if (!total) return shares.map(() => 0);
+    const exact = shares.map(share => share / total * 100);
+    const whole = exact.map(Math.floor);
+    let left = 100 - whole.reduce((sum, value) => sum + value, 0);
+    exact.map((value, index) => [value - whole[index], index]).sort((a, b) => b[0] - a[0])
+      .forEach(([, index]) => { if (left > 0) { whole[index] += 1; left -= 1; } });
+    return whole;
+  }
+
+  /** A share chart shows four split values; the rest read as Other. */
+  static SHARE_KEYS = 4;
+  static OTHER = '__other';
 
   // ---- Measuring -----------------------------------------------------------
 
@@ -407,13 +438,24 @@ export class ReportBuilder {
       // the plays that hold a split value (a play neither run nor pass is not
       // a gap in the bar); `n` is that count.
       const keyGroups = this.groups(cohort, widget.split, labels);
-      const keys = keyGroups.map(group => group.value);
-      const keyLabels = Object.fromEntries(keyGroups.map(group => [group.value, group.label]));
+      const folded = keyGroups.length > ReportBuilder.SHARE_KEYS + 1;
+      const shown = folded ? keyGroups.slice(0, ReportBuilder.SHARE_KEYS) : keyGroups;
+      const keys = [...shown.map(group => group.value), ...(folded ? [ReportBuilder.OTHER] : [])];
+      const keyLabels = { ...Object.fromEntries(shown.map(group => [group.value, group.label])), ...(folded ? { [ReportBuilder.OTHER]: 'Other' } : {}) };
       const rows = groups.map(group => {
-        const parts = this.groups(group.plays, widget.split, labels).sort((a, b) => keys.indexOf(a.value) - keys.indexOf(b.value));
+        const parts = [];
+        for (const part of this.groups(group.plays, widget.split, labels)) {
+          const key = keys.includes(part.value) ? part.value : ReportBuilder.OTHER;
+          const existing = parts.find(item => item.value === key);
+          if (existing) existing.plays = [...existing.plays, ...part.plays];
+          else parts.push({ value: key, label: keyLabels[key], plays: part.plays });
+        }
+        parts.sort((a, b) => keys.indexOf(a.value) - keys.indexOf(b.value));
         const total = parts.reduce((sum, part) => sum + part.plays.length, 0);
+        const whole = ReportBuilder.wholeShares(parts.map(part => part.plays.length));
         return { value: group.value, label: group.label, n: total, refs: this._refs(group.plays),
-          parts: parts.map(part => ({ value: part.value, label: part.label, n: part.plays.length, share: total ? +(part.plays.length / total * 100).toFixed(1) : 0, refs: this._refs(part.plays) })) };
+          parts: parts.map((part, index) => ({ value: part.value, label: part.label, n: part.plays.length,
+            share: total ? +(part.plays.length / total * 100).toFixed(1) : 0, whole: whole[index], refs: this._refs(part.plays) })) };
       }).filter(row => row.n);
       return { ...head, rows, keys, keyLabels, dimensionName: this.dimensionName(widget.dimension), splitName: this.dimensionName(widget.split) };
     }
@@ -426,7 +468,7 @@ export class ReportBuilder {
       const rows = rowGroups.map(group => {
         const byCol = new Map(this.groups(group.plays, widget.dimension2, labels).map(col => [col.value, col.plays]));
         return { value: group.value, label: group.label,
-          cells: colGroups.map(col => ({ value: col.value, ...this.measure(widget.metric, byCol.get(col.value) || [], options) })) };
+          cells: colGroups.map(col => ({ ...this.measure(widget.metric, byCol.get(col.value) || [], options), column: col.value, columnLabel: col.label })) };
       });
       return { ...head, metricName, rows, columns: colGroups.map(col => ({ value: col.value, label: col.label })),
         dimensionName: this.dimensionName(widget.dimension), dimension2Name: this.dimensionName(widget.dimension2) };
