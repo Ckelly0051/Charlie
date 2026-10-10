@@ -124,12 +124,17 @@ proving no change. The split is part of the reports rebuild
   `c28e7e26`; the comp now renders without its film frame. The comp is not a
   registered canonical artifact. Not fixed.
 
+## Coach decisions to build (next batch)
+
+- **Special Teams accent is teal** (coach, 2026-10-10): the chart teal
+  (`--gi-cat-6`), beside Offense gold and Defense cyan wherever the units
+  carry their accent (Reports, unit controls). White and black stay for
+  neutral selections. Check it reads apart from Defense cyan side by side.
+
 ## Coach decisions pending
 
 - **Focus ring color.** `--gi-focus` resolves to blue (`--gi-9`) app-wide;
   neutralizing it is an app-wide palette change.
-- **Special Teams accent.** Special Teams Reports use the neutral line, not an
-  accent like Offense gold or Defense cyan.
 - **`Option` in fixed report schemas.** It is absent from Overview's approved six
   play-type categories and the Defense dashboard's seven.
 - **Home rail at 1280x800.** Two rail panes, tools and footer do not all fit;

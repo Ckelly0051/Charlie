@@ -73,4 +73,29 @@ rapid scrubbing and the renamed HTML export.
 
 ## Coach Findings
 
-None recorded yet.
+1. **Dashboards start page is lost after the first choice** (coach,
+   2026-10-10). Reports > Dashboards opens a start page of templates; after
+   the first pick there is no way back to it, and the only way to change
+   dashboards is the dropdown. The start page should stay reachable as the
+   Dashboards home page for creating dashboards. Logged; no fix started.
+2. **Dashboards need a saved inventory to pick from** (coach, 2026-10-10).
+   Built and saved dashboards should be kept in an inventory, chosen from a
+   menu similar to game selection on Home. Today each dashboard is already
+   saved with the season (with Rename, Duplicate and Delete), but it is
+   reached only through the head dropdown; there is no inventory view.
+   Likely one surface with finding 1 (the Dashboards home). Logged; no fix
+   started.
+3. **Editing a template must save as a new dashboard** (coach, 2026-10-10).
+   A built-in template stays unchanged; an edit to it is forced to save as a
+   new dashboard, so a coach learning the tool cannot break a template and
+   not know how to rebuild it. Today choosing a template makes a saved copy
+   named after the template, and edits change that copy at once; the
+   built-in definition itself is never changed, but nothing shows the
+   difference and the copy reads as the template. Logged; no fix started.
+4. **Segmented control borders bleed** (coach, 2026-10-10, screenshot).
+   Dashboards head, scope (This game / Last 3 games / Season) and unit
+   (Offense / Defense / Special Teams / All units) controls: the selected
+   segment's gold border meets the grey borders of its neighbors (Season
+   beside Last 3 games, Offense beside Defense), so the line colors run
+   together at the shared edges instead of one clean selected outline.
+   Logged; no fix started.
