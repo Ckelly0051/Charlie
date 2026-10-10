@@ -151,8 +151,9 @@ change and would bury the feature in a very large diff.
   and field position, carried quarter and drive, carried unit, Carry
   formation) never trigger it. The Save button (saves, stays on the play) and
   the leave prompt on Previous already exist.
-- **Dashboards button in coral** (a new color used only for it, about
-  #e0703f with dark text), replacing the accent blue.
+- **Dashboards button in violet** (a new color used only for it, about
+  #7f5af0 with white text), replacing the accent blue. Coral was too close
+  to the warning orange and offense gold.
 - Decided, already built: the Defense board's player lines count turnover
   tackles; a Fake punt or field goal charts Play & Result; Use Play is the
   play-call confirmation and replaces only the fields the call has defaults
