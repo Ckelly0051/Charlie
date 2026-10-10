@@ -150,6 +150,9 @@ const r = await page.evaluate(async ({ CURRENT, MESSAGE, RESTORE }) => {
   app.tagger.applyTemplate('Old tpl');
   const t = app.tagger.getCurrentPlay().tags;
   out.template = { stType: 'stType' in t, kickOutcome: 'kickOutcome' in t, formationKey: 'formation' in t, family: t.formationFamily, qb: t.qbAlignment, playType: t.playType, before };
+  // The template filled the open play's draft; the season switches below would
+  // ask Stay / Discard / Save (GRIDIRON-IQ-SAVE-CONTRACT.md).
+  app.tagger.discardDraft();
 
   app.tagger.toast = origToast; app.settingsScreen._toast = origSettingsToast;
   return out;

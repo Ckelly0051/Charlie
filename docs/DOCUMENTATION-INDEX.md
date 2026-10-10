@@ -49,9 +49,11 @@ log.
   PASS (2026-10-09). Installed smoke acceptance is separate from the gate
   receipt's historical `installedApproval: not-assessed` and does not move the
   design approval registry. No push, tag or publication authorized here.
-- **Built since 113, not packaged (2026-10-10):** Chart's draft and Save
-  (`GRIDIRON-IQ-SAVE-CONTRACT.md`) and Dashboards (`docs/REPORTS-CONTRACTS.md`
-  > Dashboards). Codex review, full gate and installer pending; focused
+- **Built since 113, not packaged (2026-10-10):** Chart's draft and Save,
+  unit changes as saves with a charted-data prompt, tacklers on a change of
+  possession (`GRIDIRON-IQ-SAVE-CONTRACT.md`), Dashboards rev 1 and Study's
+  defensive grouping (`docs/REPORTS-CONTRACTS.md`), with Codex's first review
+  findings fixed. Codex re-review, full gate and installer pending; focused
   harnesses green.
 - **Latest full gate:** GREEN, 156/156 at `d1b553ba` (2026-10-08), no skips or
   failures. Release evidence eligible; installed approval not assessed. Covers

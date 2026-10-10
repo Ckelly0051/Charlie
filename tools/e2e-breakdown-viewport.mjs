@@ -47,6 +47,10 @@ const isBlueish = s => { const [r, g, b] = parse(s); return b - r >= 8 && b - g 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 page.setDefaultTimeout(9000);
+// Measuring each unit switches a charted play's unit, which asks first when it
+// would remove charted values (GRIDIRON-IQ-SAVE-CONTRACT.md); the answer here
+// is always Change unit.
+await page.evaluateOnNewDocument(() => { new MutationObserver(() => { const ok = [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === 'Change unit'); if (ok) ok.click(); }).observe(document, { childList: true, subtree: true }); });
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

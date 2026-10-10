@@ -266,10 +266,9 @@ export class NativeTaggingScreen {
   setCustomField(id,value) { this.app.customFields?._write?.(id,value); this._queuePublish(); }
   openCustomFields() { return this.app.customFields?.openManager?.({ overlays: this.app.overlays, onSaved: () => { this._queuePublish(); this.app.overlays?.toast?.({ message: 'Custom fields saved', tone: 'success' }); } }); }
   openLibrary(group) { this.app.tagLibrarySettings?.open?.(group); }
-  previous() { this.app.notes?.flush?.(); this.tagger.prevPlay(); this.app._autoPlayCurrent?.(); }
+  previous() { this.tagger.prevPlay(); this.app._autoPlayCurrent?.(); }
   /** Save the open play and stay on it. */
   save() {
-    this.app.notes?.flush?.();
     if (!this.tagger?.saveDraft?.()) return false;
     this._saveConfirmed = true;
     clearTimeout(this._saveTimer);
@@ -325,11 +324,15 @@ export class NativeTaggingScreen {
    *  the same write the Film Room Unit column makes (coach, 2026-09-24: either
    *  view, equally weighted, last write wins). */
   setUnit(value) {
-    if (!this.tagger?.setChartingUnit?.(value)) return false;
-    this.activeRole = this.app.roster?.activeRole || this.activeRole;
-    this._derivePerspective(value);
-    this._queuePublish();
-    return true;
+    const after = ok => {
+      if (!ok) { this._queuePublish(); return false; }
+      this.activeRole = this.app.roster?.activeRole || this.activeRole;
+      this._derivePerspective(value);
+      this._queuePublish();
+      return true;
+    };
+    const done = this.tagger?.setChartingUnit?.(value);
+    return done && typeof done.then === 'function' ? done.then(after) : after(done);
   }
 
   /**

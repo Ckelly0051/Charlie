@@ -129,6 +129,8 @@ for (const unit of ['offense','defense','kickoffReturn','punt']) {
     play.tags.unit = ['offense','defense'].includes(unit) ? unit : 'special';
     if (play.tags.unit === 'special') play.specialTeams = {unit,outcome:{status:'returned'}};
     else delete play.specialTeams;
+    // Chart opens the stored play fresh: the open draft predates this write.
+    app.tagger.discardDraft();
     app.tagger.selectPlay(play.id);
   }, unit);
   for (const width of [1920,1440,1280,768,390]) {

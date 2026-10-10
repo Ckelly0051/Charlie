@@ -15,39 +15,36 @@ Installed smoke does not change the design approval registry.
 ## Built, not yet packaged
 
 - **Chart saves only what a play shows** (coach, 2026-10-10;
-  `GRIDIRON-IQ-SAVE-CONTRACT.md`). Chart edits a draft; Save (new button, Save
-  & Next) stores exactly what Chart shows; a unit, Special Teams unit or try
-  attempt change never asks and is undone by switching back before Save;
-  leaving a play with unsaved changes asks Stay / Discard / Save, including
-  closing the window; the unsaved draft is saved with its game for recovery.
-  Film Room locks what a play cannot show and settles each edit. An offensive
-  snap ending in an interception or lost fumble opens Tackler(s). Players and
-  the Defense board credit the same tackles: the canonical 2025 JV mismatch
-  (#5 41 vs 40, #7 22 vs 21, #82 8 vs 7) is gone. Existing hidden values are
-  the coach's to re-chart: `docs/HIDDEN-VALUES-LIST.md` (50 plays). Smoke:
-  chart a defensive play with a tackler, switch to Offense and back, then
-  Offense and Save; click another play with unsaved changes; close the window
-  with unsaved changes; reopen after Discard.
-
-- **Dashboards** (coach, 2026-10-10: self-serve reporting; built overnight
-  without a comp, so its composition awaits the coach's review). Reports >
+  `GRIDIRON-IQ-SAVE-CONTRACT.md`). Chart edits a draft; Save (new button,
+  stays on the play) and Save & Next store exactly what Chart shows. A unit,
+  Special Teams unit or try attempt change is a save that asks first only when
+  it would remove values the coach charted (app-filled and already-hidden
+  values never ask). Leaving a play with unsaved changes asks Stay / Discard /
+  Save: another play, Previous, Next or Previous clip, game or season, a Film
+  Room edit of it, closing the window; a typed note counts from its first
+  keystroke. The unsaved draft is saved with its game for recovery. Film Room
+  locks what a play cannot show and settles each edit. An offensive turnover
+  shows our Tackler(s) and missed tacklers on the return; any turnover or
+  takeaway shows Opponent Tackler(s). Players, the Defense board and Study's
+  Tackler role credit the same tackles: the canonical 2025 JV mismatch (#5 41
+  vs 40, #7 22 vs 21, #82 8 vs 7) is gone. Existing hidden values are the
+  coach's to re-chart: `docs/HIDDEN-VALUES-LIST.md` (50 plays). Smoke: switch
+  a charted defensive play to Offense (asks; Cancel keeps it), then a play
+  holding only Save & Next values (no prompt); type a note and click another
+  play at once; Next clip with unsaved changes; chart an offensive
+  interception with our tackler, our missed tackler and their tackler; close
+  the window with unsaved changes; reopen after Discard.
+- **Dashboards** (coach, 2026-10-10: self-serve reporting; built without a
+  comp, so its composition awaits the coach's review; the button is violet). Reports >
   Dashboards: templates, Number / Bar / Share / Game by game / Heat map /
   Table / Leaders widgets, scope, unit and filters, every value film-linked,
-  saved with the season. Smoke: open each template on the real season, add a
+  saved with the season. Run % and Pass % read the dashboard's own unit;
+  penalty groups count only their own records. Study now groups defensive
+  plays by the offense they faced. Smoke: open each template on the real season, add a
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
 
 ## Open defects
-
-- **Study groups defensive plays into empty offense-look groups.** Study
-  groups through the report cut filters (`StudyQuery._groupPlays` ->
-  `StatsEngine._buildCutFilter`), which are unit-gated: an offense look (down,
-  formation, play type, run/pass, hash) matches only offensive snaps and a
-  defense look only defensive ones. On the canonical season, Study over the
-  174 defensive plays lists every down, formation and play type with 0 plays.
-  Found 2026-10-10 building Dashboards (which group by registry value
-  instead). Fixing it changes Study's report-cut parity contract
-  (`e2e-study-query`); not changed.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
@@ -123,41 +120,10 @@ change and would bury the feature in a very large diff.
 
 ## Stale references found in passing
 
-- Left by the 2026-10-10 save change (fix in the batch):
-  `GRIDIRON-IQ-SAVE-CONTRACT.md` §2 says the recovery copy is in browser
-  storage (`giq_chart_draft`); it is the game's `chartDraft`.
-  `tools/e2e-st-try-charting.mjs:11` says switching to Kick XP asks, then
-  clears; it no longer asks. `js/play-tagger.js` `clearCurrentTags` doc says
-  it clears the on-screen form and stored tags; it clears the open draft.
-  `js/notes-manager.js` `setNotes` doc says it keeps the canonical play
-  current; it writes the open draft.
 - `design-comps/breakdown-visual-finish-2026-09-28/index.html` loads
   `../../ux-prototype/assets/all22-frame.png`, deleted with `ux-prototype/` in
   `c28e7e26`; the comp now renders without its film frame. The comp is not a
   registered canonical artifact. Not fixed.
-
-## Coach decisions to build (2026-10-10, with the Codex review batch)
-
-- **Missed tackles after a turnover**: an offensive snap ending in a turnover
-  also names our missed tacklers (as on defense).
-- **Both teams' tacklers after a takeaway**: a play can hold our tackler(s)
-  and the opponent's (e.g. our defender strip-sacks, their QB tackles him), so
-  a turnover play gets a box for ours and one for theirs.
-- **Study's Tackler role** includes kick coverage and offensive turnover
-  tackles, like Players.
-- **Switching units saves the play** (replaces the draft-only unit switch).
-  When the switch would clear values the coach charted, an in-app prompt asks
-  first (Cancel default); values the app filled in (Auto D&D down, distance
-  and field position, carried quarter and drive, carried unit, Carry
-  formation) never trigger it. The Save button (saves, stays on the play) and
-  the leave prompt on Previous already exist.
-- **Dashboards button in violet** (a new color used only for it, about
-  #7f5af0 with white text), replacing the accent blue. Coral was too close
-  to the warning orange and offense gold.
-- Decided, already built: the Defense board's player lines count turnover
-  tackles; a Fake punt or field goal charts Play & Result; Use Play is the
-  play-call confirmation and replaces only the fields the call has defaults
-  for (current behavior, no prompt).
 
 ## Coach decisions pending
 

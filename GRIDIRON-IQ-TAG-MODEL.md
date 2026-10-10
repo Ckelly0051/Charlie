@@ -99,7 +99,8 @@ offered):
 
 Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); owner `js/missed-tackles.js`.
 
-- **Our misses** (defense, kick coverage, Defending a Try run/pass or Fake):
+- **Our misses** (defense, kick coverage, Defending a Try run/pass or Fake,
+  and an offensive snap ending in our turnover, for the tackle on the return):
   `players.missedTackler`, our players who missed, comma-separated jersey
   numbers like Tackler(s) ("2, 3"), picked from the roster. Each player named
   is one missed tackle, like a tackle; the play's misses are the players named
@@ -117,9 +118,16 @@ Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); owner `js/missed
   | Offense | Receiver | Count | tackles the defense missed on our ball carrier |
   | Kickoff, Punt | Tackler(s) | players | tackles our coverage missed |
   | Kick Return, Punt Return | Returner | Count | tackles the coverage missed on our returner |
+  | Offense, our turnover | Tackler(s) | players (Our Missed Tackles) | tackles our offense missed on the return, beside the opponent's Count |
 
   Film Room's MTkl column edits the Count on the opponent's snaps and shows the
   players named, read-only, on ours.
+- **Tackles on a change of possession** (coach, 2026-10-10): an offensive snap
+  ending in our turnover shows Tackler(s) for our tackle on the return, and any
+  turnover or defensive takeaway also shows **Opponent Tackler(s)**
+  (`players.opponentTackler`, their numbers, no roster, no grade, credited to
+  no one of ours), because both teams can tackle on one play. `PlayShape` owns
+  when each row shows (`GRIDIRON-IQ-SAVE-CONTRACT.md` §1).
 
   Field Goal, FG Block and kicked tries have no row; a run/pass or Fake try
   uses its scrimmage side's row. Missed tackles is the one Special Teams

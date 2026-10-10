@@ -34,18 +34,24 @@ try {
     const tags = extra => ({ players: {}, grades: {}, custom: [], customFields: {}, fieldSide: 'own', yardLine: '30', ...extra });
     const off = (id, down, distance, runPass, yardage, result, formationFamily) =>
       ({ id, timestamp: { start: id, end: id + 4 }, notes: '', annotations: [], tags: tags({ unit: 'offense', down, distance, runPass, yardage, result, formationFamily, playType: runPass === 'Run' ? 'Run Inside' : 'Short Pass' }) });
-    const def = (id, down, yardage, coverage, formationFamily, tackler) =>
-      ({ id, timestamp: { start: id, end: id + 4 }, notes: '', annotations: [], tags: tags({ unit: 'defense', down, distance: '10', runPass: 'Run', playType: 'Run Inside', yardage, result: Number(yardage) < 0 ? 'Loss' : 'Gain', coverage, defFront: '4-3', formationFamily, players: { tackler } }) });
+    const def = (id, down, yardage, coverage, formationFamily, tackler, runPass = 'Run') =>
+      ({ id, timestamp: { start: id, end: id + 4 }, notes: '', annotations: [], tags: tags({ unit: 'defense', down, distance: '10', runPass, playType: runPass === 'Run' ? 'Run Inside' : 'Short Pass', yardage, result: Number(yardage) < 0 ? 'Loss' : 'Gain', coverage, defFront: '4-3', formationFamily, players: { tackler } }) });
     first.plays = [
       off(1, '1', '10', 'Run', '6', 'Gain', 'Spread'), off(2, '2', '4', 'Pass', '5', 'Gain', 'Spread'), off(3, '1', '10', 'Run', '2', 'Gain', 'I-Form'),
       off(4, '2', '8', 'Pass', '0', 'Incomplete', 'Spread'), off(5, '3', '8', 'Run', '9', 'Gain', 'I-Form'), off(6, '3', '3', 'Pass', '20', 'Gain', 'Spread'),
-      def(7, '1', '3', 'Cover 3', 'Trips', '5'), def(8, '2', '-2', 'Cover 1', 'Trips', '5'), def(9, '3', '12', 'Cover 3', 'Pro', '9'),
+      def(7, '1', '3', 'Cover 3', 'Trips', '5'), def(8, '2', '-2', 'Cover 1', 'Trips', '5'), def(9, '3', '12', 'Cover 3', 'Pro', '9', 'Pass'),
       // Neither run nor pass (a share is of the plays that hold a split value),
       // and one with no distance (outside Success Rate's eligible plays).
       { id: 10, timestamp: { start: 10, end: 14 }, notes: '', annotations: [], tags: tags({ unit: 'offense', down: '1', distance: '10', runPass: '', playType: '', yardage: '', result: 'Penalty', formationFamily: 'Spread' }) },
       { id: 11, timestamp: { start: 11, end: 15 }, notes: '', annotations: [], tags: tags({ unit: 'offense', down: '2', distance: '', runPass: 'Run', playType: 'Run Inside', yardage: '3', result: 'Gain', formationFamily: 'I-Form' }) },
+      // Two fouls on one snap: each foul's group measures only its own record.
+      { id: 12, timestamp: { start: 12, end: 16 }, notes: '', annotations: [], tags: tags({ unit: 'offense', down: '1', distance: '10', runPass: '', playType: '', yardage: '', result: 'Penalty', formationFamily: 'Spread' }),
+        penalties: [
+          { team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 10, playCounts: false, player: '', automaticFirstDown: false, lossOfDown: false, notes: '', legacy: false },
+          { team: 'subject', phase: 'offense', foul: 'Unsportsmanlike', disposition: 'accepted', yards: 15, playCounts: false, player: '', automaticFirstDown: false, lossOfDown: false, notes: '', legacy: false },
+        ] },
     ];
-    first.nextId = 12;
+    first.nextId = 13;
     second.plays = [
       off(1, '1', '10', 'Run', '4', 'Gain', 'Spread'), off(2, '2', '6', 'Run', '7', 'Gain', 'I-Form'), off(3, '1', '10', 'Pass', '15', 'Gain', 'Spread'),
       off(4, '3', '2', 'Run', '1', 'Gain', 'I-Form'), def(5, '1', '1', 'Cover 3', 'Trips', '5'),
@@ -77,6 +83,11 @@ try {
     const board = app.stats.playersBoard(dPlays).players.find(p => p.num === '5');
     const game = b.scopePlays({ ...offense, scope: 'game' }, ctx).length;
     const filtered = b.scopePlays({ ...offense, filters: [{ dimension: 'down', values: ['3'] }] }, ctx).length;
+    const defShare = ['runShare', 'passShare'].map(id => b.measure(id, dPlays, { unit: 'defense' }));
+    const turnovers = b.measure('turnovers', dPlays, { unit: 'defense' });
+    const fouls = b.evaluate(b.constructor.normalizeWidget({ view: 'table', dimension: 'penaltyFoul', metrics: ['penaltiesUs', 'penaltyYardsUs'] }), plays, { ...ctx, unit: 'offense' })
+      .rows.map(r => [r.label, r.cells.map(c => c.value), r.cells[0].refs]);
+    const catalog = b.dimensionCatalog().flatMap(section => section.items.map(item => item.id));
     const kpi = b.evaluate(b.constructor.normalizeWidget({ view: 'kpi', metric: 'success' }), b.scopePlays({ ...offense, scope: 'game' }, ctx), { ...ctx, unit: 'offense', baselinePlays: plays, baselineLabel: 'Season' });
     return {
       total: plays.length, game, filtered,
@@ -86,9 +97,11 @@ try {
       trend: trend.rows.map(r => [r.label, r.value]),
       faced: faced.rows.map(r => [r.label, r.n]), leaders: leaders.rows.map(r => [r.label, r.metric]), board5: board?.roles.find(r => r.key === 'tackles')?.stats?.tkl?.n,
       kpi: { value: kpi.current.value, baseline: kpi.baseline?.value },
+      defShare: defShare.map(m => [m.value, m.n, m.state]), turnovers: [turnovers.state, turnovers.reason], fouls,
+      catalog: ['motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun', 'missedTackles', 'penaltyRuling'].filter(id => !catalog.includes(id)),
     };
   });
-  ok(model.total === 12 && model.game === 8 && model.filtered === 3, 'scope and filters: 12 offensive plays this season, 8 this game, 3 on 3rd down', model);
+  ok(model.total === 13 && model.game === 9 && model.filtered === 3, 'scope and filters: 13 offensive plays this season, 9 this game, 3 on 3rd down', model);
   ok(JSON.stringify(model.bar.map(r => [r[1], r[2]])) === JSON.stringify(model.direct.map(r => [r[0], r[1]])),
     'Success Rate by down equals AnalyticsMetrics on each down\'s plays', { bar: model.bar, direct: model.direct });
   ok(JSON.stringify(model.barRefs) === JSON.stringify(model.direct.map(r => r[2])), 'each bar opens exactly its metric\'s film refs', model.barRefs);
@@ -100,6 +113,13 @@ try {
     'a defense dashboard groups by the offense it faced (report cut filters are offense-only)', model.faced);
   ok(model.leaders[0]?.[1] === model.board5 && model.leaders[0][0].startsWith('#5'), 'tackle leaders equal Players for the same plays', { leaders: model.leaders, board: model.board5 });
   ok(model.kpi.value != null && model.kpi.baseline != null, 'a This game number carries the season baseline', model.kpi);
+  ok(JSON.stringify(model.defShare) === JSON.stringify([[75, 4, 'ok'], [25, 4, 'ok']]),
+    'a defense dashboard\'s Run % and Pass % read its own snaps: 3 runs and 1 pass faced', model.defShare);
+  ok(model.turnovers[0] === 'unavailable' && model.turnovers[1] === 'Offense only', 'an offense-only measure on a defense dashboard reads Offense only, never zero', model.turnovers);
+  ok(JSON.stringify(model.fouls.map(([label, values]) => [label, values])) === JSON.stringify([['Holding', [1, 10]], ['Unsportsmanlike', [1, 15]]])
+    && model.fouls.every(([, , refs]) => refs.join() === model.fouls[0][2].join() && refs.length === 1),
+    'a penalty group counts only its own foul: Holding 1 for 10 yards, Unsportsmanlike 1 for 15, each opening the one play', model.fouls);
+  ok(!model.catalog.length, 'motion path, RPO, QB run, missed tackles and penalty ruling are groupings', model.catalog);
 
   console.log('\n== Building a dashboard ==');
   let ui = await page.evaluate(() => ({

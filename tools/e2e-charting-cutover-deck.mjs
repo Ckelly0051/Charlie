@@ -394,7 +394,12 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
 {
   await P.select(1);
   await page.evaluate(() => { window.app.tagger.getCurrentPlay().tags.formationFamily = 'Spread'; window.app.tagger.getCurrentPlay().tags.receiverSet = '3x1'; });
-  await page.evaluate(() => { window.app.nativeTagging.setUnit('special'); window.app.nativeTagging.save(); }); await settle();
+  await page.evaluate(async () => {
+    const change = window.app.nativeTagging.setUnit('special');
+    await new Promise(r => setTimeout(r, 30));
+    [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === 'Change unit')?.click();
+    await change;
+  }); await settle();
   const t = await page.evaluate(() => JSON.parse(JSON.stringify(window.app.tagger.getPlay(1).tags)));
   ok(t.formationFamily === '' && t.receiverSet === '' && !t.receiverLook && !t.strength, 'a Special Teams play saves with no offensive look fields', JSON.stringify(t));
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();

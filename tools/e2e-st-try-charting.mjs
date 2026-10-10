@@ -8,7 +8,8 @@
  *   - Run/Pass and Fake show the offensive options of an offensive snap (Try) or
  *     the defensive options of a defensive snap (Defending a Try), and the look
  *     is kept rather than stripped; Film Room locks none of its cells.
- *   - Switching back to Kick XP asks, then clears the run/pass detail.
+ *   - Switching back to Kick XP asks first, then saves the kicked try without
+ *     the run/pass detail.
  * The analytics exclusion is pinned in e2e-b2-tries.
  * Run:  node tools/e2e-st-try-charting.mjs
  */
@@ -108,18 +109,30 @@ v = await view();
 ok(v.st.attemptType === 'twoPoint' && v.st.isFake === true && v.active.join() === 'Fake', 'Fake is a run/pass try marked fake', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake, active: v.active }));
 ok(v.groups.includes('Play & Result') && v.tags.formationFamily === 'Spread', 'a Fake keeps the offensive options and the look', JSON.stringify({ groups: v.groups, f: v.tags.formationFamily }));
 
-console.log('\n== 4. Back to Kick XP: no prompt; Save keeps what a kicked try shows ==');
+console.log('\n== 4. Back to Kick XP asks before removing the run/pass detail ==');
+const dialog = () => page.evaluate(() => ({
+  buttons: [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].map(b => b.textContent.trim()),
+  message: document.querySelector('.gi-overlay-layer.is-modal .gi-overlay-body > p')?.textContent || '' }));
+const answer = label => page.evaluate(label => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === label)?.click(), label);
 await choose('Attempt', 'Kick XP');
-const asked = await page.evaluate(() => !!document.querySelector('.gi-overlay-layer.is-modal'));
+let asked = await dialog();
+ok(asked.buttons.join() === 'Cancel,Change attempt' && /Formation \(Spread\)/.test(asked.message) && /Ball Carrier \(22\)/.test(asked.message),
+  'Kick XP asks first and names the charted run/pass detail it removes', JSON.stringify(asked));
+await answer('Cancel'); await settle(page);
 v = await view();
-ok(!asked && v.st.attemptType === 'extraPoint' && !v.st.isFake, 'Kick XP applies at once, with no confirmation', JSON.stringify({ asked, a: v.st.attemptType, f: v.st.isFake }));
+ok(v.st.attemptType === 'twoPoint' && v.tags.formationFamily === 'Spread' && v.tags.players.ballCarrier === '22', 'Cancel keeps the run/pass try as charted', JSON.stringify({ a: v.st.attemptType, f: v.tags.formationFamily }));
+await choose('Attempt', 'Kick XP');
+await answer('Change attempt'); await settle(page);
+v = await view();
+const kicked = await page.evaluate(() => { const p = window.app.tagger.getPlay(1); return { f: p.tags.formationFamily, rp: p.tags.runPass, bc: p.tags.players?.ballCarrier || '', a: p.specialTeams.attemptType, dirty: window.app.tagger.hasUnsavedChanges() }; });
+ok(kicked.a === 'extraPoint' && !kicked.f && !kicked.rp && !kicked.bc && !kicked.dirty, 'Change attempt saves a kicked try without the look, run/pass or ball carrier', JSON.stringify(kicked));
 ok(v.roles.join('|') === 'Kicker' && !v.groups.includes('Play & Result'), 'the roles return to Kicker only and the run/pass options hide', JSON.stringify({ roles: v.roles, groups: v.groups }));
-await choose('Attempt', 'Run/Pass');
-v = await view();
-ok(v.tags.formationFamily === 'Spread' && v.tags.players.ballCarrier === '22', 'switching back before saving brings the run/pass detail back as charted', JSON.stringify({ f: v.tags.formationFamily, bc: v.tags.players.ballCarrier }));
-await choose('Attempt', 'Kick XP');
-const kicked = await page.evaluate(() => { window.app.tagger.saveDraft(); const p = window.app.tagger.getPlay(1); return { f: p.tags.formationFamily, rp: p.tags.runPass, bc: p.tags.players?.ballCarrier || '', a: p.specialTeams.attemptType }; });
-ok(kicked.a === 'extraPoint' && !kicked.f && !kicked.rp && !kicked.bc, 'Save stores a kicked try without the look, run/pass or ball carrier', JSON.stringify(kicked));
+// The rest of this file charts across attempts and units; the coach's answer to
+// those prompts is to change (the prompt itself is proven above).
+await page.evaluate(() => new MutationObserver(() => {
+  const ok = [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => ['Change attempt', 'Change unit'].includes(b.textContent.trim()));
+  if (ok) ok.click();
+}).observe(document.body, { childList: true, subtree: true }));
 
 console.log('\n== 5. Defending a Try ==');
 await page.evaluate(() => { window.app.tagger.saveDraft(); window.app.tagger.selectPlay(2); }); await settle(page);
@@ -164,18 +177,19 @@ const saveOnLeave = async id => {
   await settle(page); await settle(page);
   return asked;
 };
-let askedFor = await saveOnLeave(4);
+// An attempt change is itself a save, so play 3 leaves with nothing unsaved.
+let askedFor = (await saveOnLeave(4)) === '';
 await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await chip('formationFamily', 'Wing-T');
-askedFor = (await saveOnLeave(3)) === 'Stay,Discard,Save' && askedFor === 'Stay,Discard,Save';
+askedFor = askedFor && (await saveOnLeave(3)) === 'Stay,Discard,Save';
 await chip('formationFamily', 'Spread'); await chip('runPass', 'Pass');
 await choose('Attempt', 'Kick XP');
-askedFor = askedFor && (await saveOnLeave(4)) === 'Stay,Discard,Save';
+askedFor = askedFor && (await saveOnLeave(4)) === '';
 const both = await page.evaluate(() => {
   const p = id => window.app.tagger.getPlay(id);
   const pick = x => ({ attempt: x.specialTeams?.attemptType, formationFamily: x.tags.formationFamily, runPass: x.tags.runPass });
   return { three: pick(p(3)), four: pick(p(4)) };
 });
-ok(askedFor, 'leaving each play with unsaved changes asks Stay, Discard or Save', String(askedFor));
+ok(askedFor, 'leaving a play with unsaved changes asks Stay, Discard or Save; a play just saved by an attempt change leaves without asking', String(askedFor));
 ok(both.three.attempt === 'extraPoint' && !both.three.formationFamily && !both.three.runPass, 'play 3 saves as Kick XP without its run/pass detail', JSON.stringify(both.three));
 ok(both.four.attempt === 'twoPoint' && both.four.formationFamily === 'Wing-T', 'play 4 keeps its own Run/Pass try and look', JSON.stringify(both.four));
 

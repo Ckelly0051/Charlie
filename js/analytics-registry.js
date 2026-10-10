@@ -9,6 +9,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { MissedTackles } from './missed-tackles.js';
 import { PenaltyModel } from './penalty-model.js';
 import { countedUnit, driveLabel, drivePossessionSide, driveNumberOf } from './football-rules.js';
+import { PlayShape } from './play-shape.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -38,6 +39,7 @@ export class AnalyticsRegistry {
     const SE = this._SE;
     const tag = key => (p) => this._one(p?.tags?.[key]);
     const special = p => SpecialTeamsModel.normalize(p?.specialTeams);
+    const isTry = p => ['try', 'tryDefense'].includes(special(p)?.unit);
     const penalties = p => PenaltyModel.normalizeList(p?.penalties);
     const context = key => (_p, ctx) => this._one(ctx?.[key]);
     const pairs = (obj, split = false) => Object.entries(obj || {}).flatMap(([role, value]) => {
@@ -150,15 +152,18 @@ export class AnalyticsRegistry {
       ready('playerReceiver', 'Receiver (Targets)',
         this._playerRoleValues('receiver', p => SE.countsFootballRoles(p) && SE.isPass(p)),
         'StatsEngine.effectivePlayers.receiver (pass targets, complete or not)', { multi: true }),
+      // Every snap that shows our Tackler(s) (PlayShape): defense, kick coverage
+      // and an offensive turnover, the tackles Players credits. Tries stay out,
+      // and a Special Teams snap needs its penalty resolved, as in Players.
       ready('playerTackler', 'Tackler',
-        this._playerRoleValues('tackler', p => countedUnit(p) === 'defense'),
-        'StatsEngine.effectivePlayers.tackler (defensive snaps)', { multi: true }),
+        this._playerRoleValues('tackler', p => PlayShape.baseRoles(p).includes('tackler') && !isTry(p)
+          && (countedUnit(p) !== 'special' || SE._tryPenaltyResolved(p))),
+        'StatsEngine.effectivePlayers.tackler (snaps that show Tackler(s))', { multi: true }),
       // Our players named in Missed Tackles, one per play like Tackler: defensive
       // snaps and kick coverage, where the row names our players. A try charts
       // its misses but stays out of every player line, like countsFootballRoles.
       ready('playerMissedTackler', 'Missed Tackler',
-        this._playerRoleValues(MissedTackles.ROLE, p => MissedTackles.modeOf(p) === 'ours'
-          && !['try', 'tryDefense'].includes(special(p)?.unit)),
+        this._playerRoleValues(MissedTackles.ROLE, p => PlayShape.roles(p).includes(MissedTackles.ROLE) && !isTry(p)),
         'StatsEngine.effectivePlayers.missedTackler (snaps where our players are named)', { multi: true }),
       // Special Teams player analysis stays deliberately minimal (Study
       // Phase 3 scope): Field Goal only for kicker (a clean make/miss

@@ -114,7 +114,7 @@ await page.click('[data-custom-fields-save]'); await settle(page);
 const after = await stored();
 ok(after.length === 1 && after[0].id === defs[0].id, 'a removed field is gone after Save; the kept one keeps its id', JSON.stringify(after));
 await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Tempo Cold')?.click()); await settle(page);
-r = await page.evaluate(id => window.app.tagger.getPlay(1)?.tags?.customFields?.[id], defs[0].id);
+r = await page.evaluate(id => window.app.tagger.getCurrentPlay()?.tags?.customFields?.[id], defs[0].id); // Chart writes the open play's draft
 ok(r === 'Tempo Cold', 'a custom chip writes the play value', String(r));
 
 console.log('\n== 5. A failed write keeps the sheet and draft open and claims nothing (Codex, dc4328c) ==');

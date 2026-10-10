@@ -136,9 +136,10 @@ roster (`SeasonManager._mergeRoster()`).
 - **A play stores exactly what Chart shows** (coach, 2026-10-10). Chart edits a
   draft; the stored play, reports and disk change only on Save, which drops
   what the play cannot show (`PlayShape.settle`). A parent change (unit,
-  Special Teams unit, try attempt) never asks and loses nothing before Save.
-  Leaving a play with unsaved changes asks Stay / Discard / Save. Every other
-  write (Film Room, imports) settles the play it writes
+  Special Teams unit, try attempt) is a Save that asks first only when it would
+  remove values the coach charted; app-filled and already-hidden values never
+  ask. Leaving a play with unsaved changes asks Stay / Discard / Save. Every
+  other write (Film Room, imports) settles the play it writes
   (`GRIDIRON-IQ-SAVE-CONTRACT.md`).
 - A play's unit has one reading, `countedUnit()` (stored unit, offense when
   blank), and one write, `PlayTagger.setPlayUnit`, shared by Chart and Film

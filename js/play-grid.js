@@ -644,10 +644,11 @@ export class PlayGrid {
       return this.tagger.resolveDraft().then(ok => (ok ? this.nativeCommitEdit(playId, colKey, value) : false));
     }
     if (col.key === 'unit') {
+      // The one unit write: asks first only when charted values would go.
       const unit = Object.keys(PlayGrid.UNIT_LABELS).find(key => PlayGrid.UNIT_LABELS[key] === value);
-      if (!this.tagger.setPlayUnit(play, unit)) return false;
-      this.refresh();
-      return true;
+      const done = this.tagger.setPlayUnit(play, unit);
+      const after = ok => { if (ok) this.refresh(); return !!ok; };
+      return done && typeof done.then === 'function' ? done.then(after) : after(done);
     }
     const next = col.multi ? PlayTagger.normalizeMulti(col.key, value) : value;
     const removals = col.type === 'enum' || col.type === 'text-tag'

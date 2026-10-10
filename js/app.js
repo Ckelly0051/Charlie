@@ -943,7 +943,6 @@ class App {
       el.dispatchEvent(new Event('change', { bubbles: true }));
       el.blur();
     }
-    this.notes?.flush();
     // Save & Next saves the open play first, in a cut-up queue too; Skip
     // moves on without saving (leaving asks when there are unsaved changes).
     if (!opts.skip) this.tagger.saveDraft();
@@ -1055,7 +1054,7 @@ class App {
       e.preventDefault();
       const order = ['offense', 'defense', 'special'];
       const nextUnit = order[(order.indexOf(curUnit) + 1) % order.length];
-      this.tagger.setUnit(nextUnit);
+      this.tagger.setChartingUnit(nextUnit);
       return true;
     }
 

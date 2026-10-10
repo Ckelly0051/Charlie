@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { TagLibrary } from './tag-library.js';
 import { SpecialTeamsModel } from './special-teams.js';
+import { PlayShape } from './play-shape.js';
 import { ChartingDetails } from './charting-details.js';
 import { MissedTackles } from './missed-tackles.js';
 import '../css/native-tagging.css';
@@ -368,17 +369,30 @@ function SpecialTeams({screen, state}) {
   </Group>;
 }
 
+/* Chart rows that are not a stored role: the opponent's missed-tackle Count. */
+const MISSED_COUNT = 'missedCount';
+const OPPONENT_TACKLER = PlayShape.OPPONENT_TACKLER;
+
 function Players({screen, state}) {
   // A kicked try has no returner: Try (Kick) is the kicker; Defending a Try (Kick)
   // is the blocker. A run/pass or Fake try takes its side's roles.
   const st = state.special, side = lookSide(state);
-  // The roles this play can hold (PlayShape): a turnover adds Tackler(s) on offense.
+  // The roles this play can hold (PlayShape): an offensive turnover adds our
+  // Tackler(s) and missed tacklers; any change of possession adds the
+  // opponent's Tackler(s).
   const baseRoles = state.baseRoles;
-  // Missed Tackles is one more row (MissedTackles.mode): after Tackler(s) on
-  // defense and kick coverage, after the returner on returns, last on offense.
+  // Missed Tackles (MissedTackles.mode): our players named after Tackler(s) on
+  // defense and kick coverage; the opponent's Count after Receiver on offense
+  // and after the returner on returns.
   const missedMode = MissedTackles.mode(state.unit, st);
   const roles = baseRoles.slice();
-  if (missedMode) roles.splice(roles.includes('tackler') ? roles.indexOf('tackler') + 1 : side ? roles.length : roles.indexOf('returner') + 1, 0, MissedTackles.ROLE);
+  if (missedMode === 'ours' && !roles.includes(MissedTackles.ROLE)) {
+    roles.splice(roles.includes('tackler') ? roles.indexOf('tackler') + 1 : side ? roles.length : roles.indexOf('returner') + 1, 0, MissedTackles.ROLE);
+  }
+  if (missedMode === 'theirs') {
+    roles.splice(roles.includes('receiver') ? roles.indexOf('receiver') + 1 : roles.includes('returner') ? roles.indexOf('returner') + 1 : roles.length, 0, MISSED_COUNT);
+  }
+  const bothMissed = roles.includes(MISSED_COUNT) && roles.includes(MissedTackles.ROLE);
   const opposingSpecialist = role => !side && SpecialTeamsModel.isOpposingPlayerRole(st, role);
   const defaultRole = state.unit === 'special' ? SpecialTeamsModel.defaultPlayerRole(st) : roles[0];
   const [openRoles,setOpenRoles] = useState(() => new Set([roles.includes(state.activeRole) && !opposingSpecialist(state.activeRole) ? state.activeRole : defaultRole]));
@@ -387,22 +401,29 @@ function Players({screen, state}) {
     setOpenRoles(new Set([defaultRole]));
     if (!roles.includes(state.activeRole) || opposingSpecialist(state.activeRole)) screen.setActiveRole(defaultRole);
   }, [roles.join(','), st?.unit]);
-  const allowed = role => opposingSpecialist(role) || (role === MissedTackles.ROLE && missedMode !== 'ours') ? []
-    : state.roster.filter(player => role === 'kicker' || role === 'returner' || role === 'blocker' || role === 'tackler' || role === 'takeaway' || role === MissedTackles.ROLE
-    ? player.side !== 'O' : player.side !== 'D');
+  // Our tacklers come from the defense, except after our own turnover, when
+  // the offense makes the tackle. The opponent's tacklers have no roster.
+  const defenders = role => ['kicker', 'returner', 'blocker', 'takeaway'].includes(role)
+    || (['tackler', MissedTackles.ROLE].includes(role) && side !== 'offense');
+  const allowed = role => opposingSpecialist(role) || role === MISSED_COUNT || role === OPPONENT_TACKLER ? []
+    : state.roster.filter(player => defenders(role) ? player.side !== 'O' : player.side !== 'D');
   // Player attribution is charted on nearly every snap — tacklers on defense,
   // ball carrier / passer / receiver on offense — so this group opens with the
   // form. The focused role owns the only open roster picker, matching the comp
   // without hiding one-click jersey-number attribution.
   const LABELS = { tackler: 'Tackler(s)', takeaway: 'Takeaway', ballCarrier: 'Ball Carrier',
-    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner', blocker: 'Blocker', [MissedTackles.ROLE]: 'Missed Tackles' };
+    passer: 'Passer', receiver: 'Receiver', kicker: 'Kicker', returner: 'Returner', blocker: 'Blocker',
+    [MissedTackles.ROLE]: bothMissed ? 'Our Missed Tackles' : 'Missed Tackles', [MISSED_COUNT]: 'Missed Tackles',
+    [OPPONENT_TACKLER]: 'Opponent Tackler(s)' };
   // Our misses are the players named, one each, so their row has no count or
-  // grade. The opponent's misses have no one to name: a Count only.
+  // grade. The opponent's misses have no one to name: a Count only. The
+  // opponent's tacklers are numbers only, never graded.
   const missedRole = role => role === MissedTackles.ROLE;
+  const ungraded = role => missedRole(role) || role === OPPONENT_TACKLER;
   return <Group title="Players & Grades" open>
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
-      if (missedRole(role) && missedMode !== 'ours') return <div key={role}>
+      if (role === MISSED_COUNT) return <div key={role}>
         <strong>{LABELS[role]}</strong>
         <select aria-label="Missed Tackles count" value={state.values.missedTackles ?? ''}
           onFocus={() => screen.setActiveRole(role)} onChange={event => screen.setField('missedTackles', event.currentTarget.value)}>
@@ -411,9 +432,9 @@ function Players({screen, state}) {
       </div>;
       return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
         <strong>{opposingSpecialist(role) ? `${state.perspective === 'scout' ? 'Other team' : 'Opponent'} ` : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
-        <input aria-label={`${role} player number`} class={missedRole(role) ? 'is-wide' : undefined} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
+        <input aria-label={`${role} player number`} class={ungraded(role) ? 'is-wide' : undefined} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
-        {!missedRole(role) && <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
+        {!ungraded(role) && <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
           <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
         </select>}
         {allowed(role).length > 0 && <button type="button" class="gi-player-roster-toggle" aria-expanded={rosterOpen}

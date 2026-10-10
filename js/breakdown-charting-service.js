@@ -9,8 +9,6 @@ import { SpecialTeamsModel } from './special-teams.js';
 export class BreakdownChartingService {
   constructor(tagger) {
     this.tagger = tagger;
-    // The Special Teams events a draft left by changing units, by draft.
-    this._keptUnits = new WeakMap();
   }
 
   _penaltyPhase(play) {
@@ -94,20 +92,15 @@ export class BreakdownChartingService {
     return true;
   }
 
-  /** Change the Special Teams unit. Each unit has its own event, so the open
-   *  play keeps the one it leaves: switching back before saving brings it back
-   *  as charted, and Save keeps only the unit on screen. */
+  /** Change the Special Teams unit: a parent change, so it saves the play and
+   *  asks first only when charted details would be removed
+   *  (PlayTagger.changeParent). */
   async setSpecialUnit(unit) {
     const play = this.tagger.getCurrentPlay();
     if (!play) return false;
-    const current = SpecialTeamsModel.normalize(play.specialTeams);
-    if (current?.unit === unit) return true;
-    const kept = this._keptUnits.get(play) || {};
-    if (current) kept[current.unit] = current;
-    this._keptUnits.set(play, kept);
-    play.specialTeams = kept[unit] ? SpecialTeamsModel.normalize(kept[unit]) : this._newSpecial(unit);
-    this.tagger._emit('play-updated', play);
-    return true;
+    if (SpecialTeamsModel.normalize(play.specialTeams)?.unit === unit) return true;
+    return this.tagger.changeParent(play, copy => { copy.specialTeams = this._newSpecial(unit); },
+      { title: 'Change unit', target: SpecialTeamsModel.UNIT_LABELS[unit] || unit });
   }
 
   specialAction(key, value) {
@@ -171,24 +164,24 @@ export class BreakdownChartingService {
     return false;
   }
 
-  /** Kick XP, Run/Pass or Fake. A Fake is a run/pass try with `isFake`.
-   *  Leaving Run/Pass or Fake for Kick XP hides the run/pass detail; it stays in
-   *  the open play's draft until Save, which keeps only what a kicked try shows
-   *  (PlayShape). Switching between Run/Pass and Fake keeps a charted score; a
-   *  new attempt kind takes its own default. */
+  /** Kick XP, Run/Pass or Fake (a Fake is a run/pass try with `isFake`): a
+   *  parent change, so it saves the play and asks first only when it would
+   *  remove charted values (leaving Run/Pass for Kick XP removes the run/pass
+   *  detail). Switching between Run/Pass and Fake keeps a charted score; a new
+   *  attempt kind takes its own default. */
   async _setTryAttempt(value) {
     const play = this.tagger.getCurrentPlay();
     if (!play || !SpecialTeamsModel.normalize(play.specialTeams)) return false;
     const attemptType = value === 'fake' ? 'twoPoint' : value;
-    const st = SpecialTeamsModel.normalize(play.specialTeams);
-    if (!st) return false;
-    const sameKind = st.attemptType === attemptType;
-    st.attemptType = attemptType;
-    st.isFake = value === 'fake';
-    if (st.result === 'converted' && !st.events.defensiveReturn && !(sameKind && st.outcome.score)) st.outcome.score = st.attemptType;
-    play.specialTeams = SpecialTeamsModel.normalize(st);
-    this.tagger._emit('play-updated', play);
-    return true;
+    const apply = target => {
+      const st = SpecialTeamsModel.normalize(target.specialTeams);
+      const sameKind = st.attemptType === attemptType;
+      st.attemptType = attemptType;
+      st.isFake = value === 'fake';
+      if (st.result === 'converted' && !st.events.defensiveReturn && !(sameKind && st.outcome.score)) st.outcome.score = st.attemptType;
+      target.specialTeams = SpecialTeamsModel.normalize(st);
+    };
+    return this.tagger.changeParent(play, apply, { title: 'Change attempt', target: value === 'extraPoint' ? 'Kick XP' : value === 'fake' ? 'Fake' : 'Run/Pass' });
   }
 
   specialInput(key, value) {

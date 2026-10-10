@@ -1,4 +1,5 @@
 import { PenaltyModel } from './penalty-model.js';
+import { countedUnit } from './football-rules.js';
 
 /**
  * StudyQuery: the pure query executor over AnalyticsRegistry. It groups a play
@@ -75,16 +76,28 @@ export class StudyQuery {
     }));
   }
 
+  /** The report cuts gated to defensive snaps; every other cut is gated to
+   *  offensive snaps (`StatsEngine._buildCutFilter`). */
+  static get DEFENSE_CUTS() { return new Set(['defFront', 'coverage', 'coverageFamily', 'blitz']); }
+
   /** Select a single group's plays for `dimension === value`. Uses the shared
-   *  `_buildCutFilter` predicate when the dimension maps to a report cut (parity),
-   *  else registry value-membership. */
+   *  `_buildCutFilter` predicate when the dimension maps to a report cut
+   *  (parity with the report drilldown), else registry value-membership. A
+   *  cohort holding none of the snaps a cut is gated to (a defense grouped by
+   *  the offense it faced) groups by registry value, which the gated cut would
+   *  always refuse; a mixed cohort keeps the cut, so one team's plays never
+   *  join the other's group. */
   _groupPlays(cohort, dimension, value, context) {
     const cut = StudyQuery.DIMENSION_CUT[dimension];
+    const byValue = p => this.registry.values(dimension, p, context).includes(value);
     if (cut) {
       const pred = this.stats._buildCutFilter(cut, value);
-      if (typeof pred === 'function') return cohort.filter(pred);
+      if (typeof pred === 'function') {
+        const cutUnit = StudyQuery.DEFENSE_CUTS.has(dimension) ? 'defense' : 'offense';
+        return cohort.some(p => countedUnit(p) === cutUnit) ? cohort.filter(pred) : cohort.filter(byValue);
+      }
     }
-    return cohort.filter(p => this.registry.values(dimension, p, context).includes(value));
+    return cohort.filter(byValue);
   }
 
   /** The plays passing every filter (OR within a filter, AND across), the

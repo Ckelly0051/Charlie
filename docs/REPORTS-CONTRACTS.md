@@ -222,7 +222,10 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
 - **Missed tackles** (`design-comps/missed-tackles-reports-2026-10-07`):
   Tackles has an `MTkl` column after Ast, one per defensive or kick coverage
   play the player is named on, like Tkl. Tkl, Solo, Ast and MTkl include our
-  kickoff and punt coverage (coach, 2026-10-07). Tackles' number columns are narrower than the other
+  kickoff and punt coverage (coach, 2026-10-07) and our tackles and misses on
+  the return after an offensive turnover (coach, 2026-10-10; the Defense
+  board's player lines count the same). The opponent's tacklers are never
+  credited. Tackles' number columns are narrower than the other
   roles' (40 / 46 / 36px, 8px cell padding) so a long name keeps its room.
 
 ## Self-Scout
@@ -264,6 +267,17 @@ Rate sits last in Defense & discipline, `Yards / play allowed` first.
 - Film is two controls, `Opponent` and `Season`. No score, prediction or
   inferred good/bad colour.
 
+## Study grouping
+
+- Study groups a report-backed dimension through the report's cut filter
+  (parity with the drilldown). The cuts are unit-gated, so a cohort holding no
+  snaps of a cut's unit (a defense grouped by the offense it faced) groups by
+  registry value instead; a mixed cohort keeps the cut, so one team's plays
+  never join the other's group (`StudyQuery._groupPlays`).
+- Study's Tackler role is every snap that shows our Tackler(s) (defense, kick
+  coverage with its penalty resolved, an offensive turnover); Missed Tackler is
+  every snap that names our missed tacklers. Tries stay out.
+
 ## Dashboards
 
 The coach's own reports (coach, 2026-10-10: "self serve reporting"). Opened
@@ -274,10 +288,13 @@ with Back to reports; the approved report strip is unchanged.
   templates and every widget's numbers; `js/report-builder-screen.js` owns
   state and persistence; `js/native-report-builder.jsx` lays them out.
 - **Numbers come from the existing owners.** Rates are AnalyticsMetrics
-  (`registry.metricsEngine()`) with their eligibility, state and refs; Run %,
-  Pass %, Turnovers, EPA and penalties are registry measures read off
-  `StatsEngine.compute()`; Leaders read `StatsEngine.playersBoard()`, so a
-  leader equals Players for the same plays. A concept metric (Success, Yards /
+  (`registry.metricsEngine()`) with their eligibility, state and refs; Run %
+  and Pass % are the share of the cohort's run and pass snaps
+  (`StatsEngine.isRun` / `isPass`) on any unit; Turnovers, EPA and penalties
+  are registry measures read off `StatsEngine.compute()`, and Turnovers and EPA
+  (offense-only in compute()) read "Offense only" on another unit, never zero;
+  Leaders read `StatsEngine.playersBoard()`, so a leader equals Players for
+  the same plays. A concept metric (Success, Yards /
   Play, Explosive, Negative, Havoc) resolves to the offense-produced or
   defense-framed metric by the dashboard's unit (Stop Rate, Yards Allowed);
   with All units or Special Teams it reads "Choose Offense or Defense".
@@ -286,7 +303,11 @@ with Back to reports; the approved report strip is unchanged.
   widget's filters (StudyQuery's cohort rule: OR within a filter, AND across).
   A group holds the plays whose registry value matches, on either unit: the
   report cut filters are unit-gated, and a defense dashboard groups by the
-  offense it faced. Distance groups in four bands (1-3, 4-6, 7-10, 11+).
+  offense it faced. A penalty group (team, foul, ruling, phase) measures only
+  its own records, as Study does: a play with two fouls counts once in each
+  foul's row with that foul's yards. Distance groups in four bands (1-3, 4-6,
+  7-10, 11+). Groupings include motion start and end, RPO read and decision,
+  QB run type and missed tackles.
 - **Views.** Number (with the season baseline when the scope is narrower;
   a count has none, counts are not comparable across scopes), Bar chart (a
   narrower scope marks each bar with that group's season value), Share (each row's segments sum to 100% of the plays holding a

@@ -219,6 +219,15 @@ const result = await page.evaluate((fixture) => {
       bState: cmpMetricsTripsInsufficient.b.metrics.stopRate?.state, bValue: cmpMetricsTripsInsufficient.b.metrics.stopRate?.value,
       deltaStopRate: cmpMetricsTripsInsufficient.deltas.stopRate,
     } : null,
+    // A defense-only cohort grouped by the offense it faced: the offense-gated
+    // report cuts would refuse every play, so these group by registry value.
+    defenseFaced: ['down', 'formationFamily', 'runPass'].map(dimension => {
+      const defense = plays.filter(p => p.tags?.unit === 'defense');
+      const q = study.run({ plays: defense, dimension });
+      const expected = defense.filter(p => window.app.analyticsRegistry.values(dimension, p).length).length;
+      return { dimension, groups: q.groups.length, empty: q.groups.filter(g => !g.sampleSize).length,
+        grouped: q.groups.reduce((sum, g) => sum + g.sampleSize, 0), expected, multi: !!window.app.analyticsRegistry.getDimension(dimension).multi };
+    }),
     fieldZoneGroups: fieldZoneQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize })),
     fieldZoneTotal: fieldZoneQ.total,
   };
@@ -370,6 +379,8 @@ if (!result.missing) {
     JSON.stringify({ groups: result.fieldZoneGroups, total: result.fieldZoneTotal }));
 }
 
+ok(result.defenseFaced.some(row => row.groups > 0) && result.defenseFaced.every(row => (row.groups > 0 || !row.expected) && row.empty === 0 && (row.multi || row.grouped === row.expected)),
+  'Study over defensive plays groups them by the offense they faced: no empty down, formation or run/pass group', JSON.stringify(result.defenseFaced));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

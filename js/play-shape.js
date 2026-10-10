@@ -39,15 +39,32 @@ export class PlayShape {
   }
 
   /** The offense lost the ball: an interception, or a fumble the offense did
-   *  not recover. */
+   *  not recover. Read on an offensive snap (ours) or a kick Fake. */
   static isTurnover(play) {
     const parts = String(play?.tags?.result || '').split(/\s*\+\s*/);
     if (parts.includes('Interception')) return true;
     return parts.includes('Fumble') && play?.tags?.fumbleRecovery !== 'subject';
   }
 
-  /** The player roles the play can hold, in Chart's order. A snap ending in a
-   *  turnover adds Tackler(s) for the offense's tackle on the return. */
+  /** Possession changed on the snap: our turnover on offense, or the
+   *  defense's takeaway (an interception, or a fumble the opponent did not
+   *  keep). Both teams then tackle, so the play holds each side's tacklers. */
+  static changedPossession(play) {
+    const side = PlayShape.lookSide(play);
+    if (side === 'offense' || PlayShape.isKickFake(play)) return PlayShape.isTurnover(play);
+    if (side !== 'defense') return false;
+    const parts = String(play?.tags?.result || '').split(/\s*\+\s*/);
+    if (parts.includes('Interception')) return true;
+    return parts.includes('Fumble') && play?.tags?.fumbleRecovery !== 'opponent';
+  }
+
+  /** The opponent players who made a tackle on a change of possession: their
+   *  numbers, never credited to our players. */
+  static OPPONENT_TACKLER = 'opponentTackler';
+
+  /** The player roles the play can hold, in Chart's order. On an offensive
+   *  turnover our Tackler(s) and missed tacklers name the tackle on the
+   *  return; any change of possession adds the opponent's Tackler(s). */
   static baseRoles(play) {
     const side = PlayShape.lookSide(play);
     const st = SpecialTeamsModel.normalize(play?.specialTeams);
@@ -56,13 +73,17 @@ export class PlayShape {
     else if (side === 'offense') roles = ['ballCarrier', 'passer', 'receiver'];
     else roles = SpecialTeamsModel.playerRoles(st);
     if (PlayShape.isKickFake(play)) roles = [...roles, ...['ballCarrier', 'passer', 'receiver'].filter(role => !roles.includes(role))];
-    if ((side === 'offense' || PlayShape.isKickFake(play)) && PlayShape.isTurnover(play) && !roles.includes('tackler')) roles = [...roles, 'tackler'];
+    if ((side === 'offense' || PlayShape.isKickFake(play)) && PlayShape.isTurnover(play)) {
+      roles = [...roles.filter(role => role !== 'tackler'), 'tackler', MissedTackles.ROLE];
+    }
+    if (PlayShape.changedPossession(play)) roles = [...roles, PlayShape.OPPONENT_TACKLER];
     return roles;
   }
   /** `baseRoles` plus our missed tacklers on the snaps that name them. */
   static roles(play) {
     const roles = PlayShape.baseRoles(play);
-    return MissedTackles.mode(countedUnit(play), play?.specialTeams) === 'ours' ? [...roles, MissedTackles.ROLE] : roles;
+    return MissedTackles.mode(countedUnit(play), play?.specialTeams) === 'ours' && !roles.includes(MissedTackles.ROLE)
+      ? [...roles, MissedTackles.ROLE] : roles;
   }
 
   /** Whether the play can hold `tags[key]`. */

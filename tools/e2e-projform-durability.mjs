@@ -83,6 +83,14 @@ const clickChip = (field, text) => page.evaluate((f, t) => {
   if (btn) btn.click();
   return !!btn;
 }, field, text);
+// Chart edits a draft; each case stores its edit with the deck's Save
+// (GRIDIRON-IQ-SAVE-CONTRACT.md), as the coach would before leaving the play.
+const clickSave = async () => {
+  await frame();
+  const saved = await page.evaluate(() => { const btn = document.querySelector('[data-native-save]'); if (btn && !btn.disabled) btn.click(); return !!btn && !btn.disabled; });
+  await frame();
+  return saved;
+};
 const activeChips = (field) => page.evaluate((f) =>
   [...document.querySelectorAll(`[data-native-field="${f}"] .gi-tag-chips button.is-active`)].map(b => b.textContent.trim()),
   field);
@@ -137,17 +145,17 @@ await mountNativeForm();
 // 2a. Turn off the only formation chip; the QB alignment is a separate field.
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.formationClear);
 await clickChip('formationFamily', 'Spread');
-await frame();
+ok(await clickSave(), 'the formation clear is saved');
 
 // 2b. Add a coverage call beside the stored family.
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.coverageAdd);
 await clickChip('coverage', 'Cover 3');
-await frame();
+ok(await clickSave(), 'the coverage call is saved');
 
 // 2c. Pistol + Empty, committed via an explicit Formation edit (changes the family so the commit is genuine, not a no-op).
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptyEdit);
 await clickChip('formationFamily', 'Spread');
-await frame();
+ok(await clickSave(), 'the Formation edit is saved');
 
 // 2d. Pistol + Empty, committed via Save & Next.
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.pistolEmptySaveNext);
@@ -212,7 +220,7 @@ if (gridEdit) {
 await mountNativeForm();
 await page.evaluate((id) => window.app.tagger.selectPlay(id), IDS.qbClear);
 await clickChip('qbAlignment', 'Shotgun');
-await frame();
+ok(await clickSave(), 'the QB alignment clear is saved');
 
 console.log('\n== 3. Snapshot every case BEFORE reload (raw tags + projected view + chip state) ==');
 // Final Engine Independence: chip fields are rendered by the native form only
@@ -384,7 +392,7 @@ if (!realFiles.length) {
     if (chip) chip.click();
     return { id, playCount: t.plays.length, preClick, chipFound };
   });
-  await frame();
+  ok(await clickSave(), 'real-data: the Formation edit is saved');
   const realSnapshotBefore = await page.evaluate((id) => {
     const t = window.app.tagger;
     const play = t.getPlay(id);

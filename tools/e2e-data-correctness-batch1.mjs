@@ -310,7 +310,7 @@ const result = await page.evaluate(async () => {
   const tagging = app.nativeTagging;
   // The charting service must refuse an extra point on a field-goal unit, and
   // the screen must expose no action key that could author one.
-  const play1 = { id: 1, tags: {}, specialTeams: null };
+  const play1 = { id: 1, tags: { unit: 'special' }, specialTeams: null };
   const taggerStub = app.tagger;
   const realGet = taggerStub.getCurrentPlay;
   const realEmit = taggerStub._emit;

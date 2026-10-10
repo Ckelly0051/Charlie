@@ -3659,11 +3659,15 @@ export class StatsEngine {
         if (creditTakeawayViaTackler && StatsEngine.isFumbleRecovered(p)) bucket(id, 'tackles', 'Tackles', 'fr', p);
         grade(id, 'tackles', 'Tackles', p, 'tackler');
       });
-      if (isDefPlay) {
+      // Our missed tacklers: every defensive snap, and an offensive snap that
+      // ended in a turnover (PlayShape names them on the return).
+      if (isDefPlay || PlayShape.baseRoles(p).includes(MissedTackles.ROLE)) {
         MissedTackles.players(p).forEach(id => {
           bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
           bucket(id, 'tackles', 'Tackles', 'mtkl', p);
         });
+      }
+      if (isDefPlay) {
         takeawayIds.forEach(id => {
           bucket(id, 'tackles', 'Tackles', ROLE_COHORT, p);
           if (StatsEngine.hasResult(p, 'Interception')) bucket(id, 'tackles', 'Tackles', 'int', p);

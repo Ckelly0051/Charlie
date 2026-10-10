@@ -263,10 +263,9 @@ export class PlayTagger {
   }
 
   /**
-   * Reset the current play's tags back to blank, keeping the play segment and
-   * the loaded video so the coach can re-tag the same snap. Confirms first,
-   * then clears the on-screen form (and the current play's stored tags/notes
-   * when one exists) so the button always has an obvious effect.
+   * Reset the open play's tags and notes to blank in Chart's draft, keeping
+   * the play segment, its unit and drive, and the loaded video. Confirms
+   * first; Save stores the cleared play and Undo restores it.
    */
   async clearCurrentTags() {
     let id = this.currentPlayId;
@@ -422,8 +421,10 @@ export class PlayTagger {
   // --- The charting draft (GRIDIRON-IQ-SAVE-CONTRACT.md) -------------------
   // Chart edits a copy of the current play. The play itself, the reports and
   // the disk change only on Save, which stores exactly what Chart shows
-  // (PlayShape.settle). Values the app fills in (Auto D&D, Carry formation,
-  // the carried unit) are on screen but do not make the play unsaved.
+  // (PlayShape.settle). A parent change (unit, Special Teams unit, try
+  // attempt) is itself a Save. Values the app fills in (Auto D&D, Carry
+  // formation, the carried unit) are on screen but do not make the play
+  // unsaved, and their loss never asks.
 
   /** The parts of a play charting edits; identity and film stay on the play. */
   static DRAFT_FIELDS = Object.freeze(['tags', 'penalties', 'resultingSituation', 'specialTeams', 'notes', 'diagram', '_autoSit']);
@@ -445,7 +446,7 @@ export class PlayTagger {
   _openDraft(live) {
     const play = this._copyCharting(live, { ...live });
     const json = this._chartingJson(play);
-    this.draft = { id: live.id, game: this._gameKey(), play, base: json, last: json, coach: false, steps: [], redo: [] };
+    this.draft = { id: live.id, game: this._gameKey(), play, base: json, last: json, coach: false, steps: [], redo: [], auto: new Set(), group: null, groupAt: 0 };
     this._offerRecovery();
     return this.draft;
   }
@@ -459,21 +460,136 @@ export class PlayTagger {
     return !!draft && draft.coach && draft.game === this._gameKey() && this._chartingJson(draft.play) !== draft.base && !!this.getPlay(draft.id);
   }
 
-  /** A write to the draft: one undo step, unsaved unless the app filled it. */
+  /** Every charted value as `path -> value`: tags, each player and grade,
+   *  every Special Teams detail, penalties, notes and the diagram. */
+  static _charted(play) {
+    const out = {};
+    const put = (path, value) => {
+      if (value == null || value === '' || value === false) return;
+      if (Array.isArray(value)) { if (value.length) out[path] = JSON.stringify(value); return; }
+      if (typeof value === 'object') { for (const [key, inner] of Object.entries(value)) put(`${path}.${key}`, inner); return; }
+      out[path] = String(value);
+    };
+    for (const [key, value] of Object.entries(play?.tags || {})) if (key !== 'unit') put(`tags.${key}`, value);
+    const st = SpecialTeamsModel.normalize(play?.specialTeams);
+    if (st) {
+      const { unit, subjectRole, version, legacy, ...details } = st;
+      if (details.attemptType === SpecialTeamsModel.defaultAttemptType(unit)) delete details.attemptType;
+      put('specialTeams', details);
+    }
+    put('penalties', play?.penalties);
+    put('notes', play?.notes);
+    put('diagram', play?.diagram);
+    return out;
+  }
+
+  /** A write to the draft: one undo step, unsaved unless the app filled it.
+   *  Values the app filled in are remembered (`auto`) until the coach changes
+   *  them. Writes in one group (typing a note) within a second share a step. */
   _draftChanged() {
     const draft = this.draft;
     const json = this._chartingJson(draft.play);
     if (json === draft.last) return;
+    const before = PlayTagger._charted(Object.fromEntries(PlayTagger.DRAFT_FIELDS.map((field, i) => [field, JSON.parse(draft.last)[i]])));
+    const after = PlayTagger._charted(draft.play);
+    const changed = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(path => before[path] !== after[path]);
     if (this._carrying) {
       draft.base = draft.coach ? draft.base : json;
+      changed.forEach(path => draft.auto.add(path));
     } else {
-      draft.steps.push(draft.last);
-      if (draft.steps.length > 100) draft.steps.shift();
+      changed.forEach(path => draft.auto.delete(path));
+      const group = this._changeGroup || null;
+      const now = Date.now();
+      if (!(group && draft.group === group && now - draft.groupAt < 1000)) {
+        draft.steps.push(draft.last);
+        if (draft.steps.length > 100) draft.steps.shift();
+      }
+      draft.group = group;
+      draft.groupAt = now;
       draft.redo = [];
       draft.coach = true;
     }
     draft.last = json;
     this._writeRecovery();
+  }
+
+  /** A typed value (a note) is unsaved from its first keystroke; keystrokes
+   *  in a row are one Undo step. */
+  typedChange(play, group) {
+    this._changeGroup = group;
+    try { this._emit('play-updated', play); } finally { this._changeGroup = null; }
+  }
+
+  /**
+   * What a parent change would take off the play: `[{ path, label, value }]`
+   * for each value the coach charted that the play could no longer hold
+   * (`apply` mutates a copy; PlayShape.settle decides). Values the app filled
+   * into Chart's draft are not losses.
+   */
+  parentLosses(play, apply) {
+    const copy = this._copyCharting(play, { ...play });
+    apply(copy);
+    PlayShape.settle(copy);
+    const before = PlayTagger._charted(play), after = PlayTagger._charted(copy);
+    const auto = play === this.draft?.play ? this.draft.auto : new Set();
+    // A value the play already cannot show is not the coach's to lose here:
+    // any save drops it.
+    const hidden = PlayShape.hidden(play).map(item => (item.field === 'specialTeams' ? 'specialTeams' : `tags.${item.field}`));
+    const wasHidden = path => hidden.some(field => path === field || path.startsWith(`${field}.`));
+    return Object.keys(before).filter(path => after[path] !== before[path] && !auto.has(path) && after[path] == null && !wasHidden(path))
+      .map(path => ({ path, label: PlayTagger._lossLabel(path), value: before[path] }));
+  }
+
+  static LOSS_LABELS = Object.freeze({
+    formationFamily: 'Formation', receiverSet: 'Receiver Alignment', qbAlignment: 'QB Alignment',
+    strength: 'Offensive Line Strength', defFront: 'Front', coverage: 'Coverage Call', playType: 'Play Type',
+    runPass: 'Run / Pass', playDir: 'Play Direction', playCall: 'Play Call', playCallId: 'Play Call',
+    playConcept: 'Concept', missedTackler: 'Missed Tackles', missedTackles: 'Missed Tackles',
+    tackler: 'Tackler(s)', opponentTackler: 'Opponent Tackler(s)', fumbleRecovery: 'Fumble recovery',
+  });
+  static _lossLabel(path) {
+    if (path.startsWith('specialTeams')) return 'Special Teams details';
+    if (path === 'penalties') return 'Penalties';
+    if (path === 'notes') return 'Notes';
+    if (path === 'diagram') return 'Play diagram';
+    if (path.startsWith('tags.playCallDefaults')) return 'Play Call';
+    const key = path.split('.').pop();
+    if (PlayTagger.LOSS_LABELS[key]) return path.startsWith('tags.grades.') ? `${PlayTagger.LOSS_LABELS[key]} grade` : PlayTagger.LOSS_LABELS[key];
+    const words = key.replace(/([A-Z])/g, ' $1').replace(/^./, ch => ch.toUpperCase());
+    return path.startsWith('tags.grades.') ? `${words} grade` : words;
+  }
+
+  /**
+   * A parent change is a Save. When it would take off values the coach
+   * charted, it asks first (Cancel is the default); otherwise it applies at
+   * once. `apply(play)` mutates the play. Chart's draft is saved after the
+   * change; a stored play (Film Room) settles and emits. Returns true when
+   * applied, false when declined, or a promise of either when it asked.
+   */
+  changeParent(play, apply, { title = 'Change unit', target = '' } = {}) {
+    if (!play) return false;
+    const losses = this.parentLosses(play, apply);
+    const commit = () => {
+      apply(play);
+      if (play === this.draft?.play) {
+        this._emit('play-updated', play);
+        this.saveDraft();
+      } else {
+        PlayShape.settle(play);
+        this._stripStAlignment(play);
+        this._emit('play-updated', play);
+      }
+      return true;
+    };
+    if (!losses.length) return commit();
+    const seen = new Map();
+    for (const loss of losses) if (!seen.has(loss.label)) seen.set(loss.label, loss.path.startsWith('specialTeams') ? '' : loss.value);
+    const list = [...seen].map(([label, value]) => (value ? `${label} (${value})` : label)).join(', ');
+    return this._decide({
+      title, destructive: true,
+      message: `${target ? `Changing to ${target}` : 'This change'} removes what Play ${play.id} can no longer hold: ${list}.`,
+      actions: [{ key: 'cancel', label: 'Cancel' }, { key: 'ok', label: title, tone: 'danger' }],
+    }).then(key => (key === 'ok' ? commit() : false));
   }
   _restoreDraftStep(json) {
     const draft = this.draft;
@@ -840,15 +956,17 @@ export class PlayTagger {
    */
   setPlayUnit(play, unit) {
     if (!play || !['offense', 'defense', 'special'].includes(unit)) return false;
-    play.tags.unit = unit;
-    // A stored play (the Film Room Unit column) is saved by this write, so it
-    // keeps only what the new unit shows; Chart's draft keeps everything until
-    // Save, so switching back loses nothing.
-    if (play !== this.draft?.play) PlayShape.settle(play);
-    this._stripStAlignment(play);
-    this._emit('play-updated', play);
-    return true;
+    // The app carrying the unit onto Chart's next play fills the draft only.
+    if (this._carrying && play === this.draft?.play) {
+      play.tags.unit = unit;
+      this._emit('play-updated', play);
+      return true;
+    }
+    if (play.tags.unit === unit) return true;
+    return this.changeParent(play, copy => { copy.tags.unit = unit; },
+      { title: 'Change unit', target: PlayTagger.UNIT_NAMES[unit] });
   }
+  static UNIT_NAMES = Object.freeze({ offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
 
   /**
    * The coach-facing, STICKY unit change (the toggle a coach taps while
@@ -859,12 +977,11 @@ export class PlayTagger {
    */
   setChartingUnit(unit) {
     if (!['offense', 'defense', 'special'].includes(unit)) return false;
-    // Writes only when the play does not already store this unit.
+    // Sticky once applied: the coach's choice seeds the next new play.
     const play = this.getCurrentPlay();
-    if (play && play.tags.unit !== unit) this.setPlayUnit(play, unit);
-    // Sticky: the coach's choice seeds the next new play (Save & Next).
-    this.defaultUnit = unit;
-    return true;
+    const done = play && play.tags.unit !== unit ? this.setPlayUnit(play, unit) : true;
+    const keep = ok => { if (ok) this.defaultUnit = unit; return ok; };
+    return done && typeof done.then === 'function' ? done.then(keep) : keep(done);
   }
 
   /** Real setters for the two charting-speed toggles. Persist + apply in one
@@ -989,7 +1106,7 @@ export class PlayTagger {
     return changed;
   }
 
-  /** Set the unit (Offense/Defense/Special) on the current play and relayout. */
+  /** Carry the unit onto Chart's next play (Save & Next): filled in, not saved. */
   setUnit(unit) {
     // A blank or unknown unit charts as offense: the one unit rule, countedUnit.
     unit = countedUnit({ tags: { unit } });

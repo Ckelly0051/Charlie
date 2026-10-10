@@ -87,8 +87,10 @@ function CellEditor({ screen, model, close }) {
   const [value, setValue] = useState(initial);
   const commit = next => {
     const output = model.col.multi ? next.join(' + ') : next;
-    screen.commitEdit(model.playId, model.col.key, output);
+    // Close first: a commit that asks (a unit change removing charted values,
+    // a cleared detail) opens its dialog after the editor is gone.
     close();
+    screen.commitEdit(model.playId, model.col.key, output);
   };
   if (model.col.type === 'enum') {
     if (model.col.multi) return <div class="gi-film-cell-editor">

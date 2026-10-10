@@ -7,6 +7,8 @@
  * 1. Each rule the write carries, with explicit expected values.
  * 2. (Retired with the field path: the old-path-versus-API agreement check.)
  * 3. Keyboard shortcuts write through the same API.
+ * Chart writes the open play's draft (GRIDIRON-IQ-SAVE-CONTRACT.md), so each
+ * check reads the draft, `getCurrentPlay()`.
  * Run:  node tools/e2e-tagger-api.mjs
  */
 import { APP_URL } from './app-entry.mjs';
@@ -35,28 +37,28 @@ const r = await page.evaluate(async () => {
   t.plays = [mk(1, { formationFamily: 'Flexbone', qbAlignment: 'Under Center', backfield: '' })]; t.selectPlay(1);
   out.display = { formationFamily: t.displayTagValue('formationFamily'), qb: t.displayTagValue('qbAlignment') };
   t.setTagValue('formationFamily', 'Wing-T');
-  out.promote = { formationFamily: t.getPlay(1).tags.formationFamily, qb: t.getPlay(1).tags.qbAlignment };
+  out.promote = { formationFamily: t.getCurrentPlay().tags.formationFamily, qb: t.getCurrentPlay().tags.qbAlignment };
 
   t.plays = [mk(2, {})]; t.selectPlay(2);
   t.setTagValue('playType', 'Run Inside');
-  out.runPass = t.getPlay(2).tags.runPass;
+  out.runPass = t.getCurrentPlay().tags.runPass;
   t.setTagValue('yardage', '7');
-  out.gain = { result: t.getPlay(2).tags.result, yardage: t.getPlay(2).tags.yardage };
+  out.gain = { result: t.getCurrentPlay().tags.result, yardage: t.getCurrentPlay().tags.yardage };
   t.toggleTagValue('result', 'Loss');
-  out.sign = { result: t.getPlay(2).tags.result, yardage: t.getPlay(2).tags.yardage, shown: t.displayTagValue('yardage') };
+  out.sign = { result: t.getCurrentPlay().tags.result, yardage: t.getCurrentPlay().tags.yardage, shown: t.displayTagValue('yardage') };
   t.toggleTagValue('result', 'Fumble');
-  out.multiAdd = t.getPlay(2).tags.result;
+  out.multiAdd = t.getCurrentPlay().tags.result;
   t.toggleTagValue('result', 'Fumble');
-  out.multiRemove = t.getPlay(2).tags.result;
-  t.toggleTagValue('hash', 'Left'); out.singleSet = t.getPlay(2).tags.hash;
-  t.toggleTagValue('hash', 'Left'); out.singleClear = t.getPlay(2).tags.hash;
+  out.multiRemove = t.getCurrentPlay().tags.result;
+  t.toggleTagValue('hash', 'Left'); out.singleSet = t.getCurrentPlay().tags.hash;
+  t.toggleTagValue('hash', 'Left'); out.singleClear = t.getCurrentPlay().tags.hash;
   t.setPlayerValue('ballCarrier', ' 22 '); t.setGradeValue('ballCarrier', '1');
-  out.people = { player: t.getPlay(2).tags.players.ballCarrier, grade: t.getPlay(2).tags.grades.ballCarrier };
+  out.people = { player: t.getCurrentPlay().tags.players.ballCarrier, grade: t.getCurrentPlay().tags.grades.ballCarrier };
   t.setPlayerValue('ballCarrier', ''); t.setGradeValue('ballCarrier', '');
-  out.peopleCleared = { player: 'ballCarrier' in t.getPlay(2).tags.players, grade: 'ballCarrier' in t.getPlay(2).tags.grades };
-  let emits = 0; const off = t.on ? (t.on('play-updated', () => emits++), null) : null;
+  out.peopleCleared = { player: 'ballCarrier' in t.getCurrentPlay().tags.players, grade: 'ballCarrier' in t.getCurrentPlay().tags.grades };
+  let emits = 0; const off = t.on ? (t.on('draft-updated', () => emits++), null) : null;
   t.setTagValue('down', '3'); out.oneEmit = emits;
-  t.getPlay(2)._autoSit = true; t.setTagValue('distance', '4'); out.sit = t.getPlay(2)._autoSit;
+  t.getCurrentPlay()._autoSit = true; t.setTagValue('distance', '4'); out.sit = t.getCurrentPlay()._autoSit;
 
   return out;
 });
@@ -70,7 +72,7 @@ ok(r.sign.result === 'Loss' && r.sign.yardage === '-7' && r.sign.shown === '7', 
 ok(r.multiAdd === 'Loss + Fumble' && r.multiRemove === 'Loss', 'a multi-select chip adds and removes a combinable value', JSON.stringify([r.multiAdd, r.multiRemove]));
 ok(r.singleSet === 'Left' && r.singleClear === '', 'a single-select chip sets, and a second tap clears', JSON.stringify([r.singleSet, r.singleClear]));
 ok(r.people.player === '22' && r.people.grade === 1 && !r.peopleCleared.player && !r.peopleCleared.grade, 'players and grades trim, parse, and clear by removal', JSON.stringify(r));
-ok(r.oneEmit === 1, 'one write is one play-updated emit (one undo step)', String(r.oneEmit));
+ok(r.oneEmit === 1, 'one write is one draft-updated emit (one undo step)', String(r.oneEmit));
 ok(r.sit === false, 'a hand-entered down or distance marks the situation as the coach\'s', String(r.sit));
 
 console.log('\n== 3. Keyboard shortcuts write through the same API ==');
@@ -80,11 +82,11 @@ const kb = await page.evaluate(async () => {
   t.selectPlay(30);
   document.activeElement?.blur?.();
   const key = (code, shift = false) => document.body.dispatchEvent(new KeyboardEvent('keydown', { code, key: code.replace(/^(Key|Digit)/, '').toLowerCase(), shiftKey: shift, bubbles: true, cancelable: true }));
-  key('Digit3', true); const down = t.getPlay(30).tags.down;
-  key('Digit3', true); const downCleared = t.getPlay(30).tags.down;
-  key('KeyR'); key('KeyQ'); const types = t.getPlay(30).tags.playType;
-  key('KeyR'); const typesAfter = t.getPlay(30).tags.playType;
-  key('KeyG'); key('KeyL'); const result = t.getPlay(30).tags.result;
+  key('Digit3', true); const down = t.getCurrentPlay().tags.down;
+  key('Digit3', true); const downCleared = t.getCurrentPlay().tags.down;
+  key('KeyR'); key('KeyQ'); const types = t.getCurrentPlay().tags.playType;
+  key('KeyR'); const typesAfter = t.getCurrentPlay().tags.playType;
+  key('KeyG'); key('KeyL'); const result = t.getCurrentPlay().tags.result;
   return { down, downCleared, types, typesAfter, result };
 });
 ok(kb.down === '3' && kb.downCleared === '', 'Shift+3 sets 3rd down and a second press clears it', JSON.stringify(kb));
@@ -98,10 +100,10 @@ const stk = await page.evaluate(async () => {
   document.activeElement?.blur?.();
   const key = code => document.body.dispatchEvent(new KeyboardEvent('keydown', { code, key: code.replace('Digit', ''), bubbles: true, cancelable: true }));
   const tick = () => new Promise(res => setTimeout(res, 30));
-  key('Digit1'); await tick(); const one = t.getPlay(40).specialTeams?.unit || null;
-  key('Digit7'); await tick(); const seven = t.getPlay(40).specialTeams?.unit || null;
-  key('Digit9'); await tick(); const nine = t.getPlay(40).specialTeams?.unit || null;
-  return { one, seven, nine, stType: Object.prototype.hasOwnProperty.call(t.getPlay(40).tags, 'stType') };
+  key('Digit1'); await tick(); const one = t.getCurrentPlay().specialTeams?.unit || null;
+  key('Digit7'); await tick(); const seven = t.getCurrentPlay().specialTeams?.unit || null;
+  key('Digit9'); await tick(); const nine = t.getCurrentPlay().specialTeams?.unit || null;
+  return { one, seven, nine, stType: Object.prototype.hasOwnProperty.call(t.getCurrentPlay().tags, 'stType') };
 });
 ok(stk.one === 'kickoff' && stk.seven === 'try' && stk.nine === 'try' && !stk.stType,
   '1 sets Kickoff, 7 sets Try, 9 (no unit) changes nothing, and no stType is written', JSON.stringify(stk));

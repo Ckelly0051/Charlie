@@ -649,10 +649,10 @@ r = await page.evaluate(() => ({
   nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
   legacyNotMoved: !document.querySelector('#wsReports #legacyStatsDashboard'),
   legacyControllerAbsent: !('dashboardEl' in window.app.stats) && !('showDashboard' in window.app.stats),
-  mainActions: document.querySelectorAll('#wsReports [data-rp-action]').length,
+  mainActions: [...document.querySelectorAll('#wsReports [data-rp-action]')].map(n => n.dataset.rpAction).sort().join(','),
   tabs: document.querySelectorAll('#wsReports [data-report-tab]').length,
 }));
-ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.legacyControllerAbsent && r.mainActions === 2 && r.tabs === 8,
+ok(r.nativeRoute && r.nativeContent && r.legacyNotMoved && r.legacyControllerAbsent && r.mainActions === 'dashboards,export,scout' && r.tabs === 8,
   'Native Reports owns its route and actions with no StatsEngine presentation controller', JSON.stringify(r));
 r = await page.evaluate(() => {
   const screen = window.app.reportsScreen, calls = [];

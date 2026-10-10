@@ -548,15 +548,22 @@ export class PlaylistManager {
     this._emit('clip-switched', { index, clip });
   }
 
+  // The coach's clip navigation leaves the open play like any other move:
+  // unsaved Chart changes ask Stay, Discard or Save first.
+  _leaveThen(go) {
+    if (!this.tagger?.hasUnsavedChanges?.()) return go();
+    return this.tagger.resolveDraft().then(ok => (ok ? go() : false));
+  }
+
   nextClip() {
     if (this.activeClipIndex < this.clips.length - 1) {
-      this.switchToClip(this.activeClipIndex + 1);
+      return this._leaveThen(() => this.switchToClip(this.activeClipIndex + 1));
     }
   }
 
   prevClip() {
     if (this.activeClipIndex > 0) {
-      this.switchToClip(this.activeClipIndex - 1);
+      return this._leaveThen(() => this.switchToClip(this.activeClipIndex - 1));
     }
   }
 

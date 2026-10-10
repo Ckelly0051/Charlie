@@ -1,4 +1,6 @@
 import { countedUnit } from './football-rules.js';
+import { PenaltyModel } from './penalty-model.js';
+import { StudyQuery } from './study-query.js';
 
 /**
  * Dashboards: the coach's own reports, built from views, metrics, groupings and
@@ -38,17 +40,17 @@ export class ReportBuilder {
     { id: 'yards', group: 'Efficiency', kind: 'concept', format: 'dec1',
       offense: { id: 'yardsPerPlay', name: 'Yards / Play' }, defense: { id: 'yardsAllowedPerPlay', name: 'Yards Allowed / Play' } },
     { id: 'explosive', group: 'Big plays', kind: 'concept', format: 'pct',
-      offense: { id: 'explosiveRate', name: 'Explosive Rate' }, defense: { id: 'explosivesAllowedRate', name: 'Explosives Allowed' } },
+      offense: { id: 'explosiveRate', name: 'Explosive Plays Rate' }, defense: { id: 'explosivesAllowedRate', name: 'Explosive Plays Allowed' } },
     { id: 'negative', group: 'Big plays', kind: 'concept', format: 'pct',
       offense: { id: 'negativeRate', name: 'Negative Play Rate' }, defense: { id: 'negativeRateForced', name: 'Negative Plays Forced' } },
     { id: 'havoc', group: 'Big plays', kind: 'concept', format: 'pct',
       offense: { id: 'havocRateAllowed', name: 'Havoc Allowed' }, defense: { id: 'havocRate', name: 'Havoc Rate' } },
-    { id: 'runShare', name: 'Run %', group: 'Tendency', kind: 'measure', measure: 'runShare', format: 'pct', polarity: 'neutral' },
-    { id: 'passShare', name: 'Pass %', group: 'Tendency', kind: 'measure', measure: 'passShare', format: 'pct', polarity: 'neutral' },
+    { id: 'runShare', name: 'Run %', group: 'Tendency', kind: 'share', share: 'run', format: 'pct', polarity: 'neutral' },
+    { id: 'passShare', name: 'Pass %', group: 'Tendency', kind: 'share', share: 'pass', format: 'pct', polarity: 'neutral' },
     { id: 'completionRate', name: 'Completion %', group: 'Passing', kind: 'metric', metric: 'completionRate', format: 'pct', passOnly: true },
     { id: 'touchdowns', name: 'Touchdowns', group: 'Scoring', kind: 'metric', metric: 'touchdowns', format: 'count' },
-    { id: 'turnovers', name: 'Turnovers', group: 'Scoring', kind: 'measure', measure: 'turnovers', format: 'count', polarity: 'lower' },
-    { id: 'epa', name: 'EPA / Play', group: 'Advanced', kind: 'measure', measure: 'epaPerPlay', format: 'dec2' },
+    { id: 'turnovers', name: 'Turnovers', group: 'Scoring', kind: 'measure', measure: 'turnovers', format: 'count', polarity: 'lower', offenseOnly: true },
+    { id: 'epa', name: 'EPA / Play', group: 'Advanced', kind: 'measure', measure: 'epaPerPlay', format: 'dec2', offenseOnly: true },
     { id: 'penaltiesUs', name: 'Penalties on Us', group: 'Penalties', kind: 'measure', measure: 'penaltyAcceptedSubject', format: 'count', polarity: 'lower' },
     { id: 'penaltyYardsUs', name: 'Penalty Yards on Us', group: 'Penalties', kind: 'measure', measure: 'penaltyYardsSubject', format: 'count', polarity: 'lower' },
   ]);
@@ -58,9 +60,11 @@ export class ReportBuilder {
     { group: 'Situation', ids: ['down', 'distanceBand', 'fieldZone', 'quarter', 'hash', 'game'] },
     { group: 'Offense look', ids: ['formationFamily', 'personnel', 'backfield', 'qbAlignment', 'strength', 'receiverSet', 'motion'] },
     { group: 'Play', ids: ['runPass', 'playType', 'playCall', 'playConcept', 'playDir', 'gap', 'result'] },
+    { group: 'Play details', ids: ['motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun'] },
+    { group: 'Tackling', ids: ['missedTackles'] },
     { group: 'Defense look', ids: ['defFront', 'coverage', 'coverageFamily', 'blitz'] },
     { group: 'Special Teams', ids: ['specialTeamsUnit', 'specialTeamsOutcome'] },
-    { group: 'Penalties', ids: ['penaltyTeam', 'penaltyFoul'] },
+    { group: 'Penalties', ids: ['penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase'] },
   ]);
 
   /** Distance bands over the charted distance; the one grouping this module
@@ -269,7 +273,12 @@ export class ReportBuilder {
           byValue.get(value).push(play);
         }
       }
-      groups = [...byValue].map(([value, members]) => ({ value, plays: members }));
+      // A penalty group measures only its own records: a play with Holding
+      // and a Personal Foul counts once in each foul's row, with that foul's
+      // yards (StudyQuery's record-scoped rule).
+      const scope = StudyQuery.PENALTY_RECORD_FILTER[dimension];
+      groups = [...byValue].map(([value, members]) => ({ value, plays: scope ? members.map(play => ReportBuilder._withPenalties(play,
+        PenaltyModel.normalizeList(play?.penalties).filter(penalty => scope(penalty, value)))) : members }));
       if (dimension === 'game') {
         const order = Object.keys(labels);
         groups.sort((a, b) => order.indexOf(String(a.value)) - order.indexOf(String(b.value)));
@@ -282,6 +291,14 @@ export class ReportBuilder {
       }
     }
     return groups.map(group => ({ ...group, label: ReportBuilder.valueLabel(dimension, group.value, labels) }));
+  }
+
+  /** A shallow copy of a play with only some of its penalty records, keeping
+   *  its game id for film refs. */
+  static _withPenalties(play, penalties) {
+    const copy = { ...play, penalties };
+    Object.defineProperty(copy, '__gid', { value: play.__gid, configurable: true, enumerable: false });
+    return copy;
   }
 
   /** A value as a coach reads it: 3rd, Q2, or the game's opponent. */
@@ -313,6 +330,18 @@ export class ReportBuilder {
     if (entry.kind === 'count') {
       const n = plays.length;
       return { ...base, value: n, n, refs: this._refs(plays), state: n ? (n < minSample ? 'insufficient' : 'ok') : 'unavailable' };
+    }
+    if (entry.kind === 'share') {
+      // Run % / Pass % of the plays classified run or pass, on any unit
+      // (StatsEngine.isRun / isPass). compute()'s tendencies are offense-only.
+      const SE = this.stats.constructor;
+      const runs = plays.filter(play => SE.isRun(play)), passes = plays.filter(play => SE.isPass(play));
+      const n = runs.length + passes.length, mine = entry.share === 'run' ? runs : passes;
+      return { ...base, value: n ? +(mine.length / n * 100).toFixed(1) : null, n, refs: this._refs(mine),
+        state: n ? (n < minSample ? 'insufficient' : 'ok') : 'unavailable' };
+    }
+    if (entry.offenseOnly && unit !== 'offense') {
+      return { ...base, value: null, n: 0, refs: [], state: 'unavailable', reason: 'Offense only' };
     }
     if (entry.kind === 'concept' || entry.kind === 'metric') {
       if (entry.kind === 'concept' && unit !== 'offense' && unit !== 'defense') {
@@ -391,11 +420,12 @@ export class ReportBuilder {
     if (widget.view === 'matrix') {
       const rowGroups = this.groups(cohort, widget.dimension, labels).slice(0, widget.limit);
       const colGroups = this.groups(cohort, widget.dimension2, labels).slice(0, 8);
+      const key = play => `${play.__gid}::${play.id}`;
       const rows = rowGroups.map(group => ({
         value: group.value, label: group.label,
         cells: colGroups.map(col => {
-          const values = new Set(col.plays);
-          return { value: col.value, ...this.measure(widget.metric, group.plays.filter(play => values.has(play)), options) };
+          const members = new Set(col.plays.map(key));
+          return { value: col.value, ...this.measure(widget.metric, group.plays.filter(play => members.has(key(play))), options) };
         }),
       }));
       return { ...head, metricName, rows, columns: colGroups.map(col => ({ value: col.value, label: col.label })),

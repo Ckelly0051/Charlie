@@ -170,8 +170,12 @@ r = await page.evaluate(async () => {
 });
 ok(r.stored === 'offense' && await unitCell(2) === 'Offense' && r.filter === '', 'a later choice in Chart wins, and the Unit cell shows it; the filter stays put', JSON.stringify(r));
 const e2 = await editUnit(4, 'Special Teams');
+const unitAsk = await page.evaluate(() => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].map(b => b.textContent.trim()).join());
+await page.evaluate(() => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === 'Change unit')?.click());
+await settle(page);
 r = await page.evaluate(() => ({ stored: window.app.tagger.getPlay(4).tags.unit, formationFamily: window.app.tagger.getPlay(4).tags.formationFamily }));
-ok(r.stored === 'special' && r.formationFamily === '', 'setting Special Teams in the table strips the look fields, as Chart does', JSON.stringify(r));
+ok(unitAsk === 'Cancel,Change unit' && r.stored === 'special' && r.formationFamily === '',
+  'setting Special Teams in the table asks before removing the charted look, then strips it as Chart does', JSON.stringify({ unitAsk, ...r }));
 
 console.log('\n== 4. Filters are labeled filters, and a filter never writes ==');
 r = await page.evaluate(async () => {

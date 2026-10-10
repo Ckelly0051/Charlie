@@ -105,10 +105,21 @@ await page.evaluate(() => {
   app.tagger.selectPlay(1);
   app.storage.commitActive();
 });
+// Chart writes the open play's draft; until Save, only the game's recovery
+// copy changes (GRIDIRON-IQ-SAVE-CONTRACT.md).
 before = await snapshot();
 await page.evaluate(() => {
   const app = window.app;
   app.tagger.setTagValue('formationFamily', 'I-Form');
+  app.storage.commitActive();
+});
+after = await snapshot();
+audit = auditSeasonOperation(before, after, ['games.diff-g2.chartDraft']);
+ok(audit.unexpected.length === 0 && audit.changed.join('|') === 'games.diff-g2.chartDraft',
+  'an unsaved tag edit changes only the game\'s recovery copy', JSON.stringify(audit));
+await page.evaluate(() => {
+  const app = window.app;
+  app.tagger.saveDraft();
   app.storage.commitActive();
 });
 after = await snapshot();

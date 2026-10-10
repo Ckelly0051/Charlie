@@ -168,8 +168,10 @@ its ruling, and any penalty is resolved.
 and result like a scrimmage snap: the offensive options on Try, the defensive
 options on Defending a Try, with that side's player roles. They are exempt from
 the look strip (§8), Film Room locks none of their cells, and the unit stays
-Special Teams. Switching back to Kick XP hides the run/pass detail; saving the
-play keeps only what a kicked try shows (GRIDIRON-IQ-SAVE-CONTRACT.md).
+Special Teams. Switching back to Kick XP is a parent change: it asks first when
+it would remove charted run/pass detail, then saves the kicked try without it
+(GRIDIRON-IQ-SAVE-CONTRACT.md). Changing the Special Teams unit works the same
+way for the event's charted details.
 They are **kept out of every analytics cohort** (coach, 2026-09-27): no yards,
 success rate, player line or tendency. `compute()` excludes them from the
 classified cohort, and `StatsEngine.countsFootballRoles` refuses every try, so
