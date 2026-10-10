@@ -128,6 +128,20 @@ change and would bury the feature in a very large diff.
   `c28e7e26`; the comp now renders without its film frame. The comp is not a
   registered canonical artifact. Not fixed.
 
+## Coach decisions to build (2026-10-10, with the Codex review batch)
+
+- **Missed tackles after a turnover**: an offensive snap ending in a turnover
+  also names our missed tacklers (as on defense).
+- **Both teams' tacklers after a takeaway**: a play can hold our tackler(s)
+  and the opponent's (e.g. our defender strip-sacks, their QB tackles him), so
+  a turnover play gets a box for ours and one for theirs.
+- **Study's Tackler role** includes kick coverage and offensive turnover
+  tackles, like Players.
+- Decided, already built: the Defense board's player lines count turnover
+  tackles; a Fake punt or field goal charts Play & Result; Use Play is the
+  play-call confirmation and replaces only the fields the call has defaults
+  for (current behavior, no prompt).
+
 ## Coach decisions pending
 
 - **Focus ring color.** `--gi-focus` resolves to blue (`--gi-9`) app-wide;
