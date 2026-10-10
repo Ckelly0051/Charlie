@@ -59,7 +59,7 @@ function NativeReportsRoute({ screen }) {
           <span>Team</span>
           <select data-reports-opponent-select onChange={e => screen.scoutOpponent(e.currentTarget.value)}></select>
         </label>
-        <button type="button" class="gi-reports-command" data-rp-action="dashboards" aria-label="Dashboards" title="Dashboards" onClick={() => screen.openDashboards()}><Icon name="chart" />Dashboards</button>
+        <button type="button" class="gi-reports-command is-feature" data-rp-action="dashboards" aria-label="Dashboards" title="Dashboards" onClick={() => screen.openDashboards()}><Icon name="chart" />Dashboards</button>
         <button type="button" class="gi-reports-command" id="btnScoutOpp" data-rp-action="scout" aria-label="Scout opponent" title="Scout opponent" onClick={() => screen.scoutOpponent()}><Icon name="scan" />Scout opponent</button>
       </div>
     </div>

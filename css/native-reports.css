@@ -34,6 +34,10 @@
   transition:background var(--gi-quick),border-color var(--gi-quick);
 }
 .gi-reports-command:hover,.gi-reports-back:hover{background:var(--gi-4);border-color:var(--gi-8)}
+/* Dashboards, the coach's own reports, is called out in the blue accent. */
+.gi-reports-command.is-feature{border-color:var(--gi-9);background:var(--gi-9);color:var(--gi-12)}
+.gi-reports-command.is-feature:hover{border-color:var(--gi-10);background:var(--gi-10)}
+.gi-reports-command.is-feature:active{filter:brightness(.88)}
 .gi-reports-command:focus-visible,.gi-reports-back:focus-visible,.gi-reports-tab:focus-visible,.gi-reports-segment button:focus-visible,.gi-reports-menu button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .gi-reports-icon{width:15px;height:15px;flex:0 0 auto}
 .gi-reports-export{position:relative}.gi-reports-export summary{list-style:none}.gi-reports-export summary::-webkit-details-marker{display:none}
