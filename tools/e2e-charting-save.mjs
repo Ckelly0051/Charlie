@@ -158,6 +158,16 @@ try {
   await clickDialog('Save');
   const note = await page.evaluate(() => window.app.tagger.getPlay(2).notes);
   ok(note === 'quick note', 'Save stores the note', note);
+  const typed = await page.evaluate(() => {
+    const app = window.app, t = app.tagger;
+    app.nativeTagging.setNotes('a'); app.nativeTagging.setNotes('ab');
+    t.undoDraft(); const blank = t.getCurrentPlay().notes || '';
+    app.nativeTagging.setNotes('c'); t.undoDraft();
+    const out = { blank, afterUndo: t.getCurrentPlay().notes || '' };
+    t.discardDraft();
+    return out;
+  });
+  ok(typed.blank === '' && typed.afterUndo === '', 'typing right after Undo is its own step: Undo removes it', typed);
 
   console.log('\n== Values the app fills in ==');
   await select(2);

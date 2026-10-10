@@ -51,7 +51,7 @@ removes what a play cannot show.
   play, Previous, Skip, Next or Previous clip, switching game or season, a Film
   Room edit of that play, and closing the window (Cancel, Discard or Save).
   Escape is Stay. A typed note is unsaved from its first keystroke; a run of
-  keystrokes is one Undo step.
+  keystrokes is one Undo step, and typing after Undo or Redo starts a new one.
 - **Undo** steps through the open play's unsaved changes first, then the saved
   history. Each step keeps which values the app filled in, so undoing a coach
   edit of a filled-in value makes it filled-in again. Selecting a play does not add an Undo step.

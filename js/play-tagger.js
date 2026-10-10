@@ -601,6 +601,8 @@ export class PlayTagger {
     const draft = this.draft;
     const values = JSON.parse(json);
     draft.auto = new Set(auto);
+    // Typing after Undo or Redo starts its own step.
+    draft.group = null;
     PlayTagger.DRAFT_FIELDS.forEach((field, index) => {
       if (values[index] === null) delete draft.play[field];
       else draft.play[field] = values[index];
