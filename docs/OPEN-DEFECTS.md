@@ -123,6 +123,14 @@ change and would bury the feature in a very large diff.
 
 ## Stale references found in passing
 
+- Left by the 2026-10-10 save change (fix in the batch):
+  `GRIDIRON-IQ-SAVE-CONTRACT.md` §2 says the recovery copy is in browser
+  storage (`giq_chart_draft`); it is the game's `chartDraft`.
+  `tools/e2e-st-try-charting.mjs:11` says switching to Kick XP asks, then
+  clears; it no longer asks. `js/play-tagger.js` `clearCurrentTags` doc says
+  it clears the on-screen form and stored tags; it clears the open draft.
+  `js/notes-manager.js` `setNotes` doc says it keeps the canonical play
+  current; it writes the open draft.
 - `design-comps/breakdown-visual-finish-2026-09-28/index.html` loads
   `../../ux-prototype/assets/all22-frame.png`, deleted with `ux-prototype/` in
   `c28e7e26`; the comp now renders without its film frame. The comp is not a
