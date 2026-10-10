@@ -47,7 +47,6 @@ try {
   await gotoApp(page, APP_URL);
   await page.evaluate(async () => {
     const app = window.app;
-    try { localStorage.removeItem('giq_chart_draft'); } catch (e) {}
     await app.storage.createSeason({ name: 'Charting Save', team: 'CS', year: '2026' });
     const game = app.storage.seasonStore.activeGame();
     const base = { players: {}, grades: {}, custom: [], customFields: {} };
@@ -149,10 +148,25 @@ try {
   await page.evaluate(() => window.app.tagger.setTagValue('yardage', '40')); await settle();
   const report = await page.evaluate(() => window.app.tagger.plays.find(p => p.id === 2).tags.yardage);
   ok(report === '4', 'an unsaved Yards edit is not in the plays the reports read', report);
-  const recovery = await page.evaluate(() => JSON.parse(localStorage.getItem('giq_chart_draft') || 'null'));
-  ok(recovery?.id === 2 && /40/.test(recovery.charting), 'the unsaved draft is kept for recovery', recovery);
+  const recovery = await page.evaluate(() => { const app = window.app; app.storage.commitActive(); return app.storage.seasonStore.activeGame().chartDraft || null; });
+  ok(recovery?.id === 2 && /40/.test(recovery.charting), 'the unsaved draft is saved with its game for recovery, apart from the plays', recovery);
+  const offered = await page.evaluate(async () => {
+    const app = window.app, t = app.tagger;
+    // A relaunch: the game loads with its recovery copy and the play opens.
+    const game = app.storage.seasonStore.activeGame();
+    t.draft = null; t.recovery = null;
+    app.storage._deserialize(game);
+    t.selectPlay(2); t.getCurrentPlay();
+    await new Promise(r => setTimeout(r, 200));
+    const buttons = [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].map(b => b.textContent.trim());
+    [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === 'Restore')?.click();
+    await new Promise(r => setTimeout(r, 200));
+    return { buttons, restored: t.getCurrentPlay().tags.yardage, stored: t.getPlay(2).tags.yardage, dirty: t.hasUnsavedChanges() };
+  });
+  ok(offered.buttons.join() === 'Discard,Restore' && offered.restored === '40' && offered.stored === '4' && offered.dirty,
+    'reopening the play offers Restore; restoring brings the change back unsaved', offered);
   await click('[data-native-save]');
-  const cleared = await page.evaluate(() => localStorage.getItem('giq_chart_draft'));
+  const cleared = await page.evaluate(() => { const app = window.app; app.storage.commitActive(); return app.storage.seasonStore.activeGame().chartDraft ?? null; });
   ok(cleared === null, 'saving clears the recovery copy');
 
   console.log('\n== Turnover tacklers and tackle credit ==');

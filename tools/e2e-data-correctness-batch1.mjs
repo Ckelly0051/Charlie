@@ -321,9 +321,9 @@ const result = await page.evaluate(async () => {
   out.attemptRouteRefused = tagging.specialAction('attempt', 'extraPoint') === false;
   out.attemptKeyGone = app.breakdownCharting.specialAction('stAttempt', 'extraPoint') === false;
   out.attemptAfterRefusal = play1.specialTeams?.attemptType || null;
-  // The seeded attempt type is the unit's definition, not charted detail, so
-  // switching units off an untouched field goal must not warn about data loss.
-  out.untouchedHasNoDetails = app.breakdownCharting._hasSpecialDetails(play1.specialTeams) === false;
+  // Switching units never asks: the unit left waits in the draft until Save.
+  out.untouchedHasNoDetails = (await app.breakdownCharting.setSpecialUnit('punt')) === true
+    && !document.querySelector('.gi-overlay-layer.is-modal');
   taggerStub.getCurrentPlay = realGet;
   taggerStub._emit = realEmit;
 

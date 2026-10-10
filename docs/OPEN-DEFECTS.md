@@ -12,39 +12,24 @@ intermittent scrubbing defect deferred. Packaged-asset inspection passed.
 The smoke record and completed build checklist are in `SMOKE-1.12.0-113.md`.
 Installed smoke does not change the design approval registry.
 
-## Open defects
+## Built, not yet packaged
 
-- **Charted values persist after the play can no longer show them**
-  (coach, 2026-10-10: top priority; "the play needs to be recorded as it is
-  charted"). Changing a parent (unit, Special Teams type, a try's attempt type)
-  keeps child values the new state hides; only the look fields
-  (`SeasonStore.ST_ALIGNMENT_KEYS`) are stripped. Reports keep counting some
-  of them (the Players vs Defense board tackle mismatch below is one). Chart and
-  Film Room also disagree on what a Special Teams play holds: Chart hides Play &
-  Result, Film Room edits Result, Yards, Run/Pass, Play Type and Direction on
-  it. Live library, read-only copy, 1,088 plays (2026-10-10): 17 plays hold a
-  player role their state cannot show (3 offensive Tacklers with no turnover, 8
-  Ball Carriers on non-Run/Pass tries, 3 Tacklers on returns, 1 kickoff Passer,
-  2 on untyped Special Teams); Special Teams plays that are not Run/Pass tries
-  hold Result 47, Yards 24, Run/Pass 2, Direction 2, Play Type 1, Motion 1.
-  Coach: an offensive snap ending in a turnover opens Tackler(s). Proposed,
-  awaiting coach: a parent change on a charted play confirms first (Cancel
-  default) and removes what the new state cannot hold in one undoable write. Existing values need
-  per-group coach review and confirmation; nothing written.
-- **Players and the Defense board count some tackles differently.** Canonical
-  2025 JV: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7 (Players > Tackles vs Defense >
-  Defensive player contributions). Cause (coach confirmed 2026-10-10): Players
-  credits a Tackler on any snap (`StatsEngine._playerCredits`); the Defense
-  board reads only defensive snaps and kick coverage. Each extra tackle is a
-  Tackler left on an offensive snap with no turnover (fixture ND Prep plays 8
-  and 79; live Varsity 2026 OL Lakes 71 and 79, Holy Family 3). The offense
-  deck has no Tackler row, so the value is hidden; a unit change does not clear
-  player fields. Rule (coach): an offensive snap's tackle counts only after a
-  turnover, so the fix is not a blanket defense-only gate. Pending coach
-  decisions: whether the Defense board's player lines count post-turnover
-  tackles, whether a missed tackle after a turnover counts, and Chart then
-  needs a Tackler(s) row on offense after an interception or lost fumble. No
-  coach data changed.
+- **Chart saves only what a play shows** (coach, 2026-10-10;
+  `GRIDIRON-IQ-SAVE-CONTRACT.md`). Chart edits a draft; Save (new button, Save
+  & Next) stores exactly what Chart shows; a unit, Special Teams unit or try
+  attempt change never asks and is undone by switching back before Save;
+  leaving a play with unsaved changes asks Stay / Discard / Save, including
+  closing the window; the unsaved draft is saved with its game for recovery.
+  Film Room locks what a play cannot show and settles each edit. An offensive
+  snap ending in an interception or lost fumble opens Tackler(s). Players and
+  the Defense board credit the same tackles: the canonical 2025 JV mismatch
+  (#5 41 vs 40, #7 22 vs 21, #82 8 vs 7) is gone. Existing hidden values are
+  the coach's to re-chart: `docs/HIDDEN-VALUES-LIST.md` (50 plays). Smoke:
+  chart a defensive play with a tackler, switch to Offense and back, then
+  Offense and Save; click another play with unsaved changes; close the window
+  with unsaved changes; reopen after Discard.
+
+## Open defects
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does

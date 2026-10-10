@@ -16,7 +16,7 @@ This file is the binding rules only. Read the others when the task needs them:
 | Home, scouts, film health | `docs/HOME-CONTRACTS.md` |
 | Shared palette, type, navigation | `docs/VISUAL-SYSTEM-RULES.md` |
 | Architecture and module map | `AGENTS.md` |
-| Football models | `GRIDIRON-IQ-TAG-MODEL.md`, `-PENALTY-MODEL.md`, `-SPECIAL-TEAMS-MODEL.md`, `-PLAY-CALL-MODEL.md`, `-WORKSPACE-CONTRACT.md`, `-OVERLAY-SPEC.md` |
+| Football models | `GRIDIRON-IQ-TAG-MODEL.md`, `-PENALTY-MODEL.md`, `-SPECIAL-TEAMS-MODEL.md`, `-PLAY-CALL-MODEL.md`, `-WORKSPACE-CONTRACT.md`, `-OVERLAY-SPEC.md`, `-SAVE-CONTRACT.md` |
 | Product direction | `GRIDIRON-IQ-PLAN-V2.md` |
 | Desktop packaging | `TAURI.md` |
 | Release cadence, smoke checklist and record | `docs/RELEASE.md` |
@@ -80,6 +80,7 @@ Change behavior at its owner, not at a consumer.
 | Gap, motion path, RPO, QB-run details | `js/charting-details.js` |
 | Penalties, Special Teams | `js/penalty-model.js`, `js/special-teams.js` |
 | Missed tackles (counts, which unit charts what) | `js/missed-tackles.js` |
+| What a play can hold; Chart's draft and Save | `js/play-shape.js`, `js/play-tagger.js` (`GRIDIRON-IQ-SAVE-CONTRACT.md`) |
 
 No test-only production API: nothing publishes engine classes on `globalThis`
 (`e2e-p0-exit`, `tools/audit-shell-deps.mjs`). A harness imports the owning
@@ -131,6 +132,13 @@ season, pointer and bytes untouched. Attribution reads the selected season's
 roster (`SeasonManager._mergeRoster()`).
 
 **Charting model**
+- **A play stores exactly what Chart shows** (coach, 2026-10-10). Chart edits a
+  draft; the stored play, reports and disk change only on Save, which drops
+  what the play cannot show (`PlayShape.settle`). A parent change (unit,
+  Special Teams unit, try attempt) never asks and loses nothing before Save.
+  Leaving a play with unsaved changes asks Stay / Discard / Save. Every other
+  write (Film Room, imports) settles the play it writes
+  (`GRIDIRON-IQ-SAVE-CONTRACT.md`).
 - A play's unit has one reading, `countedUnit()` (stored unit, offense when
   blank), and one write, `PlayTagger.setPlayUnit`, shared by Chart and Film
   Room's Unit column (last write wins). The carried `defaultUnit` seeds only a

@@ -117,11 +117,12 @@ r = await page.evaluate(async () => {
   const app = window.app;
   app.tagger.defaultUnit = 'defense';
   const done = app.nativeTagging.setUnit('defense');
+  app.nativeTagging.save();
   await new Promise(res => setTimeout(res, 60));
   return { done, stored: app.tagger.getPlay(4).tags.unit, grid: app.nativeFilmRoom.snapshot().rows.find(x => x.id === 4)?.unit ?? null, deck: app.nativeTagging.snapshot().unit };
 });
 ok(r.done && r.stored === 'defense' && r.deck === 'defense',
-  'choosing Defense in Chart writes it even when Defense was the carried unit', JSON.stringify(r));
+  'choosing Defense in Chart and saving writes it even when Defense was the carried unit', JSON.stringify(r));
 
 console.log('\n== 3. The Unit column: edited in the row, equal to Chart (last write wins) ==');
 const unitCell = id => page.evaluate(i => document.querySelector(`[data-cell="${i}:unit"]`)?.textContent.trim() ?? null, id);
@@ -163,6 +164,7 @@ ok(r.filter === '', 'editing a unit never moves the filter', JSON.stringify(r));
 r = await page.evaluate(async () => {
   const app = window.app;
   app.nativeTagging.setUnit('offense');
+  app.nativeTagging.save();
   await new Promise(res => setTimeout(res, 80));
   return { stored: app.tagger.getPlay(2).tags.unit, filter: app.playGrid.f.unit };
 });
@@ -223,7 +225,7 @@ r = await page.evaluate(async () => {
   const g = app.storage.seasonStore.activeGame();
   const blank = { id: 90, timestamp: { start: 450, end: 454 }, notes: '', annotations: [], tags: { unit: 'offense', custom: [], players: {}, grades: {} } };
   t.plays.push(blank);
-  t.selectPlay(2); t.setChartingUnit('defense');
+  t.selectPlay(2); t.setChartingUnit('defense'); t.saveDraft();
   const calls = [];
   const original = t.setPlayUnit.bind(t);
   t.setPlayUnit = (play, unit) => { calls.push([play.id, unit]); return original(play, unit); };
@@ -232,9 +234,11 @@ r = await page.evaluate(async () => {
   t.plays.splice(idx + 1, 0, t.plays.splice(t.plays.indexOf(blank), 1)[0]);
   t.nextPlayWithSituation();
   t.setPlayUnit = original;
+  // Save & Next fills the carried unit in on screen; it is stored when saved.
+  t.saveDraft();
   const stored = t.getPlay(90).tags.unit;
   t.plays = t.plays.filter(p => p.id !== 90);
-  t.selectPlay(2); t.setChartingUnit('offense');
+  t.selectPlay(2); t.setChartingUnit('offense'); t.saveDraft();
   return { calls, stored };
 });
 ok(r.stored === 'defense' && r.calls.some(([id, unit]) => id === 90 && unit === 'defense'),
@@ -251,6 +255,7 @@ r = await page.evaluate(async play => {
   document.activeElement?.blur?.();
   const handled = document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', key: 'c', bubbles: true, cancelable: true }));
   await new Promise(res => setTimeout(res, 40));
+  t.saveDraft();
   const out = { handled, stored: t.getPlay(play.id).tags.unit, formationFamily: t.getPlay(play.id).tags.formationFamily };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
@@ -263,6 +268,7 @@ r = await page.evaluate(async play => {
   document.activeElement?.blur?.();
   document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1', key: '1', bubbles: true, cancelable: true }));
   await new Promise(res => setTimeout(res, 40));
+  t.saveDraft();
   const out = { special: t.getPlay(play.id).specialTeams || null, unit: t.getPlay(play.id).tags.unit };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
@@ -274,6 +280,7 @@ r = await page.evaluate(async play => {
   const confirm = t._confirmDialog; t._confirmDialog = async () => true;
   await t.clearCurrentTags();
   t._confirmDialog = confirm;
+  t.saveDraft();
   const out = { stored: t.getPlay(play.id).tags.unit };
   t.plays = t.plays.filter(x => x.id !== play.id);
   return out;
@@ -284,6 +291,7 @@ r = await page.evaluate(async ([prev, next]) => {
   next.tags = { unit: 'offense', formationFamily: '', custom: [], players: {}, grades: {} };
   t.plays.push(prev, next); t.selectPlay(prev.id); t.defaultUnit = 'special';
   t.nextPlayWithSituation();
+  t.saveDraft();
   const out = { current: t.currentPlayId, stored: t.getPlay(next.id).tags.unit };
   t.plays = t.plays.filter(x => x.id !== prev.id && x.id !== next.id);
   return out;

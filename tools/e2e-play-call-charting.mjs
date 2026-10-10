@@ -64,7 +64,8 @@ let state = await page.evaluate(async () => {
     values: { formationFamily: play.tags.formationFamily, backfield: play.tags.backfield, strength: play.tags.strength,
       runPass: play.tags.runPass, playType: play.tags.playType, playDir: play.tags.playDir },
     appliedText: field.querySelector('.gi-play-call-defaults')?.textContent || '',
-    history: app.history.stack.length,
+    // Chart's change is one step of the open play's unsaved changes.
+    history: app.tagger.draft.steps.length,
   };
 });
 ok(state.label === 'Play Call' && state.favorite, 'Self-scout offense shows Play Call with favorite access', JSON.stringify(state));
@@ -81,12 +82,13 @@ await page.evaluate(() => {
   app.nativeTagging.setField('playDir', 'Middle');
   app.nativeTagging.setField('personnel', '11');
   app.history.reset();
+  window.__steps = app.tagger.draft.steps.length;
   app.nativeTagging.selectPlayCall('24 Iso');
 });
 await new Promise(resolve => setTimeout(resolve, 50));
 state = await page.evaluate(() => {
   const after = structuredClone(app.tagger.getCurrentPlay().tags);
-  const entries = app.history.stack.length;
+  const entries = app.tagger.draft.steps.length - window.__steps;
   app.history.undo();
   const undone = structuredClone(app.tagger.getCurrentPlay().tags);
   app.history.redo();
@@ -104,6 +106,7 @@ ok(state.entries === 1 && state.undone.playCall === '26 Blast' && state.undone.p
   'Call change undoes and redoes as one complete transaction', JSON.stringify(state));
 
 state = await page.evaluate(async () => {
+  app.tagger.saveDraft();
   app.tagger.selectPlay(2);
   app.nativeTagging.selectPlayCall('Counter GT');
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -126,6 +129,7 @@ ok(state.label === 'Opponent Play', 'Opponent scout uses the football-correct Op
 
 state = await page.evaluate(() => {
   app.gameContext.update({ perspective: 'self' });
+  app.tagger.saveDraft();
   app.tagger.selectPlay(3);
   app.history.stack = []; app.history.index = -1;
   const columns = app.playGrid.nativeSnapshot().allColumns;

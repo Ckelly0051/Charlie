@@ -28,14 +28,17 @@ await page.evaluate(async () => {
   store.setActive(game.id); await store.persist(); await app.storage._loadActiveGame();
   app.tagger.selectPlay(1); await app.workspaceShell.show('breakdown');
   app.history.reset();
+  // Chart edits a draft (GRIDIRON-IQ-SAVE-CONTRACT.md): an undoable write is a
+  // step of the open play's unsaved changes until Save makes it a history entry.
+  window.__resetSteps = () => { app.history.reset(); window.__mark = app.tagger.getCurrentPlay() ? app.tagger.draft.steps.length : 0; };
 });
 await sleep(400);
 
 // Helpers run in the page.
 const P = {
   tags: () => page.evaluate(() => JSON.parse(JSON.stringify(window.app.tagger.getCurrentPlay().tags))),
-  select: id => page.evaluate(id => { window.app.tagger.selectPlay(id); window.app.history.reset(); }, id),
-  entries: () => page.evaluate(() => window.app.history.stack.length),
+  select: id => page.evaluate(id => { window.app.tagger.saveDraft(); window.app.tagger.selectPlay(id); window.__resetSteps(); }, id),
+  entries: () => page.evaluate(() => window.app.history.stack.length + (window.app.tagger.draft?.steps.length || 0) - (window.__mark || 0)),
   chip: (field, label) => page.evaluate((field, label) => {
     const group = document.querySelector(`[data-native-tagging] [data-native-field="${field}"]`);
     const button = group && [...group.querySelectorAll('button')].find(b => b.textContent.trim() === label);
@@ -103,7 +106,7 @@ console.log('\n== 3. Gap sits under Play Direction and is independent ==');
   ok(geo.directlyBelow, 'the Gap field opens immediately below Play Direction');
   ok(geo.labels.join() === 'L-A,L-B,L-C,L-D,R-A,R-B,R-C,R-D,Center,Other', 'ten choices in the approved order', geo.labels.join());
   ok(geo.rows === 1 && geo.overflow <= 1 && !geo.clipped, 'the ten choices sit in one desktop row without clipping', JSON.stringify(geo));
-  await page.evaluate(() => window.app.history.reset());
+  await page.evaluate(() => window.__resetSteps());
   await P.chip('gap', 'L-B'); await settle();
   let t = await P.tags();
   ok(t.gap === 'L-B' && t.playDir === 'Right', 'Gap preserves the existing Right Direction', JSON.stringify([t.gap, t.playDir]));
@@ -115,12 +118,12 @@ console.log('\n== 3. Gap sits under Play Direction and is independent ==');
   await P.chip('gap', 'Other'); await settle(); t = await P.tags();
   ok(t.gap === 'Other' && t.playDir === 'Right', 'Other leaves the direction alone');
   await P.chip('gap', 'L-C'); await settle();
-  await page.evaluate(() => window.app.history.reset());
+  await page.evaluate(() => window.__resetSteps());
   await P.chip('playDir', 'Middle'); await settle(); t = await P.tags();
   ok(t.playDir === 'Middle' && t.gap === 'L-C' && (await P.dialog()) === null, 'Middle preserves a lateral Gap without a prompt', JSON.stringify(t));
   ok(await P.entries() === 1, 'and it is one undoable write');
   await P.chip('gap', 'R-A'); await settle();
-  await page.evaluate(() => window.app.history.reset());
+  await page.evaluate(() => window.__resetSteps());
   await P.chip('playDir', 'Middle'); await settle();
   let now = await P.tags();
   ok((await P.dialog()) === null, 'removing Direction never asks to remove Gap');
@@ -147,7 +150,7 @@ console.log('\n== 4. Motion path opens under Motion ==');
   ok(t.motionStart === 'Left' && t.motionEnd === 'Right' && t.motion === 'Jet', 'start and end are stored separately from the motion type', JSON.stringify([t.motion, t.motionStart, t.motionEnd]));
   await P.chip('motion', 'Orbit'); await settle(); t = await P.tags();
   ok(t.motion === 'Orbit' && t.motionStart === 'Left' && t.motionEnd === 'Right', 'changing the motion type keeps its path');
-  await page.evaluate(() => window.app.history.reset());
+  await page.evaluate(() => window.__resetSteps());
   await P.chip('motion', 'Orbit'); await settle();
   const message = await P.dialog();
   ok(!!message && /Motion start Left/.test(message) && /Motion end Right/.test(message), 'removing Motion with a path asks first and names it', String(message));
@@ -182,7 +185,7 @@ console.log('\n== 5. RPO details, and Run/Pass stays explicit ==');
   await page.evaluate(() => [...document.querySelectorAll('[data-rpo-conflict] button')].find(b => /Set Pass/.test(b.textContent))?.click());
   await settle(); t = await P.tags();
   ok(t.runPass === 'Pass' && !(await page.evaluate(() => document.querySelector('[data-rpo-conflict]'))), 'the correction sets Run/Pass on request and the warning clears');
-  await page.evaluate(() => window.app.history.reset());
+  await page.evaluate(() => window.__resetSteps());
   await P.chip('playType', 'RPO'); await settle();
   const message = await P.dialog();
   ok(!!message && /RPO read Apex/.test(message) && /RPO defender 24/.test(message) && /RPO decision Throw/.test(message), 'removing RPO with details asks first and names them', String(message));
@@ -359,12 +362,13 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
   t = await P.tags();
   ok(t.formationFamily === '' && t.receiverSet === '3x1' && !(await P.dialog()), 'clearing Formation keeps Receiver Alignment without a confirmation');
   const r = await page.evaluate(() => {
-    const app = window.app, p = app.tagger.getCurrentPlay(), grid = app.playGrid;
-    const available = grid.nativeEditor(p.id, 'receiverSet') !== null;
-    grid.nativeCommitEdit(p.id, 'formationFamily', 'Bunch');
-    grid.nativeCommitEdit(p.id, 'receiverSet', '1x3');
-    grid.nativeCommitEdit(p.id, 'strength', 'Balanced');
-    return { available, tags: p.tags };
+    const app = window.app, id = app.tagger.currentPlayId, grid = app.playGrid;
+    app.tagger.saveDraft();
+    const available = grid.nativeEditor(id, 'receiverSet') !== null;
+    grid.nativeCommitEdit(id, 'formationFamily', 'Bunch');
+    grid.nativeCommitEdit(id, 'receiverSet', '1x3');
+    grid.nativeCommitEdit(id, 'strength', 'Balanced');
+    return { available, tags: app.tagger.getPlay(id).tags };
   });
   ok(r.available && r.tags.formationFamily === 'Bunch' && r.tags.receiverSet === '1x3' && r.tags.strength === 'Balanced', 'Film Room edits independent formation and strengths');
   const carry = await page.evaluate(() => window.app.tagger.constructor.CARRY_SCHEME_KEYS);
@@ -390,9 +394,9 @@ console.log('\n== 9. Special Teams keeps no offensive look ==');
 {
   await P.select(1);
   await page.evaluate(() => { window.app.tagger.getCurrentPlay().tags.formationFamily = 'Spread'; window.app.tagger.getCurrentPlay().tags.receiverSet = '3x1'; });
-  await page.evaluate(() => window.app.nativeTagging.setUnit('special')); await settle();
-  const t = await P.tags();
-  ok(t.formationFamily === '' && t.receiverSet === '' && !t.receiverLook && !t.strength, 'a Special Teams play holds no offensive look fields', JSON.stringify(t));
+  await page.evaluate(() => { window.app.nativeTagging.setUnit('special'); window.app.nativeTagging.save(); }); await settle();
+  const t = await page.evaluate(() => JSON.parse(JSON.stringify(window.app.tagger.getPlay(1).tags)));
+  ok(t.formationFamily === '' && t.receiverSet === '' && !t.receiverLook && !t.strength, 'a Special Teams play saves with no offensive look fields', JSON.stringify(t));
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
 }
 

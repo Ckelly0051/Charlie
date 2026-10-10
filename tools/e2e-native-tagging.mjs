@@ -1,3 +1,4 @@
+/* Chart edits a draft (GRIDIRON-IQ-SAVE-CONTRACT.md): every switch of play, game or season and every commit below saves the open play first, as the coach would. */
 import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
@@ -28,7 +29,7 @@ const fixture=await page.evaluate(async()=>{
   const second=store.addGame();
   second.gameInfo={...(second.gameInfo||{}),opponent:'Beta',week:'2',gameType:'game',perspective:'defense',direction:'right'};
   second.plays=[{id:101,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',defFront:'4-2-5',coverage:'Cover 3',players:{},grades:{},custom:[]}}];
-  store.setActive(first.id);await store.persist();await app.storage._loadActiveGame();app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
+  store.setActive(first.id);await store.persist();await app.storage._loadActiveGame();app.tagger.saveDraft(),app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
   const before={data:JSON.stringify(store.data)};
   const mounted=!!document.querySelector('#wsBreakdown [data-native-tagging]');
   return{seasonId:store.data.id,firstId:first.id,secondId:second.id,mounted,before};
@@ -141,12 +142,12 @@ console.log('\n== 2. Context lifecycle and isolation ==');
 // what a control happens to display.
 state=await page.evaluate(()=>({titles:[...document.querySelectorAll('[data-native-tagging] .gi-tag-group>summary strong')].map(n=>n.textContent.trim()),perspective:app.storage.gameInfo.perspective,unit:document.querySelector('[data-native-context="unit"] button.is-active')?.dataset.unit}));
 ok(state.perspective==='scout'&&state.unit==='offense'&&state.titles.includes('Opponent Formation & Call'),'Native presentation names the charted football subject from stored perspective and unit',JSON.stringify(state));
-state=await page.evaluate(async secondId=>{await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:app.storage.gameInfo.perspective,direction:app.storage.gameInfo.direction,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit,control:!!root.querySelector('[data-native-context="direction"]')}},fixture.secondId);
+state=await page.evaluate(async secondId=>{app.tagger.saveDraft();await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:app.storage.gameInfo.perspective,direction:app.storage.gameInfo.direction,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit,control:!!root.querySelector('[data-native-context="direction"]')}},fixture.secondId);
 ok(state.perspective==='defense'&&state.direction==='right'&&state.opponent==='Beta'&&state.unit==='defense','Native context follows game switch without inheritance',JSON.stringify(state));
 // F2a: perspective is now written by CHANGING THE UNIT, which is the whole
 // point — one control, one click, and the perspective follows. Direction is
 // still explicit, from its new home in More Tools.
-state=await page.evaluate(async firstId=>{await app.storage.switchToGame(firstId,{persist:false});await new Promise(r=>setTimeout(r,0));const before={...app.storage.gameInfo};document.querySelector('[data-native-context="unit"] button[data-unit="offense"]').click();await new Promise(r=>setTimeout(r,0));const d=document.querySelector('[data-native-context="direction"]');d.value='right';d.dispatchEvent(new Event('change',{bubbles:true}));app.storage.commitActive();await app.storage.seasonStore.persist();return{before,after:{...app.storage.gameInfo}}},fixture.firstId);
+state=await page.evaluate(async firstId=>{app.tagger.saveDraft();await app.storage.switchToGame(firstId,{persist:false});await new Promise(r=>setTimeout(r,0));const before={...app.storage.gameInfo};document.querySelector('[data-native-context="unit"] button[data-unit="offense"]').click();await new Promise(r=>setTimeout(r,0));const d=document.querySelector('[data-native-context="direction"]');d.value='right';d.dispatchEvent(new Event('change',{bubbles:true}));(app.tagger.saveDraft(),app.storage.commitActive());await app.storage.seasonStore.persist();return{before,after:{...app.storage.gameInfo}}},fixture.firstId);
 // SCOUT IS STICKY, and this is the case that proves it. Game one is opponent
 // film: selecting Offense must NOT quietly turn it into our own game, because
 // perspective is a property of the FILM, decided at game setup. On our own
@@ -174,7 +175,7 @@ state=await page.evaluate(async()=>{
   const root=()=>document.querySelector('[data-native-tagging]');
   const click=(field,label)=>{const group=root().querySelector('[data-native-field="'+field+'"]');const button=[...group.querySelectorAll('button')].find(b=>b.textContent.trim()===label);if(!button)throw new Error('Missing native '+field+':'+label);button.click()};
   const command=label=>{const button=[...root().querySelectorAll('button')].find(b=>b.textContent.trim()===label||(label==='Save & Next'&&b.classList.contains('is-primary')));if(!button)throw new Error('Missing command '+label);button.click()};
-  app.nativeTagging.setPlayer('tackler','55, 22');app.nativeTagging.setGrade('tackler','2');app.nativeTagging.setNotes('Two tacklers preserved');
+  app.nativeTagging.setNotes('Two tacklers preserved');
   let firstConfirmed=false,firstFeedback={};
   for(let i=0;i<20;i++){
     if(app.tagger.currentPlayId!==i+1)throw new Error('Expected play '+(i+1)+', got '+app.tagger.currentPlayId);
@@ -186,21 +187,27 @@ state=await page.evaluate(async()=>{
     if(i<19){command('Save & Next');await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));if(i===0){const saved=[...root().querySelectorAll('button')].find(b=>b.classList.contains('is-primary'));firstFeedback={controller:app.nativeTagging._saveConfirmed,text:saved?.textContent,cls:saved?.className};firstConfirmed=!!saved&&saved.textContent.trim()==='Saved'&&saved.classList.contains('is-confirmed')}}
   }
   const advancedTo=app.tagger.currentPlayId;
-  app.tagger.selectPlay(1);click('formationFamily','I-Form');click('backfield','I');
-  app.tagger.selectPlay(2);click('formationFamily','Split Back');click('backfield','Split');
-  app.tagger.selectPlay(3);const yards=root().querySelector('[data-native-field="yardage"] input');yards.value='100';yards.dispatchEvent(new Event('change',{bubbles:true}));
-  app.storage.commitActive();await app.storage.seasonStore.persist();
+  app.tagger.saveDraft(),app.tagger.selectPlay(1);click('formationFamily','I-Form');click('backfield','I');
+  app.tagger.saveDraft(),app.tagger.selectPlay(2);click('formationFamily','Split Back');click('backfield','Split');
+  app.tagger.saveDraft(),app.tagger.selectPlay(3);const yards=root().querySelector('[data-native-field="yardage"] input');yards.value='100';yards.dispatchEvent(new Event('change',{bubbles:true}));
+  (app.tagger.saveDraft(),app.storage.commitActive());await app.storage.seasonStore.persist();
   return{current:advancedTo,firstConfirmed,firstFeedback,plays:app.tagger.plays.map(p=>({id:p.id,formation:p.tags.formationFamily,set:p.tags.receiverSet,qb:p.tags.qbAlignment,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage,players:p.tags.players,grades:p.tags.grades,notes:p.notes}))};
 });
 ok(state.plays.length===20&&state.plays.every(p=>(p.formation==='Power-I'||p.formation==='Spread'||p.formation==='I-Form'||p.formation==='Split Back')&&['2x1','3x1'].includes(p.set)),'All 20 plays retain their Family and Receiver Alignment selections',JSON.stringify(state.plays.slice(0,3)));
 ok(state.plays.every(p=>p.playType.includes('RPO')&&(p.playType.includes('Run Inside')||p.playType.includes('Run Outside'))&&p.result==='Gain'),'All 20 plays retain multi-select Play Type and Result',JSON.stringify(state.plays.slice(0,3)));
 ok(state.current===20,'Save & Next advances chronologically without collapse',JSON.stringify(state.current));
-ok(state.firstConfirmed&&state.plays[0].players.tackler==='55, 22'&&Number(state.plays[0].grades.tackler)===2&&state.plays[0].notes==='Two tacklers preserved','Native Save & Next preserves multi-tackler attribution, grade, notes, and gives affirmative feedback',JSON.stringify({firstConfirmed:state.firstConfirmed,feedback:state.firstFeedback,play:state.plays[0]}));
+ok(state.firstConfirmed&&state.plays[0].notes==='Two tacklers preserved','Native Save & Next preserves notes and gives affirmative feedback',JSON.stringify({firstConfirmed:state.firstConfirmed,feedback:state.firstFeedback,play:state.plays[0]}));
+// Tackler(s) is charted where the play shows it (PlayShape): a defensive snap.
+const tacklers=await page.evaluate(async()=>{const t=app.tagger;t.saveDraft();t.selectPlay(20);app.nativeTagging.setUnit('defense');
+  app.nativeTagging.setPlayer('tackler','55, 22');app.nativeTagging.setGrade('tackler','2');app.nativeTagging.saveNext();await new Promise(r=>setTimeout(r,50));
+  const p=t.getPlay(20),out={unit:p.tags.unit,tackler:p.tags.players?.tackler,grade:p.tags.grades?.tackler};
+  t.selectPlay(20);app.nativeTagging.setUnit('offense');t.saveDraft();return out;});
+ok(tacklers.unit==='defense'&&tacklers.tackler==='55, 22'&&Number(tacklers.grade)===2,'Native Save & Next preserves multi-tackler attribution and its grade on a defensive snap',JSON.stringify(tacklers));
 ok(state.plays[0].formation==='I-Form'&&state.plays[0].backfield==='I'&&state.plays[1].formation==='Split Back'&&state.plays[1].backfield==='Split','I-Form/I and Split Back/Split can be charted together without collapsing dimensions',JSON.stringify(state.plays.slice(0,2)));
 ok(String(state.plays[2].yardage)==='100','Three-digit yardage is accepted without truncation',JSON.stringify(state.plays[2]));
 await page.evaluate(()=>{window.__s5cReload='must disappear'});
 await page.reload({waitUntil:'networkidle0'});await page.waitForFunction(()=>window.app?.nativeTagging);
-state=await page.evaluate(async fixture=>{await app.storage.openSeasonById(fixture.seasonId);const game=app.storage.seasonStore.data.games.find(g=>g.id===fixture.firstId);return{fresh:!('__s5cReload'in window),plays:game.plays.map(p=>({formation:p.tags.formationFamily,set:p.tags.receiverSet,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage})),other:app.storage.seasonStore.data.games.find(g=>g.id===fixture.secondId)?.plays?.[0]?.tags}},fixture);
+state=await page.evaluate(async fixture=>{app.tagger.saveDraft();await app.storage.openSeasonById(fixture.seasonId);const game=app.storage.seasonStore.data.games.find(g=>g.id===fixture.firstId);return{fresh:!('__s5cReload'in window),plays:game.plays.map(p=>({formation:p.tags.formationFamily,set:p.tags.receiverSet,backfield:p.tags.backfield,playType:p.tags.playType,result:p.tags.result,yardage:p.tags.yardage})),other:app.storage.seasonStore.data.games.find(g=>g.id===fixture.secondId)?.plays?.[0]?.tags}},fixture);
 ok(state.fresh&&state.plays.length===20&&state.plays.every(p=>['Power-I','Spread','I-Form','Split Back'].includes(p.formation)&&p.playType.includes('RPO')&&p.result==='Gain'),'Canonical persist and relaunch preserve the 20-play session',JSON.stringify(state.plays.slice(0,2)));
 ok(state.plays[0].formation==='I-Form'&&state.plays[0].backfield==='I'&&state.plays[1].formation==='Split Back'&&state.plays[1].backfield==='Split'&&String(state.plays[2].yardage)==='100','Canonical reload preserves dual-dimension formations and three-digit yardage',JSON.stringify(state.plays.slice(0,3)));
 ok(state.other?.defFront==='4-2-5'&&state.other?.coverage==='Cover 3','Charting session leaves the other game byte-semantically isolated',JSON.stringify(state.other));
@@ -212,7 +219,7 @@ console.log('\n== 4. Structured football workflows ==');
 // task starts from a SYNCHRONOUS evaluate, the harness polls a completion flag, a
 // page-task error is re-thrown, and the result is read back. Assertions unchanged.
 await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window.__s4State=null;(async fixture=>{
-  console.log('S4: switching game');await app.storage.switchToGame(fixture.firstId,{persist:false});console.log('S4: game switched');app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');console.log('S4: breakdown shown');
+  console.log('S4: switching game');app.tagger.saveDraft();await app.storage.switchToGame(fixture.firstId,{persist:false});console.log('S4: game switched');app.tagger.saveDraft(),app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');console.log('S4: breakdown shown');
   const root=()=>document.querySelector('[data-native-tagging]');
   const button=label=>{const found=[...root().querySelectorAll('button')].find(b=>b.textContent.trim()===label);if(!found)throw new Error('Missing native button '+label+' among '+[...root().querySelectorAll('button')].map(b=>b.textContent.trim()).join('|'));return found};
   app.nativeTagging.setUnit('special');await new Promise(r=>setTimeout(r,30));console.log('S4: special unit set');
@@ -226,7 +233,7 @@ await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
   button('Draw').click();button('Clear').click();button('Set OCR Region').click();button('Read Scoreboard').click();
-  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');window.__s4State={returnBox:window.__s4ReturnBox,punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
+  const play=app.tagger.getCurrentPlay();const puntModel=structuredClone(play.specialTeams);app.nativeTagging.penaltyInput(0,'phase','special');app.nativeTagging.penaltyInput(0,'notes','Accepted from end of return');const playOne={penalties:structuredClone(play.penalties),manualBox:!!root().querySelector('.gi-penalty-situation'),player:play.tags.players.returner,notes:play.notes};app.tagger.saveDraft(),app.tagger.selectPlay(2);app.nativeTagging.setUnit('special');await app.nativeTagging.setSpecialUnit('try');app.nativeTagging.specialAction('tryAttempt','twoPoint');app.nativeTagging.specialAction('tryResult','failed');app.nativeTagging.specialAction('tryTurnover','interception');app.nativeTagging.specialAction('tryEvent','defensiveReturn');app.nativeTagging.specialAction('returnAward','opponent');window.__s4State={returnBox:window.__s4ReturnBox,punt:puntModel,tryPlay:structuredClone(app.tagger.getCurrentPlay().specialTeams),...playOne,calls,scoredBy:root().textContent.includes('Scored by')};
 })(fixture).then(()=>{window.__s4Done=true},error=>{window.__s4Error=String(error&&error.stack||error);window.__s4Done=true});},fixture);
 await page.waitForFunction(()=>window.__s4Done===true,{timeout:60000});
 const s4Error=await page.evaluate(()=>window.__s4Error);
@@ -238,7 +245,7 @@ ok(state.player==='22'&&state.notes==='Punt return right','Roster quick-pick and
 ok(Object.values(state.calls).every(v=>v===1),'Diagram and OCR commands reach canonical owners exactly once',JSON.stringify(state.calls));
 
 console.log('\n== 4b. Special Teams Possession/End spot geometry (S8-4) ==');
-await page.evaluate(()=>{const t=window.app.tagger;const punt=t.plays.find(p=>p.specialTeams?.unit==='punt');if(punt)t.selectPlay(punt.id);});
+await page.evaluate(()=>{const t=window.app.tagger;const punt=t.plays.find(p=>p.specialTeams?.unit==='punt');if(punt)t.saveDraft(),t.selectPlay(punt.id);});
 await new Promise(r=>setTimeout(r,80));
 state=await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
@@ -269,7 +276,7 @@ state=await page.evaluate(async()=>{
   const field=label=>[...root().querySelectorAll('[data-native-choice]')].find(el=>el.dataset.nativeChoice===label);
   const chip=(label,text)=>[...(field(label)?.querySelectorAll('button')||[])].find(b=>b.textContent.trim()===text);
   const wait=()=>new Promise(r=>setTimeout(r,40));
-  app.tagger.selectPlay(3);
+  app.tagger.saveDraft(),app.tagger.selectPlay(3);
   app.nativeTagging.setUnit('special');
   await wait();
   const unitLabels=[...(field('Unit')?.querySelectorAll('button')||[])].map(b=>b.textContent.trim());
@@ -317,7 +324,7 @@ console.log('\n== 6. Charting deck density, type ownership and Coverage Call =='
 await page.setViewport({width:1440,height:900});
 await page.evaluate(()=>window.app.workspaceShell.show('breakdown'));
 await page.evaluate(()=>window.app.breakdownWorkspace?._setView?.('chart'));
-await page.evaluate(()=>{const t=window.app.tagger;const d=t.plays.find(p=>(p.tags?.unit)==='defense')||t.plays[0];if(d)t.selectPlay(d.id);});
+await page.evaluate(()=>{const t=window.app.tagger;const d=t.plays.find(p=>(p.tags?.unit)==='defense')||t.plays[0];if(d)t.saveDraft(),t.selectPlay(d.id);});
 await page.evaluate(()=>window.app.nativeTagging?.setUnit?.('defense'));
 await new Promise(r=>setTimeout(r,500));
 state=await page.evaluate(()=>{
@@ -406,7 +413,7 @@ fold=await foldState();
 ok(fold.playCall.expanded==='false'&&!fold.playCall.input&&fold.playCall.summary==='26 Blast'&&fold.playType.expanded==='false',
   'Play Call folds from the keyboard and states the charted call',JSON.stringify(fold.playCall));
 ok(JSON.stringify(JSON.parse(fold.stored||'[]').sort())==='["playCall","playType"]','Both folds are stored as a view preference',String(fold.stored));
-await page.evaluate(()=>{const t=window.app.tagger,cur=t.currentPlayId,next=t.plays.find(p=>p.id!==cur);next.tags.unit='offense';t.selectPlay(next.id);window.app.nativeTagging.setUnit('offense');});
+await page.evaluate(()=>{const t=window.app.tagger,cur=t.currentPlayId,next=t.plays.find(p=>p.id!==cur);next.tags.unit='offense';t.saveDraft(),t.selectPlay(next.id);window.app.nativeTagging.setUnit('offense');});
 await new Promise(r=>setTimeout(r,150));
 fold=await foldState();
 ok(fold.playCall.expanded==='false'&&fold.playType.expanded==='false','Folds persist across play changes',JSON.stringify(fold));
@@ -433,7 +440,7 @@ console.log('\n== 7. S7-a: diagram, OCR and templates on the native surface, acr
 //      into identity checks with their names unchanged.
 await page.setViewport({width:1440,height:900});
 await page.evaluate(()=>window.app.workspaceShell.show('breakdown'));
-await page.evaluate(()=>window.app.tagger.selectPlay(1));
+await page.evaluate(()=>(window.app.tagger.saveDraft(),window.app.tagger.selectPlay(1)));
 await page.waitForSelector('[data-native-tagging]');
 
 const nativeClick = label => page.evaluate(text=>{
@@ -577,6 +584,7 @@ ok(state.found&&state.routed===1&&state.otherUnchanged,
 const diagramBefore=await page.evaluate(async()=>{
   const play=window.app.tagger.getCurrentPlay();
   play.diagram=[{t:'O',x:.5,y:.6},{t:'X',x:.3,y:.4}];
+  window.app.tagger.saveDraft();
   await window.app.storage._commitAndPersist?.();
   await window.app.storage.seasonStore.persist();
   window.__s7ReloadSentinel='must disappear';
@@ -585,7 +593,7 @@ const diagramBefore=await page.evaluate(async()=>{
 await page.reload({waitUntil:'networkidle0'});
 await page.waitForFunction(()=>window.app?.workspaceShell?.root);
 state=await page.evaluate(async probe=>{
-  await window.app.storage.openSeasonById(probe.seasonId);
+  window.app.tagger.saveDraft();await window.app.storage.openSeasonById(probe.seasonId);
   const play=window.app.storage.seasonStore.activeGame().plays.find(p=>String(p.id)===String(probe.playId));
   return{fresh:!('__s7ReloadSentinel' in window),
          after:JSON.stringify(play?.diagram),
@@ -598,7 +606,7 @@ ok(state.fresh&&state.after===diagramBefore.json
 // The relaunch above left a freshly booted page. Section 5 measures the mounted
 // route, so put the coach back where they were before handing over to it.
 await page.evaluate(async()=>{await window.app.storage._loadActiveGame();
-  window.app.tagger.selectPlay(1);await window.app.workspaceShell.show('breakdown');});
+  window.app.tagger.saveDraft(),window.app.tagger.selectPlay(1);await window.app.workspaceShell.show('breakdown');});
 await page.waitForFunction(()=>document.querySelector('[data-native-tagging]')?.getBoundingClientRect().width>0);
 
 console.log('\n== 7b. Native Auto-Detect: real scan/progress/results/review/apply, no hidden host ==');
@@ -747,14 +755,14 @@ state=await page.evaluate(async ids=>{
   Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
   const origin={seasonId:app.storage.seasonStore.currentSeasonId,gameId:app.storage.seasonStore.data.activeGameId};
   const pending=app.autoDetectScreen.start();
-  await app.storage.switchToGame(ids.secondId,{persist:false});
+  app.tagger.saveDraft();await app.storage.switchToGame(ids.secondId,{persist:false});
   const before=app.tagger.plays.length;
   release();
   await pending;
   const snap=app.autoDetectScreen.snapshot();
   const staleApply=app.autoDetectScreen.applyAll();
   const after=app.tagger.plays.length;
-  await app.storage.switchToGame(ids.firstId,{persist:false});
+  app.tagger.saveDraft();await app.storage.switchToGame(ids.firstId,{persist:false});
   Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
   return{origin,current:ids.secondId,before,after,staleApply,resultText:snap.resultText,canApply:snap.canApply,canReview:snap.canReview};
 },{firstId:fixture.firstId,secondId:fixture.secondId});
@@ -822,7 +830,7 @@ const touchPage=await touchContext.newPage();
 await touchPage.setViewport({width:390,height:844,isMobile:true,hasTouch:true});
 await touchPage.goto(APP_URL,{waitUntil:'networkidle0'});
 await touchPage.waitForFunction(()=>window.app?.nativeTagging&&document.querySelector('[data-native-home]'));
-await touchPage.evaluate(async()=>{const app=window.app;await app.storage.createSeason({name:'Touch target probe',team:'Mavericks',year:'2026'});const store=app.storage.seasonStore,game=store.activeGame();game.plays=[{id:1,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',players:{},grades:{},custom:[]}}];await store.persist();await app.storage._loadActiveGame();app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');});
+await touchPage.evaluate(async()=>{const app=window.app;await app.storage.createSeason({name:'Touch target probe',team:'Mavericks',year:'2026'});const store=app.storage.seasonStore,game=store.activeGame();game.plays=[{id:1,timestamp:{start:0,end:4},notes:'',tags:{unit:'defense',players:{},grades:{},custom:[]}}];await store.persist();await app.storage._loadActiveGame();app.tagger.saveDraft(),app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');});
 await touchPage.waitForSelector('[data-native-tagging]');
 state=await touchPage.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');const targets=[...root.querySelectorAll('button,select,input:not([type="checkbox"]),textarea,.gi-tag-check')].filter(n=>n.getClientRects().length);return{coarse:matchMedia('(pointer:coarse)').matches,overflow:document.documentElement.scrollWidth-innerWidth,min:Math.min(...targets.map(n=>n.getBoundingClientRect().height)),small:targets.filter(n=>n.getBoundingClientRect().height<44).map(n=>({tag:n.tagName,text:n.textContent.trim().slice(0,30),h:n.getBoundingClientRect().height,cls:n.className})).slice(0,12),count:targets.length}});
 ok(state.coarse&&state.count>0&&state.overflow<=1&&state.min>=44,'Mobile native form has no page overflow and keeps 44px action targets',JSON.stringify(state));

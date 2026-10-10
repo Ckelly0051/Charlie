@@ -114,8 +114,9 @@ ok(r.blurred, 'input blurred so shortcuts work on the next play');
 console.log('\n== 4. Positive yardage auto-fills Gain when result is blank ==');
 r = await page.evaluate(() => {
   const t = window.app.tagger;
-  const p = t.plays[5];
-  t.selectPlay(p.id);
+  t.selectPlay(t.plays[5].id);
+  // What Chart shows: the open play's draft.
+  const p = t.getCurrentPlay();
   // blank the result, then enter yardage like a coach would
   t.setTagValue('result', '');
   t.setTagValue('yardage', '7');
@@ -123,6 +124,7 @@ r = await page.evaluate(() => {
   // explicit result still wins: switch to Loss, yardage goes negative
   t.setTagValue('result', 'Loss');
   const afterLoss = { result: p.tags.result, yardage: p.tags.yardage };
+  t.saveDraft();
   return { afterPositive, afterLoss };
 });
 ok(r.afterPositive.result === 'Gain' && r.afterPositive.yardage === '7',
@@ -183,8 +185,9 @@ r = await page.evaluate(() => {
 await clickSaveNext();
 let carried = await page.evaluate((ids) => {
   const t = window.app.tagger;
-  const b = t.getPlay(ids.bId);
-  return { down: b.tags.down, dist: b.tags.distance, cur: t.currentPlayId, bId: b.id };
+  // Filled in on screen (the open play's draft); stored when the play is saved.
+  const b = t.getCurrentPlay();
+  return { down: b.tags.down, dist: b.tags.distance, cur: t.currentPlayId, bId: ids.bId };
 }, r);
 // reset B, go back to A, use Skip instead
 await page.evaluate((ids) => {
@@ -196,7 +199,7 @@ await page.evaluate((ids) => {
 await clickSkip();
 const skipped = await page.evaluate((ids) => {
   const t = window.app.tagger;
-  const b = t.getPlay(ids.bId);
+  const b = t.getCurrentPlay();
   return { down: b.tags.down, dist: b.tags.distance, cur: t.currentPlayId };
 }, r);
 ok(carried.down === '2' && carried.dist === '6' && carried.cur === carried.bId,
@@ -382,7 +385,7 @@ r = await page.evaluate(() => {
   app.tagger.currentPlayId = 9901;
   app.tagger.selectPlay(9901);
   out.addOk = app.nativeTagging.addCustomTag('Blitz Alert');
-  out.custom = app.tagger.plays[0].tags.custom;
+  out.custom = app.tagger.getCurrentPlay().tags.custom;
   return out;
 });
 await new Promise(res => setTimeout(res, 120));

@@ -68,7 +68,7 @@ const view = () => page.evaluate(() => {
   const points = [...document.querySelectorAll('[data-native-choice="Points awarded"] button')].map(b => b.textContent.trim());
   const Grid = app.playGrid.constructor;
   return { groups, roles, attempt, active, points, tags: { ...play.tags, players: { ...(play.tags.players || {}) } }, st: play.specialTeams,
-    locked: { offense: Grid.cellLocked(play, { unit: 'offense' }), defense: Grid.cellLocked(play, { unit: 'defense' }) } };
+    locked: { offense: Grid.cellLocked(play, Grid.COLUMNS.find(c => c.key === 'formationFamily')), defense: Grid.cellLocked(play, Grid.COLUMNS.find(c => c.key === 'defFront')) } };
 });
 
 console.log('\n== 1. Try: attempt choices and a kicked try ==');
@@ -99,7 +99,7 @@ ok(v.points.join('|') === '1 Point|2 Points' && v.st.outcome.score === 'twoPoint
 await choose('Points awarded', '1 Point');
 v = await view();
 ok(v.st.outcome.score === 'extraPoint', 'a run/pass try can be charted for 1 point', JSON.stringify(v.st.outcome));
-const saved = await page.evaluate(async () => { await window.app.storage.commitActive(); const g = window.app.storage.seasonStore.activeGame(); const p = g.plays.find(x => x.id === 1); return { formationFamily: p.tags.formationFamily, score: p.specialTeams.outcome.score }; });
+const saved = await page.evaluate(async () => { window.app.tagger.saveDraft(); await window.app.storage.commitActive(); const g = window.app.storage.seasonStore.activeGame(); const p = g.plays.find(x => x.id === 1); return { formationFamily: p.tags.formationFamily, score: p.specialTeams.outcome.score }; });
 ok(saved.formationFamily === 'Spread' && saved.score === 'extraPoint', 'the look and the 1 point survive a save', JSON.stringify(saved));
 
 console.log('\n== 3. Fake ==');
@@ -108,22 +108,21 @@ v = await view();
 ok(v.st.attemptType === 'twoPoint' && v.st.isFake === true && v.active.join() === 'Fake', 'Fake is a run/pass try marked fake', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake, active: v.active }));
 ok(v.groups.includes('Play & Result') && v.tags.formationFamily === 'Spread', 'a Fake keeps the offensive options and the look', JSON.stringify({ groups: v.groups, f: v.tags.formationFamily }));
 
-console.log('\n== 4. Back to Kick XP asks, then clears the run/pass detail ==');
+console.log('\n== 4. Back to Kick XP: no prompt; Save keeps what a kicked try shows ==');
 await choose('Attempt', 'Kick XP');
-const asked = await page.evaluate(() => document.querySelector('.gi-overlay-dialog .gi-overlay-body > p')?.textContent || '');
-ok(/Kick XP/.test(asked), 'a confirmation names the change', asked);
-await page.click('.gi-overlay-dialog [data-overlay-action="cancel"]'); await settle(page);
+const asked = await page.evaluate(() => !!document.querySelector('.gi-overlay-layer.is-modal'));
 v = await view();
-ok(v.st.attemptType === 'twoPoint' && v.tags.formationFamily === 'Spread', 'Cancel keeps the run/pass try untouched', JSON.stringify({ a: v.st.attemptType, f: v.tags.formationFamily }));
+ok(!asked && v.st.attemptType === 'extraPoint' && !v.st.isFake, 'Kick XP applies at once, with no confirmation', JSON.stringify({ asked, a: v.st.attemptType, f: v.st.isFake }));
+ok(v.roles.join('|') === 'Kicker' && !v.groups.includes('Play & Result'), 'the roles return to Kicker only and the run/pass options hide', JSON.stringify({ roles: v.roles, groups: v.groups }));
+await choose('Attempt', 'Run/Pass');
+v = await view();
+ok(v.tags.formationFamily === 'Spread' && v.tags.players.ballCarrier === '22', 'switching back before saving brings the run/pass detail back as charted', JSON.stringify({ f: v.tags.formationFamily, bc: v.tags.players.ballCarrier }));
 await choose('Attempt', 'Kick XP');
-await page.click('.gi-overlay-dialog [data-overlay-action="ok"]'); await settle(page);
-v = await view();
-ok(v.st.attemptType === 'extraPoint' && !v.st.isFake, 'confirming makes it a kicked try', JSON.stringify({ a: v.st.attemptType, f: v.st.isFake }));
-ok(!v.tags.formationFamily && !v.tags.runPass && !v.tags.players.ballCarrier, 'the look, run/pass and ball carrier are cleared', JSON.stringify({ f: v.tags.formationFamily, rp: v.tags.runPass, bc: v.tags.players.ballCarrier }));
-ok(v.roles.join('|') === 'Kicker', 'the roles return to Kicker only', JSON.stringify(v.roles));
+const kicked = await page.evaluate(() => { window.app.tagger.saveDraft(); const p = window.app.tagger.getPlay(1); return { f: p.tags.formationFamily, rp: p.tags.runPass, bc: p.tags.players?.ballCarrier || '', a: p.specialTeams.attemptType }; });
+ok(kicked.a === 'extraPoint' && !kicked.f && !kicked.rp && !kicked.bc, 'Save stores a kicked try without the look, run/pass or ball carrier', JSON.stringify(kicked));
 
 console.log('\n== 5. Defending a Try ==');
-await page.evaluate(() => window.app.tagger.selectPlay(2)); await settle(page);
+await page.evaluate(() => { window.app.tagger.saveDraft(); window.app.tagger.selectPlay(2); }); await settle(page);
 await choose('Unit', 'Defending a Try');
 await choose('Attempt', 'Kick XP');
 v = await view();
@@ -144,6 +143,7 @@ console.log('\n== 6. Codex review of 67d1ee0 ==');
 // P2: switching between Run/Pass and Fake keeps a charted score.
 await page.evaluate(async () => {
   const app = window.app, g = app.storage.seasonStore.activeGame();
+  app.tagger.saveDraft();
   const mk = id => ({ id, timestamp: { start: id * 5, end: id * 5 + 4 }, notes: '', annotations: [], tags: { unit: 'special', custom: [], players: {}, grades: {} } });
   g.plays.push(mk(3), mk(4)); app.tagger.plays = g.plays; app.tagger.nextId = 5; app.tagger._emit('plays-loaded');
   app.tagger.selectPlay(3);
@@ -156,23 +156,28 @@ ok(v.st.isFake === true && v.st.outcome.score === 'extraPoint', 'Run/Pass to Fak
 await choose('Attempt', 'Run/Pass');
 v = await view();
 ok(v.st.isFake === false && v.st.outcome.score === 'extraPoint', 'Fake back to Run/Pass keeps it too', JSON.stringify(v.st.outcome));
-// P1: a play switch during the Kick XP confirmation changes only the play it asked about.
-await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
+// Each play's changes stay its own: leaving one asks, and Save stores only it.
+const saveOnLeave = async id => {
+  await page.evaluate(id => window.app.tagger.selectPlay(id), id); await settle(page);
+  const asked = await page.evaluate(() => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].map(b => b.textContent.trim()).join());
+  await page.evaluate(() => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === 'Save')?.click());
+  await settle(page); await settle(page);
+  return asked;
+};
+let askedFor = await saveOnLeave(4);
 await choose('Unit', 'Try'); await choose('Attempt', 'Run/Pass'); await chip('formationFamily', 'Wing-T');
-await page.evaluate(() => window.app.tagger.selectPlay(3)); await settle(page);
+askedFor = (await saveOnLeave(3)) === 'Stay,Discard,Save' && askedFor === 'Stay,Discard,Save';
 await chip('formationFamily', 'Spread'); await chip('runPass', 'Pass');
 await choose('Attempt', 'Kick XP');
-const askedFor = await page.evaluate(() => !!document.querySelector('.gi-overlay-dialog'));
-await page.evaluate(() => window.app.tagger.selectPlay(4)); await settle(page);
-await page.click('.gi-overlay-dialog [data-overlay-action="ok"]'); await settle(page); await settle(page);
+askedFor = askedFor && (await saveOnLeave(4)) === 'Stay,Discard,Save';
 const both = await page.evaluate(() => {
   const p = id => window.app.tagger.getPlay(id);
   const pick = x => ({ attempt: x.specialTeams?.attemptType, formationFamily: x.tags.formationFamily, runPass: x.tags.runPass });
   return { three: pick(p(3)), four: pick(p(4)) };
 });
-ok(askedFor, 'the confirmation opened for play 3', String(askedFor));
-ok(both.three.attempt === 'extraPoint' && !both.three.formationFamily && !both.three.runPass, 'the play the confirmation named becomes Kick XP and is cleared', JSON.stringify(both.three));
-ok(both.four.attempt === 'twoPoint' && both.four.formationFamily === 'Wing-T', 'the play selected during the confirmation is untouched', JSON.stringify(both.four));
+ok(askedFor, 'leaving each play with unsaved changes asks Stay, Discard or Save', String(askedFor));
+ok(both.three.attempt === 'extraPoint' && !both.three.formationFamily && !both.three.runPass, 'play 3 saves as Kick XP without its run/pass detail', JSON.stringify(both.three));
+ok(both.four.attempt === 'twoPoint' && both.four.formationFamily === 'Wing-T', 'play 4 keeps its own Run/Pass try and look', JSON.stringify(both.four));
 
 console.log('\n== 7. Special Teams roster ownership ==');
 await page.evaluate(() => {
@@ -245,7 +250,7 @@ ok(scoutLabel === 'Other team Kicker', 'scout receiving unit names the other tea
 await page.evaluate(() => { window.app.storage.gameInfo.perspective = 'offense'; window.app.nativeTagging._queuePublish(); });
 await settle(page);
 for (const [id, role, unit, attempt] of [[15, 'returner', 'Field Goal Block', null], [2, 'tackler', 'Defending a Try', 'Run/Pass'], [4, 'ballCarrier', 'Try', 'Run/Pass']]) {
-  await page.evaluate(id => window.app.tagger.selectPlay(id), id); await settle(page);
+  await page.evaluate(id => { window.app.tagger.saveDraft(); window.app.tagger.selectPlay(id); }, id); await settle(page);
   await choose('Unit', unit);
   if (attempt) await choose('Attempt', attempt);
   await page.evaluate(() => window.app.nativeTagging.setField('quarter', '3'));
@@ -255,7 +260,7 @@ for (const [id, role, unit, attempt] of [[15, 'returner', 'Field Goal Block', nu
   ok(active.role === role && active.labels.length === 1 && !active.labels[0].startsWith('Opponent'),
     `play ${id}: ${role} stays active after an edit`, JSON.stringify(active));
 }
-await page.evaluate(() => window.app.tagger.selectPlay(2)); await settle(page);
+await page.evaluate(() => { window.app.tagger.saveDraft(); window.app.tagger.selectPlay(2); }); await settle(page);
 await choose('Attempt', 'Kick XP');
 if (await page.$('.gi-overlay-dialog [data-overlay-action="ok"]')) await page.click('.gi-overlay-dialog [data-overlay-action="ok"]');
 await settle(page);

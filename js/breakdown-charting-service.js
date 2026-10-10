@@ -1,7 +1,6 @@
 import { PenaltyModel } from './penalty-model.js';
 import { countedUnit } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
-import { SeasonStore } from './season-store.js';
 
 /**
  * DOM-free commands for structured penalty and Special Teams charting.
@@ -10,6 +9,8 @@ import { SeasonStore } from './season-store.js';
 export class BreakdownChartingService {
   constructor(tagger) {
     this.tagger = tagger;
+    // The Special Teams events a draft left by changing units, by draft.
+    this._keptUnits = new WeakMap();
   }
 
   _penaltyPhase(play) {
@@ -93,32 +94,18 @@ export class BreakdownChartingService {
     return true;
   }
 
-  _hasSpecialDetails(st) {
-    // The seeded field-goal attempt type is not charted detail — it is the
-    // unit's own definition — so it must not trigger the "this will clear your
-    // charted details" confirmation on an untouched event.
-    const charted = st.attemptType && st.attemptType !== SpecialTeamsModel.defaultAttemptType(st.unit);
-    return !!(charted || st.result || Object.values(st.events || {}).some(Boolean)
-      || st.outcome.returnAward || st.outcome.status || st.outcome.score
-      || st.outcome.recoveredBy || st.outcome.scoredBy || st.isOnside || st.isFake
-      || st.kick.distance != null || st.kick.hangTime != null
-      || st.kick.landing.fieldSide || st.kick.landing.yardLine
-      || st.return.yards != null || st.return.end.fieldSide || st.return.end.yardLine
-      || Object.values(st.players).some(Boolean));
-  }
-
+  /** Change the Special Teams unit. Each unit has its own event, so the open
+   *  play keeps the one it leaves: switching back before saving brings it back
+   *  as charted, and Save keeps only the unit on screen. */
   async setSpecialUnit(unit) {
     const play = this.tagger.getCurrentPlay();
     if (!play) return false;
     const current = SpecialTeamsModel.normalize(play.specialTeams);
-    if (current && current.unit !== unit && this._hasSpecialDetails(current)) {
-      const ok = await this.tagger._confirmDialog(
-        'Changing the Special Teams unit will clear its charted details.',
-        'Change Unit',
-      );
-      if (!ok) return false;
-    }
-    play.specialTeams = this._newSpecial(unit);
+    if (current?.unit === unit) return true;
+    const kept = this._keptUnits.get(play) || {};
+    if (current) kept[current.unit] = current;
+    this._keptUnits.set(play, kept);
+    play.specialTeams = kept[unit] ? SpecialTeamsModel.normalize(kept[unit]) : this._newSpecial(unit);
     this.tagger._emit('play-updated', play);
     return true;
   }
@@ -184,32 +171,17 @@ export class BreakdownChartingService {
     return false;
   }
 
-  /** Kick XP, Run/Pass or Fake. A Fake is a run/pass try with `isFake`. Leaving
-   *  Run/Pass or Fake for Kick XP clears the snap's run/pass detail (look fields
-   *  are stripped by the Special Teams rule; the rest is cleared here), after a
-   *  confirmation when any was charted. The change applies to the play the
-   *  coach acted on, captured before the confirmation, so selecting another
-   *  play meanwhile cannot move it. Clearing and the attempt land in one
-   *  update. Switching between Run/Pass and Fake keeps a charted score; a new
-   *  attempt kind takes its own default. */
+  /** Kick XP, Run/Pass or Fake. A Fake is a run/pass try with `isFake`.
+   *  Leaving Run/Pass or Fake for Kick XP hides the run/pass detail; it stays in
+   *  the open play's draft until Save, which keeps only what a kicked try shows
+   *  (PlayShape). Switching between Run/Pass and Fake keeps a charted score; a
+   *  new attempt kind takes its own default. */
   async _setTryAttempt(value) {
     const play = this.tagger.getCurrentPlay();
     if (!play || !SpecialTeamsModel.normalize(play.specialTeams)) return false;
     const attemptType = value === 'fake' ? 'twoPoint' : value;
-    const RUN_PASS_TAGS = ['runPass', 'playType', 'playDir', 'result', 'yardage', 'motion', 'playCall', 'playCallId', 'playConcept'];
-    const RUN_PASS_ROLES = ['ballCarrier', 'passer', 'receiver', 'tackler', 'takeaway'];
-    const leavingRunPass = SpecialTeamsModel.isRunPassTry(play) && attemptType === 'extraPoint';
-    if (leavingRunPass) {
-      const charted = RUN_PASS_TAGS.some(k => play.tags[k]) || SeasonStore.ST_ALIGNMENT_KEYS.some(k => play.tags[k])
-        || RUN_PASS_ROLES.some(r => play.tags.players?.[r]);
-      if (charted && !(await this.tagger._confirmDialog('Changing to Kick XP clears this try\'s run/pass details.', 'Change to Kick XP'))) return false;
-    }
     const st = SpecialTeamsModel.normalize(play.specialTeams);
     if (!st) return false;
-    if (leavingRunPass) {
-      RUN_PASS_TAGS.forEach(k => { if (play.tags[k]) play.tags[k] = ''; });
-      if (play.tags.players) RUN_PASS_ROLES.forEach(r => { delete play.tags.players[r]; });
-    }
     const sameKind = st.attemptType === attemptType;
     st.attemptType = attemptType;
     st.isFake = value === 'fake';

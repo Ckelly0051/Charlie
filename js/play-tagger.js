@@ -23,6 +23,10 @@ export class PlayTagger {
     this.nextId = 1;
     // The open play's unsaved charting (see "The charting draft").
     this.draft = null;
+    // The unsaved draft's recovery copy, saved with the game, and the copy a
+    // loaded game brought back (offered once when its play opens).
+    this.recovery = null;
+    this.pendingRecovery = null;
 
     // Native tagging owns template selection explicitly. This is product state,
     // not a detached form control pretending the deleted legacy UI still exists.
@@ -423,7 +427,6 @@ export class PlayTagger {
 
   /** The parts of a play charting edits; identity and film stay on the play. */
   static DRAFT_FIELDS = Object.freeze(['tags', 'penalties', 'resultingSituation', 'specialTeams', 'notes', 'diagram', '_autoSit']);
-  static RECOVERY_KEY = 'giq_chart_draft';
 
   _chartingJson(play) {
     return JSON.stringify(PlayTagger.DRAFT_FIELDS.map(field => play?.[field] ?? null));
@@ -552,36 +555,42 @@ export class PlayTagger {
     return this._leavePrompt;
   }
 
-  /* Recovery copy: the unsaved draft survives a crash or power loss, never
-     counted as charting until the coach restores and saves it. */
+  /* Recovery copy: the unsaved draft is saved with its game (`recovery`,
+     the game's `chartDraft`), so it survives a crash or power loss. It is
+     never counted as charting until the coach restores and saves it. */
   _writeRecovery() {
     const draft = this.draft;
     if (!draft) return;
-    try {
-      if (!this.hasUnsavedChanges()) { localStorage.removeItem(PlayTagger.RECOVERY_KEY); return; }
-      localStorage.setItem(PlayTagger.RECOVERY_KEY, JSON.stringify({ game: draft.game, id: draft.id, charting: draft.last }));
-    } catch (e) {}
+    const next = this.hasUnsavedChanges() ? { id: draft.id, charting: draft.last } : null;
+    if (JSON.stringify(next) === JSON.stringify(this.recovery ?? null)) return;
+    this.recovery = next;
+    this.storage?._autoSave?.();
   }
   _clearRecovery() {
-    try { localStorage.removeItem(PlayTagger.RECOVERY_KEY); } catch (e) {}
+    if (this.recovery == null) return;
+    this.recovery = null;
+    this.storage?._autoSave?.();
   }
   _offerRecovery() {
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(PlayTagger.RECOVERY_KEY) || 'null'); } catch (e) { saved = null; }
+    const saved = this.pendingRecovery;
     const draft = this.draft;
-    if (!saved || !draft || saved.game !== draft.game || saved.id !== draft.id || saved.charting === draft.base) return;
+    if (!saved || !draft || saved.id !== draft.id) return;
+    this.pendingRecovery = null;
+    if (saved.charting === draft.base) return;
     queueMicrotask(async () => {
       const key = await this._decide({
         title: 'Unsaved changes',
         message: `Play ${draft.id} has changes from your last session that were not saved.`,
         actions: [{ key: 'discard', label: 'Discard', tone: 'danger' }, { key: 'restore', label: 'Restore', tone: 'primary', default: true }],
       });
-      if (this.draft !== draft) return;
-      if (key === 'restore') {
-        draft.steps.push(draft.last);
-        draft.coach = true;
+      // The play may have reopened its draft meanwhile; restore onto the open
+      // play only if it is still the one the copy belongs to.
+      if (key === 'restore' && this.currentPlayId === saved.id && this.getCurrentPlay()) {
+        const open = this.draft;
+        open.steps.push(open.last);
+        open.coach = true;
         this._restoreDraftStep(saved.charting);
-      } else if (key === 'discard') this._clearRecovery();
+      } else this._clearRecovery();
     });
   }
 

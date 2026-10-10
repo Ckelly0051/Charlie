@@ -81,10 +81,13 @@ const mountNativeForm = () => page.evaluate(() => {
   if (!host) { host = document.createElement('div'); host.id = 'projformTagHost'; document.body.append(host); }
   window.app.nativeTagging.mount(host);
 });
+// A chip tap edits the open play's draft; Save stores it
+// (GRIDIRON-IQ-SAVE-CONTRACT.md). Each tap here is followed by Save, so the
+// assertions below read the stored play and one history entry per save.
 const clickChip = (field, text) => page.evaluate((f, t) => {
   const btn = [...document.querySelectorAll(`[data-native-field="${f}"] .gi-tag-chips button`)]
     .find(b => b.textContent.trim() === t);
-  if (btn) btn.click();
+  if (btn) { btn.click(); window.app.tagger.saveDraft(); }
   return !!btn;
 }, field, text);
 const activeChips = (field) => page.evaluate((f) =>
@@ -317,7 +320,7 @@ const before10 = await page.evaluate(() => {
   t.selectPlay(id);
   return JSON.parse(JSON.stringify(t.getPlay(id).tags));
 });
-await page.evaluate(() => { const input = document.querySelector('[data-native-tagging] [data-native-field="driveNumber"] input'); input.value = '7'; input.dispatchEvent(new Event('change', { bubbles: true })); });
+await page.evaluate(() => { const input = document.querySelector('[data-native-tagging] [data-native-field="driveNumber"] input'); input.value = '7'; input.dispatchEvent(new Event('change', { bubbles: true })); window.app.tagger.saveDraft(); });
 r = await page.evaluate((before) => {
   const t = window.app.tagger;
   const id = 9106;

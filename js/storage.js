@@ -1444,6 +1444,8 @@ export class StorageManager {
       annotations: this.canvas.annotations,
       currentPlayId: this.tagger.currentPlayId,
       nextId: this.tagger.nextId,
+      // The open play's unsaved Chart changes, for recovery only; never charting.
+      chartDraft: this.tagger.recovery || null,
       clipNames: clipIndex.map(c => c.name),
       clipPaths: clipIndex.map(c => c.clipPath),
       clipRefs: clipIndex.map(c => ({
@@ -1584,6 +1586,8 @@ export class StorageManager {
   _deserialize(data) {
     if (!data) return;
     this.tagger.plays = data.plays || [];
+    this.tagger.recovery = data.chartDraft || null;
+    this.tagger.pendingRecovery = data.chartDraft || null;
     // Use the stored nextId if present (?? keeps a legitimate 0); otherwise
     // derive it from the HIGHEST existing id, not plays.length — with
     // non-contiguous ids (after deletes) plays.length+1 can equal an existing
