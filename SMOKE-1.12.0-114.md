@@ -78,6 +78,70 @@ Existing hidden values on 50 plays are the coach's to re-chart
 Known open items remain in `docs/OPEN-DEFECTS.md`, including intermittent
 rapid scrubbing and the renamed HTML export.
 
+## Claude Installed UI Check - 2026-10-10
+
+Installed 114 through Windows computer use, on 2025 St. Joseph Mavericks - JV.
+The coach had checked items 1-2 and kept 3-7 for himself. No play was edited.
+New data written, with the coach's approval: dashboards Offense snapshot 2
+(plus a penalty heat-map widget), Defense snapshot, Situational and Play calls,
+each created from its template.
+
+- **8 Tackle match: PASS.** Full season, Players > Tackles and the Defense
+  board's player contributions agree on every row: #5 37 (12 solo, 25 ast),
+  #59 24, #7 22, #42 22, #81 18, #99 13, #82 9, #2 6, #25 5.
+- **9 Dashboards: PASS with defects below.** All four templates populate.
+  Clicking a bar (3rd down) and a heat-map cell (False Start) opens exactly
+  their plays. The 3rd-down filter gives 36 plays with 34.5% success,
+  matching the bar. A defense view's Run % and Pass % read the offense faced.
+  After closing and relaunching the app, Offense snapshot 2 and its added
+  widget were still there.
+- **10 Study: PASS.** Defense by Formation groups by the offense faced, with
+  no empty rows: current game Flexbone 17 of 20; full season values match
+  the Defense snapshot (Flexbone 82.4%, I-Form 73.3%, Twins 66.7%).
+  Study's scope and unit were set back to Offense, current game.
+
+Visual and behavior defects found (logged; no fixes started):
+
+1. Heat-map Watch label uses the cell's value instead of its column:
+   "False Start × 15" instead of False Start × Accepted. The matrix cell's
+   measured value overwrites the column value.
+2. Penalty Ruling columns show the raw stored value "accepted", not a label.
+3. Heat-map caption always reads "Brighter is better", including on Penalty
+   Yards on Us and Yards Allowed / Play, where lower is better.
+4. Share chart with more than six values (Play calls > Play Type by
+   Formation): the legend lists six, colors repeat after that (gold and
+   white slivers at the ends of the Power-I, Ace and Single Wing bars), and
+   the darkest greys are nearly invisible.
+5. A negative bar value (Yards / Play, Unknown -4.8) draws as a small
+   positive bar.
+6. Table row hover skips the label cell and, on the Defense snapshot, runs
+   past the card's right edge; the "—" for an unavailable value sits at the
+   top of the row instead of on the text line.
+7. The Add widget form has two different fields labeled "Rows" (row grouping
+   and row limit).
+8. The filter chip reads "Down: 3", not "3rd".
+9. After watching film from a dashboard, Reports reopens on the Defense
+   report, not the dashboard; after a relaunch Dashboards opens on the first
+   saved dashboard, not the last one used.
+10. Week 1 vs St. Peter Lutheran: the Defense report's game-by-game row shows
+    0 yards and 0.0 yards per play, while the dashboard's Yards Allowed / Play
+    by game shows -0.3. Same game, different answers; cause not investigated.
+11. Study labels the defensive metric "Success Rate" while Dashboards labels
+    the same number "Stop Rate".
+12. Chart deck, Players & Grades (Play 28): the Tackler roster grid cuts its
+    last row at the bottom edge; the Takeaway block showed a white outline
+    the other role blocks do not (possibly a focus ring; not confirmed).
+13. Red zone touchdowns tile reads "9" over "9 plays"; the subline repeats the
+    count rather than the cohort (23 plays).
+14. Bars for rates are scaled to the largest value, not 0-100% (54.0% fills
+    the Success Rate by Down bar); a design question for the coach.
+15. Run / Pass shares can total 101% from rounding (2nd down 82% + 19%).
+
+Session note: the computer-use launch at 6:18 PM started a second GridIron IQ
+process while the coach's instance was open. It stayed on Home (no season
+opened) and was closed before the relaunch check; the relaunched app showed
+every dashboard written in the session. Nothing was pushed or published.
+
 ## Coach Findings
 
 1. **Dashboards start page is lost after the first choice** (coach,
