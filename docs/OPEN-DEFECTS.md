@@ -137,6 +137,8 @@ change and would bury the feature in a very large diff.
   a turnover play gets a box for ours and one for theirs.
 - **Study's Tackler role** includes kick coverage and offensive turnover
   tackles, like Players.
+- **Dashboards button in coral** (a new color used only for it, about
+  #e0703f with dark text), replacing the accent blue.
 - Decided, already built: the Defense board's player lines count turnover
   tackles; a Fake punt or field goal charts Play & Result; Use Play is the
   play-call confirmation and replaces only the fields the call has defaults
