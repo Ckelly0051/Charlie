@@ -21,7 +21,14 @@
   Product and file version `1.12.0-114` (installer and `gridiron-iq.exe`). Built from a clean tracked tree at
   `f310fbf1` with `cargo tauri build --bundles nsis` and an external scratch
   config setting `createUpdaterArtifacts:false`.
-- Packaged-asset inspection by a non-builder reviewer: pending.
+- Independent packaged-asset inspection by Codex: PASS (2026-10-10).
+  Decoded the NSIS payload without installing or launching it and compared
+  the embedded frontend against an isolated build of `f310fbf1`: JavaScript,
+  CSS, icons and SQLite resources match (HTML serialization and source-file
+  line endings normalized where needed); no referenced assets are missing.
+  Installer size/hash and both executable versions match this record.
+  Evidence: `docs/PACKAGE-INSPECTION-1.12.0-114.md`. This is not installed
+  smoke approval and does not change the full-gate result above.
 - Nothing pushed, tagged or published.
 
 ## Result

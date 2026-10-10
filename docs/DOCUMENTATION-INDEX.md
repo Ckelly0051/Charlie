@@ -55,6 +55,8 @@ log.
   (`GRIDIRON-IQ-SAVE-CONTRACT.md`), Dashboards rev 1 and Study's defensive
   grouping (`docs/REPORTS-CONTRACTS.md`). Codex review rounds closed with no
   open findings. Build record, size and SHA-256 in the smoke record.
+  Independent packaged-asset inspection PASS (2026-10-10), recorded in
+  `docs/PACKAGE-INSPECTION-1.12.0-114.md`; installed smoke remains pending.
 - **Latest full gate:** 157/158 green at `075522ce` (2026-10-10); the one red,
   `e2e-design-system` (raw colors in the Dashboards styles), was fixed in
   `7dd5dfc5` and re-run green 17/17 with the related reports and CSS
