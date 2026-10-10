@@ -14,10 +14,20 @@ Installed smoke does not change the design approval registry.
 
 ## Open defects
 
-- **Players and the Defense board count some tackles differently.** Full
-  season on the canonical 2025 JV data: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7
-  (Players > Tackles vs Defense > Defensive player contributions). Found
-  2026-10-07 during the missed tackles comp; predates it. Not diagnosed.
+- **Players and the Defense board count some tackles differently.** Canonical
+  2025 JV: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7 (Players > Tackles vs Defense >
+  Defensive player contributions). Cause (coach confirmed 2026-10-10): Players
+  credits a Tackler on any snap (`StatsEngine._playerCredits`); the Defense
+  board reads only defensive snaps and kick coverage. Each extra tackle is a
+  Tackler left on an offensive snap with no turnover (fixture ND Prep plays 8
+  and 79; live Varsity 2026 OL Lakes 71 and 79, Holy Family 3). The offense
+  deck has no Tackler row, so the value is hidden; a unit change does not clear
+  player fields. Rule (coach): an offensive snap's tackle counts only after a
+  turnover, so the fix is not a blanket defense-only gate. Pending coach
+  decisions: whether the Defense board's player lines count post-turnover
+  tackles, whether a missed tackle after a turnover counts, and Chart then
+  needs a Tackler(s) row on offense after an interception or lost fumble. No
+  coach data changed.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
