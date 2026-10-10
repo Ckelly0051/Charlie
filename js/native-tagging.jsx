@@ -293,13 +293,9 @@ function Spot({label, code, spot, screen}) {
 
 export const TRY_RESULT_LABELS = { converted: 'Converted', failed: 'Failed', noPlay: 'No Play / Retry' };
 
-/** A try charted as Run/Pass or Fake charts its look and result like a scrimmage
- *  snap (SpecialTeamsModel.isRunPassTry); Kick XP does not. */
-const runPassTry = st => !!st && (st.unit === 'try' || st.unit === 'tryDefense') && st.attemptType === 'twoPoint';
-/** The side whose look groups a play shows: its unit, or for a run/pass try the
- *  attempting (Try) or defending (Defending a Try) side. */
-const lookSide = state => state.unit !== 'special' ? state.unit
-  : runPassTry(state.special) ? (state.special.unit === 'tryDefense' ? 'defense' : 'offense') : null;
+/** The side whose look groups a play shows: its unit, or for a run/pass or
+ *  Fake try the attempting or defending side (PlayShape.lookSide). */
+const lookSide = state => state.lookSide;
 
 function TryEditor({screen, state, st}) {
   const subject = state.perspective === 'scout' ? 'Scouted team' : 'Our team';
@@ -376,8 +372,8 @@ function Players({screen, state}) {
   // A kicked try has no returner: Try (Kick) is the kicker; Defending a Try (Kick)
   // is the blocker. A run/pass or Fake try takes its side's roles.
   const st = state.special, side = lookSide(state);
-  const baseRoles = side === 'defense' ? ['tackler','takeaway'] : side === 'offense' ? ['ballCarrier','passer','receiver']
-    : SpecialTeamsModel.playerRoles(st);
+  // The roles this play can hold (PlayShape): a turnover adds Tackler(s) on offense.
+  const baseRoles = state.baseRoles;
   // Missed Tackles is one more row (MissedTackles.mode): after Tackler(s) on
   // defense and kick coverage, after the returner on returns, last on offense.
   const missedMode = MissedTackles.mode(state.unit, st);
@@ -432,6 +428,24 @@ function Players({screen, state}) {
   </Group>;
 }
 
+function PlayResult({screen, state, chips}) {
+  const playTypeValue = state.values.playType;
+  return <Group title="Play &amp; Result" open>
+    {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={playTypeValue} library="playType" collapsible collapsed={!!state.collapsed?.playType}/>
+    {typeSelected(playTypeValue,'RPO') && <div class="gi-tag-detail" data-native-detail="rpo">
+      {chips('rpoRead','Read defender',OPTIONS.rpoRead)}
+      <Field screen={screen} field="rpoDefender" label="Defender #" value={state.values.rpoDefender} min="0" max="99" placeholder="Jersey number"/>
+      {chips('rpoDecision','Decision',OPTIONS.rpoDecision)}
+      <RpoConflict screen={screen} state={state}/>
+    </div>}
+    {typeSelected(playTypeValue,'QB Run') && <div class="gi-tag-detail" data-native-detail="qbRun">
+      {chips('qbRun','QB run type',OPTIONS.qbRun)}
+    </div>}
+    {chips('playDir','Play Direction',OPTIONS.playDir)}<GapField screen={screen} state={state}/><ResultField screen={screen} state={state}/>
+    <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
+  </Group>;
+}
+
 export function NativeTagging({screen}) {
   const [state,setState] = useState(() => screen.snapshot());
   const [customTag,setCustomTag] = useState('');
@@ -443,11 +457,11 @@ export function NativeTagging({screen}) {
     return () => screen.detachHost(host);
   }, [screen]);
   const chips = (field,label,options,hint,library) => <Chips screen={screen} field={field} label={label} options={options} value={state.values[field]} hint={hint} library={library}/>;
-  const playTypeValue = state.values.playType;
   return <section class={`gi-native-tagging${state.enabled ? '' : ' is-disabled'}`} data-native-tagging ref={root}>
     <header class="gi-tag-context">
       <div class="gi-tag-title">
-        <div class="gi-tag-play-identity"><h2>{state.currentPlayId == null ? 'Select play' : `Play ${state.currentPlayId}`}</h2><p>{state.progress}</p></div>
+        <div class="gi-tag-play-identity"><h2>{state.currentPlayId == null ? 'Select play' : `Play ${state.currentPlayId}`}</h2><p>{state.progress}</p>
+          {state.dirty && <p class="gi-tag-unsaved" data-native-unsaved>Unsaved changes</p>}</div>
       </div>
       {/* F2c — one click, not two. Unit is the single most-used control on this
           screen and a dropdown made every change a two-step. F2a's perspective
@@ -491,6 +505,8 @@ export function NativeTagging({screen}) {
         </div>
       </Group>
       {state.unit === 'special' && <SpecialTeams screen={screen} state={state}/>}
+      {/* A Fake punt or field goal charts its run or pass here. */}
+      {state.kickFake && <PlayResult screen={screen} state={state} chips={chips}/>}
       {lookSide(state) && (() => {
         // Charting defense, OUR call comes first and the offense we faced
         // second. The group a coach is actually charting leads. A run/pass or
@@ -513,20 +529,7 @@ export function NativeTagging({screen}) {
           {chips('defFront','Front',state.libraries.defFront,'','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily)}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
-        const playResult = <Group key="pr" title="Play &amp; Result" open>
-          {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={playTypeValue} library="playType" collapsible collapsed={!!state.collapsed?.playType}/>
-          {typeSelected(playTypeValue,'RPO') && <div class="gi-tag-detail" data-native-detail="rpo">
-            {chips('rpoRead','Read defender',OPTIONS.rpoRead)}
-            <Field screen={screen} field="rpoDefender" label="Defender #" value={state.values.rpoDefender} min="0" max="99" placeholder="Jersey number"/>
-            {chips('rpoDecision','Decision',OPTIONS.rpoDecision)}
-            <RpoConflict screen={screen} state={state}/>
-          </div>}
-          {typeSelected(playTypeValue,'QB Run') && <div class="gi-tag-detail" data-native-detail="qbRun">
-            {chips('qbRun','QB run type',OPTIONS.qbRun)}
-          </div>}
-          {chips('playDir','Play Direction',OPTIONS.playDir)}<GapField screen={screen} state={state}/><ResultField screen={screen} state={state}/>
-          <Field screen={screen} field="yardage" label="Yards" value={state.values.yardage} min="0" max="109"/>
-        </Group>;
+        const playResult = <PlayResult key="pr" screen={screen} state={state} chips={chips}/>;
         return <>{side === 'defense' ? [defense, offense, playResult] : [offense, defense, playResult]}</>;
       })()}
       <Players screen={screen} state={state}/>
@@ -573,6 +576,7 @@ export function NativeTagging({screen}) {
       </Group>
       <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>← Previous</button>
         <button type="button" onClick={() => screen.skip()}>Skip</button>
+        <button type="button" data-native-save disabled={!state.dirty} onClick={() => screen.save()}>Save</button>
         <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : <span>Save & Next</span>}</button></footer>
     </main>}
   </section>;

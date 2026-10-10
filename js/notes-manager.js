@@ -45,7 +45,7 @@ export class NotesManager {
       // Object identity is intentional: numeric play ids repeat across games.
       // If the list was replaced (game switch/undo), the outgoing object was
       // already updated before commit and must not emit into the new context.
-      if (this.tagger.plays.includes(pending.play) && pending.play.notes === pending.value) {
+      if (this.tagger.owns(pending.play) && pending.play.notes === pending.value) {
         this.tagger._emit('play-updated', pending.play);
       }
     }

@@ -48,7 +48,7 @@ export class PlayShape {
 
   /** The player roles the play can hold, in Chart's order. A snap ending in a
    *  turnover adds Tackler(s) for the offense's tackle on the return. */
-  static roles(play) {
+  static baseRoles(play) {
     const side = PlayShape.lookSide(play);
     const st = SpecialTeamsModel.normalize(play?.specialTeams);
     let roles;
@@ -57,8 +57,12 @@ export class PlayShape {
     else roles = SpecialTeamsModel.playerRoles(st);
     if (PlayShape.isKickFake(play)) roles = [...roles, ...['ballCarrier', 'passer', 'receiver'].filter(role => !roles.includes(role))];
     if ((side === 'offense' || PlayShape.isKickFake(play)) && PlayShape.isTurnover(play) && !roles.includes('tackler')) roles = [...roles, 'tackler'];
-    if (MissedTackles.mode(countedUnit(play), play?.specialTeams) === 'ours') roles = [...roles, MissedTackles.ROLE];
     return roles;
+  }
+  /** `baseRoles` plus our missed tacklers on the snaps that name them. */
+  static roles(play) {
+    const roles = PlayShape.baseRoles(play);
+    return MissedTackles.mode(countedUnit(play), play?.specialTeams) === 'ours' ? [...roles, MissedTackles.ROLE] : roles;
   }
 
   /** Whether the play can hold `tags[key]`. */

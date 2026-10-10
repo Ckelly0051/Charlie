@@ -31,6 +31,11 @@ export class HistoryManager {
     tagger.on('play-created', (p) => this._record('Add play ' + (p?.id || '')));
     tagger.on('play-deleted', () => this._record('Delete play'));
     tagger.on('play-updated', (p) => this._record('Edit play ' + (p?.id || '')));
+    // Chart's unsaved changes undo inside the open play first.
+    tagger.on('draft-updated', () => this._updateUI());
+    // Selecting a play changes no play data; the baseline follows it so an Undo
+    // of the next save keeps that play open.
+    tagger.on('play-selected', () => { if (this.recording) this.lastSnap = this._snapshot(); });
   }
 
   /** Final Engine Independence: no legacy #btnUndoAction/#btnRedoAction DOM
@@ -92,8 +97,8 @@ export class HistoryManager {
     this._updateUI();
   }
 
-  canUndo() { return this.index >= 0; }
-  canRedo() { return this.index < this.stack.length - 1; }
+  canUndo() { return this.index >= 0 || !!this.tagger.canUndoDraft?.(); }
+  canRedo() { return this.index < this.stack.length - 1 || !!this.tagger.canRedoDraft?.(); }
 
   /** Minimal pub/sub so the native shell's Undo/Redo buttons can reflect
    *  state without polling or reading a relocated DOM node's own attributes. */
@@ -123,7 +128,8 @@ export class HistoryManager {
   }
 
   undo() {
-    if (!this.canUndo()) return false;
+    if (this.tagger.undoDraft?.()) { this._toast('↶ Undo'); this._updateUI(); return true; }
+    if (this.index < 0) return false;
     const entry = this.stack[this.index];
     this._restore(entry.before);
     this.index--;
@@ -133,7 +139,8 @@ export class HistoryManager {
   }
 
   redo() {
-    if (!this.canRedo()) return false;
+    if (this.tagger.redoDraft?.()) { this._toast('↷ Redo'); this._updateUI(); return true; }
+    if (this.index >= this.stack.length - 1) return false;
     this.index++;
     const entry = this.stack[this.index];
     this._restore(entry.after);
@@ -165,7 +172,7 @@ export class HistoryManager {
     const canRedo = this.canRedo() || (this.fallbackCanRedo && this.fallbackCanRedo());
     this._emit('change', {
       canUndo, canRedo,
-      undoLabel: this.canUndo() ? this.stack[this.index].label : '',
+      undoLabel: this.tagger.canUndoDraft?.() ? 'Unsaved change' : this.index >= 0 ? this.stack[this.index].label : '',
     });
   }
 

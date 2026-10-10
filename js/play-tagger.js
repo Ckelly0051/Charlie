@@ -5,6 +5,7 @@ import { TagProjection } from './tag-projection.js';
 import { SeasonFormat } from './season-format.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { ChartingDetails } from './charting-details.js';
+import { PlayShape } from './play-shape.js';
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
 import { h } from 'preact';
@@ -20,6 +21,8 @@ export class PlayTagger {
     this.pendingStart = null;
     this.listeners = {};
     this.nextId = 1;
+    // The open play's unsaved charting (see "The charting draft").
+    this.draft = null;
 
     // Native tagging owns template selection explicitly. This is product state,
     // not a detached form control pretending the deleted legacy UI still exists.
@@ -218,6 +221,7 @@ export class PlayTagger {
     };
 
     if (inPlaylist) {
+      this.discardDraft();
       // removeClip() filters out the play, revokes its URL, fixes the active
       // index, and switches to an adjacent clip (keeping video + a valid
       // current play so Save & Next keeps working).
@@ -240,6 +244,7 @@ export class PlayTagger {
     if (removedIdentity) this.storage?.forgetClipIdentity?.(removedIdentity);
     this.plays = this.plays.filter(p => p.id !== id);
     this.currentPlayId = null;
+    this.discardDraft();
     this._emit('play-deleted');
     undoToast();
     if (this.plays.length > 0) {
@@ -261,7 +266,7 @@ export class PlayTagger {
    */
   async clearCurrentTags() {
     let id = this.currentPlayId;
-    const play = id ? this.getPlay(id) : null;
+    const play = id ? this.getCurrentPlay() : null;
 
     const msg = play
       ? `Clear all tags and notes on Play ${id}? The play and video stay.`
@@ -410,7 +415,189 @@ export class PlayTagger {
     return (await handle.result) === 'ok' ? value : null;
   }
 
+  // --- The charting draft (GRIDIRON-IQ-SAVE-CONTRACT.md) -------------------
+  // Chart edits a copy of the current play. The play itself, the reports and
+  // the disk change only on Save, which stores exactly what Chart shows
+  // (PlayShape.settle). Values the app fills in (Auto D&D, Carry formation,
+  // the carried unit) are on screen but do not make the play unsaved.
+
+  /** The parts of a play charting edits; identity and film stay on the play. */
+  static DRAFT_FIELDS = Object.freeze(['tags', 'penalties', 'resultingSituation', 'specialTeams', 'notes', 'diagram', '_autoSit']);
+  static RECOVERY_KEY = 'giq_chart_draft';
+
+  _chartingJson(play) {
+    return JSON.stringify(PlayTagger.DRAFT_FIELDS.map(field => play?.[field] ?? null));
+  }
+  _copyCharting(from, to) {
+    for (const field of PlayTagger.DRAFT_FIELDS) {
+      if (from[field] === undefined) delete to[field];
+      else to[field] = JSON.parse(JSON.stringify(from[field]));
+    }
+    return to;
+  }
+  _gameKey() {
+    const store = this.storage?.seasonStore;
+    return `${store?.currentSeasonId ?? ''}::${store?.data?.activeGameId ?? ''}`;
+  }
+  _openDraft(live) {
+    const play = this._copyCharting(live, { ...live });
+    const json = this._chartingJson(play);
+    this.draft = { id: live.id, game: this._gameKey(), play, base: json, last: json, coach: false, steps: [], redo: [] };
+    this._offerRecovery();
+    return this.draft;
+  }
+  /** Whether `play` is the open play: the draft, or the stored play behind it. */
+  owns(play) {
+    return !!play && (this.plays.includes(play) || play === this.draft?.play);
+  }
+  /** Chart has changes on the open play that are not saved. */
+  hasUnsavedChanges() {
+    const draft = this.draft;
+    return !!draft && draft.coach && draft.game === this._gameKey() && this._chartingJson(draft.play) !== draft.base && !!this.getPlay(draft.id);
+  }
+
+  /** A write to the draft: one undo step, unsaved unless the app filled it. */
+  _draftChanged() {
+    const draft = this.draft;
+    const json = this._chartingJson(draft.play);
+    if (json === draft.last) return;
+    if (this._carrying) {
+      draft.base = draft.coach ? draft.base : json;
+    } else {
+      draft.steps.push(draft.last);
+      if (draft.steps.length > 100) draft.steps.shift();
+      draft.redo = [];
+      draft.coach = true;
+    }
+    draft.last = json;
+    this._writeRecovery();
+  }
+  _restoreDraftStep(json) {
+    const draft = this.draft;
+    const values = JSON.parse(json);
+    PlayTagger.DRAFT_FIELDS.forEach((field, index) => {
+      if (values[index] === null) delete draft.play[field];
+      else draft.play[field] = values[index];
+    });
+    draft.last = json;
+    this._writeRecovery();
+    (this.listeners['draft-updated'] || []).forEach(cb => cb(draft.play));
+  }
+  /** Undo and Redo inside the open play's unsaved changes; false when there is
+   *  nothing there, so the saved history takes over. */
+  undoDraft() {
+    const draft = this.draft;
+    if (!draft || !draft.steps.length) return false;
+    draft.redo.push(draft.last);
+    this._restoreDraftStep(draft.steps.pop());
+    return true;
+  }
+  redoDraft() {
+    const draft = this.draft;
+    if (!draft || !draft.redo.length) return false;
+    draft.steps.push(draft.last);
+    this._restoreDraftStep(draft.redo.pop());
+    return true;
+  }
+  canUndoDraft() { return !!this.draft?.steps.length; }
+  canRedoDraft() { return !!this.draft?.redo.length; }
+
+  /**
+   * Save the open play: drop what it cannot show, then store what Chart shows
+   * as one change (one Undo step). Returns false when there is no open play.
+   */
+  saveDraft() {
+    const draft = this.draft;
+    if (!draft) return false;
+    const live = this.getPlay(draft.id);
+    if (!live || draft.game !== this._gameKey()) { this.draft = null; return false; }
+    PlayShape.settle(draft.play);
+    this.draft = null;
+    this._clearRecovery();
+    if (this._chartingJson(draft.play) !== this._chartingJson(live)) {
+      this._copyCharting(draft.play, live);
+      this._emit('play-updated', live);
+    }
+    (this.listeners['draft-updated'] || []).forEach(cb => cb(null));
+    return true;
+  }
+  /** Drop the open play's unsaved changes. */
+  discardDraft() {
+    if (!this.draft) return false;
+    this.draft = null;
+    this._clearRecovery();
+    (this.listeners['draft-updated'] || []).forEach(cb => cb(null));
+    return true;
+  }
+  /**
+   * Before leaving the open play (another play, game or season, or closing):
+   * unsaved changes ask Save, Discard or Stay. Resolves true when the coach may
+   * leave. Values the app filled in are dropped without asking.
+   */
+  async resolveDraft({ closing = false } = {}) {
+    if (!this.hasUnsavedChanges()) { if (this.draft) this.draft = null; this._clearRecovery(); return true; }
+    if (this._leavePrompt) return this._leavePrompt;
+    const id = this.draft.id;
+    this._leavePrompt = this._decide({
+      title: 'Unsaved changes',
+      message: `Play ${id} has changes that are not saved.`,
+      actions: [{ key: 'cancel', label: closing ? 'Cancel' : 'Stay' },
+        { key: 'discard', label: 'Discard', tone: 'danger' },
+        { key: 'save', label: 'Save', tone: 'primary', default: true }],
+    }).then(key => {
+      if (key === 'save') return this.saveDraft();
+      if (key === 'discard') return this.discardDraft();
+      return false;
+    }).finally(() => { this._leavePrompt = null; });
+    return this._leavePrompt;
+  }
+
+  /* Recovery copy: the unsaved draft survives a crash or power loss, never
+     counted as charting until the coach restores and saves it. */
+  _writeRecovery() {
+    const draft = this.draft;
+    if (!draft) return;
+    try {
+      if (!this.hasUnsavedChanges()) { localStorage.removeItem(PlayTagger.RECOVERY_KEY); return; }
+      localStorage.setItem(PlayTagger.RECOVERY_KEY, JSON.stringify({ game: draft.game, id: draft.id, charting: draft.last }));
+    } catch (e) {}
+  }
+  _clearRecovery() {
+    try { localStorage.removeItem(PlayTagger.RECOVERY_KEY); } catch (e) {}
+  }
+  _offerRecovery() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PlayTagger.RECOVERY_KEY) || 'null'); } catch (e) { saved = null; }
+    const draft = this.draft;
+    if (!saved || !draft || saved.game !== draft.game || saved.id !== draft.id || saved.charting === draft.base) return;
+    queueMicrotask(async () => {
+      const key = await this._decide({
+        title: 'Unsaved changes',
+        message: `Play ${draft.id} has changes from your last session that were not saved.`,
+        actions: [{ key: 'discard', label: 'Discard', tone: 'danger' }, { key: 'restore', label: 'Restore', tone: 'primary', default: true }],
+      });
+      if (this.draft !== draft) return;
+      if (key === 'restore') {
+        draft.steps.push(draft.last);
+        draft.coach = true;
+        this._restoreDraftStep(saved.charting);
+      } else if (key === 'discard') this._clearRecovery();
+    });
+  }
+
   selectPlay(id) {
+    // Leaving a play with unsaved changes asks first; Stay keeps it open.
+    if (this.draft && this.draft.id !== id && this.hasUnsavedChanges()) {
+      this._pendingSelect = id;
+      this.resolveDraft().then(ok => {
+        const next = this._pendingSelect;
+        this._pendingSelect = null;
+        if (ok && next != null) this.selectPlay(next);
+        else this._emit('play-selected', this.getCurrentPlay());
+      });
+      return false;
+    }
+    if (this.draft && this.draft.id !== id) this.draft = null;
     this.currentPlayId = id;
     const play = this.getPlay(id);
     if (!play) return;
@@ -429,8 +616,12 @@ export class PlayTagger {
     return this.plays.find(p => p.id === id);
   }
 
+  /** The play Chart shows and edits: the open draft of the current play. */
   getCurrentPlay() {
-    return this.getPlay(this.currentPlayId);
+    const live = this.getPlay(this.currentPlayId);
+    if (!live) return undefined;
+    if (!this.draft || this.draft.id !== live.id || this.draft.game !== this._gameKey()) this._openDraft(live);
+    return this.draft.play;
   }
 
   /**
@@ -641,6 +832,10 @@ export class PlayTagger {
   setPlayUnit(play, unit) {
     if (!play || !['offense', 'defense', 'special'].includes(unit)) return false;
     play.tags.unit = unit;
+    // A stored play (the Film Room Unit column) is saved by this write, so it
+    // keeps only what the new unit shows; Chart's draft keeps everything until
+    // Save, so switching back loses nothing.
+    if (play !== this.draft?.play) PlayShape.settle(play);
     this._stripStAlignment(play);
     this._emit('play-updated', play);
     return true;
@@ -710,7 +905,7 @@ export class PlayTagger {
    * every snap ("persistent until changed").
    */
   nextPlayWithSituation() {
-    const prev = this.getCurrentPlay();
+    const prev = this.getPlay(this.currentPlayId);
     // The unit shown on the previous play, never the carried one, so a play
     // with no stored unit cannot stamp a stale carried unit (Special Teams
     // included, which would strip the next play's look fields).
@@ -719,6 +914,9 @@ export class PlayTagger {
     if (advanced) {
       const next = this.getCurrentPlay();
       if (next) {
+        // Filled in by the app: on screen, saved with the play, never unsaved.
+        this._carrying = true;
+        try {
         if (this.autoDD && prev) this.applyNextSituation(prev, next);
         // Placeholder plays are seeded with the game's starting unit when
         // they are created. That seed is not a coach decision: once the coach
@@ -728,6 +926,7 @@ export class PlayTagger {
         // charted, using the same canonical rule as progress and Film Room.
         if (carryUnit && !isPlayTagged(next)) this.setUnit(carryUnit);
         if (this.carryScheme && prev) this.applyCarryScheme(prev, next);
+        } finally { this._carrying = false; }
       }
     }
     return advanced;
@@ -770,8 +969,9 @@ export class PlayTagger {
    *  (e.g. a formation carried over from an offense snap). Clear them when a play
    *  is special. Returns true if anything changed. */
   _stripStAlignment(play) {
-    // A run/pass or Fake try charts its look like a scrimmage snap.
-    if (!play || countedUnit(play) !== 'special' || SpecialTeamsModel.isRunPassTry(play)) return false;
+    // A run/pass or Fake try charts its look like a scrimmage snap. Chart's
+    // draft keeps its look until Save, which drops what the play cannot show.
+    if (!play || play === this.draft?.play || countedUnit(play) !== 'special' || SpecialTeamsModel.isRunPassTry(play)) return false;
     let changed = false;
     // SeasonStore's list is the one strip list (GRIDIRON-IQ-TAG-MODEL.md §8).
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => {
@@ -981,6 +1181,18 @@ export class PlayTagger {
   }
 
   _emit(event, data) {
+    // A write to Chart's draft stays in the draft: no history, no save, no report.
+    if (event === 'play-updated' && data && data === this.draft?.play) {
+      this._draftChanged();
+      (this.listeners['draft-updated'] || []).forEach(cb => cb(data));
+      return;
+    }
+    // The stored play changed elsewhere (Film Room, Undo, a load): an open
+    // draft with no unsaved changes follows it.
+    if (this.draft && !this.hasUnsavedChanges()
+      && (event === 'plays-loaded' || (event === 'play-updated' && data?.id === this.draft.id) || event === 'play-deleted')) {
+      this.draft = null;
+    }
     // LIVE barrier for the ST-alignment invariant (E1-R9): every writer — Film Room
     // grid, AI vision stamp, suggestion engine, the tag form, copy/template — mutates
     // a play and then emits play-created/play-updated. Stripping a special play here,

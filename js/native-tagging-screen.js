@@ -6,6 +6,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PlayCallModel } from './play-call-model.js';
 import { ChartingDetails } from './charting-details.js';
 import { PlayDiagram } from './play-diagram.js';
+import { PlayShape } from './play-shape.js';
 
 /**
  * Native tag-form presentation.
@@ -65,7 +66,7 @@ export class NativeTaggingScreen {
   }
 
   _bindDomainEvents() {
-    ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded']
+    ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded', 'draft-updated']
       .forEach(event => this.tagger?.on(event, () => this._queuePublish()));
   }
 
@@ -169,6 +170,10 @@ export class NativeTaggingScreen {
     }
     return {
       enabled: !!play, currentPlayId: play?.id ?? null,
+      // Unsaved changes on the open play, and what the play can show.
+      dirty: !!this.tagger?.hasUnsavedChanges?.(),
+      lookSide: play ? PlayShape.lookSide(play) : null, kickFake: play ? PlayShape.isKickFake(play) : false,
+      baseRoles: play ? PlayShape.baseRoles(play) : [],
       unit: play ? countedUnit(play) : (this.tagger?.defaultUnit || 'offense'),
       perspective: gameInfo.perspective || 'offense', direction: gameInfo.direction || '',
       progress: this.tagger?.progressText?.() || '0 / 0 tagged',
@@ -262,6 +267,16 @@ export class NativeTaggingScreen {
   openCustomFields() { return this.app.customFields?.openManager?.({ overlays: this.app.overlays, onSaved: () => { this._queuePublish(); this.app.overlays?.toast?.({ message: 'Custom fields saved', tone: 'success' }); } }); }
   openLibrary(group) { this.app.tagLibrarySettings?.open?.(group); }
   previous() { this.app.notes?.flush?.(); this.tagger.prevPlay(); this.app._autoPlayCurrent?.(); }
+  /** Save the open play and stay on it. */
+  save() {
+    this.app.notes?.flush?.();
+    if (!this.tagger?.saveDraft?.()) return false;
+    this._saveConfirmed = true;
+    clearTimeout(this._saveTimer);
+    this._queuePublish();
+    this._saveTimer = setTimeout(() => { this._saveConfirmed = false; this._queuePublish(); }, 650);
+    return true;
+  }
   saveNext() {
     this.app._advancePlay();
     this._saveConfirmed = true;

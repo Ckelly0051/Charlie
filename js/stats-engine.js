@@ -6,6 +6,7 @@
  */
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { MissedTackles } from './missed-tackles.js';
+import { PlayShape } from './play-shape.js';
 import { Charts } from './charts.js';
 import { AnalyticsMetrics } from './analytics-metrics.js';
 import { countedUnit, gainedFirstDown, DRIVE_ENDERS, isPlayTagged, playbackOrder } from './football-rules.js';
@@ -2134,10 +2135,12 @@ export class StatsEngine {
       });
     });
 
-    // Player lines add our kick coverage (kickoff, punt) tackles and misses to
-    // the defensive snaps (coach, 2026-10-07); the team modules stay defensive.
+    // Player lines add our kick coverage (kickoff, punt) tackles and misses and
+    // our tackles after an offensive turnover to the defensive snaps, the same
+    // tackles Players counts; the team modules stay defensive.
     const coverage = p => { const st = SpecialTeamsModel.normalize(p?.specialTeams); return !!st && !st.isFake && (st.unit === 'kickoff' || st.unit === 'punt') && S._tryPenaltyResolved(p); };
-    const players = this._individualStats(all.filter(p => isDefense(p) || coverage(p))).tacklers.map(row => ({
+    const turnoverTackle = p => countedUnit(p) === 'offense' && PlayShape.isTurnover(p) && S._tryPenaltyResolved(p);
+    const players = this._individualStats(all.filter(p => isDefense(p) || coverage(p) || turnoverTackle(p))).tacklers.map(row => ({
       name: `#${row.num} ${roster[String(row.num)] || ''}`.trim(), num: row.num,
       tackles: row.tackles, solo: row.solo, assists: row.assists, missedTackles: row.missedTackles, sacks: row.sacks, tfl: row.tfl,
       interceptions: row.ints, fumblesRecovered: row.fumblesRec,
@@ -3636,8 +3639,10 @@ export class StatsEngine {
       }
 
       // Tacklers may be several on one play: each credited jersey gets the
-      // tackle, and a shared tackle is an assist for every one of them.
-      const tacklerIds = StatsEngine.splitPlayers(players.tackler);
+      // tackle, and a shared tackle is an assist for every one of them. Only a
+      // play that shows Tackler(s) credits one (PlayShape): a defensive snap,
+      // or an offensive snap that ended in a turnover.
+      const tacklerIds = PlayShape.baseRoles(p).includes('tackler') ? StatsEngine.splitPlayers(players.tackler) : [];
       const shared = tacklerIds.length > 1;
       const isDefPlay = p.tags.unit === 'defense';
       const takeawayIds = StatsEngine.splitPlayers(players.takeaway);

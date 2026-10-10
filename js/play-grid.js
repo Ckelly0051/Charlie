@@ -14,6 +14,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
 import { PlayCallModel } from './play-call-model.js';
 import { ChartingDetails } from './charting-details.js';
+import { PlayShape } from './play-shape.js';
 import { MissedTackles } from './missed-tackles.js';
 import { OPTIONS as TAG_OPTIONS, RESULT_OPTIONS } from './native-tagging.jsx';
 
@@ -249,23 +250,17 @@ export class PlayGrid {
   }
   static UNIT_LABELS = Object.freeze({ offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
   /**
-   * Whether a play's unit cannot hold a column: the Special Teams columns on an
-   * offensive or defensive snap, and the offense and defense look columns on a
-   * Special Teams snap. An offensive snap charts the defense it faced and a
-   * defensive snap the offense it faced, so Formation and Front belong on both.
-   * The one rule for the snapshot, the editor and the commit, in every scope
-   * and column set.
+   * Whether a play cannot hold a column: what Chart does not show for that play
+   * (PlayShape), so Film Room can never store a hidden value. The Special Teams
+   * columns belong to Special Teams snaps; an offensive snap charts the defense
+   * it faced and a defensive snap the offense it faced. The one rule for the
+   * snapshot, the editor and the commit, in every scope and column set.
    */
   static cellLocked(play, col) {
-    // A detail cell (Motion start, RPO read, QB run type) is locked while the
-    // field that opens it is blank (ChartingDetails.TRIGGERS).
-    const opener = ChartingDetails.TRIGGERS.find(trigger => trigger.children.includes(col?.key));
-    if (opener && !opener.opened(play?.tags || {})) return true;
-    if (col?.key === 'missedTackles') return MissedTackles.modeOf(play) !== 'theirs';
-    if (!col?.unit) return false;
-    if (SpecialTeamsModel.isRunPassTry(play)) return false;
-    const unit = countedUnit(play);
-    return unit === 'special' ? col.unit !== 'special' : col.unit === 'special';
+    if (!col) return false;
+    if (col.unit === 'special') return countedUnit(play) !== 'special';
+    if (['sit', 'text', 'st-readonly', 'pen-readonly'].includes(col.type) || col.key === 'unit') return false;
+    return !PlayShape.holdsTag(play, col.key);
   }
 
   // ---------- View data ----------
@@ -439,6 +434,8 @@ export class PlayGrid {
     }
     // Clear triggered details, preserving independent Gap and Direction.
     ChartingDetails.settle(play.tags, col.key);
+    // A Film Room edit is a save: the play keeps only what it can show.
+    PlayShape.settle(play);
     // Positive yardage with no result yet = a gain (mirror of setTagValue), so a
     // yardage-only grid edit is classified the same as one typed in the form.
     if (col.key === 'yardage' && !play.tags.result) {
@@ -642,6 +639,10 @@ export class PlayGrid {
     const play = this.tagger.getPlay(Number(playId));
     const col = PlayGrid.COLUMNS.find(item => item.key === colKey);
     if (!play || !col || PlayGrid.cellLocked(play, col)) return false;
+    // The play open in Chart with unsaved changes: Save or Discard them first.
+    if (this.tagger.draft?.id === play.id && this.tagger.hasUnsavedChanges()) {
+      return this.tagger.resolveDraft().then(ok => (ok ? this.nativeCommitEdit(playId, colKey, value) : false));
+    }
     if (col.key === 'unit') {
       const unit = Object.keys(PlayGrid.UNIT_LABELS).find(key => PlayGrid.UNIT_LABELS[key] === value);
       if (!this.tagger.setPlayUnit(play, unit)) return false;

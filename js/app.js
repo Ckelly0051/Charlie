@@ -944,6 +944,9 @@ class App {
       el.blur();
     }
     this.notes?.flush();
+    // Save & Next saves the open play first, in a cut-up queue too; Skip
+    // moves on without saving (leaving asks when there are unsaved changes).
+    if (!opts.skip) this.tagger.saveDraft();
 
     // Analytics rows, Film Room selections, and Study results establish an
     // intentional example set. While that cut-up is active, its queue owns
@@ -954,10 +957,6 @@ class App {
       this.cutupPlayer.next();
       return;
     }
-
-    // Save & Next (Enter) is the explicit save for the play being left, during
-    // normal chronological advance only: not Skip, which moves on without
-    // committing, and not a filtered cut-up queue, handled above.
 
     // 1) Next play in the list (also switches clip in folder mode).
     //    Skip advances plainly; Save & Next carries situation/unit forward.

@@ -117,7 +117,12 @@ export class StorageManager {
     // just before closing is not lost. Wired here because the store and tagger
     // are only fully wired once app.js calls this.
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-      window.addEventListener('beforeunload', () => { try { this.flushPendingSaves(); } catch (e) {} });
+      window.addEventListener('beforeunload', (event) => {
+        // A browser cannot show the in-app Save / Discard choice here; it asks
+        // with its own prompt, and the unsaved draft is kept for recovery.
+        if (this.tagger.hasUnsavedChanges?.()) { event.preventDefault(); event.returnValue = ''; }
+        try { this.flushPendingSaves(); } catch (e) {}
+      });
     }
     // Desktop only: Tauri's close-requested hook can defer the close until the
     // flush resolves, which a browser beforeunload listener cannot.
@@ -147,6 +152,10 @@ export class StorageManager {
         if (this._desktopCloseInFlight) return;
         this._desktopCloseInFlight = true;
         (async () => {
+          // Unsaved Chart changes ask Save, Discard or Cancel before closing.
+          let proceed = true;
+          try { proceed = await this.tagger.resolveDraft({ closing: true }); } catch (e) { proceed = true; }
+          if (!proceed) { this._desktopCloseInFlight = false; return; }
           let ok = true;
           try { ok = await this.flushPendingSaves(); } catch (e) { ok = false; }
           if (ok === false) {
@@ -385,6 +394,7 @@ export class StorageManager {
    * that never happened.
    */
   async openSeasonById(id) {
+    if (!(await this.tagger.resolveDraft())) return false;
     if (this.seasonStore.hasCurrent()) { this.commitActive(); this.seasonStore.persist(); }
     this._cancelPendingSaves();   // a debounced save must never straddle the switch
     const opened = await this.seasonStore.openSeason(id);
@@ -1271,8 +1281,12 @@ export class StorageManager {
   /** Switch which game is active. Reel playback may opt out of intermediate
    * commits/persists after saving its launch game once. */
   switchToGame(id, options = {}) {
-    const { commit = true, persist = true, reloadActiveFilm = false } = options;
     if (!this.seasonStore.data) return Promise.resolve(false);
+    // Leaving the open play with unsaved changes asks first.
+    if (id !== this.seasonStore.data.activeGameId && this.tagger.hasUnsavedChanges?.()) {
+      return this.tagger.resolveDraft().then(ok => (ok ? this.switchToGame(id, options) : false));
+    }
+    const { commit = true, persist = true, reloadActiveFilm = false } = options;
     if (id === this.seasonStore.data.activeGameId) {
       if (!reloadActiveFilm) return Promise.resolve(true);
       const active = this.seasonStore.activeGame();

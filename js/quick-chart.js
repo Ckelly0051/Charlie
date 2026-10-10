@@ -341,6 +341,8 @@ export class QuickChart {
       }
 
       this.tagger._emit('play-updated', play);
+      // Confirming a Quick Chart entry is its save.
+      this.tagger.saveDraft();
     }
 
     // Clear player inputs
