@@ -117,6 +117,9 @@ failed saves that roll back only their own season, game or program, and
    `e2e-parity` and the real-data numbers unchanged, and new tag-library
    fields registering their dimension. Approved fixed schemas stay fixed
    until the coach changes them. Plan for Codex review before any build.
+   The `js/stats-engine.js` split by area is part of this rebuild, not a
+   separate restructure (coach, 2026-10-10): migrating each table off its
+   hand-built grouping is what breaks the file up.
    Play renumbering after a deleted play (the play strip skips the number)
    is paired with this work, not built alone (coach, 2026-10-06): a play's
    number is its film reference, so renumbering rewrites Plan links and
@@ -138,7 +141,10 @@ failed saves that roll back only their own season, game or program, and
      each reconciled with the detailed reports; unsupported categories absent;
    - saved composable reports: registered dimensions and approved measures with
      filters, scope and perspective, saved and rerun as games are charted.
-     Study stays the query engine.
+     Study stays the query engine. Rev 1 built 2026-10-10 as Reports >
+     Dashboards (`docs/REPORTS-CONTRACTS.md`), ahead of steps 3-4 at the
+     coach's request; opponent perspective and the full reports suite come
+     with the rebuild.
 6. **Coach-owned AI analysis exchange.** Export a versioned season analysis pack
    (one row per play, stable `gameId::playId`, charted fields, data dictionary;
    no video, film paths or player identities by default). Then optionally
