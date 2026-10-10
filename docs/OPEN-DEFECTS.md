@@ -14,6 +14,23 @@ Installed smoke does not change the design approval registry.
 
 ## Open defects
 
+- **Charted values persist after the play can no longer show them**
+  (coach, 2026-10-10: top priority; "the play needs to be recorded as it is
+  charted"). Changing a parent (unit, Special Teams type, a try's attempt type)
+  keeps child values the new state hides; only the look fields
+  (`SeasonStore.ST_ALIGNMENT_KEYS`) are stripped. Reports keep counting some
+  of them (the Players vs Defense board tackle mismatch below is one). Chart and
+  Film Room also disagree on what a Special Teams play holds: Chart hides Play &
+  Result, Film Room edits Result, Yards, Run/Pass, Play Type and Direction on
+  it. Live library, read-only copy, 1,088 plays (2026-10-10): 17 plays hold a
+  player role their state cannot show (3 offensive Tacklers with no turnover, 8
+  Ball Carriers on non-Run/Pass tries, 3 Tacklers on returns, 1 kickoff Passer,
+  2 on untyped Special Teams); Special Teams plays that are not Run/Pass tries
+  hold Result 47, Yards 24, Run/Pass 2, Direction 2, Play Type 1, Motion 1.
+  Coach: an offensive snap ending in a turnover opens Tackler(s). Proposed,
+  awaiting coach: a parent change on a charted play confirms first (Cancel
+  default) and removes what the new state cannot hold in one undoable write. Existing values need
+  per-group coach review and confirmation; nothing written.
 - **Players and the Defense board count some tackles differently.** Canonical
   2025 JV: #5 41 vs 40, #7 22 vs 21, #82 8 vs 7 (Players > Tackles vs Defense >
   Defensive player contributions). Cause (coach confirmed 2026-10-10): Players
