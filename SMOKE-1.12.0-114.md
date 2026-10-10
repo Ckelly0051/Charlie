@@ -99,3 +99,11 @@ rapid scrubbing and the renamed HTML export.
    beside Last 3 games, Offense beside Defense), so the line colors run
    together at the shared edges instead of one clean selected outline.
    Logged; no fix started.
+5. **Add a built dashboard module to an existing report** (coach,
+   2026-10-10; feature request). A coach builds a module in the Dashboards
+   builder and saves it to an existing report (for example the Defense
+   report); from then on that report always shows it. Not built today:
+   Dashboards are separate pages and the fixed reports cannot take added
+   modules. Recorded with the reports rebuild (`GRIDIRON-IQ-PLAN-V2.md`
+   step 3), whose report sections as specs make it possible. Logged; no
+   work started.

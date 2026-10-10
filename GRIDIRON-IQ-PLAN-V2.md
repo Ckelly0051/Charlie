@@ -120,6 +120,10 @@ failed saves that roll back only their own season, game or program, and
    The `js/stats-engine.js` split by area is part of this rebuild, not a
    separate restructure (coach, 2026-10-10): migrating each table off its
    hand-built grouping is what breaks the file up.
+   A coach can add a module built in Dashboards to an existing report (coach,
+   2026-10-10): for example, a defensive coach builds one and saves it to the
+   Defense report, and every later view of that report includes it. The
+   approved sections stay as they are; added modules are the coach's own.
    Play renumbering after a deleted play (the play strip skips the number)
    is paired with this work, not built alone (coach, 2026-10-06): a play's
    number is its film reference, so renumbering rewrites Plan links and
