@@ -280,7 +280,9 @@ rate, in the reports, Study and Dashboards:
 4. Only run or pass snaps have yards; a penalty-only play has none. A sack
    is a snap even with Run/Pass blank (an RPO) and keeps its rushing yards;
    one charted with only its result is still a reported play
-   (`StatsEngine.isReportedPlay`).
+   (`StatsEngine.isReportedPlay`). `StatsEngine.isSnap` (run, pass or sack)
+   is the cohort every yardage and production figure measures; Run % reads
+   only the called Run/Pass.
 5. A play an accepted penalty wipes out does not count, though its gain is
    recorded.
 6. A play that stands counts its gain, also when an accepted penalty adds

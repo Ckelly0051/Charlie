@@ -219,11 +219,17 @@ export class StatsEngine {
     return PenaltyModel.normalizeList(p?.penalties).some(penalty => penalty.playCounts === false);
   }
 
+  /** A run or pass snap, the cohort every yardage and production figure
+   *  measures. A sack is a snap even when Run/Pass is blank (an RPO); Run %
+   *  still reads only the called Run/Pass. */
+  static isSnap(p) {
+    return StatsEngine.isRun(p) || StatsEngine.isPass(p) || StatsEngine.hasResult(p, 'Sack');
+  }
+
   /** A play total yards, yards per play, explosive and negative rate count:
-   *  a run or pass snap that stood, with its yards known. A sack is a snap
-   *  even when Run/Pass is blank (an RPO). */
+   *  a snap that stood, with its yards known. */
   static countsForYards(p) {
-    return (StatsEngine.isRun(p) || StatsEngine.isPass(p) || StatsEngine.hasResult(p, 'Sack')) && !StatsEngine.isNoPlay(p) && StatsEngine.playYards(p) !== null;
+    return StatsEngine.isSnap(p) && !StatsEngine.isNoPlay(p) && StatsEngine.playYards(p) !== null;
   }
 
   /** What a play adds to a yards total: its gain when it counts, else 0. */
@@ -1396,8 +1402,7 @@ export class StatsEngine {
     const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
     const groups = new Map(StatsEngine.DIR_STRENGTH_BUCKETS.map(name => [name, []]));
     if (extract) {
-      (plays || []).filter(p => countedUnit(p) === 'offense'
-        && (StatsEngine.isRun(p) || StatsEngine.isPass(p))).forEach(p => {
+      (plays || []).filter(p => countedUnit(p) === 'offense' && StatsEngine.isSnap(p)).forEach(p => {
         (extract(p) || []).forEach(key => { if (groups.has(key)) groups.get(key).push(p); });
       });
     }
@@ -1760,21 +1765,21 @@ export class StatsEngine {
       const runs = rows.filter(StatsEngine.isRun);
       const passes = rows.filter(StatsEngine.isPass);
       /* Total yards is the sum of the two columns beside it. All three come
-       * from the same classified run/pass cohort; penalty-only yardage is not
-       * yards allowed. Runs and passes are unioned, not added, so a snap
-       * tagged both counts once. `ypp` divides by that same cohort.
+       * from the same snap cohort (`isSnap`: runs, passes and sacks, each
+       * once); penalty-only yardage is not yards allowed. `ypp` divides by
+       * the snaps that count for yards.
        *
        * Two cohorts, both named, neither standing in for the other:
        *   `charted`  every defensive snap here. Frequency: the displayed Snaps
        *              count, every ranking, every call or blitz percentage.
        *              `n` is its alias.
-       *   `measured` the run/pass-classified subset. Production: total, rush
+       *   `measured` the snap subset (`isSnap`). Production: total, rush
        *              and pass yards, yards per play, explosives.
        *
        * With `measured === 0` every production field is null and renders a
        * dash; a charted look with nothing measured is not a zero. Coach
        * rulings 2026-09-10 and 2026-09-11. */
-      const scrimmage = [...new Set([...runs, ...passes])];
+      const scrimmage = rows.filter(StatsEngine.isSnap);
       const measured = scrimmage.length;
       const counted = scrimmage.filter(StatsEngine.countsForYards);
       const sumYards = cohort => cohort.reduce((sum, p) => sum + StatsEngine.playYards(p), 0);
@@ -1900,7 +1905,7 @@ export class StatsEngine {
     // A call result needs a classified offensive snap. Front/coverage tags on
     // an administrative or otherwise unclassified row do not describe what
     // the call defended and cannot enter a performance ranking.
-    const classified = source.filter(p => StatsEngine.isRun(p) || StatsEngine.isPass(p));
+    const classified = source.filter(StatsEngine.isSnap);
     const callRows = this._defenseCallRows(classified).map(row => ({
       name: row.key.replaceAll(' · ', ' | '), n: row.n, yards: row.yards,
       ypp: row.avgYds, explosives: row.explosives, touchdowns: row.tds,
@@ -2002,15 +2007,15 @@ export class StatsEngine {
     const d = this.defenseDashboard(all, labels);
     const ps = all.filter(isDefense);
     const rate = (n, den) => den ? n / den * 100 : null;
-    const classified = rows => [...new Set([...rows.filter(S.isRun), ...rows.filter(S.isPass)])];
-    // The dashboard's own yards-per-play rule: classified yardage over the
-    // classified cohort, one decimal, null with nothing classified.
+    const classified = rows => rows.filter(S.isSnap);
+    // The dashboard's own yards-per-play rule: snap yardage over the snaps
+    // that count, one decimal, null with none.
     const ypp = rows => S.yardsPerPlayOf(classified((rows || []).filter(isDefense)));
     const touchdownsFor = side => rows => rows.filter(p => S.hasResult(p, 'Touchdown') && S.scoringSide(p) === side).length;
     const touchdownsAllowed = touchdownsFor('them');
     const defensiveTouchdowns = touchdownsFor('us');
     const summarize = rows => {
-      const measured = rows.filter(p => S.isRun(p) || S.isPass(p));
+      const measured = rows.filter(S.isSnap);
       const runs = rows.filter(S.isRun);
       const passes = rows.filter(S.isPass);
       return {
@@ -4120,8 +4125,7 @@ export class StatsEngine {
   // rollup over data already tagged. The call signature is the EXACT tagged look,
   // so the cut-up plays precisely those snaps.
   _bigTwelveData(plays) {
-    const off = (plays || []).filter(p => p && p.tags && countedUnit(p) === 'offense'
-      && (StatsEngine.isRun(p) || StatsEngine.isPass(p)));
+    const off = (plays || []).filter(p => p && p.tags && countedUnit(p) === 'offense' && StatsEngine.isSnap(p));
     const total = off.length;
     const map = {};
     off.forEach(p => {
@@ -4195,8 +4199,7 @@ export class StatsEngine {
       case 'playDir':   return p => isOff(p) && (p.tags.playDir || '') === val;
       case 'directionStrength': {
         const extract = StatsEngine._matrixDimensions().find(item => item.id === 'dirVsStrength')?.extract;
-        return p => isOff(p) && (StatsEngine.isRun(p) || StatsEngine.isPass(p))
-          && (extract?.(p) || []).includes(val);
+        return p => isOff(p) && StatsEngine.isSnap(p) && (extract?.(p) || []).includes(val);
       }
       case 'motion':    return p => isOff(p) && (val === 'No Motion' ? !p.tags.motion
                                   : val === 'Any' ? !!p.tags.motion
@@ -5292,7 +5295,7 @@ export class StatsEngine {
     const S = StatsEngine;
     const source = (plays || []).filter(p => p?.tags && (side !== 'defense'
       || (p.tags.unit === 'defense' && S._tryPenaltyResolved(p))));
-    const measured = source.filter(p => S.isRun(p) || S.isPass(p));
+    const measured = source.filter(S.isSnap);
     const placeOf = p => {
       const down = String(p.tags.down ?? '').trim();
       const distance = parseInt(p.tags.distance, 10);

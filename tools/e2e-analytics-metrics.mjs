@@ -205,6 +205,17 @@ test('the defensive cohort uses the yards rule for yards per play and explosive 
   assert.equal(measured.yardsPerPlay, 12);
   assert.equal(measured.explosiveRate, 100);
 });
+test('the Defense board counts a sack with Run/Pass blank in its yards, as the engine does', () => {
+  const plays = [
+    play(1, 'gA', { unit: 'defense', runPass: 'Run', yardage: '10' }),
+    play(2, 'gA', { unit: 'defense', result: 'Sack', yardage: '-7' }),
+  ];
+  assert.equal(StatsEngine.yardsPerPlayOf(plays), 1.5);
+  assert.equal(engine.defenseBoard(plays, {}).kpis.ypp, 1.5);
+  const summary = engine.defenseDashboard(plays, {}).summary;
+  assert.equal(summary.ypp, 1.5);
+  assert.equal(summary.runYards, 3, 'the sack is a rushing attempt with its signed yards');
+});
 test('the defense summary divides yards allowed by the plays that count', () => {
   const defPlays = [
     play(1, 'gA', { unit: 'defense', runPass: 'Run', yardage: '12' }),
