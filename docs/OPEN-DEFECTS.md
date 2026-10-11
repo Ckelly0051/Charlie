@@ -78,11 +78,12 @@ From `SMOKE-1.12.0-114.md`, coach findings and the installed check:
   Dashboards from one owner; yards per play is the same number on every
   surface. Smoke: Week 1 vs St. Peter Lutheran defense reads the same yards
   per play in Reports and Dashboards; a No Gain with Yards blank counts as 0;
-  a sack charted with only its result shows in Rushing with its loss.
-- **To build: a blank Interception is 0 yards** (coach, 2026-10-11), like No
-  Gain and Incomplete: it counts as an attempt with no passing yards.
-- **Rate bars scaled to the largest value** (installed check 14): a design
-  question for the coach; unchanged.
+  a sack charted with only its result shows in Rushing with its loss; an
+  Interception with Yards blank counts as an attempt for 0 (coach,
+  2026-10-11).
+- **Bar scale** (installed check 14; coach 2026-10-11): Success Rate and Stop
+  Rate bars run 0-100%; other metrics scale to the largest bar. Smoke: a
+  54% success bar fills about half its track.
 
 ## Open defects
 

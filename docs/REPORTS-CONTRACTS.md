@@ -276,7 +276,7 @@ rate, in the reports, Study and Dashboards:
 1. Yards is always the play's own gain; penalty yards live only in the
    penalty section and are never play yards.
 2. Blank yardage is unknown, not zero: the play is left out until charted.
-3. No Gain and Incomplete mean 0 with Yards left blank.
+3. No Gain, Incomplete and Interception mean 0 with Yards left blank.
 4. Only run or pass snaps have yards; a penalty-only play has none. A sack
    is a snap even with Run/Pass blank (an RPO) and keeps its rushing yards;
    one charted with only its result is still a reported play
@@ -286,8 +286,8 @@ rate, in the reports, Study and Dashboards:
 6. A play that stands counts its gain, also when an accepted penalty adds
    yards on top (those go to penalty yards).
 
-One owner: `StatsEngine.playYards` (a play's own gain, 0 for No Gain or
-Incomplete, null when blank), `isNoPlay`, `countsForYards`, and `yardsTotal` /
+One owner: `StatsEngine.playYards` (a play's own gain, 0 for No Gain,
+Incomplete or Interception, null when blank), `isNoPlay`, `countsForYards`, and `yardsTotal` /
 `yardsPerPlayOf` for a set of plays. Every report table, Study and Dashboards
 (through AnalyticsMetrics) read them; each row that shows an average carries
 the plays it averages over (`yardPlays`). Passing yards per attempt counts an
@@ -357,7 +357,9 @@ with Back to reports; the approved report strip is unchanged.
 - **Views.** Number (with the season baseline when the scope is narrower;
   a count has none, counts are not comparable across scopes), Bar chart (a
   narrower scope marks each bar with that group's season value; bars run
-  from a zero line, so a negative value draws left of it), Share (four split
+  from a zero line, so a negative value draws left of it; Success Rate and
+  Stop Rate bars run 0-100%, every other metric scales to its largest bar,
+  and each bar prints its value; coach, 2026-10-11), Share (four split
   values and Other, in one order, all in the legend; whole-number labels
   total 100%), Game by game, Heat map (its one line of text: brighter is
   better, or higher for a neutral metric), Table, Leaders.

@@ -227,6 +227,12 @@ test('an explosive play wiped out by a penalty is not explosive, in the count or
   const plays = [play(1, 'gA', { runPass: 'Run', yardage: '12' }), wiped];
   assert.deepEqual(plays.filter(cut).map(p => p.id), [1]);
 });
+test('an Interception with Yards left blank is an attempt for 0 yards (coach, 2026-10-11)', () => {
+  const cohort = [play(1, 'gA', { runPass: 'Pass', result: 'Complete', yardage: '10' }), play(2, 'gA', { runPass: 'Pass', result: 'Interception' })];
+  assert.equal(StatsEngine.playYards(cohort[1]), 0);
+  assert.equal(metrics.metric(cohort, 'yardsPerAttempt').value, 5);
+  assert.equal(engine._passingStats(cohort).average, '5.0');
+});
 test('a group below minSample reports state:insufficient, not ok', () => {
   const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];
   const ok = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 2 });

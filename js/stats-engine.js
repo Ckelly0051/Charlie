@@ -204,14 +204,14 @@ export class StatsEngine {
      set for total yards, yards per play, explosive and negative rate, read by
      the reports and, through AnalyticsMetrics, Study and Dashboards. */
 
-  /** A play's own gain: the number charted, 0 for No Gain or Incomplete, or
-   *  null when Yards is blank (not charted yet). Penalty yards are never
+  /** A play's own gain: the number charted, 0 for No Gain, Incomplete or
+   *  Interception with Yards blank, else null when Yards is blank (not charted yet). Penalty yards are never
    *  play yards; they live on the penalty records. */
   static playYards(p) {
     const raw = p?.tags?.yardage;
     const value = parseInt(raw, 10);
     if (String(raw ?? '').trim() !== '' && Number.isFinite(value)) return value;
-    return StatsEngine.hasResult(p, 'No Gain') || StatsEngine.hasResult(p, 'Incomplete') ? 0 : null;
+    return ['No Gain', 'Incomplete', 'Interception'].some(result => StatsEngine.hasResult(p, result)) ? 0 : null;
   }
 
   /** An accepted penalty wiped the play out: the snap did not happen. */

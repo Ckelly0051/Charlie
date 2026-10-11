@@ -31,11 +31,13 @@ export class ReportBuilder {
    * The metrics a widget can show. `concept` metrics resolve to the
    * offense-produced or defense-framed AnalyticsMetrics id by the dashboard's
    * unit, so a rate always reads the right way round; `measure` reads a
-   * registry measure off compute(); `count` is the cohort size.
+   * registry measure off compute(); `count` is the cohort size. A
+   * `fullScale` rate draws its bars on 0-100%; the others scale to the
+   * largest bar so small rates stay readable.
    */
   static METRICS = Object.freeze([
     { id: 'plays', name: 'Plays', group: 'Volume', kind: 'count', format: 'count', polarity: 'neutral' },
-    { id: 'success', group: 'Efficiency', kind: 'concept', format: 'pct',
+    { id: 'success', group: 'Efficiency', kind: 'concept', format: 'pct', fullScale: true,
       offense: { id: 'successRate', name: 'Success Rate' }, defense: { id: 'stopRate', name: 'Stop Rate' } },
     { id: 'yards', group: 'Efficiency', kind: 'concept', format: 'dec1',
       offense: { id: 'yardsPerPlay', name: 'Yards / Play' }, defense: { id: 'yardsAllowedPerPlay', name: 'Yards Allowed / Play' } },
@@ -496,7 +498,8 @@ export class ReportBuilder {
     const rows = groups.map(group => ({ value: group.value, label: group.label, ...this.measure(widget.metric, group.plays, options),
       baseline: baseline.has(group.value) ? baseline.get(group.value) : null }))
       .slice(0, widget.limit);
-    return { ...head, metricName, rows, dimensionName: this.dimensionName(widget.dimension), baselineLabel: context.baselineLabel || '' };
+    return { ...head, metricName, rows, scaleMax: ReportBuilder.metric(widget.metric).fullScale ? 100 : null,
+      dimensionName: this.dimensionName(widget.dimension), baselineLabel: context.baselineLabel || '' };
   }
 
   /** The distinct values of a dimension in a cohort, with play counts, for

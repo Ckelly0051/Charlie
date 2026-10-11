@@ -100,7 +100,7 @@ const noneCharted = name => <p class="gi-rb-empty">No {name} charted in this sco
 function BarView({ screen, data }) {
   if (!data.rows.length) return noneCharted(data.dimensionName);
   const values = data.rows.flatMap(row => [row.value, row.baseline]).filter(value => value != null);
-  const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
+  const lo = Math.min(0, ...values), hi = Math.max(0, data.scaleMax ?? 0, ...values);
   const span = hi - lo;
   const at = value => span > 0 ? (value - lo) / span * 100 : 0;
   const zero = at(0);

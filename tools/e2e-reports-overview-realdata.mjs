@@ -84,13 +84,13 @@ const splitResults = p => String(tags(p).result || '').split(/\s*\+\s*/).map(s =
 const hasResult = (p, v) => splitResults(p).includes(v);
 /* Yards (coach, 2026-10-10; docs/REPORTS-CONTRACTS.md > Yards), transcribed
  * from the rule: a run or pass snap (a sack is one) that stood, with its yards known -- a
- * number, or No Gain / Incomplete as 0. Blank with any other result is
+ * number, or No Gain / Incomplete / Interception as 0. Blank with any other result is
  * unknown. `yds` is what a play adds to a yards total. */
 const noPlay = p => (p.penalties || []).some(x => x && x.playCounts === false);
 const knownYds = p => {
   const raw = tags(p).yardage, v = parseInt(raw, 10);
   if (String(raw ?? '').trim() !== '' && Number.isFinite(v)) return v;
-  return hasResult(p, 'No Gain') || hasResult(p, 'Incomplete') ? 0 : null;
+  return hasResult(p, 'No Gain') || hasResult(p, 'Incomplete') || hasResult(p, 'Interception') ? 0 : null;
 };
 const counts = p => (isRun(p) || isPass(p) || hasResult(p, 'Sack')) && !noPlay(p) && knownYds(p) !== null;
 const yds = p => counts(p) ? knownYds(p) : 0;

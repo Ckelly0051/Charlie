@@ -289,8 +289,24 @@ try {
     const neg = document.querySelector('[data-rb-view="bar"] .gi-rb-bars li.is-negative');
     const zero = neg?.querySelector('.gi-rb-bar-zero'), fill = neg?.querySelector('.gi-rb-bar-fill');
     const negative = neg ? { fillRight: Math.round(fill.getBoundingClientRect().right), zero: Math.round(zero.getBoundingClientRect().left), width: fill.getBoundingClientRect().width } : null;
-    return { calls, head, tile, negative, caption, dash, trendText };
+    // Success / Stop Rate bars run 0-100%; other rates scale to the largest bar.
+    s.setUnit('offense');
+    s.saveWidget({ view: 'bar', metric: 'success', dimension: 'down', width: 'm' });
+    s.saveWidget({ view: 'bar', metric: 'yards', dimension: 'down', width: 'm' });
+    await new Promise(r => setTimeout(r, 250));
+    const barsOf = name => [...document.querySelectorAll('[data-rb-view="bar"]')].find(n => n.closest('[data-rb-widget], article, section')?.textContent.includes(name));
+    const fillPct = li => { const t = li.querySelector('.gi-rb-bar-track').getBoundingClientRect(), f = li.querySelector('.gi-rb-bar-fill').getBoundingClientRect(); return Math.round(f.width / t.width * 100); };
+    const rowsOf = view => [...(view?.querySelectorAll('.gi-rb-bars li') || [])].map(li => ({ value: parseFloat(li.querySelector('.gi-rb-bar-value').textContent), fill: fillPct(li) }));
+    const scale = { success: rowsOf(barsOf('Success Rate')), yards: rowsOf(barsOf('Yards / Play')) };
+    return { calls, head, tile, negative, caption, dash, trendText, scale };
   });
+  // The fixture's largest success rate is under 100%, so a bar scaled to it would overfill.
+  const successRows = views.scale.success.filter(r => Number.isFinite(r.value));
+  ok(successRows.length >= 2 && Math.max(...successRows.map(r => r.value)) < 95 && successRows.every(r => Math.abs(r.fill - r.value) <= 2),
+    'a Success Rate bar fills its own percent of a 0-100% track', views.scale.success);
+  const yardRows = views.scale.yards.filter(r => Number.isFinite(r.value) && r.value > 0);
+  ok(yardRows.length >= 2 && Math.max(...yardRows.map(r => r.fill)) >= 98,
+    'any other metric (Yards / Play) scales to the largest bar', views.scale.yards);
   ok(views.calls.length === 1 && views.calls[0] === 'Holding × Accepted' && views.head.includes('Accepted'),
     'a heat-map cell watches under its row and column labels (Holding × Accepted)', views);
   ok(!/play/.test(views.tile), 'a count tile shows no repeated play count under the number', views.tile);
