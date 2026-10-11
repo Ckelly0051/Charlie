@@ -77,7 +77,8 @@ From `SMOKE-1.12.0-114.md`, coach findings and the installed check:
   `docs/REPORTS-CONTRACTS.md` > Yards): built in the reports, Study and
   Dashboards from one owner; yards per play is the same number on every
   surface. Smoke: Week 1 vs St. Peter Lutheran defense reads the same yards
-  per play in Reports and Dashboards; a No Gain with Yards blank counts as 0.
+  per play in Reports and Dashboards; a No Gain with Yards blank counts as 0;
+  a sack charted with only its result shows in Rushing with its loss.
 - **Open question for the coach: a blank Interception.** An interception with
   Yards blank is unknown under rule 2, so it drops out of yards per attempt.
   No Gain and Incomplete are 0; is an Interception also always 0 passing

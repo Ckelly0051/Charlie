@@ -83,7 +83,7 @@ const tags = p => p.tags || {};
 const splitResults = p => String(tags(p).result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
 const hasResult = (p, v) => splitResults(p).includes(v);
 /* Yards (coach, 2026-10-10; docs/REPORTS-CONTRACTS.md > Yards), transcribed
- * from the rule: a run or pass snap that stood, with its yards known -- a
+ * from the rule: a run or pass snap (a sack is one) that stood, with its yards known -- a
  * number, or No Gain / Incomplete as 0. Blank with any other result is
  * unknown. `yds` is what a play adds to a yards total. */
 const noPlay = p => (p.penalties || []).some(x => x && x.playCounts === false);
@@ -92,7 +92,7 @@ const knownYds = p => {
   if (String(raw ?? '').trim() !== '' && Number.isFinite(v)) return v;
   return hasResult(p, 'No Gain') || hasResult(p, 'Incomplete') ? 0 : null;
 };
-const counts = p => (isRun(p) || isPass(p)) && !noPlay(p) && knownYds(p) !== null;
+const counts = p => (isRun(p) || isPass(p) || hasResult(p, 'Sack')) && !noPlay(p) && knownYds(p) !== null;
 const yds = p => counts(p) ? knownYds(p) : 0;
 /** `StatsEngine.isRun` / `isPass`, transcribed. */
 const isRun = p => {
@@ -129,8 +129,9 @@ const isSuccess = p => {
   if (t.down === '3' || t.down === '4') return y >= dist;
   return y >= 4;
 };
-/** `compute()` admits a play only when it carries a play type or run/pass. */
-const charted = p => !!(tags(p).playType || tags(p).runPass);
+/** `compute()` admits a play that carries a play type, a run/pass or a sack
+ *  (a sack charted with only its result; REPORTS-CONTRACTS > Yards). */
+const charted = p => !!(tags(p).playType || tags(p).runPass || hasResult(p, 'Sack'));
 const one = n => n.toFixed(1);
 
 const classified = activePlays.filter(charted);

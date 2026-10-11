@@ -120,6 +120,14 @@ export class StatsEngine {
       || StatsEngine.hasResult(p, 'Interception');
   }
 
+  /** A play the offense and defense reports read: one with a Play Type, a
+   *  Run/Pass or a sack (a sack is a snap with Run/Pass blank). A run/pass or
+   *  Fake try is reported only by the Special Teams try module. */
+  static isReportedPlay(p) {
+    return !!p?.tags && !!(p.tags.playType || p.tags.runPass || StatsEngine.hasResult(p, 'Sack'))
+      && !SpecialTeamsModel.isRunPassTry(p);
+  }
+
   static isRushingAttempt(p) {
     return StatsEngine.isRun(p) || StatsEngine.hasResult(p, 'Sack');
   }
@@ -187,7 +195,8 @@ export class StatsEngine {
    *  play. Extracted so `_efficiencyStats`, `_selfScoutGroup`, the `explosive`
    *  cut filter and the Self-Scout summary all read ONE definition. */
   static isExplosive(p) {
-    const yards = StatsEngine.playYards(p) ?? 0;
+    if (!StatsEngine.countsForYards(p)) return false;
+    const yards = StatsEngine.playYards(p);
     return StatsEngine.isRun(p) ? yards >= 12 : yards >= 16;
   }
 
@@ -211,9 +220,10 @@ export class StatsEngine {
   }
 
   /** A play total yards, yards per play, explosive and negative rate count:
-   *  a run or pass snap that stood, with its yards known. */
+   *  a run or pass snap that stood, with its yards known. A sack is a snap
+   *  even when Run/Pass is blank (an RPO). */
   static countsForYards(p) {
-    return (StatsEngine.isRun(p) || StatsEngine.isPass(p)) && !StatsEngine.isNoPlay(p) && StatsEngine.playYards(p) !== null;
+    return (StatsEngine.isRun(p) || StatsEngine.isPass(p) || StatsEngine.hasResult(p, 'Sack')) && !StatsEngine.isNoPlay(p) && StatsEngine.playYards(p) !== null;
   }
 
   /** What a play adds to a yards total: its gain when it counts, else 0. */
@@ -426,9 +436,9 @@ export class StatsEngine {
     // playType and would otherwise be filtered out below.
     let convSource = (playsOverride || (this.tagger ? this.tagger.plays : [])).filter(p => p && p.tags);
     if (playsOverride) {
-      plays = playsOverride.filter(p => p.tags && (p.tags.playType || p.tags.runPass) && !SpecialTeamsModel.isRunPassTry(p));
+      plays = playsOverride.filter(StatsEngine.isReportedPlay);
     } else {
-      plays = this.tagger.plays.filter(p => (p.tags.playType || p.tags.runPass) && !SpecialTeamsModel.isRunPassTry(p));
+      plays = this.tagger.plays.filter(StatsEngine.isReportedPlay);
       filterActive = this.filter && this.filter.active;
       if (filterActive) {
         plays = this.filter.filter(plays);
@@ -547,9 +557,7 @@ export class StatsEngine {
   }
 
   _currentPlays() {
-    // A run/pass or Fake try carries a look and result but is reported only by
-    // the Special Teams try module (SpecialTeamsModel.isRunPassTry).
-    let plays = this.tagger.plays.filter(p => (p.tags.playType || p.tags.runPass) && !SpecialTeamsModel.isRunPassTry(p));
+    let plays = this.tagger.plays.filter(StatsEngine.isReportedPlay);
     if (this.filter && this.filter.active) plays = this.filter.filter(plays);
     return plays;
   }
@@ -1601,10 +1609,10 @@ export class StatsEngine {
    * owner rather than a second hand-written copy: two surfaces cannot then
    * report the same label two ways.
    *
-   * `legacyOptions` reproduces the exact historical formulas — a missing
-   * yardage tag counted as 0 rather than excluded (`missingAsZero`), and a
-   * play with no resolvable film ref dropped from `refs` rather than failing
-   * the whole report (`allowUnlinkedPlays`).
+   * Stop and havoc rates keep their historical divisor (`missingAsZero`);
+   * yards per play and explosive rate use the one yards rule. A play with no
+   * resolvable film ref is dropped from `refs` rather than failing the whole
+   * report (`allowUnlinkedPlays`).
    */
   defensiveCohortMetrics(rawCohort) {
     /* The penalty filter is part of the contract, not of the caller.
@@ -1615,13 +1623,15 @@ export class StatsEngine {
     const cohort = (rawCohort || []).filter(StatsEngine._tryPenaltyResolved);
     const metrics = this.metricsEngine();
     const legacyOptions = { missingAsZero: true, allowUnlinkedPlays: true };
+    // Yards metrics always use the one yards rule (StatsEngine.countsForYards).
+    const yardsOptions = { allowUnlinkedPlays: true };
     /* A stop is measured against OPPONENT success, so our own return touchdown
        counts as a stop instead of as their conversion. */
     const stopRate = metrics.metric(cohort, 'stopRate', {},
       { ...legacyOptions, deps: { isSuccessfulPlay: StatsEngine.isOpponentSuccess } });
-    const explosive = metrics.metric(cohort, 'explosivesAllowedRate', {}, legacyOptions);
+    const explosive = metrics.metric(cohort, 'explosivesAllowedRate', {}, yardsOptions);
     const havoc = metrics.metric(cohort, 'havocRate', {}, legacyOptions);
-    const ypp = metrics.metric(cohort, 'yardsAllowedPerPlay', {}, legacyOptions);
+    const ypp = metrics.metric(cohort, 'yardsAllowedPerPlay', {}, yardsOptions);
     return {
       n: cohort.length, stops: stopRate.count, explosives: explosive.count, havoc: havoc.count,
       touchdowns: cohort.filter(StatsEngine.isTouchdownAllowed).length,
@@ -1643,12 +1653,7 @@ export class StatsEngine {
     // of each offense/defense metric pair -- stopRate and havocRate need no
     // "Allowed" sibling, since both are already unambiguously defense-framed
     // by name (see analytics-metrics.js's "POLARITY IS PER UNIT" docblock
-    // section). `legacyOptions` reproduces this report's exact historical
-    // formulas: a missing yardage tag counted as 0 rather than excluded
-    // (`missingAsZero`), and a play with no resolvable film ref was silently
-    // dropped from `refs` rather than failing the whole report
-    // (`allowUnlinkedPlays`) -- both opt-ins, never the new module's honest
-    // default; see analytics-metrics.js's docblock for why.
+    // section). The options are set in `defensiveCohortMetrics`.
     const summarize = (name, cohort) => {
       const measured = this.defensiveCohortMetrics(cohort);
       return { name, ...measured,
@@ -3132,7 +3137,7 @@ export class StatsEngine {
       const yds = StatsEngine.yardsOf(p);
       cum += yds;
       const isRun = StatsEngine.isRun(p);
-      return { playNum: i + 1, yards: yds, cumYards: cum, isRun, label: `${p.tags.playType || '?'} ${yds >= 0 ? '+' : ''}${yds}` };
+      return { playNum: i + 1, yards: yds, cumYards: cum, isRun, label: `${p.tags.playType || (StatsEngine.hasResult(p, 'Sack') ? 'Sack' : '?')} ${yds >= 0 ? '+' : ''}${yds}` };
     });
   }
 
@@ -5252,7 +5257,7 @@ export class StatsEngine {
     }
     const own = rows.filter(p => unitOf(p) === side);
     if (side === 'offense') {
-      const classified = own.filter(p => p.tags.playType || p.tags.runPass);
+      const classified = own.filter(S.isReportedPlay);
       out.measured = classified.length;
       out.runs = classified.filter(S.isRun).length;
       out.passes = classified.filter(S.isPass).length;
@@ -5794,7 +5799,7 @@ export class StatsEngine {
       totalPlays: total,
       kpis: {
         stopRate: total ? Math.round(stops / total * 100) : null,
-        yardsAllowedPerPlay: total ? (yards / total).toFixed(1) : null,
+        yardsAllowedPerPlay: yardPlays ? (yards / yardPlays).toFixed(1) : null,
         havocRate: defensive.havocRate ?? null,
         sacks: defensive.sacks || 0, tfl: defensive.tfl || 0, takeaways: defensive.turnovers || 0,
       },

@@ -181,6 +181,52 @@ test('a play that stands counts its own gain when a penalty adds yards on top', 
   const cohort = [{ ...play(1, 'gA', { runPass: 'Run', yardage: '12' }), penalties: [personalFoul] }];
   assert.equal(metrics.metric(cohort, 'yardsPerPlay').value, 12, 'the 15 enforcement yards are penalty yards, not play yards');
 });
+// The report owners, without the DOM-bound constructor.
+const engine = Object.create(StatsEngine.prototype);
+engine.metricsEngine = () => metrics;
+const holdingWipe = { team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 10, playCounts: false };
+test('a sack with Run/Pass blank keeps its signed rushing yards', () => {
+  const sack = play(1, 'gA', { playType: 'RPO', result: 'Sack', yardage: '-7', passer: '9' });
+  const rushing = engine._rushingStats([sack]);
+  assert.equal(rushing.attempts, 1);
+  assert.equal(rushing.yards, -7);
+  assert.equal(rushing.yardPlays, 1);
+  const onlyResult = play(2, 'gA', { result: 'Sack', yardage: '-7', passer: '9' });
+  assert.equal(StatsEngine.isReportedPlay(onlyResult), true, 'a sack charted with only its result is a reported play');
+  assert.equal(StatsEngine.isReportedPlay(play(3, 'gA', { result: 'Gain', yardage: '4' })), false);
+});
+test('the defensive cohort uses the yards rule for yards per play and explosive rate', () => {
+  const cohort = [
+    play(1, 'gA', { unit: 'defense', runPass: 'Run', yardage: '12' }),
+    play(2, 'gA', { unit: 'defense', runPass: 'Run', result: 'Gain' }),
+    play(3, 'gA', { unit: 'defense', result: 'Penalty', yardage: '15' }),
+  ];
+  const measured = engine.defensiveCohortMetrics(cohort);
+  assert.equal(measured.yardsPerPlay, 12);
+  assert.equal(measured.explosiveRate, 100);
+});
+test('the defense summary divides yards allowed by the plays that count', () => {
+  const defPlays = [
+    play(1, 'gA', { unit: 'defense', runPass: 'Run', yardage: '12' }),
+    play(2, 'gA', { unit: 'defense', runPass: 'Run', result: 'Gain' }),
+  ];
+  assert.equal(engine.selfScoutDefenseSummary({ defPlays, defensive: {} }).kpis.yardsAllowedPerPlay, '12.0');
+});
+test('Study passing yards per attempt counts an interception as an attempt with no passing yards', () => {
+  const cohort = [play(1, 'gA', { runPass: 'Pass', result: 'Complete', yardage: '10' }), play(2, 'gA', { runPass: 'Pass', result: 'Interception', yardage: '5' })];
+  const ypa = metrics.metric(cohort, 'yardsPerAttempt');
+  assert.equal(ypa.denominator, 2);
+  assert.equal(ypa.value, 5);
+  assert.equal(ypa.value, +engine._passingStats(cohort).average, 'Study and the passing report agree');
+});
+test('an explosive play wiped out by a penalty is not explosive, in the count or the cut', () => {
+  const wiped = { ...play(2, 'gA', { runPass: 'Run', yardage: '20' }), penalties: [holdingWipe] };
+  assert.equal(StatsEngine.isExplosive(wiped), false);
+  assert.equal(StatsEngine.isExplosive(play(3, 'gA', { runPass: 'Run', result: 'Gain' })), false, 'blank yards is not explosive');
+  const cut = buildCutFilter('situation', 'explosive');
+  const plays = [play(1, 'gA', { runPass: 'Run', yardage: '12' }), wiped];
+  assert.deepEqual(plays.filter(cut).map(p => p.id), [1]);
+});
 test('a group below minSample reports state:insufficient, not ok', () => {
   const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];
   const ok = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 2 });

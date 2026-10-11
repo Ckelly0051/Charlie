@@ -159,6 +159,15 @@ function yardsPerPlayCompute(cohort, deps, missingAsZero) {
   return { value: +(total / denominator).toFixed(1), count: total, eligible: eligiblePlays.length, denominator, refSource: source };
 }
 
+/** Passing yards per attempt, the passing report's rule: an interception
+ *  with known yards is an attempt that gained no passing yards. */
+function passingYardsPerAttempt(cohort, deps, missingAsZero) {
+  const result = yardsPerPlayCompute(cohort, deps, missingAsZero);
+  if (!result.denominator) return result;
+  const total = result.refSource.reduce((sum, p) => sum + (deps.hasResult(p, 'Interception') ? 0 : (deps.playYards(p) ?? 0)), 0);
+  return { ...result, value: +(total / result.denominator).toFixed(1), count: total };
+}
+
 /** Study Phase 3: "this attempt succeeded", reused across completionRate/
  *  completions for passer, receiver, AND kicker. A completed pass has no
  *  `specialTeams` data -- its signal is `tags.result` (the SAME three-result
@@ -336,7 +345,7 @@ const METRICS = {
     // passer's broadened (attempts + sacks) dimension cohort.
     polarity: MetricPolarity.HIGHER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort.filter(p => !deps.hasResult(p, 'Sack')), deps, missingAsZero);
+      return passingYardsPerAttempt(cohort.filter(p => !deps.hasResult(p, 'Sack')), deps, missingAsZero);
     },
   },
   // Blank grades are ineligible, not zero (Study Phase 3 requirement): each

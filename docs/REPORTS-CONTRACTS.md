@@ -277,7 +277,10 @@ rate, in the reports, Study and Dashboards:
    penalty section and are never play yards.
 2. Blank yardage is unknown, not zero: the play is left out until charted.
 3. No Gain and Incomplete mean 0 with Yards left blank.
-4. Only run or pass snaps have yards; a penalty-only play has none.
+4. Only run or pass snaps have yards; a penalty-only play has none. A sack
+   is a snap even with Run/Pass blank (an RPO) and keeps its rushing yards;
+   one charted with only its result is still a reported play
+   (`StatsEngine.isReportedPlay`).
 5. A play an accepted penalty wipes out does not count, though its gain is
    recorded.
 6. A play that stands counts its gain, also when an accepted penalty adds
@@ -288,8 +291,9 @@ Incomplete, null when blank), `isNoPlay`, `countsForYards`, and `yardsTotal` /
 `yardsPerPlayOf` for a set of plays. Every report table, Study and Dashboards
 (through AnalyticsMetrics) read them; each row that shows an average carries
 the plays it averages over (`yardPlays`). Passing yards per attempt counts an
-interception with known yardage as an attempt that gained no passing yards.
-Success rate, tackles for loss, havoc, sack yards, drive distance and return
+interception with known yardage as an attempt that gained no passing yards,
+in the passing report and Study. An explosive play, and the Explosive Plays
+film, use the same play set (`StatsEngine.isExplosive`). Success rate, tackles for loss, havoc, sack yards, drive distance and return
 yards keep their own rules.
 
 ## Study grouping
