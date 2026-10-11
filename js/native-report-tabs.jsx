@@ -341,7 +341,7 @@ function MatrixGrid({ matrix }) {
           if (!cell?.count) return <td key={c} class="tm-cell" style="opacity:.2">—</td>;
           const intensity = cell.count / maxCount;
           const succPct = Math.round((cell.successes / cell.count) * 100);
-          const avg = (cell.yards / cell.count).toFixed(1);
+          const avg = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const classified = cell.runs + cell.passes;
           const runPct = classified ? Math.round((cell.runs / classified) * 100) : null;
           const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
@@ -396,7 +396,7 @@ function FormationPlayTypeMatrix({ engine, plays }) {
           const cell = row && col ? raw.cells[`${row}\0${col}`] : null;
           if (!cell?.count) return <td key={`${col}-${ci}`} class="gi-form-type-cell is-absent">—</td>;
           const success = Math.round((cell.successes / cell.count) * 100);
-          const ypp = (cell.yards / cell.count).toFixed(1);
+          const ypp = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const heat = Math.round(12 + (cell.count / maxCount) * 48);
           return <td key={`${col}-${ci}`} class={`gi-form-type-cell ${success >= 50 ? 'is-good' : success <= 30 ? 'is-bad' : ''}`}
             style={`--heat:${heat}%`} title={`${row} × ${col}: ${cell.count} plays, ${success}% success, ${ypp} yards/play`}>
@@ -1386,20 +1386,20 @@ export function OpponentOffenseTab({ data, screen }) {
     const refs = [...new Set(data.offPlays.filter(predicate).filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
     const runPct = call.n ? Math.round(call.runs / call.n * 100) : 0;
     return { ...call, id: call.key, n: call.n, succ: call.n ? Math.round(call.succ / call.n * 100) : 0,
-      avg: call.n ? (call.yards / call.n).toFixed(1) : '0.0', runPct, refs,
+      avg: call.yardPlays ? (call.yards / call.yardPlays).toFixed(1) : '0.0', runPct, refs,
       cutLabel: `${call.form || call.qb || 'Opponent call'} ${call.pt || ''} — ${call.n} plays` };
   });
   const bigData = big.total >= 8 ? { to90: big.to90, label: data.opponent, rows: bigRows } : null;
   const columns = [{ key: 'situation', label: 'Situation' }, { key: 'snaps', label: 'Snaps', numeric: true },
     { key: 'runPct', label: 'Run', numeric: true, render: row => row.runPct == null ? '—' : `${row.runPct}%` },
     { key: 'passPct', label: 'Pass', numeric: true, render: row => row.passPct == null ? '—' : `${row.passPct}%` }, { key: 'avg', label: 'Avg', numeric: true }];
-  const formations = scoutRows(report.formationDetail.map(row => ({ ...row, key: row.name, label: row.name, avg: row.total ? (row.yards / row.total).toFixed(1) : '0.0' })), screen, 'Formation');
+  const formations = scoutRows(report.formationDetail.map(row => ({ ...row, key: row.name, label: row.name, avg: row.yardPlays ? (row.yards / row.yardPlays).toFixed(1) : '0.0' })), screen, 'Formation');
   return <div class="gi-overview-board">
     <div class="gi-st-toolbar"><strong class="gi-st-toolbar-label">Their offense</strong><OpponentWatch kind="offense" count={data.offCount} label="Watch opponent offense" screen={screen} /></div>
     <KpiBand items={[
       { label: 'Snaps', value: report.totalPlays, sub: 'charted offense' },
       { label: 'Run / pass', value: report.stats.tendencies.runPassRatio, sub: `${report.stats.tendencies.runPct}% run`, cls: 'is-gold' },
-      { label: 'Yards / play', value: report.totalPlays ? (totalYards / report.totalPlays).toFixed(1) : '0.0', sub: `${totalYards} yards` },
+      { label: 'Yards / play', value: report.stats.yardPlays ? (totalYards / report.stats.yardPlays).toFixed(1) : '0.0', sub: `${totalYards} yards` },
       { label: 'Third down', value: report.thirdDown.total ? `${report.thirdDown.converted}/${report.thirdDown.total}` : 'N/A', sub: report.thirdDown.total ? `${Math.round(report.thirdDown.converted / report.thirdDown.total * 100)}%` : 'no sample' },
       { label: 'Red-zone TD', value: report.redZone.total ? `${report.redZone.tds}/${report.redZone.total}` : 'N/A', sub: 'scoring trips' },
     ]} />

@@ -369,7 +369,7 @@ export class SeasonManager {
       games: count, offensiveGames, marginGames,
       plays: merged.totalPlays, yards, margin: margin?.margin??null,
       successRate: offensiveGames ? Number(merged.efficiency.successRate) || 0 : null,
-      yardsPerPlay: offensiveGames && merged.totalPlays ? yards / merged.totalPlays : null,
+      yardsPerPlay: offensiveGames && merged.yardPlays ? yards / merged.yardPlays : null,
       thirdDown: offensiveGames ? Number(merged.downs.thirdDownPct) || 0 : null,
       pointsPerDrive: offensiveGames ? Number(merged.drives.pointsPerDrive) || 0 : null,
       marginPerGame: marginGames ? margin.margin / marginGames : null,

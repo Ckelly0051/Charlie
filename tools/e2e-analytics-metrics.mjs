@@ -34,7 +34,7 @@ const isSuccessfulPlay = p => StatsEngine.prototype._isSuccessfulPlay.call({}, p
 const isEligiblePlay = p => StatsEngine.prototype._isSuccessfulPlayEligible.call({}, p);
 const buildCutFilter = (type, val) => StatsEngine.prototype._buildCutFilter.call({}, type, val);
 
-const deps = { isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, isSuccessfulPlay, isEligiblePlay, buildCutFilter, splitPlayers: StatsEngine.splitPlayers, isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult), isScoredTouchdown: p => StatsEngine.isScoredTouchdown(p, StatsEngine.hasResult) };
+const deps = { isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, playYards: StatsEngine.playYards, countsForYards: StatsEngine.countsForYards, isSuccessfulPlay, isEligiblePlay, buildCutFilter, splitPlayers: StatsEngine.splitPlayers, isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult), isScoredTouchdown: p => StatsEngine.isScoredTouchdown(p, StatsEngine.hasResult) };
 const metrics = new AnalyticsMetrics(deps);
 
 const play = (id, gid, tags = {}) => ({
@@ -44,7 +44,7 @@ const play = (id, gid, tags = {}) => ({
 
 console.log('\n== Constructor contract ==');
 test('constructor requires isEligiblePlay alongside the other deps', () => {
-  assert.throws(() => new AnalyticsMetrics({ isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, isSuccessfulPlay }), /isEligiblePlay/);
+  assert.throws(() => new AnalyticsMetrics({ isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, playYards: StatsEngine.playYards, countsForYards: StatsEngine.countsForYards, isSuccessfulPlay }), /isEligiblePlay/);
 });
 
 console.log('\n== Finding 1: metric polarity is per unit, not universal ==');
@@ -116,7 +116,7 @@ test('legacyOptions.missingAsZero reproduces the historical fabricating behavior
   assert.notEqual(honest.denominator, legacy.denominator, 'the two modes must disagree on this fixture, or the test proves nothing');
 });
 test('explosiveRate/negativeRate/havocRate also exclude a play with no tagged yardage from eligible+denominator by default', () => {
-  const cohort = [play(1, 'gA', { yardage: '20' }), play(2, 'gA', { yardage: '' })];
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '20' }), play(2, 'gA', { runPass: 'Run', yardage: '' })];
   const explosive = metrics.metric(cohort, 'explosiveRate');
   const negative = metrics.metric(cohort, 'negativeRate');
   assert.equal(explosive.eligible, 1);
@@ -154,6 +154,32 @@ test('yards per play counts run and pass snaps only: penalty yardage is tracked 
   assert.equal(offense.value, 8);
   assert.equal(defense.value, 8, 'yards allowed uses the same plays');
   assert.deepEqual(offense.refs, ['gA::1', 'gA::2']);
+});
+console.log('\n== Yards: which plays count (coach, 2026-10-10; REPORTS-CONTRACTS > Yards) ==');
+test('No Gain and Incomplete are 0 yards with Yards left blank, and count', () => {
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '9' }), play(2, 'gA', { runPass: 'Run', result: 'No Gain' }), play(3, 'gA', { runPass: 'Pass', result: 'Incomplete' })];
+  const ypp = metrics.metric(cohort, 'yardsPerPlay');
+  assert.equal(ypp.denominator, 3);
+  assert.equal(ypp.value, 3);
+  assert.equal(metrics.metric(cohort, 'negativeRate').denominator, 3, 'explosive and negative rate use the same plays');
+});
+test('blank Yards with any other result is unknown: left out until charted', () => {
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', result: 'Gain' }), play(3, 'gA', { runPass: 'Pass', result: 'Gain + Touchdown' })];
+  const ypp = metrics.metric(cohort, 'yardsPerPlay');
+  assert.equal(ypp.denominator, 1);
+  assert.equal(ypp.value, 4);
+  assert.deepEqual(ypp.refs, ['gA::1']);
+});
+test('a play an accepted penalty wipes out does not count, though its gain is charted', () => {
+  const holding = { team: 'subject', phase: 'offense', foul: 'Holding', disposition: 'accepted', yards: 10, playCounts: false };
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), { ...play(2, 'gA', { runPass: 'Run', yardage: '20' }), penalties: [holding] }];
+  assert.equal(metrics.metric(cohort, 'yardsPerPlay').value, 4);
+  assert.equal(metrics.metric(cohort, 'explosiveRate').denominator, 1);
+});
+test('a play that stands counts its own gain when a penalty adds yards on top', () => {
+  const personalFoul = { team: 'opponent', phase: 'defense', foul: 'Personal Foul', disposition: 'accepted', yards: 15, playCounts: true };
+  const cohort = [{ ...play(1, 'gA', { runPass: 'Run', yardage: '12' }), penalties: [personalFoul] }];
+  assert.equal(metrics.metric(cohort, 'yardsPerPlay').value, 12, 'the 15 enforcement yards are penalty yards, not play yards');
 });
 test('a group below minSample reports state:insufficient, not ok', () => {
   const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];

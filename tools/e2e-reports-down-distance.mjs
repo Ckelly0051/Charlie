@@ -102,8 +102,8 @@ ok(engine.c1.n === 4 && engine.c1.runs === 3 && engine.c1.passes === 1 && engine
   'a cell counts snaps, and its run/pass split always sums to its snaps', JSON.stringify(engine.c1));
 ok(eq(engine.c1.playTypes, [{ name: 'Run Inside', n: 3 }, { name: 'RPO', n: 1 }, { name: 'Short Pass', n: 1 }]) && engine.c1.typeTags === 5 && engine.c1.n === 4,
   'a multi-select play type credits each component once and never adds a snap (5 tags on 4 snaps)', JSON.stringify(engine.c1.playTypes));
-ok(engine.c1.yardsMeasured === 3 && engine.c1.ypp === 5 && engine.c1Text.ypp === '5.0',
-  'yards per play divides only by snaps with charted yardage (the blank-yardage pass is not a zero)', JSON.stringify(engine.c1));
+ok(engine.c1.yardsMeasured === 4 && engine.c1.ypp === 3.75 && engine.c1Text.ypp === '3.8',
+  'an incomplete pass is 0 yards and counts in yards per play (coach, 2026-10-10)', JSON.stringify({ c1: engine.c1, text: engine.c1Text }));
 ok(engine.c1.successEligible === 3 && engine.c1.successes === 2 && engine.c1Text.success === '67%',
   'success counts only measurable snaps, with the canonical success rule', JSON.stringify(engine.c1));
 ok(engine.c3.untyped === 1 && engine.c3.playTypes.length === 0 && engine.c3Text.top === '-',

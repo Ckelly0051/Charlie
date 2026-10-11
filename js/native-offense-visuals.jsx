@@ -9,13 +9,13 @@ const absoluteYardLine = (tags = {}) => {
 
 const compactCell = (label, cohort) => {
   const plays = cohort || [];
-  const yards = plays.reduce((sum, play) => sum + (Number.parseInt(play.tags?.yardage, 10) || 0), 0);
+  const { yards, plays: yardPlays } = StatsEngine.yardsTotal(plays);
   const successes = plays.filter(play => StatsEngine.isSuccessfulPlay(play)).length;
   return {
     label,
     count: plays.length,
     success: plays.length ? `${(successes / plays.length * 100).toFixed(1)}%` : '–',
-    ypp: plays.length ? (yards / plays.length).toFixed(1) : '–',
+    ypp: yardPlays ? (yards / yardPlays).toFixed(1) : '–',
     refs: plays.map(play => play.__gid != null ? `${play.__gid}::${play.id}` : String(play.id)),
   };
 };

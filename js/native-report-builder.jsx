@@ -143,7 +143,7 @@ function ShareView({ screen, data }) {
 
 function TrendView({ screen, data }) {
   const rows = data.rows;
-  if (!rows.length) return <p class="gi-rb-empty">No games with plays in this scope.</p>;
+  if (!rows.length) return <p class="gi-rb-empty">{data.reason || 'No games with plays in this scope.'}</p>;
   const values = rows.map(row => row.value).filter(value => value != null);
   const lo = Math.min(...values, 0), hi = Math.max(...values, 1);
   // Percent positions: the line is drawn in a stretched 100x100 box with a

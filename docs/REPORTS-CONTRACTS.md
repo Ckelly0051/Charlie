@@ -283,8 +283,14 @@ rate, in the reports, Study and Dashboards:
 6. A play that stands counts its gain, also when an accepted penalty adds
    yards on top (those go to penalty yards).
 
-Built so far: rule 4 in Study and Dashboards. The reports still count a blank
-run or pass as 0; rules 2, 3 and 5 are not built anywhere.
+One owner: `StatsEngine.playYards` (a play's own gain, 0 for No Gain or
+Incomplete, null when blank), `isNoPlay`, `countsForYards`, and `yardsTotal` /
+`yardsPerPlayOf` for a set of plays. Every report table, Study and Dashboards
+(through AnalyticsMetrics) read them; each row that shows an average carries
+the plays it averages over (`yardPlays`). Passing yards per attempt counts an
+interception with known yardage as an attempt that gained no passing yards.
+Success rate, tackles for loss, havoc, sack yards, drive distance and return
+yards keep their own rules.
 
 ## Study grouping
 

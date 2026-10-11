@@ -67,7 +67,7 @@ const INVENTORY = {
 };
 const KPI_VALUES = {
   // Missed tackles are the players named; the fixture names none, so 0.
-  season: ['490', '266', '224', '3.2', '2', '7', '0', '7', '0', '81.4%', '47.1%'],
+  season: ['490', '266', '224', '3.3', '2', '7', '0', '7', '0', '81.4%', '47.1%'],
   game: ['0', '0', '0', '0.0', '1', '0', '0', '0', '0', '100.0%', '—'],
 };
 const FIXED = new Set(['Disruption', 'Tackling', 'Season vs Last 3', 'Current game vs Season', 'By down', 'By quarter',
@@ -489,7 +489,7 @@ ok(boardModel.season.thirdDownStop === +(100 - boardModel.third).toFixed(1) && b
   && boardModel.season.fourthDownStop === +(100 - boardModel.fourth).toFixed(1) && boardModel.season.fourthDownStop === 47.1,
   '3rd and 4th Down Stop % are the inverse of the existing allowed percentages', JSON.stringify(boardModel));
 ok(boardModel.dashboardUnchanged, 'the board carries the existing defenseDashboard output unchanged');
-ok(boardModel.gameComparison?.current === 0 && boardModel.gameComparison?.comparison === 3.2,
+ok(boardModel.gameComparison?.current === 0 && boardModel.gameComparison?.comparison === 3.3,
   'Current game vs Season compares the game with the full season', JSON.stringify(boardModel.gameComparison));
 
 /* ══ 3. The dashboard's existing data contracts ═══════════════════════════ */
@@ -529,7 +529,7 @@ const canonical = await page.evaluate(() => {
       ...model.motions, ...model.downDistance].map(row => ({ name: row.name, n: row.n,
         charted: row.charted, measured: row.measured, held: !!row.held,
         yards: row.yards, runYards: row.runYards, passYards: row.passYards,
-        ypp: row.ypp, explosives: row.explosives })),
+        yardPlays: row.yardPlays, ypp: row.ypp, explosives: row.explosives })),
     blitzCohort: {
       blitz: model.pressure.blitz.n, noBlitz: model.pressure.noBlitz.n,
       blitzCharted: model.pressure.blitz.charted, noBlitzCharted: model.pressure.noBlitz.charted,
@@ -557,12 +557,17 @@ const cohorts = await page.evaluate(() => {
   const classified = p => !!p.tags.runPass || /Run Inside|Run Outside|Screen|Pass/.test(p.tags.playType || '');
   const off = p => (p.tags.unit || 'offense') === 'offense';
   const def = p => p.tags.unit === 'defense';
+  // Yards count (coach, 2026-10-10): a classified snap that stood, with its
+  // yards known -- a number, or No Gain / Incomplete as 0.
+  const noPlay = p => (p.penalties || []).some(x => x && x.playCounts === false);
+  const known = p => String(p.tags.yardage ?? '').trim() !== '' || /(^|\+\s*)(No Gain|Incomplete)(\s*\+|$)/.test(p.tags.result || '');
   return {
     charted: all.length,
     offenseCharted: all.filter(off).length,
     offenseClassified: all.filter(p => off(p) && classified(p)).length,
     defenseCharted: all.filter(def).length,
     defenseClassified: all.filter(p => def(p) && classified(p)).length,
+    defenseYardsCounted: all.filter(p => def(p) && classified(p) && !noPlay(p) && known(p)).length,
   };
 });
 ok(cohorts.charted === 449 && cohorts.offenseCharted === 201 && cohorts.offenseClassified === 173
@@ -582,15 +587,15 @@ ok(canonical.byGame.reduce((sum, row) => sum + row.yards, 0) === canonical.yards
   'the six game rows sum to the season total rather than agreeing by coincidence',
   JSON.stringify({ rows: canonical.byGame.map(r => r.yards), season: canonical.yards }));
 ok(canonical.total === 174 && canonical.yards === 490 && canonical.rush === 266 && canonical.pass === 224
-  && canonical.ypp === 3.2 && canonical.turnovers === 2 && canonical.explosives === 7,
+  && canonical.ypp === 3.3 && canonical.turnovers === 2 && canonical.explosives === 7,
   'the canonical season owns the approved Defense KPI values', JSON.stringify(canonical));
 /* A RATE'S TWO HALVES ARE ONE COHORT. */
-ok(canonical.ypp === +(canonical.yards / cohorts.defenseClassified).toFixed(1),
-  'Yards allowed / play divides the classified yardage by the classified cohort',
-  JSON.stringify({ ypp: canonical.ypp, yards: canonical.yards, classified: cohorts.defenseClassified, charted: canonical.total }));
-ok(canonical.ypp !== +(canonical.yards / canonical.total).toFixed(1),
-  'the two denominators really do differ here, so that assertion can fail',
-  JSON.stringify({ classified: cohorts.defenseClassified, charted: canonical.total }));
+ok(canonical.ypp === +(canonical.yards / cohorts.defenseYardsCounted).toFixed(1),
+  'Yards allowed / play divides the counted yardage by the snaps whose yards are known',
+  JSON.stringify({ ypp: canonical.ypp, yards: canonical.yards, counted: cohorts.defenseYardsCounted, classified: cohorts.defenseClassified }));
+ok(canonical.ypp !== +(canonical.yards / cohorts.defenseClassified).toFixed(1),
+  'blank yardage is unknown, not zero: dividing by every classified snap would give a different number',
+  JSON.stringify({ counted: cohorts.defenseYardsCounted, classified: cohorts.defenseClassified }));
 /* TWO COHORTS, BOTH NAMED. */
 ok(canonical.summarySnaps === cohorts.defenseCharted
   && canonical.summaryCharted === cohorts.defenseCharted
@@ -601,10 +606,10 @@ ok(canonical.summarySnaps === cohorts.defenseCharted
     measured: canonical.summaryMeasured, total: canonical.total, modelMeasured: canonical.measured, cohorts }));
 const measuredRows = canonical.productionRows.filter(row => !row.held && row.measured > 0);
 const mixedProductionRows = measuredRows.filter(row =>
-  row.ypp !== +(row.yards / row.measured).toFixed(1)
+  row.ypp !== (row.yardPlays ? +(row.yards / row.yardPlays).toFixed(1) : null)
   || row.yards !== (row.runYards || 0) + (row.passYards || 0));
 ok(measuredRows.length >= 40 && mixedProductionRows.length === 0,
-  'every measured defensive row reconciles Total yards, Rush plus Pass, and Yards/play over its own measured cohort',
+  'every measured defensive row reconciles Total yards, Rush plus Pass, and Yards/play over its own counted plays',
   JSON.stringify({ rows: measuredRows.length, mixed: mixedProductionRows }));
 /* CHARTED BUT UNMEASURED: the row keeps its real charted count and reports NO
    production at all. */

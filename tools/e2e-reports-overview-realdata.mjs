@@ -82,7 +82,18 @@ ok(games.length > 0 && totalPlays > 0,
 const tags = p => p.tags || {};
 const splitResults = p => String(tags(p).result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
 const hasResult = (p, v) => splitResults(p).includes(v);
-const yds = p => parseInt(tags(p).yardage, 10) || 0;
+/* Yards (coach, 2026-10-10; docs/REPORTS-CONTRACTS.md > Yards), transcribed
+ * from the rule: a run or pass snap that stood, with its yards known -- a
+ * number, or No Gain / Incomplete as 0. Blank with any other result is
+ * unknown. `yds` is what a play adds to a yards total. */
+const noPlay = p => (p.penalties || []).some(x => x && x.playCounts === false);
+const knownYds = p => {
+  const raw = tags(p).yardage, v = parseInt(raw, 10);
+  if (String(raw ?? '').trim() !== '' && Number.isFinite(v)) return v;
+  return hasResult(p, 'No Gain') || hasResult(p, 'Incomplete') ? 0 : null;
+};
+const counts = p => (isRun(p) || isPass(p)) && !noPlay(p) && knownYds(p) !== null;
+const yds = p => counts(p) ? knownYds(p) : 0;
 /** `StatsEngine.isRun` / `isPass`, transcribed. */
 const isRun = p => {
   const rp = tags(p).runPass;
@@ -138,6 +149,8 @@ const passInt = pas.filter(p => !sack(p) && hasResult(p, 'Interception'));
 const passAtt = pas.filter(p => !sack(p) && (hasResult(p, 'Gain') || hasResult(p, 'Touchdown') || hasResult(p, 'No Gain')
   || hasResult(p, 'Incomplete') || hasResult(p, 'Interception'))).length;
 const passYards = pas.reduce((t, p) => (sack(p) || hasResult(p, 'Incomplete') || hasResult(p, 'Interception') ? t : t + yds(p)), 0);
+const rushCounted = rush.filter(counts);
+const passCounted = pas.filter(p => !sack(p) && counts(p));
 const totalYards = rushYards + passYards;
 const defYards = def.reduce((t, p) => t + yds(p), 0);
 
@@ -164,16 +177,16 @@ const EXPECTED = {
   offense: off.length,
   defense: def.length,
   totalYards,
-  yardsPerPlay: off.length ? one(totalYards / off.length) : '0.0',
+  yardsPerPlay: off.filter(counts).length ? one(totalYards / off.filter(counts).length) : '0.0',
   successRate: off.length ? one(off.filter(isSuccess).length / off.length * 100) : '0.0',
   explosives: off.filter(isExplosive).length,
   negative: off.filter(p => yds(p) < 0).length,
   rushing: {
     Attempts: String(rush.length),
     Yards: String(rushYards),
-    Average: rush.length ? one(rushYards / rush.length) : '0.0',
+    Average: rushCounted.length ? one(rushYards / rushCounted.length) : '0.0',
     Touchdowns: String(rush.filter(p => hasResult(p, 'Touchdown')).length),
-    Longest: String(rush.reduce((m, p) => Math.max(m, yds(p)), 0)),
+    Longest: String(rushCounted.reduce((m, p) => Math.max(m, yds(p)), 0)),
     'First downs': String(rush.filter(gainedFirstDown).length),
     Fumbles: String(rush.filter(p => hasResult(p, 'Fumble')).length),
   },
@@ -181,14 +194,14 @@ const EXPECTED = {
     'Completions / attempts': `${passComp.length} / ${passAtt}`,
     'Completion rate': `${passAtt ? one(passComp.length / passAtt * 100) : '0.0'}%`,
     Yards: String(passYards),
-    'Yards / attempt': passAtt ? one(passYards / passAtt) : '0.0',
+    'Yards / attempt': passCounted.length ? one(passYards / passCounted.length) : '0.0',
     Touchdowns: String(pas.filter(p => hasResult(p, 'Touchdown')).length),
     Interceptions: String(passInt.length),
-    Longest: String(pas.reduce((m, p) => (hasResult(p, 'Incomplete') ? m : Math.max(m, yds(p))), 0)),
+    Longest: String(passCounted.filter(p => !hasResult(p, 'Interception')).reduce((m, p) => Math.max(m, yds(p)), 0)),
     'Sacks taken': String(pas.filter(p => hasResult(p, 'Sack')).length),
   },
   defenseRows: {
-    'Yards / play allowed': def.length ? one(defYards / def.length) : '—',
+    'Yards / play allowed': def.filter(counts).length ? one(defYards / def.filter(counts).length) : '—',
     'Explosive Plays Allowed': String(def.filter(isExplosive).length),
   },
 };

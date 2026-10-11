@@ -20,7 +20,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 
 export function overviewKpis(stats) {
   const totalYards = stats.rushing.yards + stats.passing.yards;
-  const yardsPerPlay = stats.offPlays.length ? (totalYards / stats.offPlays.length).toFixed(1) : '—';
+  const yardsPerPlay = stats.yardPlays ? (totalYards / stats.yardPlays).toFixed(1) : '—';
   const penalty = stats.penalties || {};
   const turnovers = stats.totalTurnovers ?? stats.turnovers?.total ?? 0;
   // The CHARTED cohort is the headline; the CLASSIFIED cohort is its qualifier.
@@ -59,8 +59,8 @@ export function snapsByPhase(stats) {
   const special = counts ? counts.special : Math.max(0, stats.allPlays - stats.offPlays.length - stats.defPlays.length);
   const total = Math.max(1, off + def + special);
   const offYards = stats.rushing.yards + stats.passing.yards;
-  const defYards = stats.defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage, 10) || 0), 0);
-  const offClassified = stats.offPlays.length, defClassified = stats.defPlays.length;
+  const defYards = stats.defenseYards?.yards ?? 0;
+  const offClassified = stats.yardPlays || 0, defClassified = stats.defenseYards?.plays || 0;
   const row = (label, count, ypp, cls) => ({ label, count, share: Math.round(count / total * 100), ypp: count ? ypp : '—', cls });
   return {
     total: off + def + special, off, def, special,
@@ -379,12 +379,12 @@ export function runPassByDown(stats, engine) {
     const runs = ps.filter(p => engine.constructor.isRun(p)).length;
     const passes = ps.filter(p => engine.constructor.isPass(p)).length;
     const classified = runs + passes;
-    const yards = ps.reduce((s, p) => s + (parseInt(p.tags.yardage, 10) || 0), 0);
+    const { yards, plays: yardPlays } = engine.constructor.yardsTotal(ps);
     return {
       down: labels[down], snaps: ps.length,
       runPct: classified ? Math.round((runs / classified) * 100) : 0,
       passPct: classified ? 100 - Math.round((runs / classified) * 100) : 0,
-      ypp: ps.length ? (yards / ps.length).toFixed(1) : '—',
+      ypp: yardPlays ? (yards / yardPlays).toFixed(1) : '—',
       cutType: 'down', cutVal: String(down), cutLabel: `${labels[down]} down — ${ps.length} plays`,
     };
   }).filter(row => row.snaps > 0);
@@ -406,11 +406,11 @@ export function backfieldStrength(stats, engine) {
     return Object.entries(groups).map(([name, ps]) => {
       const runs = ps.filter(p => engine.constructor.isRun(p)).length;
       const passes = ps.filter(p => engine.constructor.isPass(p)).length;
-      const yards = ps.reduce((s, p) => s + (parseInt(p.tags.yardage) || 0), 0);
+      const { yards, plays: yardPlays } = engine.constructor.yardsTotal(ps);
       const succ = ps.filter(p => engine._isSuccessfulPlay(p)).length;
       return { name, count: ps.length, runs, passes,
         successPct: ps.length ? Math.round(succ / ps.length * 100) : 0,
-        avg: ps.length ? (yards / ps.length).toFixed(1) : '0.0' };
+        avg: yardPlays ? (yards / yardPlays).toFixed(1) : '0.0' };
     }).sort((a, b) => b.count - a.count);
   };
   return {
@@ -490,7 +490,7 @@ export function bigTwelve(engine, plays, label, opts = {}) {
   const cut = opts.cut !== false;
   return { to90: d.to90, label, total: d.total, rows: d.calls.map((c, i) => {
     const runPct = c.n ? Math.round(c.runs / c.n * 100) : 0;
-    const avg = c.n ? (c.yards / c.n).toFixed(1) : '0.0';
+    const avg = c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0';
     const succ = c.n ? Math.round(c.succ / c.n * 100) : 0;
     const named = [c.form, c.qb].filter(Boolean).join(' ') || '—';
     return {
@@ -639,7 +639,7 @@ export function individualStats(stats, group, playerLabel, board = null) {
   const withStats = (roleKey, rows) => rows.map(row => ({ ...row, statRefs: statRefs(roleKey, row.num) }));
   if (showOff && ind.rushers?.length) tables.push({ title: 'Rushing', key: 'rushing',
     columns: [['player', 'Player'], ['att', 'Att', true], ['yds', 'Yds', true], ['avg', 'Avg', true], ['long', 'Long', true], ['tds', 'TD', true], ['fum', 'Fum', true], ['grade', 'Grade', true, 'gradeSort']],
-    rows: withStats('rushing', ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.attempts ? (r.yards / r.attempts).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r), refs: refs(r) }))) });
+    rows: withStats('rushing', ind.rushers.map(r => ({ ...player(r.num), att: r.attempts, yds: r.yards, avg: r.yardPlays ? (r.yards / r.yardPlays).toFixed(1) : '0.0', long: r.long, tds: r.tds, fum: r.fumbles, ...grade(r), refs: refs(r) }))) });
   if (showOff && ind.passers?.length) tables.push({ title: 'Passing', key: 'passing',
     columns: [['player', 'Player'], ['ca', 'C/A', true, 'caSort'], ['pct', 'Pct', true, 'pctSort'], ['yds', 'Yds', true], ['tds', 'TD', true], ['ints', 'INT', true], ['sacks', 'Sck', true], ['grade', 'Grade', true, 'gradeSort']],
     rows: withStats('passing', ind.passers.map(p => ({ ...player(p.num), ca: `${p.completions}/${p.attempts}`, caSort: p.completions, pct: `${p.attempts ? ((p.completions / p.attempts) * 100).toFixed(1) : '0.0'}%`, pctSort: p.attempts ? p.completions / p.attempts : 0, yds: p.yards, tds: p.tds, ints: p.ints, sacks: p.sacks, ...grade(p), refs: refs(p) }))) });
@@ -675,19 +675,16 @@ export function individualStats(stats, group, playerLabel, board = null) {
 
 export function defenseDisciplineRows(stats, statsEngine) {
   const def = stats.defPlays.length;
-  const yards = stats.defPlays.reduce((sum, play) => sum + (parseInt(play.tags.yardage, 10) || 0), 0);
+  const { yards, plays: yardPlays, counted } = statsEngine.constructor.yardsTotal(stats.defPlays);
   const stops = stats.defPlays.filter(play => !statsEngine._isSuccessfulPlay(play)).length;
-  const explosives = stats.defPlays.filter(play => {
-    const y = parseInt(play.tags.yardage, 10) || 0;
-    return statsEngine.constructor.isRun(play) ? y >= 12 : y >= 16;
-  }).length;
+  const explosives = counted.filter(play => statsEngine.constructor.isExplosive(play)).length;
   const penalties = stats.penalties || {};
   /* Yards / play allowed leads. Stop rate sat directly beneath it, which made
      it read as the second primary defensive comparison — the position the
      coach rejected. It keeps its row as supporting context at the foot of the
      module; the approved six-row module is unchanged in count. */
   return { meta: `${def} defensive snaps`, rows: [
-    ['Yards / play allowed', def ? (yards / def).toFixed(1) : '—'],
+    ['Yards / play allowed', yardPlays ? (yards / yardPlays).toFixed(1) : '—'],
     ['Explosive Plays Allowed', explosives, explosives ? '' : 'is-good'],
     ['Takeaways', stats.defensive.turnovers],
     // Middot, per the approved Overview ("1 · 10 yds").

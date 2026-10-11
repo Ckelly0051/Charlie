@@ -73,13 +73,15 @@ From `SMOKE-1.12.0-114.md`, coach findings and the installed check:
   - share labels total 100%;
   - Study names its success concept per unit (Stop Rate on defense);
   - the Chart roster grid shows its last row whole.
-- **Yards rules not yet built** (installed check 10; rules decided by the
-  coach 2026-10-10, `docs/REPORTS-CONTRACTS.md` > Yards). Built: run and
-  pass snaps only, in Study and Dashboards. Not built: blank is unknown
-  (the reports count it as 0), No Gain and Incomplete are 0 (Study and
-  Dashboards leave them out), a wiped-out play does not count. Until then the
-  surfaces disagree (canonical season yards per play: offense 5.8 reports vs
-  6.9 Dashboards; defense 3.2 vs 3.9).
+- **Yards rules** (installed check 10; coach 2026-10-10,
+  `docs/REPORTS-CONTRACTS.md` > Yards): built in the reports, Study and
+  Dashboards from one owner; yards per play is the same number on every
+  surface. Smoke: Week 1 vs St. Peter Lutheran defense reads the same yards
+  per play in Reports and Dashboards; a No Gain with Yards blank counts as 0.
+- **Open question for the coach: a blank Interception.** An interception with
+  Yards blank is unknown under rule 2, so it drops out of yards per attempt.
+  No Gain and Incomplete are 0; is an Interception also always 0 passing
+  yards?
 - **Rate bars scaled to the largest value** (installed check 14): a design
   question for the coach; unchanged.
 

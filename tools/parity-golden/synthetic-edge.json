@@ -39,6 +39,7 @@
    "rushing": {
     "attempts": 12,
     "yards": 75,
+    "yardPlays": 12,
     "average": "6.3",
     "touchdowns": 0,
     "fumbles": 0,
@@ -49,6 +50,7 @@
     "attempts": 4,
     "completions": 2,
     "yards": 59,
+    "yardPlays": 4,
     "average": "14.8",
     "yardsPerCompletion": "29.5",
     "completionPct": "50.0",
@@ -58,6 +60,11 @@
     "sackYards": 0,
     "longest": 48,
     "firstDowns": 2
+   },
+   "yardPlays": 16,
+   "defenseYards": {
+    "yards": 2,
+    "plays": 8
    },
    "scoring": {
     "touchdowns": 1,
@@ -208,6 +215,7 @@
       "passes": 1,
       "yards": 30,
       "successes": 6,
+      "yardPlays": 7,
       "avg": "4.3",
       "successPct": "86"
      },
@@ -218,6 +226,7 @@
       "passes": 0,
       "yards": 3,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "3.0",
       "successPct": "0"
      },
@@ -228,6 +237,7 @@
       "passes": 0,
       "yards": 14,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "14.0",
       "successPct": "100"
      }
@@ -248,6 +258,7 @@
       "passes": 0,
       "yards": 58,
       "successes": 10,
+      "yardPlays": 10,
       "avg": "5.8",
       "successPct": "100"
      },
@@ -258,6 +269,7 @@
       "passes": 2,
       "yards": 0,
       "successes": 0,
+      "yardPlays": 2,
       "avg": "0.0",
       "successPct": "0"
      },
@@ -268,6 +280,7 @@
       "passes": 0,
       "yards": 17,
       "successes": 1,
+      "yardPlays": 2,
       "avg": "8.5",
       "successPct": "50"
      },
@@ -278,6 +291,7 @@
       "passes": 1,
       "yards": 48,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "48.0",
       "successPct": "100"
      },
@@ -288,6 +302,7 @@
       "passes": 1,
       "yards": 0,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "0.0",
       "successPct": "0"
      },
@@ -298,6 +313,7 @@
       "passes": 1,
       "yards": 11,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "11.0",
       "successPct": "100"
      }
@@ -328,6 +344,7 @@
       "num": "22",
       "attempts": 6,
       "yards": 30,
+      "yardPlays": 6,
       "tds": 0,
       "long": 5,
       "fumbles": 0,
@@ -596,6 +613,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -604,6 +622,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -612,6 +631,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -620,6 +640,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 1,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -628,6 +649,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 1,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -675,6 +697,7 @@
      "passes": 1,
      "yards": 30,
      "successes": 6,
+     "yardPlays": 7,
      "avg": "4.3",
      "successPct": "86"
     },
@@ -685,6 +708,7 @@
      "passes": 0,
      "yards": 31,
      "successes": 4,
+     "yardPlays": 5,
      "avg": "6.2",
      "successPct": "80"
     },
@@ -695,6 +719,7 @@
      "passes": 1,
      "yards": 48,
      "successes": 1,
+     "yardPlays": 1,
      "avg": "48.0",
      "successPct": "100"
     },
@@ -705,6 +730,7 @@
      "passes": 1,
      "yards": 11,
      "successes": 1,
+     "yardPlays": 1,
      "avg": "11.0",
      "successPct": "100"
     },
@@ -715,6 +741,7 @@
      "passes": 0,
      "yards": 14,
      "successes": 1,
+     "yardPlays": 1,
      "avg": "14.0",
      "successPct": "100"
     },
@@ -725,6 +752,7 @@
      "passes": 1,
      "yards": 0,
      "successes": 0,
+     "yardPlays": 1,
      "avg": "0.0",
      "successPct": "0"
     }
@@ -956,7 +984,8 @@
        "g1::11",
        "g1::13",
        "g1::15"
-      ]
+      ],
+      "yardPlays": 3
      },
      {
       "name": "4-4",
@@ -970,7 +999,8 @@
        "g2::7",
        "g2::8",
        "g2::9"
-      ]
+      ],
+      "yardPlays": 3
      },
      {
       "name": "4-3",
@@ -983,7 +1013,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      },
      {
       "name": "Jumbo Shift",
@@ -996,7 +1027,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      }
     ],
     "coverages": [
@@ -1015,7 +1047,8 @@
        "g1::13",
        "g1::14",
        "g1::15"
-      ]
+      ],
+      "yardPlays": 5
      },
      {
       "name": "Cover 2",
@@ -1030,7 +1063,8 @@
        "g2::7",
        "g2::8",
        "g2::9"
-      ]
+      ],
+      "yardPlays": 3
      }
     ],
     "blitzes": [
@@ -1045,7 +1079,8 @@
        "g2::7",
        "g2::8",
        "g2::9"
-      ]
+      ],
+      "yardPlays": 3
      },
      {
       "name": "A-Gap",
@@ -1057,7 +1092,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      },
      {
       "name": "Edge",
@@ -1069,7 +1105,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      }
     ],
     "blitzRate": "62.5",
@@ -1437,6 +1474,7 @@
       "passes": 0,
       "yards": 44,
       "successes": 7,
+      "yardPlays": 7,
       "runPct": "100",
       "avg": "6.3",
       "successPct": "100"
@@ -1448,6 +1486,7 @@
       "passes": 0,
       "yards": 28,
       "successes": 4,
+      "yardPlays": 4,
       "runPct": "100",
       "avg": "7.0",
       "successPct": "100"
@@ -1459,6 +1498,7 @@
       "passes": 2,
       "yards": 48,
       "successes": 1,
+      "yardPlays": 2,
       "runPct": "0",
       "avg": "24.0",
       "successPct": "50"
@@ -1480,6 +1520,7 @@
       "passes": 0,
       "yards": 30,
       "successes": 6,
+      "yardPlays": 6,
       "runPct": "100",
       "avg": "5.0",
       "successPct": "100"
@@ -1492,6 +1533,7 @@
       "passes": 0,
       "yards": 28,
       "successes": 4,
+      "yardPlays": 4,
       "runPct": "100",
       "avg": "7.0",
       "successPct": "100"
@@ -1511,6 +1553,7 @@
       "havoc": 1,
       "runs": 0,
       "passes": 3,
+      "yardPlays": 3,
       "avg": "-0.7",
       "stopPct": "100",
       "havocPct": "33"
@@ -1525,6 +1568,7 @@
       "havoc": 1,
       "runs": 0,
       "passes": 3,
+      "yardPlays": 3,
       "avg": "0.0",
       "stopPct": "100",
       "havocPct": "33"
@@ -1539,6 +1583,7 @@
       "havoc": 0,
       "runs": 0,
       "passes": 2,
+      "yardPlays": 2,
       "avg": "2.0",
       "stopPct": "100",
       "havocPct": "0"
@@ -1553,6 +1598,7 @@
       "havoc": 0,
       "runs": 0,
       "passes": 2,
+      "yardPlays": 2,
       "avg": "2.0",
       "stopPct": "100",
       "havocPct": "0"
@@ -1579,6 +1625,7 @@
       "passes": 1,
       "yards": 76,
       "succ": 5,
+      "yardPlays": 5,
       "runPct": "80",
       "passPct": "20",
       "avg": "15.2",
@@ -1591,6 +1638,7 @@
       "passes": 0,
       "yards": 47,
       "succ": 7,
+      "yardPlays": 8,
       "runPct": "100",
       "passPct": "0",
       "avg": "5.9",
@@ -1605,6 +1653,7 @@
       "passes": 0,
       "yards": 15,
       "succ": 3,
+      "yardPlays": 3,
       "runPct": "100",
       "passPct": "0",
       "avg": "5.0",
@@ -1618,6 +1667,7 @@
      "passes": 4,
      "yards": 119,
      "succ": 10,
+     "yardPlays": 13,
      "runPct": "69",
      "passPct": "31",
      "avg": "9.2",
@@ -2433,28 +2483,32 @@
        "runs": 6,
        "passes": 0,
        "succ": 6,
-       "yards": 30
+       "yards": 30,
+       "yardPlays": 6
       },
       "Spread\u00013|Long": {
        "n": 1,
        "runs": 0,
        "passes": 1,
        "succ": 0,
-       "yards": 0
+       "yards": 0,
+       "yardPlays": 1
       },
       "Wildcat\u00011": {
        "n": 1,
        "runs": 1,
        "passes": 0,
        "succ": 0,
-       "yards": 3
+       "yards": 3,
+       "yardPlays": 1
       },
       "Flexbone\u00011": {
        "n": 1,
        "runs": 1,
        "passes": 0,
        "succ": 1,
-       "yards": 14
+       "yards": 14,
+       "yardPlays": 1
       }
      },
      "rowN": {
@@ -2486,6 +2540,9 @@
        "g1::6",
        "g1::8"
       ],
+      "yardPlays": 7,
+      "runYardPlays": 6,
+      "passYardPlays": 1,
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -2512,6 +2569,8 @@
       "refs": [
        "g1::9"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2538,6 +2597,8 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2615,6 +2676,8 @@
        "g1::9",
        "g2::5"
       ],
+      "yardPlays": 8,
+      "runYardPlays": 8,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2666,6 +2729,9 @@
        "g2::3",
        "g2::4"
       ],
+      "yardPlays": 5,
+      "passYardPlays": 1,
+      "runYardPlays": 4,
       "runPct": 80,
       "passPct": 20,
       "lean": "Run",
@@ -2692,6 +2758,8 @@
       "refs": [
        "g1::10"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2718,6 +2786,8 @@
       "refs": [
        "g2::6"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2765,6 +2835,8 @@
       "refs": [
        "g1::8"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2862,6 +2934,9 @@
        "g1::6",
        "g1::8"
       ],
+      "yardPlays": 7,
+      "runYardPlays": 6,
+      "passYardPlays": 1,
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -2892,6 +2967,8 @@
        "g2::3",
        "g2::4"
       ],
+      "yardPlays": 5,
+      "runYardPlays": 5,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2918,6 +2995,8 @@
       "refs": [
        "g1::7"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2944,6 +3023,8 @@
       "refs": [
        "g1::10"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -2970,6 +3051,8 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -2996,6 +3079,8 @@
       "refs": [
        "g2::6"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -3236,6 +3321,7 @@
      "rushing": {
       "attempts": 12,
       "yards": 75,
+      "yardPlays": 12,
       "average": "6.3",
       "touchdowns": 0,
       "fumbles": 0,
@@ -3246,6 +3332,7 @@
       "attempts": 4,
       "completions": 2,
       "yards": 59,
+      "yardPlays": 4,
       "average": "14.8",
       "yardsPerCompletion": "29.5",
       "completionPct": "50.0",
@@ -3255,6 +3342,11 @@
       "sackYards": 0,
       "longest": 48,
       "firstDowns": 2
+     },
+     "yardPlays": 16,
+     "defenseYards": {
+      "yards": 2,
+      "plays": 8
      },
      "scoring": {
       "touchdowns": 1,
@@ -3405,6 +3497,7 @@
         "passes": 1,
         "yards": 30,
         "successes": 6,
+        "yardPlays": 7,
         "avg": "4.3",
         "successPct": "86"
        },
@@ -3415,6 +3508,7 @@
         "passes": 0,
         "yards": 3,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "3.0",
         "successPct": "0"
        },
@@ -3425,6 +3519,7 @@
         "passes": 0,
         "yards": 14,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "14.0",
         "successPct": "100"
        }
@@ -3445,6 +3540,7 @@
         "passes": 0,
         "yards": 58,
         "successes": 10,
+        "yardPlays": 10,
         "avg": "5.8",
         "successPct": "100"
        },
@@ -3455,6 +3551,7 @@
         "passes": 2,
         "yards": 0,
         "successes": 0,
+        "yardPlays": 2,
         "avg": "0.0",
         "successPct": "0"
        },
@@ -3465,6 +3562,7 @@
         "passes": 0,
         "yards": 17,
         "successes": 1,
+        "yardPlays": 2,
         "avg": "8.5",
         "successPct": "50"
        },
@@ -3475,6 +3573,7 @@
         "passes": 1,
         "yards": 48,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "48.0",
         "successPct": "100"
        },
@@ -3485,6 +3584,7 @@
         "passes": 1,
         "yards": 0,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "0.0",
         "successPct": "0"
        },
@@ -3495,6 +3595,7 @@
         "passes": 1,
         "yards": 11,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "11.0",
         "successPct": "100"
        }
@@ -3525,6 +3626,7 @@
         "num": "22",
         "attempts": 6,
         "yards": 30,
+        "yardPlays": 6,
         "tds": 0,
         "long": 5,
         "fumbles": 0,
@@ -3780,6 +3882,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -3788,6 +3891,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -3796,6 +3900,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -3804,6 +3909,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 1,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -3812,6 +3918,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 1,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -3859,6 +3966,7 @@
        "passes": 1,
        "yards": 30,
        "successes": 6,
+       "yardPlays": 7,
        "avg": "4.3",
        "successPct": "86"
       },
@@ -3869,6 +3977,7 @@
        "passes": 0,
        "yards": 31,
        "successes": 4,
+       "yardPlays": 5,
        "avg": "6.2",
        "successPct": "80"
       },
@@ -3879,6 +3988,7 @@
        "passes": 1,
        "yards": 48,
        "successes": 1,
+       "yardPlays": 1,
        "avg": "48.0",
        "successPct": "100"
       },
@@ -3889,6 +3999,7 @@
        "passes": 1,
        "yards": 11,
        "successes": 1,
+       "yardPlays": 1,
        "avg": "11.0",
        "successPct": "100"
       },
@@ -3899,6 +4010,7 @@
        "passes": 0,
        "yards": 14,
        "successes": 1,
+       "yardPlays": 1,
        "avg": "14.0",
        "successPct": "100"
       },
@@ -3909,6 +4021,7 @@
        "passes": 1,
        "yards": 0,
        "successes": 0,
+       "yardPlays": 1,
        "avg": "0.0",
        "successPct": "0"
       }
@@ -4140,7 +4253,8 @@
          "g1::11",
          "g1::13",
          "g1::15"
-        ]
+        ],
+        "yardPlays": 3
        },
        {
         "name": "4-4",
@@ -4154,7 +4268,8 @@
          "g2::7",
          "g2::8",
          "g2::9"
-        ]
+        ],
+        "yardPlays": 3
        },
        {
         "name": "4-3",
@@ -4167,7 +4282,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        },
        {
         "name": "Jumbo Shift",
@@ -4180,7 +4296,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        }
       ],
       "coverages": [
@@ -4199,7 +4316,8 @@
          "g1::13",
          "g1::14",
          "g1::15"
-        ]
+        ],
+        "yardPlays": 5
        },
        {
         "name": "Cover 2",
@@ -4214,7 +4332,8 @@
          "g2::7",
          "g2::8",
          "g2::9"
-        ]
+        ],
+        "yardPlays": 3
        }
       ],
       "blitzes": [
@@ -4229,7 +4348,8 @@
          "g2::7",
          "g2::8",
          "g2::9"
-        ]
+        ],
+        "yardPlays": 3
        },
        {
         "name": "A-Gap",
@@ -4241,7 +4361,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        },
        {
         "name": "Edge",
@@ -4253,7 +4374,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        }
       ],
       "blitzRate": "62.5",
@@ -4571,6 +4693,7 @@
         "passes": 0,
         "yards": 44,
         "successes": 7,
+        "yardPlays": 7,
         "runPct": "100",
         "avg": "6.3",
         "successPct": "100"
@@ -4582,6 +4705,7 @@
         "passes": 0,
         "yards": 28,
         "successes": 4,
+        "yardPlays": 4,
         "runPct": "100",
         "avg": "7.0",
         "successPct": "100"
@@ -4593,6 +4717,7 @@
         "passes": 2,
         "yards": 48,
         "successes": 1,
+        "yardPlays": 2,
         "runPct": "0",
         "avg": "24.0",
         "successPct": "50"
@@ -4614,6 +4739,7 @@
         "passes": 0,
         "yards": 30,
         "successes": 6,
+        "yardPlays": 6,
         "runPct": "100",
         "avg": "5.0",
         "successPct": "100"
@@ -4626,6 +4752,7 @@
         "passes": 0,
         "yards": 28,
         "successes": 4,
+        "yardPlays": 4,
         "runPct": "100",
         "avg": "7.0",
         "successPct": "100"
@@ -4645,6 +4772,7 @@
         "havoc": 1,
         "runs": 0,
         "passes": 3,
+        "yardPlays": 3,
         "avg": "-0.7",
         "stopPct": "100",
         "havocPct": "33"
@@ -4659,6 +4787,7 @@
         "havoc": 1,
         "runs": 0,
         "passes": 3,
+        "yardPlays": 3,
         "avg": "0.0",
         "stopPct": "100",
         "havocPct": "33"
@@ -4673,6 +4802,7 @@
         "havoc": 0,
         "runs": 0,
         "passes": 2,
+        "yardPlays": 2,
         "avg": "2.0",
         "stopPct": "100",
         "havocPct": "0"
@@ -4687,6 +4817,7 @@
         "havoc": 0,
         "runs": 0,
         "passes": 2,
+        "yardPlays": 2,
         "avg": "2.0",
         "stopPct": "100",
         "havocPct": "0"
@@ -4713,6 +4844,7 @@
         "passes": 1,
         "yards": 76,
         "succ": 5,
+        "yardPlays": 5,
         "runPct": "80",
         "passPct": "20",
         "avg": "15.2",
@@ -4725,6 +4857,7 @@
         "passes": 0,
         "yards": 47,
         "succ": 7,
+        "yardPlays": 8,
         "runPct": "100",
         "passPct": "0",
         "avg": "5.9",
@@ -4739,6 +4872,7 @@
         "passes": 0,
         "yards": 15,
         "succ": 3,
+        "yardPlays": 3,
         "runPct": "100",
         "passPct": "0",
         "avg": "5.0",
@@ -4752,6 +4886,7 @@
        "passes": 4,
        "yards": 119,
        "succ": 10,
+       "yardPlays": 13,
        "runPct": "69",
        "passPct": "31",
        "avg": "9.2",
@@ -4836,6 +4971,7 @@
        "g1::6",
        "g1::8"
       ],
+      "yardPlays": 7,
       "runPct": 86
      },
      {
@@ -4848,6 +4984,7 @@
       "refs": [
        "g1::9"
       ],
+      "yardPlays": 1,
       "runPct": 100
      },
      {
@@ -4860,6 +4997,7 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
       "runPct": 100
      }
     ],
@@ -5161,6 +5299,7 @@
    "rushing": {
     "attempts": 7,
     "yards": 33,
+    "yardPlays": 7,
     "average": "4.7",
     "touchdowns": 0,
     "fumbles": 0,
@@ -5171,6 +5310,7 @@
     "attempts": 3,
     "completions": 2,
     "yards": 59,
+    "yardPlays": 3,
     "average": "19.7",
     "yardsPerCompletion": "29.5",
     "completionPct": "66.7",
@@ -5180,6 +5320,11 @@
     "sackYards": 0,
     "longest": 48,
     "firstDowns": 2
+   },
+   "yardPlays": 10,
+   "defenseYards": {
+    "yards": 2,
+    "plays": 5
    },
    "scoring": {
     "touchdowns": 1,
@@ -5316,6 +5461,7 @@
       "passes": 1,
       "yards": 30,
       "successes": 6,
+      "yardPlays": 7,
       "avg": "4.3",
       "successPct": "86"
      },
@@ -5326,6 +5472,7 @@
       "passes": 0,
       "yards": 3,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "3.0",
       "successPct": "0"
      }
@@ -5346,6 +5493,7 @@
       "passes": 0,
       "yards": 30,
       "successes": 6,
+      "yardPlays": 6,
       "avg": "5.0",
       "successPct": "100"
      },
@@ -5356,6 +5504,7 @@
       "passes": 1,
       "yards": 48,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "48.0",
       "successPct": "100"
      },
@@ -5366,6 +5515,7 @@
       "passes": 1,
       "yards": 0,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "0.0",
       "successPct": "0"
      },
@@ -5376,6 +5526,7 @@
       "passes": 1,
       "yards": 0,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "0.0",
       "successPct": "0"
      },
@@ -5386,6 +5537,7 @@
       "passes": 0,
       "yards": 3,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "3.0",
       "successPct": "0"
      },
@@ -5396,6 +5548,7 @@
       "passes": 1,
       "yards": 11,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "11.0",
       "successPct": "100"
      }
@@ -5426,6 +5579,7 @@
       "num": "22",
       "attempts": 6,
       "yards": 30,
+      "yardPlays": 6,
       "tds": 0,
       "long": 5,
       "fumbles": 0,
@@ -5666,6 +5820,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -5674,6 +5829,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -5682,6 +5838,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -5690,6 +5847,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 1,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -5698,6 +5856,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -5745,6 +5904,7 @@
      "passes": 1,
      "yards": 30,
      "successes": 6,
+     "yardPlays": 7,
      "avg": "4.3",
      "successPct": "86"
     },
@@ -5755,6 +5915,7 @@
      "passes": 1,
      "yards": 48,
      "successes": 1,
+     "yardPlays": 1,
      "avg": "48.0",
      "successPct": "100"
     },
@@ -5765,6 +5926,7 @@
      "passes": 1,
      "yards": 11,
      "successes": 1,
+     "yardPlays": 1,
      "avg": "11.0",
      "successPct": "100"
     },
@@ -5775,6 +5937,7 @@
      "passes": 0,
      "yards": 3,
      "successes": 0,
+     "yardPlays": 1,
      "avg": "3.0",
      "successPct": "0"
     }
@@ -5976,7 +6139,8 @@
        "g1::11",
        "g1::13",
        "g1::15"
-      ]
+      ],
+      "yardPlays": 3
      },
      {
       "name": "4-3",
@@ -5989,7 +6153,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      },
      {
       "name": "Jumbo Shift",
@@ -6002,7 +6167,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      }
     ],
     "coverages": [
@@ -6021,7 +6187,8 @@
        "g1::13",
        "g1::14",
        "g1::15"
-      ]
+      ],
+      "yardPlays": 5
      }
     ],
     "blitzes": [
@@ -6035,7 +6202,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      },
      {
       "name": "Edge",
@@ -6047,7 +6215,8 @@
       "refs": [
        "g1::12",
        "g1::14"
-      ]
+      ],
+      "yardPlays": 2
      }
     ],
     "blitzRate": "40.0",
@@ -6368,6 +6537,7 @@
       "passes": 0,
       "yards": 30,
       "successes": 6,
+      "yardPlays": 6,
       "runPct": "100",
       "avg": "5.0",
       "successPct": "100"
@@ -6379,6 +6549,7 @@
       "passes": 1,
       "yards": 48,
       "successes": 1,
+      "yardPlays": 1,
       "runPct": "0",
       "avg": "48.0",
       "successPct": "100"
@@ -6399,6 +6570,7 @@
       "passes": 0,
       "yards": 30,
       "successes": 6,
+      "yardPlays": 6,
       "runPct": "100",
       "avg": "5.0",
       "successPct": "100"
@@ -6418,6 +6590,7 @@
       "havoc": 1,
       "runs": 0,
       "passes": 3,
+      "yardPlays": 3,
       "avg": "-0.7",
       "stopPct": "100",
       "havocPct": "33"
@@ -6432,6 +6605,7 @@
       "havoc": 0,
       "runs": 0,
       "passes": 2,
+      "yardPlays": 2,
       "avg": "2.0",
       "stopPct": "100",
       "havocPct": "0"
@@ -6446,6 +6620,7 @@
       "havoc": 0,
       "runs": 0,
       "passes": 2,
+      "yardPlays": 2,
       "avg": "2.0",
       "stopPct": "100",
       "havocPct": "0"
@@ -6472,6 +6647,7 @@
       "passes": 1,
       "yards": 48,
       "succ": 1,
+      "yardPlays": 1,
       "runPct": "0",
       "passPct": "100",
       "avg": "48.0",
@@ -6484,6 +6660,7 @@
       "passes": 0,
       "yards": 33,
       "succ": 6,
+      "yardPlays": 7,
       "runPct": "100",
       "passPct": "0",
       "avg": "4.7",
@@ -6498,6 +6675,7 @@
       "passes": 0,
       "yards": 15,
       "succ": 3,
+      "yardPlays": 3,
       "runPct": "100",
       "passPct": "0",
       "avg": "5.0",
@@ -6511,6 +6689,7 @@
      "passes": 3,
      "yards": 77,
      "succ": 5,
+     "yardPlays": 7,
      "runPct": "57",
      "passPct": "43",
      "avg": "11.0",
@@ -7110,21 +7289,24 @@
        "runs": 6,
        "passes": 0,
        "succ": 6,
-       "yards": 30
+       "yards": 30,
+       "yardPlays": 6
       },
       "Spread\u00013|Long": {
        "n": 1,
        "runs": 0,
        "passes": 1,
        "succ": 0,
-       "yards": 0
+       "yards": 0,
+       "yardPlays": 1
       },
       "Wildcat\u00011": {
        "n": 1,
        "runs": 1,
        "passes": 0,
        "succ": 0,
-       "yards": 3
+       "yards": 3,
+       "yardPlays": 1
       }
      },
      "rowN": {
@@ -7155,6 +7337,9 @@
        "g1::6",
        "g1::8"
       ],
+      "yardPlays": 7,
+      "runYardPlays": 6,
+      "passYardPlays": 1,
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -7181,6 +7366,8 @@
       "refs": [
        "g1::9"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -7257,6 +7444,8 @@
        "g1::6",
        "g1::9"
       ],
+      "yardPlays": 7,
+      "runYardPlays": 7,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -7304,6 +7493,8 @@
       "refs": [
        "g1::7"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7330,6 +7521,8 @@
       "refs": [
        "g1::10"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7398,6 +7591,8 @@
       "refs": [
        "g1::8"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7495,6 +7690,9 @@
        "g1::6",
        "g1::8"
       ],
+      "yardPlays": 7,
+      "runYardPlays": 6,
+      "passYardPlays": 1,
       "runPct": 86,
       "passPct": 14,
       "lean": "Run",
@@ -7521,6 +7719,8 @@
       "refs": [
        "g1::7"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7547,6 +7747,8 @@
       "refs": [
        "g1::10"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -7573,6 +7775,8 @@
       "refs": [
        "g1::9"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -7668,6 +7872,7 @@
      "rushing": {
       "attempts": 7,
       "yards": 33,
+      "yardPlays": 7,
       "average": "4.7",
       "touchdowns": 0,
       "fumbles": 0,
@@ -7678,6 +7883,7 @@
       "attempts": 3,
       "completions": 2,
       "yards": 59,
+      "yardPlays": 3,
       "average": "19.7",
       "yardsPerCompletion": "29.5",
       "completionPct": "66.7",
@@ -7687,6 +7893,11 @@
       "sackYards": 0,
       "longest": 48,
       "firstDowns": 2
+     },
+     "yardPlays": 10,
+     "defenseYards": {
+      "yards": 2,
+      "plays": 5
      },
      "scoring": {
       "touchdowns": 1,
@@ -7823,6 +8034,7 @@
         "passes": 1,
         "yards": 30,
         "successes": 6,
+        "yardPlays": 7,
         "avg": "4.3",
         "successPct": "86"
        },
@@ -7833,6 +8045,7 @@
         "passes": 0,
         "yards": 3,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "3.0",
         "successPct": "0"
        }
@@ -7853,6 +8066,7 @@
         "passes": 0,
         "yards": 30,
         "successes": 6,
+        "yardPlays": 6,
         "avg": "5.0",
         "successPct": "100"
        },
@@ -7863,6 +8077,7 @@
         "passes": 1,
         "yards": 48,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "48.0",
         "successPct": "100"
        },
@@ -7873,6 +8088,7 @@
         "passes": 1,
         "yards": 0,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "0.0",
         "successPct": "0"
        },
@@ -7883,6 +8099,7 @@
         "passes": 1,
         "yards": 0,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "0.0",
         "successPct": "0"
        },
@@ -7893,6 +8110,7 @@
         "passes": 0,
         "yards": 3,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "3.0",
         "successPct": "0"
        },
@@ -7903,6 +8121,7 @@
         "passes": 1,
         "yards": 11,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "11.0",
         "successPct": "100"
        }
@@ -7933,6 +8152,7 @@
         "num": "22",
         "attempts": 6,
         "yards": 30,
+        "yardPlays": 6,
         "tds": 0,
         "long": 5,
         "fumbles": 0,
@@ -8160,6 +8380,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -8168,6 +8389,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -8176,6 +8398,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -8184,6 +8407,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 1,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -8192,6 +8416,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -8239,6 +8464,7 @@
        "passes": 1,
        "yards": 30,
        "successes": 6,
+       "yardPlays": 7,
        "avg": "4.3",
        "successPct": "86"
       },
@@ -8249,6 +8475,7 @@
        "passes": 1,
        "yards": 48,
        "successes": 1,
+       "yardPlays": 1,
        "avg": "48.0",
        "successPct": "100"
       },
@@ -8259,6 +8486,7 @@
        "passes": 1,
        "yards": 11,
        "successes": 1,
+       "yardPlays": 1,
        "avg": "11.0",
        "successPct": "100"
       },
@@ -8269,6 +8497,7 @@
        "passes": 0,
        "yards": 3,
        "successes": 0,
+       "yardPlays": 1,
        "avg": "3.0",
        "successPct": "0"
       }
@@ -8470,7 +8699,8 @@
          "g1::11",
          "g1::13",
          "g1::15"
-        ]
+        ],
+        "yardPlays": 3
        },
        {
         "name": "4-3",
@@ -8483,7 +8713,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        },
        {
         "name": "Jumbo Shift",
@@ -8496,7 +8727,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        }
       ],
       "coverages": [
@@ -8515,7 +8747,8 @@
          "g1::13",
          "g1::14",
          "g1::15"
-        ]
+        ],
+        "yardPlays": 5
        }
       ],
       "blitzes": [
@@ -8529,7 +8762,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        },
        {
         "name": "Edge",
@@ -8541,7 +8775,8 @@
         "refs": [
          "g1::12",
          "g1::14"
-        ]
+        ],
+        "yardPlays": 2
        }
       ],
       "blitzRate": "40.0",
@@ -8812,6 +9047,7 @@
         "passes": 0,
         "yards": 30,
         "successes": 6,
+        "yardPlays": 6,
         "runPct": "100",
         "avg": "5.0",
         "successPct": "100"
@@ -8823,6 +9059,7 @@
         "passes": 1,
         "yards": 48,
         "successes": 1,
+        "yardPlays": 1,
         "runPct": "0",
         "avg": "48.0",
         "successPct": "100"
@@ -8843,6 +9080,7 @@
         "passes": 0,
         "yards": 30,
         "successes": 6,
+        "yardPlays": 6,
         "runPct": "100",
         "avg": "5.0",
         "successPct": "100"
@@ -8862,6 +9100,7 @@
         "havoc": 1,
         "runs": 0,
         "passes": 3,
+        "yardPlays": 3,
         "avg": "-0.7",
         "stopPct": "100",
         "havocPct": "33"
@@ -8876,6 +9115,7 @@
         "havoc": 0,
         "runs": 0,
         "passes": 2,
+        "yardPlays": 2,
         "avg": "2.0",
         "stopPct": "100",
         "havocPct": "0"
@@ -8890,6 +9130,7 @@
         "havoc": 0,
         "runs": 0,
         "passes": 2,
+        "yardPlays": 2,
         "avg": "2.0",
         "stopPct": "100",
         "havocPct": "0"
@@ -8916,6 +9157,7 @@
         "passes": 1,
         "yards": 48,
         "succ": 1,
+        "yardPlays": 1,
         "runPct": "0",
         "passPct": "100",
         "avg": "48.0",
@@ -8928,6 +9170,7 @@
         "passes": 0,
         "yards": 33,
         "succ": 6,
+        "yardPlays": 7,
         "runPct": "100",
         "passPct": "0",
         "avg": "4.7",
@@ -8942,6 +9185,7 @@
         "passes": 0,
         "yards": 15,
         "succ": 3,
+        "yardPlays": 3,
         "runPct": "100",
         "passPct": "0",
         "avg": "5.0",
@@ -8955,6 +9199,7 @@
        "passes": 3,
        "yards": 77,
        "succ": 5,
+       "yardPlays": 7,
        "runPct": "57",
        "passPct": "43",
        "avg": "11.0",
@@ -9035,6 +9280,7 @@
        "g1::6",
        "g1::8"
       ],
+      "yardPlays": 7,
       "runPct": 86
      },
      {
@@ -9047,6 +9293,7 @@
       "refs": [
        "g1::9"
       ],
+      "yardPlays": 1,
       "runPct": 100
      }
     ],
@@ -9269,6 +9516,7 @@
    "rushing": {
     "attempts": 5,
     "yards": 42,
+    "yardPlays": 5,
     "average": "8.4",
     "touchdowns": 0,
     "fumbles": 0,
@@ -9279,6 +9527,7 @@
     "attempts": 1,
     "completions": 0,
     "yards": 0,
+    "yardPlays": 1,
     "average": "0.0",
     "yardsPerCompletion": "0.0",
     "completionPct": "0.0",
@@ -9288,6 +9537,11 @@
     "sackYards": 0,
     "longest": 0,
     "firstDowns": 0
+   },
+   "yardPlays": 6,
+   "defenseYards": {
+    "yards": 0,
+    "plays": 3
    },
    "scoring": {
     "touchdowns": 0,
@@ -9410,6 +9664,7 @@
       "passes": 0,
       "yards": 14,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "14.0",
       "successPct": "100"
      }
@@ -9427,6 +9682,7 @@
       "passes": 0,
       "yards": 28,
       "successes": 4,
+      "yardPlays": 4,
       "avg": "7.0",
       "successPct": "100"
      },
@@ -9437,6 +9693,7 @@
       "passes": 0,
       "yards": 14,
       "successes": 1,
+      "yardPlays": 1,
       "avg": "14.0",
       "successPct": "100"
      },
@@ -9447,6 +9704,7 @@
       "passes": 1,
       "yards": 0,
       "successes": 0,
+      "yardPlays": 1,
       "avg": "0.0",
       "successPct": "0"
      }
@@ -9529,6 +9787,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -9537,6 +9796,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -9545,6 +9805,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -9553,6 +9814,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 0,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -9561,6 +9823,7 @@
      "tds": 0,
      "successes": 0,
      "yards": 0,
+     "yardPlays": 1,
      "avg": "0.0",
      "successPct": "0"
     },
@@ -9608,6 +9871,7 @@
      "passes": 0,
      "yards": 28,
      "successes": 4,
+     "yardPlays": 4,
      "avg": "7.0",
      "successPct": "100"
     },
@@ -9618,6 +9882,7 @@
      "passes": 0,
      "yards": 14,
      "successes": 1,
+     "yardPlays": 1,
      "avg": "14.0",
      "successPct": "100"
     },
@@ -9628,6 +9893,7 @@
      "passes": 1,
      "yards": 0,
      "successes": 0,
+     "yardPlays": 1,
      "avg": "0.0",
      "successPct": "0"
     }
@@ -9780,7 +10046,8 @@
        "g2::7",
        "g2::8",
        "g2::9"
-      ]
+      ],
+      "yardPlays": 3
      }
     ],
     "coverages": [
@@ -9797,7 +10064,8 @@
        "g2::7",
        "g2::8",
        "g2::9"
-      ]
+      ],
+      "yardPlays": 3
      }
     ],
     "blitzes": [
@@ -9812,7 +10080,8 @@
        "g2::7",
        "g2::8",
        "g2::9"
-      ]
+      ],
+      "yardPlays": 3
      }
     ],
     "blitzRate": "100.0",
@@ -10037,6 +10306,7 @@
       "passes": 0,
       "yards": 28,
       "successes": 4,
+      "yardPlays": 4,
       "runPct": "100",
       "avg": "7.0",
       "successPct": "100"
@@ -10048,6 +10318,7 @@
       "passes": 0,
       "yards": 14,
       "successes": 1,
+      "yardPlays": 1,
       "runPct": "100",
       "avg": "14.0",
       "successPct": "100"
@@ -10059,6 +10330,7 @@
       "passes": 1,
       "yards": 0,
       "successes": 0,
+      "yardPlays": 1,
       "runPct": "0",
       "avg": "0.0",
       "successPct": "0"
@@ -10079,6 +10351,7 @@
       "passes": 0,
       "yards": 28,
       "successes": 4,
+      "yardPlays": 4,
       "runPct": "100",
       "avg": "7.0",
       "successPct": "100"
@@ -10098,6 +10371,7 @@
       "havoc": 1,
       "runs": 0,
       "passes": 3,
+      "yardPlays": 3,
       "avg": "0.0",
       "stopPct": "100",
       "havocPct": "33"
@@ -10124,6 +10398,7 @@
       "passes": 0,
       "yards": 28,
       "succ": 4,
+      "yardPlays": 4,
       "runPct": "100",
       "passPct": "0",
       "avg": "7.0",
@@ -10136,6 +10411,7 @@
       "passes": 0,
       "yards": 14,
       "succ": 1,
+      "yardPlays": 1,
       "runPct": "100",
       "passPct": "0",
       "avg": "14.0",
@@ -10150,6 +10426,7 @@
      "passes": 1,
      "yards": 42,
      "succ": 5,
+     "yardPlays": 6,
      "runPct": "83",
      "passPct": "17",
      "avg": "7.0",
@@ -10473,7 +10750,8 @@
        "runs": 1,
        "passes": 0,
        "succ": 1,
-       "yards": 14
+       "yards": 14,
+       "yardPlays": 1
       }
      },
      "rowN": {
@@ -10497,6 +10775,8 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10567,6 +10847,8 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10617,6 +10899,8 @@
        "g2::3",
        "g2::4"
       ],
+      "yardPlays": 4,
+      "runYardPlays": 4,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10664,6 +10948,8 @@
       "refs": [
        "g2::6"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -10800,6 +11086,8 @@
        "g2::3",
        "g2::4"
       ],
+      "yardPlays": 4,
+      "runYardPlays": 4,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10826,6 +11114,8 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
+      "runYardPlays": 1,
       "runPct": 100,
       "passPct": 0,
       "lean": "Run",
@@ -10852,6 +11142,8 @@
       "refs": [
        "g2::6"
       ],
+      "yardPlays": 1,
+      "passYardPlays": 1,
       "runPct": 0,
       "passPct": 100,
       "lean": "Pass",
@@ -10910,6 +11202,7 @@
      "rushing": {
       "attempts": 5,
       "yards": 42,
+      "yardPlays": 5,
       "average": "8.4",
       "touchdowns": 0,
       "fumbles": 0,
@@ -10920,6 +11213,7 @@
       "attempts": 1,
       "completions": 0,
       "yards": 0,
+      "yardPlays": 1,
       "average": "0.0",
       "yardsPerCompletion": "0.0",
       "completionPct": "0.0",
@@ -10929,6 +11223,11 @@
       "sackYards": 0,
       "longest": 0,
       "firstDowns": 0
+     },
+     "yardPlays": 6,
+     "defenseYards": {
+      "yards": 0,
+      "plays": 3
      },
      "scoring": {
       "touchdowns": 0,
@@ -11051,6 +11350,7 @@
         "passes": 0,
         "yards": 14,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "14.0",
         "successPct": "100"
        }
@@ -11068,6 +11368,7 @@
         "passes": 0,
         "yards": 28,
         "successes": 4,
+        "yardPlays": 4,
         "avg": "7.0",
         "successPct": "100"
        },
@@ -11078,6 +11379,7 @@
         "passes": 0,
         "yards": 14,
         "successes": 1,
+        "yardPlays": 1,
         "avg": "14.0",
         "successPct": "100"
        },
@@ -11088,6 +11390,7 @@
         "passes": 1,
         "yards": 0,
         "successes": 0,
+        "yardPlays": 1,
         "avg": "0.0",
         "successPct": "0"
        }
@@ -11170,6 +11473,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -11178,6 +11482,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -11186,6 +11491,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -11194,6 +11500,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 0,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -11202,6 +11509,7 @@
        "tds": 0,
        "successes": 0,
        "yards": 0,
+       "yardPlays": 1,
        "avg": "0.0",
        "successPct": "0"
       },
@@ -11249,6 +11557,7 @@
        "passes": 0,
        "yards": 28,
        "successes": 4,
+       "yardPlays": 4,
        "avg": "7.0",
        "successPct": "100"
       },
@@ -11259,6 +11568,7 @@
        "passes": 0,
        "yards": 14,
        "successes": 1,
+       "yardPlays": 1,
        "avg": "14.0",
        "successPct": "100"
       },
@@ -11269,6 +11579,7 @@
        "passes": 1,
        "yards": 0,
        "successes": 0,
+       "yardPlays": 1,
        "avg": "0.0",
        "successPct": "0"
       }
@@ -11421,7 +11732,8 @@
          "g2::7",
          "g2::8",
          "g2::9"
-        ]
+        ],
+        "yardPlays": 3
        }
       ],
       "coverages": [
@@ -11438,7 +11750,8 @@
          "g2::7",
          "g2::8",
          "g2::9"
-        ]
+        ],
+        "yardPlays": 3
        }
       ],
       "blitzes": [
@@ -11453,7 +11766,8 @@
          "g2::7",
          "g2::8",
          "g2::9"
-        ]
+        ],
+        "yardPlays": 3
        }
       ],
       "blitzRate": "100.0",
@@ -11678,6 +11992,7 @@
         "passes": 0,
         "yards": 28,
         "successes": 4,
+        "yardPlays": 4,
         "runPct": "100",
         "avg": "7.0",
         "successPct": "100"
@@ -11689,6 +12004,7 @@
         "passes": 0,
         "yards": 14,
         "successes": 1,
+        "yardPlays": 1,
         "runPct": "100",
         "avg": "14.0",
         "successPct": "100"
@@ -11700,6 +12016,7 @@
         "passes": 1,
         "yards": 0,
         "successes": 0,
+        "yardPlays": 1,
         "runPct": "0",
         "avg": "0.0",
         "successPct": "0"
@@ -11720,6 +12037,7 @@
         "passes": 0,
         "yards": 28,
         "successes": 4,
+        "yardPlays": 4,
         "runPct": "100",
         "avg": "7.0",
         "successPct": "100"
@@ -11739,6 +12057,7 @@
         "havoc": 1,
         "runs": 0,
         "passes": 3,
+        "yardPlays": 3,
         "avg": "0.0",
         "stopPct": "100",
         "havocPct": "33"
@@ -11765,6 +12084,7 @@
         "passes": 0,
         "yards": 28,
         "succ": 4,
+        "yardPlays": 4,
         "runPct": "100",
         "passPct": "0",
         "avg": "7.0",
@@ -11777,6 +12097,7 @@
         "passes": 0,
         "yards": 14,
         "succ": 1,
+        "yardPlays": 1,
         "runPct": "100",
         "passPct": "0",
         "avg": "14.0",
@@ -11791,6 +12112,7 @@
        "passes": 1,
        "yards": 42,
        "succ": 5,
+       "yardPlays": 6,
        "runPct": "83",
        "passPct": "17",
        "avg": "7.0",
@@ -11824,6 +12146,7 @@
       "refs": [
        "g2::5"
       ],
+      "yardPlays": 1,
       "runPct": 100
      }
     ],

@@ -272,6 +272,10 @@ try {
     const head = [...document.querySelectorAll('.gi-rb-matrix thead th')].map(n => n.textContent);
     const tile = document.querySelector('[data-rb-view="kpi"] .gi-rb-kpi-meta')?.textContent || '';
     const caption = document.querySelector('.gi-rb-matrix-wrap .gi-rb-muted')?.textContent || '';
+    s.saveWidget({ view: 'trend', metric: 'success', width: 'l' });
+    s.setUnit('special');
+    await new Promise(r => setTimeout(r, 250));
+    const trendText = document.querySelector('[data-rb-view="trend"] .gi-rb-empty')?.textContent || '';
     s.setUnit('defense');
     s.saveWidget({ view: 'bar', metric: 'yards', dimension: 'down', width: 'm' });
     // EPA is offense-only, so on defense every value is unavailable: no film, a dash.
@@ -285,7 +289,7 @@ try {
     const neg = document.querySelector('[data-rb-view="bar"] .gi-rb-bars li.is-negative');
     const zero = neg?.querySelector('.gi-rb-bar-zero'), fill = neg?.querySelector('.gi-rb-bar-fill');
     const negative = neg ? { fillRight: Math.round(fill.getBoundingClientRect().right), zero: Math.round(zero.getBoundingClientRect().left), width: fill.getBoundingClientRect().width } : null;
-    return { calls, head, tile, negative, caption, dash };
+    return { calls, head, tile, negative, caption, dash, trendText };
   });
   ok(views.calls.length === 1 && views.calls[0] === 'Holding × Accepted' && views.head.includes('Accepted'),
     'a heat-map cell watches under its row and column labels (Holding × Accepted)', views);
@@ -293,6 +297,7 @@ try {
   ok(views.negative && views.negative.width > 4 && views.negative.fillRight <= views.negative.zero + 1,
     'a negative bar draws left of the zero line', views.negative);
   ok(!views.caption || !/across|Small numbers|faded/.test(views.caption), 'a heat map carries no explanatory sentence', views.caption);
+  ok(views.trendText === 'Choose Offense or Defense', 'a game-by-game metric the unit cannot read says why, not "no games"', views.trendText);
   ok(views.dash && views.dash.offset <= 1, 'a value without film (a dash) sits on the row\'s text line', views.dash);
   const rich = await page.evaluate(() => { const S = window.app.studyScreen.constructor; return [S.richName('success', 'defense'), S.richName('success', 'offense')]; });
   ok(rich.join() === 'Stop Rate,Success Rate', 'Study names its success concept per unit: Stop Rate on defense', rich);
@@ -353,12 +358,22 @@ try {
       const leaders = result.widgets.find(w => w.view === 'leaders').rows;
       const plays = b.scopePlays(defense, ctx);
       const board = app.stats.defenseBoard(app.season._allPlays(), {}).players;
-      return { errors: result.widgets.filter(w => w.error).map(w => w.title), five: leaders.find(r => r.value === '5')?.metric,
+      // Yards per play leaves out penalty yardage everywhere (coach, 2026-10-10).
+      const offense = b.scopePlays(b.constructor.fromTemplate('offense'), ctx);
+      const ypp = {
+        dashboardOffense: b.measure('yards', offense, { unit: 'offense' }).value,
+        reportOffense: Number(app.stats.constructor.yardsPerPlay(app.stats.compute(offense))),
+        dashboardDefense: b.measure('yards', plays, { unit: 'defense' }).value,
+        reportDefense: app.stats.defenseBoard(plays, {}).kpis.ypp,
+      };
+      return { ypp, errors: result.widgets.filter(w => w.error).map(w => w.title), five: leaders.find(r => r.value === '5')?.metric,
         boardFive: board.find(r => String(r.num) === '5')?.tackles, cells: result.widgets.find(w => w.view === 'matrix').rows.flatMap(r => r.cells).filter(c => c.n).length, plays: plays.length };
     }, season);
     ok(!real.errors.length && real.plays === 174, 'the Defense snapshot measures all 174 canonical defensive plays without an error', real);
     ok(real.five === 40 && real.boardFive === 40, '#5 leads with 40 tackles, equal to the Defense board', real);
     ok(real.cells > 0, 'the coverage by down heat map fills on defense', real);
+    ok(real.ypp.dashboardOffense === real.ypp.reportOffense && real.ypp.dashboardDefense === real.ypp.reportDefense,
+      'yards per play is the same number in Dashboards and the reports, offense and defense', real.ypp);
   } else if (process.env.GIQ_REALDATA_OPTIONAL === '1') {
     console.log('  SKIP  canonical season absent (GIQ_REALDATA_OPTIONAL=1)');
   } else {

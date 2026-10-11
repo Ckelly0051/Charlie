@@ -197,7 +197,7 @@ if (!existsSync(SOURCE)) {
   const same = rows.every(r => JSON.stringify(r.off) === JSON.stringify(r.offBoard) && JSON.stringify(r.def) === JSON.stringify(r.defBoard));
   ok(rows.length === 6 && same, 'on all six games the summary equals the Offense report and the Defense board', JSON.stringify(rows.filter(r => JSON.stringify(r.off) !== JSON.stringify(r.offBoard) || JSON.stringify(r.def) !== JSON.stringify(r.defBoard))));
   const lakes = rows.find(r => /OL Lakes/.test(r.game));
-  ok(lakes && lakes.def[0] === 3.4 && lakes.def[2] === 37, 'OL Lakes defense: 3.4 yards per play allowed over 37 run/pass snaps, as its board states', JSON.stringify(lakes));
+  ok(lakes && lakes.def[0] === 3.5 && lakes.def[2] === 37, 'OL Lakes defense: 3.5 yards per play allowed (37 run/pass snaps; blank yardage left out), as its board states', JSON.stringify(lakes));
   const lakesGame = JSON.parse(raw.toString('utf8')).games.find(x => /OL Lakes/i.test(x.gameInfo?.opponent || ''));
   const onScreen = await page.evaluate(async (data, gid) => {
     const app = window.app, store = app.storage.seasonStore;
@@ -212,7 +212,7 @@ if (!existsSync(SOURCE)) {
     app.nativeFilmRoom.clearFilters();
     return out;
   }, JSON.parse(raw.toString('utf8')), lakesGame.id);
-  ok(onScreen.header === '3.4 / play' && onScreen.summary === '3.4', 'OL Lakes defense: the Yds header and the summary both read the board\'s 3.4', JSON.stringify(onScreen));
+  ok(onScreen.header === '3.5 / play' && onScreen.summary === '3.5', 'OL Lakes defense: the Yds header and the summary both read the board\'s 3.5', JSON.stringify(onScreen));
   ok(createHash('sha256').update(readFileSync(SOURCE)).digest('hex') === before, 'the canonical season file is unchanged');
 }
 

@@ -110,14 +110,6 @@ function resolveRefs(refSource, context, allowUnlinkedPlays) {
   return { refs: refs.sort(), unlinkedCount };
 }
 
-function yards(p) {
-  const v = parseInt(p?.tags?.yardage, 10);
-  return Number.isFinite(v) ? v : null;
-}
-
-function hasYardage(p) {
-  return yards(p) !== null;
-}
 
 function rateResult(count, denominator, eligible = denominator) {
   if (!denominator) return { value: null, count: 0, eligible, denominator: 0 };
@@ -132,9 +124,9 @@ function rateResult(count, denominator, eligible = denominator) {
  * default folded in); `classify` decides whether an eligible (or, in legacy
  * `missingAsZero` mode, any) play counts toward the numerator. In legacy
  * mode `classify` runs against the FULL cohort, so an ineligible play (e.g.
- * no tagged yardage) falls through to whatever default its own classifier
- * uses (`yards(p) || 0` inside `isExplosive`/`isNegative`/`isHavoc`) --
- * exactly reproducing the pre-fix formula. Returns `refSource` alongside the
+ * unknown yardage) falls through to whatever default its own classifier
+ * uses (`playYards(p) ?? 0` inside `isExplosive`/`isNegative`/`isHavoc`).
+ * Returns `refSource` alongside the
  * rate fields: the EXACT play list `denominator` was computed from, so
  * `metric()` can resolve film refs from that same set rather than the raw
  * cohort (see the module docblock's "FILM-COHORT HONESTY" section).
@@ -146,25 +138,24 @@ function eligibleRate(cohort, isEligible, classify, missingAsZero) {
 }
 
 const isExplosive = deps => p => {
-  const y = yards(p) || 0;
+  const y = deps.playYards(p) ?? 0;
   return deps.isRun(p) ? y >= 12 : deps.isPass(p) ? y >= 16 : y >= 16;
 };
-const isNegative = () => p => (yards(p) || 0) < 0;
+const isNegative = deps => p => (deps.playYards(p) ?? 0) < 0;
 const isHavocEligible = deps => p =>
-  deps.hasResult(p, 'Sack') || deps.hasResult(p, 'Interception') || deps.hasResult(p, 'Fumble') || hasYardage(p);
+  deps.hasResult(p, 'Sack') || deps.hasResult(p, 'Interception') || deps.hasResult(p, 'Fumble') || deps.playYards(p) !== null;
 const isHavoc = deps => p =>
   deps.hasResult(p, 'Sack') || deps.hasResult(p, 'Interception') || deps.hasResult(p, 'Fumble')
-  || ((yards(p) || 0) < 0 && !deps.hasResult(p, 'Penalty') && !deps.hasResult(p, 'Kneel') && !deps.hasResult(p, 'Spike'));
+  || ((deps.playYards(p) ?? 0) < 0 && !deps.hasResult(p, 'Penalty') && !deps.hasResult(p, 'Kneel') && !deps.hasResult(p, 'Spike'));
 
-/** A run or pass snap: the plays whose yardage counts as yards. */
-const isScrimmage = deps => p => deps.isRun(p) || deps.isPass(p);
-
-function yardsPerPlayCompute(cohort, missingAsZero) {
-  const eligiblePlays = cohort.filter(hasYardage);
+/** Yards over the plays that count for yards (StatsEngine.countsForYards:
+ *  a run or pass snap that stood, with its yards known). */
+function yardsPerPlayCompute(cohort, deps, missingAsZero) {
+  const eligiblePlays = cohort.filter(deps.countsForYards);
   const source = missingAsZero ? cohort : eligiblePlays;
   const denominator = source.length;
   if (!denominator) return { value: null, count: 0, eligible: eligiblePlays.length, denominator: 0, refSource: source };
-  const total = source.reduce((sum, p) => sum + (yards(p) || 0), 0);
+  const total = source.reduce((sum, p) => sum + (deps.playYards(p) ?? 0), 0);
   return { value: +(total / denominator).toFixed(1), count: total, eligible: eligiblePlays.length, denominator, refSource: source };
 }
 
@@ -232,7 +223,7 @@ const METRICS = {
     // Offense-produced: this cohort's team gained an explosive play.
     polarity: MetricPolarity.HIGHER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return eligibleRate(cohort, hasYardage, isExplosive(deps), missingAsZero);
+      return eligibleRate(cohort, deps.countsForYards, isExplosive(deps), missingAsZero);
     },
   },
   explosivesAllowedRate: {
@@ -240,7 +231,7 @@ const METRICS = {
     // cohort's defense. Identical formula to explosiveRate; lower is better.
     polarity: MetricPolarity.LOWER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return eligibleRate(cohort, hasYardage, isExplosive(deps), missingAsZero);
+      return eligibleRate(cohort, deps.countsForYards, isExplosive(deps), missingAsZero);
     },
   },
   havocRate: {
@@ -261,33 +252,32 @@ const METRICS = {
   negativeRate: {
     // Offense-produced: this cohort's team's own negative-yardage plays.
     polarity: MetricPolarity.LOWER,
-    compute(cohort, _deps, { missingAsZero = false } = {}) {
-      return eligibleRate(cohort, hasYardage, isNegative(), missingAsZero);
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return eligibleRate(cohort, deps.countsForYards, isNegative(deps), missingAsZero);
     },
   },
   negativeRateForced: {
     // Defense-forced: negative-yardage plays THIS cohort's defense forced on
     // the opponent. Identical formula to negativeRate; higher is better.
     polarity: MetricPolarity.HIGHER,
-    compute(cohort, _deps, { missingAsZero = false } = {}) {
-      return eligibleRate(cohort, hasYardage, isNegative(), missingAsZero);
+    compute(cohort, deps, { missingAsZero = false } = {}) {
+      return eligibleRate(cohort, deps.countsForYards, isNegative(deps), missingAsZero);
     },
   },
   yardsPerPlay: {
-    // Offense-produced: yards this cohort's team gained per run or pass snap.
-    // Penalty yardage is tracked separately and is never yards (coach,
-    // 2026-10-10), the same play set the reports' total yards use.
+    // Offense-produced: yards this cohort's team gained per counted snap
+    // (StatsEngine.countsForYards), the play set the reports use.
     polarity: MetricPolarity.HIGHER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort.filter(isScrimmage(deps)), missingAsZero);
+      return yardsPerPlayCompute(cohort, deps, missingAsZero);
     },
   },
   yardsAllowedPerPlay: {
-    // Defense-framed: yards THIS cohort's defense allowed per run or pass
-    // snap. Identical formula to yardsPerPlay; lower is better.
+    // Defense-framed: yards THIS cohort's defense allowed per counted snap.
+    // Identical formula to yardsPerPlay; lower is better.
     polarity: MetricPolarity.LOWER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort.filter(isScrimmage(deps)), missingAsZero);
+      return yardsPerPlayCompute(cohort, deps, missingAsZero);
     },
   },
 
@@ -332,7 +322,7 @@ const METRICS = {
     // target has no yards to average in.
     polarity: MetricPolarity.HIGHER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort.filter(p => isComplete(deps, p)), missingAsZero);
+      return yardsPerPlayCompute(cohort.filter(p => isComplete(deps, p)), deps, missingAsZero);
     },
   },
   yardsPerAttempt: {
@@ -346,7 +336,7 @@ const METRICS = {
     // passer's broadened (attempts + sacks) dimension cohort.
     polarity: MetricPolarity.HIGHER,
     compute(cohort, deps, { missingAsZero = false } = {}) {
-      return yardsPerPlayCompute(cohort.filter(p => !deps.hasResult(p, 'Sack')), missingAsZero);
+      return yardsPerPlayCompute(cohort.filter(p => !deps.hasResult(p, 'Sack')), deps, missingAsZero);
     },
   },
   // Blank grades are ineligible, not zero (Study Phase 3 requirement): each
@@ -477,7 +467,7 @@ export class AnalyticsMetrics {
    *   `StatsEngine.isMadeAttempt`'s own comment.
    */
   constructor(deps = {}) {
-    const required = ['isRun', 'isPass', 'hasResult', 'isSuccessfulPlay', 'isEligiblePlay', 'splitPlayers', 'isMadeAttempt', 'isScoredTouchdown'];
+    const required = ['isRun', 'isPass', 'hasResult', 'playYards', 'countsForYards', 'isSuccessfulPlay', 'isEligiblePlay', 'splitPlayers', 'isMadeAttempt', 'isScoredTouchdown'];
     for (const key of required) {
       if (typeof deps[key] !== 'function') throw new TypeError(`AnalyticsMetrics requires deps.${key}`);
     }

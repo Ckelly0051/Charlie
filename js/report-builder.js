@@ -414,11 +414,14 @@ export class ReportBuilder {
       return { ...head, metricName, current, baseline, baselineLabel: context.baselineLabel || '' };
     }
     if (widget.view === 'trend') {
-      const rows = (context.games || []).filter(game => game.plays.length).map(game => {
+      const measured = (context.games || []).filter(game => game.plays.length).map(game => {
         const gamePlays = cohort.filter(play => String(play.__gid) === String(game.id));
         return { value: String(game.id), label: game.label, ...this.measure(widget.metric, gamePlays, options) };
-      }).filter(row => row.n > 0 || row.state !== 'unavailable');
-      return { ...head, metricName, rows };
+      });
+      const rows = measured.filter(row => row.n > 0 || row.state !== 'unavailable');
+      // A metric this unit cannot read says why, rather than "no games".
+      const reason = rows.length ? '' : (measured.find(row => row.reason)?.reason || '');
+      return { ...head, metricName, rows, reason };
     }
     if (widget.view === 'leaders') {
       const leader = ReportBuilder.leader(widget.leader);
