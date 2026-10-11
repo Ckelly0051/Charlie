@@ -49,14 +49,16 @@ log.
   PASS (2026-10-09). Installed smoke acceptance is separate from the gate
   receipt's historical `installedApproval: not-assessed` and does not move the
   design approval registry. No push, tag or publication authorized here.
-- **Built, awaiting the coach's smoke: `1.12.0-114`** (2026-10-10,
-  `SMOKE-1.12.0-114.md`): Chart's draft and Save, unit changes as saves with a
-  charted-data prompt, tacklers on a change of possession
-  (`GRIDIRON-IQ-SAVE-CONTRACT.md`), Dashboards rev 1 and Study's defensive
-  grouping (`docs/REPORTS-CONTRACTS.md`). Codex review rounds closed with no
-  open findings. Build record, size and SHA-256 in the smoke record.
-  Independent packaged-asset inspection PASS (2026-10-10), recorded in
-  `docs/PACKAGE-INSPECTION-1.12.0-114.md`; installed smoke remains pending.
+- **Smoked: `1.12.0-114`** (2026-10-10, `SMOKE-1.12.0-114.md`): Chart's draft
+  and Save, unit changes as saves with a charted-data prompt, tacklers on a
+  change of possession, Dashboards rev 1. Coach checks 1-2 passed and Claude's
+  installed checks 8-10 passed; the coach closed the findings list (six
+  findings) for fixing. Packaged-asset inspection PASS.
+- **Built since 114, not packaged (2026-10-10):** the smoke 114 fixes
+  (Dashboards home, read-only templates, Special Teams teal, prose, the
+  installed-check defects) and one yards rule across the reports, Study and
+  Dashboards (`docs/REPORTS-CONTRACTS.md` > Yards). Focused harnesses green;
+  Codex review, full gate and installer pending.
 - **Latest full gate:** 157/158 green at `075522ce` (2026-10-10); the one red,
   `e2e-design-system` (raw colors in the Dashboards styles), was fixed in
   `7dd5dfc5` and re-run green 17/17 with the related reports and CSS
