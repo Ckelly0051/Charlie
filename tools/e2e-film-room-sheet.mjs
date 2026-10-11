@@ -212,7 +212,7 @@ if (!existsSync(SOURCE)) {
     app.nativeFilmRoom.clearFilters();
     return out;
   }, JSON.parse(raw.toString('utf8')), lakesGame.id);
-  ok(onScreen.header === '3.4 / play' && onScreen.summary === '3.4', 'OL Lakes defense: the Yds header and the summary both read the board\'s 3.5', JSON.stringify(onScreen));
+  ok(onScreen.header === '3.4 / play' && onScreen.summary === '3.4', 'OL Lakes defense: the Yds header and the summary both read the board\'s 3.4', JSON.stringify(onScreen));
   ok(createHash('sha256').update(readFileSync(SOURCE)).digest('hex') === before, 'the canonical season file is unchanged');
 }
 
