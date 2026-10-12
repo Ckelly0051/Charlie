@@ -76,4 +76,7 @@ repair is claimed here.
    reformatted the reports if using the current architecture." Today the
    unit (and scope and filters) belong to the whole dashboard, so every
    widget answers the same question for the same unit. Supersedes the color
-   concern in finding 2.
+   concern in finding 2. Coach, direction: "think about it as a blank
+   template as canvas. A module picker guides the build within the template.
+   I should be able to choose whatever I want - that's the core of what makes
+   dashboards unique vs reports."
