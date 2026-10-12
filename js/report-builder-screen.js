@@ -63,6 +63,27 @@ export class ReportBuilderScreen {
   }
 
   home() { this.view = 'home'; this.templateView = null; this._publish(); }
+
+  /** Saved dashboards, then templates: the home page's order, which Prev and
+   *  Next step through. A template's key is `template:<id>`. */
+  _order() {
+    return [...this.list().map(item => item.id),
+      ...ReportBuilder.TEMPLATES.filter(item => item.id !== 'blank').map(item => `template:${item.id}`)];
+  }
+  _activeKey() {
+    if (this.view !== 'dashboard') return null;
+    return this.templateView ? this.templateView.id : this.activeId;
+  }
+  /** Open the previous (-1) or next (+1) dashboard in the home page's order. */
+  step(direction) {
+    const order = this._order();
+    const key = order[order.indexOf(this._activeKey()) + direction];
+    if (!key) return false;
+    if (key.startsWith('template:')) this.openTemplate(key.slice('template:'.length)); else this.open(key);
+    return true;
+  }
+  /** Leave Dashboards for the report tabs. */
+  toReports() { return this.reports?.backToReports?.(); }
   open(id) { this.activeId = id; this.templateView = null; this.view = 'dashboard'; this._publish(); }
   openTemplate(templateId) {
     const template = ReportBuilder.TEMPLATES.find(item => item.id === templateId);
@@ -297,9 +318,11 @@ body{margin:0;background:var(--gi-bd-stage,#080808)}
     const dashboard = this.active();
     const context = dashboard ? this.context() : null;
     const summary = item => ({ id: item.id, name: item.name, unit: item.unit, scope: item.scope, widgets: item.widgets.length });
+    const order = this._order(), at = order.indexOf(this._activeKey());
     return {
       view: this.view,
       isTemplate: this.isTemplate(),
+      hasPrev: at > 0, hasNext: at >= 0 && at < order.length - 1,
       dashboards: this.list().map(summary),
       templates: ReportBuilder.TEMPLATES.filter(item => item.id !== 'blank').map(summary),
       dashboard,

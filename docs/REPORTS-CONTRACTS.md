@@ -313,14 +313,17 @@ yards keep their own rules.
 
 The coach's own reports (coach, 2026-10-10: "self serve reporting"). Opened
 from the Reports head (Dashboards, beside Scout opponent) as a focused view
-with Back to reports; the approved report strip is unchanged.
+with its own strip; the approved report strip is unchanged.
 
 - **Home** (smoke 114 findings 1-2). The Dashboards button opens the home:
   New dashboard, the saved dashboards as rows (name, unit, scope, widgets;
-  Open, Delete) and the templates as rows (Open). An open dashboard's All
-  dashboards returns to it. Returning to Reports after watching film from a
-  dashboard, or from another route, reopens Dashboards where the coach left
-  it; Back to reports leaves for the tabs.
+  Open, Delete) and the templates as rows (Open). Returning to Reports after
+  watching film from a dashboard, or from another route, reopens Dashboards
+  where the coach left it.
+- **Strip** (smoke 115 findings 1-2). Inside a dashboard: Back to dashboards
+  (to the home), Prev and Next (through the home's order, saved dashboards
+  then templates; disabled at either end), and Go to reports (to the tabs)
+  set apart at the far right. On the home: Go to reports only.
 - **Templates are read-only** (finding 3). A template opens marked Template;
   scope, unit and filters change only the view. Adding, editing, moving,
   resizing or removing a widget, or Save as new, asks for a name and saves a

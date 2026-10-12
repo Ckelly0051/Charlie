@@ -353,6 +353,26 @@ function DashboardRow({ item, onOpen, onDelete, template }) {
   </li>;
 }
 
+function NavIcon({ name }) {
+  return <svg class="gi-reports-icon" aria-hidden="true"><use href={`assets/icons.svg#icon-${name}`} /></svg>;
+}
+
+/** The Dashboards strip: back to the Dashboards home, Prev / Next through the
+ *  home page's order, and Go to reports set apart at the far end. */
+function DashboardsNav({ screen, state }) {
+  const open = !!state.dashboard;
+  return <nav class="gi-rb-nav" aria-label="Dashboards" data-rb-nav>
+    {open
+      ? <button type="button" class="gi-reports-back" data-rb-home-link onClick={() => screen.home()}><NavIcon name="prev-clip" />Back to dashboards</button>
+      : <span class="gi-rb-nav-label">Dashboards</span>}
+    {open && <div class="gi-rb-step">
+      <button type="button" data-rb-prev disabled={!state.hasPrev} onClick={() => screen.step(-1)}>Prev</button>
+      <button type="button" data-rb-next disabled={!state.hasNext} onClick={() => screen.step(1)}>Next</button>
+    </div>}
+    <button type="button" class="gi-reports-back gi-rb-to-reports" data-rb-to-reports onClick={() => screen.toReports()}>Go to reports</button>
+  </nav>;
+}
+
 /** Dashboards home: the saved dashboards and the templates, always reachable. */
 function DashboardsHome({ screen, state }) {
   return <div class="gi-rb-home" data-rb-home>
@@ -381,11 +401,10 @@ export function NativeReportBuilder({ screen }) {
   // Re-read on subscribe: a change made before this effect ran is not missed.
   useEffect(() => { const off = screen.subscribe(setState); setState(screen.snapshot()); return off; }, [screen]);
   const { dashboard, result } = state;
-  if (!dashboard) return <div class="gi-rb" data-report-builder><DashboardsHome screen={screen} state={state} /></div>;
-  return <div class={['gi-rb', UnitClass(dashboard.unit)].join(' ')} data-report-builder>
+  if (!dashboard) return <><DashboardsNav screen={screen} state={state} /><div class="gi-rb" data-report-builder><DashboardsHome screen={screen} state={state} /></div></>;
+  return <><DashboardsNav screen={screen} state={state} /><div class={['gi-rb', UnitClass(dashboard.unit)].join(' ')} data-report-builder>
     <div class="gi-rb-toolbar">
       <div class="gi-rb-title">
-        <button type="button" data-rb-home-link onClick={() => screen.home()}>All dashboards</button>
         <h2>{dashboard.name}</h2>
         {state.isTemplate && <span class="gi-rb-tag">Template</span>}
       </div>
@@ -416,7 +435,7 @@ export function NativeReportBuilder({ screen }) {
       ? <div class="gi-rb-grid">{result.widgets.map((data, index) => <WidgetCard key={data.id} screen={screen} data={data} index={index} count={result.widgets.length} />)}</div>
       : <section class="gi-rb-start"><h2>No widgets yet</h2>
           <button type="button" class="is-primary" onClick={() => screen.editWidget()}>Add widget</button></section>}
-  </div>;
+  </div></>;
 }
 
 export function mountReportBuilder({ host, screen }) {

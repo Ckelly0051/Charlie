@@ -150,11 +150,13 @@ try {
     saved: document.querySelectorAll('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"])').length,
     picker: !!document.querySelector('[data-report-builder] select[aria-label="Dashboard"]'),
     scorebug: document.querySelector('[data-reports-scorebug]')?.hidden !== false, strip: document.querySelector('[data-reports-strip]')?.hidden === true,
-    label: document.querySelector('[data-reports-special-label]')?.textContent,
+    special: document.querySelector('[data-reports-special-chrome]')?.hidden === true,
+    nav: [...document.querySelectorAll('[data-rb-nav] button, [data-rb-nav] .gi-rb-nav-label')].map(n => n.textContent.trim()),
   }));
   ok(ui.home && ui.templates.join() === 'offense,defense,situational,calls' && ui.saved === 0 && !ui.picker,
     'Dashboards opens on its home: the four templates, no saved dashboards yet, no dropdown', ui);
-  ok(ui.scorebug && ui.strip && ui.label === 'Dashboards', 'Dashboards is a focused view: no score or report strip, Back to reports', ui);
+  ok(ui.scorebug && ui.strip && ui.special && ui.nav.join('|') === 'Dashboards|Go to reports',
+    'Dashboards is a focused view: no score or report strip; its home strip offers only Go to reports', ui);
 
   console.log('\n== A template is read-only ==');
   await page.click('[data-rb-row="template:offense"] .is-primary'); await settle();
@@ -232,6 +234,29 @@ try {
   ok(ui.home && ui.saved.join() === 'My offense', 'All dashboards returns to the home, listing the saved dashboard', ui);
   await page.click('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) .is-primary'); await settle();
   ok(await page.evaluate(() => document.querySelectorAll('[data-rb-widget]').length === 7 && !document.querySelector('.gi-rb-tag')), 'Open reopens the saved dashboard');
+  // The Dashboards strip (smoke 115 findings 1-2).
+  const strip = async () => page.evaluate(() => {
+    const nav = document.querySelector('[data-rb-nav]'), box = n => n?.getBoundingClientRect();
+    const back = box(nav.querySelector('[data-rb-home-link]')), next = box(nav.querySelector('[data-rb-next]')), reports = box(nav.querySelector('[data-rb-to-reports]'));
+    return { labels: [...nav.querySelectorAll('button')].map(n => n.textContent.trim()), prev: nav.querySelector('[data-rb-prev]').disabled,
+      next: nav.querySelector('[data-rb-next]').disabled, name: document.querySelector('.gi-rb-title h2')?.textContent,
+      gapToReports: Math.round(reports.left - next.right), gapToStep: Math.round(box(nav.querySelector('[data-rb-prev]')).left - back.right),
+      titleBack: !!document.querySelector('.gi-rb-title button'), special: document.querySelector('[data-reports-special-chrome]')?.hidden };
+  });
+  ui = await strip();
+  ok(ui.labels.join('|') === 'Back to dashboards|Prev|Next|Go to reports' && !ui.titleBack && ui.special === true,
+    'inside a dashboard the strip reads Back to dashboards, Prev, Next, Go to reports; the title has no back button', ui);
+  ok(ui.gapToReports >= 48 && ui.gapToStep >= 24, 'Go to reports sits apart from Prev / Next, and Prev / Next apart from Back', ui);
+  ok(ui.prev === true && ui.next === false && ui.name === 'My offense', 'the first saved dashboard has no Prev', ui);
+  await page.click('[data-rb-next]'); await settle();
+  ui = await strip();
+  ok(ui.name === 'Offense snapshot' && ui.prev === false, 'Next steps from the last saved dashboard to the first template', ui);
+  await page.click('[data-rb-prev]'); await settle();
+  ok((await strip()).name === 'My offense', 'Prev steps back to the saved dashboard');
+  await page.click('[data-rb-to-reports]'); await settle();
+  ui = await page.evaluate(() => ({ dashboards: !!document.querySelector('[data-report-builder]'), main: !!document.querySelector('[data-native-main-report]') }));
+  ok(!ui.dashboards && ui.main, 'Go to reports leaves Dashboards for the report tabs', ui);
+  await page.evaluate(() => window.app.reportsScreen.openDashboards({ resume: true })); await settle();
 
   console.log('\n== Season marks and export ==');
   const marks = await page.evaluate(async () => {

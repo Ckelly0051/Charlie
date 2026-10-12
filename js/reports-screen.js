@@ -185,15 +185,16 @@ export class ReportsScreen {
     return this.show();
   }
 
-  /** The coach's own dashboards, a focused view with Back to reports. The
-   *  Dashboards button opens their home; `resume` keeps the open dashboard. */
+  /** The coach's own dashboards. The Dashboards button opens their home;
+   *  `resume` keeps the open dashboard. Dashboards draws its own strip
+   *  (Back to dashboards, Prev / Next, Go to reports), so the focused-report
+   *  strip stays hidden. */
   openDashboards({ resume = false } = {}) {
     if (!this.content) return false;
     this.dashboards = this.dashboards || new ReportBuilderScreen(this.app, this);
     if (!resume) this.dashboards.home();
     this._mode = 'dashboards';
-    this._setChrome(false);
-    this._setSpecialLabel('Dashboards');
+    this._setChrome(false, { special: false });
     this._syncKpiRail();
     render(null, this.content);
     mountReportBuilder({ host: this.content, screen: this.dashboards });
@@ -515,10 +516,10 @@ export class ReportsScreen {
     });
   }
 
-  _setChrome(main) {
+  _setChrome(main, { special = !main } = {}) {
     this.host?.querySelectorAll('[data-reports-main-chrome]').forEach(node => { node.hidden = !main; });
-    const special = this.host?.querySelector('[data-reports-special-chrome]');
-    if (special) special.hidden = main;
+    const strip = this.host?.querySelector('[data-reports-special-chrome]');
+    if (strip) strip.hidden = !special;
   }
 
   _syncPresentation() {
