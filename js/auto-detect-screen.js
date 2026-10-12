@@ -1,5 +1,6 @@
 import { h } from 'preact';
 import { AutoDetectContent } from './native-autodetect.jsx';
+import { DetectionReview } from './native-detection-review.jsx';
 import { SeasonFormat } from './season-format.js';
 
 /**
@@ -8,7 +9,7 @@ import { SeasonFormat } from './season-format.js';
  * (settings, status, progress, results) behind a subscribe()/snapshot() seam;
  * `native-autodetect.jsx` renders it in a NativeOverlayService sheet opened
  * from the deck's "Auto-detect plays" command. The review step
- * (`openReview()`) builds its own modal on `document.body`.
+ * (`openReview()`) uses the same overlay owner for its decision dialog.
  */
 export class AutoDetectScreen {
   constructor(app, overlays) {
@@ -407,187 +408,35 @@ export class AutoDetectScreen {
     return stamped;
   }
 
-  /** Open the scrub/trim/accept review modal, appended to document.body. */
+  /** Review local trims and selections before committing the scan. */
   openReview() {
     if (!this.canReview || !this._guardContext()) return;
-    const plays = (this.detector.detectedPlays || []).map((p, i) => ({
-      idx: i, start: p.start, end: p.end, peak: p.peak, confidence: p.confidence, accepted: true,
-    }));
-    if (plays.length === 0) {
-      this._toast('No detections to review.', 'warning');
-      return;
-    }
-    document.getElementById('detectReviewModal')?.remove();
-    const modal = document.createElement('div');
-    modal.id = 'detectReviewModal';
-    modal.className = 'detect-review-modal';
-    modal.innerHTML = `
-      <div class="detect-review-backdrop"></div>
-      <div class="detect-review-card">
-        <div class="detect-review-head">
-          <h3>Review Detected Plays</h3>
-          <div class="detect-review-sub">Scrub, trim, or reject each detection. Accept all good plays in one click.</div>
-          <button class="detect-review-close" id="detectReviewClose" title="Close">×</button>
-        </div>
-        <div class="detect-review-toolbar">
-          <button class="btn btn-sm" id="detectReviewAcceptAll">Accept All</button>
-          <button class="btn btn-sm" id="detectReviewRejectLow">Reject Low Confidence</button>
-          <span class="detect-review-count" id="detectReviewCount"></span>
-        </div>
-        <div class="detect-review-list" id="detectReviewList"></div>
-        <div class="detect-review-foot">
-          <button class="btn btn-sm" id="detectReviewCancel">Cancel</button>
-          <button class="btn btn-sm btn-accent" id="detectReviewApply">Apply Selected</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-
-    const list = modal.querySelector('#detectReviewList');
-    const count = modal.querySelector('#detectReviewCount');
-    const video = this.app.vc.videoElement || this.app.vc.video;
-
-    const formatTime = (t) => {
-      const m = Math.floor(t / 60), s = Math.floor(t % 60), d = Math.floor((t * 10) % 10);
-      return `${m}:${s.toString().padStart(2, '0')}.${d}`;
-    };
-
-    const analyses = this._lastAnalyses || [];
-    const renderTagPills = (a) => {
-      if (!a || !a.tags) return '';
-      const pills = [];
-      for (const [k, v] of Object.entries(AutoDetectScreen.currentTags(a))) {
-        if (!v) continue;
-        const c = a.confidence?.[k] || 0;
-        const confCls = c >= 0.6 ? 'hi' : c >= 0.4 ? 'med' : 'lo';
-        const label = ({ formationFamily: 'Formation', qbAlignment: 'QB', backfield: 'Backfield', playType: 'Type', hash: 'Dir', result: 'Result', yardage: 'Yds' })[k] || k;
-        const title = a.reasons?.[k] ? `${label}: ${v} — ${a.reasons[k]} (${Math.round(c * 100)}%)` : `${label}: ${v}`;
-        pills.push(`<span class="drr-tag ${confCls}" title="${title.replace(/"/g, '&quot;')}">${label} · ${v}</span>`);
-      }
-      return pills.length ? `<div class="drr-tags">${pills.join('')}</div>` : '';
-    };
-
-    const renderRow = (p) => {
-      const row = document.createElement('div');
-      row.className = 'detect-review-row' + (p.accepted ? '' : ' rejected');
-      row.dataset.idx = p.idx;
-      const conf = Math.round((p.confidence || 0) * 100);
-      const confClass = conf >= 70 ? 'hi' : conf >= 40 ? 'med' : 'lo';
-      const analysis = analyses[p.idx];
-      row.innerHTML = `
-        <div class="drr-main">
-          <div class="drr-head">
-            <span class="drr-num">#${p.idx + 1}</span>
-            <span class="drr-time">${formatTime(p.start)} → ${formatTime(p.end)}</span>
-            <span class="drr-dur">${(p.end - p.start).toFixed(1)}s</span>
-            <span class="drr-conf ${confClass}" title="Detection confidence">${conf}%</span>
-          </div>
-          ${renderTagPills(analysis)}
-          <div class="drr-controls">
-            <button class="btn-xs" data-act="play">▶ Preview</button>
-            <span class="drr-bump">Start:
-              <button class="btn-xs" data-act="s-">−0.5s</button>
-              <button class="btn-xs" data-act="s+">+0.5s</button>
-            </span>
-            <span class="drr-bump">End:
-              <button class="btn-xs" data-act="e-">−0.5s</button>
-              <button class="btn-xs" data-act="e+">+0.5s</button>
-            </span>
-          </div>
-        </div>
-        <div class="drr-side">
-          <label class="drr-check">
-            <input type="checkbox" ${p.accepted ? 'checked' : ''}>
-            <span>Accept</span>
-          </label>
-        </div>`;
-
-      const bump = (act) => {
-        if (act === 's-') p.start = Math.max(0, p.start - 0.5);
-        else if (act === 's+') p.start = Math.min(p.end - 0.2, p.start + 0.5);
-        else if (act === 'e-') p.end = Math.max(p.start + 0.2, p.end - 0.5);
-        else if (act === 'e+') p.end = p.end + 0.5;
-        row.querySelector('.drr-time').textContent = `${formatTime(p.start)} → ${formatTime(p.end)}`;
-        row.querySelector('.drr-dur').textContent = `${(p.end - p.start).toFixed(1)}s`;
-      };
-
-      row.querySelectorAll('[data-act]').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const act = btn.dataset.act;
-          if (act === 'play') {
-            if (video) {
-              video.currentTime = p.start;
-              video.play().catch(() => {});
-              const stopAt = () => {
-                if (video.currentTime >= p.end) { video.pause(); video.removeEventListener('timeupdate', stopAt); }
-              };
-              video.addEventListener('timeupdate', stopAt);
-            }
-          } else {
-            bump(act);
-          }
-        });
-      });
-
-      row.querySelector('input[type=checkbox]').addEventListener('change', (e) => {
-        p.accepted = e.target.checked;
-        row.classList.toggle('rejected', !p.accepted);
-        updateCount();
-      });
-
-      return row;
-    };
-
-    const updateCount = () => {
-      const acc = plays.filter((p) => p.accepted).length;
-      count.textContent = `${acc} / ${plays.length} accepted`;
-    };
-
-    plays.forEach((p) => list.appendChild(renderRow(p)));
-    updateCount();
-
-    const close = () => modal.remove();
-    modal.querySelector('#detectReviewClose').addEventListener('click', close);
-    modal.querySelector('#detectReviewCancel').addEventListener('click', close);
-    modal.querySelector('.detect-review-backdrop').addEventListener('click', close);
-
-    modal.querySelector('#detectReviewAcceptAll').addEventListener('click', () => {
-      plays.forEach((p) => p.accepted = true);
-      list.querySelectorAll('.detect-review-row').forEach((r) => {
-        r.classList.remove('rejected');
-        r.querySelector('input[type=checkbox]').checked = true;
-      });
-      updateCount();
+    const plays = (this.detector.detectedPlays || []).map((play, idx) => ({ ...play, idx, accepted: true }));
+    if (!plays.length) { this._toast('No detections to review.', 'warning'); return; }
+    this._reviewHandle?.close('replaced');
+    let handle;
+    const close = () => handle.close();
+    handle = this.overlays.dialog({
+      id: 'detect-review', title: 'Review Detected Plays', actions: [], unsaved: true,
+      initialFocus: '#detectReviewCancel',
+      content: h(DetectionReview, {
+        plays, analyses: this._lastAnalyses || [], currentTags: AutoDetectScreen.currentTags,
+        video: this.app.vc.videoElement || this.app.vc.video, close,
+        apply: reviewed => {
+          if (!this._guardContext()) { close(); return; }
+          const kept = reviewed.filter(play => play.accepted);
+          const accepted = kept.map(({ start, end, peak, confidence }) => ({ start, end, peak, confidence }));
+          const before = this.app.tagger.plays.length;
+          const added = this.detector.applyDetectedPlays(accepted);
+          const fullAnalyses = this._lastAnalyses || [];
+          this._lastAnalyses = kept.map(play => fullAnalyses[play.idx]);
+          try { this._stampAutoTags(before); } finally { this._lastAnalyses = fullAnalyses; }
+          this._consumeResults(`${added} play${added !== 1 ? 's' : ''} added \u00b7 tagged from film`);
+          close();
+        },
+      }),
     });
-
-    modal.querySelector('#detectReviewRejectLow').addEventListener('click', () => {
-      plays.forEach((p) => { if ((p.confidence || 0) < 0.4) p.accepted = false; });
-      list.querySelectorAll('.detect-review-row').forEach((r) => {
-        const idx = parseInt(r.dataset.idx, 10);
-        const p = plays[idx];
-        r.classList.toggle('rejected', !p.accepted);
-        r.querySelector('input[type=checkbox]').checked = p.accepted;
-      });
-      updateCount();
-    });
-
-    modal.querySelector('#detectReviewApply').addEventListener('click', () => {
-      if (!this._guardContext()) { close(); return; }
-      const keptIdxs = [];
-      const accepted = [];
-      plays.forEach((p) => {
-        if (!p.accepted) return;
-        keptIdxs.push(p.idx);
-        accepted.push({ start: p.start, end: p.end, peak: p.peak, confidence: p.confidence });
-      });
-      const before = this.app.tagger.plays.length;
-      const added = this.detector.applyDetectedPlays(accepted);
-      const fullAnalyses = this._lastAnalyses || [];
-      this._lastAnalyses = keptIdxs.map((i) => fullAnalyses[i]);
-      this._stampAutoTags(before);
-      this._lastAnalyses = fullAnalyses;
-      this._consumeResults(`${added} play${added !== 1 ? 's' : ''} added · tagged from film`);
-      close();
-    });
+    this._reviewHandle = handle;
+    handle.result.finally(() => { if (this._reviewHandle === handle) this._reviewHandle = null; });
   }
 }

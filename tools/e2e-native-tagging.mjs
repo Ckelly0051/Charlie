@@ -699,7 +699,7 @@ state=await page.evaluate(()=>{
 });
 ok(state.rows===2&&state.count==='2 / 2 accepted'&&state.modalOnScreen,
   'Review opens the real detections -- one visible row per detected play, accepted by default',JSON.stringify(state));
-await page.evaluate(()=>document.getElementById('detectReviewClose').click());
+await page.evaluate(()=>document.getElementById('detectReviewCancel').click());
 await page.waitForFunction(()=>!document.getElementById('detectReviewModal'));
 
 // --- Apply All: the click reaches the real detector method AND the tagger ---
@@ -731,8 +731,30 @@ ok(state.second===0&&state.before===state.after&&state.calls===1&&!state.canAppl
 // by a stale Apply All action.
 await page.evaluate(()=>app.autoDetectScreen.start());
 await page.waitForFunction(()=>app.autoDetectScreen.snapshot().canReview===true);
+await page.evaluate(()=>{
+  const screen=app.autoDetectScreen;
+  window.__reviewAnalyses=screen._lastAnalyses;
+  screen._lastAnalyses=[{tags:{playType:'<svg data-review-injection></svg>'},confidence:{},reasons:{}}];
+  window.__reviewInvoker=document.querySelector('[data-overlay-id="auto-detect"] button');
+  window.__reviewInvoker.focus();
+  screen.openReview();
+});
+await page.waitForSelector('#detectReviewModal');
+const reviewProbe=await page.evaluate(()=>({injected:!!document.querySelector('[data-review-injection]'),literal:document.querySelector('#detectReviewModal')?.textContent.includes('<svg data-review-injection></svg>')}));
+ok(!reviewProbe.injected&&reviewProbe.literal,'Review analysis values are literal text, never injected markup',JSON.stringify(reviewProbe));
+await page.keyboard.press('Escape');
+await new Promise(resolve=>setTimeout(resolve,100));
+state=await page.evaluate(()=>({closed:!document.getElementById('detectReviewModal'),parent:!!document.querySelector('[data-overlay-id="auto-detect"]'),focus:document.activeElement===window.__reviewInvoker}));
+ok(state.closed&&state.parent&&state.focus,'Escape dismisses only the review and restores its invoker',JSON.stringify(state));
+await page.evaluate(()=>{app.autoDetectScreen._reviewHandle?.close();document.getElementById('detectReviewModal')?.remove();app.autoDetectScreen._lastAnalyses=window.__reviewAnalyses;});
 await page.evaluate(()=>app.autoDetectScreen.openReview());
 await page.waitForSelector('#detectReviewModal');
+if(process.env.GIQ_REVIEW_SCREENSHOT){
+  await page.screenshot({path:process.env.GIQ_REVIEW_SCREENSHOT});
+  await page.setViewport({width:390,height:844});
+  await page.screenshot({path:process.env.GIQ_REVIEW_SCREENSHOT.replace('.png','-390.png')});
+  await page.setViewport({width:1440,height:900});
+}
 state=await page.evaluate(()=>{
   const before=app.tagger.plays.length;
   const checks=[...document.querySelectorAll('#detectReviewModal .detect-review-row input[type=checkbox]')];

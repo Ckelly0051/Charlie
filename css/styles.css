@@ -585,77 +585,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   100% { opacity: 0; transform: scale(1); }
 }
 
-.detect-review-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 9000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: drmFadeIn 0.18s ease-out;
-}
-@keyframes drmFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.detect-review-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(2, 6, 23, 0.72);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-.detect-review-card {
-  position: relative;
-  width: min(720px, 94vw);
-  max-height: 86vh;
-  display: flex;
-  flex-direction: column;
-  background: #0f172a;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 14px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
-  animation: drmPop 0.22s cubic-bezier(.2,.9,.3,1.1);
-}
-@keyframes drmPop {
-  from { transform: scale(0.96) translateY(10px); opacity: 0; }
-  to   { transform: scale(1) translateY(0); opacity: 1; }
-}
-.detect-review-head {
-  position: relative;
-  padding: 18px 52px 14px 20px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0));
-}
-.detect-review-head h3 {
-  margin: 0 0 4px 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: #f1f5f9;
-}
-.detect-review-sub {
-  font-size: 12px;
-  color: #94a3b8;
-}
-.detect-review-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(148, 163, 184, 0.1);
-  color: #e2e8f0;
-  font-size: 20px;
-  cursor: pointer;
-  line-height: 1;
-}
-.detect-review-close:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fecaca;
-}
+[data-overlay-id="detect-review"] .gi-overlay-panel { width: min(720px, calc(100vw - 20px)); }
 
 .detect-review-toolbar {
   display: flex;
@@ -781,17 +711,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   cursor: pointer;
 }
 
-.detect-review-foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(2, 6, 23, 0.4);
-}
-
 @media (max-width: 560px) {
-  .detect-review-card { width: 96vw; max-height: 92vh; }
   .drr-controls { gap: 6px; }
   .drr-head { flex-wrap: wrap; }
   .drr-conf { margin-left: 0; }
@@ -1459,7 +1379,7 @@ body { font-size: 13px; }
    inherit the new tokens (white cards, flat shadows); this unifies the
    modal backdrop and adds a subtle, reduced-motion-safe entrance.
    ===================================================================== */
-.ffa-confirm-backdrop, .detect-review-backdrop { background: rgba(0,0,0,0.62); }
+.ffa-confirm-backdrop { background: rgba(0,0,0,0.62); }
 
 @keyframes ffaModalIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 .ffa-confirm-card {
