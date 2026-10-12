@@ -69,3 +69,11 @@ repair is claimed here.
    Unit switch saves it (`ReportBuilderScreen.setUnit` writes the saved
    dashboard). There is no separate unit for viewing; scope and filters save
    the same way.
+3. Dashboards are not modular. Coach: "I want truly modular dashboards. The
+   unit picker is actually counterproductive - what if I want to see 2 charts
+   side by side showing YPP of our offense in one and YPP of our defense in
+   the other? Or whatever other comparison. You've basically just
+   reformatted the reports if using the current architecture." Today the
+   unit (and scope and filters) belong to the whole dashboard, so every
+   widget answers the same question for the same unit. Supersedes the color
+   concern in finding 2.
