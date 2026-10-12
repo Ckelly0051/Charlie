@@ -783,6 +783,24 @@ ok(state.second===0&&state.before===state.after&&state.calls===1&&!state.canAppl
 await page.evaluate(()=>app.autoDetectScreen.start());
 await page.waitForFunction(()=>app.autoDetectScreen.snapshot().canReview===true);
 await page.evaluate(()=>{
+  const video=app.vc.video;
+  window.__previewOriginal={add:video.addEventListener,remove:video.removeEventListener,play:video.play,pause:video.pause};
+  window.__activePreview=new Set();
+  video.addEventListener=function(type,listener,...rest){if(type==='timeupdate')window.__activePreview.add(listener);return window.__previewOriginal.add.call(this,type,listener,...rest);};
+  video.removeEventListener=function(type,listener,...rest){if(type==='timeupdate')window.__activePreview.delete(listener);return window.__previewOriginal.remove.call(this,type,listener,...rest);};
+  video.play=()=>Promise.resolve();video.pause=()=>{};
+  app.autoDetectScreen.openReview();
+});
+await page.waitForSelector('#detectReviewModal');
+await page.click('#detectReviewModal [data-act="play"]');
+await page.evaluate(()=>app.autoDetectScreen.openReview());
+await page.waitForFunction(()=>window.__activePreview.size===0,{timeout:1000}).catch(()=>{});
+state=await page.evaluate(()=>({listeners:window.__activePreview.size,review:!!document.getElementById('detectReviewModal')}));
+ok(state.review&&state.listeners===0,'Replacing Review removes the previous preview timeupdate listener',JSON.stringify(state));
+await page.evaluate(()=>app.autoDetectScreen._reviewHandle.close());
+await page.waitForFunction(()=>!document.getElementById('detectReviewModal'));
+await page.evaluate(()=>{const video=app.vc.video,s=window.__previewOriginal;video.addEventListener=s.add;video.removeEventListener=s.remove;video.play=s.play;video.pause=s.pause;});
+await page.evaluate(()=>{
   const screen=app.autoDetectScreen;
   window.__reviewAnalyses=screen._lastAnalyses;
   screen._lastAnalyses=[{tags:{playType:'<svg data-review-injection></svg>'},confidence:{},reasons:{}}];

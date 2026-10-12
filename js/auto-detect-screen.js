@@ -414,12 +414,14 @@ export class AutoDetectScreen {
     const plays = (this.detector.detectedPlays || []).map((play, idx) => ({ ...play, idx, accepted: true }));
     if (!plays.length) { this._toast('No detections to review.', 'warning'); return; }
     this._reviewHandle?.close('replaced');
+    this._reviewRevision = (this._reviewRevision || 0) + 1;
     let handle;
     const close = () => handle.close();
     handle = this.overlays.dialog({
       id: 'detect-review', title: 'Review Detected Plays', actions: [], unsaved: true,
       initialFocus: '#detectReviewCancel',
       content: h(DetectionReview, {
+        key: this._reviewRevision,
         plays, analyses: this._lastAnalyses || [], currentTags: AutoDetectScreen.currentTags,
         video: this.app.vc.videoElement || this.app.vc.video, close,
         apply: reviewed => {

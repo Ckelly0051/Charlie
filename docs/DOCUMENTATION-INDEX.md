@@ -84,31 +84,15 @@ log.
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
   green; Codex reviewed it (one finding, fixed in `1e926859`). Next, Codex's
-  job in `docs/CODEX-JOB-2026-10-12.md` is in progress: Season analytics now
-  reads injected storage and roster services, and version restore/rollback
-  resets its injected history instead of the global app's history. Library
-  cache invalidation belongs to the subscribing grid; the settings entry uses
-  an injected opener. Video notifications use the owning in-app toast; folder
-  and drop errors no longer open native alerts. The shared file-save seam's
-  notifications are bound to its App owner. The global App remains for the
-  parked OCR consumer and harnesses; all other listed reach-throughs are gone.
-  Reports' failure, score and opponent-picker presentation uses native nodes;
-  its four raw HTML writes are removed.
-  The updater banner uses native nodes with literal release metadata; its raw
-  HTML renderer and retired style-injection no-op are removed.
-  Cut-up playback controls and recording progress use native nodes, with the
-  same commands, text and layout; both raw HTML writers are removed.
-  Workspace chrome uses native components; both shell HTML-string writers
-  and their string-building helper are removed. Route owners and handlers stay.
-  Empty-film actions and the loaded-film hint use native components; both
-  UI polish HTML writers are removed with existing actions and copy preserved.
-  Detection Review uses the shared overlay owner and native rows; retired
-  modal markup, bindings and wrapper CSS are deleted. Regression checks prove
-  literal analysis text and topmost-only Escape with focus return.
-  Play Diagram uses the shared overlay owner and native canvas controls;
-  its HTML modal, native alert/prompt and old wrapper CSS are removed. Escape
-  discards local marks; Save updates only the selected draft. No coach data
-  was written; installed drawing and real-film review still need smoke.
+  job in `docs/CODEX-JOB-2026-10-12.md`: item 1 is built, not packaged.
+  Listed service reach-throughs now use their owners/injected dependencies;
+  active HTML-string renderers and native alerts are removed. Detection Review
+  and Play Diagram use the shared overlay service, including focus, Escape,
+  local cancellation and replacement cleanup. Their 1440/390px captures were
+  inspected; focused harnesses pass, with failing-first and mutation-checked
+  defect regressions. Remaining inventory is intentional: App publication and
+  parked OCR (2 global references, 4 HTML writers). Items 2-4 remain in order.
+  Installed drawing, real-film preview and native file delivery still need smoke.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

@@ -116,9 +116,9 @@ the installed check):
 
 ## Open defects
 
-Assigned to Codex (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): the Old
-patterns below except OCR, the renamed HTML export, the empty-roster lock, and a
-first security review.
+Codex job (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): item 1's
+listed active-code patterns are removed in source, not packaged. The renamed
+HTML export, the empty-roster lock and the first security review remain in order.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
@@ -167,6 +167,12 @@ global app instead of its owner or an injected dependency.
 **Raw `innerHTML` writes** (4). HTML built as strings instead of rendered by the
 native owner; each one is an escaping risk.
 - `js/scoreboard-ocr.js` 4 (OCR is parked)
+
+The two active editors use the shared overlay owner. Each opening has its own
+component lifecycle: replacing a diagram discards local marks; replacing
+Detection Review stops and removes its previous preview listener. Both reset
+checks fail without the opening key. Installed drawing and real-film preview
+still need smoke; this job has not run the full gate or built an installer.
 
 **`js/stats-engine.js` size** (6,549 lines). Split by area, with `e2e-parity`
 proving no change. The split is part of the reports rebuild
