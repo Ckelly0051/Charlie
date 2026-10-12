@@ -164,11 +164,10 @@ global app instead of its owner or an injected dependency.
   reach-throughs and the test harnesses use; it goes last
 - `js/scoreboard-ocr.js` 1 (OCR is parked)
 
-**Raw `innerHTML` writes** (9). HTML built as strings instead of rendered by the
+**Raw `innerHTML` writes** (7). HTML built as strings instead of rendered by the
 native owner; each one is an escaping risk.
 - `js/scoreboard-ocr.js` 4 (OCR is parked)
 - `js/auto-detect-screen.js` 2
-- `js/ui-polish.js` 2
 - `js/play-diagram.js` 1
 
 **Native `alert()`** (1). Use the in-app toast or confirm.

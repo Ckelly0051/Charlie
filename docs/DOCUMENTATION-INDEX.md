@@ -100,6 +100,8 @@ log.
   same commands, text and layout; both raw HTML writers are removed.
   Workspace chrome uses native components; both shell HTML-string writers
   and their string-building helper are removed. Route owners and handlers stay.
+  Empty-film actions and the loaded-film hint use native components; both
+  UI polish HTML writers are removed with existing actions and copy preserved.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

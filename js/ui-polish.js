@@ -1,12 +1,5 @@
-/**
- * UIPolish - Small interactions for the UX pass: mobile tool drawer,
- * panel behavior, and responsive navigation.
- */
-/* The classic game-switcher dropdown used to own Escape while open, so the
-   drawer/menu Esc handlers had to defer to it via a `uiDropdownClosed()` guard.
-   That dropdown is deleted (Home is the sole game entry), leaving nothing to
-   defer to — the guard is gone rather than left as a function that can only
-   ever return true. */
+import { h, render } from 'preact';
+import { FilmEmpty, FilmLoadedHint } from './native-film-empty.jsx';
 
 export class UIPolish {
   constructor(app = null) {
@@ -99,43 +92,20 @@ export class UIPolish {
     const fileInput = document.getElementById('videoFileInput');
     if (!placeholder || !fileInput) return;
 
-    placeholder.innerHTML = `
-      <div class="dropzone-card">
-        <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect width="18" height="18" x="3" y="3" rx="2"/>
-          <path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>
-        </svg>
-        <div class="dropzone-title" id="dropzoneTitle">Add game film</div>
-        <p class="dropzone-status" id="videoPlaceholderStatus" hidden></p>
-        <div class="dropzone-actions">
-          <button class="btn btn-accent" type="button" data-action="file">Add Video</button>
-          <button class="btn btn-secondary" type="button" data-action="folder">Add Folder</button>
-          ${window.__TAURI__ ? '<button class="btn btn-secondary" type="button" data-action="link">Link Existing Folder</button>' : ''}
-        </div>
-        <div class="empty-hint">${window.__TAURI__ ? 'Link references clips in your own folder — no copy. ' : ''}or drop a video or folder here</div>
-      </div>
-    `;
-    placeholder.querySelector('[data-action="file"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      fileInput.click();
-    });
-    const folderInput = document.getElementById('videoFolderInput');
-    placeholder.querySelector('[data-action="folder"]').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (folderInput) folderInput.click();
-    });
-    const linkBtn = placeholder.querySelector('[data-action="link"]');
-    if (linkBtn) linkBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const current = this._filmBackend()?.getFilmStorageMode?.() || '';
-      if (!current) {
-        this.ensureFilmStorageMode().then(mode => {
-          if (mode === 'linked') this.app?.storage?.linkFilmFolder?.();
-        });
-      } else {
-        this.app?.storage?.linkFilmFolder?.();
-      }
-    });
+    render(h(FilmEmpty, {
+      desktop: !!window.__TAURI__,
+      onFile: event => { event.stopPropagation(); fileInput.click(); },
+      onFolder: event => { event.stopPropagation(); document.getElementById('videoFolderInput')?.click(); },
+      onLink: event => {
+        event.stopPropagation();
+        const current = this._filmBackend()?.getFilmStorageMode?.() || '';
+        if (!current) {
+          this.ensureFilmStorageMode().then(mode => {
+            if (mode === 'linked') this.app?.storage?.linkFilmFolder?.();
+          });
+        } else this.app?.storage?.linkFilmFolder?.();
+      },
+    }), placeholder);
     this._renderEmptyFilmActions();
   }
 
@@ -177,16 +147,9 @@ export class UIPolish {
       localStorage.setItem('ffa_hint_shown', '1');
       const hint = document.createElement('div');
       hint.className = 'onboard-hint';
-      hint.innerHTML = `
-        <div class="onboard-hint-body">
-          <strong>Ready to tag:</strong> Play 1 was created for this film —
-          tap the chips in the tag form to chart it. (For one continuous game
-          video, use <b>[</b> and <b>]</b> to mark each play's start/end.)
-          <button class="onboard-close">Got it</button>
-        </div>`;
+      const close = () => { render(null, hint); hint.remove(); };
+      render(h(FilmLoadedHint, { close }), hint);
       document.body.appendChild(hint);
-      const close = () => hint.remove();
-      hint.querySelector('.onboard-close').addEventListener('click', close);
       setTimeout(close, 7000);
     }, { once: true });
   }
