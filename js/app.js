@@ -9,6 +9,7 @@ import { RosterManager } from './roster-manager.js';
 import { PlayFilter } from './play-filter.js';
 import { NotesManager } from './notes-manager.js';
 import { StorageManager } from './storage.js';
+import { ffaSaveBlob } from './storage-backend.js';
 import { PlayDetector } from './play-detector.js';
 import { ClipAnalyzer } from './clip-analyzer.js';
 import { BackendClient } from './backend-client.js';
@@ -122,6 +123,8 @@ class App {
     this.reportsScreen = new ReportsScreen(this);
     this.overlays = getNativeOverlayService();
     if (!this.overlays) throw new Error('GridIron IQ native overlay service is unavailable.');
+    window.ffaSaveBlob = (blob, filename) => ffaSaveBlob(blob, filename,
+      { notify: message => this.history?._toast?.(message) });
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist, this.overlays);
     this.settingsScreen = new SettingsScreen(this, this.overlays);
     this.playImport = new PlayImportScreen(this, this.overlays);

@@ -89,7 +89,9 @@ log.
   resets its injected history instead of the global app's history. Library
   cache invalidation belongs to the subscribing grid; the settings entry uses
   an injected opener. Video notifications use the owning in-app toast; folder
-  and drop errors no longer open native alerts.
+  and drop errors no longer open native alerts. The shared file-save seam's
+  notifications are bound to its App owner. The global App remains for the
+  parked OCR consumer and harnesses; all other listed reach-throughs are gone.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

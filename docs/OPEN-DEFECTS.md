@@ -158,11 +158,10 @@ Read this section before every build. Lower the count here, and in
 delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
 updated 2026-10-07.
 
-**`window.app` reach-through** (4). Code reaching shared services through the
+**`window.app` reach-through** (2). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
 - `js/app.js` 1: the global itself (`window.app = new App()`), which the remaining
   reach-throughs and the test harnesses use; it goes last
-- `js/storage-backend.js` 2
 - `js/scoreboard-ocr.js` 1 (OCR is parked)
 
 **Raw `innerHTML` writes** (18). HTML built as strings instead of rendered by the

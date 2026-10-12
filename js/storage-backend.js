@@ -1433,10 +1433,9 @@ export function detectBackend() {
  * Browser: classic anchor download. Desktop (Tauri): anchor downloads are
  * SILENTLY IGNORED by the WebView (field-reported: "export buttons do
  * nothing"), so route through the native save dialog + fs plugin instead.
- * Exposed on window so every module reaches it without import surgery
- * (the bundle shares one scope; the modular build gets it at load time).
+ * App binds the shared save seam with its notification owner.
  */
-export async function ffaSaveBlob(blob, filename) {
+export async function ffaSaveBlob(blob, filename, { notify } = {}) {
   const t = typeof window !== 'undefined' && window.__TAURI__;
   if (t && t.dialog && t.fs) {
     try {
@@ -1469,11 +1468,11 @@ export async function ffaSaveBlob(blob, filename) {
         try { await t.fs.remove(path); } catch (_) {}
         throw streamErr;
       }
-      try { window.app?.history?._toast?.(`Saved: ${path}`); } catch (e) { /* toast is best-effort */ }
+      try { notify?.(`Saved: ${path}`); } catch (e) { /* toast is best-effort */ }
       return true;
     } catch (e) {
       console.warn('Native save failed; falling back to anchor download', e);
-      try { window.app?.history?._toast?.('Save failed — try saving into Documents or Downloads.'); } catch (e2) {}
+      try { notify?.('Save failed — try saving into Documents or Downloads.'); } catch (e2) {}
     }
   }
   const url = URL.createObjectURL(blob);
@@ -1486,4 +1485,3 @@ export async function ffaSaveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   return true;
 }
-if (typeof window !== 'undefined') window.ffaSaveBlob = ffaSaveBlob;
