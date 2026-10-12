@@ -207,5 +207,22 @@ state=await page.evaluate(()=>({pageOverflow:document.documentElement.scrollWidt
 ok(!state.pageOverflow&&state.shortest>=44,'Mobile Charting has no page-level overflow and keeps touch-sized rows',JSON.stringify(state));
 await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('[data-overlay-id="team-film-settings"]'));
 ok(!await page.$('[data-overlay-id="team-film-settings"]'),'Escape closes native Settings');
+const ownership = await page.evaluate(() => {
+  const app = window.app;
+  app.playGrid._optionCache = { formationFamily: ['stale'] };
+  const otherGrid = { _optionCache: { formationFamily: ['other'] } };
+  let opened = false;
+  const originalOpen = app.settingsScreen.open;
+  app.settingsScreen.open = options => { opened = options.initialTab === 'charting' && options.chartGroup === 'front'; };
+  try {
+    window.app = { playGrid: otherGrid };
+    app.customChips.reload();
+    app.tagLibrarySettings.open('front');
+    return { ownCleared: Object.keys(app.playGrid._optionCache).length === 0,
+      otherKept: otherGrid._optionCache.formationFamily?.[0] === 'other', opened };
+  } finally { window.app = app; app.settingsScreen.open = originalOpen; }
+});
+ok(ownership.ownCleared && ownership.otherKept, 'Library changes invalidate only the subscribing Film Room cache', JSON.stringify(ownership));
+ok(ownership.opened, 'The library entry opens its owning settings service without a global lookup', JSON.stringify(ownership));
 ok(errors.length===0,'No page errors',errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);await browser.close();process.exit(fail?1:0);

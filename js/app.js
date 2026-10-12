@@ -93,7 +93,8 @@ class App {
     this.customFields = new CustomFieldsManager(this.tagger);
     this.customChips = new CustomChips(this.tagger);
     this.playbook = new PlaybookLibrary();
-    this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger);
+    this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger,
+      options => this.settingsScreen.open(options));
     this.breakdownCharting = new BreakdownChartingService(this.tagger);
     this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);

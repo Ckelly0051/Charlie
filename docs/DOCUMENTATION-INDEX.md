@@ -86,7 +86,9 @@ log.
   green; Codex reviewed it (one finding, fixed in `1e926859`). Next, Codex's
   job in `docs/CODEX-JOB-2026-10-12.md` is in progress: Season analytics now
   reads injected storage and roster services, and version restore/rollback
-  resets its injected history instead of the global app's history.
+  resets its injected history instead of the global app's history. Library
+  cache invalidation belongs to the subscribing grid; the settings entry uses
+  an injected opener.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

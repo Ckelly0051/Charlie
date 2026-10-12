@@ -108,6 +108,7 @@ export class PlayGrid {
     this.loadGeneration = 0;
     this._raf = null;
     this._optionCache = {};
+    this.customChips?.onChange?.(() => { this._optionCache = {}; });
     this._nativeListeners = new Set();
     this._colSetsByTeam = {};
     this.savedFilters = this._loadSavedFilters();

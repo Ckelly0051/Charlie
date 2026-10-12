@@ -50,12 +50,7 @@ export class CustomChips {
   }
 
   _notify() {
-    this._clearGridCache();
     this._listeners.forEach(fn => { try { fn(); } catch (e) {} });
-  }
-
-  _clearGridCache() {
-    try { if (window.app && window.app.playGrid) window.app.playGrid._optionCache = {}; } catch (e) {}
   }
 
   /** Re-derive whatever depends on the CURRENT active team's vocabulary —

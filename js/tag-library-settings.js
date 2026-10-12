@@ -1,4 +1,4 @@
-/** Compatibility entry point for the native Charting settings surface. */
+/** Contextual entry point for the native Charting settings surface. */
 export class TagLibrarySettings {
   static GROUPS = [
     { key: 'formationFamily', label: 'Formations', singular: 'formation', placeholder: 'e.g. Tight Bunch' },
@@ -9,15 +9,16 @@ export class TagLibrarySettings {
     { key: 'blitz', label: 'Blitzes', singular: 'blitz', placeholder: 'e.g. Mike Plug' },
   ];
 
-  constructor(customChips, tagger) {
+  constructor(customChips, tagger, openSettings) {
     this.customChips = customChips;
     this.tagger = tagger;
+    this.openSettings = openSettings;
     this.activeKey = 'formationFamily';
   }
 
   open(group = null) {
     if (TagLibrarySettings.GROUPS.some(item => item.key === group)) this.activeKey = group;
-    return window.app?.settingsScreen?.open?.({
+    return this.openSettings?.({
       initialTab: 'charting',
       chartGroup: this.activeKey,
       returnFocus: document.activeElement,
