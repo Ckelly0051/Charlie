@@ -91,7 +91,9 @@ log.
   local cancellation and replacement cleanup. Their 1440/390px captures were
   inspected; focused harnesses pass, with failing-first and mutation-checked
   defect regressions. Remaining inventory is intentional: App publication and
-  parked OCR (2 global references, 4 HTML writers). Items 2-4 remain in order.
+  parked OCR (2 global references, 4 HTML writers). Item 2 supplies the native
+  HTML save filter so extensionless renamed reports receive `.html` before
+  permission/overwrite confirmation; focused exports pass. Items 3-4 remain.
   Installed drawing, real-film preview and native file delivery still need smoke.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped

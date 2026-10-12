@@ -1439,7 +1439,13 @@ export async function ffaSaveBlob(blob, filename, { notify } = {}) {
   const t = typeof window !== 'undefined' && window.__TAURI__;
   if (t && t.dialog && t.fs) {
     try {
-      const path = await t.dialog.save({ defaultPath: filename });
+      const options = { defaultPath: filename };
+      if (/\.html?$/i.test(filename) || blob.type.split(';')[0].toLowerCase() === 'text/html') {
+        // The native dialog owns extension completion, permission and overwrite
+        // confirmation. Never change the returned path after that confirmation.
+        options.filters = [{ name: 'HTML report', extensions: ['html', 'htm'] }];
+      }
+      const path = await t.dialog.save(options);
       if (!path) return false;                       // user cancelled
       // Stream the blob in ~32 MB chunks to avoid buffering multi-GB files
       // in memory all at once (same pattern as TauriBackend._writeFileStreamed).

@@ -64,7 +64,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Reports | `e2e-native-reports`, `e2e-missed-tackles-reports`, `e2e-reports-global-strip`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-down-distance`, `e2e-run-gap-report`, `e2e-reports-module-system`, `e2e-reports-view-parity`, `e2e-explosive-labels`, `e2e-self-scout` |
 | Reports on the canonical season | `e2e-reports-overview-realdata`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-typefloor-realdata` (the only place the type floor is established), `e2e-reports-export-realdata` |
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
-| Shared file delivery | `e2e-file-delivery` (synthetic Tauri save, bytes, cancellation and notification ownership) |
+| Shared file delivery | `e2e-file-delivery` (synthetic Tauri save, extensionless HTML rename/default extension, exact returned paths, bytes, cancellation and notification ownership) |
 | Settings and libraries | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library`, `e2e-tag-library-storage`, `e2e-beta-config` |
 | Game form | `e2e-native-game`, `e2e-game-form-context`, `e2e-game-form-visual` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-core` |

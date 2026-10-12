@@ -122,7 +122,15 @@ HTML export, the empty-roster lock and the first security review remain in order
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
-  not. Treat as a shared export-delivery defect; do not guess the cause.
+  not. Repaired in the shared delivery seam, awaiting installed smoke: the save
+  dialog supplied no filter/default extension, so renaming without `.html`
+  wrote an extensionless file. Pinned tauri-plugin-dialog 2.7.1/rfd 0.16.0
+  source confirms Windows takes the default extension from the first filter.
+  HTML saves now supply that filter; the returned path is never rewritten after
+  native permission/overwrite confirmation. Four synthetic export regressions
+  fail first and under the wrong-extension mutation; file delivery is 11/11.
+  Smoke Game, Defense, Season and Dashboards exports with a new basename,
+  explicit `.html`, cancellation and overwrite. Other export types are unchanged.
 - **Rapid timeline scrubbing can falsely show "Film unavailable"** (intermittent,
   deprioritized). Installed WebView2 only; reopening loads the same film. Every
   scrubber `input` sets `video.currentTime`, and `VideoController` treats any
