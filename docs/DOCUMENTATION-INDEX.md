@@ -92,6 +92,8 @@ log.
   and drop errors no longer open native alerts. The shared file-save seam's
   notifications are bound to its App owner. The global App remains for the
   parked OCR consumer and harnesses; all other listed reach-throughs are gone.
+  Reports' failure, score and opponent-picker presentation uses native nodes;
+  its four raw HTML writes are removed.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

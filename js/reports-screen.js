@@ -1,4 +1,4 @@
-import { h, render } from 'preact';
+import { h, render, Fragment } from 'preact';
 import { mountNativeReports } from './native-reports.jsx';
 import { OverviewTab, OffenseTab, PlayersTab, DefenseTab, SpecialTeamsTab, SelfScoutTab, SeasonTab, MatchupTab, OpponentOverviewTab, OpponentOffenseTab, OpponentDefenseTab, OpponentSpecialTeamsTab, ReportPane } from './native-report-tabs.jsx';
 import { Charts } from './charts.js';
@@ -157,11 +157,8 @@ export class ReportsScreen {
       render(h(ReportPane, { tab: 'failure' }, failure), this.content);
       return;
     }
-    const html = `<section class="gi-report-pane stats-section gi-reports-empty gi-reports-failure" role="alert"><h3>Reports unavailable</h3><p>${Charts._esc(message)}</p></section>`;
-    // The one legitimate case for a raw write: `this.content` itself is
-    // absent, so there is no Preact root left to render into and the outer
-    // native chrome (host) is the only thing left to show anything at all.
-    if (this.host) this.host.innerHTML = html;
+    if (this.host) render(h('section', { class: 'gi-report-pane stats-section gi-reports-empty gi-reports-failure', role: 'alert' },
+      h('h3', null, 'Reports unavailable'), h('p', null, String(message || ''))), this.host);
   }
 
   selectTab(tab) {
@@ -364,8 +361,7 @@ export class ReportsScreen {
     // the bug returns before the pair branch, so leaving Defense for a
     // rail-bearing tab would otherwise leave `is-linescore` set on a hidden
     // node, and the next tab to reveal it would flash the wrong treatment.
-    if (!visible) { bug.hidden = true; bug.innerHTML = ''; bug.classList.remove('is-linescore'); return; }
-    const esc = Charts._esc;
+    if (!visible) { bug.hidden = true; render(null, bug); bug.classList.remove('is-linescore'); return; }
     const game = this.app.storage?.gameInfo || {};
     const context = this.app.workspace?.snapshot?.() || {};
     const tagged = (computed || this.app.stats.compute()).scoreboard || {};
@@ -392,36 +388,32 @@ export class ReportsScreen {
     const marginSub = margin != null ? `${plural(turnovers.takeaways, 'takeaway')}, ${plural(turnovers.giveaways, 'turnover')}`
       : turnovers.takeaways != null ? `${plural(turnovers.takeaways, 'takeaway')}, turnovers not charted`
         : turnovers.giveaways != null ? `${plural(turnovers.giveaways, 'turnover')}, takeaways not charted` : '';
-    const fact = (label, value, sub, key) => `<div class="gi-scorebug-fact" data-scorebug-fact="${key}"><span>${esc(label)}</span><strong>${esc(String(value))}</strong><small>${esc(sub || '')}</small></div>`;
+    const fact = (label, value, sub, key) => h('div', { class: 'gi-scorebug-fact', 'data-scorebug-fact': key },
+      h('span', null, label), h('strong', null, String(value)), h('small', null, sub || ''));
 
     bug.classList.add('is-linescore');
-    bug.innerHTML = `${this._scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged })}
-      <div class="gi-scorebug-facts">
-        ${fact('Result', result || 'No data', when, 'result')}
-        ${fact('Charted', `${data.playsCharted} of ${data.totalPlays}`, 'plays', 'charted')}
-        ${fact('Turnover margin', margin == null ? 'No data' : (margin > 0 ? `+${margin}` : String(margin)), marginSub, 'margin')}
-      </div>`;
+    render(h(Fragment, null, this._scorebugTable({ team, opponent, scoreUs, scoreThem, tagged }),
+      h('div', { class: 'gi-scorebug-facts' },
+        fact('Result', result || 'No data', when, 'result'),
+        fact('Charted', `${data.playsCharted} of ${data.totalPlays}`, 'plays', 'charted'),
+        fact('Turnover margin', margin == null ? 'No data' : (margin > 0 ? `+${margin}` : String(margin)), marginSub, 'margin'))), bug);
     bug.hidden = false;
   }
 
   /** Shared scoreboard: one complete team per row, aligned through one grid.
    * Full names may wrap; they are never shortened or ellipsized. */
-  _scorebugTable({ esc, team, opponent, scoreUs, scoreThem, tagged }) {
+  _scorebugTable({ team, opponent, scoreUs, scoreThem, tagged }) {
     const q = (side, key) => tagged.byQuarter?.[key]?.[side] || 0;
-    const row = (name, side, total) => `<div class="gi-scorebug-row">
-        <div class="gi-scorebug-name">${esc(name)}</div>
-        ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q">${q(side, k)}</div>`).join('')}
-        <div class="gi-scorebug-total">${esc(String(total))}</div>
-      </div>`;
-    return `<div class="gi-scorebug-score">
-        <div class="gi-scorebug-row is-head">
-          <div class="gi-scorebug-name"></div>
-          ${['Q1', 'Q2', 'Q3', 'Q4'].map(k => `<div class="gi-scorebug-q is-head">${k}</div>`).join('')}
-          <div class="gi-scorebug-total is-head">T</div>
-        </div>
-        ${row(team, 'us', scoreUs)}
-        ${row(opponent, 'them', scoreThem)}
-      </div>`;
+    const row = (name, side, total) => h('div', { class: 'gi-scorebug-row' },
+      h('div', { class: 'gi-scorebug-name' }, name),
+      ['Q1', 'Q2', 'Q3', 'Q4'].map(k => h('div', { class: 'gi-scorebug-q' }, String(q(side, k)))),
+      h('div', { class: 'gi-scorebug-total' }, String(total)));
+    return h('div', { class: 'gi-scorebug-score' },
+      h('div', { class: 'gi-scorebug-row is-head' },
+        h('div', { class: 'gi-scorebug-name' }),
+        ['Q1', 'Q2', 'Q3', 'Q4'].map(k => h('div', { class: 'gi-scorebug-q is-head' }, k)),
+        h('div', { class: 'gi-scorebug-total is-head' }, 'T')),
+      row(team, 'us', scoreUs), row(opponent, 'them', scoreThem));
   }
 
 
@@ -443,8 +435,8 @@ export class ReportsScreen {
       picker.hidden = list.length < 2;
       if (list.length >= 2) {
         const current = this._opponentData?.opponent || '';
-        select.innerHTML = list.map(item =>
-          `<option value="${Charts._esc(item.name)}"${item.name === current ? ' selected' : ''}>${Charts._esc(item.name)}, ${item.games} game${item.games === 1 ? '' : 's'}</option>`).join('');
+        select.replaceChildren(...list.map(item => new Option(
+          `${item.name}, ${item.games} game${item.games === 1 ? '' : 's'}`, item.name, false, item.name === current)));
       }
     }
     if (this.perspective === 'opponent') {
