@@ -65,6 +65,9 @@ Carried from 114:
   plays by the offense they faced. Smoke: open each template on the real season, add a
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
+  Smoke 116 findings 1-3 (no Edit; the Unit switch saves the dashboard;
+  not modular) go to the reporting rebuild as the canvas model
+  (`GRIDIRON-IQ-PLAN-V2.md` step 5), not patched in rev 1 (coach, 2026-10-12).
 
 Smoke 114 findings, built in 115 (`SMOKE-1.12.0-114.md`, coach findings and
 the installed check):

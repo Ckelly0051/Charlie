@@ -148,7 +148,13 @@ failed saves that roll back only their own season, game or program, and
      Study stays the query engine. Rev 1 built 2026-10-10 as Reports >
      Dashboards (`docs/REPORTS-CONTRACTS.md`), ahead of steps 3-4 at the
      coach's request; opponent perspective and the full reports suite come
-     with the rebuild.
+     with the rebuild. Dashboards are rebuilt with step 3 as a canvas (coach,
+     2026-10-12, smoke 116 findings 1-3): a blank canvas the coach fills
+     through a module picker, each module carrying its own unit, game range,
+     filters, measure and view, so offense yards per play can sit beside
+     defense yards per play; the dashboard sets none of these. Templates are
+     ready-made canvases. A saved dashboard can be edited. Rev 1's
+     dashboard-wide unit, scope and filters are replaced, not patched.
 6. **Coach-owned AI analysis exchange.** Export a versioned season analysis pack
    (one row per play, stable `gameId::playId`, charted fields, data dictionary;
    no video, film paths or player identities by default). Then optionally

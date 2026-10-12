@@ -80,3 +80,5 @@ repair is claimed here.
    template as canvas. A module picker guides the build within the template.
    I should be able to choose whatever I want - that's the core of what makes
    dashboards unique vs reports."
+   Disposition (coach, 2026-10-12): findings 1-3 go back to the rebuild as
+   the canvas model (`GRIDIRON-IQ-PLAN-V2.md` step 5); no patch to rev 1.
