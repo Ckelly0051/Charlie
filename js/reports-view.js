@@ -367,7 +367,7 @@ export function offenseIdentity(stats, engine, calls = null) {
 
   const topCall = calls?.eligible ? (calls.calls || [])[0] : null;
   items.push(topCall
-    ? { label: 'Top call', value: topCall.name, sub: `${topCall.n} snaps, ${Math.round(topCall.successRate)}% success`,
+    ? { label: 'Top call', value: topCall.name, sub: `${topCall.n} snaps, ${rateText(topCall.successRate == null ? null : Math.round(topCall.successRate))} success`,
         refs: topCall.refs || null, playIds: topCall.playIds || null, cutLabel: `Play Call: ${topCall.name}` }
     : { label: 'Top call', value: '—', sub: 'no exact calls charted' });
   return items;

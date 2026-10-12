@@ -400,8 +400,8 @@ function FormationPlayTypeMatrix({ engine, plays }) {
           const ypp = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const heat = Math.round(12 + (cell.count / maxCount) * 48);
           return <td key={`${col}-${ci}`} class={`gi-form-type-cell ${success == null ? '' : success >= 50 ? 'is-good' : success <= 30 ? 'is-bad' : ''}`}
-            style={`--heat:${heat}%`} title={`${row} × ${col}: ${cell.count} plays, ${success}% success, ${ypp} yards/play`}>
-            <strong>{cell.count}</strong><span>/ {success}%</span>
+            style={`--heat:${heat}%`} title={`${row} × ${col}: ${cell.count} plays, ${rateText(success)} success, ${ypp} yards/play`}>
+            <strong>{cell.count}</strong><span>/ {rateText(success)}</span>
           </td>;
         })}
       </tr>)}</tbody>

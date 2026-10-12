@@ -763,6 +763,20 @@ const prose = await page.evaluate(() => {
 ok(prose.length === 0, 'no instructional or interpretive prose renders on the Offense board',
   JSON.stringify(prose));
 
+// A success rate with no judged play is a dash, never 0% or a bare "%" (REPORTS-CONTRACTS > Success).
+await load({ plays: [{ formationFamily: 'Spread', playType: 'Sweep', playCall: 'Sweep', yardage: '', result: '' }] });
+await showPage('identity');
+const unjudgedTop = await page.evaluate(() => [...document.querySelectorAll('.gi-offense-board *')]
+  .find(n => n.children.length === 0 && /snaps, .* success/.test(n.textContent))?.textContent || '');
+await showPage('calls');
+const unjudgedCell = await page.evaluate(() => {
+  const cell = document.querySelector('.gi-form-type-cell:not(.is-absent)');
+  return cell ? { text: cell.textContent.replace(/\s+/g, ' ').trim(), title: cell.title } : null;
+});
+ok(unjudgedTop === '1 snaps, — success', 'Identity\'s Top call shows a dash for a call with no judged play', unjudgedTop);
+ok(unjudgedCell && unjudgedCell.text === '1/ —' && /: 1 plays, — success,/.test(unjudgedCell.title),
+  'a Formation × Play Type cell with no judged play shows a dash, never "%"', JSON.stringify(unjudgedCell));
+
 ok(errors.length === 0, 'the Offense route raises no page or console errors', errors.slice(0, 3).join(' | '));
 
 await browser.close();

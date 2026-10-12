@@ -6465,7 +6465,7 @@ ${gamePlanHtml}
     if (dn.ddBuckets?.length) {
       const dlabels = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' };
       const bRows = dn.ddBuckets.map(b =>
-        `<tr><td>${dlabels[b.down]} &amp; ${b.bucket}</td><td>${b.count}</td><td>${b.runPct}%R / ${b.passPct}%P</td><td>${b.avgYards}</td><td>${b.succPct}%</td><td>${b.convPct}%</td></tr>`
+        `<tr><td>${dlabels[b.down]} &amp; ${b.bucket}</td><td>${b.count}</td><td>${b.runPct}%R / ${b.passPct}%P</td><td>${b.avgYards}</td><td>${b.succPct == null ? '&mdash;' : `${b.succPct}%`}</td><td>${b.convPct}%</td></tr>`
       ).join('');
       body += `<table><thead><tr><th>Situation</th><th>#</th><th>Run/Pass</th><th>Avg</th><th>Succ%</th><th>Conv%</th></tr></thead><tbody>${bRows}</tbody></table>`;
     }
