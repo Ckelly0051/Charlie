@@ -93,7 +93,9 @@ log.
   defect regressions. Remaining inventory is intentional: App publication and
   parked OCR (2 global references, 4 HTML writers). Item 2 supplies the native
   HTML save filter so extensionless renamed reports receive `.html` before
-  permission/overwrite confirmation; focused exports pass. Items 3-4 remain.
+  permission/overwrite confirmation; focused exports pass. Item 3 was a stale
+  roster contract and dependency setup, not an app defect. Its corrected matrix
+  passes 108/108, with both roster/playbook rules mutation-verified. Item 4 remains.
   Installed drawing, real-film preview and native file delivery still need smoke.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped

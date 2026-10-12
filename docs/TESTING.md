@@ -169,6 +169,10 @@ owns navigation. Keep them separate.
 - **Mutation-test the fix, not only the bug.** Watching an assertion fail on the
   old code proves it detects that bug; removing each defense in turn shows which
   one actually catches it.
+- **Off-gate matrix:** `node tools/pc-adversarial-matrix.mjs` checks synthetic
+  persistence locks. Section 13 uses injected services: an empty season roster
+  clears its prior roster; an empty cached playbook preserves populated calls.
+  Positive controls prove updates still work and roster players are copied.
 - **Re-save, never just open.** Persistence checks edit and save, then reopen.
 - **A gate must be shown to fail.** Any runner or checker is verified against a
   known-green and a known-red run before it is trusted (`--self-test`).

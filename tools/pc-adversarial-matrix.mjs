@@ -1549,15 +1549,8 @@ section('13. A pending autosave never outlives the restore that discarded its st
       JSON.stringify({ flushed, saves: saves.length, stillArmed: !!sm.autoSaveTimer }));
   }
 
-  // -- (iii) a commit never mirrors an EMPTY roster/playbook over a populated
-  //          one. The season's copies exist so TeamRegistry.recoverFromWipe()
-  //          can rebuild a wiped install, so clobbering them with empties
-  //          destroys the very source recovery reads. The live objects read the
-  //          localStorage keys a wipe removes, so "live is empty" does not
-  //          reliably mean "the coach cleared it". PRE-EXISTING asymmetry --
-  //          teamProfile has had this guard all along, roster/playbook did
-  //          not -- surfaced by PC-4's shutdown flush running a commit at a
-  //          moment when those keys could already be gone.
+  // -- (iii) the injected, season-owned roster is authoritative even when
+  // empty. The cached playbook keeps its separate empty-cache protection.
   {
     const sm = new StorageManager(vc, tagger, canvas);
     const backend = {
@@ -1575,24 +1568,25 @@ section('13. A pending autosave never outlives the restore that discarded its st
     sm._loadedGameId = store.data.activeGameId;
     sm._serialize = () => ({ ...store.data.games[0] });
 
-    // The wipe state: the live objects report empty because their localStorage
-    // keys are gone, NOT because the coach cleared them.
-    const prevApp = globalThis.window.app;
-    globalThis.window.app = { roster: { toJSON: () => [] }, playbook: { snapshot: () => ({ version: 1, calls: [] }) } };
-    try { sm.commitActive(); } finally { globalThis.window.app = prevApp; }
+    sm.deps = { roster: { toJSON: () => [] }, playbook: { snapshot: () => ({ version: 1, calls: [] }) } };
+    sm.commitActive();
 
-    ok('lock', store.data.roster.length === 1 && store.data.playbook.calls.length === 1,
-      "a commit never mirrors an EMPTY roster/playbook over a populated one -- reproduced before this fix as roster:[] and playbook:{calls:[]} written over a season holding both, which left TeamRegistry.recoverFromWipe() with nothing to restore on the next launch",
+    ok('lock', store.data.roster.length === 0,
+      'an intentionally empty season-owned roster replaces the prior roster rather than retaining another season\'s players',
+      JSON.stringify({ roster: store.data.roster }));
+    ok('lock', store.data.playbook.calls.length === 1 && store.data.playbook.calls[0].name === '26 Blast',
+      'an empty cached playbook does not overwrite the season\'s populated playbook',
       JSON.stringify({ roster: store.data.roster.length, calls: store.data.playbook.calls.length }));
 
-    // Positive control: a genuinely populated live roster/playbook DOES still
-    // mirror, so the guard above is not simply freezing these fields forever.
-    const prevApp2 = globalThis.window.app;
-    globalThis.window.app = { roster: { toJSON: () => [{ num: '7', name: 'Ellis' }, { num: '9', name: 'Ward' }] }, playbook: { snapshot: () => ({ version: 1, calls: [{ id: 'c1' }, { id: 'c2' }] }) } };
-    try { sm.commitActive(); } finally { globalThis.window.app = prevApp2; }
+    const liveRoster = [{ num: '7', name: 'Ellis' }, { num: '9', name: 'Ward' }];
+    sm.deps = { roster: { toJSON: () => liveRoster }, playbook: { snapshot: () => ({ version: 1, calls: [{ id: 'c1' }, { id: 'c2' }] }) } };
+    sm.commitActive();
     ok('lock', store.data.roster.length === 2 && store.data.playbook.calls.length === 2,
-      'positive control: a populated live roster/playbook still mirrors into the season, so the empty-clobber guard is not freezing these fields',
+      'positive control: populated injected roster and playbook both mirror into the season',
       JSON.stringify({ roster: store.data.roster.length, calls: store.data.playbook.calls.length }));
+    liveRoster[0].name = 'Changed after commit';
+    ok('lock', store.data.roster[0].name === 'Ellis',
+      'committed roster players do not alias the service\'s mutable objects');
   }
 }
 flush();
