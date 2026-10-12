@@ -83,8 +83,9 @@ log.
 - **Built since 116, not packaged (2026-10-12):** Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
-  green; Codex review, full gate and installer 117 pending. Next, Codex's job
-  in `docs/CODEX-JOB-2026-10-12.md`.
+  green; Codex reviewed it (one finding, fixed in `1e926859`). Next, Codex's
+  job in `docs/CODEX-JOB-2026-10-12.md`; the full gate and installer 117 come
+  after that job (coach, 2026-10-12).
 - **Latest full gate:** 158/158 green at `af7e48cc` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:
   `artifacts/gate-logs/2026-10-12T20-52-41-525Z-VvsONG/receipt.json`.
