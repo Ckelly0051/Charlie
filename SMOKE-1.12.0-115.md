@@ -26,7 +26,13 @@ Smoke in progress (2026-10-12).
 1. Inside a dashboard, the Reports bar's "Back to reports" sits above the
    dashboard's own "All dashboards": two back buttons stacked. Back to reports
    leaves Dashboards for the report tabs; All dashboards returns to the
-   Dashboards home.
+   Dashboards home. Coach: "back to dashboards makes more sense - we came
+   from there. If we want to send to reports then a go to dashboards button
+   makes more sense. Basically, switch the formatting." The back-style button
+   inside a dashboard returns to the Dashboards home; going to Reports is the
+   plain button. Space the buttons so one is not clicked by accident.
+2. A Prev / Next dashboard control on the vertical strip, to click through
+   dashboards without returning to the Dashboards home.
 
 ## What to check
 
