@@ -285,6 +285,31 @@ ok(r.missing.activeUnchanged && r.missing.videoUnchanged,
    'a missing clip cannot move the active pointer or replace the current video', JSON.stringify(r.missing));
 ok(r.reset.preloadCleared && r.reset.playlistCleared && r.reset.urlsCleared,
    'reset releases detached preload state and every object URL', JSON.stringify(r.reset));
+const notifications = await page.evaluate(async () => {
+  const app = window.app, messages = [];
+  const originalAlert = window.alert, toast = app.overlays.toast;
+  let alerts = 0;
+  window.alert = () => { alerts++; };
+  app.overlays.toast = options => messages.push(options.message);
+  const folder = app.vc.folderInput, fileDescriptor = Object.getOwnPropertyDescriptor(folder, 'files');
+  try {
+    window.app = {};
+    Object.defineProperty(folder, 'files', { configurable: true, value: [new File(['x'], 'readme.txt', { type: 'text/plain' })] });
+    folder.dispatchEvent(new Event('change', { bubbles: true }));
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, 'dataTransfer', { value: { items: [], files: [new File(['x'], 'readme.txt')] } });
+    app.vc.placeholder.dispatchEvent(drop);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    return { alerts, messages };
+  } finally {
+    window.app = app; window.alert = originalAlert; app.overlays.toast = toast;
+    if (fileDescriptor) Object.defineProperty(folder, 'files', fileDescriptor); else delete folder.files;
+  }
+});
+ok(notifications.alerts === 0 && notifications.messages.includes('No video files found in that folder.'),
+  'a non-video folder uses the owning in-app toast, never a native alert', JSON.stringify(notifications));
+ok(notifications.alerts === 0 && notifications.messages.includes('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.'),
+  'a non-video drop uses the owning in-app toast without the global app', JSON.stringify(notifications));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (errors.length) { console.log('Console/page errors:\n' + errors.join('\n')); }
 else console.log('No console/page errors.');

@@ -2,7 +2,8 @@
  * VideoController - Manages video loading, playback, and frame-by-frame controls.
  */
 export class VideoController {
-  constructor() {
+  constructor({ notify } = {}) {
+    this.notify = notify;
     this.video = document.getElementById('videoPlayer');
     this.placeholder = document.getElementById('videoPlaceholder');
     // V2-H: NOT cached. UIPolish._initEmptyStateCTA() rewrites the
@@ -58,7 +59,7 @@ export class VideoController {
           if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) { e.target.value = ''; return; }
             this._emit('files-selected', { files });
         } else {
-          alert('No video files found in that folder.');
+          this.notify?.('No video files found in that folder.');
         }
       });
     }
@@ -247,7 +248,7 @@ export class VideoController {
     if (src && (src.includes('asset.localhost') || src.startsWith('asset:'))) {
       const detail = `Video load failed (asset protocol) | Error code: ${code} | Message: ${msg} | URL: ${src.slice(0, 300)}`;
       console.warn('ASSET-DIAG:', detail);
-      try { window.app?.tagger?.toast?.(detail, 12000); } catch (_) {}
+      try { this.notify?.(detail, 12000); } catch (_) {}
     }
     this._emit('video-error', { name, code, msg, src });
   }
@@ -326,7 +327,7 @@ export class VideoController {
         if (this.beforeFilesSelected && !await this.beforeFilesSelected(files)) return;
         this._emit('files-selected', { files });
       } else if (e.dataTransfer.files.length || (items && items.length)) {
-        alert('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
+        this.notify?.('No video files found in that drop. Supported: MP4, MOV, WebM, M4V.');
       }
     });
   }

@@ -85,7 +85,7 @@ class App {
     try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
     catch { this.autoPlayNext = true; }
     // Initialize components
-    this.vc = new VideoController();
+    this.vc = new VideoController({ notify: (message, durationMs) => this.overlays.toast({ message, durationMs }) });
     this.canvas = new CanvasOverlay(this.vc);
     this.tagger = new PlayTagger(this.vc);
     this.roster = new RosterManager(this.tagger);

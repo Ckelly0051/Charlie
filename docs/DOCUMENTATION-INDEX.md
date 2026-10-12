@@ -88,7 +88,8 @@ log.
   reads injected storage and roster services, and version restore/rollback
   resets its injected history instead of the global app's history. Library
   cache invalidation belongs to the subscribing grid; the settings entry uses
-  an injected opener.
+  an injected opener. Video notifications use the owning in-app toast; folder
+  and drop errors no longer open native alerts.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

@@ -158,12 +158,12 @@ Read this section before every build. Lower the count here, and in
 delete a line when its count reaches zero. Counts from `tools/audit-legacy.mjs`,
 updated 2026-10-07.
 
-**`window.app` reach-through** (5). Code reaching shared services through the
+**`window.app` reach-through** (4). Code reaching shared services through the
 global app instead of its owner or an injected dependency.
 - `js/app.js` 1: the global itself (`window.app = new App()`), which the remaining
   reach-throughs and the test harnesses use; it goes last
 - `js/storage-backend.js` 2
-- `js/scoreboard-ocr.js`, `video-controller.js` 1 each
+- `js/scoreboard-ocr.js` 1 (OCR is parked)
 
 **Raw `innerHTML` writes** (18). HTML built as strings instead of rendered by the
 native owner; each one is an escaping risk.
@@ -174,8 +174,7 @@ native owner; each one is an escaping risk.
 - `js/workspace-shell.js` 2
 - `js/cutup-exporter.js`, `cutup-player.js`, `play-diagram.js`, `updater.js` 1 each
 
-**Native `alert()`** (3). Use the in-app toast or confirm.
-- `js/video-controller.js` 2: "No video files found" (folder and drop)
+**Native `alert()`** (1). Use the in-app toast or confirm.
 - `js/play-diagram.js` 1: "Select a play first"
 
 **Dialogs outside the overlay spec** (2). They work but miss its focus and Escape
