@@ -117,7 +117,8 @@ the installed check):
 ## Open defects
 
 Assigned to Codex (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): the Old
-patterns below except OCR, the renamed HTML export, and the empty-roster lock.
+patterns below except OCR, the renamed HTML export, the empty-roster lock, and a
+first security review.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
