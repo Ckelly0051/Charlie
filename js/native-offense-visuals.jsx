@@ -10,11 +10,11 @@ const absoluteYardLine = (tags = {}) => {
 const compactCell = (label, cohort) => {
   const plays = cohort || [];
   const { yards, plays: yardPlays } = StatsEngine.yardsTotal(plays);
-  const successes = plays.filter(play => StatsEngine.isSuccessfulPlay(play)).length;
+  const { hits: successes, plays: successPlays } = StatsEngine.successTotal(plays);
   return {
     label,
     count: plays.length,
-    success: plays.length ? `${(successes / plays.length * 100).toFixed(1)}%` : '–',
+    success: successPlays ? `${(successes / successPlays * 100).toFixed(1)}%` : '–',
     ypp: yardPlays ? (yards / yardPlays).toFixed(1) : '–',
     refs: plays.map(play => play.__gid != null ? `${play.__gid}::${play.id}` : String(play.id)),
   };

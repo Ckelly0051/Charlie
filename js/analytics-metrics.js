@@ -456,8 +456,8 @@ export class AnalyticsMetrics {
   /**
    * @param {object} deps - the pure StatsEngine statics/instance methods this
    *   module reuses rather than reimplementing: isRun, isPass, hasResult
-   *   (statics), plus isSuccessfulPlay and isEligiblePlay (bound instance
-   *   methods -- success/eligibility classification has no static home).
+   *   (statics), plus isSuccessfulPlay and isEligiblePlay
+   *   (StatsEngine.isSuccessfulPlay and StatsEngine.isSuccessEligible).
    *   Passing these in (instead of importing stats-engine.js) keeps this
    *   module genuinely standalone and avoids a stats-engine <-> this-module
    *   import cycle.

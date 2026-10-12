@@ -17,7 +17,7 @@ import { ChartingDetails } from './charting-details.js';
 import { SeasonStore } from './season-store.js';
 
 // Shown as a hover tooltip wherever Success Rate appears, so the metric is
-// self-explanatory in-app. Matches _isSuccessfulPlay().
+// self-explanatory in-app. Matches StatsEngine.isSuccessfulPlay().
 const SUCCESS_RATE_TIP = 'Share of plays that stay on schedule for the down/distance: 1st down needs 50% of the yards to go, 2nd down 70%, 3rd/4th must convert (plus any TD or made kick). Situation-aware: a 4-yard gain is a success on 1st-and-10 but not on 3rd-and-10.';
 
 export class StatsEngine {
@@ -656,23 +656,42 @@ export class StatsEngine {
     }
   }
 
-  _isSuccessfulPlay(p) {
-    return StatsEngine.isSuccessfulPlay(p);
+  /* Success (coach, 2026-10-12; docs/REPORTS-CONTRACTS.md > Success). The
+     yards rule's play set: a snap that stood, judged on a touchdown, a charted
+     1st Down, or its known yards (No Gain, Incomplete and Interception with
+     Yards blank are 0) with its down and distance. Blank yards with any other
+     result is unknown and left out. Every success and stop rate divides by
+     these plays, in the reports, Study and Dashboards. */
+  static isSuccessEligible(p) {
+    if (!p?.tags || !StatsEngine.isSnap(p) || StatsEngine.isNoPlay(p)) return false;
+    if (StatsEngine.hasResult(p, 'Touchdown') || p.tags.custom?.includes('1st Down')) return true;
+    const distance = parseInt(p.tags.distance, 10);
+    return StatsEngine.playYards(p) !== null && ['1', '2', '3', '4'].includes(p.tags.down)
+      && String(p.tags.distance ?? '').trim() !== '' && Number.isFinite(distance);
   }
 
-  /** Whether `_isSuccessfulPlay` classifies this play from real tagged data
-   *  rather than its own missing-data defaults (yardage 0, distance 10, an
-   *  untagged down). Mirrors `_isSuccessfulPlay`'s branches, kept in sync by
-   *  hand, but never fills a gap; it reports whether one exists. */
-  _isSuccessfulPlayEligible(p) {
-    if (StatsEngine.hasResult(p, 'Touchdown') || StatsEngine.hasResult(p, 'Good') || StatsEngine.hasResult(p, 'No Good')) return true;
-    if (p.tags.custom?.includes('1st Down')) return true;
-    const yardage = parseInt(p.tags.yardage, 10);
-    const distance = parseInt(p.tags.distance, 10);
-    const hasYardage = p.tags.yardage !== '' && p.tags.yardage != null && Number.isFinite(yardage);
-    const hasDistance = p.tags.distance !== '' && p.tags.distance != null && Number.isFinite(distance);
-    const hasDown = ['1', '2', '3', '4'].includes(p.tags.down);
-    return hasYardage && hasDown && hasDistance;
+  /** A counted offensive success. */
+  static isSuccess(p) {
+    return StatsEngine.isSuccessEligible(p) && StatsEngine.isSuccessfulPlay(p);
+  }
+
+  /** A counted defensive stop: no opponent success (our own return touchdown
+   *  is a stop). */
+  static isStop(p) {
+    return StatsEngine.isSuccessEligible(p) && !StatsEngine.isOpponentSuccess(p);
+  }
+
+  /** Hits (`isSuccess` or `isStop`) over a set of plays and the plays the
+   *  rate divides by. */
+  static successTotal(plays, isHit = StatsEngine.isSuccess) {
+    const counted = (plays || []).filter(StatsEngine.isSuccessEligible);
+    return { hits: counted.filter(isHit).length, plays: counted.length };
+  }
+
+  /** A success or stop rate in percent, unrounded; null when none count. */
+  static successRateOf(plays, isHit = StatsEngine.isSuccess) {
+    const { hits, plays: n } = StatsEngine.successTotal(plays, isHit);
+    return n ? hits / n * 100 : null;
   }
 
   /** How a drive ENDED, read off the play the game charted next.
@@ -912,7 +931,7 @@ export class StatsEngine {
      Decision record: design-comps/reports-matchup-2026-09-06/RATIONALE.md.
 
      Every football value is measured by an existing owner (compute(),
-     defensiveCohortMetrics(), isRun / isExplosive / _isSuccessfulPlay,
+     defensiveCohortMetrics(), isRun / isExplosive / isSuccess,
      _absYardLine, the splitters). This block owns only the join: which
      opponent snaps form a situation, which call identity they carry, and
      which season snaps match that look.
@@ -1262,13 +1281,13 @@ export class StatsEngine {
     const summarize = (arr) => {
       const total = arr.length;
       const tds = arr.filter(p => StatsEngine.hasResult(p, 'Touchdown')).length;
-      const successes = arr.filter(p => this._isSuccessfulPlay(p)).length;
+      const { hits: successes, plays: successPlays } = StatsEngine.successTotal(arr);
       const { yards: yds, plays: yardPlays } = StatsEngine.yardsTotal(arr);
       return {
-        total, tds, successes,
+        total, tds, successes, successPlays,
         yards: yds, yardPlays,
         avg: yardPlays ? (yds / yardPlays).toFixed(1) : '0.0',
-        successPct: total ? ((successes / total) * 100).toFixed(0) : '0'
+        successPct: successPlays ? ((successes / successPlays) * 100).toFixed(0) : '0'
       };
     };
     return {
@@ -1295,13 +1314,13 @@ export class StatsEngine {
   }
 
   _efficiencyStats(plays) {
-    const successes = plays.filter(p => this._isSuccessfulPlay(p)).length;
+    const { hits: successes, plays: successPlays } = StatsEngine.successTotal(plays);
     const counted = plays.filter(StatsEngine.countsForYards);
     const explosive = counted.filter(p => StatsEngine.isExplosive(p)).length;
     const negative = counted.filter(p => StatsEngine.playYards(p) < 0).length;
     return {
-      successRate: plays.length ? ((successes / plays.length) * 100).toFixed(1) : '0.0',
-      successes,
+      successRate: successPlays ? ((successes / successPlays) * 100).toFixed(1) : '0.0',
+      successes, successPlays,
       explosivePct: counted.length ? ((explosive / counted.length) * 100).toFixed(1) : '0.0',
       explosivePlays: explosive,
       negativePct: counted.length ? ((negative / counted.length) * 100).toFixed(1) : '0.0',
@@ -1412,7 +1431,7 @@ export class StatsEngine {
       const { yards, plays: yardPlays } = StatsEngine.yardsTotal(cohort);
       const runs = cohort.filter(p => StatsEngine.isRun(p)).length;
       const passes = cohort.filter(p => StatsEngine.isPass(p)).length;
-      const successes = cohort.filter(p => this._isSuccessfulPlay(p)).length;
+      const { hits: successes, plays: successPlays } = StatsEngine.successTotal(cohort);
       return {
         name,
         count: cohort.length,
@@ -1423,7 +1442,7 @@ export class StatsEngine {
         yards,
         yardPlays,
         avg: yardPlays ? (yards / yardPlays).toFixed(1) : '0.0',
-        successPct: ((successes / cohort.length) * 100).toFixed(0),
+        successPct: successPlays ? ((successes / successPlays) * 100).toFixed(0) : '0',
         refs: StatsEngine._refsOf(cohort),
       };
     });
@@ -1439,12 +1458,13 @@ export class StatsEngine {
       groups[k].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) groups[k].yardPlays = (groups[k].yardPlays || 0) + 1;
       if (StatsEngine.isRun(p)) groups[k].runs++;
       else if (StatsEngine.isPass(p)) groups[k].passes++;
-      if (this._isSuccessfulPlay(p)) groups[k].successes++;
+      if (StatsEngine.isSuccess(p)) groups[k].successes++;
+      if (StatsEngine.isSuccessEligible(p)) groups[k].successPlays = (groups[k].successPlays || 0) + 1;
     });
     return Object.values(groups).map(g => ({
       ...g,
       avg: g.yardPlays ? (g.yards / g.yardPlays).toFixed(1) : '0.0',
-      successPct: g.count ? ((g.successes / g.count) * 100).toFixed(0) : '0'
+      successPct: g.successPlays ? ((g.successes / g.successPlays) * 100).toFixed(0) : '0'
     })).sort((a, b) => b.count - a.count);
   }
 
@@ -1469,7 +1489,8 @@ export class StatsEngine {
     plays.forEach(p => {
       const yds = parseInt(p.tags.yardage) || 0;
       // Defense-framed: our own return touchdown is a stop, not opponent success.
-      const defSuccess = !StatsEngine.isOpponentSuccess(p);
+      const defSuccess = StatsEngine.isStop(p);
+      const judged = StatsEngine.isSuccessEligible(p);
       const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
         StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
       // Additive film identity: pushed in the SAME pass that increments count,
@@ -1483,6 +1504,7 @@ export class StatsEngine {
         fronts[f].count++;
         fronts[f].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) fronts[f].yardPlays = (fronts[f].yardPlays || 0) + 1;
         if (defSuccess) fronts[f].successes++;
+        if (judged) fronts[f].successPlays = (fronts[f].successPlays || 0) + 1;
         if (isHavoc) fronts[f].havoc++;
         if (StatsEngine.isRun(p)) fronts[f].runs++;
         else if (StatsEngine.isPass(p)) fronts[f].passes++;
@@ -1495,6 +1517,7 @@ export class StatsEngine {
         coverages[c].count++;
         coverages[c].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) coverages[c].yardPlays = (coverages[c].yardPlays || 0) + 1;
         if (defSuccess) coverages[c].successes++;
+        if (judged) coverages[c].successPlays = (coverages[c].successPlays || 0) + 1;
         // A pick-six is charted `Interception + Touchdown`: it is an
         // interception against this coverage, never a completion allowed.
         if (StatsEngine.hasResult(p, 'Gain') || StatsEngine.isTouchdownAllowed(p) || StatsEngine.hasResult(p, 'No Gain')
@@ -1513,6 +1536,7 @@ export class StatsEngine {
           if (StatsEngine.hasResult(p, 'Sack')) blitzes[b].sacks++;
           if (isHavoc) blitzes[b].havoc++;
           if (defSuccess) blitzes[b].successes++;
+          if (judged) blitzes[b].successPlays = (blitzes[b].successPlays || 0) + 1;
           if (ref) blitzes[b].refs.push(ref);
         });
       }
@@ -1584,8 +1608,8 @@ export class StatsEngine {
       this._metricsEngine = new AnalyticsMetrics({
         isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult,
         playYards: StatsEngine.playYards, countsForYards: StatsEngine.countsForYards,
-        isSuccessfulPlay: p => this._isSuccessfulPlay(p),
-        isEligiblePlay: p => this._isSuccessfulPlayEligible(p),
+        isSuccessfulPlay: StatsEngine.isSuccessfulPlay,
+        isEligiblePlay: StatsEngine.isSuccessEligible,
         buildCutFilter: (type, val) => this._buildCutFilter(type, val),
         // Study Phase 3: player performance metrics (soloTackles/
         // assistedTackles) need to re-derive a play's own tackler list to
@@ -1614,8 +1638,8 @@ export class StatsEngine {
    * owner rather than a second hand-written copy: two surfaces cannot then
    * report the same label two ways.
    *
-   * Stop and havoc rates keep their historical divisor (`missingAsZero`);
-   * yards per play and explosive rate use the one yards rule. A play with no
+   * Havoc keeps its historical divisor (`missingAsZero`); stop rate, yards
+   * per play and explosive rate use the one play set. A play with no
    * resolvable film ref is dropped from `refs` rather than failing the whole
    * report (`allowUnlinkedPlays`).
    */
@@ -1628,12 +1652,13 @@ export class StatsEngine {
     const cohort = (rawCohort || []).filter(StatsEngine._tryPenaltyResolved);
     const metrics = this.metricsEngine();
     const legacyOptions = { missingAsZero: true, allowUnlinkedPlays: true };
-    // Yards metrics always use the one yards rule (StatsEngine.countsForYards).
+    // Stop rate, yards per play and explosive rate use the one play set
+    // (StatsEngine.isSuccessEligible, StatsEngine.countsForYards).
     const yardsOptions = { allowUnlinkedPlays: true };
     /* A stop is measured against OPPONENT success, so our own return touchdown
        counts as a stop instead of as their conversion. */
     const stopRate = metrics.metric(cohort, 'stopRate', {},
-      { ...legacyOptions, deps: { isSuccessfulPlay: StatsEngine.isOpponentSuccess } });
+      { ...yardsOptions, deps: { isSuccessfulPlay: StatsEngine.isOpponentSuccess } });
     const explosive = metrics.metric(cohort, 'explosivesAllowedRate', {}, yardsOptions);
     const havoc = metrics.metric(cohort, 'havocRate', {}, legacyOptions);
     const ypp = metrics.metric(cohort, 'yardsAllowedPerPlay', {}, yardsOptions);
@@ -1737,8 +1762,7 @@ export class StatsEngine {
       total: source.length,
       summary: summarize('All Defensive Snaps', source),
       takeaways: defensive.turnovers,
-      thirdDownStopRate: thirdDown.length
-        ? +(thirdDown.filter(p => !StatsEngine.isOpponentSuccess(p)).length / thirdDown.length * 100).toFixed(1) : null,
+      thirdDownStopRate: (rate => rate == null ? null : +rate.toFixed(1))(StatsEngine.successRateOf(thirdDown, StatsEngine.isStop)),
       redZoneTdRate: redZoneDrives.length
         ? +(redZoneTouchdowns / redZoneDrives.length * 100).toFixed(1) : null,
       playTypes, answers, byGame, situations,
@@ -2021,7 +2045,7 @@ export class StatsEngine {
       return {
         n: rows.length, measured: measured.length, runs: runs.length, passes: passes.length,
         ypp: ypp(measured), rushYpp: ypp(runs), passYpp: ypp(passes),
-        success: rate(measured.filter(p => this._isSuccessfulPlay(p)).length, measured.length),
+        success: S.successRateOf(measured),
         // Nothing classified means nothing measured: no explosive count at all.
         explosives: measured.length ? measured.filter(S.countsForYards).filter(S.isExplosive).length : null,
         touchdownsAllowed: touchdownsAllowed(rows), refs: S._refsOf(rows),
@@ -2858,7 +2882,7 @@ export class StatsEngine {
       const passes = pl.filter(p => StatsEngine.isPass(p)).length;
       const { yards, plays: yardPlays } = StatsEngine.yardsTotal(pl);
       const conv = pl.filter(p => gainedFirstDown(p.tags) || StatsEngine.hasResult(p, 'Touchdown')).length;
-      const succ = pl.filter(p => this._isSuccessfulPlay(p)).length;
+      const { hits: succ, plays: succPlays } = StatsEngine.successTotal(pl);
       buckets.push({
         down: g.down, bucket: g.bucket, count: n,
         runs, passes,
@@ -2866,7 +2890,7 @@ export class StatsEngine {
         passPct: runs + passes ? ((passes / (runs + passes)) * 100).toFixed(0) : '0',
         avgYards: yardPlays ? (yards / yardPlays).toFixed(1) : '0.0',
         convPct: ((conv / n) * 100).toFixed(1),
-        succPct: ((succ / n) * 100).toFixed(1),
+        succPct: succPlays ? ((succ / succPlays) * 100).toFixed(1) : '0.0',
         sortKey: order[g.down] * 10 + bOrder[g.bucket],
       });
     }
@@ -2986,7 +3010,7 @@ export class StatsEngine {
     const formationDetail = {};
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
-      const succ = this._isSuccessfulPlay(p);
+      const succ = StatsEngine.isSuccess(p), judged = StatsEngine.isSuccessEligible(p);
       StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).forEach(f => {
         formations[f] = (formations[f] || 0) + 1;
         if (!formationDetail[f]) formationDetail[f] = { name: f, count: 0, runs: 0, passes: 0, yards: 0, successes: 0 };
@@ -2994,17 +3018,18 @@ export class StatsEngine {
         if (isRun) formationDetail[f].runs++; else if (isPass) formationDetail[f].passes++;
         formationDetail[f].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) formationDetail[f].yardPlays = (formationDetail[f].yardPlays || 0) + 1;
         if (succ) formationDetail[f].successes++;
+        if (judged) formationDetail[f].successPlays = (formationDetail[f].successPlays || 0) + 1;
       });
     });
     const formationList = Object.values(formationDetail)
-      .map(f => ({ ...f, avg: f.yardPlays ? (f.yards / f.yardPlays).toFixed(1) : '0.0', successPct: f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0' }))
+      .map(f => ({ ...f, avg: f.yardPlays ? (f.yards / f.yardPlays).toFixed(1) : '0.0', successPct: f.successPlays ? ((f.successes / f.successPlays) * 100).toFixed(0) : '0' }))
       .sort((a, b) => b.count - a.count);
 
     const playTypes = {};
     const playTypeDetail = {};
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
-      const succ = this._isSuccessfulPlay(p);
+      const succ = StatsEngine.isSuccess(p), judged = StatsEngine.isSuccessEligible(p);
       // Play Type is multi-select ("RPO + Short Pass"); attribute to each.
       StatsEngine.splitPlayTypes(p.tags.playType).forEach(t => {
         playTypes[t] = (playTypes[t] || 0) + 1;
@@ -3013,24 +3038,25 @@ export class StatsEngine {
         if (isRun) playTypeDetail[t].runs++; else if (isPass) playTypeDetail[t].passes++;
         playTypeDetail[t].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) playTypeDetail[t].yardPlays = (playTypeDetail[t].yardPlays || 0) + 1;
         if (succ) playTypeDetail[t].successes++;
+        if (judged) playTypeDetail[t].successPlays = (playTypeDetail[t].successPlays || 0) + 1;
       });
     });
     const playTypeList = Object.values(playTypeDetail)
-      .map(pt => ({ ...pt, avg: pt.yardPlays ? (pt.yards / pt.yardPlays).toFixed(1) : '0.0', successPct: pt.count ? ((pt.successes / pt.count) * 100).toFixed(0) : '0' }))
+      .map(pt => ({ ...pt, avg: pt.yardPlays ? (pt.yards / pt.yardPlays).toFixed(1) : '0.0', successPct: pt.successPlays ? ((pt.successes / pt.successPlays) * 100).toFixed(0) : '0' }))
       .sort((a, b) => b.count - a.count);
 
     const runs = plays.filter(p => StatsEngine.isRun(p)).length;
     const passes = plays.filter(p => StatsEngine.isPass(p)).length;
     const runYds = this._rushingStats(plays).yards;
     const passYds = this._passingStats(plays).yards;
-    const runSucc = plays.filter(p => StatsEngine.isRun(p) && this._isSuccessfulPlay(p)).length;
-    const passSucc = plays.filter(p => StatsEngine.isPass(p) && this._isSuccessfulPlay(p)).length;
+    const runSucc = StatsEngine.successRateOf(plays.filter(p => StatsEngine.isRun(p)));
+    const passSucc = StatsEngine.successRateOf(plays.filter(p => StatsEngine.isPass(p)));
 
     return {
       formations, formationList, playTypes, playTypeList,
       runs, passes, runYds, passYds,
-      runSuccRate: runs ? ((runSucc / runs) * 100).toFixed(1) : '0.0',
-      passSuccRate: passes ? ((passSucc / passes) * 100).toFixed(1) : '0.0',
+      runSuccRate: (runSucc ?? 0).toFixed(1),
+      passSuccRate: (passSucc ?? 0).toFixed(1),
       runPassRatio: `${runs}/${passes}`,
       runPct: runs + passes ? ((runs / (runs + passes)) * 100).toFixed(1) : '0.0',
       passPct: runs + passes ? ((passes / (runs + passes)) * 100).toFixed(1) : '0.0'
@@ -3060,7 +3086,7 @@ export class StatsEngine {
    * numbers and draws them.
    *
    * Nothing here introduces a formula. Bins are raw signed yardage; success and
-   * run/pass reuse `_isSuccessfulPlay` and `isRun`; the explosive threshold is
+   * run/pass reuse `isSuccess` and `isRun`; the explosive threshold is
    * the same 12/16 the efficiency block uses.
    */
   _yardageBins(plays) {
@@ -3113,26 +3139,27 @@ export class StatsEngine {
       { label: 'Red zone', min: 80, max: 94, cut: { type: 'situation', val: 'redZone' } },
       { label: 'Goal line', min: 95, max: 100, cut: { type: 'situation', val: 'goalLine' } },
     ];
-    const out = ZONES.map(zone => ({ ...zone, count: 0, succ: 0 }));
+    const out = ZONES.map(zone => ({ ...zone, count: 0, succ: 0, succPlays: 0 }));
     plays.forEach(play => {
       const yard = this._absYardLine(play.tags);
       if (yard === null) return;
       const zone = out.find(item => yard >= item.min && yard <= item.max);
       if (!zone) return;
       zone.count += 1;
-      if (this._isSuccessfulPlay(play)) zone.succ += 1;
+      if (StatsEngine.isSuccess(play)) zone.succ += 1;
+      if (StatsEngine.isSuccessEligible(play)) zone.succPlays += 1;
     });
-    return out.map(zone => ({ ...zone, successPct: zone.count ? Math.round(zone.succ / zone.count * 100) : 0 }));
+    return out.map(zone => ({ ...zone, successPct: zone.succPlays ? Math.round(zone.succ / zone.succPlays * 100) : 0 }));
   }
 
   _downMultiples(plays) {
     return ['1', '2', '3', '4'].map(down => {
       const subset = plays.filter(play => play.tags.down === down);
       const run = subset.filter(play => StatsEngine.isRun(play)).length;
-      const succ = subset.filter(play => this._isSuccessfulPlay(play)).length;
+      const { hits: succ, plays: succPlays } = StatsEngine.successTotal(subset);
       return { label: `${down}${down === '1' ? 'st' : down === '2' ? 'nd' : down === '3' ? 'rd' : 'th'} down`,
         n: subset.length, run, pass: subset.filter(play => StatsEngine.isPass(play)).length,
-        successPct: subset.length ? Math.round(succ / subset.length * 100) : 0 };
+        successPct: succPlays ? Math.round(succ / succPlays * 100) : 0 };
     }).filter(item => item.n > 0);
   }
 
@@ -3156,13 +3183,14 @@ export class StatsEngine {
       hashes[h].count++;
       hashes[h].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) hashes[h].yardPlays = (hashes[h].yardPlays || 0) + 1;
       if (StatsEngine.isRun(p)) hashes[h].runs++; else if (StatsEngine.isPass(p)) hashes[h].passes++;
-      if (this._isSuccessfulPlay(p)) hashes[h].successes++;
+      if (StatsEngine.isSuccess(p)) hashes[h].successes++;
+      if (StatsEngine.isSuccessEligible(p)) hashes[h].successPlays = (hashes[h].successPlays || 0) + 1;
     });
     const list = Object.values(hashes).map(h => ({
       ...h,
       runPct: h.runs + h.passes ? ((h.runs / (h.runs + h.passes)) * 100).toFixed(0) : '0',
       avg: h.yardPlays ? (h.yards / h.yardPlays).toFixed(1) : '0.0',
-      successPct: h.count ? ((h.successes / h.count) * 100).toFixed(0) : '0',
+      successPct: h.successPlays ? ((h.successes / h.successPlays) * 100).toFixed(0) : '0',
     })).sort((a, b) => b.count - a.count);
     const formations = {};
     plays.forEach(p => {
@@ -3187,13 +3215,14 @@ export class StatsEngine {
       combos[k].count++;
       combos[k].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) combos[k].yardPlays = (combos[k].yardPlays || 0) + 1;
       if (StatsEngine.isRun(p)) combos[k].runs++; else if (StatsEngine.isPass(p)) combos[k].passes++;
-      if (this._isSuccessfulPlay(p)) combos[k].successes++;
+      if (StatsEngine.isSuccess(p)) combos[k].successes++;
+      if (StatsEngine.isSuccessEligible(p)) combos[k].successPlays = (combos[k].successPlays || 0) + 1;
     });
     const list = Object.values(combos).map(c => ({
       ...c,
       runPct: c.runs + c.passes ? ((c.runs / (c.runs + c.passes)) * 100).toFixed(0) : '0',
       avg: c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0',
-      successPct: c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0',
+      successPct: c.successPlays ? ((c.successes / c.successPlays) * 100).toFixed(0) : '0',
     })).filter(c => c.count >= 2).sort((a, b) => b.count - a.count);
     return { list, hasData: list.length > 0 };
   }
@@ -3228,7 +3257,8 @@ export class StatsEngine {
         const yds = parseInt(p.tags.yardage) || 0;
         combos[k].count++;
         combos[k].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) combos[k].yardPlays = (combos[k].yardPlays || 0) + 1;
-        if (!this._isSuccessfulPlay(p)) combos[k].successes++;
+        if (StatsEngine.isStop(p)) combos[k].successes++;
+        if (StatsEngine.isSuccessEligible(p)) combos[k].successPlays = (combos[k].successPlays || 0) + 1;
         if (StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
             StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack')))
           combos[k].havoc++;
@@ -3238,7 +3268,7 @@ export class StatsEngine {
     const list = Object.values(combos).map(c => ({
       ...c,
       avg: c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0',
-      stopPct: c.count ? ((c.successes / c.count) * 100).toFixed(0) : '0',
+      stopPct: c.successPlays ? ((c.successes / c.successPlays) * 100).toFixed(0) : '0',
       havocPct: c.count ? ((c.havoc / c.count) * 100).toFixed(0) : '0',
     })).filter(c => c.count >= 2).sort((a, b) => b.count - a.count);
     return { list, hasData: list.length > 0 };
@@ -3272,13 +3302,14 @@ export class StatsEngine {
         if (!byFormation[f]) byFormation[f] = { name: f, count: 0, yards: 0, successes: 0 };
         byFormation[f].count++;
         byFormation[f].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) byFormation[f].yardPlays = (byFormation[f].yardPlays || 0) + 1;
-        if (this._isSuccessfulPlay(p)) byFormation[f].successes++;
+        if (StatsEngine.isSuccess(p)) byFormation[f].successes++;
+        if (StatsEngine.isSuccessEligible(p)) byFormation[f].successPlays = (byFormation[f].successPlays || 0) + 1;
       });
     });
     const formationList = Object.values(byFormation).map(f => ({
       ...f,
       avg: f.yardPlays ? (f.yards / f.yardPlays).toFixed(1) : '0.0',
-      successPct: f.count ? ((f.successes / f.count) * 100).toFixed(0) : '0',
+      successPct: f.successPlays ? ((f.successes / f.successPlays) * 100).toFixed(0) : '0',
     })).sort((a, b) => b.count - a.count);
 
     return {
@@ -3301,7 +3332,7 @@ export class StatsEngine {
       runPct: o.runs + o.passes ? ((o.runs / (o.runs + o.passes)) * 100).toFixed(0) : '0',
       passPct: o.runs + o.passes ? ((o.passes / (o.runs + o.passes)) * 100).toFixed(0) : '0',
       avg: o.yardPlays ? (o.yards / o.yardPlays).toFixed(1) : '0.0',
-      succPct: o.count ? ((o.succ / o.count) * 100).toFixed(0) : '0',
+      succPct: o.succPlays ? ((o.succ / o.succPlays) * 100).toFixed(0) : '0',
     });
     const dirs = {};
     const motions = {};
@@ -3310,11 +3341,12 @@ export class StatsEngine {
 
     plays.forEach(p => {
       const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
-      const succ = this._isSuccessfulPlay(p);
+      const succ = StatsEngine.isSuccess(p), judged = StatsEngine.isSuccessEligible(p);
       const add = o => {
         o.count++; o.yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) o.yardPlays = (o.yardPlays || 0) + 1;
         if (isRun) o.runs++; else if (isPass) o.passes++;
         if (succ) o.succ++;
+        if (judged) o.succPlays = (o.succPlays || 0) + 1;
       };
       if (p.tags.playDir) add(dirs[p.tags.playDir] || (dirs[p.tags.playDir] = mk(p.tags.playDir)));
       if (p.tags.motion) {
@@ -3384,7 +3416,7 @@ export class StatsEngine {
       stats.defensive.coverages.forEach(c => {
         if (c.count < MIN_N) return;
         const avg = c.yardPlays ? c.yards / c.yardPlays : 0;
-        const stopPct = c.count ? (c.successes / c.count) * 100 : 0;
+        const stopPct = c.successPlays ? (c.successes / c.successPlays) * 100 : 0;
         if (stopPct >= 65 && avg <= 4)
           working.push({ s: stopPct * Math.min(c.count, 10), cut: ['coverage', c.name], text: `<strong>${Charts._esc(c.name)}</strong>: ${stopPct.toFixed(0)}% stop rate, ${avg.toFixed(1)} avg allowed (${c.count} snaps)` });
         else if (avg >= 7)
@@ -4142,7 +4174,8 @@ export class StatsEngine {
       e.n++;
       if (StatsEngine.isRun(p)) e.runs++;
       e.yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) e.yardPlays = (e.yardPlays || 0) + 1;
-      if (this._isSuccessfulPlay(p)) e.succ++;
+      if (StatsEngine.isSuccess(p)) e.succ++;
+      if (StatsEngine.isSuccessEligible(p)) e.succPlays = (e.succPlays || 0) + 1;
     });
     const calls = Object.values(map).sort((a, b) => b.n - a.n);
     let cum = 0;
@@ -4465,7 +4498,7 @@ export class StatsEngine {
       if (!rows.length || !cols.length) return;
       eligible++;
       const isRun = StatsEngine.isRun(p), isPass = StatsEngine.isPass(p);
-      const succ = this._isSuccessfulPlay(p);
+      const succ = StatsEngine.isSuccess(p), judged = StatsEngine.isSuccessEligible(p);
 
       rows.forEach(r => {
         cols.forEach(c => {
@@ -4477,6 +4510,7 @@ export class StatsEngine {
           if (isRun) cells[key].runs++; else if (isPass) cells[key].passes++;
           cells[key].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) cells[key].yardPlays = (cells[key].yardPlays || 0) + 1;
           if (succ) cells[key].successes++;
+          if (judged) cells[key].successPlays = (cells[key].successPlays || 0) + 1;
           rowCounts[r] = (rowCounts[r] || 0) + 1;
           colCounts[c] = (colCounts[c] || 0) + 1;
         });
@@ -4813,14 +4847,15 @@ export class StatsEngine {
     const plays = (defPlays || []).filter(play => play?.tags);
     if (!plays.length) return null;
     const EXPLOSIVE = play => (StatsEngine.isRun(play) ? 12 : 16);
-    const blank = name => ({ name, n: 0, yards: 0, succ: 0, expl: 0, neg: 0, sacks: 0, tos: 0, refs: [] });
+    const blank = name => ({ name, n: 0, yards: 0, succ: 0, succPlays: 0, expl: 0, neg: 0, sacks: 0, tos: 0, refs: [] });
     const add = (bucket, play) => {
       const counts = StatsEngine.countsForYards(play);
       const yards = StatsEngine.yardsOf(play);
       bucket.n += 1;
       bucket.yards += yards;
       if (counts) bucket.yardPlays = (bucket.yardPlays || 0) + 1;
-      if (this._isSuccessfulPlay(play)) bucket.succ += 1;
+      if (StatsEngine.isSuccess(play)) bucket.succ += 1;
+      if (StatsEngine.isSuccessEligible(play)) bucket.succPlays += 1;
       if (counts && yards >= EXPLOSIVE(play)) bucket.expl += 1;
       if (counts && yards < 0) bucket.neg += 1;
       if (StatsEngine.hasResult(play, 'Sack')) bucket.sacks += 1;
@@ -4830,7 +4865,7 @@ export class StatsEngine {
     const finish = bucket => ({
       ...bucket,
       avg: bucket.yardPlays ? (bucket.yards / bucket.yardPlays).toFixed(1) : '0.0',
-      succPct: bucket.n ? Math.round(bucket.succ / bucket.n * 100) : 0,
+      succPct: bucket.succPlays ? Math.round(bucket.succ / bucket.succPlays * 100) : 0,
       explPct: bucket.yardPlays ? Math.round(bucket.expl / bucket.yardPlays * 100) : 0,
       refs: [...new Set(bucket.refs)],
     });
@@ -5113,7 +5148,7 @@ export class StatsEngine {
       if (!Array.isArray(keys)) keys = [keys];
       const yds = StatsEngine.yardsOf(p);
       const counts = StatsEngine.countsForYards(p);
-      const succ = this._isSuccessfulPlay(p);
+      const succ = StatsEngine.isSuccess(p), judged = StatsEngine.isSuccessEligible(p);
       const explosive = counts && StatsEngine.isExplosive(p);
       const td = StatsEngine.hasResult(p, 'Touchdown');
       const to = StatsEngine.isGiveaway(p);
@@ -5136,10 +5171,12 @@ export class StatsEngine {
           g[k].runs++;
           g[k].runYards += yds; if (counts) g[k].runYardPlays = (g[k].runYardPlays || 0) + 1;
           if (succ) g[k].runSucc++;
+          if (judged) g[k].runSuccPlays = (g[k].runSuccPlays || 0) + 1;
         } else {
           g[k].passes++;
           g[k].passYards += yds; if (counts) g[k].passYardPlays = (g[k].passYardPlays || 0) + 1;
           if (succ) g[k].passSucc++;
+          if (judged) g[k].passSuccPlays = (g[k].passSuccPlays || 0) + 1;
         }
       });
     });
@@ -5153,7 +5190,8 @@ export class StatsEngine {
         const runPct = grp.n ? Math.round(grp.runs / grp.n * 100) : 0;
         const lean = runPct >= 50 ? 'Run' : 'Pass';
         const leanPct = Math.max(runPct, 100 - runPct);
-        const succRate = grp.n ? Math.round((grp.runSucc + grp.passSucc) / grp.n * 100) : 0;
+        const succPlays = (grp.runSuccPlays || 0) + (grp.passSuccPlays || 0);
+        const succRate = succPlays ? Math.round((grp.runSucc + grp.passSucc) / succPlays * 100) : 0;
         const runAvg = grp.runYardPlays ? +(grp.runYards / grp.runYardPlays).toFixed(1) : 0;
         const passAvg = grp.passYardPlays ? +(grp.passYards / grp.passYardPlays).toFixed(1) : 0;
         return {
@@ -5208,7 +5246,7 @@ export class StatsEngine {
    *               is counted in `missingDownDistance` and placed nowhere.
    * Per cell: `n` snaps; `runs` / `passes` (a snap that reads as both is a run,
    * `_selfScoutGroup`'s precedent, so the split always sums to `n`); success
-   * over `successEligible` snaps only (`_isSuccessfulPlayEligible`, so a missing
+   * over `successEligible` snaps only (`isSuccessEligible`, so a missing
    * yardage is never read as zero) using `isSuccessfulPlay` for our offense and
    * `isOpponentSuccess` for theirs; yards/play over `yardsMeasured` snaps that
    * carry charted yardage. Play types count SNAPS per type: a multi-select tag
@@ -5321,7 +5359,7 @@ export class StatsEngine {
       const key = `${down}|${bucket}`;
       const rows = byKey.get(key) || [];
       const runs = rows.filter(S.isRun).length;
-      const eligible = rows.filter(p => this._isSuccessfulPlayEligible(p));
+      const eligible = rows.filter(S.isSuccessEligible);
       const yardRows = rows.filter(hasYardage);
       const types = new Map();
       let untyped = 0, typeTags = 0;
@@ -5403,7 +5441,7 @@ export class StatsEngine {
       return gid != null && p.id != null ? `${gid}::${p.id}` : null;
     };
     const measure = rows => {
-      const eligible = rows.filter(p => this._isSuccessfulPlayEligible(p));
+      const eligible = rows.filter(S.isSuccessEligible);
       const yardRows = rows.filter(hasYardage);
       const yards = yardRows.reduce((sum, p) => sum + S.playYards(p), 0);
       return {
@@ -5488,10 +5526,12 @@ export class StatsEngine {
         const leanYards = lean === 'Run' ? grp.runYards : grp.passYards;
         const leanYardPlays = (lean === 'Run' ? grp.runYardPlays : grp.passYardPlays) || 0;
         const leanSucc = lean === 'Run' ? grp.runSucc : grp.passSucc;
+        const leanSuccPlays = (lean === 'Run' ? grp.runSuccPlays : grp.passSuccPlays) || 0;
         const leanAvg = leanYardPlays ? +(leanYards / leanYardPlays).toFixed(1) : 0;
-        const leanSuccRate = leanPlays ? Math.round(leanSucc / leanPlays * 100) : 0;
+        const leanSuccRate = leanSuccPlays ? Math.round(leanSucc / leanSuccPlays * 100) : 0;
         const overallAvg = grp.yardPlays ? +(grp.yards / grp.yardPlays).toFixed(1) : 0;
-        const overallSucc = grp.n ? Math.round((grp.runSucc + grp.passSucc) / grp.n * 100) : 0;
+        const succPlays = (grp.runSuccPlays || 0) + (grp.passSuccPlays || 0);
+        const overallSucc = succPlays ? Math.round((grp.runSucc + grp.passSucc) / succPlays * 100) : 0;
         // Classify: a lopsided split that's highly effective is a "dominant"
         // strength, not a vulnerability. Only truly exploitable tells (low
         // effectiveness on the leaned side) warrant a "fix this" recommendation.
@@ -5581,13 +5621,14 @@ export class StatsEngine {
       if (!sit) return;
       const forms = StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily).filter(Boolean);
       if (!forms.length) return;
-      const succ = this._isSuccessfulPlay(p);
+      const succ = StatsEngine.isSuccess(p), judged = StatsEngine.isSuccessEligible(p);
       forms.forEach(f => {
         const k = `${f}\u0001${sit}`;   // U+0001 separator: "Trip"+"s1" must not collide with "Trips"+"1"
         if (!cells[k]) cells[k] = { n: 0, runs: 0, passes: 0, succ: 0, yards: 0 };
         const c = cells[k];
         c.n++; if (isRun) c.runs++; else c.passes++;
-        if (succ) c.succ++; c.yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) c.yardPlays = (c.yardPlays || 0) + 1;
+        if (succ) c.succ++; if (judged) c.succPlays = (c.succPlays || 0) + 1;
+        c.yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) c.yardPlays = (c.yardPlays || 0) + 1;
         rowN[f] = (rowN[f] || 0) + 1;
         colHas[sit] = (colHas[sit] || 0) + 1;
       });
@@ -5603,7 +5644,7 @@ export class StatsEngine {
     const PRED = 40;
     let baseN = 0, baseSucc = 0;
     Object.values(m.cells).forEach(cell => {
-      if (cell && cell.n) { baseN += cell.n; baseSucc += cell.succ || 0; }
+      if (cell && cell.n) { baseN += cell.succPlays || 0; baseSucc += cell.succ || 0; }
     });
     const baseline = baseN ? Math.round(baseSucc / baseN * 100) : 0;
     const rows = m.rows.map(formation => ({
@@ -5617,7 +5658,7 @@ export class StatsEngine {
         const leanPct = Math.max(runPct, 100 - runPct);
         const pred = Math.round((leanPct - 50) * 2);
         const strong = cell.n >= MINC;
-        const succ = Math.round(cell.succ / cell.n * 100);
+        const succ = cell.succPlays ? Math.round(cell.succ / cell.succPlays * 100) : 0;
         const avg = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
         let state = 'balanced', label = 'Balanced';
         if (!strong) { state = 'low'; label = 'Low sample'; }
@@ -5742,7 +5783,8 @@ export class StatsEngine {
       // Defensive rows: a stop is the absence of OPPONENT success and a
       // touchdown counts only when the opponent scored it, so a call that
       // produced our pick-six is not credited with allowing a touchdown.
-      if (!StatsEngine.isOpponentSuccess(play)) row.stops++;
+      if (StatsEngine.isStop(play)) row.stops++;
+      if (StatsEngine.isSuccessEligible(play)) row.stopPlays = (row.stopPlays || 0) + 1;
       if (StatsEngine.isExplosive(play)) row.explosives++;
       if (StatsEngine.isTouchdownAllowed(play)) row.tds++;
       if (ref) row.refs.push(ref);
@@ -5751,7 +5793,7 @@ export class StatsEngine {
       ...row,
       refs: [...new Set(row.refs)].sort(),
       avgYds: row.yardPlays ? +(row.yards / row.yardPlays).toFixed(1) : 0,
-      stopRate: row.n ? Math.round(row.stops / row.n * 100) : 0,
+      stopRate: row.stopPlays ? Math.round(row.stops / row.stopPlays * 100) : 0,
     })).sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
   }
 
@@ -5776,7 +5818,7 @@ export class StatsEngine {
     const total = defPlays.length;
     // Stops and touchdowns allowed read the defense-framed rules: our own
     // return touchdown is a stop, and it is not a touchdown we allowed.
-    const stops = defPlays.filter(play => !StatsEngine.isOpponentSuccess(play)).length;
+    const { hits: stops, plays: stopPlays } = StatsEngine.successTotal(defPlays, StatsEngine.isStop);
     const { yards, plays: yardPlays } = StatsEngine.yardsTotal(defPlays);
     const phase = isRunPhase => {
       const rows = defPlays.filter(play => (isRunPhase ? StatsEngine.isRun(play) : StatsEngine.isPass(play)));
@@ -5785,8 +5827,7 @@ export class StatsEngine {
         attempts: rows.length,
         yardsAllowed: phaseYards,
         yardsPerPlay: phaseYardPlays ? +(phaseYards / phaseYardPlays).toFixed(1) : 0,
-        stopRate: rows.length
-          ? Math.round(rows.filter(play => !StatsEngine.isOpponentSuccess(play)).length / rows.length * 100) : 0,
+        stopRate: Math.round(StatsEngine.successRateOf(rows, StatsEngine.isStop) ?? 0),
         explosivesAllowed: counted.filter(play => StatsEngine.isExplosive(play)).length,
         // The phase-specific impact result: a TFL is the run answer, a sack
         // the pass answer. Counted over THIS phase, not the whole defense.
@@ -5801,7 +5842,7 @@ export class StatsEngine {
       minCall: StatsEngine._SELF_SCOUT_CALL_MIN,
       totalPlays: total,
       kpis: {
-        stopRate: total ? Math.round(stops / total * 100) : null,
+        stopRate: stopPlays ? Math.round(stops / stopPlays * 100) : null,
         yardsAllowedPerPlay: yardPlays ? (yards / yardPlays).toFixed(1) : null,
         havocRate: defensive.havocRate ?? null,
         sacks: defensive.sacks || 0, tfl: defensive.tfl || 0, takeaways: defensive.turnovers || 0,
@@ -5809,7 +5850,7 @@ export class StatsEngine {
       positive: { stops, sacks: defensive.sacks || 0, tfl: defensive.tfl || 0,
         takeaways: defensive.turnovers || 0 },
       negative: {
-        successfulAllowed: total - stops,
+        successfulAllowed: stopPlays - stops,
         explosiveAllowed: defPlays.filter(play => StatsEngine.isExplosive(play)).length,
         touchdownsAllowed: defPlays.filter(StatsEngine.isTouchdownAllowed).length,
       },
@@ -5835,7 +5876,7 @@ export class StatsEngine {
       let keys = keyFn(p);
       if (!Array.isArray(keys)) keys = [keys];
       const yds = parseInt(p.tags.yardage) || 0;
-      const stop = !this._isSuccessfulPlay(p);
+      const stop = StatsEngine.isStop(p), judged = StatsEngine.isSuccessEligible(p);
       const isHavoc = StatsEngine.hasResult(p, 'Sack') || StatsEngine.hasResult(p, 'Interception') ||
         StatsEngine.hasResult(p, 'Fumble') || (yds < 0 && !StatsEngine.hasResult(p, 'Sack'));
       const fronts = StatsEngine.splitFronts(p.tags.defFront);
@@ -5849,6 +5890,7 @@ export class StatsEngine {
         g[k].n++;
         g[k].yards += StatsEngine.yardsOf(p); if (StatsEngine.countsForYards(p)) g[k].yardPlays = (g[k].yardPlays || 0) + 1;
         if (stop) g[k].stops++;
+        if (judged) g[k].stopPlays = (g[k].stopPlays || 0) + 1;
         if (isHavoc) g[k].havoc++;
         if (blitz) g[k].blitzN++;
         if (ref) g[k].refs.push(ref);
@@ -5885,7 +5927,7 @@ export class StatsEngine {
       const cutType = cut ? cut.type : null;
       const cutVal = cut ? cut.val : null;
       const refs = [...new Set(grp.refs || [])].sort();
-      const stopRate = Math.round(grp.stops / grp.n * 100);
+      const stopRate = grp.stopPlays ? Math.round(grp.stops / grp.stopPlays * 100) : 0;
       const havocRate = Math.round(grp.havoc / grp.n * 100);
       const avgYds = grp.yardPlays ? +(grp.yards / grp.yardPlays).toFixed(1) : 0;
       const blitzPct = Math.round(grp.blitzN / grp.n * 100);
@@ -5985,7 +6027,7 @@ export class StatsEngine {
       const topF = Object.entries(grp.frontMap).sort((a, b) => b[1] - a[1])[0];
       const topC = Object.entries(grp.covMap).sort((a, b) => b[1] - a[1])[0];
       return { key: grp.key, n: grp.n, avgYds: grp.yardPlays ? +(grp.yards / grp.yardPlays).toFixed(1) : 0,
-        stopRate: Math.round(grp.stops / grp.n * 100),
+        stopRate: grp.stopPlays ? Math.round(grp.stops / grp.stopPlays * 100) : 0,
         havocRate: Math.round(grp.havoc / grp.n * 100),
         blitzPct: Math.round(grp.blitzN / grp.n * 100),
         topFrontName: topF ? topF[0] : null, topFrontPct: topF ? Math.round(topF[1] / grp.n * 100) : null,
@@ -6030,7 +6072,7 @@ export class StatsEngine {
 
     const overallRunPct = classifiable.filter(p => StatsEngine.isRun(p)).length / classifiable.length * 100;
     const overallAvg = StatsEngine.yardsPerPlayOf(classifiable) ?? 0;
-    const overallSucc = classifiable.filter(p => this._isSuccessfulPlay(p)).length / classifiable.length * 100;
+    const overallSucc = StatsEngine.successRateOf(classifiable) ?? 0;
 
     // 1. Counter-tendency success: when you DO the rare thing, how well does it work?
     const byFormation = this._selfScoutGroup(plays, p => StatsEngine.splitFormations(StatsEngine.proj(p).formationFamily));
@@ -6039,7 +6081,7 @@ export class StatsEngine {
       const runPct = grp.runs / grp.n * 100;
       if (runPct >= 70 && grp.passes >= 2) {
         const passAvg = grp.passYardPlays ? grp.passYards / grp.passYardPlays : 0;
-        const passSucc = grp.passSucc / grp.passes * 100;
+        const passSucc = grp.passSuccPlays ? grp.passSucc / grp.passSuccPlays * 100 : 0;
         if (passAvg >= overallAvg * 1.3 || passSucc >= 60) {
           insights.push({ type: 'counter', priority: passAvg * 2,
             text: `When you <strong>pass</strong> from <strong>${Charts._esc(grp.key)}</strong> (only ${100 - Math.round(runPct)}% of the time), you average ${passAvg.toFixed(1)} yds at ${Math.round(passSucc)}% success. The run tendency may be setting up the big play — protect this wrinkle.`,
@@ -6048,7 +6090,7 @@ export class StatsEngine {
       }
       if (runPct <= 30 && grp.runs >= 2) {
         const runAvg = grp.runYardPlays ? grp.runYards / grp.runYardPlays : 0;
-        const runSucc = grp.runSucc / grp.runs * 100;
+        const runSucc = grp.runSuccPlays ? grp.runSucc / grp.runSuccPlays * 100 : 0;
         if (runAvg >= overallAvg * 1.3 || runSucc >= 60) {
           insights.push({ type: 'counter', priority: runAvg * 2,
             text: `When you <strong>run</strong> from <strong>${Charts._esc(grp.key)}</strong> (only ${Math.round(runPct)}% of the time), you average ${runAvg.toFixed(1)} yds at ${Math.round(runSucc)}% success. The pass tendency may be setting up the ground game — protect this wrinkle.`,
@@ -6111,13 +6153,14 @@ export class StatsEngine {
         formTypeGroup[k].n++;
         formTypeGroup[k].yds += StatsEngine.yardsOf(p);
         if (StatsEngine.countsForYards(p)) formTypeGroup[k].yardPlays = (formTypeGroup[k].yardPlays || 0) + 1;
-        if (this._isSuccessfulPlay(p)) formTypeGroup[k].succ++;
+        if (StatsEngine.isSuccess(p)) formTypeGroup[k].succ++;
+        if (StatsEngine.isSuccessEligible(p)) formTypeGroup[k].succPlays = (formTypeGroup[k].succPlays || 0) + 1;
       });});
     });
     Object.values(formTypeGroup).forEach(g => {
       if (g.n < 3) return;
       const avg = g.yardPlays ? g.yds / g.yardPlays : 0;
-      const succR = g.succ / g.n * 100;
+      const succR = g.succPlays ? g.succ / g.succPlays * 100 : 0;
       if (avg >= overallAvg * 2 && succR >= 55) {
         insights.push({ type: 'outlier', priority: avg * 1.5,
           text: `<strong>${Charts._esc(g.f)} + ${Charts._esc(g.t)}</strong> averages ${avg.toFixed(1)} yds at ${Math.round(succR)}% success (${g.n} plays) — well above your ${overallAvg.toFixed(1)} baseline. Consider featuring this combo.`,
@@ -6151,7 +6194,8 @@ export class StatsEngine {
     const byDD = this._selfScoutGroup(plays, p => this._ddKey(p.tags));
     Object.values(byDD).forEach(grp => {
       if (grp.n < min) return;
-      const succRate = (grp.runSucc + grp.passSucc) / grp.n * 100;
+      const succPlays = (grp.runSuccPlays || 0) + (grp.passSuccPlays || 0);
+      const succRate = succPlays ? (grp.runSucc + grp.passSucc) / succPlays * 100 : 0;
       const diff = succRate - overallSucc;
       if (Math.abs(diff) >= 20 && succRate < 30) {
         insights.push({ type: 'situation', priority: Math.abs(diff) * 1.1,
@@ -6435,10 +6479,10 @@ ${gamePlanHtml}
     if (stats.defensive.hasData) {
       const d = stats.defensive;
       const frontRows = d.fronts.map(f =>
-        `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.yardPlays ? (f.yards / f.yardPlays).toFixed(1) : '0.0'}</td><td>${f.count ? Math.round(f.successes / f.count * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(f.name)}</td><td>${f.count}</td><td>${f.yards}</td><td>${f.yardPlays ? (f.yards / f.yardPlays).toFixed(1) : '0.0'}</td><td>${f.successPlays ? Math.round(f.successes / f.successPlays * 100) : 0}%</td><td>${f.count ? Math.round(f.havoc / f.count * 100) : 0}%</td></tr>`
       ).join('');
       const covRows = d.coverages.map(c =>
-        `<tr><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0'}</td><td>${c.count ? Math.round(c.successes / c.count * 100) : 0}%</td></tr>`
+        `<tr><td>${Charts._esc(c.name)}</td><td>${c.count}</td><td>${c.yards}</td><td>${c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0'}</td><td>${c.successPlays ? Math.round(c.successes / c.successPlays * 100) : 0}%</td></tr>`
       ).join('');
       body += `
 <h3>Defensive Summary</h3>

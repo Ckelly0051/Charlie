@@ -9,9 +9,9 @@
  *
  * No formula, denominator, cohort, or classification is computed here that
  * isn't already present on the `stats`/report object StatsEngine produced.
- * Where a value needs an instance method (e.g. StatsEngine's own
- * `_isSuccessfulPlay`), the StatsEngine instance is passed in explicitly as
- * `engine` — this module never re-derives or duplicates a formula.
+ * Where a value needs a StatsEngine rule (e.g. `isSuccess`), the StatsEngine
+ * instance is passed in explicitly as `engine` — this module never
+ * re-derives or duplicates a formula.
  *
  * `SpecialTeamsModel` is imported for its coach-facing UNIT NAMES only, which
  * it owns; no football value comes from here.
@@ -86,9 +86,9 @@ export function situationalTiles(stats) {
     tile('Goal line', s.goalLine, 'situation', 'goalLine', item => `${item.tds} TD, ${item.total} snaps`),
     { title: 'Third down', value: third.total ? `${third.conversionPct}%` : '—', sub: third.total ? stats.downs.thirdDownConv : 'No data', cutType: 'down', cutVal: '3', plays: third.total, cutLabel: third.total ? `Third down — ${third.total} plays` : null },
     // Same thresholds as `_distBucket`'s Long and Short, so the same wording.
-    tile('3rd & 7+', s.thirdLong, 'situation', 'thirdLong', item => `${item.successes} of ${item.total}`),
-    tile('3rd & 1-3', s.thirdShort, 'situation', 'thirdShort', item => `${item.successes} of ${item.total}`),
-    tile('Backed up', s.backedUp, 'situation', 'backedUp', item => `${item.successes} of ${item.total}`),
+    tile('3rd & 7+', s.thirdLong, 'situation', 'thirdLong', item => `${item.successes} of ${item.successPlays}`),
+    tile('3rd & 1-3', s.thirdShort, 'situation', 'thirdShort', item => `${item.successes} of ${item.successPlays}`),
+    tile('Backed up', s.backedUp, 'situation', 'backedUp', item => `${item.successes} of ${item.successPlays}`),
   ];
 }
 
@@ -286,7 +286,7 @@ export function offenseKpis(stats) {
   // `successfulPlays` key, so reading that name reported every game as
   // "0 of N snaps" regardless of how many actually succeeded.
   kpis.push({ label: 'Success rate', value: succ != null ? `${Math.round(succ)}%` : '—',
-    sub: `${e.successes || 0} of ${stats.totalPlays} snaps`, cls: 'is-gold', tone: tone(succ, 45, 33) });
+    sub: `${e.successes || 0} of ${e.successPlays || 0} snaps`, cls: 'is-gold', tone: tone(succ, 45, 33) });
   kpis.push({ label: 'Explosive Plays Rate', value: expl != null ? `${Math.round(expl)}%` : '—',
     sub: `${e.explosivePlays || 0} plays`, tone: tone(expl, 12, 7) });
   kpis.push({ label: 'Negative', value: neg != null ? `${Math.round(neg)}%` : '—',
@@ -407,9 +407,10 @@ export function backfieldStrength(stats, engine) {
       const runs = ps.filter(p => engine.constructor.isRun(p)).length;
       const passes = ps.filter(p => engine.constructor.isPass(p)).length;
       const { yards, plays: yardPlays } = engine.constructor.yardsTotal(ps);
-      const succ = ps.filter(p => engine._isSuccessfulPlay(p)).length;
+      const succ = ps.filter(p => engine.constructor.isSuccess(p)).length;
+      const succPlays = ps.filter(p => engine.constructor.isSuccessEligible(p)).length;
       return { name, count: ps.length, runs, passes,
-        successPct: ps.length ? Math.round(succ / ps.length * 100) : 0,
+        successPct: succPlays ? Math.round(succ / succPlays * 100) : 0,
         avg: yardPlays ? (yards / yardPlays).toFixed(1) : '0.0' };
     }).sort((a, b) => b.count - a.count);
   };
@@ -491,7 +492,7 @@ export function bigTwelve(engine, plays, label, opts = {}) {
   return { to90: d.to90, label, total: d.total, rows: d.calls.map((c, i) => {
     const runPct = c.n ? Math.round(c.runs / c.n * 100) : 0;
     const avg = c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0';
-    const succ = c.n ? Math.round(c.succ / c.n * 100) : 0;
+    const succ = c.succPlays ? Math.round(c.succ / c.succPlays * 100) : 0;
     const named = [c.form, c.qb].filter(Boolean).join(' ') || '—';
     return {
       id: i, form: c.form || '—', qb: c.qb || '—', bf: c.bf || '—', str: c.str || '—', mot: c.mot || '—', pt: c.pt || '—',
@@ -676,7 +677,7 @@ export function individualStats(stats, group, playerLabel, board = null) {
 export function defenseDisciplineRows(stats, statsEngine) {
   const def = stats.defPlays.length;
   const { yards, plays: yardPlays, counted } = statsEngine.constructor.yardsTotal(stats.defPlays);
-  const stops = stats.defPlays.filter(play => !statsEngine._isSuccessfulPlay(play)).length;
+  const { hits: stops, plays: stopPlays } = statsEngine.constructor.successTotal(stats.defPlays, statsEngine.constructor.isStop);
   const explosives = counted.filter(play => statsEngine.constructor.isExplosive(play)).length;
   const penalties = stats.penalties || {};
   /* Yards / play allowed leads. Stop rate sat directly beneath it, which made
@@ -690,7 +691,7 @@ export function defenseDisciplineRows(stats, statsEngine) {
     // Middot, per the approved Overview ("1 · 10 yds").
     ['Penalties accepted', penalties.hasData ? `${penalties.accepted} · ${penalties.subjectYards} yds` : '0'],
     ['Penalties declined', penalties.hasData ? penalties.declined : '0'],
-    ['Stop rate', def ? `${Math.round(stops / def * 100)}%` : '—', 'is-good'],
+    ['Stop rate', stopPlays ? `${Math.round(stops / stopPlays * 100)}%` : '—', 'is-good'],
   ] };
 }
 

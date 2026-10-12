@@ -295,8 +295,23 @@ Incomplete or Interception, null when blank), `isNoPlay`, `countsForYards`, and 
 the plays it averages over (`yardPlays`). Passing yards per attempt counts an
 interception with known yardage as an attempt that gained no passing yards,
 in the passing report and Study. An explosive play, and the Explosive Plays
-film, use the same play set (`StatsEngine.isExplosive`). Success rate, tackles for loss, havoc, sack yards, drive distance and return
-yards keep their own rules.
+film, use the same play set (`StatsEngine.isExplosive`). Tackles for loss,
+havoc, sack yards, drive distance and return yards keep their own rules.
+
+## Success (coach, 2026-10-12)
+
+Success rate and stop rate use the yards rule's play set, in the reports,
+Study and Dashboards (smoke 115 finding 3): a snap (run, pass or sack) that
+stood, judged on a touchdown, a charted 1st Down, or its known yards with its
+down and distance. No Gain, Incomplete and Interception with Yards blank are
+0 and count; blank yards with any other result is unknown and left out. A
+rate divides by these plays, never by every play in the group; a stop is the
+absence of opponent success, so our own return touchdown is a stop.
+
+One owner: `StatsEngine.isSuccessEligible`, `isSuccess`, `isStop`,
+`successTotal` and `successRateOf`. Each report row that shows a success
+or stop rate carries the plays it divides by (`successPlays`, `succPlays`,
+`stopPlays`). Third and fourth down conversion rates keep their own rule.
 
 ## Study grouping
 

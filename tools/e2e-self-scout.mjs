@@ -418,7 +418,7 @@ ok(r.rowHeaders === r.rows && r.cuts === r.populated,
 // not depend on whichever cases the season fixture happens to produce.
 r = await page.evaluate(() => {
   const engine = window.app.stats;
-  const cell = (n, runs, succ) => ({ n, runs, passes: n - runs, succ, yards: n * 5 });
+  const cell = (n, runs, succ) => ({ n, runs, passes: n - runs, succ, succPlays: n, yards: n * 5 });
   const K = (row, col) => `${row}\u0001${col}`;
   const matrix = {
     rows: ['Heavy', 'Light'],

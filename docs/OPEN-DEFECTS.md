@@ -13,6 +13,15 @@ findings, fixed in `1.12.0-115`. Built and awaiting the coach's smoke:
 `1.12.0-115` (`SMOKE-1.12.0-115.md`). Installed smoke does not change the
 design approval registry.
 
+## Built since 115: smoke 115 findings (coach closed the list 2026-10-12)
+
+- **Dashboards strip** (findings 1-2): inside a dashboard, Back to
+  dashboards, Prev / Next through the home's order, and Go to reports set
+  apart at the far right; the home shows Go to reports only.
+- **Success rate** (finding 3; `docs/REPORTS-CONTRACTS.md` > Success): the
+  reports, Study and Dashboards use the yards rule's play set. Smoke: Reports
+  > Season > Offense and an offense dashboard read the same success rate.
+
 ## Awaiting the 1.12.0-115 smoke
 
 Carried from 114:

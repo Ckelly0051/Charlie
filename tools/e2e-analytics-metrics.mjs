@@ -30,8 +30,8 @@ const test = (name, fn) => {
 // Binding to {} avoids ever needing a real StatsEngine instance, which
 // requires a DOM (document.getElementById in its constructor) that pure
 // Node doesn't have.
-const isSuccessfulPlay = p => StatsEngine.prototype._isSuccessfulPlay.call({}, p);
-const isEligiblePlay = p => StatsEngine.prototype._isSuccessfulPlayEligible.call({}, p);
+const isSuccessfulPlay = StatsEngine.isSuccessfulPlay;
+const isEligiblePlay = StatsEngine.isSuccessEligible;
 const buildCutFilter = (type, val) => StatsEngine.prototype._buildCutFilter.call({}, type, val);
 
 const deps = { isRun: StatsEngine.isRun, isPass: StatsEngine.isPass, hasResult: StatsEngine.hasResult, playYards: StatsEngine.playYards, countsForYards: StatsEngine.countsForYards, isSuccessfulPlay, isEligiblePlay, buildCutFilter, splitPlayers: StatsEngine.splitPlayers, isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult), isScoredTouchdown: p => StatsEngine.isScoredTouchdown(p, StatsEngine.hasResult) };
@@ -79,8 +79,8 @@ test('an offense-produced metric and its defense-framed sibling compute the IDEN
 console.log('\n== Finding 3: eligibility is real, not "every play in the cohort" ==');
 test('stopRate/successRate exclude a play with no tagged down/distance/yardage from eligible+denominator by default', () => {
   const cohort = [
-    play(1, 'gA', { down: '1', distance: '10', yardage: '6' }), // real data, eligible
-    play(2, 'gA', { down: '', distance: '', yardage: '' }),     // nothing tagged -- NOT eligible
+    play(1, 'gA', { runPass: 'Run', down: '1', distance: '10', yardage: '6' }), // real data, eligible
+    play(2, 'gA', { runPass: 'Run', down: '', distance: '', yardage: '' }),     // nothing tagged -- NOT eligible
   ];
   const stop = metrics.metric(cohort, 'stopRate');
   assert.equal(stop.eligible, 1, 'only the fully-tagged play is eligible');
@@ -88,8 +88,8 @@ test('stopRate/successRate exclude a play with no tagged down/distance/yardage f
 });
 test('Codex finding #1 (repair 2): a "1 play" denominator can never open more than 1 clip -- the ineligible play\'s ref must NOT leak into refs even though it has a perfectly resolvable __gid/id', () => {
   const cohort = [
-    play(1, 'gA', { down: '1', distance: '10', yardage: '6' }), // eligible
-    play(2, 'gA', { down: '', distance: '', yardage: '' }),     // ineligible, but fully resolvable (__gid/id present)
+    play(1, 'gA', { runPass: 'Run', down: '1', distance: '10', yardage: '6' }), // eligible
+    play(2, 'gA', { runPass: 'Run', down: '', distance: '', yardage: '' }),     // ineligible, but fully resolvable (__gid/id present)
   ];
   const stop = metrics.metric(cohort, 'stopRate');
   assert.equal(stop.denominator, 1);
@@ -97,15 +97,15 @@ test('Codex finding #1 (repair 2): a "1 play" denominator can never open more th
   assert.equal(stop.refs.length, stop.denominator, 'refs.length must equal denominator when nothing is unlinked');
 });
 test('a short-circuit result (Touchdown/Good/No Good/1st-Down-custom) is eligible even with no down/distance/yardage tagged', () => {
-  const cohort = [play(1, 'gA', { down: '', distance: '', yardage: '', result: 'Touchdown' })];
+  const cohort = [play(1, 'gA', { runPass: 'Run', down: '', distance: '', yardage: '', result: 'Touchdown' })];
   const stop = metrics.metric(cohort, 'stopRate');
   assert.equal(stop.eligible, 1);
   assert.equal(stop.denominator, 1);
 });
 test('legacyOptions.missingAsZero reproduces the historical fabricating behavior for stopRate/successRate on request', () => {
   const cohort = [
-    play(1, 'gA', { down: '1', distance: '10', yardage: '6' }),
-    play(2, 'gA', { down: '', distance: '', yardage: '' }),
+    play(1, 'gA', { runPass: 'Run', down: '1', distance: '10', yardage: '6' }),
+    play(2, 'gA', { runPass: 'Run', down: '', distance: '', yardage: '' }),
   ];
   const honest = metrics.metric(cohort, 'stopRate');
   const legacy = metrics.metric(cohort, 'stopRate', {}, { missingAsZero: true });
@@ -244,6 +244,37 @@ test('an Interception with Yards left blank is an attempt for 0 yards (coach, 20
   assert.equal(metrics.metric(cohort, 'yardsPerAttempt').value, 5);
   assert.equal(engine._passingStats(cohort).average, '5.0');
 });
+console.log('\n== Success: the yards rule\'s play set (coach, 2026-10-12; REPORTS-CONTRACTS > Success) ==');
+const successCohort = () => [
+  play(1, 'gA', { runPass: 'Run', yardage: '6' }),                         // 1st & 10, 6 yards: success
+  play(2, 'gA', { runPass: 'Run', result: 'No Gain' }),                    // 0 yards: counts, a failure
+  play(3, 'gA', { runPass: 'Pass', result: 'Incomplete' }),                // 0 yards: counts, a failure
+  play(4, 'gA', { runPass: 'Run', result: 'Gain' }),                       // Yards blank: unknown, left out
+  { ...play(5, 'gA', { runPass: 'Run', yardage: '20' }), penalties: [holdingWipe] }, // wiped out: left out
+  play(6, 'gA', { result: 'Penalty', yardage: '-5' }),                     // not a snap: left out
+];
+test('success rate counts No Gain and Incomplete, and leaves out blank yards, a wiped-out play and a non-snap', () => {
+  const plays = successCohort();
+  assert.deepEqual(plays.filter(StatsEngine.isSuccessEligible).map(p => p.id), [1, 2, 3]);
+  const study = metrics.metric(plays, 'successRate');
+  assert.equal(study.denominator, 3);
+  assert.equal(+study.value.toFixed(1), 33.3);
+});
+test('the reports, Study and Dashboards read the same success rate', () => {
+  const plays = successCohort();
+  const efficiency = engine._efficiencyStats(plays);
+  assert.equal(efficiency.successPlays, 3);
+  assert.equal(efficiency.successRate, '33.3');
+  assert.equal(+metrics.metric(plays, 'successRate').value.toFixed(1), Number(efficiency.successRate));
+});
+test('the defense reports, Study and Dashboards read the same stop rate', () => {
+  const plays = successCohort().map(p => ({ ...p, tags: { ...p.tags, unit: 'defense' } }));
+  const study = metrics.metric(plays, 'stopRate', {}, { deps: { isSuccessfulPlay: StatsEngine.isOpponentSuccess } });
+  const summary = engine.selfScoutDefenseSummary({ defPlays: plays, defensive: {} });
+  assert.equal(+study.value.toFixed(1), 66.7);
+  assert.equal(summary.kpis.stopRate, 67);
+  assert.equal(engine.defensiveCohortMetrics(plays).stopRate, study.value);
+});
 test('a group below minSample reports state:insufficient, not ok', () => {
   const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];
   const ok = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 2 });
@@ -267,20 +298,20 @@ test('minSample is a per-metric denominator check, not a raw-cohort-size check -
 
 console.log('\n== Finding 2: metric and film cohorts cannot silently disagree ==');
 test('by default, a play with no resolvable id/game FAILS LOUDLY instead of silently vanishing from refs', () => {
-  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', yardage: '2' } }; // real data, no __gid -- must be ELIGIBLE so it actually reaches ref resolution
-  const cohort = [play(1, 'gA', { yardage: '6' }), malformed];
+  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run', yardage: '2' } }; // real data, no __gid -- must be ELIGIBLE so it actually reaches ref resolution
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '6' }), malformed];
   assert.throws(() => metrics.metric(cohort, 'stopRate'), /allowUnlinkedPlays/);
 });
 test('an INELIGIBLE malformed play never reaches ref resolution at all -- excluded from denominator, so its bad ref cannot even trigger the throw', () => {
   const malformed = { id: 5, tags: { unit: 'offense' } }; // no down/distance/yardage, no __gid
-  const cohort = [play(1, 'gA', { yardage: '6' }), malformed];
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '6' }), malformed];
   const result = metrics.metric(cohort, 'stopRate'); // must NOT throw
   assert.equal(result.denominator, 1, 'only the eligible play counts');
   assert.deepEqual(result.refs, ['gA::1']);
 });
 test('allowUnlinkedPlays:true preserves the legacy silent-omission behavior AND reports unlinkedCount, never hiding the gap', () => {
-  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', yardage: '2' } }; // real data, no __gid
-  const cohort = [play(1, 'gA', { yardage: '6' }), malformed];
+  const malformed = { id: 5, tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run', yardage: '2' } }; // real data, no __gid
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '6' }), malformed];
   const result = metrics.metric(cohort, 'stopRate', {}, { allowUnlinkedPlays: true });
   assert.deepEqual(result.refs, ['gA::1']);
   assert.equal(result.unlinkedCount, 1);
@@ -288,7 +319,7 @@ test('allowUnlinkedPlays:true preserves the legacy silent-omission behavior AND 
   assert.equal(result.state, 'partial-film', 'the gap must be visible in state, not silently absorbed into "ok"');
 });
 test('unlinkedCount is 0 and state is ok when every play resolves', () => {
-  const cohort = [play(1, 'gA', { yardage: '6' }), play(2, 'gA', { yardage: '2' })];
+  const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '6' }), play(2, 'gA', { runPass: 'Run', yardage: '2' })];
   const result = metrics.metric(cohort, 'stopRate', {}, { allowUnlinkedPlays: true });
   assert.equal(result.unlinkedCount, 0);
   assert.equal(result.state, 'ok');
@@ -321,8 +352,8 @@ test('a play tagged with two play types ("RPO + Run Inside") appears in BOTH sin
 });
 test('overlap does not double-count a single play\'s stopRate cohort membership', () => {
   const plays = [
-    play(1, 'gA', { playType: 'RPO + Run Inside', result: 'Gain', yardage: '2' }), // fails 1st&10 success (needs 5+)
-    play(2, 'gA', { playType: 'RPO', result: 'Touchdown', yardage: '20' }),
+    play(1, 'gA', { playType: 'RPO + Run Inside', runPass: 'Run', result: 'Gain', yardage: '2' }), // fails 1st&10 success (needs 5+)
+    play(2, 'gA', { playType: 'RPO', runPass: 'Run', result: 'Touchdown', yardage: '20' }),
   ];
   const rpo = metrics.cohortByCut(plays, 'playType', 'RPO');
   const result = metrics.metric(rpo, 'stopRate', {}, { allowUnlinkedPlays: true });

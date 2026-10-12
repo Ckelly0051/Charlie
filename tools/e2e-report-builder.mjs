@@ -407,7 +407,14 @@ try {
         dashboardDefense: b.measure('yards', plays, { unit: 'defense' }).value,
         reportDefense: app.stats.defenseBoard(plays, {}).kpis.ypp,
       };
-      return { ypp, errors: result.widgets.filter(w => w.error).map(w => w.title), five: leaders.find(r => r.value === '5')?.metric,
+      // Success rate uses the yards rule's play set everywhere (smoke 115 finding 3).
+      const success = {
+        dashboardOffense: b.measure('success', offense, { unit: 'offense' }).value,
+        reportOffense: Number(app.stats.compute(offense).efficiency.successRate),
+        dashboardDefense: b.measure('success', plays, { unit: 'defense' }).value,
+        reportDefense: app.stats.selfScoutDefenseSummary(app.stats.compute(plays)).kpis.stopRate,
+      };
+      return { ypp, success, errors: result.widgets.filter(w => w.error).map(w => w.title), five: leaders.find(r => r.value === '5')?.metric,
         boardFive: board.find(r => String(r.num) === '5')?.tackles, cells: result.widgets.find(w => w.view === 'matrix').rows.flatMap(r => r.cells).filter(c => c.n).length, plays: plays.length };
     }, season);
     ok(!real.errors.length && real.plays === 174, 'the Defense snapshot measures all 174 canonical defensive plays without an error', real);
@@ -415,6 +422,8 @@ try {
     ok(real.cells > 0, 'the coverage by down heat map fills on defense', real);
     ok(real.ypp.dashboardOffense === real.ypp.reportOffense && real.ypp.dashboardDefense === real.ypp.reportDefense,
       'yards per play is the same number in Dashboards and the reports, offense and defense', real.ypp);
+    ok(+real.success.dashboardOffense.toFixed(1) === real.success.reportOffense && Math.abs(real.success.dashboardDefense - real.success.reportDefense) <= 0.5, // one decimal vs a whole percent
+      'success and stop rate are the same number in Dashboards and the reports', real.success);
   } else if (process.env.GIQ_REALDATA_OPTIONAL === '1') {
     console.log('  SKIP  canonical season absent (GIQ_REALDATA_OPTIONAL=1)');
   } else {

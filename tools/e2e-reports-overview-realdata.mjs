@@ -129,6 +129,16 @@ const isSuccess = p => {
   if (t.down === '3' || t.down === '4') return y >= dist;
   return y >= 4;
 };
+/** Success (coach, 2026-10-12; docs/REPORTS-CONTRACTS.md > Success),
+ *  transcribed: the yards rule's play set -- a snap that stood, judged on a
+ *  touchdown, a charted 1st Down, or its known yards with down and distance. */
+const judged = p => {
+  const t = tags(p);
+  if (!(isRun(p) || isPass(p) || hasResult(p, 'Sack')) || noPlay(p)) return false;
+  if (hasResult(p, 'Touchdown') || (Array.isArray(t.custom) && t.custom.includes('1st Down'))) return true;
+  return knownYds(p) !== null && ['1', '2', '3', '4'].includes(t.down)
+    && String(t.distance ?? '').trim() !== '' && Number.isFinite(parseInt(t.distance, 10));
+};
 /** `compute()` admits a play that carries a play type, a run/pass or a sack
  *  (a sack charted with only its result; REPORTS-CONTRACTS > Yards). */
 const charted = p => !!(tags(p).playType || tags(p).runPass || hasResult(p, 'Sack'));
@@ -174,12 +184,12 @@ const EXPECTED = {
   phaseOffense: phaseOff.length,
   phaseDefense: phaseDef.length,
   phaseSpecial: phaseSt.length,
-  successes: off.filter(isSuccess).length,
+  successes: off.filter(p => judged(p) && isSuccess(p)).length,
   offense: off.length,
   defense: def.length,
   totalYards,
   yardsPerPlay: off.filter(counts).length ? one(totalYards / off.filter(counts).length) : '0.0',
-  successRate: off.length ? one(off.filter(isSuccess).length / off.length * 100) : '0.0',
+  successRate: off.filter(judged).length ? one(off.filter(p => judged(p) && isSuccess(p)).length / off.filter(judged).length * 100) : '0.0',
   explosives: off.filter(isExplosive).length,
   negative: off.filter(p => yds(p) < 0).length,
   rushing: {

@@ -340,7 +340,7 @@ function MatrixGrid({ matrix }) {
           const cell = !r ? null : matrix.cells[`${r}\0${c}`];
           if (!cell?.count) return <td key={c} class="tm-cell" style="opacity:.2">—</td>;
           const intensity = cell.count / maxCount;
-          const succPct = Math.round((cell.successes / cell.count) * 100);
+          const succPct = cell.successPlays ? Math.round((cell.successes / cell.successPlays) * 100) : 0;
           const avg = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const classified = cell.runs + cell.passes;
           const runPct = classified ? Math.round((cell.runs / classified) * 100) : null;
@@ -395,7 +395,7 @@ function FormationPlayTypeMatrix({ engine, plays }) {
         {colKeys.map((col, ci) => {
           const cell = row && col ? raw.cells[`${row}\0${col}`] : null;
           if (!cell?.count) return <td key={`${col}-${ci}`} class="gi-form-type-cell is-absent">—</td>;
-          const success = Math.round((cell.successes / cell.count) * 100);
+          const success = cell.successPlays ? Math.round((cell.successes / cell.successPlays) * 100) : 0;
           const ypp = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const heat = Math.round(12 + (cell.count / maxCount) * 48);
           return <td key={`${col}-${ci}`} class={`gi-form-type-cell ${success >= 50 ? 'is-good' : success <= 30 ? 'is-bad' : ''}`}
@@ -1385,7 +1385,7 @@ export function OpponentOffenseTab({ data, screen }) {
     const predicate = engine._buildCutFilter('bigCall', call.key);
     const refs = [...new Set(data.offPlays.filter(predicate).filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
     const runPct = call.n ? Math.round(call.runs / call.n * 100) : 0;
-    return { ...call, id: call.key, n: call.n, succ: call.n ? Math.round(call.succ / call.n * 100) : 0,
+    return { ...call, id: call.key, n: call.n, succ: call.succPlays ? Math.round(call.succ / call.succPlays * 100) : 0,
       avg: call.yardPlays ? (call.yards / call.yardPlays).toFixed(1) : '0.0', runPct, refs,
       cutLabel: `${call.form || call.qb || 'Opponent call'} ${call.pt || ''} — ${call.n} plays` };
   });

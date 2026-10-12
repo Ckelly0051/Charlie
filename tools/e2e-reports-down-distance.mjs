@@ -104,7 +104,8 @@ ok(eq(engine.c1.playTypes, [{ name: 'Run Inside', n: 3 }, { name: 'RPO', n: 1 },
   'a multi-select play type credits each component once and never adds a snap (5 tags on 4 snaps)', JSON.stringify(engine.c1.playTypes));
 ok(engine.c1.yardsMeasured === 4 && engine.c1.ypp === 3.75 && engine.c1Text.ypp === '3.8',
   'an incomplete pass is 0 yards and counts in yards per play (coach, 2026-10-10)', JSON.stringify({ c1: engine.c1, text: engine.c1Text }));
-ok(engine.c1.successEligible === 3 && engine.c1.successes === 2 && engine.c1Text.success === '67%',
+// An Incomplete with Yards blank is 0 yards and is judged (REPORTS-CONTRACTS > Success).
+ok(engine.c1.successEligible === 4 && engine.c1.successes === 2 && engine.c1Text.success === '50%',
   'success counts only measurable snaps, with the canonical success rule', JSON.stringify(engine.c1));
 ok(engine.c3.untyped === 1 && engine.c3.playTypes.length === 0 && engine.c3Text.top === '-',
   'a snap with no play type is counted as untyped, never invented', JSON.stringify(engine.c3));

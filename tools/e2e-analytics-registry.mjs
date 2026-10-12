@@ -24,6 +24,9 @@ const result = (() => {
     grades: { passer: 2 }
   }};
   const stats = registry.stats.compute([play]);
+  // The accepted holding wipes this play out, so it is not judged for success
+  // (REPORTS-CONTRACTS > Success); the success checks read it as it stood.
+  const standing = { ...play, penalties: [] };
   // Harden (reviewer add, P0-c review): assert EVERY ready measure resolves — not
   // just the 3 spot-checked below — over a MIXED offense+defense set, so a future
   // compute() field rename can't silently break a "ready" measure's path.
@@ -87,8 +90,9 @@ const result = (() => {
     // not a structurally-identical but distinct second copy.
     metricsEngineSame: registry.metricsEngine() === registry.metricsEngine(),
     metricsEngineIsStatsEngineOwned: registry.metricsEngine() === registry.stats.metricsEngine(),
-    metricsEngineStopRate: registry.metricsEngine().metric([play], 'stopRate'),
-    selected: registry.readMeasures(stats, ['plays', 'successRate', 'epaPerPlay']),
+    metricsEngineStopRate: registry.metricsEngine().metric([standing], 'stopRate'),
+    selected: registry.readMeasures(registry.stats.compute([standing]), ['plays', 'successRate', 'epaPerPlay']),
+    wipedOut: registry.readMeasures(stats, ['successRate']).successRate,
     unresolvedMeasures,
     blocksSelected: registry.readBlocks(stats, ['rushing', 'advanced']),
     allBlocksExact: registry.listBlocks().every(entry =>
@@ -139,6 +143,7 @@ if (!result.missing) {
     && typeof result.metricsEngineStopRate.value === 'number' && result.metricsEngineStopRate.denominator === 1,
     'AnalyticsRegistry.metricsEngine() computes a real ad-hoc-cohort metric, not a stand-in object', JSON.stringify(result.metricsEngineStopRate));
   ok(result.selected.plays === 1 && result.selected.successRate === '100.0' && result.selected.epaPerPlay === 0, 'Ready measures select canonical compute outputs', JSON.stringify(result.selected));
+  ok(result.wipedOut === '0.0', 'a play an accepted penalty wipes out is not judged for success', result.wipedOut);
   ok(result.unresolvedMeasures.length === 0, 'EVERY ready measure resolves to a defined value (no silent undefined path)', JSON.stringify(result.unresolvedMeasures));
   ok(result.blocksSelected.rushing.attempts === 0 && result.blocksSelected.advanced.count === 0, 'Block bindings return canonical objects');
   ok(result.allBlocksExact, 'Every registered block equals its canonical compute output');
