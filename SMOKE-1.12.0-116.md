@@ -56,5 +56,16 @@ Do not infer approval of those workflows from this build or the full gate.
 
 ## Findings
 
-Not yet assessed. Existing renamed-HTML-export and intermittent rapid-scrub
-defects remain open in `docs/OPEN-DEFECTS.md`; no repair is claimed here.
+Coach smoke in progress (2026-10-12). Existing renamed-HTML-export and
+intermittent rapid-scrub defects remain open in `docs/OPEN-DEFECTS.md`; no
+repair is claimed here.
+
+1. A saved dashboard needs an Edit function. Coach: "There needs to be an
+   edit dashboard function."
+2. A saved dashboard takes the unit last selected before it was closed, so
+   its home row color changes with it (screenshot: "Offense snapshot" now
+   reads Defense, cyan). Coach: "This makes unit specific dashboard coloring
+   useless." Cause, confirmed in code: a dashboard stores one unit, and the
+   Unit switch saves it (`ReportBuilderScreen.setUnit` writes the saved
+   dashboard). There is no separate unit for viewing; scope and filters save
+   the same way.
