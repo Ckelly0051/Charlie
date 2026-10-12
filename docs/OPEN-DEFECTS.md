@@ -164,17 +164,9 @@ global app instead of its owner or an injected dependency.
   reach-throughs and the test harnesses use; it goes last
 - `js/scoreboard-ocr.js` 1 (OCR is parked)
 
-**Raw `innerHTML` writes** (5). HTML built as strings instead of rendered by the
+**Raw `innerHTML` writes** (4). HTML built as strings instead of rendered by the
 native owner; each one is an escaping risk.
 - `js/scoreboard-ocr.js` 4 (OCR is parked)
-- `js/play-diagram.js` 1
-
-**Native `alert()`** (1). Use the in-app toast or confirm.
-- `js/play-diagram.js` 1: "Select a play first"
-
-**Dialogs outside the overlay spec** (1). They work but miss its focus and Escape
-rules; move them to `js/native-overlay-service.js`.
-- `js/play-diagram.js` the diagram editor builds its own modal
 
 **`js/stats-engine.js` size** (6,549 lines). Split by area, with `e2e-parity`
 proving no change. The split is part of the reports rebuild

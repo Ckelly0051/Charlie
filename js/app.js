@@ -97,7 +97,6 @@ class App {
     this.tagLibrarySettings = new TagLibrarySettings(this.customChips, this.tagger,
       options => this.settingsScreen.open(options));
     this.breakdownCharting = new BreakdownChartingService(this.tagger);
-    this.playDiagram = new PlayDiagram(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     this.notes = new NotesManager(this.vc, this.tagger);
     this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
@@ -123,6 +122,7 @@ class App {
     this.reportsScreen = new ReportsScreen(this);
     this.overlays = getNativeOverlayService();
     if (!this.overlays) throw new Error('GridIron IQ native overlay service is unavailable.');
+    this.playDiagram = new PlayDiagram(this.tagger, this.overlays);
     window.ffaSaveBlob = (blob, filename) => ffaSaveBlob(blob, filename,
       { notify: message => this.history?._toast?.(message) });
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist, this.overlays);

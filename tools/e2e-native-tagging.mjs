@@ -571,19 +571,6 @@ state=await page.evaluate(()=>{
 ok(state.found&&state.routed===1&&state.otherUnchanged,
   'The native Clear diagram command reaches the canonical owner exactly once and disturbs no other play',
   JSON.stringify(state));
-// S7-a OBSERVATION, recorded rather than papered over: the retired preflight
-// proved "Clearing a diagram updates only the selected play through the
-// canonical event path" by clicking the LEGACY btnClearDiagram, and it passed.
-// Driving PlayDiagram.clearCurrent() directly here leaves the diagram untouched
-// and emits nothing, which means its `if (!play) return` guard is firing —
-// `playDiagram.tagger.getCurrentPlay()` is falsy while `app.tagger`'s is not.
-// The legacy button works because it was bound to the instance that owns that
-// tagger. That is a real seam question for S7-d, when the diagram engine is
-// decoupled from its markup; it is NOT asserted as working here, because it is
-// not currently demonstrable through the canonical owner.
-// (Deliberately NOT asserted here — an assertion that cannot fail is not
-//  coverage. The finding is carried in CLAUDE.md as an S7-d follow-up.)
-
 // --- Diagram: byte-stable across a genuine relaunch, and still printable ---
 const diagramBefore=await page.evaluate(async()=>{
   const play=window.app.tagger.getCurrentPlay();
@@ -612,6 +599,70 @@ ok(state.fresh&&state.after===diagramBefore.json
 await page.evaluate(async()=>{await window.app.storage._loadActiveGame();
   window.app.tagger.saveDraft(),window.app.tagger.selectPlay(1);await window.app.workspaceShell.show('breakdown');});
 await page.waitForFunction(()=>document.querySelector('[data-native-tagging]')?.getBoundingClientRect().width>0);
+
+console.log('\n== 7a. Diagram editor overlay ownership ==');
+await page.evaluate(()=>{
+  window.__diagramOriginal=JSON.stringify(app.tagger.getCurrentPlay().diagram);
+  window.__diagramInvoker=[...document.querySelectorAll('[data-native-tagging] button')].find(button=>button.textContent.trim()==='Draw');
+  window.__diagramInvoker.closest('details').open=true;
+});
+await page.waitForFunction(()=>window.__diagramInvoker.getClientRects().length>0);
+await page.evaluate(()=>{window.__diagramInvoker.focus();window.__diagramInvoker.click();});
+await page.waitForSelector('#diagramEditorModal .pd-canvas');
+await page.click('#diagramEditorModal .pd-canvas');
+await page.keyboard.press('Escape');
+await page.waitForFunction(()=>!document.getElementById('diagramEditorModal')&&document.activeElement===window.__diagramInvoker,{timeout:1500}).catch(()=>{});
+state=await page.evaluate(()=>({closed:!document.getElementById('diagramEditorModal'),focus:document.activeElement===window.__diagramInvoker,unchanged:JSON.stringify(app.tagger.getCurrentPlay().diagram)===window.__diagramOriginal}));
+ok(state.closed&&state.focus&&state.unchanged,'Diagram Escape cancels local edits and returns focus to the deck',JSON.stringify(state));
+await page.evaluate(()=>{
+  document.querySelector('#diagramEditorModal [data-act="cancel"]')?.click();
+  app.playDiagram.openEditor();
+});
+await page.waitForSelector('#diagramEditorModal .pd-canvas');
+await page.click('#diagramEditorModal .pd-canvas');
+await page.click('#diagramEditorModal [data-act="save"]');
+state=await page.evaluate(()=>({closed:!document.getElementById('diagramEditorModal'),original:JSON.parse(window.__diagramOriginal).length,current:app.tagger.getCurrentPlay().diagram.length}));
+ok(state.closed&&state.current===state.original+1,'Diagram Save commits the local mark to the selected draft',JSON.stringify(state));
+await page.evaluate(()=>app.playDiagram.openEditor());
+await page.waitForSelector('#diagramEditorModal .pd-canvas');
+await page.click('#diagramEditorModal .pd-clear');
+await page.click('#diagramEditorModal [data-tool="route"]');
+const diagramBox=await page.$eval('#diagramEditorModal .pd-canvas',canvas=>{const r=canvas.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};});
+await page.mouse.move(diagramBox.x+diagramBox.w*.3,diagramBox.y+diagramBox.h*.6);
+await page.mouse.down();
+await page.mouse.move(diagramBox.x+diagramBox.w*.6,diagramBox.y+diagramBox.h*.2,{steps:8});
+await page.mouse.up();
+await page.click('#diagramEditorModal [data-tool="text"]');
+await page.click('#diagramEditorModal .pd-canvas');
+await page.waitForSelector('.gi-overlay-input[name="prompt"]');
+await page.type('.gi-overlay-input[name="prompt"]','Route A');
+await page.keyboard.press('Enter');
+await page.waitForFunction(()=>!document.querySelector('.gi-overlay-input[name="prompt"]'));
+if(process.env.GIQ_DIAGRAM_SCREENSHOT){
+  await page.screenshot({path:process.env.GIQ_DIAGRAM_SCREENSHOT});
+  await page.setViewport({width:390,height:844});
+  await page.screenshot({path:process.env.GIQ_DIAGRAM_SCREENSHOT.replace('.png','-390.png')});
+  await page.setViewport({width:1440,height:900});
+}
+await page.click('#diagramEditorModal [data-act="save"]');
+state=await page.evaluate(()=>app.tagger.getCurrentPlay().diagram);
+ok(state.length===2&&state[0].t==='route'&&state[0].pts.length>1&&state[0].a&&state[1].t==='text'&&state[1].s==='Route A',
+  'Clear, pointer route drawing and the shared label prompt preserve normalized shape data',JSON.stringify(state));
+await page.evaluate(()=>app.playDiagram.openEditor());
+await page.waitForSelector('#diagramEditorModal .pd-canvas');
+await page.click('#diagramEditorModal .pd-canvas');
+await page.evaluate(()=>app.playDiagram.openEditor());
+await page.click('#diagramEditorModal [data-act="save"]');
+state=await page.evaluate(()=>app.tagger.getCurrentPlay().diagram);
+ok(state.length===2&&state[0].t==='route'&&state[1].t==='text','Replacing an open diagram discards its unsaved local marks',JSON.stringify(state));
+await page.evaluate(()=>{
+  const owner=app.playDiagram,read=owner._play,notify=app.tagger.toast,alert=window.alert;
+  let alerts=0,messages=[];owner._play=()=>null;window.alert=()=>alerts++;app.tagger.toast=message=>messages.push(message);
+  try{owner.openEditor();window.__missingDiagram={alerts,messages};}finally{owner._play=read;window.alert=alert;app.tagger.toast=notify;}
+});
+state=await page.evaluate(()=>window.__missingDiagram);
+ok(state.alerts===0&&state.messages.length===1&&/Select a play first/.test(state.messages[0]),'Missing-play feedback uses the owning in-app toast, never a native alert',JSON.stringify(state));
+await page.evaluate(()=>{app.tagger.getCurrentPlay().diagram=JSON.parse(window.__diagramOriginal);});
 
 console.log('\n== 7b. Native Auto-Detect: real scan/progress/results/review/apply, no hidden host ==');
 // Codex review d51c97b/e99d1ac: the prior "Auto-detect plays" click proxied
@@ -743,8 +794,8 @@ await page.waitForSelector('#detectReviewModal');
 const reviewProbe=await page.evaluate(()=>({injected:!!document.querySelector('[data-review-injection]'),literal:document.querySelector('#detectReviewModal')?.textContent.includes('<svg data-review-injection></svg>')}));
 ok(!reviewProbe.injected&&reviewProbe.literal,'Review analysis values are literal text, never injected markup',JSON.stringify(reviewProbe));
 await page.keyboard.press('Escape');
-await new Promise(resolve=>setTimeout(resolve,100));
-state=await page.evaluate(()=>({closed:!document.getElementById('detectReviewModal'),parent:!!document.querySelector('[data-overlay-id="auto-detect"]'),focus:document.activeElement===window.__reviewInvoker}));
+await page.waitForFunction(()=>!document.getElementById('detectReviewModal')&&document.activeElement===window.__reviewInvoker,{timeout:1500}).catch(()=>{});
+state=await page.evaluate(()=>({closed:!document.getElementById('detectReviewModal'),parent:!!document.querySelector('[data-overlay-id="auto-detect"]'),focus:document.activeElement===window.__reviewInvoker,active:document.activeElement?.outerHTML,invoker:window.__reviewInvoker?.outerHTML}));
 ok(state.closed&&state.parent&&state.focus,'Escape dismisses only the review and restores its invoker',JSON.stringify(state));
 await page.evaluate(()=>{app.autoDetectScreen._reviewHandle?.close();document.getElementById('detectReviewModal')?.remove();app.autoDetectScreen._lastAnalyses=window.__reviewAnalyses;});
 await page.evaluate(()=>app.autoDetectScreen.openReview());

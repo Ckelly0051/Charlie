@@ -1,3 +1,6 @@
+import { h } from 'preact';
+import { DiagramEditor } from './native-play-diagram.jsx';
+
 /**
  * PlayDiagram — schematic X's & O's drawing per play.
  *
@@ -12,8 +15,9 @@
  *   { t:'route', pts:[{x,y}...], a } polyline; a=true draws an arrowhead
  */
 export class PlayDiagram {
-  constructor(tagger) {
+  constructor(tagger, overlays) {
     this.tagger = tagger;
+    this.overlays = overlays;
   }
 
   _play() { return this.tagger.getCurrentPlay && this.tagger.getCurrentPlay(); }
@@ -106,114 +110,28 @@ export class PlayDiagram {
     }
   }
 
-  // ---- Editor modal ----------------------------------------------------
   openEditor() {
     const play = this._play();
-    if (!play) { alert('Select a play first, then draw its diagram.'); return; }
-    const prev = document.getElementById('diagramEditorModal');
-    if (prev) prev.remove();
-
-    let shapes = JSON.parse(JSON.stringify(play.diagram || []));
-    let tool = 'O';
-    let drawing = null; // in-progress route
-
-    const overlay = document.createElement('div');
-    overlay.className = 'ffa-confirm-modal';
-    overlay.id = 'diagramEditorModal';
-    overlay.innerHTML = `
-      <div class="ffa-confirm-backdrop"></div>
-      <div class="ffa-confirm-card pd-editor" role="dialog" aria-modal="true">
-        <h3 class="pd-title">Play Diagram</h3>
-        <div class="pd-tools">
-          ${['O','X','route','text','erase'].map(t =>
-            `<button type="button" class="btn btn-sm pd-tool${t==='O'?' active':''}" data-tool="${t}">${
-              {O:'O (Off)',X:'X (Def)',route:'Route ↗',text:'Text',erase:'Erase'}[t]}</button>`).join('')}
-          <button type="button" class="btn btn-sm pd-undo" title="Undo last">Undo</button>
-          <button type="button" class="btn btn-sm btn-danger pd-clear">Clear</button>
-        </div>
-        <canvas class="pd-canvas" width="640" height="380"></canvas>
-        <p class="pd-help">Tap to place O/X or text · drag for a route · Erase taps a mark to remove it.</p>
-        <div class="ffa-confirm-actions">
-          <button type="button" class="btn btn-sm" data-act="cancel">Cancel</button>
-          <button type="button" class="btn btn-sm btn-accent" data-act="save">Save</button>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-
-    const canvas = overlay.querySelector('.pd-canvas');
-    const redraw = () => {
-      PlayDiagram.draw(canvas, shapes);
-      if (drawing) PlayDiagram._shape(canvas.getContext('2d'), canvas.width, canvas.height, drawing);
-    };
-    redraw();
-
-    const pos = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-      const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-      return { x: Math.max(0, Math.min(1, cx / rect.width)), y: Math.max(0, Math.min(1, cy / rect.height)) };
-    };
-    const nearestIdx = (p) => {
-      let best = -1, bd = 0.05; // threshold in normalized space
-      shapes.forEach((s, i) => {
-        const sx = s.x ?? (s.pts ? s.pts[0].x : null);
-        const sy = s.y ?? (s.pts ? s.pts[0].y : null);
-        if (sx == null) return;
-        const d = Math.hypot(sx - p.x, sy - p.y);
-        if (d < bd) { bd = d; best = i; }
-      });
-      return best;
-    };
-
-    const onDown = (e) => {
-      e.preventDefault();
-      const p = pos(e);
-      if (tool === 'O' || tool === 'X') { shapes.push({ t: tool, x: p.x, y: p.y }); redraw(); }
-      else if (tool === 'text') {
-        const s = (prompt('Label text:') || '').trim();
-        if (s) { shapes.push({ t: 'text', x: p.x, y: p.y, s }); redraw(); }
-      } else if (tool === 'erase') {
-        const i = nearestIdx(p); if (i >= 0) { shapes.splice(i, 1); redraw(); }
-      } else if (tool === 'route') {
-        drawing = { t: 'route', pts: [p], a: true };
-      }
-    };
-    const onMove = (e) => {
-      if (!drawing) return;
-      e.preventDefault();
-      const p = pos(e);
-      const last = drawing.pts[drawing.pts.length - 1];
-      if (Math.hypot(last.x - p.x, last.y - p.y) > 0.01) { drawing.pts.push(p); redraw(); }
-    };
-    const onUp = () => {
-      if (drawing) {
-        if (drawing.pts.length > 1) shapes.push(drawing);
-        drawing = null; redraw();
-      }
-    };
-    canvas.addEventListener('mousedown', onDown);
-    canvas.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    canvas.addEventListener('touchstart', onDown, { passive: false });
-    canvas.addEventListener('touchmove', onMove, { passive: false });
-    canvas.addEventListener('touchend', onUp);
-
-    overlay.querySelectorAll('.pd-tool').forEach(b => b.addEventListener('click', () => {
-      tool = b.dataset.tool;
-      overlay.querySelectorAll('.pd-tool').forEach(x => x.classList.toggle('active', x === b));
-    }));
-    overlay.querySelector('.pd-undo').addEventListener('click', () => { shapes.pop(); redraw(); });
-    overlay.querySelector('.pd-clear').addEventListener('click', () => { shapes = []; redraw(); });
-
-    const close = () => { window.removeEventListener('mouseup', onUp); overlay.remove(); };
-    overlay.addEventListener('click', (e) => {
-      const act = e.target.dataset ? e.target.dataset.act : null;
-      if (act === 'cancel' || e.target.classList.contains('ffa-confirm-backdrop')) close();
-      else if (act === 'save') {
-        play.diagram = shapes;
-        this.tagger._emit && this.tagger._emit('play-updated', play);
-        close();
-      }
+    if (!play) { this.tagger.toast('Select a play first, then draw its diagram.'); return; }
+    this.handle?.close('replaced');
+    this._editorRevision = (this._editorRevision || 0) + 1;
+    let handle;
+    handle = this.overlays.sheet({
+      id: 'play-diagram', title: 'Play Diagram', modal: true, unsaved: true, actions: [],
+      content: h(DiagramEditor, {
+        key: this._editorRevision,
+        shapes: play.diagram || [], draw: PlayDiagram.draw, drawShape: PlayDiagram._shape,
+        prompt: (...args) => this.tagger._promptDialog(...args),
+        cancel: () => handle.close(),
+        save: shapes => {
+          if (this._play() !== play) { handle.close('context-changed'); return; }
+          play.diagram = shapes;
+          this.tagger._emit('play-updated', play);
+          handle.close('save');
+        },
+      }),
     });
+    this.handle = handle;
+    handle.result.finally(() => { if (this.handle === handle) this.handle = null; });
   }
 }

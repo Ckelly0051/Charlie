@@ -105,6 +105,10 @@ log.
   Detection Review uses the shared overlay owner and native rows; retired
   modal markup, bindings and wrapper CSS are deleted. Regression checks prove
   literal analysis text and topmost-only Escape with focus return.
+  Play Diagram uses the shared overlay owner and native canvas controls;
+  its HTML modal, native alert/prompt and old wrapper CSS are removed. Escape
+  discards local marks; Save updates only the selected draft. No coach data
+  was written; installed drawing and real-film review still need smoke.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:
