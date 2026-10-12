@@ -19,7 +19,14 @@
 
 ## Result
 
-Pending the coach's smoke.
+Smoke in progress (2026-10-12).
+
+## Findings
+
+1. Inside a dashboard, the Reports bar's "Back to reports" sits above the
+   dashboard's own "All dashboards": two back buttons stacked. Back to reports
+   leaves Dashboards for the report tabs; All dashboards returns to the
+   Dashboards home.
 
 ## What to check
 
