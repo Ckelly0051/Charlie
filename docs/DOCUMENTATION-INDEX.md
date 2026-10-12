@@ -8,6 +8,7 @@ Updated 2026-10-12.
 - `AGENTS.md` - architecture and module map.
 - `GRIDIRON-IQ-PLAN-V2.md` - forward roadmap.
 - `docs/OPEN-DEFECTS.md` - open defects, pending smoke items, coach decisions.
+- `docs/CODEX-JOB-2026-10-12.md` - Codex's current assignment (deleted when it closes).
 - `docs/TESTING.md` - testing tiers and execution rules.
 - `docs/REPORTS-CONTRACTS.md`, `docs/HOME-CONTRACTS.md` - Reports and Home rules.
 - `docs/VISUAL-SYSTEM-RULES.md` - shared palette, typography, navigation,
