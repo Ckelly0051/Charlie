@@ -8,11 +8,14 @@ open, check its fix and smoke status in git.
 ## Release Status
 
 Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
-intermittent scrubbing defect deferred. Built and awaiting the coach's smoke:
-`1.12.0-114` (`SMOKE-1.12.0-114.md`). Installed smoke does not change the
+intermittent scrubbing defect deferred. `1.12.0-114` smoked with six
+findings, fixed in `1.12.0-115`. Built and awaiting the coach's smoke:
+`1.12.0-115` (`SMOKE-1.12.0-115.md`). Installed smoke does not change the
 design approval registry.
 
-## Awaiting the 1.12.0-114 smoke
+## Awaiting the 1.12.0-115 smoke
+
+Carried from 114:
 
 - **Chart saves only what a play shows** (coach, 2026-10-10;
   `GRIDIRON-IQ-SAVE-CONTRACT.md`). Chart edits a draft; Save (new button,
@@ -45,9 +48,8 @@ design approval registry.
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
 
-## Building now: smoke 114 findings (coach closed the list 2026-10-10)
-
-From `SMOKE-1.12.0-114.md`, coach findings and the installed check:
+Smoke 114 findings, built in 115 (`SMOKE-1.12.0-114.md`, coach findings and
+the installed check):
 
 - **Dashboards home** (findings 1-2): one home page that always stays
   reachable, listing saved dashboards like Home's season rows, plus the
@@ -163,13 +165,6 @@ proving no change. The split is part of the reports rebuild
   `../../ux-prototype/assets/all22-frame.png`, deleted with `ux-prototype/` in
   `c28e7e26`; the comp now renders without its film frame. The comp is not a
   registered canonical artifact. Not fixed.
-
-## Coach decisions to build (next batch)
-
-- **Special Teams accent is teal** (coach, 2026-10-10): the chart teal
-  (`--gi-cat-6`), beside Offense gold and Defense cyan wherever the units
-  carry their accent (Reports, unit controls). White and black stay for
-  neutral selections. Check it reads apart from Defense cyan side by side.
 
 ## Coach decisions pending
 

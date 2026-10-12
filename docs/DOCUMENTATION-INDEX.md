@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-Updated 2026-10-10.
+Updated 2026-10-12.
 
 ## Current authority
 
@@ -54,19 +54,19 @@ log.
   change of possession, Dashboards rev 1. Coach checks 1-2 passed and Claude's
   installed checks 8-10 passed; the coach closed the findings list (six
   findings) for fixing. Packaged-asset inspection PASS.
-- **Built since 114, not packaged (2026-10-10):** the smoke 114 fixes
-  (Dashboards home, read-only templates, Special Teams teal, prose, the
-  installed-check defects) and one yards rule across the reports, Study and
-  Dashboards (`docs/REPORTS-CONTRACTS.md` > Yards). Focused harnesses green;
-  Codex review, full gate and installer pending.
-- **Latest full gate:** 157/158 green at `075522ce` (2026-10-10); the one red,
-  `e2e-design-system` (raw colors in the Dashboards styles), was fixed in
-  `7dd5dfc5` and re-run green 17/17 with the related reports and CSS
-  harnesses. The Old patterns fix in `playlist-manager.js` (two `window.app`
-  reach-throughs) followed, with its 20 clip and film harnesses green. No
-  full re-run on the final bytes; the coach accepted the focused re-runs for
-  installer 114. Receipt:
-  `artifacts/gate-logs/2026-10-10T18-15-13-470Z-eGCXc2/receipt.json`.
+- **Built, awaiting the coach's smoke: `1.12.0-115`** (2026-10-12,
+  `SMOKE-1.12.0-115.md`): the smoke 114 fixes (Dashboards home, read-only
+  templates, Special Teams teal, prose, the installed-check defects, bar
+  scale) and one yards rule across the reports, Study and Dashboards
+  (`docs/REPORTS-CONTRACTS.md` > Yards). Codex review rounds closed with no
+  open findings. Built from clean version-bump commit `3788a593`;
+  `e2e-p0-exit` 20/20. Artifact:
+  `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-115_x64-setup.exe`,
+  4,047,120 bytes, SHA-256
+  `EE10EAFE802F5ECD05FAF58B156F05F119CE41CCCFAEDBAB3A2009BEF6A7677A`.
+  Packaged-asset inspection not run. No push, tag or publication.
+- **Latest full gate:** 158/158 green at `216d5426` (2026-10-12). Receipt:
+  `artifacts/gate-logs/2026-10-12T06-16-21-359Z-WTtmIO/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
