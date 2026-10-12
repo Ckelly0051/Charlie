@@ -378,7 +378,7 @@ function DashboardsHome({ screen, state }) {
   return <div class="gi-rb-home" data-rb-home>
     <header class="gi-rb-home-head">
       <h2>Dashboards</h2>
-      <button type="button" class="is-primary" data-rb-new onClick={() => screen.createBlank()}>New dashboard</button>
+      <button type="button" data-rb-new onClick={() => screen.createBlank()}>New dashboard</button>
     </header>
     <section class="gi-rb-home-section" aria-label="Saved dashboards">
       <h3>Saved</h3>

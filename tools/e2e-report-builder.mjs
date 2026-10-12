@@ -151,12 +151,14 @@ try {
     picker: !!document.querySelector('[data-report-builder] select[aria-label="Dashboard"]'),
     scorebug: document.querySelector('[data-reports-scorebug]')?.hidden !== false, strip: document.querySelector('[data-reports-strip]')?.hidden === true,
     special: document.querySelector('[data-reports-special-chrome]')?.hidden === true,
+    newColor: getComputedStyle(document.querySelector('[data-rb-new]')).backgroundColor,
     nav: [...document.querySelectorAll('[data-rb-nav] button, [data-rb-nav] .gi-rb-nav-label')].map(n => n.textContent.trim()),
   }));
   ok(ui.home && ui.templates.join() === 'offense,defense,situational,calls' && ui.saved === 0 && !ui.picker,
     'Dashboards opens on its home: the four templates, no saved dashboards yet, no dropdown', ui);
   ok(ui.scorebug && ui.strip && ui.special && ui.nav.join('|') === 'Dashboards|Go to reports',
     'Dashboards is a focused view: no score or report strip; its home strip offers only Go to reports', ui);
+  ok((([r, g, bl]) => r === g && g === bl)(ui.newColor.match(/[0-9]+/g).map(Number)), 'New dashboard is a neutral button, not a unit color (coach, 2026-10-12)', ui.newColor);
 
   console.log('\n== A template is read-only ==');
   await page.click('[data-rb-row="template:offense"] .is-primary'); await settle();

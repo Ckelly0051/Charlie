@@ -335,7 +335,9 @@ with its own strip; the approved report strip is unchanged.
 
 - **Home** (smoke 114 findings 1-2). The Dashboards button opens the home:
   New dashboard, the saved dashboards as rows (name, unit, scope, widgets;
-  Open, Delete) and the templates as rows (Open). Returning to Reports after
+  Open, Delete) and the templates as rows (Open). New dashboard is a neutral
+  button; each row and its Open take the row's unit color (coach,
+  2026-10-12). In a run / pass split, Pass is white. Returning to Reports after
   watching film from a dashboard, or from another route, reopens Dashboards
   where the coach left it.
 - **Strip** (smoke 115 findings 1-2). Inside a dashboard: Back to dashboards
