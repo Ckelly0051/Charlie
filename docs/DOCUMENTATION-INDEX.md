@@ -66,7 +66,7 @@ log.
   `EE10EAFE802F5ECD05FAF58B156F05F119CE41CCCFAEDBAB3A2009BEF6A7677A`.
   Its findings are built in 116; installed acceptance was not granted.
   Packaged-asset inspection not run. Superseded by 116 for the next smoke.
-- **Smoked, closed: `1.12.0-116`** (2026-10-12, `SMOKE-1.12.0-116.md`):
+- **Smoked, not accepted: `1.12.0-116`** (2026-10-12, `SMOKE-1.12.0-116.md`):
   three Dashboards findings, sent to the reporting rebuild as the canvas
   model; no other findings. Independent package inspection not run. Dashboards navigation
   strip and neutral buttons; one success/stop rule across Reports, Study and
