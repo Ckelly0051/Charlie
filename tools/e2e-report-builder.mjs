@@ -241,13 +241,14 @@ try {
     return { labels: [...nav.querySelectorAll('button')].map(n => n.textContent.trim()), prev: nav.querySelector('[data-rb-prev]').disabled,
       next: nav.querySelector('[data-rb-next]').disabled, name: document.querySelector('.gi-rb-title h2')?.textContent,
       gapToReports: Math.round(reports.left - next.right), gapToStep: Math.round(box(nav.querySelector('[data-rb-prev]')).left - back.right),
-      titleBack: !!document.querySelector('.gi-rb-title button'), special: document.querySelector('[data-reports-special-chrome]')?.hidden };
+      titleBack: !!document.querySelector('.gi-rb-title button'), prevColor: getComputedStyle(nav.querySelector('[data-rb-prev]')).color, special: document.querySelector('[data-reports-special-chrome]')?.hidden };
   });
   ui = await strip();
   ok(ui.labels.join('|') === 'Back to dashboards|Prev|Next|Go to reports' && !ui.titleBack && ui.special === true,
     'inside a dashboard the strip reads Back to dashboards, Prev, Next, Go to reports; the title has no back button', ui);
   ok(ui.gapToReports >= 48 && ui.gapToStep >= 24, 'Go to reports sits apart from Prev / Next, and Prev / Next apart from Back', ui);
   ok(ui.prev === true && ui.next === false && ui.name === 'My offense', 'the first saved dashboard has no Prev', ui);
+  ok((([r, g, bl]) => r === g && g === bl)(ui.prevColor.match(/\d+/g).map(Number)), 'a disabled Prev stays grey, not the blue accent', ui.prevColor);
   await page.click('[data-rb-next]'); await settle();
   ui = await strip();
   ok(ui.name === 'Offense snapshot' && ui.prev === false, 'Next steps from the last saved dashboard to the first template', ui);

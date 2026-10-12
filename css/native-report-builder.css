@@ -18,7 +18,7 @@
 .gi-rb-step button:hover:not(:disabled){background:var(--gi-4);border-color:var(--gi-8)}
 .gi-rb-step button:active:not(:disabled),.gi-rb-nav .gi-reports-back:active{filter:brightness(.88)}
 .gi-rb-step button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-.gi-rb-step button:disabled{color:var(--gi-9);cursor:default}
+.gi-rb-step button:disabled{cursor:default;opacity:.45}
 .gi-rb-to-reports{margin-left:auto}
 @media (pointer:coarse){.gi-rb-step button,.gi-rb-nav .gi-reports-back{min-height:44px}}
 @media (max-width:760px){.gi-rb-nav{padding:var(--gi-3x) var(--gi-4x)}.gi-rb-step{margin-left:0}}
