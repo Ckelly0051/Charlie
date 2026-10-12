@@ -107,6 +107,17 @@ const diffAt = [...Array(Math.max(state.data.length, fixture.before.length)).key
 ok(state.data === fixture.before, 'Opening and reading season analytics leaves canonical season bytes unchanged',
   diffAt == null ? '' : `at ${diffAt}: before=${fixture.before.slice(Math.max(0, diffAt - 80), diffAt + 120)} after=${state.data.slice(Math.max(0, diffAt - 80), diffAt + 120)}`);
 
+const owned = await page.evaluate(() => {
+  const app = window.app;
+  const before = { games: app.season._selfGames().map(game => game.id), roster: app.season._mergeRoster() };
+  try {
+    window.app = { storage: { seasonStore: null }, roster: { players: [{ num: '999', name: 'Other app' }] } };
+    return { before, after: { games: app.season._selfGames().map(game => game.id), roster: app.season._mergeRoster() } };
+  } finally { window.app = app; }
+});
+ok(owned.before.games.length === 2 && JSON.stringify(owned.before) === JSON.stringify(owned.after),
+  'Season analytics reads its injected storage and roster, not another global app', JSON.stringify(owned));
+
 await page.setViewport({ width: 390, height: 844 });
 state = await page.evaluate(() => ({
   pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,

@@ -84,11 +84,12 @@ log.
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
   green; Codex reviewed it (one finding, fixed in `1e926859`). Next, Codex's
-  job in `docs/CODEX-JOB-2026-10-12.md`; the full gate and installer 117 come
-  after that job (coach, 2026-10-12).
-- **Latest full gate:** 158/158 green at `af7e48cc` (2026-10-12), zero skipped
+  job in `docs/CODEX-JOB-2026-10-12.md` is in progress: Season analytics now
+  reads injected storage and roster services instead of the global app.
+  The full gate and installer 117 after this job each need the coach's yes.
+- **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:
-  `artifacts/gate-logs/2026-10-12T20-52-41-525Z-VvsONG/receipt.json`.
+  `artifacts/gate-logs/2026-10-12T22-41-45-511Z-zsOpDC/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

@@ -11,13 +11,15 @@
 import { buildSeasonHtmlReport } from './html-report.js';
 
 export class SeasonManager {
-  constructor(statsEngine) {
+  constructor(statsEngine, { storage, roster } = {}) {
     this.statsEngine = statsEngine;
+    this.storage = storage;
+    this.roster = roster;
   }
 
   /** The canonical season store (lives on StorageManager). */
-  _store() { return window.app && window.app.storage && window.app.storage.seasonStore; }
-  _storage() { return window.app && window.app.storage; }
+  _store() { return this.storage?.seasonStore; }
+  _storage() { return this.storage; }
 
   /** All games in chronological order with a read-only projection of live edits.
    *  EVERY game, including opponent-scout film: `StatsEngine._allSeasonGames`
@@ -98,7 +100,7 @@ export class SeasonManager {
    */
   _mergeRoster() {
     const map = {};
-    const live = (window.app && window.app.roster) ? window.app.roster.players : [];
+    const live = this.roster?.players || [];
     const season = this._store()?.data?.roster || [];
     [...season, ...live].forEach(p => {
       if (p && p.num != null && p.name) map[String(p.num)] = p.name;

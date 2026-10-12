@@ -134,7 +134,7 @@ class App {
       shouldAutoPlayNext: () => this.autoPlayNext,
     });
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer, this.playbook, this.customChips);
-    this.season = new SeasonManager(this.stats);
+    this.season = new SeasonManager(this.stats, { storage: this.storage, roster: this.roster });
     // S7-c: the team/season identity layer. SeasonLibrary's overlay is dead but
     // twelve of its private members were still the registry, so the data moved
     // here first and the overlay becomes the by-product.
