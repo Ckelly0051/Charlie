@@ -98,6 +98,8 @@ log.
   HTML renderer and retired style-injection no-op are removed.
   Cut-up playback controls and recording progress use native nodes, with the
   same commands, text and layout; both raw HTML writers are removed.
+  Workspace chrome uses native components; both shell HTML-string writers
+  and their string-building helper are removed. Route owners and handlers stay.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

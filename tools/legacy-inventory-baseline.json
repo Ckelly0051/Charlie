@@ -16,7 +16,7 @@
     "legacyLayoutReaders": 0,
     "localStorageCalls": 86,
     "windowAppRefs": 2,
-    "innerHtmlSinks": 11,
+    "innerHtmlSinks": 9,
     "statsEngineLines": 6499
   },
   "deadNames": [],

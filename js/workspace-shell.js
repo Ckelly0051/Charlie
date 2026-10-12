@@ -1,5 +1,7 @@
 import { countedUnit, isPlayTagged } from './football-rules.js';
 import { WorkspaceContext } from './workspace-context.js';
+import { h, render } from 'preact';
+import { WorkspaceChrome, GlobalTools } from './native-workspace-chrome.jsx';
 
 /**
  * The one native application shell.
@@ -34,22 +36,15 @@ export class WorkspaceShell {
     this.app.breakdownWorkspace?.restore();
     this._historyUnsub?.(); this._historyUnsub = null;
     this._btnUndo = null; this._btnRedo = null;
+    render(null, this.root.querySelector('.ws-global-tools'));
+    render(null, this.root);
     this.root.remove(); this.root = null;
     document.body.classList.remove('ws-shell-active', 'ws-route-home', 'ws-route-breakdown', 'ws-route-study', 'ws-route-reports', 'ws-route-plan');
   }
   _mount() {
     const root = document.createElement('div');
     root.id = 'workspaceShell'; root.className = 'ws-shell';
-    root.innerHTML = `<main class="ws-main"><header class="ws-topbar"><button class="ws-top-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><nav class="ws-top-nav" aria-label="Workspace">${this._navButtons()}</nav><div class="ws-top-actions"><span class="ws-film-chip" id="wsTopFilm">No film selected</span><div class="ws-global-tools"></div><button class="ws-icon-btn ws-more-btn" id="btnNativeMore" data-ws-action="more" aria-haspopup="menu" aria-expanded="false">More <span aria-hidden="true">▾</span></button></div></header>
-      <section class="ws-contextbar" id="wsContextBar" aria-label="Football context">
-        <button class="ws-ctx" id="wsCtxProgram" data-ws-action="program-switch" aria-haspopup="menu" aria-expanded="false"><span class="ws-ctx-label">Program</span><span class="ws-ctx-value" id="wsCtxProgramValue">Team</span><b class="ws-ctx-chev" aria-hidden="true">▾</b></button>
-        <button class="ws-ctx" id="wsCtxSeason" data-ws-action="season-switch" aria-haspopup="menu" aria-expanded="false"><span class="ws-ctx-label">Season</span><span class="ws-ctx-value" id="wsCtxSeasonValue">No season open</span><b class="ws-ctx-chev" aria-hidden="true">▾</b></button>
-        <button class="ws-ctx" id="wsCtxGame" data-ws-action="game-switch" aria-haspopup="menu" aria-expanded="false"><span class="ws-ctx-label">Game</span><span class="ws-ctx-value" id="wsCtxGameValue">Team home</span><b class="ws-ctx-chev" aria-hidden="true">▾</b></button>
-        <div class="ws-workspace-switch" role="group" aria-label="Workspace"><button type="button" data-ws-action="workspace-program" aria-pressed="true">Our Program</button><button type="button" class="is-scout" data-ws-action="workspace-scout" aria-pressed="false">Opponent Scout</button></div>
-      </section>
-      <header class="ws-mobile-head"><button class="ws-mobile-brand" data-ws-route="home">GRIDIRON <b>IQ</b></button><strong id="wsMobileContext">Team home</strong><button class="ws-icon-btn" id="btnNativeMoreMobile" data-ws-action="more" aria-label="Settings and more" aria-haspopup="menu" aria-expanded="false">⋯</button></header>
-      <section class="ws-home" id="wsHome" hidden></section>
-      <section class="ws-breakdown" id="wsBreakdown" hidden></section><section class="ws-study" id="wsStudy" hidden></section><section class="ws-reports" id="wsReports" hidden></section><section class="ws-plan-state" id="wsPlan" hidden></section></main><nav class="ws-mobile-nav" aria-label="Workspace">${this._navButtons()}</nav>`;
+    render(h(WorkspaceChrome, { routes: this.app.workspace.listRoutes() }), root);
     document.body.appendChild(root);
     this.root = root;
     this._mountChrome();
@@ -60,9 +55,6 @@ export class WorkspaceShell {
     this.app.planScreen?.mount(root.querySelector('#wsPlan'));
     this._bind();
   }
-  // The `|| '•'` fallback matters: a route without an icon must show a
-  // neutral glyph, never the string "undefined".
-  _navButtons() { const icons = { home:'⌂', breakdown:'▶', study:'▦', reports:'▥', plan:'▤' }; return this.app.workspace.listRoutes().map(r => `<button data-ws-route="${r.id}"><span>${icons[r.id] || '•'}</span>${r.name}</button>`).join(''); }
   _bind() {
     this.root.addEventListener('click', async e => {
       const route = e.target.closest('[data-ws-route]')?.dataset.wsRoute;
@@ -219,11 +211,7 @@ export class WorkspaceShell {
   _mountChrome(){
     const tools=this.root?.querySelector('.ws-global-tools');
     if(!tools)return;
-    tools.innerHTML=`
-      <button class="ws-icon-btn" type="button" data-ws-tool="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg class="icon"><use href="assets/icons.svg#icon-undo"/></svg></button>
-      <button class="ws-icon-btn" type="button" data-ws-tool="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg class="icon"><use href="assets/icons.svg#icon-redo"/></svg></button>
-      <button class="ws-icon-btn" type="button" data-ws-tool="shortcuts" title="Keyboard shortcuts (press ?)" aria-label="Keyboard shortcuts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg></button>
-      <button class="ws-icon-btn" type="button" data-ws-tool="settings" title="Team & Film Settings" aria-label="Team and Film Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>`;
+    render(h(GlobalTools), tools);
     this._btnUndo=tools.querySelector('[data-ws-tool="undo"]');
     this._btnRedo=tools.querySelector('[data-ws-tool="redo"]');
     this._historyUnsub?.();
