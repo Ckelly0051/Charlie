@@ -20,6 +20,8 @@
  */
 import { TagProjection } from './tag-projection.js';
 
+import { h, render } from 'preact';
+
 export class CutupExporter {
   constructor(videoController, playTagger, playFilter, playlistManager) {
     this.vc = videoController;
@@ -266,21 +268,14 @@ export class CutupExporter {
   _showProgress(total, onCancel) {
     const div = document.createElement('div');
     div.className = 'cutup-progress-overlay';
-    div.innerHTML = `
-      <div class="cutup-modal">
-        <h3>Recording Cut-Up</h3>
-        <div class="cutup-info" id="cutupInfo">Starting…</div>
-        <div class="cutup-bar"><div class="cutup-bar-fill" id="cutupBarFill"></div></div>
-        <div class="cutup-hint">Recording in real time. Do not close this tab.</div>
-        <button class="btn btn-sm btn-danger" id="cutupCancel">Cancel</button>
-      </div>
-    `;
+    let info, fill;
+    render(h('div', { class: 'cutup-modal' },
+      h('h3', null, 'Recording Cut-Up'),
+      h('div', { class: 'cutup-info', id: 'cutupInfo', ref: node => { info = node; } }, 'Starting…'),
+      h('div', { class: 'cutup-bar' }, h('div', { class: 'cutup-bar-fill', id: 'cutupBarFill', ref: node => { fill = node; } })),
+      h('div', { class: 'cutup-hint' }, 'Recording in real time. Do not close this tab.'),
+      h('button', { class: 'btn btn-sm btn-danger', id: 'cutupCancel', onClick: onCancel }, 'Cancel')), div);
     document.body.appendChild(div);
-    const info = div.querySelector('#cutupInfo');
-    const fill = div.querySelector('#cutupBarFill');
-    div.querySelector('#cutupCancel').addEventListener('click', () => {
-      onCancel();
-    });
     return {
       update: (i, n, p) => {
         const tags = p.tags || {};
@@ -288,7 +283,7 @@ export class CutupExporter {
         info.textContent = `${i + 1} / ${n} — ${desc}`;
         fill.style.width = ((i / n) * 100) + '%';
       },
-      remove: () => div.remove()
+      remove: () => { render(null, div); div.remove(); }
     };
   }
 }

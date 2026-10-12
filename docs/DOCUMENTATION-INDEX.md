@@ -96,6 +96,8 @@ log.
   its four raw HTML writes are removed.
   The updater banner uses native nodes with literal release metadata; its raw
   HTML renderer and retired style-injection no-op are removed.
+  Cut-up playback controls and recording progress use native nodes, with the
+  same commands, text and layout; both raw HTML writers are removed.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

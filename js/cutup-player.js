@@ -10,6 +10,7 @@
  * this just drives the existing <video> element for instant review.
  */
 import { playbackOrder } from './football-rules.js';
+import { h, render, Fragment } from 'preact';
 
 export class CutupPlayer {
   constructor(videoController, tagger, options = {}) {
@@ -114,15 +115,12 @@ export class CutupPlayer {
     this._removeBanner();
     const b = document.createElement('div');
     b.className = 'cutup-banner';
-    b.innerHTML = `
-      <span class="cutup-dot"></span>
-      <span class="cutup-label"></span>
-      <span class="cutup-count"></span>
-      <div class="cutup-controls">
-        <button class="cutup-btn" data-act="prev" title="Previous (←)">◀</button>
-        <button class="cutup-btn" data-act="next" title="Next (→)">▶</button>
-        <button class="cutup-btn cutup-exit" data-act="exit" title="Exit cut-up (Esc)">✕</button>
-      </div>`;
+    render(h(Fragment, null,
+      h('span', { class: 'cutup-dot' }), h('span', { class: 'cutup-label' }), h('span', { class: 'cutup-count' }),
+      h('div', { class: 'cutup-controls' },
+        h('button', { class: 'cutup-btn', 'data-act': 'prev', title: 'Previous (←)' }, '◀'),
+        h('button', { class: 'cutup-btn', 'data-act': 'next', title: 'Next (→)' }, '▶'),
+        h('button', { class: 'cutup-btn cutup-exit', 'data-act': 'exit', title: 'Exit cut-up (Esc)' }, '✕'))), b);
     b.querySelector('[data-act=prev]').addEventListener('click', () => this.prev());
     b.querySelector('[data-act=next]').addEventListener('click', () => this.next());
     b.querySelector('[data-act=exit]').addEventListener('click', () => this.stop());
@@ -141,6 +139,7 @@ export class CutupPlayer {
 
   _removeBanner() {
     if (this.bannerEl && this.bannerEl.parentNode) {
+      render(null, this.bannerEl);
       this.bannerEl.parentNode.removeChild(this.bannerEl);
     }
     this.bannerEl = null;
