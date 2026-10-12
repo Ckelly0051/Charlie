@@ -36,6 +36,20 @@ Smoke in progress (2026-10-12).
    dashboards, open to a suggestion. Proposed layout for that strip:
    Back to dashboards at the left; Prev / Next dashboard beside it after a
    gap; Go to reports alone at the right end.
+3. Claude's installed check (2025 JV, Season, offense): Success Rate reads
+   41% (73 of 177 snaps) in Reports > Season > Offense and 46.3% (160 plays)
+   in a Dashboards offense dashboard. Yards per play agrees (6.1 over 171).
+   The two surfaces use different success cohorts; not yet traced.
+
+Claude's installed check, passed: Dashboards home lists saved dashboards then
+templates; a template shows Template and Save as new; Add widget on a
+template offers only Save as new dashboard and Cancel saves nothing; a scope
+change leaves the template at 7 widgets; Success Rate and Stop Rate bars
+fill their own percent with the season mark; Week 1 vs St. Peter Lutheran
+defense reads 0.0 yards per play in Reports and Dashboards; Week 1
+explosive plays 9 equals the runs of 12+ and passes of 16+ in Top 10 plays.
+Not reached: the Explosive Plays film (the Overview and Offense tiles do not
+open film; the cut opens from a takeaway).
 
 ## What to check
 
