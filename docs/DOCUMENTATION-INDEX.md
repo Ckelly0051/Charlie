@@ -67,8 +67,8 @@ log.
   Its findings are built in 116; installed acceptance was not granted.
   Packaged-asset inspection not run. Superseded by 116 for the next smoke.
 - **Smoked, not accepted: `1.12.0-116`** (2026-10-12, `SMOKE-1.12.0-116.md`):
-  three Dashboards findings, sent to the reporting rebuild as the canvas
-  model; no other findings. Independent package inspection not run. Dashboards navigation
+  three Dashboards findings, built since as Dashboards rev 2 (a canvas of
+  modules); no other findings. Independent package inspection not run. Dashboards navigation
   strip and neutral buttons; one success/stop rule across Reports, Study and
   Dashboards; turnovers always fail on offense and stop on defense; unjudged
   rates render a dash, including Top call and the formation/play-type matrix.

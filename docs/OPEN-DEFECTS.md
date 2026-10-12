@@ -10,8 +10,9 @@ open, check its fix and smoke status in git.
 Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
 intermittent scrubbing defect deferred. `1.12.0-114` smoked with six
 findings, fixed in `1.12.0-115`. The 115 smoke found three further issues,
-fixed in `1.12.0-116`. The 116 smoke closed (2026-10-12) with three
-Dashboards findings, sent to the reporting rebuild (`SMOKE-1.12.0-116.md`). Installed smoke does not change the
+fixed in `1.12.0-116`. The 116 smoke closed (2026-10-12), not accepted,
+with three Dashboards findings, built since as Dashboards rev 2
+(`SMOKE-1.12.0-116.md`). Installed smoke does not change the
 design approval registry.
 
 ## Awaiting the 1.12.0-116 smoke: smoke 115 findings
@@ -65,9 +66,14 @@ Carried from 114:
   plays by the offense they faced. Smoke: open each template on the real season, add a
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
-  Smoke 116 findings 1-3 (no Edit; the Unit switch saves the dashboard;
-  not modular) go to the reporting rebuild as the canvas model
-  (`GRIDIRON-IQ-PLAN-V2.md` step 5), not patched in rev 1 (coach, 2026-10-12).
+- **Dashboards rev 2, built since 116** (smoke 116 findings 1-3; coach,
+  2026-10-12; `docs/REPORTS-CONTRACTS.md` > Dashboards): a canvas of modules,
+  each with its own unit, games and filters, colored by its unit; Open and Edit,
+  with Edit on the picker page and in the dashboard; Export, Rename, Duplicate
+  and Delete on the picker page; Delete asks for the typed word. Smoke: build
+  offense yards per play beside defense yards per play; Edit a template (it
+  saves a copy); delete a dashboard. The coach's six rev 1 dashboards are to be
+  deleted on the coach's confirmation.
 
 Smoke 114 findings, built in 115 (`SMOKE-1.12.0-114.md`, coach findings and
 the installed check):

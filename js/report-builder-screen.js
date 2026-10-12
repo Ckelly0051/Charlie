@@ -1,14 +1,16 @@
 import { h } from 'preact';
 import { ReportBuilder } from './report-builder.js';
 import { WidgetEditor } from './native-report-builder.jsx';
+import { ConfirmDeleteForm } from './native-team-hub.jsx';
 
 /**
  * Dashboards controller (docs/REPORTS-CONTRACTS.md > Dashboards). Owns the
- * Dashboards home, which dashboard is open, its edits and their persistence;
- * ReportBuilder owns every number. Saved dashboards belong to the season
- * (`data.dashboards`) and are saved with it, like the playbook. A template is
- * shown read-only: scope, unit and filters change only the view, and a widget
- * edit saves a new dashboard under a name the coach gives.
+ * Dashboards home, which dashboard is open, whether it is open to edit, its
+ * edits and their persistence; ReportBuilder owns every number. A dashboard is
+ * a canvas of modules, each with its own unit, games and filters. Saved
+ * dashboards belong to the season (`data.dashboards`) and are saved with it,
+ * like the playbook. A template never changes: editing one saves a new
+ * dashboard under a name the coach gives.
  */
 export class ReportBuilderScreen {
   constructor(app, reports) {
@@ -18,6 +20,7 @@ export class ReportBuilderScreen {
     this.activeId = null;
     this.view = 'home';
     this.templateView = null;
+    this.editing = false;
     this._listeners = new Set();
   }
 
@@ -45,24 +48,27 @@ export class ReportBuilderScreen {
     this.app.storage?._autoSave?.();
     this._publish();
   }
-  _replace(dashboard) {
-    if (this.isTemplate()) {
-      this.templateView = ReportBuilder.normalize(dashboard);
-      this._publish();
-      return this.templateView;
-    }
+  /** Store a saved dashboard. `open` shows it (to edit when `editing`);
+   *  otherwise the current page stays, so a home-row Rename stays home. */
+  _replace(dashboard, { open = this.view === 'dashboard', editing = this.editing } = {}) {
     const list = this.list();
     const index = list.findIndex(item => item.id === dashboard.id);
     const clean = ReportBuilder.normalize(dashboard);
     if (index >= 0) list[index] = clean; else list.push(clean);
-    this.activeId = clean.id;
-    this.view = 'dashboard';
-    this.templateView = null;
+    if (open) { this.activeId = clean.id; this.view = 'dashboard'; this.templateView = null; this.editing = editing; }
     this._save();
     return clean;
   }
 
-  home() { this.view = 'home'; this.templateView = null; this._publish(); }
+  home() { this.view = 'home'; this.templateView = null; this.editing = false; this._publish(); }
+  /** Show (`false`) or edit (`true`) the open dashboard. A template opens to
+   *  edit only as a new saved copy (`editTemplate`). */
+  setEditing(editing) {
+    if (this.isTemplate() && editing) return this.saveTemplateAs();
+    this.editing = !!editing && this.view === 'dashboard';
+    this._publish();
+    return this.editing;
+  }
 
   /** Saved dashboards, then templates: the home page's order, which Prev and
    *  Next step through. A template's key is `template:<id>`. */
@@ -79,19 +85,27 @@ export class ReportBuilderScreen {
     const order = this._order();
     const key = order[order.indexOf(this._activeKey()) + direction];
     if (!key) return false;
-    if (key.startsWith('template:')) this.openTemplate(key.slice('template:'.length)); else this.open(key);
+    const editing = this.editing && !key.startsWith('template:');
+    if (key.startsWith('template:')) this.openTemplate(key.slice('template:'.length)); else this.open(key, { edit: editing });
     return true;
   }
   /** Leave Dashboards for the report tabs. */
   toReports() { return this.reports?.backToReports?.(); }
-  open(id) { this.activeId = id; this.templateView = null; this.view = 'dashboard'; this._publish(); }
+  open(id, { edit = false } = {}) { this.activeId = id; this.templateView = null; this.view = 'dashboard'; this.editing = !!edit; this._publish(); }
+  edit(id) { return this.open(id, { edit: true }); }
   openTemplate(templateId) {
     const template = ReportBuilder.TEMPLATES.find(item => item.id === templateId);
     if (!template) return null;
-    this.templateView = ReportBuilder.normalize({ ...JSON.parse(JSON.stringify(template)), id: `template:${template.id}` });
+    this.templateView = { ...ReportBuilder.fromTemplate(template.id), id: `template:${template.id}` };
     this.view = 'dashboard';
+    this.editing = false;
     this._publish();
     return this.templateView;
+  }
+  /** Edit a template: it is saved as a new dashboard first, under a name. */
+  async editTemplate(templateId) {
+    if (!this.openTemplate(templateId)) return null;
+    return this.saveTemplateAs();
   }
 
   _uniqueName(base) {
@@ -109,7 +123,7 @@ export class ReportBuilderScreen {
   async createBlank() {
     const name = await this._askName(this._uniqueName('New dashboard'), 'Create');
     if (!name) return null;
-    return this._replace(ReportBuilder.fromTemplate('blank', name));
+    return this._replace(ReportBuilder.fromTemplate('blank', name), { open: true, editing: true });
   }
 
   /** The template being viewed, saved as a new dashboard with `change`
@@ -120,11 +134,15 @@ export class ReportBuilderScreen {
     const name = await this._askName(this._uniqueName(view.name), 'Save');
     if (!name || this.templateView !== view) return null;
     this.templateView = null;
-    return this._replace({ ...JSON.parse(JSON.stringify(view)), id: null, name, widgets: change(view.widgets.slice()) });
+    return this._replace({ ...JSON.parse(JSON.stringify(view)), id: null, name, widgets: change(view.widgets.slice()) },
+      { open: true, editing: true });
   }
 
-  async rename() {
-    const dashboard = this.active();
+  /** A saved dashboard by id, or the open one. */
+  _saved(id) { return id ? this.list().find(item => item.id === id) || null : (this.isTemplate() ? null : this.active()); }
+
+  async rename(id = null) {
+    const dashboard = this._saved(id);
     if (!dashboard) return false;
     const name = String(await this.app.tagger?._promptDialog?.('Dashboard name', 'Rename', dashboard.name) || '').trim();
     if (!name) return false;
@@ -132,35 +150,46 @@ export class ReportBuilderScreen {
     return true;
   }
 
-  duplicate() {
-    const dashboard = this.active();
+  duplicate(id = null) {
+    const dashboard = this._saved(id);
     if (!dashboard) return null;
-    return this._replace({ ...JSON.parse(JSON.stringify(dashboard)), id: null, name: `${dashboard.name} copy`,
+    return this._replace({ ...JSON.parse(JSON.stringify(dashboard)), id: null, name: this._uniqueName(`${dashboard.name} copy`),
       widgets: dashboard.widgets.map(widget => ({ ...widget, id: null })) });
   }
 
+  /** Delete a saved dashboard after the coach types "delete", as a game or a
+   *  season is deleted. */
   async remove(id = null) {
-    const dashboard = id ? this.list().find(item => item.id === id) : (this.isTemplate() ? null : this.active());
-    if (!dashboard) return false;
-    if (!(await this.app.tagger?._confirmDialog?.(`Delete the dashboard "${dashboard.name}"?`, 'Delete Dashboard'))) return false;
+    const dashboard = this._saved(id);
+    if (!dashboard || !this.app.overlays?.dialog) return false;
+    const modules = dashboard.widgets.length;
+    const handle = this.app.overlays.dialog({
+      title: `Delete ${dashboard.name}?`, destructive: true, initialFocus: '[name="confirm"]',
+      actions: [{ key: 'cancel', label: 'Cancel', default: true }],
+      content: h(ConfirmDeleteForm, {
+        impact: `The dashboard and its ${modules} module${modules === 1 ? '' : 's'} will be removed. Charted plays are untouched.`,
+        confirmLabel: 'Delete dashboard',
+        onSubmit: async () => { handle.close('delete'); return { ok: true }; },
+      }),
+    });
+    if ((await handle.result) !== 'delete') return false;
     const data = this._store()?.data;
     data.dashboards = this.list().filter(item => item.id !== dashboard.id);
-    if (this.activeId === dashboard.id) { this.activeId = null; this.view = 'home'; }
+    if (this.activeId === dashboard.id) { this.activeId = null; this.view = 'home'; this.editing = false; }
     this._save();
     return true;
   }
 
-  setScope(scope) { const d = this.active(); if (d) this._replace({ ...d, scope }); }
-  setUnit(unit) { const d = this.active(); if (d) this._replace({ ...d, unit }); }
-  setFilter(dimension, values) {
-    const d = this.active();
-    if (!d) return;
-    const filters = d.filters.filter(item => item.dimension !== dimension);
-    if (values.length) filters.push({ dimension, values });
-    this._replace({ ...d, filters });
+  /** Export a saved dashboard from the home: it is drawn, exported, and the
+   *  home returns. */
+  async exportDashboard(id) {
+    if (!this._saved(id)) return null;
+    this.open(id);
+    await new Promise(resolve => setTimeout(resolve, 60));
+    try { return await this.exportHtml(); } finally { this.home(); }
   }
 
-  // ---- Widgets -------------------------------------------------------------
+  // ---- Modules ---------------------------------------------------------------
 
   _widgets(update) {
     const d = this.active();
@@ -197,15 +226,18 @@ export class ReportBuilderScreen {
   }
   resizeWidget(id, width) { this._widgets(list => list.map(item => item.id === id ? { ...item, width } : item)); }
 
-  /** Add or edit a widget in its own dialog with a live preview. */
+  /** Add or edit a module in its own dialog with a live preview. A new
+   *  module starts with the unit and games of the last one on the canvas. */
   editWidget(id = null) {
     const dashboard = this.active();
     if (!dashboard || !this.app.overlays?.dialog) return null;
     const existing = dashboard.widgets.find(item => item.id === id);
-    const start = existing || ReportBuilder.normalizeWidget({ view: 'bar', metric: 'success', dimension: 'down', width: 'm' });
+    const last = dashboard.widgets.at(-1);
+    const start = existing || ReportBuilder.normalizeWidget({ view: 'bar', metric: 'success', dimension: 'down', width: 'm',
+      unit: last?.unit, scope: last?.scope });
     let handle = null;
     handle = this.app.overlays.dialog({
-      title: existing ? 'Edit widget' : 'Add widget', actions: [],
+      title: existing ? 'Edit module' : 'Add module', actions: [],
       content: h(WidgetEditor, { screen: this, widget: start, isNew: !existing,
         onCancel: () => handle?.close(null),
         onSave: widget => { this.saveWidget(widget); handle?.close(widget.id); } }),
@@ -241,38 +273,28 @@ export class ReportBuilderScreen {
     };
   }
 
-  /** One dashboard's cohort and every widget evaluated over it. */
+  _measure(widget, context) {
+    try { return this.builder.evaluate(widget, context); }
+    catch (error) { return { id: widget.id, view: widget.view, unit: widget.unit, scope: widget.scope, width: widget.width, title: this.builder.title(widget), error: 'This module could not be measured.' }; }
+  }
+
+  /** Every module of a dashboard, each over its own unit, games and filters. */
   evaluate(dashboard, context = this.context()) {
-    const plays = this.builder.scopePlays(dashboard, context);
-    const baseline = dashboard.scope === 'season' ? null : this.builder.scopePlays({ ...dashboard, scope: 'season' }, context);
-    const shared = { ...context, unit: dashboard.unit, baselinePlays: baseline, baselineLabel: baseline ? 'Season' : '' };
-    const widgets = dashboard.widgets.map(widget => {
-      try { return this.builder.evaluate(widget, plays, shared); }
-      catch (error) { return { id: widget.id, view: widget.view, width: widget.width, title: this.builder.title(widget, dashboard.unit), error: 'This widget could not be measured.' }; }
-    });
-    return { plays: plays.length, refs: plays.length ? this.builder._refs(plays) : [], widgets };
+    return { widgets: dashboard.widgets.map(widget => this._measure(widget, context)) };
   }
 
-  /** A widget measured with the open dashboard's cohort, for the editor. */
+  /** A module as drafted in the editor. */
   preview(widget) {
-    const dashboard = this.active();
-    if (!dashboard) return null;
     const clean = ReportBuilder.normalizeWidget(widget);
-    if (!clean) return null;
-    const context = this.context();
-    const plays = this.builder.scopePlays(dashboard, context);
-    try { return this.builder.evaluate(clean, plays, { ...context, unit: dashboard.unit }); }
-    catch (error) { return { id: clean.id, view: clean.view, width: clean.width, title: this.builder.title(clean, dashboard.unit), error: 'This widget could not be measured.' }; }
+    return clean ? this._measure(clean, this.context()) : null;
   }
 
-  /** The values a filter can choose, with play counts, in the open scope and
-   *  unit before any filters. */
-  filterValues(dimension) {
-    const dashboard = this.active();
-    if (!dashboard || !dimension) return [];
+  /** The values a filter can choose, with play counts, in the module's unit
+   *  and games before any filters. */
+  filterValues(dimension, widget) {
+    if (!dimension || !widget) return [];
     const context = this.context();
-    const plays = this.builder.scopePlays({ ...dashboard, filters: [] }, context);
-    return this.builder.values(plays, dimension, context.labels);
+    return this.builder.values(this.builder.scopePlays(widget, context), dimension, context.labels);
   }
 
   /**
@@ -317,14 +339,15 @@ body{margin:0;background:var(--gi-bd-stage,#080808)}
   snapshot() {
     const dashboard = this.active();
     const context = dashboard ? this.context() : null;
-    const summary = item => ({ id: item.id, name: item.name, unit: item.unit, scope: item.scope, widgets: item.widgets.length });
+    const summary = item => ({ id: item.id, name: item.name, units: ReportBuilder.units(item), widgets: item.widgets.length });
     const order = this._order(), at = order.indexOf(this._activeKey());
     return {
       view: this.view,
       isTemplate: this.isTemplate(),
+      editing: this.editing,
       hasPrev: at > 0, hasNext: at >= 0 && at < order.length - 1,
       dashboards: this.list().map(summary),
-      templates: ReportBuilder.TEMPLATES.filter(item => item.id !== 'blank').map(summary),
+      templates: ReportBuilder.TEMPLATES.filter(item => item.id !== 'blank').map(item => ({ ...summary(ReportBuilder.fromTemplate(item.id)), id: item.id })),
       dashboard,
       result: dashboard ? this.evaluate(dashboard, context) : null,
       dimensions: this.builder.dimensionCatalog(),

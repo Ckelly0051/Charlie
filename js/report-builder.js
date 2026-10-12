@@ -14,7 +14,7 @@ import { StudyQuery } from './study-query.js';
  * Every value carries the film refs behind it; nothing is estimated.
  */
 export class ReportBuilder {
-  static VERSION = 1;
+  static VERSION = 2;
 
   /** How a widget shows its numbers. */
   static VIEWS = Object.freeze([
@@ -92,7 +92,8 @@ export class ReportBuilder {
   static UNITS = Object.freeze([['offense', 'Offense'], ['defense', 'Defense'], ['special', 'Special Teams'], ['all', 'All units']]);
   static WIDTHS = Object.freeze([['s', 'Third'], ['m', 'Half'], ['l', 'Full']]);
 
-  /** Starting dashboards. A template is copied into the season when chosen;
+  /** Starting dashboards. A template's `unit` and `scope` are its modules'
+   *  starting unit and games; each module carries its own once copied, and
    *  editing the copy never changes the template. */
   static TEMPLATES = Object.freeze([
     { id: 'offense', name: 'Offense snapshot', unit: 'offense', scope: 'season', widgets: [
@@ -165,18 +166,22 @@ export class ReportBuilder {
 
   static _id(prefix) { return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`; }
 
-  /** A dashboard as stored: known fields only, every widget complete. */
+  /** A dashboard as stored: a canvas of complete modules. The dashboard
+   *  itself sets no unit, games or filters; each module carries its own. */
   static normalize(raw) {
     const value = raw && typeof raw === 'object' ? raw : {};
-    const scope = ReportBuilder.SCOPES.some(([id]) => id === value.scope) ? value.scope : 'season';
-    const unit = ReportBuilder.UNITS.some(([id]) => id === value.unit) ? value.unit : 'offense';
     return {
       id: typeof value.id === 'string' && value.id ? value.id : ReportBuilder._id('dash'),
       name: String(value.name || 'Dashboard').trim().slice(0, 60) || 'Dashboard',
-      version: ReportBuilder.VERSION, scope, unit,
-      filters: ReportBuilder._filters(value.filters),
+      version: ReportBuilder.VERSION,
       widgets: (Array.isArray(value.widgets) ? value.widgets : []).map(ReportBuilder.normalizeWidget).filter(Boolean),
     };
+  }
+
+  /** The units a dashboard's modules read, in catalog order. */
+  static units(dashboard) {
+    const used = new Set((dashboard?.widgets || []).map(widget => widget.unit));
+    return ReportBuilder.UNITS.map(([id]) => id).filter(id => used.has(id));
   }
 
   static _filters(list) {
@@ -194,6 +199,8 @@ export class ReportBuilder {
     return {
       id: typeof value.id === 'string' && value.id ? value.id : ReportBuilder._id('w'),
       view: value.view,
+      unit: ReportBuilder.UNITS.some(([id]) => id === value.unit) ? value.unit : 'offense',
+      scope: ReportBuilder.SCOPES.some(([id]) => id === value.scope) ? value.scope : 'season',
       title: String(value.title || '').trim().slice(0, 60),
       metric, metrics: metrics.length ? metrics : [metric],
       dimension: typeof value.dimension === 'string' ? value.dimension : '',
@@ -210,13 +217,15 @@ export class ReportBuilder {
 
   static fromTemplate(templateId, name) {
     const template = ReportBuilder.TEMPLATES.find(item => item.id === templateId) || ReportBuilder.TEMPLATES.at(-1);
-    return ReportBuilder.normalize({ ...JSON.parse(JSON.stringify(template)), id: null, name: name || template.name });
+    const copy = JSON.parse(JSON.stringify(template));
+    return ReportBuilder.normalize({ ...copy, id: null, name: name || template.name,
+      widgets: copy.widgets.map(widget => ({ unit: template.unit, scope: template.scope, ...widget })) });
   }
 
-  /** The widget's own title, or the one its settings describe. */
-  title(widget, unit) {
+  /** The module's own title, or the one its settings describe. */
+  title(widget) {
     if (widget.title) return widget.title;
-    const metric = ReportBuilder.metricName(widget.metric, unit);
+    const metric = ReportBuilder.metricName(widget.metric, widget.unit);
     if (widget.view === 'kpi') return metric;
     if (widget.view === 'trend') return `${metric} by game`;
     if (widget.view === 'leaders') return `${ReportBuilder.leader(widget.leader)?.name || 'Leaders'} leaders`;
@@ -229,20 +238,17 @@ export class ReportBuilder {
   // ---- Cohorts -----------------------------------------------------------
 
   /**
-   * The dashboard's plays: the scope's games, the unit, then the dashboard
-   * filters. `games` is the season's own-team games in order, each
-   * `{ id, label, plays }` with plays stamped `__gid`; `activeGameId` names
-   * "This game".
+   * A module's plays before its filters: its games, then its unit. `games`
+   * is the season's own-team games in order, each `{ id, label, plays }`
+   * with plays stamped `__gid`; `activeGameId` names "This game".
    */
-  scopePlays(dashboard, { games = [], activeGameId = null } = {}) {
+  scopePlays(widget, { games = [], activeGameId = null } = {}) {
     const charted = games.filter(game => game.plays.length);
     let chosen = games;
-    if (dashboard.scope === 'game') chosen = games.filter(game => String(game.id) === String(activeGameId));
-    else if (dashboard.scope === 'last3') chosen = charted.slice(-3);
+    if (widget.scope === 'game') chosen = games.filter(game => String(game.id) === String(activeGameId));
+    else if (widget.scope === 'last3') chosen = charted.slice(-3);
     const plays = chosen.flatMap(game => game.plays);
-    const unit = dashboard.unit;
-    const byUnit = unit === 'all' ? plays : plays.filter(play => countedUnit(play) === unit);
-    return this._filter(byUnit, dashboard.filters);
+    return widget.unit === 'all' ? plays : plays.filter(play => countedUnit(play) === widget.unit);
   }
 
   _filter(plays, filters) {
@@ -397,16 +403,19 @@ export class ReportBuilder {
   }
 
   /**
-   * Everything one widget shows, ready to draw: `{ title, view, ... }` per
-   * view. `context` is `{ games, activeGameId, labels, roster, unit }` with
-   * the dashboard cohort already applied in `plays`.
+   * Everything one module shows, ready to draw: `{ title, view, ... }` per
+   * view, over its own unit, games and filters. `context` is
+   * `{ games, activeGameId, labels, roster }`. A module narrower than the
+   * season marks its values with the season's.
    */
-  evaluate(widget, plays, context = {}) {
-    const unit = context.unit;
+  evaluate(widget, context = {}) {
+    const unit = widget.unit;
     const labels = context.labels || {};
     const options = { unit, minSample: widget.minSample };
-    const cohort = this._filter(plays, widget.filters);
-    const head = { id: widget.id, view: widget.view, title: this.title(widget, unit), width: widget.width, total: cohort.length };
+    const cohort = this._filter(this.scopePlays(widget, context), widget.filters);
+    const baselinePlays = widget.scope === 'season' ? null : this.scopePlays({ ...widget, scope: 'season' }, context);
+    context = { ...context, baselinePlays, baselineLabel: baselinePlays ? 'Season' : '' };
+    const head = { id: widget.id, view: widget.view, unit, scope: widget.scope, title: this.title(widget), width: widget.width, total: cohort.length };
     const metricName = ReportBuilder.metricName(widget.metric, unit);
     if (widget.view === 'kpi') {
       const current = this.measure(widget.metric, cohort, options);

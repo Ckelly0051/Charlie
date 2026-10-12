@@ -45,9 +45,9 @@ function MetricSelect({ value, onChange, unit, label = 'Metric' }) {
 
 /* ---- Filters ------------------------------------------------------------- */
 
-function FilterPicker({ screen, catalog, filters, onApply, onClose, label = 'Add filter' }) {
+function FilterPicker({ screen, catalog, filters, widget, onApply, onClose, label = 'Add filter' }) {
   const [dimension, setDimension] = useState(catalog[0]?.items[0]?.id || '');
-  const values = useMemo(() => screen.filterValues(dimension), [dimension]);
+  const values = useMemo(() => screen.filterValues(dimension, widget), [dimension, widget.unit, widget.scope]);
   const current = filters.find(item => item.dimension === dimension)?.values || [];
   const [chosen, setChosen] = useState(new Set(current));
   useEffect(() => setChosen(new Set(filters.find(item => item.dimension === dimension)?.values || [])), [dimension]);
@@ -58,7 +58,7 @@ function FilterPicker({ screen, catalog, filters, onApply, onClose, label = 'Add
       {values.length ? values.map(item => <label key={item.value} class="gi-rb-check">
         <input type="checkbox" checked={chosen.has(item.value)} onChange={() => toggle(item.value)} />
         <span>{item.label}</span><small>{item.n}</small>
-      </label>) : <p class="gi-rb-muted">No charted values in this scope.</p>}
+      </label>) : <p class="gi-rb-muted">No charted values for this unit and these games.</p>}
     </div>
     <div class="gi-rb-row-actions">
       <button type="button" onClick={onClose}>Cancel</button>
@@ -228,15 +228,19 @@ function WidgetBody({ screen, data }) {
 
 const WIDTH_CLASS = { s: 'is-w4', m: 'is-w6', l: 'is-w12' };
 
-function WidgetCard({ screen, data, index, count }) {
+const UNIT_NAMES = Object.fromEntries(ReportBuilder.UNITS);
+const SCOPE_NAMES = Object.fromEntries(ReportBuilder.SCOPES);
+
+function WidgetCard({ screen, data, index, count, editing }) {
   const close = event => event.currentTarget.closest('details')?.removeAttribute('open');
-  return <article class={['gi-rb-card', WIDTH_CLASS[data.width] || 'is-w6'].join(' ')} data-rb-widget={data.id} data-rb-view={data.view}>
+  return <article class={['gi-rb-card', UnitClass(data.unit), WIDTH_CLASS[data.width] || 'is-w6'].join(' ')} data-rb-widget={data.id} data-rb-view={data.view} data-rb-unit={data.unit}>
     <header class="gi-rb-card-head">
-      <h3>{data.title}</h3>
+      <div class="gi-rb-card-title"><h3>{data.title}</h3>
+        <span class="gi-rb-card-scope">{UNIT_NAMES[data.unit]} · {SCOPE_NAMES[data.scope]}</span></div>
       <div class="gi-rb-card-actions">
         <span class="gi-rb-muted">{plural(data.total ?? 0, 'play')}</span>
-        <button type="button" onClick={() => screen.editWidget(data.id)}>Edit</button>
-        <details class="gi-rb-menu">
+        {editing && <button type="button" onClick={() => screen.editWidget(data.id)}>Edit</button>}
+        {editing && <details class="gi-rb-menu">
           <summary aria-label={`More for ${data.title}`}>More</summary>
           <div role="menu">
             {ReportBuilder.WIDTHS.map(([id, name]) => <button key={id} type="button" role="menuitem" aria-pressed={data.width === id}
@@ -246,7 +250,7 @@ function WidgetCard({ screen, data, index, count }) {
             <button type="button" role="menuitem" onClick={event => { close(event); screen.duplicateWidget(data.id); }}>Duplicate</button>
             <button type="button" role="menuitem" class="is-risk" onClick={event => { close(event); screen.removeWidget(data.id); }}>Remove</button>
           </div>
-        </details>
+        </details>}
       </div>
     </header>
     <WidgetBody screen={screen} data={data} />
@@ -258,7 +262,7 @@ function WidgetCard({ screen, data, index, count }) {
 export function WidgetEditor({ screen, widget, isNew, onSave, onCancel }) {
   const [draft, setDraft] = useState(widget);
   const [picking, setPicking] = useState(false);
-  const unit = screen.active().unit;
+  const unit = draft.unit;
   const catalog = screen.builder.dimensionCatalog();
   const set = patch => setDraft(prev => ({ ...prev, ...patch }));
   const preview = useMemo(() => screen.preview(draft), [JSON.stringify(draft)]);
@@ -273,13 +277,21 @@ export function WidgetEditor({ screen, widget, isNew, onSave, onCancel }) {
     split: id === 'share' && !draft.split ? 'runPass' : draft.split });
   return <div class={['gi-rb-editor', UnitClass(unit)].join(' ')} data-report-widget-editor>
     <div class="gi-rb-editor-form">
+      <div class="gi-rb-field-row">
+        <div class="gi-rb-field"><span>Unit</span>
+          <Segment label="Unit" options={ReportBuilder.UNITS} value={draft.unit} onChoose={next => set({ unit: next })} />
+        </div>
+        <div class="gi-rb-field"><span>Games</span>
+          <Segment label="Games" options={ReportBuilder.SCOPES} value={draft.scope} onChoose={scope => set({ scope })} />
+        </div>
+      </div>
       <div class="gi-rb-field"><span>View</span>
         <div class="gi-rb-segment is-wrap" role="group" aria-label="View">
           {ReportBuilder.VIEWS.map(item => <button key={item.id} type="button" aria-pressed={view === item.id} onClick={() => chooseView(item.id)}>{item.name}</button>)}
         </div>
       </div>
       <label class="gi-rb-field"><span>Title</span>
-        <input type="text" value={draft.title} placeholder={screen.builder.title({ ...draft, title: '' }, unit)} onInput={event => set({ title: event.currentTarget.value })} />
+        <input type="text" value={draft.title} placeholder={screen.builder.title({ ...draft, title: '' })} onInput={event => set({ title: event.currentTarget.value })} />
       </label>
       {usesMetric && <MetricSelect value={draft.metric} unit={unit} onChange={metric => set({ metric })} />}
       {view === 'table' && <div class="gi-rb-field"><span>Columns</span>
@@ -313,42 +325,42 @@ export function WidgetEditor({ screen, widget, isNew, onSave, onCancel }) {
           <input type="number" min="0" max="50" value={draft.minSample} onChange={event => set({ minSample: Math.max(0, Math.min(50, parseInt(event.currentTarget.value, 10) || 0)) })} />
         </label>
       </div>
-      <div class="gi-rb-field"><span>Widget filters</span>
+      <div class="gi-rb-field"><span>Filters</span>
         <div class="gi-rb-chips">
           <FilterChips filters={draft.filters} dimensionName={id => screen.builder.dimensionName(id)} labels={{}}
             onRemove={dimension => set({ filters: draft.filters.filter(item => item.dimension !== dimension) })} />
           {!picking && <button type="button" class="gi-rb-add" onClick={() => setPicking(true)}>Add filter</button>}
         </div>
-        {picking && <FilterPicker screen={screen} catalog={catalog} filters={draft.filters} label="Widget filter"
+        {picking && <FilterPicker screen={screen} catalog={catalog} filters={draft.filters} widget={draft} label="Module filter"
           onClose={() => setPicking(false)}
           onApply={(dimension, values) => { set({ filters: [...draft.filters.filter(item => item.dimension !== dimension), ...(values.length ? [{ dimension, values }] : [])] }); setPicking(false); }} />}
       </div>
     </div>
     <section class="gi-rb-editor-preview" aria-label="Preview">
       <h4>Preview</h4>
-      {preview && <article class="gi-rb-card is-w12"><header class="gi-rb-card-head"><h3>{preview.title}</h3>
+      {preview && <article class={['gi-rb-card', UnitClass(preview.unit), 'is-w12'].join(' ')}><header class="gi-rb-card-head"><h3>{preview.title}</h3>
         <span class="gi-rb-muted">{plural(preview.total ?? 0, 'play')}</span></header>
         <WidgetBody screen={screen} data={preview} /></article>}
     </section>
     <footer class="gi-rb-editor-actions">
       <button type="button" onClick={onCancel}>Cancel</button>
-      <button type="button" class="is-primary" data-rb-save onClick={() => onSave(draft)}>{screen.isTemplate() ? 'Save as new dashboard' : isNew ? 'Add widget' : 'Save widget'}</button>
+      <button type="button" class="is-primary" data-rb-save onClick={() => onSave(draft)}>{screen.isTemplate() ? 'Save as new dashboard' : isNew ? 'Add module' : 'Save module'}</button>
     </footer>
   </div>;
 }
 
 /* ---- The board ------------------------------------------------------------- */
 
-const UNIT_NAMES = Object.fromEntries(ReportBuilder.UNITS);
-const SCOPE_NAMES = Object.fromEntries(ReportBuilder.SCOPES);
-const describe = item => [UNIT_NAMES[item.unit], SCOPE_NAMES[item.scope], plural(item.widgets, 'widget')].join(' · ');
+const describe = item => [...(item.units.length ? [item.units.map(id => UNIT_NAMES[id]).join(', ')] : []), plural(item.widgets, 'module')].join(' · ');
 
-function DashboardRow({ item, onOpen, onDelete, template }) {
-  return <li class={['gi-rb-home-row', UnitClass(item.unit)].join(' ')} data-rb-row={template ? `template:${item.id}` : item.id}>
+/** A home row takes its unit's color when every module reads one unit;
+ *  a mixed or empty dashboard is neutral. */
+function DashboardRow({ item, actions, template }) {
+  const unitClass = item.units.length === 1 ? UnitClass(item.units[0]) : 'is-all';
+  return <li class={['gi-rb-home-row', unitClass].join(' ')} data-rb-row={template ? `template:${item.id}` : item.id}>
     <div class="gi-rb-home-name"><strong>{item.name}</strong><span>{describe(item)}</span></div>
     <div class="gi-rb-home-actions">
-      <button type="button" class="is-primary" onClick={onOpen}>Open</button>
-      {onDelete && <button type="button" class="is-risk" onClick={onDelete}>Delete</button>}
+      {actions.map(([label, run, cls]) => <button key={label} type="button" class={cls || undefined} data-rb-action={label.toLowerCase()} onClick={run}>{label}</button>)}
     </div>
   </li>;
 }
@@ -383,26 +395,28 @@ function DashboardsHome({ screen, state }) {
     <section class="gi-rb-home-section" aria-label="Saved dashboards">
       <h3>Saved</h3>
       {state.dashboards.length
-        ? <ol class="gi-rb-home-list">{state.dashboards.map(item => <DashboardRow key={item.id} item={item}
-            onOpen={() => screen.open(item.id)} onDelete={() => screen.remove(item.id)} />)}</ol>
+        ? <ol class="gi-rb-home-list">{state.dashboards.map(item => <DashboardRow key={item.id} item={item} actions={[
+            ['Open', () => screen.open(item.id), 'is-primary'], ['Edit', () => screen.edit(item.id)],
+            ['Export', () => screen.exportDashboard(item.id)], ['Rename', () => screen.rename(item.id)],
+            ['Duplicate', () => screen.duplicate(item.id)], ['Delete', () => screen.remove(item.id), 'is-risk']]} />)}</ol>
         : <p class="gi-rb-muted">No saved dashboards</p>}
     </section>
     <section class="gi-rb-home-section" aria-label="Templates">
       <h3>Templates</h3>
-      <ol class="gi-rb-home-list">{state.templates.map(item => <DashboardRow key={item.id} item={item} template
-        onOpen={() => screen.openTemplate(item.id)} />)}</ol>
+      <ol class="gi-rb-home-list">{state.templates.map(item => <DashboardRow key={item.id} item={item} template actions={[
+        ['Open', () => screen.openTemplate(item.id), 'is-primary'], ['Edit', () => screen.editTemplate(item.id)]]} />)}</ol>
     </section>
   </div>;
 }
 
 export function NativeReportBuilder({ screen }) {
   const [state, setState] = useState(() => screen.snapshot());
-  const [picking, setPicking] = useState(false);
   // Re-read on subscribe: a change made before this effect ran is not missed.
   useEffect(() => { const off = screen.subscribe(setState); setState(screen.snapshot()); return off; }, [screen]);
   const { dashboard, result } = state;
   if (!dashboard) return <><DashboardsNav screen={screen} state={state} /><div class="gi-rb" data-report-builder><DashboardsHome screen={screen} state={state} /></div></>;
-  return <><DashboardsNav screen={screen} state={state} /><div class={['gi-rb', UnitClass(dashboard.unit)].join(' ')} data-report-builder>
+  const editing = state.editing;
+  return <><DashboardsNav screen={screen} state={state} /><div class={['gi-rb', 'is-all', editing ? 'is-editing' : ''].filter(Boolean).join(' ')} data-report-builder>
     <div class="gi-rb-toolbar">
       <div class="gi-rb-title">
         <h2>{dashboard.name}</h2>
@@ -417,24 +431,18 @@ export function NativeReportBuilder({ screen }) {
             <button type="button" onClick={() => screen.duplicate()}>Duplicate</button>
             <button type="button" class="is-risk" onClick={() => screen.remove()}>Delete</button>
           </>}
-        <button type="button" class="is-primary" data-rb-add-widget onClick={() => screen.editWidget()}>Add widget</button>
+        {editing
+          ? <>
+            <button type="button" class="is-primary" data-rb-add-widget onClick={() => screen.editWidget()}>Add module</button>
+            <button type="button" data-rb-done onClick={() => screen.setEditing(false)}>Done</button>
+          </>
+          : <button type="button" class="is-primary" data-rb-edit onClick={() => screen.setEditing(true)}>Edit</button>}
       </div>
     </div>
-    <div class="gi-rb-filters">
-      <Segment label="Scope" options={ReportBuilder.SCOPES} value={dashboard.scope} onChoose={scope => screen.setScope(scope)} />
-      <Segment label="Unit" options={ReportBuilder.UNITS} value={dashboard.unit} onChoose={unit => screen.setUnit(unit)} />
-      <div class="gi-rb-chips">
-        <FilterChips filters={dashboard.filters} dimensionName={state.dimensionName} labels={state.labels} onRemove={dimension => screen.setFilter(dimension, [])} />
-        {!picking && <button type="button" class="gi-rb-add" data-rb-add-filter onClick={() => setPicking(true)}>Add filter</button>}
-      </div>
-      <Watch screen={screen} refs={result.refs} label={dashboard.name} class="gi-rb-total">{plural(result.plays, 'play')}</Watch>
-    </div>
-    {picking && <FilterPicker screen={screen} catalog={state.dimensions} filters={dashboard.filters}
-      onClose={() => setPicking(false)} onApply={(dimension, values) => { screen.setFilter(dimension, values); setPicking(false); }} />}
     {result.widgets.length
-      ? <div class="gi-rb-grid">{result.widgets.map((data, index) => <WidgetCard key={data.id} screen={screen} data={data} index={index} count={result.widgets.length} />)}</div>
-      : <section class="gi-rb-start"><h2>No widgets yet</h2>
-          <button type="button" class="is-primary" onClick={() => screen.editWidget()}>Add widget</button></section>}
+      ? <div class="gi-rb-grid">{result.widgets.map((data, index) => <WidgetCard key={data.id} screen={screen} data={data} index={index} count={result.widgets.length} editing={editing} />)}</div>
+      : <section class="gi-rb-start"><h2>No modules yet</h2>
+          <button type="button" class="is-primary" onClick={() => (editing ? screen.editWidget() : screen.setEditing(true))}>{editing ? 'Add module' : 'Edit'}</button></section>}
   </div></>;
 }
 

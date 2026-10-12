@@ -69,41 +69,48 @@ try {
     const app = window.app, reports = app.reportsScreen;
     reports.openDashboards();
     const s = reports.dashboards, b = s.builder, ctx = s.context();
-    const offense = b.constructor.normalize({ scope: 'season', unit: 'offense', widgets: [] });
+    // Each module carries its own unit, games and filters (smoke 116 findings 1-3).
+    const W = value => b.constructor.normalizeWidget(value);
+    const ev = (widget, context = ctx) => b.evaluate(W(widget), context);
+    const only = list => ({ ...ctx, games: [{ id: 'only', label: 'only', plays: list }] });
+    const offense = W({ view: 'kpi', unit: 'offense', scope: 'season' });
     const plays = b.scopePlays(offense, ctx);
-    const bar = b.evaluate(b.constructor.normalizeWidget({ view: 'bar', metric: 'success', dimension: 'down' }), plays, { ...ctx, unit: 'offense' });
+    const bar = ev({ view: 'bar', metric: 'success', dimension: 'down', unit: 'offense' });
     const engine = app.analyticsRegistry.metricsEngine();
     const direct = ['1', '2', '3'].map(down => engine.metric(plays.filter(p => p.tags.down === down), 'successRate', {}, { allowUnlinkedPlays: true }));
-    const share = b.evaluate(b.constructor.normalizeWidget({ view: 'share', dimension: 'down', split: 'runPass' }), plays, { ...ctx, unit: 'offense' });
-    const trend = b.evaluate(b.constructor.normalizeWidget({ view: 'trend', metric: 'yards' }), plays, { ...ctx, unit: 'offense' });
-    const defense = b.constructor.normalize({ scope: 'season', unit: 'defense' });
-    const dPlays = b.scopePlays(defense, ctx);
-    const faced = b.evaluate(b.constructor.normalizeWidget({ view: 'bar', metric: 'success', dimension: 'formationFamily' }), dPlays, { ...ctx, unit: 'defense' });
-    const leaders = b.evaluate(b.constructor.normalizeWidget({ view: 'leaders', leader: 'tackles' }), dPlays, { ...ctx, unit: 'defense' });
+    const share = ev({ view: 'share', dimension: 'down', split: 'runPass', unit: 'offense' });
+    const trend = ev({ view: 'trend', metric: 'yards', unit: 'offense' });
+    const dPlays = b.scopePlays(W({ view: 'kpi', unit: 'defense' }), ctx);
+    const faced = ev({ view: 'bar', metric: 'success', dimension: 'formationFamily', unit: 'defense' });
+    const leaders = ev({ view: 'leaders', leader: 'tackles', unit: 'defense' });
     const board = app.stats.playersBoard(dPlays).players.find(p => p.num === '5');
     const game = b.scopePlays({ ...offense, scope: 'game' }, ctx).length;
-    const filtered = b.scopePlays({ ...offense, filters: [{ dimension: 'down', values: ['3'] }] }, ctx).length;
+    const filtered = ev({ view: 'kpi', metric: 'plays', unit: 'offense', filters: [{ dimension: 'down', values: ['3'] }] }).total;
+    // Two modules side by side: our offense and our defense, yards per play.
+    const sideBySide = [ev({ view: 'kpi', metric: 'yards', unit: 'offense' }), ev({ view: 'kpi', metric: 'yards', unit: 'defense' })]
+      .map(m => [m.unit, m.title, m.current.value]);
+    const yppOff = b.measure('yards', plays, { unit: 'offense' }).value, yppDef = b.measure('yards', dPlays, { unit: 'defense' }).value;
     const defShare = ['runShare', 'passShare'].map(id => b.measure(id, dPlays, { unit: 'defense' }));
     const turnovers = b.measure('turnovers', dPlays, { unit: 'defense' });
-    const fouls = b.evaluate(b.constructor.normalizeWidget({ view: 'table', dimension: 'penaltyFoul', metrics: ['penaltiesUs', 'penaltyYardsUs'] }), plays, { ...ctx, unit: 'offense' })
+    const fouls = ev({ view: 'table', dimension: 'penaltyFoul', metrics: ['penaltiesUs', 'penaltyYardsUs'], unit: 'offense' })
       .rows.map(r => [r.label, r.cells.map(c => c.value), r.cells[0].refs]);
     // Accepted Holding and a declined Unsportsmanlike on one snap: a cell is
     // the records both its row and its column hold.
     const twoFouls = plays.find(p => p.id === 12);
     const mixed = { ...twoFouls, penalties: twoFouls.penalties.map(p => (p.foul === 'Unsportsmanlike' ? { ...p, disposition: 'declined' } : p)) };
     Object.defineProperty(mixed, '__gid', { value: twoFouls.__gid });
-    const matrix = b.evaluate(b.constructor.normalizeWidget({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling' }), [mixed], { ...ctx, unit: 'offense' });
+    const matrix = ev({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling', unit: 'offense' }, only([mixed]));
     const cells = Object.fromEntries(matrix.rows.flatMap(r => r.cells.map((c, i) => [`${r.value}|${matrix.columns[i].value}`, [c.n, c.value]])));
     const rulings = b.groups(plays, 'penaltyRuling').map(g => g.label);
     // Six play types on one down: four named, the rest Other; whole shares total 100.
     const types = ['Run Inside', 'Run Outside', 'Short Pass', 'Screen', 'RPO', 'Draw'];
     const six = plays.slice(0, 6).map((p, i) => { const c = { ...p, tags: { ...p.tags, down: '1', playType: types[i] } }; Object.defineProperty(c, '__gid', { value: p.__gid }); return c; });
-    const fold = b.evaluate(b.constructor.normalizeWidget({ view: 'share', dimension: 'down', split: 'playType' }), six, { ...ctx, unit: 'offense' });
+    const fold = ev({ view: 'share', dimension: 'down', split: 'playType', unit: 'offense' }, only(six));
     const thirds = b.constructor.wholeShares([1, 1, 1]);
     const catalog = b.dimensionCatalog().flatMap(section => section.items.map(item => item.id));
-    const kpi = b.evaluate(b.constructor.normalizeWidget({ view: 'kpi', metric: 'success' }), b.scopePlays({ ...offense, scope: 'game' }, ctx), { ...ctx, unit: 'offense', baselinePlays: plays, baselineLabel: 'Season' });
+    const kpi = ev({ view: 'kpi', metric: 'success', unit: 'offense', scope: 'game' });
     return {
-      total: plays.length, game, filtered,
+      total: plays.length, game, filtered, sideBySide, yppOff, yppDef,
       bar: bar.rows.map(r => [r.label, r.value, r.n, r.refs.length]), direct: direct.map(r => [r.value, r.denominator, r.refs]),
       barRefs: bar.rows.map(r => r.refs),
       share: share.rows.map(r => [r.label, r.parts.reduce((sum, p) => sum + p.share, 0)]), shareOrder: share.rows.map(r => r.parts.map(p => p.value).join('/')),
@@ -115,7 +122,10 @@ try {
       catalog: ['motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun', 'missedTackles', 'penaltyRuling'].filter(id => !catalog.includes(id)),
     };
   });
-  ok(model.total === 13 && model.game === 9 && model.filtered === 3, 'scope and filters: 13 offensive plays this season, 9 this game, 3 on 3rd down', model);
+  ok(model.total === 13 && model.game === 9 && model.filtered === 3, 'a module\'s own games and filters: 13 offensive plays this season, 9 this game, 3 on 3rd down', model);
+  ok(model.sideBySide[0][0] === 'offense' && model.sideBySide[1][0] === 'defense' && model.sideBySide[1][1] === 'Yards Allowed / Play'
+    && model.sideBySide[0][2] === model.yppOff && model.sideBySide[1][2] === model.yppDef && model.yppOff !== model.yppDef,
+    'two modules on one canvas read our offense and our defense yards per play side by side', model.sideBySide);
   ok(JSON.stringify(model.bar.map(r => [r[1], r[2]])) === JSON.stringify(model.direct.map(r => [r[0], r[1]])),
     'Success Rate by down equals AnalyticsMetrics on each down\'s plays', { bar: model.bar, direct: model.direct });
   ok(JSON.stringify(model.barRefs) === JSON.stringify(model.direct.map(r => r[2])), 'each bar opens exactly its metric\'s film refs', model.barRefs);
@@ -147,6 +157,7 @@ try {
   let ui = await page.evaluate(() => ({
     home: !!document.querySelector('[data-rb-home]'),
     templates: [...document.querySelectorAll('[data-rb-row^="template:"]')].map(n => n.dataset.rbRow.slice(9)),
+    templateActions: [...document.querySelectorAll('[data-rb-row="template:offense"] .gi-rb-home-actions button')].map(n => n.textContent),
     saved: document.querySelectorAll('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"])').length,
     picker: !!document.querySelector('[data-report-builder] select[aria-label="Dashboard"]'),
     scorebug: document.querySelector('[data-reports-scorebug]')?.hidden !== false, strip: document.querySelector('[data-reports-strip]')?.hidden === true,
@@ -156,18 +167,27 @@ try {
   }));
   ok(ui.home && ui.templates.join() === 'offense,defense,situational,calls' && ui.saved === 0 && !ui.picker,
     'Dashboards opens on its home: the four templates, no saved dashboards yet, no dropdown', ui);
+  ok(ui.templateActions.join() === 'Open,Edit', 'a template row offers Open and Edit', ui.templateActions);
   ok(ui.scorebug && ui.strip && ui.special && ui.nav.join('|') === 'Dashboards|Go to reports',
     'Dashboards is a focused view: no score or report strip; its home strip offers only Go to reports', ui);
   ok((([r, g, bl]) => r === g && g === bl)(ui.newColor.match(/[0-9]+/g).map(Number)), 'New dashboard is a neutral button, not a unit color (coach, 2026-10-12)', ui.newColor);
 
   console.log('\n== A template is read-only ==');
-  await page.click('[data-rb-row="template:offense"] .is-primary'); await settle();
-  await page.evaluate(() => [...document.querySelectorAll('[aria-label="Scope"] button')].find(b => b.textContent === 'This game').click()); await settle();
-  ui = await page.evaluate(() => ({ cards: document.querySelectorAll('[data-rb-widget]').length, tag: document.querySelector('.gi-rb-tag')?.textContent,
-    stored: window.app.storage.seasonStore.data.dashboards.length, scope: window.app.reportsScreen.dashboards.active().scope,
-    rename: [...document.querySelectorAll('.gi-rb-toolbar-actions button')].some(b => b.textContent === 'Rename') }));
-  ok(ui.cards === 7 && ui.tag === 'Template' && ui.stored === 0 && ui.scope === 'game' && !ui.rename,
-    'opening a template shows its seven widgets, marked Template; changing its scope saves nothing', ui);
+  await page.click('[data-rb-row="template:offense"] [data-rb-action="open"]'); await settle();
+  const board = () => page.evaluate(() => ({
+    cards: document.querySelectorAll('[data-rb-widget]').length, tag: document.querySelector('.gi-rb-tag')?.textContent,
+    stored: window.app.storage.seasonStore.data.dashboards.length,
+    toolbar: [...document.querySelectorAll('.gi-rb-toolbar-actions button')].map(b => b.textContent),
+    cardEdit: document.querySelectorAll('[data-rb-widget] .gi-rb-card-actions button, [data-rb-widget] .gi-rb-menu').length,
+    dashboardControls: document.querySelectorAll('[data-report-builder] > .gi-rb-filters, [data-report-builder] [aria-label="Unit"], [data-report-builder] [aria-label="Scope"]').length,
+    scopes: [...document.querySelectorAll('[data-rb-widget] .gi-rb-card-scope')].map(n => n.textContent),
+    name: document.querySelector('.gi-rb-title h2')?.textContent,
+  }));
+  ui = await board();
+  ok(ui.cards === 7 && ui.tag === 'Template' && ui.stored === 0 && !ui.toolbar.includes('Rename') && ui.toolbar.includes('Edit')
+    && !ui.toolbar.includes('Add module') && ui.cardEdit === 0 && ui.dashboardControls === 0,
+    'opening a template shows its seven modules, marked Template, with Edit and no dashboard-wide unit, games or filters', ui);
+  ok(ui.scopes.length === 7 && ui.scopes.every(text => text === 'Offense · Season'), 'each module card names its own unit and games', ui.scopes);
   const watched = await page.evaluate(async () => {
     const calls = [];
     const nav = window.app.filmNavigation, original = nav.watch;
@@ -182,60 +202,80 @@ try {
   const resumed = await page.evaluate(() => { const r = window.app.reportsScreen; r.show(); return { open: !!document.querySelector('[data-rb-widget]'), tag: document.querySelector('.gi-rb-tag')?.textContent }; });
   ok(resumed.open && resumed.tag === 'Template', 'returning to Reports after watching film reopens the dashboard', resumed);
   await page.evaluate(() => { window.__prompt = window.app.tagger._promptDialog; window.app.tagger._promptDialog = async () => null; });
-  await page.click('[data-rb-add-widget]'); await settle();
-  ui = await page.evaluate(() => document.querySelector('[data-rb-save]')?.textContent);
-  ok(ui === 'Save as new dashboard', 'adding a widget to a template offers Save as new dashboard', ui);
-  await page.click('[data-rb-save]'); await settle();
-  ui = await page.evaluate(() => ({ stored: window.app.storage.seasonStore.data.dashboards.length, cards: document.querySelectorAll('[data-rb-widget]').length, tag: document.querySelector('.gi-rb-tag')?.textContent }));
-  ok(ui.stored === 0 && ui.cards === 7 && ui.tag === 'Template', 'cancelling the name saves nothing and leaves the template as it was', ui);
+  await page.click('[data-rb-edit]'); await settle();
+  ui = await board();
+  ok(ui.stored === 0 && ui.cards === 7 && ui.tag === 'Template', 'Edit on a template asks for a name; cancelling saves nothing and leaves the template as it was', ui);
   await page.evaluate(() => { window.app.tagger._promptDialog = async () => 'My offense'; });
-  await page.click('[data-rb-add-widget]'); await settle();
-  await page.evaluate(() => [...document.querySelectorAll('[data-report-widget-editor] [aria-label="View"] button')].find(b => b.textContent === 'Table').click()); await settle();
-  const preview = await page.evaluate(() => !!document.querySelector('[data-report-widget-editor] .gi-rb-table'));
-  await page.click('[data-rb-save]'); await settle();
-  ui = await page.evaluate(() => ({ cards: [...document.querySelectorAll('[data-rb-widget]')].map(n => n.dataset.rbView), dialog: !!document.querySelector('[data-report-widget-editor]'),
-    stored: window.app.storage.seasonStore.data.dashboards.map(d => [d.name, d.widgets.length, d.scope]), tag: !!document.querySelector('.gi-rb-tag'),
-    template: window.app.reportsScreen.dashboards.builder.constructor.TEMPLATES.find(t => t.id === 'offense').widgets.length }));
-  ok(preview && ui.cards.length === 8 && ui.cards.at(-1) === 'table' && !ui.dialog && !ui.tag
-    && JSON.stringify(ui.stored) === '[["My offense",8,"game"]]' && ui.template === 7,
-    'a widget added to a template saves a new dashboard under the given name; the template keeps its seven widgets', { preview, ...ui });
-  await page.evaluate(() => { window.app.tagger._promptDialog = window.__prompt; });
+  await page.click('[data-rb-edit]'); await settle();
+  ui = await board();
+  ok(ui.stored === 1 && ui.name === 'My offense' && !ui.tag && ui.toolbar.includes('Add module') && ui.toolbar.includes('Done') && ui.cardEdit > 0,
+    'Edit on a template saves a new dashboard under the given name and opens it to edit', ui);
 
-  console.log('\n== Building a dashboard ==');
+  console.log('\n== Building a canvas ==');
+  await page.click('[data-rb-add-widget]'); await settle();
+  await page.evaluate(() => {
+    const editor = document.querySelector('[data-report-widget-editor]');
+    const pick = (label, text) => [...editor.querySelectorAll(`[aria-label="${label}"] button`)].find(b => b.textContent === text).click();
+    pick('Unit', 'Defense'); pick('Games', 'This game');
+  }); await settle();
+  await page.evaluate(() => [...document.querySelectorAll('[data-report-widget-editor] [aria-label="View"] button')].find(b => b.textContent === 'Table').click()); await settle();
+  const editor = await page.evaluate(() => ({ preview: !!document.querySelector('[data-report-widget-editor] .gi-rb-table'),
+    editorUnit: document.querySelector('[data-report-widget-editor]').classList.contains('is-defense'),
+    previewUnit: document.querySelector('[data-report-widget-editor] .gi-rb-card')?.classList.contains('is-defense') }));
+  await page.click('[data-rb-save]'); await settle();
+  ui = await page.evaluate(() => {
+    const last = [...document.querySelectorAll('[data-rb-widget]')].at(-1);
+    return { cards: document.querySelectorAll('[data-rb-widget]').length, dialog: !!document.querySelector('[data-report-widget-editor]'),
+      stored: window.app.storage.seasonStore.data.dashboards.map(d => [d.name, d.widgets.length, d.widgets.at(-1).unit, d.widgets.at(-1).scope]),
+      lastUnit: last.dataset.rbUnit, lastScope: last.querySelector('.gi-rb-card-scope')?.textContent,
+      colors: [getComputedStyle(document.querySelector('[data-rb-widget]')).borderTopColor, getComputedStyle(last).borderTopColor],
+      template: window.app.reportsScreen.dashboards.builder.constructor.TEMPLATES.find(t => t.id === 'offense').widgets.length };
+  });
+  ok(editor.preview && editor.editorUnit && editor.previewUnit, 'the module editor picks its own unit and games, and its preview takes the unit color', editor);
+  ok(ui.cards === 8 && !ui.dialog && JSON.stringify(ui.stored) === '[["My offense",8,"defense","game"]]' && ui.template === 7,
+    'a defense, this-game module joins the offense modules on one canvas; the template keeps its seven', ui);
+  ok(ui.lastUnit === 'defense' && ui.lastScope === 'Defense · This game' && ui.colors[0] === 'rgb(217, 162, 26)' && ui.colors[1] === 'rgb(18, 169, 203)',
+    'each card takes its own module\'s color: offense gold beside defense cyan', ui);
   const lastId = await page.evaluate(() => [...document.querySelectorAll('[data-rb-widget]')].at(-1).dataset.rbWidget);
   await page.evaluate(id => window.app.reportsScreen.dashboards.resizeWidget(id, 's'), lastId); await settle();
-  ok(await page.evaluate(id => document.querySelector(`[data-rb-widget="${id}"]`).classList.contains('is-w4'), lastId), 'a widget resizes to a third');
+  ok(await page.evaluate(id => document.querySelector(`[data-rb-widget="${id}"]`).classList.contains('is-w4'), lastId), 'a module resizes to a third');
   await page.evaluate(id => window.app.reportsScreen.dashboards.moveWidget(id, -1), lastId); await settle();
-  ok(await page.evaluate(id => [...document.querySelectorAll('[data-rb-widget]')].at(-2).dataset.rbWidget === id, lastId), 'a widget moves earlier');
-  await page.evaluate(id => window.app.reportsScreen.dashboards.removeWidget(id), lastId); await settle();
-  ok(await page.evaluate(() => document.querySelectorAll('[data-rb-widget]').length === 7), 'a widget is removed');
-  await page.evaluate(() => window.app.reportsScreen.dashboards.setScope('season')); await settle();
-  await page.click('[data-rb-add-filter]'); await settle();
-  await page.evaluate(() => {
-    const picker = document.querySelector('[data-rb-filter-picker]');
-    const select = picker.querySelector('select'); select.value = 'down'; select.dispatchEvent(new Event('change', { bubbles: true }));
-  }); await settle();
-  await page.evaluate(() => {
-    const picker = document.querySelector('[data-rb-filter-picker]');
-    [...picker.querySelectorAll('.gi-rb-check')].find(l => l.textContent.startsWith('3rd')).querySelector('input').click();
-  }); await settle(100);
-  await page.evaluate(() => [...document.querySelectorAll('[data-rb-filter-picker] button')].find(b => b.textContent === 'Apply').click()); await settle();
-  ui = await page.evaluate(() => ({ chip: document.querySelector('[data-rb-filter="down"]')?.textContent || '', total: document.querySelector('.gi-rb-total')?.textContent }));
-  ok(/Down:\s*3rd/.test(ui.chip) && ui.total === '3 plays', 'a dashboard filter narrows every widget, and its chip reads 3rd', ui);
-  await page.evaluate(() => [...document.querySelectorAll('[aria-label="Unit"] button')].find(b => b.textContent === 'Defense').click()); await settle();
-  ok(await page.evaluate(() => document.querySelector('[data-report-builder]').classList.contains('is-defense')), 'Defense switches the dashboard to the defense framing and color');
+  ok(await page.evaluate(id => [...document.querySelectorAll('[data-rb-widget]')].at(-2).dataset.rbWidget === id, lastId), 'a module moves earlier');
+  // A module filter narrows that module only.
+  const filtered = await page.evaluate(async () => {
+    const s = window.app.reportsScreen.dashboards, first = s.active().widgets[0];
+    s.saveWidget({ ...first, filters: [{ dimension: 'down', values: ['3'] }] });
+    await new Promise(r => setTimeout(r, 250));
+    const totals = [...document.querySelectorAll('[data-rb-widget] .gi-rb-card-actions .gi-rb-muted')].map(n => n.textContent);
+    return { first: totals[0], second: totals[1] };
+  });
+  ok(filtered.first === '3 plays' && filtered.second === '13 plays', 'a module filter narrows that module only (3rd down: 3 plays; its neighbor keeps 13)', filtered);
   const stored = await page.evaluate(() => {
     const store = window.app.storage.seasonStore;
     const again = store.constructor.prototype._normalize.call(store, JSON.parse(store.json()));
-    return { unit: store.data.dashboards[0].unit, filters: store.data.dashboards[0].filters, survives: again.dashboards?.[0]?.widgets?.length };
+    const d = again.dashboards?.[0];
+    return { keys: Object.keys(store.data.dashboards[0]).sort().join(), units: d?.widgets?.map(w => w.unit), filters: d?.widgets?.[0]?.filters };
   });
-  ok(stored.unit === 'defense' && stored.filters[0]?.values.join() === '3' && stored.survives === 7, 'the dashboard is saved with the season and survives a reload', stored);
+  ok(stored.keys === 'id,name,version,widgets' && stored.units?.length === 8 && stored.units.includes('defense') && stored.filters?.[0]?.values.join() === '3',
+    'the canvas is saved with the season, each module with its own unit and filters, and survives a reload', stored);
+  await page.click('[data-rb-done]'); await settle();
+  ui = await board();
+  ok(ui.cardEdit === 0 && ui.toolbar.includes('Edit') && !ui.toolbar.includes('Add module'), 'Done shows the dashboard without its edit controls', ui);
   await page.click('[data-rb-home-link]'); await settle();
-  ui = await page.evaluate(() => ({ home: !!document.querySelector('[data-rb-home]'),
-    saved: [...document.querySelectorAll('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) strong')].map(n => n.textContent) }));
-  ok(ui.home && ui.saved.join() === 'My offense', 'All dashboards returns to the home, listing the saved dashboard', ui);
-  await page.click('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) .is-primary'); await settle();
-  ok(await page.evaluate(() => document.querySelectorAll('[data-rb-widget]').length === 7 && !document.querySelector('.gi-rb-tag')), 'Open reopens the saved dashboard');
+  ui = await page.evaluate(() => {
+    const row = document.querySelector('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"])');
+    return { home: !!document.querySelector('[data-rb-home]'), name: row?.querySelector('strong')?.textContent, detail: row?.querySelector('span')?.textContent,
+      actions: [...(row?.querySelectorAll('.gi-rb-home-actions button') || [])].map(n => n.textContent), mixed: row?.classList.contains('is-all') };
+  });
+  ok(ui.home && ui.name === 'My offense' && ui.actions.join() === 'Open,Edit,Export,Rename,Duplicate,Delete',
+    'Back to dashboards lists the saved dashboard with Open, Edit, Export, Rename, Duplicate and Delete on the picker page', ui);
+  ok(ui.detail === 'Offense, Defense · 8 modules' && ui.mixed, 'a dashboard mixing units is listed by its units and drawn neutral', ui);
+  await page.click('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) [data-rb-action="edit"]'); await settle();
+  ok((await board()).toolbar.includes('Add module'), 'Edit on the picker page opens the dashboard to edit');
+  await page.click('[data-rb-home-link]'); await settle();
+  await page.click('[data-rb-home] [data-rb-row]:not([data-rb-row^="template:"]) [data-rb-action="open"]'); await settle();
+  ok(await page.evaluate(() => document.querySelectorAll('[data-rb-widget]').length === 8 && !document.querySelector('.gi-rb-tag') && !document.querySelector('[data-rb-add-widget]')),
+    'Open shows the saved dashboard, not to edit');
   // The Dashboards strip (smoke 115 findings 1-2).
   const strip = async () => page.evaluate(() => {
     const nav = document.querySelector('[data-rb-nav]'), box = n => n?.getBoundingClientRect();
@@ -264,33 +304,61 @@ try {
   console.log('\n== Season marks and export ==');
   const marks = await page.evaluate(async () => {
     const s = window.app.reportsScreen.dashboards;
-    s.setFilter('down', []); s.setUnit('offense'); s.setScope('game');
+    s._replace(s.builder.constructor.fromTemplate('blank', 'Marks'), { open: true, editing: true });
+    s.saveWidget({ view: 'bar', metric: 'success', dimension: 'down', unit: 'offense', scope: 'game', width: 'm' });
     await new Promise(r => setTimeout(r, 250));
-    const bar = s.evaluate(s.active()).widgets.find(w => w.view === 'bar');
+    const bar = s.evaluate(s.active()).widgets[0];
     const engine = window.app.analyticsRegistry.metricsEngine(), ctx = s.context();
-    const season = s.builder.scopePlays({ ...s.active(), scope: 'season' }, ctx).filter(p => p.tags.down === '1');
+    const season = s.builder.scopePlays({ unit: 'offense', scope: 'season' }, ctx).filter(p => p.tags.down === '1');
     return { marks: document.querySelectorAll('[data-rb-view="bar"] .gi-rb-bar-mark').length, rows: bar.rows.length,
       first: bar.rows[0].baseline, direct: engine.metric(season, 'successRate', {}, { allowUnlinkedPlays: true }).value };
   });
-  ok(marks.marks === marks.rows && marks.first === marks.direct, 'This game marks each bar with its season value', marks);
+  ok(marks.marks === marks.rows && marks.first === marks.direct, 'a This game module marks each bar with its season value', marks);
   const exported = await page.evaluate(async () => {
     let saved = null;
     const original = window.ffaSaveBlob;
     window.ffaSaveBlob = (blob, name) => { saved = name; return true; };
-    const html = await window.app.reportsScreen.dashboards.exportHtml();
+    const s = window.app.reportsScreen.dashboards;
+    s.home();
+    await new Promise(r => setTimeout(r, 150));
+    const id = s.list().find(d => d.name === 'My offense').id;
+    const html = await s.exportDashboard(id);
     window.ffaSaveBlob = original;
-    return { saved, length: html?.length || 0, title: /<title>My offense<\/title>/.test(html || ''), cards: (html?.match(/data-rb-widget=/g) || []).length, styled: /\.gi-rb-card\s*\{/.test(html || '') && /--gi-bd-panel\s*:/.test(html || '') && /46px\/1 var\(--gi-cond\)/.test(html || '') };
+    await new Promise(r => setTimeout(r, 150));
+    return { saved, home: !!document.querySelector('[data-rb-home]'), title: /<title>My offense<\/title>/.test(html || ''), cards: (html?.match(/data-rb-widget=/g) || []).length,
+      styled: /\.gi-rb-card\s*\{/.test(html || '') && /--gi-bd-panel\s*:/.test(html || '') && /46px\/1 var\(--gi-cond\)/.test(html || '') };
   });
-  ok(exported.saved?.startsWith('dashboard_my_offense_') && exported.title && exported.cards === 7 && exported.styled,
-    'Export saves one self-contained HTML file of the board with its styles', exported);
+  ok(exported.saved?.startsWith('dashboard_my_offense_') && exported.title && exported.cards === 8 && exported.styled && exported.home,
+    'Export on the picker page saves one self-contained HTML file of the dashboard and stays on the picker page', exported);
+
+  console.log('\n== Delete asks for the typed word ==');
+  const deleting = await page.evaluate(async () => {
+    const s = window.app.reportsScreen.dashboards;
+    const id = s.list().find(d => d.name === 'Marks').id;
+    const pending = s.remove(id);
+    await new Promise(r => setTimeout(r, 200));
+    const input = document.querySelector('.gi-confirm-delete [name="confirm"]');
+    const button = document.querySelector('.gi-confirm-delete button.is-danger');
+    const before = { input: !!input, armed: button && !button.disabled, impact: document.querySelector('.gi-confirm-delete p')?.textContent };
+    input.value = 'delete'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 100));
+    const armed = !button.disabled;
+    button.click();
+    const result = await pending;
+    return { before, armed, result, left: s.list().map(d => d.name) };
+  });
+  ok(deleting.before.input && !deleting.before.armed && deleting.armed && deleting.result === true && deleting.left.join() === 'My offense'
+    && /1 module will be removed/.test(deleting.before.impact || ''),
+    'Delete names what goes and stays disabled until "delete" is typed, as deleting a game or season does', deleting);
+  await page.evaluate(() => { window.app.tagger._promptDialog = window.__prompt; });
 
   console.log('\n== Views ==');
   const views = await page.evaluate(async () => {
     const s = window.app.reportsScreen.dashboards, B = s.builder.constructor;
-    s._replace(B.fromTemplate('blank', 'Checks'));
-    s.setScope('season'); s.setUnit('offense');
-    s.saveWidget({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling', width: 'l' });
-    s.saveWidget({ view: 'kpi', metric: 'touchdowns', width: 's' });
+    s._replace(B.fromTemplate('blank', 'Checks'), { open: true, editing: true });
+    const add = widget => s.saveWidget({ unit: 'offense', scope: 'season', ...widget });
+    add({ view: 'matrix', metric: 'penaltyYardsUs', dimension: 'penaltyFoul', dimension2: 'penaltyRuling', width: 'l' });
+    add({ view: 'kpi', metric: 'touchdowns', width: 's' });
     await new Promise(r => setTimeout(r, 250));
     const calls = [];
     const nav = window.app.filmNavigation, original = nav.watch;
@@ -300,33 +368,30 @@ try {
     const head = [...document.querySelectorAll('.gi-rb-matrix thead th')].map(n => n.textContent);
     const tile = document.querySelector('[data-rb-view="kpi"] .gi-rb-kpi-meta')?.textContent || '';
     const caption = document.querySelector('.gi-rb-matrix-wrap .gi-rb-muted')?.textContent || '';
-    s.saveWidget({ view: 'trend', metric: 'success', width: 'l' });
-    s.setUnit('special');
+    add({ view: 'trend', metric: 'success', unit: 'special', width: 'l' });
+    add({ view: 'bar', metric: 'yards', dimension: 'down', unit: 'defense', width: 'm' });
+    // EPA is offense-only, so on defense every value is unavailable: no film, a dash.
+    add({ view: 'table', metrics: ['epa'], dimension: 'down', unit: 'defense', width: 'm' });
     await new Promise(r => setTimeout(r, 250));
     const trendText = document.querySelector('[data-rb-view="trend"] .gi-rb-empty')?.textContent || '';
-    s.setUnit('defense');
-    s.saveWidget({ view: 'bar', metric: 'yards', dimension: 'down', width: 'm' });
-    // EPA is offense-only, so on defense every value is unavailable: no film, a dash.
-    s.saveWidget({ view: 'table', metrics: ['epa'], dimension: 'down', width: 'm' });
-    await new Promise(r => setTimeout(r, 250));
     const dashCell = document.querySelector('[data-rb-view="table"] span.gi-rb-cell');
-    const dashBox = dashCell?.getBoundingClientRect(), rowBox = dashCell?.closest('tr').querySelector('th').getBoundingClientRect();
+    const dashBox = dashCell?.getBoundingClientRect();
     const range = document.createRange(); if (dashCell) range.selectNodeContents(dashCell);
     const textBox = dashCell ? range.getBoundingClientRect() : null;
     const dash = dashCell ? { text: dashCell.textContent, offset: Math.round(Math.abs((textBox.top + textBox.bottom) / 2 - (dashBox.top + dashBox.bottom) / 2)) } : null;
     const neg = document.querySelector('[data-rb-view="bar"] .gi-rb-bars li.is-negative');
     const zero = neg?.querySelector('.gi-rb-bar-zero'), fill = neg?.querySelector('.gi-rb-bar-fill');
     const negative = neg ? { fillRight: Math.round(fill.getBoundingClientRect().right), zero: Math.round(zero.getBoundingClientRect().left), width: fill.getBoundingClientRect().width } : null;
+    const teal = getComputedStyle(document.querySelector('[data-rb-unit="special"]')).borderTopColor;
     // Success / Stop Rate bars run 0-100%; other rates scale to the largest bar.
-    s.setUnit('offense');
-    s.saveWidget({ view: 'bar', metric: 'success', dimension: 'down', width: 'm' });
-    s.saveWidget({ view: 'bar', metric: 'yards', dimension: 'down', width: 'm' });
+    add({ view: 'bar', metric: 'success', dimension: 'down', width: 'm' });
+    add({ view: 'bar', metric: 'yards', dimension: 'down', width: 'm' });
     await new Promise(r => setTimeout(r, 250));
-    const barsOf = name => [...document.querySelectorAll('[data-rb-view="bar"]')].find(n => n.closest('[data-rb-widget], article, section')?.textContent.includes(name));
+    const barsOf = name => [...document.querySelectorAll('[data-rb-view="bar"]')].find(n => n.querySelector('h3')?.textContent.startsWith(name));
     const fillPct = li => { const t = li.querySelector('.gi-rb-bar-track').getBoundingClientRect(), f = li.querySelector('.gi-rb-bar-fill').getBoundingClientRect(); return Math.round(f.width / t.width * 100); };
     const rowsOf = view => [...(view?.querySelectorAll('.gi-rb-bars li') || [])].map(li => ({ value: parseFloat(li.querySelector('.gi-rb-bar-value').textContent), fill: fillPct(li) }));
     const scale = { success: rowsOf(barsOf('Success Rate')), yards: rowsOf(barsOf('Yards / Play')) };
-    return { calls, head, tile, negative, caption, dash, trendText, scale };
+    return { calls, head, tile, negative, caption, dash, trendText, scale, teal };
   });
   // The fixture's largest success rate is under 100%, so a bar scaled to it would overfill.
   const successRows = views.scale.success.filter(r => Number.isFinite(r.value));
@@ -343,35 +408,30 @@ try {
   ok(!views.caption || !/across|Small numbers|faded/.test(views.caption), 'a heat map carries no explanatory sentence', views.caption);
   ok(views.trendText === 'Choose Offense or Defense', 'a game-by-game metric the unit cannot read says why, not "no games"', views.trendText);
   ok(views.dash && views.dash.offset <= 1, 'a value without film (a dash) sits on the row\'s text line', views.dash);
+  ok(views.teal === 'rgb(127, 180, 191)', 'a Special Teams module uses the teal accent', views.teal);
   const rich = await page.evaluate(() => { const S = window.app.studyScreen.constructor; return [S.richName('success', 'defense'), S.richName('success', 'offense')]; });
   ok(rich.join() === 'Stop Rate,Success Rate', 'Study names its success concept per unit: Stop Rate on defense', rich);
-  await page.evaluate(async () => { const s = window.app.reportsScreen.dashboards; const id = s.active().id; window.app.tagger._confirmDialog = async () => true; await s.remove(id); s.open(s.list()[0].id); s.setUnit('offense'); s.setFilter('down', []); });
-  await settle();
 
   console.log('\n== Styling ==');
-  await page.evaluate(() => window.app.reportsScreen.dashboards.setScope('season')); await settle();
+  await page.click('[data-rb-add-widget]'); await settle();
   const styling = await page.evaluate(() => {
     // Offense is selected and first: its right border is on top of Defense's
     // left border, which follows it and would otherwise paint over it.
-    const pressed = [...document.querySelectorAll('[aria-label="Unit"] button')].find(b => b.getAttribute('aria-pressed') === 'true' && b.nextElementSibling);
+    const pressed = [...document.querySelectorAll('[data-report-widget-editor] [aria-label="Unit"] button')].find(b => b.getAttribute('aria-pressed') === 'true' && b.nextElementSibling);
     const box = pressed?.getBoundingClientRect();
     const onTop = box ? document.elementFromPoint(box.right - 0.5, box.top + box.height / 2) === pressed : false;
     return { onTop, pressed: pressed?.textContent };
   });
   ok(styling.onTop, 'the selected segment draws its whole outline above its neighbor', styling);
+  await page.evaluate(() => [...document.querySelectorAll('[data-report-widget-editor] button')].find(b => b.textContent === 'Cancel').click()); await settle();
   await page.hover('.gi-rb-table tbody tr:first-child td:last-child'); await settle(100);
   const hover = await page.evaluate(() => {
     const row = document.querySelector('.gi-rb-table tbody tr:first-child');
     return { th: getComputedStyle(row.querySelector('th')).backgroundColor, td: getComputedStyle(row.querySelector('td')).backgroundColor };
   });
   ok(hover.th === hover.td && hover.th !== 'rgba(0, 0, 0, 0)', 'a hovered table row lights its label cell with the rest of the row', hover);
-  await page.evaluate(() => window.app.reportsScreen.dashboards.setUnit('special')); await settle();
-  const teal = await page.evaluate(() => getComputedStyle(document.querySelector('.gi-rb-card')).borderTopColor);
-  ok(teal === 'rgb(127, 180, 191)', 'Special Teams dashboards use the teal accent', teal);
-  await page.evaluate(() => window.app.reportsScreen.dashboards.setUnit('offense')); await settle();
 
   console.log('\n== Layout ==');
-  await page.evaluate(() => { const s = window.app.reportsScreen.dashboards; s.setScope('season'); });
   for (const [w, h] of [[1440, 900], [1280, 800], [768, 1024], [390, 844]]) {
     await page.setViewport({ width: w, height: h }); await settle(300);
     const geo = await page.evaluate(() => {
@@ -385,6 +445,12 @@ try {
       return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, small: small.slice(0, 5) };
     });
     ok(geo.overflow <= 0 && !geo.small.length, `${w}x${h}: no page overflow and no text under 12.5px`, geo);
+  }
+  await page.evaluate(() => window.app.reportsScreen.dashboards.home()); await settle();
+  for (const [w, h] of [[1440, 900], [390, 844]]) {
+    await page.setViewport({ width: w, height: h }); await settle(300);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    ok(overflow <= 0, `${w}x${h}: the picker page's row actions fit without page overflow`, overflow);
   }
   await page.setViewport({ width: 1440, height: 900 });
 
@@ -400,10 +466,10 @@ try {
       const defense = b.constructor.fromTemplate('defense');
       const result = s.evaluate(defense, ctx);
       const leaders = result.widgets.find(w => w.view === 'leaders').rows;
-      const plays = b.scopePlays(defense, ctx);
+      const plays = b.scopePlays(defense.widgets[0], ctx);
       const board = app.stats.defenseBoard(app.season._allPlays(), {}).players;
       // Yards per play leaves out penalty yardage everywhere (coach, 2026-10-10).
-      const offense = b.scopePlays(b.constructor.fromTemplate('offense'), ctx);
+      const offense = b.scopePlays(b.constructor.fromTemplate('offense').widgets[0], ctx);
       const ypp = {
         dashboardOffense: b.measure('yards', offense, { unit: 'offense' }).value,
         reportOffense: Number(app.stats.constructor.yardsPerPlay(app.stats.compute(offense))),

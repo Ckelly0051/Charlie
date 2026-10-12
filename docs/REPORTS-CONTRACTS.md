@@ -331,24 +331,38 @@ or stop rate carries the plays it divides by (`successPlays`, `succPlays`,
 
 The coach's own reports (coach, 2026-10-10: "self serve reporting"). Opened
 from the Reports head (Dashboards, beside Scout opponent) as a focused view
-with its own strip; the approved report strip is unchanged.
+with its own strip; the approved report strip is unchanged. Dashboards are
+separate from the reporting rebuild.
 
-- **Home** (smoke 114 findings 1-2). The Dashboards button opens the home:
-  New dashboard, the saved dashboards as rows (name, unit, scope, widgets;
-  Open, Delete) and the templates as rows (Open). New dashboard is a neutral
-  button; each row and its Open take the row's unit color (coach,
-  2026-10-12). In a run / pass split, Pass is white. Returning to Reports after
-  watching film from a dashboard, or from another route, reopens Dashboards
-  where the coach left it.
+- **A canvas of modules** (coach, 2026-10-12, smoke 116 findings 1-3). A
+  dashboard sets no unit, games or filters. Each module (a widget) carries its
+  own unit (Offense, Defense, Special Teams, All units), games (This game,
+  Last 3 games, Season), filters, measure, grouping and view, so our offense
+  yards per play can sit beside our defense yards per play. Each card names
+  its unit and games and takes its unit's color; the canvas is neutral. A
+  new module starts with the unit and games of the last module.
+- **Home** (smoke 114 findings 1-2; smoke 116). The Dashboards button opens
+  the home: New dashboard (neutral), the saved dashboards as rows (name, the
+  units its modules read, module count; Open, Edit, Export, Rename,
+  Duplicate, Delete) and the templates as rows (Open, Edit). A row takes its
+  unit's color when every module reads one unit, otherwise it is neutral.
+  Export from the home draws the dashboard, saves it and returns home. In a
+  run / pass split, Pass is white. Returning to Reports after watching film
+  from a dashboard, or from another route, reopens Dashboards where the coach
+  left it.
+- **Open and Edit.** Open shows a dashboard; Edit (on its home row or in its
+  toolbar) opens it to edit: Add module, each card's Edit and More (width,
+  move, duplicate, remove), and Done. A new dashboard opens to edit.
+- **Delete** asks for the typed word "delete" with what goes named, as
+  deleting a game or season does (`ConfirmDeleteForm`).
 - **Strip** (smoke 115 findings 1-2). Inside a dashboard: Back to dashboards
   (to the home), Prev and Next (through the home's order, saved dashboards
   then templates; disabled at either end), and Go to reports (to the tabs)
   set apart at the far right. On the home: Go to reports only.
-- **Templates are read-only** (finding 3). A template opens marked Template;
-  scope, unit and filters change only the view. Adding, editing, moving,
-  resizing or removing a widget, or Save as new, asks for a name and saves a
-  new dashboard with the change; cancelling saves nothing. The template never
-  changes.
+- **Templates are read-only** (finding 3). A template opens marked Template.
+  Edit, Save as new, or any module change asks for a name and saves a new
+  dashboard (opened to edit); cancelling saves nothing. The template never
+  changes. A template's modules start on its unit and Season.
 
 - **Model.** `js/report-builder.js` (ReportBuilder, pure) owns the catalogs,
   templates and every widget's numbers; `js/report-builder-screen.js` owns
@@ -362,14 +376,14 @@ with its own strip; the approved report strip is unchanged.
   Leaders read `StatsEngine.playersBoard()`, so a leader equals Players for
   the same plays. A concept metric (Success, Yards /
   Play, Explosive, Negative, Havoc) resolves to the offense-produced or
-  defense-framed metric by the dashboard's unit (Stop Rate, Yards Allowed);
+  defense-framed metric by the module's unit (Stop Rate, Yards Allowed);
   with All units or Special Teams it reads "Choose Offense or Defense".
   Yards per play counts run and pass snaps only: penalty yardage is tracked
   separately and is never yards (coach, 2026-10-10), in Study, Dashboards and
   the reports alike.
-- **Cohort.** Scope (This game, Last 3 games, Season) over the season's
-  own-team games, then the unit, then the dashboard's filters, then each
-  widget's filters (StudyQuery's cohort rule: OR within a filter, AND across).
+- **Cohort.** Per module: its games over the season's own-team games, then
+  its unit, then its filters (StudyQuery's cohort rule: OR within a filter,
+  AND across).
   A group holds the plays whose registry value matches, on either unit: the
   report cut filters are unit-gated, and a defense dashboard groups by the
   offense it faced. A penalty group (team, foul, ruling, phase) measures only
@@ -379,9 +393,9 @@ with its own strip; the approved report strip is unchanged.
   cell). Distance groups in four bands (1-3, 4-6,
   7-10, 11+). Groupings include motion start and end, RPO read and decision,
   QB run type and missed tackles.
-- **Views.** Number (with the season baseline when the scope is narrower;
+- **Views.** Number (with the season baseline when its games are narrower;
   a count has none, counts are not comparable across scopes), Bar chart (a
-  narrower scope marks each bar with that group's season value; bars run
+  narrower module marks each bar with that group's season value; bars run
   from a zero line, so a negative value draws left of it; Success Rate and
   Stop Rate bars run 0-100%, every other metric scales to its largest bar,
   and each bar prints its value; coach, 2026-10-11), Share (four split
@@ -392,18 +406,19 @@ with its own strip; the approved report strip is unchanged.
   columns, filter chips, film labels): 3rd, Q2, Accepted, Dead ball, Our
   team. A heat-map cell watches as "row × column". A count tile shows no
   sample line under its number.
-- **Honest values.** A value below the widget's small-sample size is faded and
+- **Honest values.** A value below the module's small-sample size is faded and
   labeled; nothing charted reads "—" with its reason, never zero.
 - **Film.** Every number, bar, segment, point and cell opens exactly its own
   plays through `ReportsScreen.watchRefs`.
 - **Export** saves the board as one self-contained HTML file (the app's
   stylesheet source embedded, controls hidden) through `window.ffaSaveBlob`.
-- **Saved with the season** (`data.dashboards`, normalized by SeasonStore),
-  like the playbook. Templates: Offense snapshot, Defense snapshot,
-  Situational, Play calls; New dashboard starts empty under a name the coach
-  gives.
-- **Accent** follows the unit: gold offense, cyan defense, teal Special Teams
-  (`--gi-st`), bone for all units.
+- **Saved with the season** (`data.dashboards`, normalized by SeasonStore;
+  version 2 stores `{ id, name, version, widgets }`, each widget with its
+  own `unit` and `scope`), like the playbook. Templates: Offense snapshot,
+  Defense snapshot, Situational, Play calls; New dashboard starts empty under
+  a name the coach gives.
+- **Accent** follows each module's unit: gold offense, cyan defense, teal
+  Special Teams (`--gi-st`), bone for all units.
 
 Proven by `tools/e2e-report-builder.mjs` (synthetic season, plus the
 canonical season when present).
