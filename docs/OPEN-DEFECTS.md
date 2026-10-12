@@ -72,8 +72,8 @@ Carried from 114:
   with Edit on the picker page and in the dashboard; Export, Rename, Duplicate
   and Delete on the picker page; Delete asks for the typed word. Smoke: build
   offense yards per play beside defense yards per play; Edit a template (it
-  saves a copy); delete a dashboard. The coach's six rev 1 dashboards are to be
-  deleted on the coach's confirmation.
+  saves a copy); delete a dashboard. The coach deleted the six rev 1 dashboards
+  in 116 (2026-10-12).
 
 Smoke 114 findings, built in 115 (`SMOKE-1.12.0-114.md`, coach findings and
 the installed check):
