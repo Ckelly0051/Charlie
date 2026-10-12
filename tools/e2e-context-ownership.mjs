@@ -176,6 +176,21 @@ const restoreRig = () => {
     'an undisturbed restore still backs up, replaces, commits and persists game A', JSON.stringify({ result, log }));
 }
 
+for (const saved of [true, false]) {
+  const { vm, store, read } = restoreRig();
+  let ownedResets = 0, otherResets = 0;
+  vm.history = { reset() { ownedResets++; } };
+  const priorApp = window.app;
+  window.app = { history: { reset() { otherResets++; } } };
+  store.persist = async () => saved;
+  try {
+    read.resolve({ plays: [], gameInfo: {} });
+    const result = await vm.restore('7');
+    ok(result === saved && ownedResets === (saved ? 1 : 2) && otherResets === 0,
+      `version ${saved ? 'restore' : 'rollback'} resets only its injected history`, JSON.stringify({ result, ownedResets, otherResets }));
+  } finally { window.app = priorApp; }
+}
+
 console.log('\n-- 4/5. film repair: context and the save result decide the outcome --');
 const repairRig = ({ persistResult = true, multi = false } = {}) => {
   const log = [];

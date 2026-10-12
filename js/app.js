@@ -127,7 +127,7 @@ class App {
     this.shortcutsScreen = new ShortcutsScreen(this.overlays);
     this.autoDetectScreen = new AutoDetectScreen(this, this.overlays);
     this.history = new HistoryManager(this.tagger, this.overlays);
-    this.versions = new VersionManager(this.storage, this.tagger);
+    this.versions = new VersionManager(this.storage, this.tagger, this.history);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
     this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
     this.cutupPlayer = new CutupPlayer(this.vc, this.tagger, {

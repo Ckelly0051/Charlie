@@ -13,9 +13,10 @@ import { SeasonFormat } from './season-format.js';
  * named ones. Settings > Recovery is the only presentation owner.
  */
 export class VersionManager {
-  constructor(storage, tagger) {
+  constructor(storage, tagger, history) {
     this.storage = storage;
     this.tagger = tagger;
+    this.history = history;
     this.changeCount = 0;
     this.changesPerSnap = 10;
     this.intervalMin = 5;
@@ -122,7 +123,7 @@ export class VersionManager {
     }
     this.storage._deserialize(data);
     // Undo history is per-game state; re-baseline it the same way a game load does.
-    if (window.app && window.app.history && window.app.history.reset) window.app.history.reset();
+    this.history?.reset?.();
     // Persist the restored state through the normal guarded path so the season
     // store and disk reflect what's on screen.
     this.storage.commitActive();
@@ -136,7 +137,7 @@ export class VersionManager {
       }
       this.storage._deserialize(prior);
       this.storage.commitActive();
-      if (window.app?.history?.reset) window.app.history.reset();
+      this.history?.reset?.();
       this.tagger.toast?.('Version restore failed. Your current game was kept.');
       return false;
     }
