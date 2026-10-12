@@ -18,6 +18,8 @@
  *   - update.downloadAndInstall(onEvent)
  *   - window.__TAURI__.process.relaunch()
  */
+import { h, render } from 'preact';
+
 export class Updater {
   constructor(overlays = null) {
     this.overlays = overlays;
@@ -76,23 +78,15 @@ export class Updater {
 
     const wrap = document.createElement('div');
     wrap.className = 'gi-update-banner';
-    wrap.innerHTML = `
-      <div class="gi-update-card">
-        <div class="gi-update-head">
-          <span class="gi-update-dot"></span>
-          <strong>Update available</strong>
-          <span class="gi-update-ver">v${ver}</span>
-        </div>
-        ${notes ? `<div class="gi-update-notes"></div>` : ''}
-        <div class="gi-update-progress" hidden><div class="gi-update-bar"></div></div>
-        <div class="gi-update-actions">
-          <button class="gi-update-later" type="button">Later</button>
-          <button class="gi-update-go" type="button">Update &amp; Restart</button>
-        </div>
-      </div>`;
-    if (notes) wrap.querySelector('.gi-update-notes').textContent = notes;
-
-    this._injectStyle();
+    render(h('div', { class: 'gi-update-card' },
+      h('div', { class: 'gi-update-head' },
+        h('span', { class: 'gi-update-dot' }), h('strong', null, 'Update available'),
+        h('span', { class: 'gi-update-ver' }, `v${ver}`)),
+      notes && h('div', { class: 'gi-update-notes' }, notes),
+      h('div', { class: 'gi-update-progress', hidden: true }, h('div', { class: 'gi-update-bar' })),
+      h('div', { class: 'gi-update-actions' },
+        h('button', { class: 'gi-update-later', type: 'button' }, 'Later'),
+        h('button', { class: 'gi-update-go', type: 'button' }, 'Update & Restart'))), wrap);
     document.body.appendChild(wrap);
     this._banner = wrap;
 
@@ -143,7 +137,7 @@ export class Updater {
   }
 
   _dismiss() {
-    if (this._banner && this._banner.parentNode) this._banner.parentNode.removeChild(this._banner);
+    if (this._banner) { render(null, this._banner); this._banner.remove(); }
     this._banner = null;
   }
 
@@ -151,9 +145,4 @@ export class Updater {
     return this.overlays?.toast({ message: String(msg || '') });
   }
 
-  // Styles live in css/styles.css (.gi-update-*). They must NOT be injected
-  // at runtime: Tauri nonces the page's <style>, which disables
-  // 'unsafe-inline', so a JS-inserted <style> is CSP-blocked and the banner
-  // / toast would render unstyled (invisible). No-op kept for call sites.
-  _injectStyle() {}
 }

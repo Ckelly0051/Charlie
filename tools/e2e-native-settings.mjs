@@ -345,6 +345,21 @@ for (const viewport of [{width:768,height:900},{width:1440,height:900}]) {
   await shot(`settings-charting-${viewport.width}x${viewport.height}.png`);
 }
 
+const updateText = await page.evaluate(async () => {
+  const updater = window.app.updater;
+  const version = '<svg data-update-injection onload="window.__updateInjection=1"></svg>';
+  const notes = '<b>Release notes</b>';
+  window.__updateInjection = 0;
+  updater._showBanner({ version, body: notes });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const banner = document.querySelector('.gi-update-banner');
+  const out = { fired: window.__updateInjection, injected: !!banner?.querySelector('[data-update-injection]'),
+    version: banner?.querySelector('.gi-update-ver')?.textContent, notes: banner?.querySelector('.gi-update-notes')?.textContent };
+  updater._dismiss();
+  return out;
+});
+ok(!updateText.fired && !updateText.injected && updateText.version.startsWith('v<svg') && updateText.notes === '<b>Release notes</b>',
+  'Updater versions and release notes render as literal text, never injected markup', JSON.stringify(updateText));
 ok(errors.length === 0, 'Native Settings journey produces zero page/console errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();
