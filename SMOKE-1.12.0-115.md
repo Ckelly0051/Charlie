@@ -31,8 +31,11 @@ Smoke in progress (2026-10-12).
    makes more sense. Basically, switch the formatting." The back-style button
    inside a dashboard returns to the Dashboards home; going to Reports is the
    plain button. Space the buttons so one is not clicked by accident.
-2. A Prev / Next dashboard control on the vertical strip, to click through
-   dashboards without returning to the Dashboards home.
+2. A Prev / Next dashboard control, to click through dashboards without
+   returning to the Dashboards home. Coach: in the same strip as Back to
+   dashboards, open to a suggestion. Proposed layout for that strip:
+   Back to dashboards at the left; Prev / Next dashboard beside it after a
+   gap; Go to reports alone at the right end.
 
 ## What to check
 
