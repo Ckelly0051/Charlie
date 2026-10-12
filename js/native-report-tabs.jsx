@@ -10,6 +10,7 @@
 import { useMemo, useState } from 'preact/hooks';
 import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar, DownDistanceChart, RunGapChart } from './native-report-kit.jsx';
 import * as view from './reports-view.js';
+import { rateText } from './reports-view.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { Charts } from './charts.js';
 import { NativeHeatMaps } from './native-offense-visuals.jsx';
@@ -196,7 +197,7 @@ function playCallParts({ stats, screen }) {
      holds its slot and states the absence, which is what the comp's own sparse
      capture does. */
   const gameId = screen.app.storage?.seasonStore?.activeGame?.()?.id || '';
-  const pct = v => `${Number(v || 0).toFixed(1).replace(/\.0$/, '')}%`;
+  const pct = v => (v == null ? '—' : `${Number(v).toFixed(1).replace(/\.0$/, '')}%`);
   const refsFor = row => row.refs?.length ? row.refs : row.playIds.map(id => `${gameId}::${id}`);
   const watch = (row, label) => () => screen.watchRefs(refsFor(row), label);
 
@@ -340,13 +341,13 @@ function MatrixGrid({ matrix }) {
           const cell = !r ? null : matrix.cells[`${r}\0${c}`];
           if (!cell?.count) return <td key={c} class="tm-cell" style="opacity:.2">—</td>;
           const intensity = cell.count / maxCount;
-          const succPct = cell.successPlays ? Math.round((cell.successes / cell.successPlays) * 100) : 0;
+          const succPct = cell.successPlays ? Math.round((cell.successes / cell.successPlays) * 100) : null;
           const avg = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const classified = cell.runs + cell.passes;
           const runPct = classified ? Math.round((cell.runs / classified) * 100) : null;
-          const border = succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
-          return <td key={c} class="tm-cell" style={`background:rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)});border:${border}`} title={`${r} × ${c}: ${cell.count} plays, ${runPct == null ? 'Run/Pass blank' : `${runPct}% run`}, ${succPct}% success, ${avg} avg`}>
-            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct == null ? '—' : `${runPct}R/${100 - runPct}P`}</div><div class="tm-succ">{succPct}%, {avg}y</div>
+          const border = succPct == null ? '1px solid transparent' : succPct >= 50 ? '1px solid rgba(68,255,136,0.4)' : succPct <= 30 ? '1px solid rgba(255,102,102,0.25)' : '1px solid transparent';
+          return <td key={c} class="tm-cell" style={`background:rgba(74,158,255,${(intensity * 0.45 + 0.05).toFixed(2)});border:${border}`} title={`${r} × ${c}: ${cell.count} plays, ${runPct == null ? 'Run/Pass blank' : `${runPct}% run`}, ${rateText(succPct)} success, ${avg} avg`}>
+            <div class="tm-count">{cell.count}</div><div class="tm-split">{runPct == null ? '—' : `${runPct}R/${100 - runPct}P`}</div><div class="tm-succ">{rateText(succPct)}, {avg}y</div>
           </td>;
         })}
       </tr>)}</tbody>
@@ -395,10 +396,10 @@ function FormationPlayTypeMatrix({ engine, plays }) {
         {colKeys.map((col, ci) => {
           const cell = row && col ? raw.cells[`${row}\0${col}`] : null;
           if (!cell?.count) return <td key={`${col}-${ci}`} class="gi-form-type-cell is-absent">—</td>;
-          const success = cell.successPlays ? Math.round((cell.successes / cell.successPlays) * 100) : 0;
+          const success = cell.successPlays ? Math.round((cell.successes / cell.successPlays) * 100) : null;
           const ypp = cell.yardPlays ? (cell.yards / cell.yardPlays).toFixed(1) : '0.0';
           const heat = Math.round(12 + (cell.count / maxCount) * 48);
-          return <td key={`${col}-${ci}`} class={`gi-form-type-cell ${success >= 50 ? 'is-good' : success <= 30 ? 'is-bad' : ''}`}
+          return <td key={`${col}-${ci}`} class={`gi-form-type-cell ${success == null ? '' : success >= 50 ? 'is-good' : success <= 30 ? 'is-bad' : ''}`}
             style={`--heat:${heat}%`} title={`${row} × ${col}: ${cell.count} plays, ${success}% success, ${ypp} yards/play`}>
             <strong>{cell.count}</strong><span>/ {success}%</span>
           </td>;
@@ -1341,8 +1342,8 @@ export function OpponentOverviewTab({ data, screen }) {
     { label: 'Special Teams', value: data.stCount, sub: 'scout-film snaps' },
   ];
   const expect = (off?.formationDetail || []).slice(0, 3).map(row => ({ label: row.name, value: `${row.total} snaps`, sub: `${row.runPct}% run`, refs: row.refs }));
-  const attack = join?.best ? [{ label: join.best.name, value: `${join.best.succPct}% success`, sub: `${join.best.n} snaps, ${join.best.avg} avg`, refs: join.best.refs }] : [];
-  const avoid = join?.worst && join.worst !== join.best ? [{ label: join.worst.name, value: `${join.worst.succPct}% success`, sub: `${join.worst.n} snaps, ${join.worst.avg} avg`, refs: join.worst.refs }] : [];
+  const attack = join?.best ? [{ label: join.best.name, value: `${rateText(join.best.succPct)} success`, sub: `${join.best.n} snaps, ${join.best.avg} avg`, refs: join.best.refs }] : [];
+  const avoid = join?.worst && join.worst !== join.best ? [{ label: join.worst.name, value: `${rateText(join.worst.succPct)} success`, sub: `${join.worst.n} snaps, ${join.worst.avg} avg`, refs: join.worst.refs }] : [];
   const risk = join ? [
     { label: 'Blitz rate', value: `${join.pressure.ratePct}%`, sub: `${join.pressure.blitzed.n} pressure snaps`, refs: join.pressure.blitzed.refs },
     { label: 'Sacks allowed', value: join.pressure.blitzed.sacks + join.pressure.noBlitz.sacks, sub: 'across this cohort', refs: [...join.pressure.blitzed.refs, ...join.pressure.noBlitz.refs] },
@@ -1385,7 +1386,7 @@ export function OpponentOffenseTab({ data, screen }) {
     const predicate = engine._buildCutFilter('bigCall', call.key);
     const refs = [...new Set(data.offPlays.filter(predicate).filter(p => p.__gid != null && p.id != null).map(p => `${p.__gid}::${p.id}`))];
     const runPct = call.n ? Math.round(call.runs / call.n * 100) : 0;
-    return { ...call, id: call.key, n: call.n, succ: call.succPlays ? Math.round(call.succ / call.succPlays * 100) : 0,
+    return { ...call, id: call.key, n: call.n, succ: rateText(call.succPlays ? Math.round(call.succ / call.succPlays * 100) : null),
       avg: call.yardPlays ? (call.yards / call.yardPlays).toFixed(1) : '0.0', runPct, refs,
       cutLabel: `${call.form || call.qb || 'Opponent call'} ${call.pt || ''} — ${call.n} plays` };
   });
@@ -1421,7 +1422,7 @@ export function OpponentOffenseTab({ data, screen }) {
 function OpponentDefenseTable({ title, meta, first, rows, screen }) {
   return <Module title={title} meta={meta}><DataTable columns={[
     { key: 'name', label: first }, { key: 'n', label: 'Snaps', numeric: true }, { key: 'avg', label: 'Yds/play', numeric: true },
-    { key: 'succPct', label: 'Our success', numeric: true, render: row => `${row.succPct}%` },
+    { key: 'succPct', label: 'Our success', numeric: true, render: row => rateText(row.succPct) },
     { key: 'explPct', label: 'Explosive Plays Rate', numeric: true, render: row => `${row.explPct}%` }, { key: 'sacks', label: 'Sacks', numeric: true },
   ]} rows={rows.map(row => ({ ...row, id: row.name, onActivate: row.refs?.length ? () => screen.watchRefs(row.refs, `${title}: ${row.name}`) : undefined, label: `${title}: ${row.name}` }))} emptyText={`No ${first.toLowerCase()} charted.`} /></Module>;
 }
@@ -1436,8 +1437,8 @@ export function OpponentDefenseTab({ data, screen }) {
     <KpiBand items={[
       { label: 'Snaps', value: join.total, sub: 'charted defense' },
       { label: 'Blitz rate', value: `${pressure.ratePct}%`, sub: `${pressure.blitzed.n} pressure snaps`, cls: 'is-gold' },
-      { label: 'Success vs blitz', value: pressure.blitzed.n ? `${pressure.blitzed.succPct}%` : 'N/A', sub: `${pressure.blitzed.avg} yds/play` },
-      { label: 'Success vs no blitz', value: `${pressure.noBlitz.succPct}%`, sub: `${pressure.noBlitz.avg} yds/play` },
+      { label: 'Success vs blitz', value: pressure.blitzed.n ? rateText(pressure.blitzed.succPct) : 'N/A', sub: `${pressure.blitzed.avg} yds/play` },
+      { label: 'Success vs no blitz', value: rateText(pressure.noBlitz.succPct), sub: `${pressure.noBlitz.avg} yds/play` },
       { label: 'Sacks allowed', value: pressure.blitzed.sacks + pressure.noBlitz.sacks, sub: 'all calls' },
     ]} />
     <OpponentDefenseTable title="Fronts — and what they cost us" meta="frequency, production, explosives, and sacks" first="Front" rows={join.fronts} screen={screen} />
@@ -1835,7 +1836,8 @@ function SeasonOverview({ model, screen }) {
         cls: summary.turnoverMargin == null ? 'is-blank' : seasonTone(summary.turnoverMargin) },
       { label: 'Yards / Game', value: summary.yardsPerGame == null ? SEASON_NO_DATA : summary.yardsPerGame.toFixed(1),
         cls: summary.yardsPerGame == null ? 'is-blank' : '' },
-      { label: 'Success Rate', value: `${summary.successRate.toFixed(1)}%` },
+      { label: 'Success Rate', value: summary.successRate == null ? SEASON_NO_DATA : `${summary.successRate.toFixed(1)}%`,
+        cls: summary.successRate == null ? 'is-blank' : '' },
     ]} />
     <SeasonBand>
       <SeasonModule title="Game Log">
@@ -2323,7 +2325,7 @@ const ssOutcomeColumns = label => [
   { key: 'display', label, tl: true, size: 'label', render: row => ssTrunc(row.display) },
   { key: 'n', label: 'Plays', numeric: true, size: 'n', render: row => ssCell(row, r => r.n) },
   { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg', render: row => ssCell(row, r => r.avg) },
-  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => ssCell(row, r => `${r.succRate}%`) },
+  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => ssCell(row, r => rateText(r.succRate)) },
   { key: 'explosives', label: 'Explosive Plays', numeric: true, size: 'expl', render: row => ssCell(row, r => r.explosives) },
   { key: 'tds', label: 'TD', numeric: true, size: 'n', render: row => ssCell(row, r => r.tds) },
   // "Giveaways" was the last legacy label on this board; a giveaway IS a
@@ -2344,12 +2346,12 @@ const ssCallColumns = [
   { key: 'display', label: 'Call / Concept', tl: true, size: 'label', render: row => ssTrunc(row.display) },
   { key: 'n', label: 'Plays', numeric: true, size: 'n' },
   { key: 'avg', label: 'Yds / Play', numeric: true, size: 'avg' },
-  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => `${row.succRate}%` },
+  { key: 'succRate', label: 'Success', numeric: true, size: 'pct', render: row => rateText(row.succRate) },
 ];
 const ssDefenseCallColumns = [
   { key: 'display', label: 'Call', tl: true, size: 'label', render: row => ssTrunc(row.display) },
   { key: 'n', label: 'Plays', numeric: true, size: 'n' },
-  { key: 'stopRate', label: 'Stop', numeric: true, size: 'pct', render: row => `${row.stopRate}%` },
+  { key: 'stopRate', label: 'Stop', numeric: true, size: 'pct', render: row => rateText(row.stopRate) },
   { key: 'avgYds', label: 'Yds / Play', numeric: true, size: 'avg' },
 ];
 const ssRankedRows = (rows, screen, cutType) => rows.map(row => {
@@ -2362,7 +2364,7 @@ function SsSummarySection({ summary, performance, screen }) {
   const positive = summary.positive, negative = summary.negative;
   return <>
     <KpiBand items={[
-      { label: 'Success Rate', value: `${kpis.successRate}%` },
+      { label: 'Success Rate', value: rateText(kpis.successRate) },
       { label: 'Yards / Play', value: kpis.yardsPerPlay },
       { label: 'Explosive Plays Rate', value: `${kpis.explosiveRate}%` },
       { label: 'Negative Play Rate', value: `${kpis.negativePlayRate}%` },
@@ -2394,12 +2396,12 @@ function SsSummarySection({ summary, performance, screen }) {
     <SsBand cls="b-2">
       <SsModule title="Run Offense" phase="off"><SsCounts items={[
         ['Attempts', summary.run.attempts], ['Rushing yards', summary.run.yards],
-        ['Yards per carry', summary.run.avg], ['Success rate', `${summary.run.succRate}%`],
+        ['Yards per carry', summary.run.avg], ['Success rate', rateText(summary.run.succRate)],
         ['Explosive runs', summary.run.explosives],
       ]} /></SsModule>
       <SsModule title="Pass Offense" phase="off"><SsCounts items={[
         ['Attempts', summary.pass.attempts], ['Passing yards', summary.pass.yards],
-        ['Yards per attempt', summary.pass.avg], ['Success rate', `${summary.pass.succRate}%`],
+        ['Yards per attempt', summary.pass.avg], ['Success rate', rateText(summary.pass.succRate)],
         ['Explosive passes', summary.pass.explosives], ['Sacks', summary.pass.sacks],
       ]} /></SsModule>
     </SsBand>
@@ -2507,13 +2509,13 @@ function SsDefenseSection({ defScout, defSummary, screen }) {
       <SsModule title="Run Defense" phase="def"><SsCounts items={[
         ['Attempts', defSummary.run.attempts], ['Rushing yards allowed', defSummary.run.yardsAllowed],
         ['Yards allowed per play', defSummary.run.yardsPerPlay],
-        ['Stop rate', `${defSummary.run.stopRate}%`], ['Explosive runs allowed', defSummary.run.explosivesAllowed],
+        ['Stop rate', rateText(defSummary.run.stopRate)], ['Explosive runs allowed', defSummary.run.explosivesAllowed],
         ['Tackles for loss', defSummary.run.tfl],
       ]} /></SsModule>
       <SsModule title="Pass Defense" phase="def"><SsCounts items={[
         ['Attempts', defSummary.pass.attempts], ['Passing yards allowed', defSummary.pass.yardsAllowed],
         ['Yards allowed per play', defSummary.pass.yardsPerPlay],
-        ['Stop rate', `${defSummary.pass.stopRate}%`], ['Explosive passes allowed', defSummary.pass.explosivesAllowed],
+        ['Stop rate', rateText(defSummary.pass.stopRate)], ['Explosive passes allowed', defSummary.pass.explosivesAllowed],
         ['Sacks', defSummary.pass.sacks],
       ]} /></SsModule>
     </SsBand>
@@ -2538,7 +2540,7 @@ function SsTendenciesSection({ report, defScout, screen }) {
       { key: 'leanPct', label: 'Lean', numeric: true, size: 'lean',
         render: row => <SsBar tone={row.lean === 'Run' ? 'run' : 'pass'} pct={row.leanPct} text={`${row.lean} ${row.leanPct}%`} /> },
       { key: 'leanAvg', label: 'Yds / Play', numeric: true, size: 'avg' },
-      { key: 'leanSuccRate', label: 'Success', numeric: true, size: 'pct', render: row => `${row.leanSuccRate}%` },
+      { key: 'leanSuccRate', label: 'Success', numeric: true, size: 'pct', render: row => rateText(row.leanSuccRate) },
       { key: 'n', label: 'Plays', numeric: true, size: 'n' },
     ]} rows={report.tells.map((tell, index) => {
       const label = `${tell.label} — ${tell.n} plays`;
@@ -2580,7 +2582,7 @@ function SsTendenciesSection({ report, defScout, screen }) {
         { key: 'tellType', label: 'Call', size: 'tell' },
         { key: 'tellPct', label: 'Lean', numeric: true, size: 'lean',
           render: row => <SsBar tone="run" pct={row.tellPct} text={`${row.tellVal} ${row.tellPct}%`} /> },
-        { key: 'stopRate', label: 'Stop', numeric: true, size: 'pct', render: row => `${row.stopRate}%` },
+        { key: 'stopRate', label: 'Stop', numeric: true, size: 'pct', render: row => rateText(row.stopRate) },
         { key: 'havocRate', label: 'Havoc', numeric: true, size: 'pct', render: row => `${row.havocRate}%` },
         { key: 'n', label: 'Plays', numeric: true, size: 'n' },
       ]} rows={defScout.tells.map((tell, index) => {

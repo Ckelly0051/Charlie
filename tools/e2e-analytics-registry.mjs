@@ -143,7 +143,7 @@ if (!result.missing) {
     && typeof result.metricsEngineStopRate.value === 'number' && result.metricsEngineStopRate.denominator === 1,
     'AnalyticsRegistry.metricsEngine() computes a real ad-hoc-cohort metric, not a stand-in object', JSON.stringify(result.metricsEngineStopRate));
   ok(result.selected.plays === 1 && result.selected.successRate === '100.0' && result.selected.epaPerPlay === 0, 'Ready measures select canonical compute outputs', JSON.stringify(result.selected));
-  ok(result.wipedOut === '0.0', 'a play an accepted penalty wipes out is not judged for success', result.wipedOut);
+  ok(result.wipedOut === null, 'a play an accepted penalty wipes out is not judged for success', result.wipedOut);
   ok(result.unresolvedMeasures.length === 0, 'EVERY ready measure resolves to a defined value (no silent undefined path)', JSON.stringify(result.unresolvedMeasures));
   ok(result.blocksSelected.rushing.attempts === 0 && result.blocksSelected.advanced.count === 0, 'Block bindings return canonical objects');
   ok(result.allBlocksExact, 'Every registered block equals its canonical compute output');

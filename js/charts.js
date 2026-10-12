@@ -80,13 +80,14 @@ export class Charts {
     const minN = opts.minSample ?? 3;
     return `<div class="gi-zones">${list.map(zone => {
       const has = zone.count > 0;
-      const intensity = has ? (0.28 + (Math.max(0, Math.min(100, zone.successPct)) / 100) * 0.72) * (zone.count < minN ? 0.5 : 1) : 0;
+      const judged = has && zone.successPct != null;
+      const intensity = judged ? (0.28 + (Math.max(0, Math.min(100, zone.successPct)) / 100) * 0.72) * (zone.count < minN ? 0.5 : 1) : 0;
       const attrs = has && zone.cut
         ? ` class="gi-zone cut-row" data-cut-type="${Charts._esc(zone.cut.type)}" data-cut-val="${Charts._esc(zone.cut.val)}" data-cut-label="${Charts._esc(zone.label)}" tabindex="0" role="button"`
         : ' class="gi-zone"';
       return `<div${attrs}>
         <i style="${has ? `background:var(--gi-los);opacity:${intensity.toFixed(2)}` : 'background:transparent'}"></i>
-        <strong>${has ? `${Math.round(zone.successPct)}%` : '&mdash;'}</strong>
+        <strong>${judged ? `${Math.round(zone.successPct)}%` : '&mdash;'}</strong>
         <span>${Charts._esc(zone.label)}</span>
         <small>${has ? `${zone.count} snap${zone.count === 1 ? '' : 's'}` : 'no data'}${has && zone.count < minN ? ' · low' : ''}</small>
       </div>`;
@@ -187,7 +188,7 @@ export class Charts {
       return `<figure class="gi-multiple${item.n < minN ? ' is-low' : ''}">
         <figcaption>${Charts._esc(item.label)}</figcaption>
         <div class="gi-multiple-bar"><i style="width:${runPct}%;background:var(--gi-run)"></i><i style="width:${100 - runPct}%;background:var(--gi-pass)"></i></div>
-        <strong>${Math.round(item.successPct)}%</strong>
+        <strong>${item.successPct == null ? '&mdash;' : `${Math.round(item.successPct)}%`}</strong>
         <small>${item.n} snap${item.n === 1 ? '' : 's'}${item.n < minN ? ' · low' : ''}</small>
       </figure>`;
     }).join('')}</div>`;

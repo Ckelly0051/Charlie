@@ -17,6 +17,7 @@
 import assert from 'node:assert/strict';
 import { StatsEngine } from '../js/stats-engine.js';
 import { AnalyticsMetrics, MetricPolarity, compositeRef } from '../js/analytics-metrics.js';
+import * as view from '../js/reports-view.js';
 
 let passed = 0;
 const test = (name, fn) => {
@@ -292,6 +293,19 @@ test('a turnover is always a failed play on offense and a stop on defense (coach
   ];
   assert.deepEqual(defense.filter(StatsEngine.isStop).map(p => p.id), [5, 6]);
   assert.equal(engine._efficiencyStats(offense).successRate, '25.0');
+});
+test('with no play judged, a success or stop rate is unavailable: a dash, never 0%', () => {
+  const uncharted = [play(1, 'gA', { runPass: 'Run' })]; // 1st & 10, Yards and Result blank
+  const efficiency = engine._efficiencyStats(uncharted);
+  assert.equal(efficiency.successRate, null);
+  assert.equal(metrics.metric(uncharted, 'successRate').state, 'unavailable');
+  const kpi = view.offenseKpis({ totalPlays: 1, efficiency }).find(item => item.label === 'Success rate');
+  assert.equal(kpi.value, '—');
+  assert.equal(kpi.tone, '', 'no failure styling on a rate that was never measured');
+  assert.equal(engine._personnelStats(uncharted)[0].successPct, null);
+  assert.equal(engine._defenseCallRows(uncharted.map(p => ({ ...p, tags: { ...p.tags, unit: 'defense', defFront: '4-3' } })))[0].stopRate, null);
+  assert.equal(view.rateText(null), '—');
+  assert.equal(view.rateText('45'), '45%');
 });
 test('a group below minSample reports state:insufficient, not ok', () => {
   const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];

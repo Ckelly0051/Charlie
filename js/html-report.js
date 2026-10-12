@@ -1,4 +1,5 @@
 import * as view from './reports-view.js';
+import { rateText } from './reports-view.js';
 import { StatsEngine } from './stats-engine.js';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -32,7 +33,7 @@ const compactRows = (title, data) => data?.rows?.length ? table(title,
 const tendencyTable = stats => table('Formation Tendencies', [
   { key: 'name', label: 'Formation' }, { key: 'count', label: 'Snaps' },
   { key: 'run', label: 'Run / Pass', value: row => `${row.runs} / ${row.passes}` },
-  { key: 'avg', label: 'Yards / Play' }, { key: 'successPct', label: 'Success', value: row => `${row.successPct}%` },
+  { key: 'avg', label: 'Yards / Play' }, { key: 'successPct', label: 'Success', value: row => rateText(row.successPct) },
 ], (stats.tendencies?.formationList || []).slice(0, 12));
 
 /** The down-and-distance chart on paper: the same twelve cells, in the same
@@ -85,14 +86,14 @@ const defenseTables = (report, ddChart = null) => {
   const columns = [
     { key: 'name', label: 'Play Type' }, { key: 'n', label: 'Snaps' },
     { key: 'yardsPerPlay', label: 'Yards / Play', value: row => Number(row.yardsPerPlay).toFixed(1) },
-    { key: 'stopRate', label: 'Stop Rate', value: row => `${row.stopRate}%` },
+    { key: 'stopRate', label: 'Stop Rate', value: row => rateText(row.stopRate) },
     { key: 'explosiveRate', label: 'Explosive Plays Allowed Rate', value: row => `${row.explosiveRate}%` },
     { key: 'havocRate', label: 'Havoc', value: row => `${row.havocRate}%` },
   ];
   const summary = metrics([
     { label: 'Defensive snaps', value: report.total, sub: 'charted' },
     { label: 'Yards / play allowed', value: Number(report.summary.yardsPerPlay).toFixed(1), sub: 'all defensive snaps' },
-    { label: 'Stop rate', value: `${report.summary.stopRate}%`, sub: `${report.summary.stops} stops` },
+    { label: 'Stop rate', value: rateText(report.summary.stopRate), sub: `${report.summary.stops} stops` },
     { label: 'Explosive Plays Allowed', value: report.summary.explosives, sub: `${report.summary.explosiveRate}%` },
     { label: 'Takeaways', value: report.takeaways, sub: 'defensive turnovers' },
     { label: 'Third-down stop', value: report.thirdDownStopRate == null ? '—' : `${report.thirdDownStopRate}%`, sub: 'charted third downs' },
@@ -322,7 +323,7 @@ export function buildSeasonHtmlReport({ title, model, engine, generatedAt = new 
     { label: 'Points For / Against', value: summary.played ? `${summary.pointsFor}-${summary.pointsAgainst}` : 'No data', sub: 'for, against' },
     { label: 'Turnover Margin', value: signed(summary.turnoverMargin), sub: 'season total' },
     { label: 'Yards / Game', value: summary.yardsPerGame == null ? 'No data' : summary.yardsPerGame.toFixed(1), sub: `${summary.offensiveGames} games charted on offense` },
-    { label: 'Success Rate', value: `${Number(summary.successRate).toFixed(1)}%`, sub: 'offensive snaps' },
+    { label: 'Success Rate', value: summary.successRate == null ? '—' : `${Number(summary.successRate).toFixed(1)}%`, sub: 'offensive snaps' },
   ])}${table('Game Log', [
     { key: 'week', label: 'Week', value: row => absent(row.week) },
     { key: 'dateLabel', label: 'Date', value: row => absent(row.dateLabel) },
@@ -489,7 +490,7 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
     { key: 'key', label: 'Group', value: label },
     { key: 'n', label: 'Plays', value: row => ssValue(row, r => r.n) },
     { key: 'avg', label: 'Yards / Play', value: row => ssValue(row, r => r.avg) },
-    { key: 'success', label: 'Success', value: row => ssValue(row, r => `${r.succRate}%`) },
+    { key: 'success', label: 'Success', value: row => ssValue(row, r => rateText(r.succRate)) },
     { key: 'explosives', label: 'Explosive Plays', value: row => ssValue(row, r => r.explosives) },
     { key: 'tds', label: 'TD', value: row => ssValue(row, r => r.tds) },
     // A giveaway IS a turnover; Reports and their exports say Turnovers.
@@ -504,14 +505,14 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
     [{ key: 'label', label: 'Metric' }, { key: 'value', label: 'Value' }], countRows(items));
   const tellRows = (report?.tells || []).map(item => ({
     situation: item.label, type: item.dim, tendency: `${item.lean} ${item.leanPct}%`,
-    average: item.leanAvg, success: `${item.leanSuccRate}%`, n: item.n,
+    average: item.leanAvg, success: rateText(item.leanSuccRate), n: item.n,
   }));
   const defensiveRows = defScout?.insufficient ? [] : (defScout?.tells || []).map(item => ({
     situation: item.label, type: item.tellType, lean: `${item.tellVal} ${item.tellPct}%`,
-    stop: `${item.stopRate}%`, havoc: `${item.havocRate}%`,
+    stop: rateText(item.stopRate), havoc: `${item.havocRate}%`,
   }));
   const offense = report && summary ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Offensive Summary</h1></div>${metrics([
-    { label: 'Success Rate', value: `${summary.kpis.successRate}%` },
+    { label: 'Success Rate', value: rateText(summary.kpis.successRate) },
     { label: 'Yards / Play', value: summary.kpis.yardsPerPlay },
     { label: 'Explosive Plays Rate', value: `${summary.kpis.explosiveRate}%` },
     { label: 'Negative Play Rate', value: `${summary.kpis.negativePlayRate}%` },
@@ -531,11 +532,11 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
     <div class="two-up">${table('Top Calls', callColumns, summary.topCalls)}${table('Worst Calls', callColumns, summary.worstCalls)}</div>
     <div class="two-up">${counts('Run Offense', [
       ['Attempts', summary.run.attempts], ['Rushing yards', summary.run.yards],
-      ['Yards per carry', summary.run.avg], ['Success rate', `${summary.run.succRate}%`],
+      ['Yards per carry', summary.run.avg], ['Success rate', rateText(summary.run.succRate)],
       ['Explosive runs', summary.run.explosives],
     ])}${counts('Pass Offense', [
       ['Attempts', summary.pass.attempts], ['Passing yards', summary.pass.yards],
-      ['Yards per attempt', summary.pass.avg], ['Success rate', `${summary.pass.succRate}%`],
+      ['Yards per attempt', summary.pass.avg], ['Success rate', rateText(summary.pass.succRate)],
       ['Explosive passes', summary.pass.explosives], ['Sacks', summary.pass.sacks],
     ])}</div>
     ${table('Calls and Concepts', outcomeColumns, callRows)}
@@ -563,16 +564,16 @@ export function buildSelfScoutHtmlReport({ title, report, defScout, performance,
     ])}</div>
     <div class="two-up">${counts('Run Defense', [
       ['Attempts', defSummary.run.attempts], ['Rushing yards allowed', defSummary.run.yardsAllowed],
-      ['Yards allowed per play', defSummary.run.yardsPerPlay], ['Stop rate', `${defSummary.run.stopRate}%`],
+      ['Yards allowed per play', defSummary.run.yardsPerPlay], ['Stop rate', rateText(defSummary.run.stopRate)],
       ['Explosive runs allowed', defSummary.run.explosivesAllowed], ['Tackles for loss', defSummary.run.tfl],
     ])}${counts('Pass Defense', [
       ['Attempts', defSummary.pass.attempts], ['Passing yards allowed', defSummary.pass.yardsAllowed],
-      ['Yards allowed per play', defSummary.pass.yardsPerPlay], ['Stop rate', `${defSummary.pass.stopRate}%`],
+      ['Yards allowed per play', defSummary.pass.yardsPerPlay], ['Stop rate', rateText(defSummary.pass.stopRate)],
       ['Explosive passes allowed', defSummary.pass.explosivesAllowed], ['Sacks', defSummary.pass.sacks],
     ])}</div>
     ${table('Defensive Calls', [
       { key: 'key', label: 'Call' }, { key: 'n', label: 'Plays' },
-      { key: 'stop', label: 'Stop', value: row => `${row.stopRate}%` },
+      { key: 'stop', label: 'Stop', value: row => rateText(row.stopRate) },
       { key: 'avgYds', label: 'Yards / Play' },
     ], defSummary.calls)}</section>` : '';
   const tendencies = report ? `<section class="chapter"><div class="chapter-title"><span>Self-Scout</span><h1>Tendencies</h1></div>${table('Offensive Tendencies', [

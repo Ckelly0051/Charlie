@@ -18,6 +18,10 @@
  */
 import { SpecialTeamsModel } from './special-teams.js';
 
+/** A success or stop rate as printed: a dash when no play was judged
+ *  (docs/REPORTS-CONTRACTS.md > Success), never a fabricated 0%. */
+export const rateText = value => (value == null || value === '' ? '—' : `${value}%`);
+
 export function overviewKpis(stats) {
   const totalYards = stats.rushing.yards + stats.passing.yards;
   const yardsPerPlay = stats.yardPlays ? (totalYards / stats.yardPlays).toFixed(1) : '—';
@@ -36,7 +40,7 @@ export function overviewKpis(stats) {
     // `successes` is the field `_efficiencyStats` actually returns. The old
     // `successfulPlays` never existed, so this sub printed a constant 0 beneath
     // a nonzero success rate on every game and every season.
-    { label: 'Success rate', value: `${stats.efficiency.successRate}%`, sub: `${stats.efficiency.successes || 0} successful snaps`, cls: 'is-good' },
+    { label: 'Success rate', value: rateText(stats.efficiency.successRate), sub: `${stats.efficiency.successes || 0} successful snaps`, cls: stats.efficiency.successRate == null ? '' : 'is-good' },
     { label: 'Yards / play', value: yardsPerPlay, sub: `${totalYards} total yards`, cls: 'is-gold' },
     { label: 'Explosive Plays', value: stats.efficiency.explosivePlays, sub: `${stats.efficiency.explosivePct}% of snaps` },
     { label: 'Turnovers', value: turnovers },
@@ -76,7 +80,7 @@ export function situationalTiles(stats) {
   const s = stats.situational;
   const third = stats.downs.byDown?.['3'] || { total: 0, conversionPct: 0 };
   const tile = (title, item, cutType, cutVal, sub) => ({
-    title, value: item.total ? `${item.successPct}%` : '—',
+    title, value: item.total ? rateText(item.successPct) : '—',
     sub: item.total ? sub(item) : 'No data',
     refs: null, cutType, cutVal, plays: item.total,
     cutLabel: item.total ? `${title} — ${item.total} plays` : null,
@@ -96,9 +100,9 @@ export function keyMetrics(stats) {
   const topFormation = stats.tendencies.formationList?.[0];
   const redZone = stats.situational.redZone;
   return [
-    ['Efficiency', `${stats.efficiency.successRate}%`, 'Success rate'],
+    ['Efficiency', rateText(stats.efficiency.successRate), 'Success rate'],
     ['Explosive Plays', stats.efficiency.explosivePlays, `${stats.efficiency.explosivePct}% of snaps`],
-    ['Situational', redZone.total ? `${redZone.successPct}%` : '—', redZone.total ? 'Red-zone success' : 'No red-zone snaps'],
+    ['Situational', redZone.total ? rateText(redZone.successPct) : '—', redZone.total ? 'Red-zone success' : 'No red-zone snaps'],
     ['Tendencies', topFormation ? `${Math.round(topFormation.runs / topFormation.count * 100)}%` : '—', topFormation ? `${topFormation.name} run rate` : 'No formation sample'],
     ['Negative', stats.efficiency.negativePlays, `${stats.efficiency.negativePct}% of snaps`],
     ['Points / drive', stats.drives.pointsPerDrive, `${stats.drives.scoringDrives} of ${stats.drives.total} scored`],
@@ -177,7 +181,7 @@ export function yardsByType(stats, statsEngine) {
     .filter(([name]) => !canonical.includes(name))
     .reduce((sum, [, row]) => sum + row.count, 0);
   const playTypes = canonical.map(name => charted.get(name)
-    || { name, count: 0, avg: '0.0', successPct: 0 });
+    || { name, count: 0, avg: '0.0', successPct: null });
   return {
     other,
     total,
@@ -186,7 +190,7 @@ export function yardsByType(stats, statsEngine) {
     // template drew between its `--n` CSS var and its displayed number.
     rushWidth: Math.max(0, stats.rushing.yards), passWidth: Math.max(0, stats.passing.yards),
     rush: stats.rushing.yards, pass: stats.passing.yards,
-    rows: playTypes.map(row => ({ name: row.name, snaps: row.count, ypp: row.avg, success: `${row.successPct}%`,
+    rows: playTypes.map(row => ({ name: row.name, snaps: row.count, ypp: row.avg, success: rateText(row.successPct),
       plays: row.count,
       cutType: 'playType', cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays` })),
   };
@@ -201,7 +205,7 @@ export function downDistanceRows(stats, statsEngine = null, limit = 0) {
     : (stats.downs.ddBuckets || []);
   const rows = buckets.map(row => ({
     situation: `${labels[row.down]} & ${row.bucket}`, snaps: row.count, runPct: row.runPct, passPct: row.passPct,
-    ypp: row.avgYards, success: `${row.succPct}%`, conv: `${row.convPct}%`,
+    ypp: row.avgYards, success: rateText(row.succPct), conv: `${row.convPct}%`,
     cutType: 'dd', cutVal: `${row.down}|${row.bucket}`, cutLabel: `${labels[row.down]} & ${row.bucket} — ${row.count} plays`,
   }));
   return limit ? padRows(rows, limit, 'situation') : rows;
@@ -246,7 +250,7 @@ export function drivesRows(stats, gameLabels = null, limit = 8) {
 function groupBreakdown(rows, cutType) {
   return rows.map(row => ({
     name: row.name, count: row.count, runs: row.runs, passes: row.passes,
-    ypp: row.avg, success: `${row.successPct}%`,
+    ypp: row.avg, success: rateText(row.successPct),
     cutType, cutVal: row.name, cutLabel: `${row.name} — ${row.count} plays`,
   }));
 }
@@ -410,7 +414,7 @@ export function backfieldStrength(stats, engine) {
       const succ = ps.filter(p => engine.constructor.isSuccess(p)).length;
       const succPlays = ps.filter(p => engine.constructor.isSuccessEligible(p)).length;
       return { name, count: ps.length, runs, passes,
-        successPct: succPlays ? Math.round(succ / succPlays * 100) : 0,
+        successPct: succPlays ? Math.round(succ / succPlays * 100) : null,
         avg: yardPlays ? (yards / yardPlays).toFixed(1) : '0.0' };
     }).sort((a, b) => b.count - a.count);
   };
@@ -459,7 +463,7 @@ export function dirStrengthTendencies(engine, offPlays) {
     : {
       name: row.name, count: row.count,
       runs: `${row.runs} (${row.runPct}%)`, passes: `${row.passes} (${row.passPct}%)`,
-      ypp: row.avg, success: `${row.successPct}%`, refs: row.refs,
+      ypp: row.avg, success: rateText(row.successPct), refs: row.refs,
       cutType: 'directionStrength', cutVal: row.name,
       cutLabel: `Direction vs Strength: ${row.name} — ${row.count} plays`,
     }));
@@ -473,13 +477,13 @@ export function hashTendencies(stats) {
 export function personnelSituation(stats) {
   if (!stats.personnelSituation || !stats.personnelSituation.hasData) return [];
   return stats.personnelSituation.list.map(c => ({
-    personnel: c.personnel, situation: c.situation, count: c.count, runPct: c.runPct, avg: c.avg, success: `${c.successPct}%`,
+    personnel: c.personnel, situation: c.situation, count: c.count, runPct: c.runPct, avg: c.avg, success: rateText(c.successPct),
   }));
 }
 
 export function situationalBreakdown(stats) {
   const s = stats.situational;
-  const row = (name, b, key) => b.total === 0 ? null : { name, key, total: b.total, yards: b.yards, avg: b.avg, success: `${b.successPct}%`, tds: b.tds };
+  const row = (name, b, key) => b.total === 0 ? null : { name, key, total: b.total, yards: b.yards, avg: b.avg, success: rateText(b.successPct), tds: b.tds };
   const rows = [row('Red Zone', s.redZone, 'redZone'), row('Goal Line', s.goalLine, 'goalLine'), row('Backed Up', s.backedUp, 'backedUp'), row('3rd & 7+', s.thirdLong, 'thirdLong'), row('3rd & 1-3', s.thirdShort, 'thirdShort')].filter(Boolean);
   const byQuarter = Object.entries(s.byQuarter || {}).filter(([, qs]) => qs.plays > 0).map(([q, qs]) => ({ q, plays: qs.plays, yards: qs.yards, tds: qs.tds }));
   return { rows, byQuarter, redZonePct: s.redZone.total ? Math.round(s.redZone.tds / s.redZone.total * 100) : null, backedUpPct: parseFloat(s.backedUp.successPct) || null };
@@ -492,11 +496,11 @@ export function bigTwelve(engine, plays, label, opts = {}) {
   return { to90: d.to90, label, total: d.total, rows: d.calls.map((c, i) => {
     const runPct = c.n ? Math.round(c.runs / c.n * 100) : 0;
     const avg = c.yardPlays ? (c.yards / c.yardPlays).toFixed(1) : '0.0';
-    const succ = c.succPlays ? Math.round(c.succ / c.succPlays * 100) : 0;
+    const succ = c.succPlays ? Math.round(c.succ / c.succPlays * 100) : null;
     const named = [c.form, c.qb].filter(Boolean).join(' ') || '—';
     return {
       id: i, form: c.form || '—', qb: c.qb || '—', bf: c.bf || '—', str: c.str || '—', mot: c.mot || '—', pt: c.pt || '—',
-      n: c.n, succ: `${succ}%`, avg, runPct: `${runPct}%`, inTo90: i < d.to90,
+      n: c.n, succ: rateText(succ), avg, runPct: `${runPct}%`, inTo90: i < d.to90,
       cutType: cut ? 'bigCall' : null, cutVal: c.key, cutLabel: `${named} ${c.pt || ''} — ${c.n} plays`,
     };
   }) };
@@ -512,7 +516,7 @@ export function playAction(stats) {
   const pa = stats.playAction;
   return {
     paRate: pa.paRate, paCompPct: pa.paCompPct, paYPA: pa.paYPA, straightYPA: pa.straightYPA, paPlays: pa.paPlays,
-    formations: (pa.formationList || []).map(f => ({ name: f.name, count: f.count, avg: f.avg, success: `${f.successPct}%` })),
+    formations: (pa.formationList || []).map(f => ({ name: f.name, count: f.count, avg: f.avg, success: rateText(f.successPct) })),
   };
 }
 
@@ -1100,7 +1104,7 @@ export function specialTeamsPhases(stats) {
 export const MATCHUP_NO_MATCH = 'No matching snaps';
 export const MATCHUP_NO_DATA = 'No data';
 
-const muRate = value => `${Math.round(value)}%`;
+const muRate = value => (value == null ? '—' : `${Math.round(value)}%`);
 const muAvg = value => value.toFixed(1);
 const muGames = count => `${count} game${count === 1 ? '' : 's'}`;
 

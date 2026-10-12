@@ -256,7 +256,8 @@ const EXPECTED = {
       .map(([name, rows]) => ({
         name, snaps: rows.length,
         ypp: rows.length ? one(sum(rows, r => r[3]) / rows.length) : '0.0',
-        success: rows.length ? `${Math.round(rows.filter(success).length / rows.length * 100)}%` : '0%',
+        // Every fixture snap is judged; a type with none is unavailable (REPORTS-CONTRACTS > Success).
+        success: rows.length ? `${Math.round(rows.filter(success).length / rows.length * 100)}%` : '—',
       }));
   })(),
   /** Big plays is a FIXED-length leaderboard over BOTH sides of the ball: the

@@ -625,7 +625,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "goalLine": {
      "total": 0,
@@ -635,7 +635,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "backedUp": {
      "total": 0,
@@ -645,7 +645,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "thirdLong": {
      "total": 1,
@@ -3958,7 +3958,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "goalLine": {
        "total": 0,
@@ -3968,7 +3968,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "backedUp": {
        "total": 0,
@@ -3978,7 +3978,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "thirdLong": {
        "total": 1,
@@ -5938,7 +5938,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "goalLine": {
      "total": 0,
@@ -5948,7 +5948,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "backedUp": {
      "total": 0,
@@ -5958,7 +5958,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "thirdLong": {
      "total": 1,
@@ -5978,7 +5978,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "byQuarter": {
      "Q1": {
@@ -8547,7 +8547,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "goalLine": {
        "total": 0,
@@ -8557,7 +8557,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "backedUp": {
        "total": 0,
@@ -8567,7 +8567,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "thirdLong": {
        "total": 1,
@@ -8587,7 +8587,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "byQuarter": {
        "Q1": {
@@ -9984,7 +9984,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "goalLine": {
      "total": 0,
@@ -9994,7 +9994,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "backedUp": {
      "total": 0,
@@ -10004,7 +10004,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "thirdLong": {
      "total": 0,
@@ -10014,7 +10014,7 @@
      "yards": 0,
      "yardPlays": 0,
      "avg": "0.0",
-     "successPct": "0"
+     "successPct": null
     },
     "thirdShort": {
      "total": 1,
@@ -11702,7 +11702,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "goalLine": {
        "total": 0,
@@ -11712,7 +11712,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "backedUp": {
        "total": 0,
@@ -11722,7 +11722,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "thirdLong": {
        "total": 0,
@@ -11732,7 +11732,7 @@
        "yards": 0,
        "yardPlays": 0,
        "avg": "0.0",
-       "successPct": "0"
+       "successPct": null
       },
       "thirdShort": {
        "total": 1,
