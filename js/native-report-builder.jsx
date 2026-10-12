@@ -416,7 +416,7 @@ export function NativeReportBuilder({ screen }) {
   const { dashboard, result } = state;
   if (!dashboard) return <><DashboardsNav screen={screen} state={state} /><div class="gi-rb" data-report-builder><DashboardsHome screen={screen} state={state} /></div></>;
   const editing = state.editing;
-  return <><DashboardsNav screen={screen} state={state} /><div class={['gi-rb', 'is-all', editing ? 'is-editing' : ''].filter(Boolean).join(' ')} data-report-builder>
+  return <><DashboardsNav screen={screen} state={state} /><div class={['gi-rb', 'is-all', editing ? 'is-editing' : ''].filter(Boolean).join(' ')} data-report-builder data-rb-dashboard={dashboard.id}>
     <div class="gi-rb-toolbar">
       <div class="gi-rb-title">
         <h2>{dashboard.name}</h2>

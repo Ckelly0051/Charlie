@@ -1,6 +1,6 @@
-import { h } from 'preact';
+import { h, render } from 'preact';
 import { ReportBuilder } from './report-builder.js';
-import { WidgetEditor } from './native-report-builder.jsx';
+import { WidgetEditor, NativeReportBuilder } from './native-report-builder.jsx';
 import { ConfirmDeleteForm } from './native-team-hub.jsx';
 
 /**
@@ -180,13 +180,19 @@ export class ReportBuilderScreen {
     return true;
   }
 
-  /** Export a saved dashboard from the home: it is drawn, exported, and the
-   *  home returns. */
+  /** Export a saved dashboard from the home. The board is drawn and copied
+   *  at once, off screen, before anything is awaited, so moving to another
+   *  dashboard while the file is built cannot change what is saved. */
   async exportDashboard(id) {
-    if (!this._saved(id)) return null;
+    const dashboard = this._saved(id);
+    if (!dashboard) return null;
     this.open(id);
-    await new Promise(resolve => setTimeout(resolve, 60));
-    try { return await this.exportHtml(); } finally { this.home(); }
+    const host = document.createElement('div');
+    render(h(NativeReportBuilder, { screen: this }), host);
+    const board = host.querySelector(`[data-report-builder][data-rb-dashboard="${CSS.escape(dashboard.id)}"]`)?.outerHTML || null;
+    render(null, host);
+    this.home();
+    return board ? this._exportBoard(dashboard, board) : null;
   }
 
   // ---- Modules ---------------------------------------------------------------
@@ -307,8 +313,14 @@ export class ReportBuilderScreen {
    */
   async exportHtml(root = this.reports?.content) {
     const dashboard = this.active();
-    const board = root?.querySelector?.('[data-report-builder]');
+    const board = dashboard && root?.querySelector?.(`[data-report-builder][data-rb-dashboard="${CSS.escape(dashboard.id)}"]`);
     if (!dashboard || !board) return null;
+    // The dashboard and its drawn board are copied before the stylesheets are
+    // read, so navigating meanwhile cannot change the file.
+    return this._exportBoard(dashboard, board.outerHTML);
+  }
+
+  async _exportBoard(dashboard, boardHtml) {
     const rules = [];
     for (const node of document.querySelectorAll('link[rel="stylesheet"], style')) {
       try {
@@ -325,7 +337,7 @@ body{margin:0;background:var(--gi-bd-stage,#080808)}
 .gi-rb-export-head span{display:block;margin-top:4px;color:var(--gi-bd-copy,#a6a6a6);font:400 13.5px system-ui,sans-serif}
 .gi-rb-export .gi-rb-toolbar-actions,.gi-rb-export .gi-rb-card-actions button,.gi-rb-export .gi-rb-card-actions details,.gi-rb-export [data-rb-add-filter],.gi-rb-export .gi-rb-chip button{display:none}
 </style></head><body><header class="gi-rb-export-head">${esc(dashboard.name)}<span>Exported ${date}</span></header>
-<div class="gi-rb-export">${board.outerHTML}</div></body></html>`;
+<div class="gi-rb-export">${boardHtml}</div></body></html>`;
     try { window.ffaSaveBlob?.(new Blob([html], { type: 'text/html' }), `dashboard_${dashboard.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${date}.html`); } catch (e) {}
     return html;
   }

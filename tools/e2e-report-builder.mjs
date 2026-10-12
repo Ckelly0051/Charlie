@@ -330,6 +330,28 @@ try {
   });
   ok(exported.saved?.startsWith('dashboard_my_offense_') && exported.title && exported.cards === 8 && exported.styled && exported.home,
     'Export on the picker page saves one self-contained HTML file of the dashboard and stays on the picker page', exported);
+  // Moving to another dashboard while a file is built never changes it.
+  const pinned = await page.evaluate(async () => {
+    const saves = [];
+    const original = window.ffaSaveBlob;
+    window.ffaSaveBlob = (blob, name) => { saves.push(name); return true; };
+    const s = window.app.reportsScreen.dashboards;
+    const a = s.list().find(d => d.name === 'My offense').id, b = s.list().find(d => d.name === 'Marks').id;
+    const fromHome = s.exportDashboard(a);
+    s.open(b);
+    const homeHtml = await fromHome;
+    s.open(a);
+    await new Promise(r => setTimeout(r, 150));
+    const fromBoard = s.exportHtml();
+    s.open(b);
+    const boardHtml = await fromBoard;
+    window.ffaSaveBlob = original;
+    const of = html => ({ title: (html || '').match(/<title>([^<]*)<\/title>/)?.[1], board: (html || '').match(/data-rb-dashboard="([^"]+)"/)?.[1] });
+    return { a, saves, home: of(homeHtml), board: of(boardHtml) };
+  });
+  ok(pinned.saves.every(name => name.startsWith('dashboard_my_offense_')) && pinned.saves.length === 2
+    && pinned.home.title === 'My offense' && pinned.home.board === pinned.a && pinned.board.title === 'My offense' && pinned.board.board === pinned.a,
+    'an export saves the dashboard asked for, title and canvas, even when another opens while it is built', pinned);
 
   console.log('\n== Delete asks for the typed word ==');
   const deleting = await page.evaluate(async () => {
