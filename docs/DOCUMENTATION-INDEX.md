@@ -54,7 +54,7 @@ log.
   change of possession, Dashboards rev 1. Coach checks 1-2 passed and Claude's
   installed checks 8-10 passed; the coach closed the findings list (six
   findings) for fixing. Packaged-asset inspection PASS.
-- **Built, awaiting the coach's smoke: `1.12.0-115`** (2026-10-12,
+- **Smoked with three findings: `1.12.0-115`** (2026-10-12,
   `SMOKE-1.12.0-115.md`): the smoke 114 fixes (Dashboards home, read-only
   templates, Special Teams teal, prose, the installed-check defects, bar
   scale) and one yards rule across the reports, Study and Dashboards
@@ -64,9 +64,23 @@ log.
   `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-115_x64-setup.exe`,
   4,047,120 bytes, SHA-256
   `EE10EAFE802F5ECD05FAF58B156F05F119CE41CCCFAEDBAB3A2009BEF6A7677A`.
-  Packaged-asset inspection not run. No push, tag or publication.
-- **Latest full gate:** 158/158 green at `216d5426` (2026-10-12). Receipt:
-  `artifacts/gate-logs/2026-10-12T06-16-21-359Z-WTtmIO/receipt.json`.
+  Its findings are built in 116; installed acceptance was not granted.
+  Packaged-asset inspection not run. Superseded by 116 for the next smoke.
+- **Built, awaiting independent package inspection and coach smoke:
+  `1.12.0-116`** (2026-10-12, `SMOKE-1.12.0-116.md`): Dashboards navigation
+  strip and neutral buttons; one success/stop rule across Reports, Study and
+  Dashboards; turnovers always fail on offense and stop on defense; unjudged
+  rates render a dash, including Top call and the formation/play-type matrix.
+  Built from clean version-only bump `8bd32ffd`; fresh-build `e2e-p0-exit`
+  passed 20/20. Artifact:
+  `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-116_x64-setup.exe`,
+  4,053,536 bytes, SHA-256
+  `688418106A932F7ECEA8807100DC0801BD4798F085E8FFEA1799802805571DA3`.
+  Installer and application product/file versions verified. No installation,
+  push, tag or publication performed; coach data unchanged.
+- **Latest full gate:** 158/158 green at `af7e48cc` (2026-10-12), zero skipped
+  or failed, `releaseEligible: true`. Receipt:
+  `artifacts/gate-logs/2026-10-12T20-52-41-525Z-VvsONG/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

@@ -19,7 +19,10 @@
 
 ## Result
 
-Smoke in progress (2026-10-12).
+Smoked with three findings (2026-10-12); the coach closed the findings list
+for fixing. No installed acceptance recorded. The repairs are packaged in
+1.12.0-116, which supersedes this build for the next smoke; see
+`SMOKE-1.12.0-116.md`. The observations below remain the 115 record.
 
 ## Findings
 
@@ -92,8 +95,8 @@ Yards rules (`docs/REPORTS-CONTRACTS.md` > Yards):
   (2025 JV: ND Prep play 78).
 - Explosive Plays film opens exactly the counted plays.
 
-Still open from 114 (`docs/OPEN-DEFECTS.md` > Awaiting the 1.12.0-115
-smoke): Chart's draft and Save, unit-change prompts, turnover tacklers,
+Carried forward from 114 for the 116 smoke (`docs/OPEN-DEFECTS.md`):
+Chart's draft and Save, unit-change prompts, turnover tacklers,
 recovery.
 
 Known open items remain in `docs/OPEN-DEFECTS.md`, including intermittent

@@ -9,11 +9,12 @@ open, check its fix and smoke status in git.
 
 Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
 intermittent scrubbing defect deferred. `1.12.0-114` smoked with six
-findings, fixed in `1.12.0-115`. Built and awaiting the coach's smoke:
-`1.12.0-115` (`SMOKE-1.12.0-115.md`). Installed smoke does not change the
+findings, fixed in `1.12.0-115`. The 115 smoke found three further issues,
+fixed in `1.12.0-116`. Built and awaiting independent package inspection and
+the coach's smoke: `1.12.0-116` (`SMOKE-1.12.0-116.md`). Installed smoke does not change the
 design approval registry.
 
-## Built since 115: smoke 115 findings (coach closed the list 2026-10-12)
+## Awaiting the 1.12.0-116 smoke: smoke 115 findings
 
 - **Dashboards strip** (findings 1-2): inside a dashboard, Back to
   dashboards, Prev / Next through the home's order, and Go to reports set
@@ -21,8 +22,16 @@ design approval registry.
 - **Success rate** (finding 3; `docs/REPORTS-CONTRACTS.md` > Success): the
   reports, Study and Dashboards use the yards rule's play set. Smoke: Reports
   > Season > Offense and an offense dashboard read the same success rate.
+  A turnover always fails on offense and is a stop on defense, regardless of
+  its gain; a wiped-out play does not count. With no judged plays the rate is
+  unavailable, not 0%, including Top call and the Formation x Play Type matrix.
+- **Button styling:** disabled Prev / Next are grey; New dashboard is neutral.
 
-## Awaiting the 1.12.0-115 smoke
+The full gate passed 158/158 at `af7e48cc` (2026-10-12), zero skips/failures;
+the version-only bump is `8bd32ffd`, with `e2e-p0-exit` 20/20. Installer
+details and the full smoke checklist are in `SMOKE-1.12.0-116.md`.
+
+## Carried forward for the 1.12.0-116 smoke
 
 Carried from 114:
 
