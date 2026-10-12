@@ -10,8 +10,8 @@ open, check its fix and smoke status in git.
 Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
 intermittent scrubbing defect deferred. `1.12.0-114` smoked with six
 findings, fixed in `1.12.0-115`. The 115 smoke found three further issues,
-fixed in `1.12.0-116`. Built and awaiting independent package inspection and
-the coach's smoke: `1.12.0-116` (`SMOKE-1.12.0-116.md`). Installed smoke does not change the
+fixed in `1.12.0-116`. The 116 smoke closed (2026-10-12) with three
+Dashboards findings, sent to the reporting rebuild (`SMOKE-1.12.0-116.md`). Installed smoke does not change the
 design approval registry.
 
 ## Awaiting the 1.12.0-116 smoke: smoke 115 findings

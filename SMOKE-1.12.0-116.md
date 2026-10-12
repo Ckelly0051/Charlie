@@ -25,8 +25,10 @@
 
 ## Result
 
-Awaiting the coach's installed smoke. This build is not accepted; the gate
-receipt's `installedApproval` remains `not-assessed`.
+Smoke closed by the coach (2026-10-12) with three Dashboards findings, all
+sent to the reporting rebuild (`GRIDIRON-IQ-PLAN-V2.md` step 5); no other
+findings were reported. The coach did not state PASS, so installed acceptance
+is not recorded. Installed smoke does not move the design approval registry.
 
 ## What to Check
 
