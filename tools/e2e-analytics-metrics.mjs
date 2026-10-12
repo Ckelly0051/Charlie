@@ -275,6 +275,24 @@ test('the defense reports, Study and Dashboards read the same stop rate', () => 
   assert.equal(summary.kpis.stopRate, 67);
   assert.equal(engine.defensiveCohortMetrics(plays).stopRate, study.value);
 });
+test('a turnover is always a failed play on offense and a stop on defense (coach, 2026-10-12)', () => {
+  const offense = [
+    play(1, 'gA', { runPass: 'Pass', result: 'Interception', yardage: '5' }),           // 5 on 1st & 10 would pass
+    play(2, 'gA', { runPass: 'Run', result: 'Fumble', fumbleRecovery: 'opponent' }),    // lost, Yards blank: still judged
+    play(3, 'gA', { runPass: 'Run', result: 'Gain + Fumble', fumbleRecovery: 'subject', yardage: '8' }), // kept: an 8-yard success
+    play(4, 'gA', { runPass: 'Pass', result: 'Interception + Touchdown', yardage: '0' }), // pick-six against us
+  ];
+  assert.deepEqual(offense.filter(StatsEngine.isSuccessEligible).map(p => p.id), [1, 2, 3, 4]);
+  assert.deepEqual(offense.filter(StatsEngine.isSuccess).map(p => p.id), [3]);
+  assert.equal(metrics.metric(offense, 'successRate').value, 25);
+  const defense = [
+    play(5, 'gA', { unit: 'defense', runPass: 'Pass', result: 'Interception', yardage: '12' }),
+    play(6, 'gA', { unit: 'defense', runPass: 'Run', result: 'Gain + Fumble', fumbleRecovery: 'subject', yardage: '9' }), // our recovery
+    play(7, 'gA', { unit: 'defense', runPass: 'Run', result: 'Gain + Fumble', fumbleRecovery: 'opponent', yardage: '9' }), // they kept it
+  ];
+  assert.deepEqual(defense.filter(StatsEngine.isStop).map(p => p.id), [5, 6]);
+  assert.equal(engine._efficiencyStats(offense).successRate, '25.0');
+});
 test('a group below minSample reports state:insufficient, not ok', () => {
   const cohort = [play(1, 'gA', { runPass: 'Run', yardage: '4' }), play(2, 'gA', { runPass: 'Run', yardage: '5' })];
   const ok = metrics.metric(cohort, 'yardsPerPlay', {}, { minSample: 2 });

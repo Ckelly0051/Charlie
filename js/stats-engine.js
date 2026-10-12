@@ -105,6 +105,15 @@ export class StatsEngine {
     return StatsEngine.hasResult(p, 'Interception') || StatsEngine.isFumbleLost(p);
   }
 
+  /** The offense on the field turned the ball over: an interception, or a
+   *  fumble the defense recovered (`fumbleRecovery` names the team that ended
+   *  with the ball). Always a failed play for that offense and a stop for the
+   *  defense (coach, 2026-10-12). */
+  static isOffenseTurnover(p) {
+    if (StatsEngine.hasResult(p, 'Interception')) return true;
+    return StatsEngine.fieldPerspective(p) === 'defense' ? StatsEngine.isFumbleRecovered(p) : StatsEngine.isFumbleLost(p);
+  }
+
   /** Statistical rushing includes sacks; called Run/Pass remains unchanged. */
   /** A caught pass by its charted result: Gain, No Gain, Loss (a screen
    *  stopped behind the line) or Touchdown. Callers decide whether the play is
@@ -264,6 +273,7 @@ export class StatsEngine {
    *  and carries `__chartedUnit:'offense'`, so it measures our offense instead.
    *  Every non-touchdown keeps the canonical rule. */
   static isOpponentSuccess(p) {
+    if (StatsEngine.isOffenseTurnover(p)) return false;
     if (StatsEngine.hasResult(p, 'Touchdown')) return StatsEngine.isTouchdownAllowed(p);
     return StatsEngine.isSuccessfulPlay(p);
   }
@@ -641,6 +651,7 @@ export class StatsEngine {
   }
 
   static isSuccessfulPlay(p) {
+    if (StatsEngine.isOffenseTurnover(p)) return false;
     const yds = parseInt(p.tags.yardage) || 0;
     const dist = parseInt(p.tags.distance) || 10;
     if (StatsEngine.hasResult(p, 'Touchdown')) return true;
@@ -657,14 +668,14 @@ export class StatsEngine {
   }
 
   /* Success (coach, 2026-10-12; docs/REPORTS-CONTRACTS.md > Success). The
-     yards rule's play set: a snap that stood, judged on a touchdown, a charted
-     1st Down, or its known yards (No Gain, Incomplete and Interception with
+     yards rule's play set: a snap that stood, judged on a turnover (always a
+     failure), a touchdown, a charted 1st Down, or its known yards (No Gain, Incomplete and Interception with
      Yards blank are 0) with its down and distance. Blank yards with any other
      result is unknown and left out. Every success and stop rate divides by
      these plays, in the reports, Study and Dashboards. */
   static isSuccessEligible(p) {
     if (!p?.tags || !StatsEngine.isSnap(p) || StatsEngine.isNoPlay(p)) return false;
-    if (StatsEngine.hasResult(p, 'Touchdown') || p.tags.custom?.includes('1st Down')) return true;
+    if (StatsEngine.hasResult(p, 'Touchdown') || p.tags.custom?.includes('1st Down') || StatsEngine.isOffenseTurnover(p)) return true;
     const distance = parseInt(p.tags.distance, 10);
     return StatsEngine.playYards(p) !== null && ['1', '2', '3', '4'].includes(p.tags.down)
       && String(p.tags.distance ?? '').trim() !== '' && Number.isFinite(distance);

@@ -302,8 +302,10 @@ havoc, sack yards, drive distance and return yards keep their own rules.
 
 Success rate and stop rate use the yards rule's play set, in the reports,
 Study and Dashboards (smoke 115 finding 3): a snap (run, pass or sack) that
-stood, judged on a touchdown, a charted 1st Down, or its known yards with its
-down and distance. No Gain, Incomplete and Interception with Yards blank are
+stood, judged on a turnover, a touchdown, a charted 1st Down, or its known
+yards with its down and distance. A turnover (an interception, or a fumble the
+defense recovered) is always a failed play for the offense and a stop for the
+defense, with or without yards, a pick-six included (coach, 2026-10-12). No Gain, Incomplete and Interception with Yards blank are
 0 and count; blank yards with any other result is unknown and left out. A
 rate divides by these plays, never by every play in the group; a stop is the
 absence of opponent success, so our own return touchdown is a stop.
