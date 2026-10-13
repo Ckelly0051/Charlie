@@ -98,10 +98,12 @@ log.
   passes 108/108, with both roster/playbook rules mutation-verified. Item 4's
   security boundary review found SEC-1 and SEC-2 (P2): unsafe imported game IDs
   can widen film deletion, and noncanonical linked paths bypass folder consent.
-  The coach approved both fixes. SEC-1 is repaired in source, with synthetic
-  import/deletion and native sibling/junction checks; SEC-2 is in progress.
+  The coach approved both fixes. Both are repaired in source, with synthetic
+  import/deletion/consent checks and native canonical-path/sibling/junction
+  checks. Fifteen focused harnesses and four native tests pass; installed
+  linked-film and disposable deletion/Undo smoke remains pending.
   Rust advisory coverage remains incomplete.
-  See `docs/OPEN-DEFECTS.md` for reproductions, proposed repairs and limits.
+  See `docs/OPEN-DEFECTS.md` for reproductions, repair evidence and limits.
   Installed drawing, real-film preview and native file delivery still need smoke.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped

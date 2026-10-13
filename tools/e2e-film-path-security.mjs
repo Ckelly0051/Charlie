@@ -15,6 +15,8 @@ for (const id of unsafe) {
 }
 ok(SeasonFormat.isCurrentSeason(season('normal.game-12')), 'normal opaque IDs remain valid');
 ok(SeasonFormat.isCurrentSeason({ games: [{ plays: [] }] }), 'missing IDs can still be generated');
+ok(!SeasonFormat.isCurrentSeason({ games: [{ id: 'same-game', plays: [] }, { id: 'SAME-GAME', plays: [] }] }), 'Windows case aliases cannot share a film owner');
+ok(!SeasonFormat.isCurrentSeason({ games: [{ id: 'same-game', plays: [] }, { id: 'same-game', plays: [] }] }), 'duplicate game IDs cannot share a film owner');
 let writes = 0;
 const store = new SeasonStore({ saveSeason: async () => { writes++; return true; } });
 store.currentSeasonId = 'safe-season';

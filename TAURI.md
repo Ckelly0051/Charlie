@@ -101,10 +101,13 @@ Tauri v2 requires explicit permission grants in `capabilities/default.json`:
 - `opener:default`, plus `opener:allow-open-path` and
   `opener:allow-reveal-item-in-dir` scoped to `$APPDATA` and `$DOCUMENT`
 
-A coach-chosen linked-film folder is granted at runtime by the `allow_library_dir`
-command in `src/main.rs`, which extends the asset-protocol and fs scopes to that
-directory only. An imported season cannot widen scope on its own: a `filmDir`
-outside the granted library root is refused and prompts a re-link.
+Linked-film access uses `authorize_film_path` in `src-tauri/src/main.rs`.
+It canonicalizes the target and approved roots before extending asset/fs scope.
+Approved roots come from machine settings or actual native-picker selections,
+not imported season metadata. Recursive listing and file URLs use this boundary,
+including junction and file aliases. Unapproved film is refused and needs re-linking.
+Managed film deletion separately uses `delete_managed_film`, which validates
+opaque owner IDs and confines deletion to one canonical, non-junction game folder.
 
 ## Asset protocol and CSP — do not "clean this up"
 

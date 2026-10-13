@@ -11,30 +11,23 @@ fn delete_managed_film(app: tauri::AppHandle, season_id: String, game_id: String
     film_paths::delete_managed(&base, &season_id, &game_id)
 }
 
-/// Grant the webview + fs plugin access to a coach-chosen film library folder at
-/// runtime, so clips can be REFERENCED and played in place (no copy into app
-/// data). Called from JS when the coach picks/opens a library folder and on
-/// startup for the saved root. Additive — the static $APPDATA scope (managed
-/// film) is untouched, so existing games keep working even if this fails.
+/// Imported film paths carry no consent. Only machine-owned settings and native
+/// picker selections supply approved roots; resolve both before granting scope.
 #[tauri::command]
-fn allow_library_dir(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    let p = std::path::PathBuf::from(&path);
-    if !p.exists() {
-        return Err(format!("library folder does not exist: {}", path));
+fn authorize_film_path(app: tauri::AppHandle, path: String, approved_roots: Vec<String>, directory: bool) -> Result<String, String> {
+    let p = film_paths::authorize(&path, &approved_roots, directory)?;
+    if directory {
+        app.asset_protocol_scope().allow_directory(&p, true).map_err(|e| e.to_string())?;
+        app.fs_scope().allow_directory(&p, true).map_err(|e| e.to_string())?;
+    } else {
+        app.asset_protocol_scope().allow_file(&p).map_err(|e| e.to_string())?;
+        app.fs_scope().allow_file(&p).map_err(|e| e.to_string())?;
     }
-    // Asset protocol: lets the WebView stream video via convertFileSrc from here.
-    app.asset_protocol_scope()
-        .allow_directory(&p, true)
-        .map_err(|e| e.to_string())?;
-    // Fs plugin: lets listFilmFiles / read metadata under here.
-    app.fs_scope()
-        .allow_directory(&p, true)
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    Ok(p.to_string_lossy().into_owned())
 }
 
 /// Open a coach-approved film folder in the OS file manager. The folder must
-/// already be inside the runtime asset/fs scope granted by allow_library_dir;
+/// already be inside the runtime asset/fs scope granted by authorize_film_path;
 /// imported season data cannot use this command to open an arbitrary path.
 #[tauri::command]
 fn open_library_dir(app: tauri::AppHandle, path: String) -> Result<(), String> {
@@ -121,7 +114,7 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            allow_library_dir,
+            authorize_film_path,
             open_library_dir,
             close_after_flush,
             replace_catalog_db,

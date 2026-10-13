@@ -812,8 +812,6 @@ export class StorageManager {
     // call after an await is guarded by !stale(), not just the final playlist
     // mutation — a superseded load must not narrate the outgoing game.
     try {
-      await backend.allowLibraryDir(backend.getLibraryRoot());
-      if (stale()) return;
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
       if (stale()) return;
       if (!absDir) { this._relinkToast(gameNode, true); return; }
@@ -825,7 +823,10 @@ export class StorageManager {
         this.tagger.toast?.('This game\'s linked film folder isn\'t authorized on this computer. Use "Link from Library" to reconnect it.', 12000);
         return;
       }
-      await backend.allowLibraryDir(absDir);
+      if (!await backend.allowLibraryDir(absDir)) {
+        this.tagger.toast?.('This game\'s linked film folder isn\'t authorized on this computer. Use "Link from Library" to reconnect it.', 12000);
+        return;
+      }
       if (stale()) return;
       const filesOnDisk = await backend.listLinkedFilm(absDir);
       if (stale()) return;

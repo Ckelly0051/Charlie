@@ -1,5 +1,21 @@
 use std::path::Path;
 
+pub fn authorize(path: &str, approved_roots: &[String], directory: bool) -> Result<std::path::PathBuf, String> {
+    let input = Path::new(path);
+    if !input.is_absolute() { return Err("Film path must be absolute".into()); }
+    let target = input.canonicalize().map_err(|e| e.to_string())?;
+    if (directory && !target.is_dir()) || (!directory && !target.is_file()) {
+        return Err("Film path has the wrong type".into());
+    }
+    let approved = approved_roots.iter().filter_map(|root| {
+        let root = Path::new(root);
+        if !root.is_absolute() { return None; }
+        root.canonicalize().ok().filter(|p| p.is_dir())
+    }).any(|root| target.starts_with(root));
+    if !approved { return Err("Film path has not been approved on this computer".into()); }
+    Ok(target)
+}
+
 pub fn safe_id(id: &str) -> bool {
     let first = id.as_bytes().first().copied();
     if !first.is_some_and(|c| c.is_ascii_alphanumeric())
@@ -29,7 +45,7 @@ pub fn delete_managed(base: &Path, season_id: &str, game_id: &str) -> Result<(),
     };
     let canonical_root = root.canonicalize().map_err(|e| e.to_string())?;
     let canonical_target = target.canonicalize().map_err(|e| e.to_string())?;
-    if !canonical_root.starts_with(&base)
+    if canonical_root != root
         || metadata.file_type().is_symlink()
         || canonical_target.parent() != Some(canonical_root.as_path())
         || canonical_target == canonical_root
@@ -79,6 +95,29 @@ mod tests {
         std::fs::remove_dir_all(base).unwrap();
     }
 
+    #[test]
+    fn linked_paths_are_authorized_by_canonical_identity() {
+        let base = scratch();
+        let root = base.join("approved");
+        let sibling = base.join("approved-other");
+        std::fs::create_dir_all(root.join("week-1")).unwrap();
+        std::fs::create_dir_all(&sibling).unwrap();
+        std::fs::write(root.join("week-1/clip.mp4"), b"film").unwrap();
+        let roots = vec![root.to_string_lossy().into_owned()];
+        assert!(authorize(root.to_str().unwrap(), &roots, true).is_ok());
+        assert!(authorize(root.join("week-1/clip.mp4").to_str().unwrap(), &roots, false).is_ok());
+        assert!(authorize(sibling.to_str().unwrap(), &roots, true).is_err());
+        assert!(authorize(root.join("../approved-other").to_str().unwrap(), &roots, true).is_err());
+        assert!(authorize(root.to_str().unwrap(), &[], true).is_err());
+        assert!(authorize("relative", &roots, true).is_err());
+        assert!(authorize(root.to_str().unwrap(), &roots, false).is_err());
+        #[cfg(windows)]
+        assert!(authorize(root.join("week-1").to_str().unwrap(), &[root.to_string_lossy().to_uppercase()], true).is_ok());
+        let explicit = vec![sibling.to_string_lossy().into_owned()];
+        assert!(authorize(sibling.to_str().unwrap(), &explicit, true).is_ok());
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
     #[cfg(windows)]
     #[test]
     fn a_game_junction_cannot_delete_another_folder() {
@@ -95,6 +134,10 @@ mod tests {
             .args(["/c", "mklink", "/J"]).arg(&link).arg(&other)
             .creation_flags(0x08000000).output().unwrap();
         assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        let roots = vec![root.to_string_lossy().into_owned()];
+        assert!(authorize(link.to_str().unwrap(), &roots, true).is_err());
+        assert!(authorize(link.join("clip.mp4").to_str().unwrap(), &roots, false).is_err());
+        assert!(authorize(link.to_str().unwrap(), &[other.to_string_lossy().into_owned()], true).is_ok());
         assert!(delete_managed(&base, "safe-season", "linked-game").is_err());
         assert_eq!(std::fs::read(other.join("clip.mp4")).unwrap(), b"keep");
         std::fs::remove_dir(link).unwrap();

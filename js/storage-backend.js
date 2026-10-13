@@ -525,6 +525,7 @@ export class TauriBackend extends StorageBackend {
     this.OLD_LAYOUT = 'season.json';
     this._lastWrite = 0;
     this._dirReady = {};        // per-season "backups dir ensured" cache
+    this._pickedDirs = new Set(); // fresh native selections, not imported metadata
   }
   name() { return 'tauri'; }
 
@@ -1193,19 +1194,34 @@ export class TauriBackend extends StorageBackend {
   async setLibraryRoot(path) {
     if (path && !await this.allowLibraryDir(path)) return false;
     try {
+      const prior = this.getLibraryRoot();
       localStorage.setItem('ffa_film_library_root', path || '');
+      if (prior) this._pickedDirs.add(prior); // preserve transaction rollback
       return true;
     } catch (e) {
       return false;
     }
   }
 
-  /** Grant the WebView + fs plugin runtime access to a folder (Rust command). */
+  _approvedFilmRoots() {
+    const remembered = this._linkedDirs();
+    return [this.getLibraryRoot(), ...(Array.isArray(remembered) ? remembered : []), ...this._pickedDirs]
+      .filter(root => typeof root === 'string' && root);
+  }
+
+  async _authorizeFilmPath(path, directory) {
+    const core = window.__TAURI__?.core;
+    const approvedRoots = this._approvedFilmRoots();
+    // Reject malformed spellings here; native canonical roots own containment.
+    if (!core?.invoke || !TauriBackend.isDirAllowed(path, [], path)) return null;
+    try {
+      return await core.invoke('authorize_film_path', { path, approvedRoots, directory });
+    } catch { return null; }
+  }
+
+  /** Canonical native authorization precedes every scope grant. */
   async allowLibraryDir(path) {
-    const core = window.__TAURI__ && window.__TAURI__.core;
-    if (!core || !core.invoke || !path) return false;
-    try { await core.invoke('allow_library_dir', { path }); return true; }
-    catch (e) { console.warn('allow_library_dir failed:', e && (e.message || e)); return false; }
+    return !!await this._authorizeFilmPath(path, true);
   }
 
   /** On startup, re-grant scope to the saved library root so linked film plays. */
@@ -1221,6 +1237,7 @@ export class TauriBackend extends StorageBackend {
     if (!dlg || !dlg.open) return '';
     try {
       const sel = await dlg.open({ directory: true, multiple: false, defaultPath: defaultPath || this.getLibraryRoot() || undefined });
+      if (typeof sel === 'string' && sel) this._pickedDirs.add(sel);
       return typeof sel === 'string' ? sel : '';
     } catch (e) { return ''; }
   }
@@ -1228,7 +1245,7 @@ export class TauriBackend extends StorageBackend {
   /** Absolute base dir of a linked game = root + filmDir (or filmDir if absolute). */
   async linkedGameDir(filmDir) {
     if (!filmDir) return '';
-    if (/^([A-Za-z]:[\\/]|\/)/.test(filmDir)) return filmDir;   // already absolute
+    if (/^([A-Za-z]:[\\/]|[\\/]{2}|\/)/.test(filmDir)) return filmDir;   // already absolute
     const root = this.getLibraryRoot();
     if (!root) return '';
     if (filmDir === '.') return root;
@@ -1281,11 +1298,16 @@ export class TauriBackend extends StorageBackend {
   // re-granted (under the library root, or picked in the native dialog and
   // remembered per machine), so an imported season cannot widen the WebView's
   // filesystem scope to a directory of its choosing.
-  static _normPath(s) { return String(s || '').replace(/\\/g, '/').replace(/\/+$/, ''); }
+  static _normPath(s) {
+    return String(s || '').replace(/\\/g, '/')
+      .replace(/^\/\/\?\/UNC\//i, '//').replace(/^\/\/\?\/([A-Za-z]:\/)/, '$1')
+      .replace(/\/+$/, '');
+  }
   /** Pure/testable: is absPath under the root, or under a coach-linked dir? */
   static isDirAllowed(root, linkedDirs, absPath) {
     const p = TauriBackend._normPath(absPath);
-    if (!p) return false;
+    if (!p || p.startsWith('//./') || p.startsWith('//?/')
+      || p.split('/').some(part => part === '.' || part === '..' || /[. ]$/.test(part))) return false;
     const under = (base) => { const b = TauriBackend._normPath(base); return !!b && (p.toLowerCase() === b.toLowerCase() || p.toLowerCase().startsWith(b.toLowerCase() + '/')); };
     if (under(root)) return true;
     return (linkedDirs || []).some(under);
@@ -1309,24 +1331,33 @@ export class TauriBackend extends StorageBackend {
     const exts = /\.(mp4|mov|m4v|webm|avi|mkv)$/i;
     const join = window.__TAURI__ && window.__TAURI__.path && window.__TAURI__.path.join;
     const out = [];
+    const visited = new Set();
     const walk = async (dir, prefix = '') => {
+      const canonical = await this._authorizeFilmPath(dir, true);
+      if (!canonical) return;
+      const key = TauriBackend._normPath(canonical).toLowerCase();
+      if (visited.has(key)) return;
+      visited.add(key);
+      dir = canonical;
       let entries; try { entries = await this.fs.readDir(dir); } catch (e) { return; }
       for (const e of entries) {
         const child = join ? await join(dir, e.name) : `${dir}/${e.name}`;
         if (e.isDirectory) await walk(child, `${prefix}${e.name}/`);
-        else if (exts.test(e.name || '')) out.push({ name: e.name, path: `${prefix}${e.name}` });
+        else if (exts.test(e.name || '') && await this._authorizeFilmPath(child, false)) {
+          out.push({ name: e.name, path: `${prefix}${e.name}` });
+        }
       }
     };
     await walk(absDir);
     return out.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
   }
 
-  /** Asset URL for an absolute film path (linked). Scope must already allow it. */
+  /** Authorize the file's resolved identity before producing an asset URL. */
   async linkedFilmUrl(absPath) {
     const core = window.__TAURI__ && window.__TAURI__.core;
     if (!core || !core.convertFileSrc || !absPath) return null;
-    try { if (!(await this.fs.exists(absPath))) return null; } catch (e) {}
-    return core.convertFileSrc(absPath);
+    const canonical = await this._authorizeFilmPath(absPath, false);
+    return canonical ? core.convertFileSrc(canonical) : null;
   }
 
   // ---- durable disk ----

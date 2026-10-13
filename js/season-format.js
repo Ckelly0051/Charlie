@@ -92,10 +92,16 @@ export class SeasonFormat {
         for (const problem of [...ChartingDetails.problems(receiver), ...ChartingDetails.vocabularyProblems(receiver)]) out.push({ where, problem });
       }
     });
+    const gameIds = new Set();
     data.games.forEach((g, gi) => {
       const label = (this._isObject(g) && g.name) || `game ${gi + 1}`;
       if (!this._isObject(g)) { out.push({ where: label, problem: 'malformed game' }); return; }
       if (g.id != null && g.id !== '' && !safeStorageId(g.id)) out.push({ where: label, problem: 'unsafe game ID' });
+      if (safeStorageId(g.id)) {
+        const key = g.id.toLowerCase();
+        if (gameIds.has(key)) out.push({ where: label, problem: 'duplicate game ID' });
+        gameIds.add(key);
+      }
       if (Object.prototype.hasOwnProperty.call(g, 'roster')) out.push({ where: label, problem: 'game roster' });
       this._playsProblems(g.plays, label, out);
     });

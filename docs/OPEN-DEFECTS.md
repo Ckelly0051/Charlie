@@ -120,8 +120,8 @@ Codex job (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): item 1's
 listed active-code patterns are removed in source, not packaged. The renamed
 HTML export is repaired pending installed smoke. The empty-roster lock is
 corrected to the current contract. The first security boundary review found two
-P2s below; the coach approved both fixes. SEC-1 is repaired in source; SEC-2
-is in progress. Rust advisory coverage remains open.
+P2s below; the coach approved both fixes. Both are repaired in source with
+focused and native validation. Rust advisory coverage remains open.
 
 - **SEC-1: imported game ID can delete sibling managed film (P2).** Reviewed
   at `32f608ad`, 2026-10-13. `SeasonFormat.seasonProblems` accepts a game ID
@@ -139,10 +139,12 @@ is in progress. Rust advisory coverage remains open.
   refused without rewriting; absolute managed-folder resolution also refuses
   them. The renderer's recursive delete is removed: `delete_managed_film`
   validates both IDs natively and refuses roots, outside-owner paths and game
-  junctions. Synthetic regression: 48/48 (35 failures before the repair;
-  accepting dot again produces six failures). Three native tests pass, including
+  junctions and aliased parent folders. Imports also refuse duplicate game IDs,
+  including Windows case aliases. Synthetic regression: 50/50 (35 failures
+  before the initial repair; accepting dot again produces six failures; both
+  duplicate-ID checks failed before their repair). Four native tests pass, including
   real temporary-folder sibling preservation and Windows junction refusal.
-  Seven focused harnesses pass. No coach data, full gate or installer. Installed
+  Fifteen focused harnesses pass. No coach data, full gate or installer. Installed
   normal game deletion/Undo still needs smoke on disposable data.
 - **SEC-2: imported linked path bypasses folder consent (P2).** With approved
   root `D:/FilmRoot`, `D:/FilmRoot/../Private` passes
@@ -156,7 +158,21 @@ is in progress. Rust advisory coverage remains open.
   distinguish native-picker consent from automatic reauthorization. Test
   parent paths, junctions, normal roots and explicitly picked outside folders.
   No remote exfiltration or script execution was established.
-  **Not repaired; native authorization behavior needs approval.**
+  **Repaired in source (coach approved, 2026-10-13).** The old unrestricted
+  `allow_library_dir` command is removed. `authorize_film_path` resolves the
+  target and approved roots before granting directory or file access. Roots
+  come from machine settings or actual native-picker selections, never the
+  imported game's target as consent. Recursive listing and asset URLs use
+  this boundary; rejected file aliases cannot count as healthy film, while
+  approved alias roots retain nested clips. Listing tracks resolved directories
+  to avoid junction loops. Synthetic regression: 22/22 (15 failures before the
+  initial repair; three failures when the alias/listing fixes are reverted).
+  A native authorization mutation on a temporary source copy fails two of four
+  tests. Fifteen focused harnesses and four native tests pass. Receipt:
+  `artifacts/gate-logs/2026-10-13T05-46-09-704Z-JpslNc/receipt.json`.
+  No coach data, full gate or installer. Installed smoke still needs normal
+  linked playback after restart, approved alias/nested folders, explicit outside
+  folder linking and library-root change/rollback. CSP and capabilities unchanged.
 
 Security review receipt: scan `6e67940b-330c-4be6-9718-1135c6fcaa3a`, source
 `32f608add8e5f6f886eac2645e859f2d01451c6b`. The local Codex Security report
