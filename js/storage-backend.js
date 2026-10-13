@@ -2,6 +2,7 @@ import { SqlCatalog } from './sql-catalog.js';
 import { CatalogPersistence } from './catalog-persistence.js';
 import { SnapshotEnvelope } from './snapshot-envelope.js';
 import { SeasonFormat } from './season-format.js';
+import { safeStorageId } from './storage-paths.js';
 
 /**
  * StorageBackend — the seam between the app and *where bytes live*.
@@ -1039,7 +1040,10 @@ export class TauriBackend extends StorageBackend {
 
   supportsFilm() { return this._ok(); }
 
-  _filmsDir(gameId, seasonId = this.currentId) { return `seasons/${seasonId}/films/${gameId}`; }
+  _filmsDir(gameId, seasonId = this.currentId) {
+    if (!safeStorageId(gameId) || !safeStorageId(seasonId)) throw new Error('Unsafe film owner ID');
+    return `seasons/${seasonId}/films/${gameId}`;
+  }
 
   async importFilm(gameId, files, onProgress) {
     if (!this._ok() || !this.currentId) return null;
@@ -1121,16 +1125,17 @@ export class TauriBackend extends StorageBackend {
   }
 
   async deleteFilm(gameId, seasonId = this.currentId) {
-    if (!this._ok() || !seasonId) return;
-    const dir = this._filmsDir(gameId, seasonId);
+    if (!this._ok() || !safeStorageId(gameId) || !safeStorageId(seasonId)) return false;
+    const core = window.__TAURI__?.core;
+    if (!core?.invoke) return false;
     try {
-      if (await this._exists(dir))
-        await this.fs.remove(dir, { baseDir: this.baseDir, recursive: true });
-    } catch (e) {}
+      await core.invoke('delete_managed_film', { gameId, seasonId });
+      return true;
+    } catch { return false; }
   }
 
   async managedGameDir(gameId) {
-    if (!this._ok() || !this.currentId || !gameId) return '';
+    if (!this._ok() || !safeStorageId(this.currentId) || !safeStorageId(gameId)) return '';
     const pathApi = window.__TAURI__?.path;
     if (!pathApi?.appDataDir || !pathApi?.join) return this._filmsDir(gameId);
     try { return await pathApi.join(await pathApi.appDataDir(), 'seasons', String(this.currentId), 'films', String(gameId)); }

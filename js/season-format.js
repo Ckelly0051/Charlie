@@ -1,5 +1,6 @@
 import { TagProjection } from './tag-projection.js';
 import { ChartingDetails } from './charting-details.js';
+import { safeStorageId } from './storage-paths.js';
 
 /**
  * The current season format, and the one place that knows the retired shapes.
@@ -77,6 +78,7 @@ export class SeasonFormat {
     }
     const out = [];
     // A play call whose saved defaults name the retired Formation field.
+    if (data.id != null && data.id !== '' && !safeStorageId(data.id)) out.push({ where: 'season', problem: 'unsafe season ID' });
     const calls = this._isObject(data.playbook) && Array.isArray(data.playbook.calls) ? data.playbook.calls : [];
     calls.forEach((call, ci) => {
       if (this._isObject(call) && this._isObject(call.defaults) && Object.prototype.hasOwnProperty.call(call.defaults, 'formation')) {
@@ -93,6 +95,7 @@ export class SeasonFormat {
     data.games.forEach((g, gi) => {
       const label = (this._isObject(g) && g.name) || `game ${gi + 1}`;
       if (!this._isObject(g)) { out.push({ where: label, problem: 'malformed game' }); return; }
+      if (g.id != null && g.id !== '' && !safeStorageId(g.id)) out.push({ where: label, problem: 'unsafe game ID' });
       if (Object.prototype.hasOwnProperty.call(g, 'roster')) out.push({ where: label, problem: 'game roster' });
       this._playsProblems(g.plays, label, out);
     });

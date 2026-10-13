@@ -120,7 +120,8 @@ Codex job (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): item 1's
 listed active-code patterns are removed in source, not packaged. The renamed
 HTML export is repaired pending installed smoke. The empty-roster lock is
 corrected to the current contract. The first security boundary review found two
-P2s below; fixes await the coach's approval. Rust advisory coverage remains open.
+P2s below; the coach approved both fixes. SEC-1 is repaired in source; SEC-2
+is in progress. Rust advisory coverage remains open.
 
 - **SEC-1: imported game ID can delete sibling managed film (P2).** Reviewed
   at `32f608ad`, 2026-10-13. `SeasonFormat.seasonProblems` accepts a game ID
@@ -134,7 +135,15 @@ P2s below; fixes await the coach's approval. Rust advisory coverage remains open
   refuse unsafe imported IDs without rewriting them, and independently enforce
   a canonical, non-root per-game deletion target. Needs failing-first import
   and direct-backend regressions plus a normal sibling-preservation control.
-  **Not repaired; import/refusal behavior needs approval.**
+  **Repaired in source (coach approved, 2026-10-13).** Unsafe opaque IDs are
+  refused without rewriting; absolute managed-folder resolution also refuses
+  them. The renderer's recursive delete is removed: `delete_managed_film`
+  validates both IDs natively and refuses roots, outside-owner paths and game
+  junctions. Synthetic regression: 48/48 (35 failures before the repair;
+  accepting dot again produces six failures). Three native tests pass, including
+  real temporary-folder sibling preservation and Windows junction refusal.
+  Seven focused harnesses pass. No coach data, full gate or installer. Installed
+  normal game deletion/Undo still needs smoke on disposable data.
 - **SEC-2: imported linked path bypasses folder consent (P2).** With approved
   root `D:/FilmRoot`, `D:/FilmRoot/../Private` passes
   `TauriBackend.isDirAllowed` (`js/storage-backend.js:1284`). Opening the game

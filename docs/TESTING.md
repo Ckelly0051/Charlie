@@ -65,6 +65,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Reports on the canonical season | `e2e-reports-overview-realdata`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-typefloor-realdata` (the only place the type floor is established), `e2e-reports-export-realdata` |
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Shared file delivery | `e2e-file-delivery` (synthetic Tauri save, extensionless HTML rename/default extension, exact returned paths, bytes, cancellation and notification ownership) |
+| Managed film path boundary | `e2e-film-path-security` (unsafe import IDs, no writes, direct backend refusal and native deletion dispatch); `cargo test --manifest-path src-tauri/Cargo.toml film_paths::tests` (temporary-folder deletion, sibling preservation and Windows junction refusal) |
 | Settings and libraries | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library`, `e2e-tag-library-storage`, `e2e-beta-config` |
 | Game form | `e2e-native-game`, `e2e-game-form-context`, `e2e-game-form-visual` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-core` |

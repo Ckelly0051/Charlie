@@ -3,6 +3,13 @@
 use tauri::Manager;
 use tauri_plugin_fs::FsExt;
 use tauri_plugin_opener::OpenerExt;
+mod film_paths;
+
+#[tauri::command]
+fn delete_managed_film(app: tauri::AppHandle, season_id: String, game_id: String) -> Result<(), String> {
+    let base = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    film_paths::delete_managed(&base, &season_id, &game_id)
+}
 
 /// Grant the webview + fs plugin access to a coach-chosen film library folder at
 /// runtime, so clips can be REFERENCED and played in place (no copy into app
@@ -117,7 +124,8 @@ fn main() {
             allow_library_dir,
             open_library_dir,
             close_after_flush,
-            replace_catalog_db
+            replace_catalog_db,
+            delete_managed_film
         ])
         .run(tauri::generate_context!())
         .expect("error while running GridIron IQ");
