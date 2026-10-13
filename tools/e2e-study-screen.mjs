@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 /* Phase 2 Study UI: real query/compare/view/watch wiring over the built bundle. */
 import puppeteer from './test-browser.mjs';
@@ -8,6 +9,7 @@ let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => cond ? (pass++, console.log(`  PASS  ${label}`)) : (fail++, console.log(`  FAIL  ${label}${extra ? ' -- ' + extra : ''}`));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1280, height: 800 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -203,16 +205,16 @@ ok(ordering.initial.length===3 && ordering.moved[1]==='Red zone alert' && orderi
 const planLayout=await page.evaluate(()=>{const plan=document.querySelector('#wsPlan'),head=plan.querySelector('.ws-plan-head'),rect=plan.getBoundingClientRect(),headRect=head.getBoundingClientRect();return{hidden:plan.hidden,display:getComputedStyle(plan).display,width:rect.width,height:rect.height,headWidth:headRect.width,route:document.body.className};});
 ok(!planLayout.hidden&&planLayout.display==='block'&&planLayout.width>900&&planLayout.height>600&&planLayout.headWidth>800,'Plan owns the full active workspace instead of inheriting the centered placeholder layout',JSON.stringify(planLayout));
 await capture('plan-ordering-1280x800');
-// Export goes through window.ffaSaveBlob, the seam that opens the native save
-// dialog on desktop (the WebView ignores anchor downloads). A direct anchor
+// Capture the injected save function, which opens the native save dialog on
+// desktop (the WebView ignores anchor downloads). A direct anchor
 // download passed in Chromium and did nothing in the installed app.
 const exported=await page.evaluate(async()=>{
-  const oldSave=window.ffaSaveBlob,oldClick=HTMLAnchorElement.prototype.click;
+  const oldSave=window.__exportCapture,oldClick=HTMLAnchorElement.prototype.click;
   let blob=null,download='',anchorClicks=0;
-  window.ffaSaveBlob=async(value,name)=>{blob=value;download=name;return true;};
+  window.__exportCapture=async(value,name)=>{blob=value;download=name;return true;};
   HTMLAnchorElement.prototype.click=function(){anchorClicks++;};
   document.querySelector('[data-plan-action="export"]').click();await new Promise(resolve=>setTimeout(resolve,0));
-  window.ffaSaveBlob=oldSave;HTMLAnchorElement.prototype.click=oldClick;
+  window.__exportCapture=oldSave;HTMLAnchorElement.prototype.click=oldClick;
   const html=blob?await blob.text():'';
   return{download,anchorClicks,ordered:html.indexOf('Boundary alert')<html.indexOf('Formation')&&html.indexOf('Formation')<html.indexOf('Red zone alert'),audience:html.includes('Audience: Players')};
 });

@@ -35,7 +35,8 @@ export function gameResult(scoreUs, scoreThem) {
 
 /** Native Reports route controller. StatsEngine owns formulas; this class owns all live presentation. */
 export class ReportsScreen {
-  constructor(app) {
+  constructor(app, { saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.app = app;
     this.host = null;
     this.content = null;
@@ -188,7 +189,7 @@ export class ReportsScreen {
    *  strip stays hidden. */
   openDashboards({ resume = false } = {}) {
     if (!this.content) return false;
-    this.dashboards = this.dashboards || new ReportBuilderScreen(this.app, this);
+    this.dashboards = this.dashboards || new ReportBuilderScreen(this.app, this, { saveBlob: this.saveBlob });
     if (!resume) this.dashboards.home();
     this._mode = 'dashboards';
     this._setChrome(false, { special: false });
@@ -283,7 +284,7 @@ export class ReportsScreen {
       title: `Player Report: ${detail.label}`, team, detail, situational,
       scopeLabel: this._playersScopeLabel(),
     });
-    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }),
+    this.saveBlob(new Blob([html], { type: 'text/html' }),
       `player_${num}_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }
@@ -296,21 +297,21 @@ export class ReportsScreen {
       // The board's own chart over the same scoped cohort the board printed.
       ddChart: this.app.stats.downDistanceChart(scoped || [], { side: 'defense' }),
       rgChart: this.app.stats.runGapChart(scoped || [], { side: 'defense' }) });
-    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `defensive_report_${new Date().toISOString().slice(0, 10)}.html`);
+    this.saveBlob(new Blob([html], { type: 'text/html' }), `defensive_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }
 
   /**
    * Special Teams export through the shared Reports export path (coach,
    * 2026-09-04): the report's own model, the shared HTML report builder and
-   * the one `window.ffaSaveBlob` seam. No Special-Teams-only exporter.
+   * the injected save-delivery seam. No Special-Teams-only exporter.
    */
   exportSpecialTeams(stats, summary) {
     if (!stats) return false;
     const scopeLabel = this.specialTeamsScope === 'season' ? 'Full season' : 'Current game';
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Special Teams';
     const html = buildSpecialTeamsHtmlReport({ title: `Special Teams Report: ${team}`, stats, summary, scopeLabel });
-    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `special_teams_report_${new Date().toISOString().slice(0, 10)}.html`);
+    this.saveBlob(new Blob([html], { type: 'text/html' }), `special_teams_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }
 
@@ -321,7 +322,7 @@ export class ReportsScreen {
     const team = this.app.gameContext?.snapshot?.()?.teamName || 'Our Offense';
     const html = buildSelfScoutHtmlReport({ title: `Self-Scout Report: ${team}`, report,
       defScout, performance, callRows, summary, defSummary });
-    window.ffaSaveBlob(new Blob([html], { type: 'text/html' }), `self_scout_report_${new Date().toISOString().slice(0, 10)}.html`);
+    this.saveBlob(new Blob([html], { type: 'text/html' }), `self_scout_report_${new Date().toISOString().slice(0, 10)}.html`);
     return true;
   }
 

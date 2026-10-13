@@ -66,5 +66,28 @@ const play = id => ({ id, timestamp: { start: 0, end: 5 }, tags: {} });
     'a cancelled recording asks in the app whether to keep the partial video', JSON.stringify({ asked, native }));
 }
 
+{
+  let saved, text, legacyCalls = 0;
+  window.ffaSaveBlob = () => { legacyCalls++; };
+  globalThis.document = { createElement: () => ({ getContext: () => ({ drawImage() {} }), captureStream: () => ({ addTrack() {} }) }) };
+  globalThis.requestAnimationFrame = () => 0;
+  globalThis.MediaRecorder = class {
+    static isTypeSupported() { return true; }
+    start() { this.state = 'recording'; }
+    stop() { this.state = 'inactive'; this.ondataavailable({ data: new Blob(['synthetic recording']) }); this.onstop(); }
+  };
+  const video = { videoWidth: 2, videoHeight: 2, currentTime: 0,
+    async play() { this.currentTime = 5; }, pause() {} };
+  const exporter = new CutupExporter({ videoElement: video }, {}, null, null,
+    { saveBlob: (blob, name) => { saved = { name, type: blob.type }; text = blob.text(); return true; } });
+  Object.assign(exporter, { showTitleCards: false, _showProgress: () => ({ update() {}, remove() {} }),
+    _sleep: async () => {}, _waitForSeek: async () => {}, _waitUntil: async predicate => { if (!predicate()) throw new Error('synthetic video did not finish'); } });
+  await exporter._record([play(1)]);
+  ok(saved?.name.endsWith('.webm') && saved.type.startsWith('video/webm') && await text === 'synthetic recording' && legacyCalls === 0,
+    'the real recording path delivers the WebM bytes through its injected save owner');
+  delete window.ffaSaveBlob;
+  delete globalThis.document; delete globalThis.requestAnimationFrame; delete globalThis.MediaRecorder;
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

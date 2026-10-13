@@ -1,7 +1,8 @@
 import { mountNativePlan } from './native-plan.jsx';
 
 export class PlanScreen {
-  constructor(app) {
+  constructor(app, { saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.app = app;
     this.host = null;
     this.activeId = '';
@@ -173,7 +174,7 @@ export class PlanScreen {
     if (!plan) return false;
     const html = this.app.planExport.html(this.app.planExport.build(plan, this._store().data?.games || []));
     const slug = (plan.name || 'game-plan').trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'game-plan';
-    const saved = await window.ffaSaveBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), `${slug}.html`);
+    const saved = await this.saveBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), `${slug}.html`);
     if (saved && !window.__TAURI__) this.app.history?._toast('PLAN EXPORTED');
     return !!saved;
   }

@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
@@ -11,6 +12,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -1249,10 +1251,10 @@ ok(result.join(',') === 'pdf,html,season-html,csv,call-sheet',
 
 result = await page.evaluate(async () => {
   const app = window.app;
-  const save = window.ffaSaveBlob;
+  const save = window.__exportCapture;
   const captures = [];
   const pending = [];
-  window.ffaSaveBlob = (blob, name) => pending.push(blob.text().then(html => captures.push({ name, html })));
+  window.__exportCapture = (blob, name) => pending.push(blob.text().then(html => captures.push({ name, html })));
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
   // Each report's own export sits at the right of the shared secondary bar.
@@ -1260,7 +1262,7 @@ result = await page.evaluate(async () => {
   app.reportsScreen.selectTab('selfscout');
   document.querySelector('[data-reports-secbar] [data-report-export="selfscout"]')?.click();
   await Promise.all(pending);
-  window.ffaSaveBlob = save;
+  window.__exportCapture = save;
   return captures;
 });
 {
@@ -1290,9 +1292,9 @@ result = await page.evaluate(async () => {
      export itself arms is still armed after this point, so the assertion
      keeps its teeth. */
   app.storage._cancelPendingSaves();
-  const before=JSON.stringify(app.storage.seasonStore.data),original=window.ffaSaveBlob;
-  let capture=null,pending=null;window.ffaSaveBlob=(blob,name)=>{pending=blob.text().then(html=>{capture={html,name};});};
-  const ok=app.season.exportHtml();await pending;window.ffaSaveBlob=original;
+  const before=JSON.stringify(app.storage.seasonStore.data),original=window.__exportCapture;
+  let capture=null,pending=null;window.__exportCapture=(blob,name)=>{pending=blob.text().then(html=>{capture={html,name};});};
+  const ok=app.season.exportHtml();await pending;window.__exportCapture=original;
   return {ok,name:capture?.name,html:capture?.html||'',unchanged:JSON.stringify(app.storage.seasonStore.data)===before,
     // The export must report the SAME Our Program cohort the screen does: the
     // season on screen at this point carries one self game and one opponent
@@ -1312,13 +1314,13 @@ result = await page.evaluate(async () => {
   /* Same reason as the season export above: disarm an autosave an earlier
      section left armed, so this measures the exports and not the debounce. */
   app.storage._cancelPendingSaves();
-  const before=JSON.stringify(app.storage.seasonStore.data),save=window.ffaSaveBlob;
+  const before=JSON.stringify(app.storage.seasonStore.data),save=window.__exportCapture;
   const retired=['_renderTeamStats','_renderEfficiency','_renderDownAnalysis','_renderSituational','_renderDrives','_renderTendencies','_renderPersonnel','_renderBigPlays','_renderPenalties','_renderIndividualStats'];
   const retiredAbsent=retired.every(key=>typeof app.stats[key]!=='function');
-  const captures=[];const pending=[];window.ffaSaveBlob=(blob,name)=>{pending.push(blob.text().then(html=>captures.push({html,name})));};
+  const captures=[];const pending=[];window.__exportCapture=(blob,name)=>{pending.push(blob.text().then(html=>captures.push({html,name})));};
   let error='';
   try{app.storage.exportHtmlReport(app.stats);app.season.exportHtml();await Promise.all(pending);}catch(e){error=e.message;}
-  window.ffaSaveBlob=save;
+  window.__exportCapture=save;
   return {error,captures,retiredAbsent,unchanged:JSON.stringify(app.storage.seasonStore.data)===before};
 });
 {

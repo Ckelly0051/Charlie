@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /**
  * Reports > Players — the approved composition, its role schemas, its absence
  * contract, and the three production dependencies the design record required:
@@ -38,6 +39,7 @@ const PLAYERS_TYPE_FLOOR_DEFERRED = 11;
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -1427,11 +1429,11 @@ const exportSummary = await page.evaluate(async () => {
     await new Promise(r => setTimeout(r, 300));
     const onScreen = [...document.querySelectorAll('[data-pd-game]')].map(b => b.textContent.trim());
     let saved = null;
-    const prior = window.ffaSaveBlob;
-    window.ffaSaveBlob = blob => { saved = blob; };
+    const prior = window.__exportCapture;
+    window.__exportCapture = blob => { saved = blob; };
     app.reportsScreen.export('html');
     const html = saved ? await saved.text() : '';
-    window.ffaSaveBlob = prior;
+    window.__exportCapture = prior;
     const body = html.match(/<h2>Game by game<\/h2>[\s\S]*?<tbody>([\s\S]*?)<\/tbody>/)?.[1] || '';
     const cells = [...body.matchAll(/<td>([^<]*)<\/td>/g)].map(match => match[1].trim());
     return { onScreen, cells };
@@ -1463,11 +1465,11 @@ const exported = await page.evaluate(async () => {
   screen.openPlayerDetail(num);
   await new Promise(r => setTimeout(r, 300));
   let saved = null;
-  const prior = window.ffaSaveBlob;
-  window.ffaSaveBlob = blob => { saved = blob; };
+  const prior = window.__exportCapture;
+  window.__exportCapture = blob => { saved = blob; };
   const result = screen.export('html');
   const html = saved ? await saved.text() : '';
-  window.ffaSaveBlob = prior;
+  window.__exportCapture = prior;
   return { num, result, html, isPlayer: /Player Report:/.test(html) };
 });
 ok(exported.result && exported.isPlayer,
@@ -1497,11 +1499,11 @@ const exportMatch = await page.evaluate(async () => {
   const selected = [...(document.querySelectorAll('.gi-pd-situ select')[1]?.options || [])]
     .find(option => option.selected)?.textContent.trim() || '';
   let saved = null;
-  const prior = window.ffaSaveBlob;
-  window.ffaSaveBlob = blob => { saved = blob; };
+  const prior = window.__exportCapture;
+  window.__exportCapture = blob => { saved = blob; };
   screen.export('html');
   const html = saved ? await saved.text() : '';
-  window.ffaSaveBlob = prior;
+  window.__exportCapture = prior;
   // The situational headings only — `Game by game` is its own section.
   const headings = [...html.matchAll(/<h2>([^<]*by[^<]*)<\/h2>/g)]
     .map(match => match[1]).filter(text => text !== 'Game by game');

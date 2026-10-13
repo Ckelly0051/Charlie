@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /* DASHBOARDS ----------------------------------------------------------------------
    docs/REPORTS-CONTRACTS.md > Dashboards. The coach's own reports, from
    templates or blank: views, metrics, groupings and filters, saved with the
@@ -19,6 +20,7 @@ const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout
 const errors = [];
 try {
   const page = await browser.newPage();
+  await installExportCapture(page);
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.setViewport({ width: 1440, height: 900 });
@@ -316,14 +318,14 @@ try {
   ok(marks.marks === marks.rows && marks.first === marks.direct, 'a This game module marks each bar with its season value', marks);
   const exported = await page.evaluate(async () => {
     let saved = null;
-    const original = window.ffaSaveBlob;
-    window.ffaSaveBlob = (blob, name) => { saved = name; return true; };
+    const original = window.__exportCapture;
+    window.__exportCapture = (blob, name) => { saved = name; return true; };
     const s = window.app.reportsScreen.dashboards;
     s.home();
     await new Promise(r => setTimeout(r, 150));
     const id = s.list().find(d => d.name === 'My offense').id;
     const html = await s.exportDashboard(id);
-    window.ffaSaveBlob = original;
+    window.__exportCapture = original;
     await new Promise(r => setTimeout(r, 150));
     return { saved, home: !!document.querySelector('[data-rb-home]'), title: /<title>My offense<\/title>/.test(html || ''), cards: (html?.match(/data-rb-widget=/g) || []).length,
       styled: /\.gi-rb-card\s*\{/.test(html || '') && /--gi-bd-panel\s*:/.test(html || '') && /46px\/1 var\(--gi-cond\)/.test(html || '') };
@@ -333,8 +335,8 @@ try {
   // Moving to another dashboard while a file is built never changes it.
   const pinned = await page.evaluate(async () => {
     const saves = [];
-    const original = window.ffaSaveBlob;
-    window.ffaSaveBlob = (blob, name) => { saves.push(name); return true; };
+    const original = window.__exportCapture;
+    window.__exportCapture = (blob, name) => { saves.push(name); return true; };
     const s = window.app.reportsScreen.dashboards;
     const a = s.list().find(d => d.name === 'My offense').id, b = s.list().find(d => d.name === 'Marks').id;
     const fromHome = s.exportDashboard(a);
@@ -345,7 +347,7 @@ try {
     const fromBoard = s.exportHtml();
     s.open(b);
     const boardHtml = await fromBoard;
-    window.ffaSaveBlob = original;
+    window.__exportCapture = original;
     const of = html => ({ title: (html || '').match(/<title>([^<]*)<\/title>/)?.[1], board: (html || '').match(/data-rb-dashboard="([^"]+)"/)?.[1] });
     return { a, saves, home: of(homeHtml), board: of(boardHtml) };
   });

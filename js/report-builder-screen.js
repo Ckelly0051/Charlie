@@ -13,7 +13,8 @@ import { ConfirmDeleteForm } from './native-team-hub.jsx';
  * dashboard under a name the coach gives.
  */
 export class ReportBuilderScreen {
-  constructor(app, reports) {
+  constructor(app, reports, { saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.app = app;
     this.reports = reports;
     this.builder = new ReportBuilder({ registry: app.analyticsRegistry, study: app.study });
@@ -338,7 +339,7 @@ body{margin:0;background:var(--gi-bd-stage,#080808)}
 .gi-rb-export .gi-rb-toolbar-actions,.gi-rb-export .gi-rb-card-actions button,.gi-rb-export .gi-rb-card-actions details,.gi-rb-export [data-rb-add-filter],.gi-rb-export .gi-rb-chip button{display:none}
 </style></head><body><header class="gi-rb-export-head">${esc(dashboard.name)}<span>Exported ${date}</span></header>
 <div class="gi-rb-export">${boardHtml}</div></body></html>`;
-    try { window.ffaSaveBlob?.(new Blob([html], { type: 'text/html' }), `dashboard_${dashboard.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${date}.html`); } catch (e) {}
+    try { this.saveBlob(new Blob([html], { type: 'text/html' }), `dashboard_${dashboard.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${date}.html`); } catch (e) {}
     return html;
   }
 

@@ -23,7 +23,8 @@ import { TagProjection } from './tag-projection.js';
 import { h, render } from 'preact';
 
 export class CutupExporter {
-  constructor(videoController, playTagger, playFilter, playlistManager) {
+  constructor(videoController, playTagger, playFilter, playlistManager, { saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.vc = videoController;
     this.tagger = playTagger;
     this.filter = playFilter;
@@ -188,7 +189,7 @@ export class CutupExporter {
     const blob = new Blob(chunks, { type: mimeType });
     const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
     const fname = `cutup_${stamp}.webm`;
-    window.ffaSaveBlob(blob, fname);
+    this.saveBlob(blob, fname);
   }
 
   async _drawTitleCard(ctx, W, H, p, n, total) {

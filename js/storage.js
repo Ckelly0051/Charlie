@@ -22,7 +22,8 @@ import { buildGameHtmlReport } from './html-report.js';
  * loading a game's state when the coach switches games.
  */
 export class StorageManager {
-  constructor(videoController, playTagger, canvasOverlay) {
+  constructor(videoController, playTagger, canvasOverlay, { saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.vc = videoController;
     this.tagger = playTagger;
     this.canvas = canvasOverlay;
@@ -34,7 +35,7 @@ export class StorageManager {
     this.videoFileName = null;
     this.gameInfo = {};
     this.filter = null;
-    this.seasonStore = new SeasonStore();
+    this.seasonStore = new SeasonStore(undefined, { saveBlob });
     // The app's live services and hooks, passed in by App (see App wiring);
     // null where storage runs on its own.
     this.deps = null;
@@ -1920,7 +1921,7 @@ export class StorageManager {
   }
 
   _download(blob, filename) {
-    window.ffaSaveBlob(blob, filename);
+    this.saveBlob(blob, filename);
   }
 
   importPlaysFromText(text) {

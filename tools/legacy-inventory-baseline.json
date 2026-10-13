@@ -5,6 +5,7 @@
     "deadNames": 0,
     "orphanModules": 0,
     "retiredTests": 0,
+    "globalSaveBlobRefs": 0,
     "inlineUnitRules": 0,
     "projectedPairsAlias": 0,
     "plainFieldRefs": 0,

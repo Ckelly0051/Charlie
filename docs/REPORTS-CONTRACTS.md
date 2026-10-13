@@ -411,7 +411,7 @@ separate from the reporting rebuild.
 - **Film.** Every number, bar, segment, point and cell opens exactly its own
   plays through `ReportsScreen.watchRefs`.
 - **Export** saves the board as one self-contained HTML file (the app's
-  stylesheet source embedded, controls hidden) through `window.ffaSaveBlob`.
+  stylesheet source embedded, controls hidden) through the injected save function.
 - **Saved with the season** (`data.dashboards`, normalized by SeasonStore;
   version 2 stores `{ id, name, version, widgets }`, each widget with its
   own `unit` and `scope`), like the playbook. Templates: Offense snapshot,

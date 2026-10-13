@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /** Canonical-data visual and print contract for the shared HTML exporter. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
@@ -30,6 +31,7 @@ if (season.id !== '2025-st-joseph-mavericks-jv' || season.games?.length !== 6 ||
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const appPage = await browser.newPage();
+await installExportCapture(appPage);
 const errors = [];
 appPage.on('pageerror', error => errors.push(error.message));
 appPage.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -51,8 +53,8 @@ const captures = await appPage.evaluate(async () => {
   const app = window.app;
   const saved = [];
   const pending = [];
-  const original = window.ffaSaveBlob;
-  window.ffaSaveBlob = (blob, name) => pending.push(blob.text().then(html => saved.push({ name, html })));
+  const original = window.__exportCapture;
+  window.__exportCapture = (blob, name) => pending.push(blob.text().then(html => saved.push({ name, html })));
   try {
     app.storage.exportHtmlReport(app.stats);
     app.season.exportHtml();
@@ -63,7 +65,7 @@ const captures = await appPage.evaluate(async () => {
     app.reportsScreen.exportSpecialTeams(stats, summary);
     await Promise.all(pending);
   } finally {
-    window.ffaSaveBlob = original;
+    window.__exportCapture = original;
   }
   return saved;
 });

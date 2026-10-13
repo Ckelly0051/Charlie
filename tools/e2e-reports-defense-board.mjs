@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /** Reports > Defense, Revision 2: focused contracts on a synthetic season.
  *
  * The canonical season (`e2e-reports-defense-realdata`) proves the approved
@@ -19,6 +20,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
+await installExportCapture(page);
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -473,13 +475,13 @@ const drives = await page.evaluate(async () => {
   const dashboard = app.stats.defenseDashboard(plays, { z: 'Zoners' });
   const board = app.stats.defenseBoard(plays, { scope: 'game', seasonPlays: plays, labels: { z: 'Zoners' } });
   let saved = null;
-  const prior = window.ffaSaveBlob;
-  window.ffaSaveBlob = blob => { saved = blob; };
+  const prior = window.__exportCapture;
+  window.__exportCapture = blob => { saved = blob; };
   const screenScope = app.reportsScreen.defenseScope;
   app.reportsScreen.defenseScope = 'game';
   app.reportsScreen.exportDefense(dashboard, plays);
   app.reportsScreen.defenseScope = screenScope;
-  window.ffaSaveBlob = prior;
+  window.__exportCapture = prior;
   return {
     zones: dashboard.zones.map(row => [row.name, row.n]),
     boardZones: board.zones.map(row => [row.name, row.n]),

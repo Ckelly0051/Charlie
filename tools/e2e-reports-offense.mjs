@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /**
  * Reports > Offense — the approved composition, its football contracts, and
  * the shared scorebug rule.
@@ -19,6 +20,7 @@ const eqArr = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -211,11 +213,11 @@ ok(await page.evaluate(() => window.app.reportsScreen.offenseSection === 'struct
 const exportOn = async id => {
   await showPage(id);
   return page.evaluate(async () => {
-    let saved = null; const prior = window.ffaSaveBlob;
-    window.ffaSaveBlob = blob => { saved = blob; };
+    let saved = null; const prior = window.__exportCapture;
+    window.__exportCapture = blob => { saved = blob; };
     window.app.reportsScreen.export('html');
     await new Promise(r => setTimeout(r, 300));
-    window.ffaSaveBlob = prior;
+    window.__exportCapture = prior;
     return saved ? (await saved.text()).replace(/Generated [^<]*/g, 'Generated') : '';
   });
 };

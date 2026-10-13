@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /**
  * Reports > Special Teams — the approved composition, its football contracts,
  * and the two engine corrections the coach approved on 2026-09-04.
@@ -32,6 +33,7 @@ const ST_TYPE_FLOOR = 12.5;
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 180000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -581,14 +583,14 @@ await load([
 ]);
 const exported = await page.evaluate(async () => {
   let blob = null;
-  const save = window.ffaSaveBlob;
-  window.ffaSaveBlob = b => { blob = b; };
+  const save = window.__exportCapture;
+  window.__exportCapture = b => { blob = b; };
   const screen = window.app.reportsScreen, engine = window.app.stats;
   const { scoped } = screen._specialTeamsCohort();
   const stats = engine.compute(scoped);
   const summary = engine._specialTeamsSummary(scoped, stats);
   screen.exportSpecialTeams(stats, summary);
-  window.ffaSaveBlob = save;
+  window.__exportCapture = save;
   const html = blob ? await blob.text() : '';
   /* Read the tiles off the RENDERED board, so this compares the two surfaces
      rather than comparing the exporter against its own view model. */

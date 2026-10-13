@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /** Reports > Defense, Revision 2: canonical real-season evidence.
  *
  * Everything here runs against a read-only, in-memory copy of the registered
@@ -93,6 +94,7 @@ mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -756,11 +758,11 @@ const exportFrom = async id => {
   await selectPage(id);
   return page.evaluate(async () => {
     let saved = null;
-    const prior = window.ffaSaveBlob;
-    window.ffaSaveBlob = blob => { saved = blob; };
+    const prior = window.__exportCapture;
+    window.__exportCapture = blob => { saved = blob; };
     document.querySelector('[data-reports-secbar] [data-report-export="defense"]')?.click();
     const html = saved ? await saved.text() : '';
-    window.ffaSaveBlob = prior;
+    window.__exportCapture = prior;
     return html;
   });
 };

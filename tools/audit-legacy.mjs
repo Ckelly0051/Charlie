@@ -89,6 +89,7 @@ export function inventory() {
     deadNames: dead.length,
     orphanModules: orphanModules.length,
     retiredTests: existsSync(path.join(ROOT, 'tools', 'retired')) ? readdirSync(path.join(ROOT, 'tools', 'retired')).length : 0,
+    globalSaveBlobRefs: count(js, /\b(?:window|globalThis)\s*(?:\?\.|\.)\s*ffaSaveBlob\b|\b(?:window|globalThis)\s*\[\s*['"]ffaSaveBlob['"]\s*\]/g),
     // B: second copies of the one unit rule (football-rules.countedUnit).
     inlineUnitRules: count(unitRules, /\bunit\s*\|\|\s*'offense'|\.unit\)\s*\|\|\s*'offense'|tags\??\.unit\s*\|\|\s*this\.defaultUnit/g),
     projectedPairsAlias: count(js, /PlayGrid\.PROJECTED_PAIRS/g),

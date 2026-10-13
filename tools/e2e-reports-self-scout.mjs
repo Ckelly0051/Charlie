@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /**
  * Reports > Self-Scout — the approved 2026-09-05 desktop composition, its
  * five sections, the analytics contracts they rest on, and the copy and
@@ -39,6 +40,7 @@ const SELF_SCOUT_TYPE_FLOOR = 12.5;
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -854,10 +856,10 @@ const exported = await page.evaluate(async () => {
   const callRows = engine._selfScoutRows(engine._selfScoutGroup(performance.offPlays,
     p => p.tags.playCall || p.tags.playConcept || null));
   const saved = [];
-  const original = window.ffaSaveBlob;
-  window.ffaSaveBlob = blob => saved.push(blob);
+  const original = window.__exportCapture;
+  window.__exportCapture = blob => saved.push(blob);
   screen.exportSelfScout(report, engine.generateDefensiveSelfScout?.(scoped) || null, performance, callRows);
-  window.ffaSaveBlob = original;
+  window.__exportCapture = original;
   const html = saved.length ? await saved[0].text() : '';
   const held = (report?.downDistRows || []).filter(row => row.held).length;
   return { html, held, rows: (report?.downDistRows || []).length };

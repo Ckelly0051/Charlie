@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /** Reports down-and-distance chart (Offense > Situations, Defense > Situations;
  * comp design-comps/reports-secondary-nav-2026-09-23, item 7).
  *
@@ -40,6 +41,7 @@ mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -256,10 +258,10 @@ const exportRows = html => page.evaluate((h, side) => {
     cohort: t.closest('section')?.querySelector('[data-dd-cohort]')?.textContent.trim() };
 }, html.html, html.side);
 const capture = fn => page.evaluate(async body => {
-  const saved = []; const original = window.ffaSaveBlob;
-  window.ffaSaveBlob = blob => saved.push(blob);
+  const saved = []; const original = window.__exportCapture;
+  window.__exportCapture = blob => saved.push(blob);
   await (0, eval)(body)();
-  window.ffaSaveBlob = original;
+  window.__exportCapture = original;
   return saved.length ? saved[0].text() : '';
 }, fn);
 const exportMatches = (rows, fmt) => rows && Object.entries(fmt).every(([key, f]) => eq(rows.rows[key]?.slice(1), [f.plays, f.split, f.success, f.ypp, f.top]));

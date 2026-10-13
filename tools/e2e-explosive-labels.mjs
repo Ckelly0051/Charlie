@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /** Explosive-play terminology (docs/OPEN-DEFECTS.md, Coach Reports smoke
  *  Finding 3). A count is "Explosive Plays"; a percentage is "Explosive Plays
  *  Rate"; a defensive measure in an export or a mixed report says "Allowed".
@@ -73,6 +74,7 @@ const stPeter = season.games.find(g => /St\. Peter Lutheran/i.test(g.gameInfo?.o
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -248,8 +250,8 @@ ok(study.length > 0 && study.every(t => APPROVED.test(t)), 'Study names the expl
 console.log('\n== 3. Exports ==');
 await boot(1440, 900, season, stPeter.id);
 const exported = await page.evaluate(async () => {
-  const app = window.app, saved = [], pending = [], original = window.ffaSaveBlob;
-  window.ffaSaveBlob = (blob, name) => pending.push(blob.text().then(html => saved.push({ name, html })));
+  const app = window.app, saved = [], pending = [], original = window.__exportCapture;
+  window.__exportCapture = (blob, name) => pending.push(blob.text().then(html => saved.push({ name, html })));
   const click = async (tab, sel) => { app.reportsScreen.selectTab(tab); await new Promise(r => setTimeout(r, 250)); document.querySelector(sel)?.click(); };
   try {
     app.storage.exportHtmlReport(app.stats);
@@ -259,7 +261,7 @@ const exported = await page.evaluate(async () => {
     await click('selfscout', '[data-reports-secbar] [data-report-export="selfscout"]');
     await new Promise(r => setTimeout(r, 300));
     await Promise.all(pending);
-  } finally { window.ffaSaveBlob = original; }
+  } finally { window.__exportCapture = original; }
   return saved.map(({ name, html }) => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const labels = [...doc.querySelectorAll('th, td, span, strong, div, dt, h3, h4, li')]

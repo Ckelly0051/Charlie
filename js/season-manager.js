@@ -11,7 +11,8 @@
 import { buildSeasonHtmlReport } from './html-report.js';
 
 export class SeasonManager {
-  constructor(statsEngine, { storage, roster } = {}) {
+  constructor(statsEngine, { storage, roster, saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.statsEngine = statsEngine;
     this.storage = storage;
     this.roster = roster;
@@ -413,7 +414,7 @@ export class SeasonManager {
     const name = store?.data?.seasonName || 'Season';
     const model = this.reportModel();
     const html = buildSeasonHtmlReport({ title: name + ' — Season Report', model, engine: this.statsEngine });
-    window.ffaSaveBlob(new Blob([html], { type:'text/html' }), 'season_report_' + new Date().toISOString().slice(0, 10) + '.html');
+    this.saveBlob(new Blob([html], { type:'text/html' }), 'season_report_' + new Date().toISOString().slice(0, 10) + '.html');
     return true;
   }
 }

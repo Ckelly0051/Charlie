@@ -38,7 +38,8 @@ export class SeasonStore {
    *  Every season is born with it and `_normalize` stamps it. */
   static ROSTER_OWNERSHIP = 'season';
 
-  constructor(backend) {
+  constructor(backend, { saveBlob } = {}) {
+    this.saveBlob = saveBlob;
     this.SCHEMA = 5;
     this.data = null;
     this.currentSeasonId = null;
@@ -1026,7 +1027,7 @@ export class SeasonStore {
   downloadFile() {
     const blob = new Blob([this.json()], { type: 'application/json' });
     const name = this.fileBase() + '_season.json';
-    window.ffaSaveBlob(blob, name);
+    this.saveBlob(blob, name);
   }
 
   /**

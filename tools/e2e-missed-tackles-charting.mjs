@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /* MISSED TACKLES CHARTING -------------------------------------------------------
    Approved comp design-comps/missed-tackles-2026-10-06; contract
    GRIDIRON-IQ-TAG-MODEL.md §3a. Missed Tackles is one more row in Players &
@@ -52,6 +53,7 @@ console.log('\n== Model ==');
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
 try {
   const page = await browser.newPage();
+await installExportCapture(page);
   await page.setViewport({ width: 1440, height: 900 });
   await gotoApp(page, APP_URL);
   await page.evaluate(async () => {
@@ -168,9 +170,9 @@ try {
     const p1 = tagger.plays.find(p => p.id === 1); p1.tags.missedTackles = '5'; p1.tags.players.missedTackler = '2, 3';
     const p2 = tagger.plays.find(p => p.id === 2); p2.tags.missedTackles = '0';
     let text = '';
-    const save = window.ffaSaveBlob;
-    window.ffaSaveBlob = async blob => { text = await blob.text(); return true; };
-    try { app.storage.exportCsv(); await new Promise(r => setTimeout(r, 100)); } finally { window.ffaSaveBlob = save; }
+    const save = window.__exportCapture;
+    window.__exportCapture = async blob => { text = await blob.text(); return true; };
+    try { app.storage.exportCsv(); await new Promise(r => setTimeout(r, 100)); } finally { window.__exportCapture = save; }
     const parsed = app.storage.importPlaysFromText(text);
     const lines = text.split('\n'), cols = lines[0].split(','), at = cols.findIndex(c => /^"?Missed Tackles"?$/.test(c.trim()));
     return { header: lines[0], line1: lines[1], defenseCount: lines[1]?.split(',')[at], mapped: parsed?.colMap ? Object.values(parsed.colMap) : null };

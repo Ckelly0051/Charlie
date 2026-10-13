@@ -1,3 +1,4 @@
+import { installExportCapture } from './export-capture.mjs';
 /**
  * Reports > Season — the approved 2026-09-05 desktop composition, the cohort
  * it aggregates, and the analytics contracts its Overview and Trends rest on.
@@ -121,6 +122,7 @@ const ROSTER_SCOUT = [{ num: '22', name: 'OPPONENT BACK' }, { num: '12', name: '
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+await installExportCapture(page);
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 const errors = [];
@@ -581,12 +583,12 @@ const readOnly = await page.evaluate(async () => {
     [...document.querySelectorAll('[data-reports-secbar] .gi-season-pages button')].find(b => b.textContent.trim() === title)?.click();
     await new Promise(r => requestAnimationFrame(r));
   }
-  const save = window.ffaSaveBlob;
+  const save = window.__exportCapture;
   let captured = null, pending = null;
-  window.ffaSaveBlob = (blob, name) => { pending = blob.text().then(html => { captured = { html, name }; }); };
+  window.__exportCapture = (blob, name) => { pending = blob.text().then(html => { captured = { html, name }; }); };
   document.querySelector('[data-reports-secbar] [data-report-export="season"]')?.click();
   await pending;
-  window.ffaSaveBlob = save;
+  window.__exportCapture = save;
   const after = JSON.stringify(window.app.storage.seasonStore.data);
   return { unchanged: before === after, name: captured?.name, html: captured?.html || '' };
 });
@@ -620,12 +622,12 @@ ok(/<td>[+-]?\d+(\.\d+)? pp<\/td>/.test(exported) && /<td>[+-]?\d+(\.\d+)?\/game
 /* The row count under the heading must match the scope the heading claims. */
 await load(SPARSE);
 const sparseExport = await page.evaluate(async () => {
-  const save = window.ffaSaveBlob;
+  const save = window.__exportCapture;
   let captured = null, pending = null;
-  window.ffaSaveBlob = (blob, name) => { pending = blob.text().then(html => { captured = { html, name }; }); };
+  window.__exportCapture = (blob, name) => { pending = blob.text().then(html => { captured = { html, name }; }); };
   window.app.season.exportHtml();
   await pending;
-  window.ffaSaveBlob = save;
+  window.__exportCapture = save;
   const model = window.app.season.reportModel();
   const rows = (captured.html.match(/<tbody>([\s\S]*?)<\/tbody>/) || [])[1] || '';
   return { games: model.summary.games, logRows: (rows.match(/<tr>/g) || []).length,

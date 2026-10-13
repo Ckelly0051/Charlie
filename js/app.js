@@ -83,6 +83,8 @@ const APP_VERSION = '1.12.0-116';
 class App {
   constructor() {
     configureBetaDefaults(localStorage, !!window.__TAURI__, APP_VERSION);
+    this.saveBlob = (blob, filename) => ffaSaveBlob(blob, filename,
+      { notify: message => this.history?._toast?.(message) });
     try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
     catch { this.autoPlayNext = true; }
     // Initialize components
@@ -99,7 +101,7 @@ class App {
     this.breakdownCharting = new BreakdownChartingService(this.tagger);
     this.multiAngle = new MultiAngle(this.vc);
     this.notes = new NotesManager(this.vc, this.tagger);
-    this.storage = new StorageManager(this.vc, this.tagger, this.canvas);
+    this.storage = new StorageManager(this.vc, this.tagger, this.canvas, { saveBlob: this.saveBlob });
     this.detector = new PlayDetector(this.vc, this.tagger);
     this.clipAnalyzer = new ClipAnalyzer();
     this.backend = new BackendClient();
@@ -118,13 +120,11 @@ class App {
     this.studyScreen = new StudyScreen(this);
     this.studyPlan = StudyPlan;
     this.planExport = PlanExport;
-    this.planScreen = new PlanScreen(this);
-    this.reportsScreen = new ReportsScreen(this);
+    this.planScreen = new PlanScreen(this, { saveBlob: this.saveBlob });
+    this.reportsScreen = new ReportsScreen(this, { saveBlob: this.saveBlob });
     this.overlays = getNativeOverlayService();
     if (!this.overlays) throw new Error('GridIron IQ native overlay service is unavailable.');
     this.playDiagram = new PlayDiagram(this.tagger, this.overlays);
-    window.ffaSaveBlob = (blob, filename) => ffaSaveBlob(blob, filename,
-      { notify: message => this.history?._toast?.(message) });
     this.quickChart = new QuickChart(this.vc, this.tagger, this.playlist, this.overlays);
     this.settingsScreen = new SettingsScreen(this, this.overlays);
     this.playImport = new PlayImportScreen(this, this.overlays);
@@ -133,12 +133,12 @@ class App {
     this.history = new HistoryManager(this.tagger, this.overlays);
     this.versions = new VersionManager(this.storage, this.tagger, this.history);
     this.ocr = new ScoreboardOCR(this.vc, this.tagger);
-    this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist);
+    this.cutup = new CutupExporter(this.vc, this.tagger, this.filter, this.playlist, { saveBlob: this.saveBlob });
     this.cutupPlayer = new CutupPlayer(this.vc, this.tagger, {
       shouldAutoPlayNext: () => this.autoPlayNext,
     });
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer, this.playbook, this.customChips);
-    this.season = new SeasonManager(this.stats, { storage: this.storage, roster: this.roster });
+    this.season = new SeasonManager(this.stats, { storage: this.storage, roster: this.roster, saveBlob: this.saveBlob });
     // S7-c: the team/season identity layer. SeasonLibrary's overlay is dead but
     // twelve of its private members were still the registry, so the data moved
     // here first and the overlay becomes the by-product.

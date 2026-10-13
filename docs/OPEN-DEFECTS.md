@@ -130,10 +130,10 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
 - **Mirror identity label smoke.** Source repaired. An unsafe/duplicate-ID
   mirror is labeled "Invalid IDs", not "Old format", and cannot be recovered.
   Verify the label on an isolated installed test profile, not coach data.
-- **Global save helper.** App still publishes `window.ffaSaveBlob`, used by
-  seven modules. Replace it with injected save delivery at the owning seam;
-  include it in the old-pattern inventory. This is separate from the ID and
-  linked-film repairs.
+- **Injected export delivery smoke.** Source uses one App-bound save function
+  across all seven export consumers; no global save helper remains. Verify
+  Reports, Dashboards, Plan, season and cut-up exports in the installed app,
+  including renamed files, cancellation and failed saves.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
