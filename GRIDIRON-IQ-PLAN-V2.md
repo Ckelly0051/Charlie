@@ -174,20 +174,44 @@ failed saves that roll back only their own season, game or program, and
    storage operations explained rather than shown broken. Cloud sync and
    multi-user collaboration are separate future products.
 
-**Platform lane** (coach, 2026-10-13; not yet placed in the sequence). The
-remaining browser-first constraints on the desktop app, carried from the legacy
-excision (`docs/archive/plans/LEGACY-EXCISION-PLAN.md`, Pass 3 and after):
+**Legacy excision and platform lane** (coach, 2026-09-25 and 2026-10-13; not
+yet placed in the sequence). The goal is to remove the original browser-first
+structure because it restricts the apps. History and per-pass evidence:
+`docs/archive/plans/LEGACY-EXCISION-PLAN.md` and
+`docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`.
 
-- settings, the library root and approved film folders out of localStorage
-  into the catalog or a desktop settings file;
-- native SQLite in place of sql.js's whole-file catalog saves;
-- the storage layers (`storage.js`, `storage-backend.js`, `season-store.js`,
-  the catalog) consolidated;
-- the browser backend kept as its own lighter path behind `StorageBackend`,
-  allowed to lack desktop features.
+Done:
+- Persistence convergence (2026-08): the SQLite catalog is the only live
+  desktop store; JSON files are recovery and export snapshots only.
+- Excision Passes 0-2b (2026-09-25..27): dead code and duplicate rules
+  removed, the UI-state fields out of the charting model, the live seasons
+  converted once and every old-format reader deleted, old settings keys and
+  storage layouts converted or retired.
+- `window.app` reach-through and raw `innerHTML` screens (Codex job,
+  2026-10-12): only the App global itself, which harnesses use, and the
+  parked OCR feature remain.
 
-Each storage step touches coach data: impact report with exact counts and the
-coach's confirmation immediately before any write.
+Remaining, in this order:
+1. Settings, the library root and approved film folders out of localStorage
+   (86 calls) into the catalog or a desktop settings file (excision Pass 3).
+2. Native SQLite in place of sql.js's whole-file catalog saves.
+3. The four storage layers (`storage.js`, `storage-backend.js`,
+   `season-store.js`, the catalog) consolidated.
+4. The browser backend kept as its own lighter path behind `StorageBackend`,
+   allowed to lack desktop features.
+The `stats-engine.js` split belongs to the reporting rebuild (step 3 above).
+
+Guardrails, carried from the excision:
+- Characterize before cutting: `e2e-parity`, `e2e-legacy-roundtrip` and the
+  `e2e-legacy-inventory` ratchet stay green; a change meant to look the same
+  shows no difference in `node tools/compare-builds.mjs <rev>`.
+- Strangler, never big bang: build the new owner, move one consumer per
+  commit, delete the old path once nothing uses it.
+- Each step ends shippable, and any parity diff, unintended screenshot diff
+  or change to coach data stops the step for a report.
+- Steps 1-3 touch coach data: impact report with exact counts on a read-only
+  copy, a restore point, and the coach's confirmation immediately before any
+  write.
 
 **Functional beta acceptance** requires a cold-start Assistant Coach Test on a
 clean Windows profile with no fixture data and no verbal help: install, choose

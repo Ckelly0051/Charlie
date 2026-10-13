@@ -128,6 +128,8 @@ log.
   `TESTING-2026-09-27.md` - earlier rule sets and test notes.
 - `OPEN-DEFECTS-THROUGH-2026-10-04.md` - every defect record, open and closed.
 - `plans/` - finished plans, audits and closeouts, including
+  `LEGACY-EXCISION-PLAN.md` and `GRIDIRON-IQ-PERSISTENCE-CONVERGENCE-PLAN.md`
+  (their remaining work is the plan's Legacy excision and platform lane), and
   `GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md` (full roadmap history, the Break
   Down charting comp build contract and milestone acceptance records).
 - `smoke/` - earlier passed installed smoke records through `1.12.0-111`.

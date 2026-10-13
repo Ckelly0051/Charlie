@@ -49,7 +49,7 @@ npm run dev
 - **The web version never limits the apps** (coach, 2026-10-13): build desktop
   (and later mobile) features natively even when a browser cannot support
   them; the web version shows them as unavailable, never broken
-  (`GRIDIRON-IQ-PLAN-V2.md` > Platform lane).
+  (`GRIDIRON-IQ-PLAN-V2.md` > Legacy excision and platform lane).
 - Web deploy is the `gh-pages` branch, a verbatim `dist/` copy (clear it first;
   asset names are content-hashed).
 
