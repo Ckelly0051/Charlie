@@ -101,6 +101,13 @@ failed saves that roll back only their own season, game or program, and
      - pass target and catch location: field side and depth of target and
        catch, separate from total gain, never inferred from play direction;
      - receiver route and release, tied to the identified receiver;
+     - the two receiver fields above follow the missed-tackles pattern (coach,
+       2026-10-13): charting first, their Reports in step 5. They are granular
+       and slow to chart for what they give, so charting is likely best as a
+       visual (marking the field) and their reports need a visual to be
+       readable. Before any design or build, research how other film and
+       scouting apps chart and report pass location and routes, and bring
+       the findings to the coach;
      - missed tackles: a play-level event plus optional player attribution,
        more than one player per play; uncharted is not zero. Built
        2026-10-07, coach-smoked in `1.12.0-113` on 2026-10-09 with the
