@@ -31,6 +31,7 @@ import {
   groupPlaysByDrive, drivePossessionSide, driveNumberOf, driveLabel,
 } from '../js/football-rules.js';
 import { SpecialTeamsModel } from '../js/special-teams.js';
+import { TauriBackend } from '../js/storage-backend.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -56,8 +57,11 @@ console.log('\n-- B1-1 desktop managed-film path (pinned in source) --');
     'TauriBackend.listFilmFiles takes the owning season id');
   ok(/async listFilmFiles\(gameId, seasonId = this\.currentId\) \{[\s\S]{0,200}?this\._filmsDir\(gameId, seasonId\)/.test(backendSrc),
     'TauriBackend.listFilmFiles resolves its directory from that season id, not currentId');
-  ok(/_filmsDir\(gameId, seasonId = this\.currentId\) \{ return `seasons\/\$\{seasonId\}\/films\/\$\{gameId\}`/.test(backendSrc),
+  const backend = Object.assign(Object.create(TauriBackend.prototype), { currentId: 'open-season' });
+  ok(backend._filmsDir('same-game', 'owning-season') === 'seasons/owning-season/films/same-game',
     'The managed film directory is built from an explicit season id');
+  ok(backend._filmsDir('same-game') === 'seasons/open-season/films/same-game',
+    'Omitting the film owner uses the open season');
   ok(/async listFilmFiles\(_gameId, _seasonId\)/.test(backendSrc),
     'The backend base class declares the season-scoped signature');
 
