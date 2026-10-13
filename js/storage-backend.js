@@ -636,9 +636,9 @@ export class TauriBackend extends StorageBackend {
         out.push({ id, valid: false, reason: 'folder-identity-mismatch', name: id, team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog });
         continue;
       }
-      if (result.ok && !SeasonFormat.isCurrentSeason(result.envelope.data)) {
-        // An old-format snapshot is listed so the coach sees it, never importable.
-        out.push({ id, valid: false, reason: 'old-format', name: result.envelope.data.seasonName || id, team: '', gameCount: result.envelope.gameCount, playCount: result.envelope.playCount, revision: result.envelope.revision, timestamp: result.envelope.timestamp, existsInCatalog });
+      const problems = result.ok ? SeasonFormat.seasonProblems(result.envelope.data) : [];
+      if (problems.length) {
+        out.push({ id, valid: false, reason: SeasonFormat.hasIdentityProblems(problems) ? 'invalid-ids' : 'old-format', name: result.envelope.data.seasonName || id, team: '', gameCount: result.envelope.gameCount, playCount: result.envelope.playCount, revision: result.envelope.revision, timestamp: result.envelope.timestamp, existsInCatalog });
         continue;
       }
       if (result.ok) {
@@ -688,7 +688,7 @@ export class TauriBackend extends StorageBackend {
     if (!data || !Array.isArray(data.games)) return { ok: false, reason: 'malformed' };
     // Old format: refused before any catalog lookup or write (step 6).
     const problems = SeasonFormat.seasonProblems(data);
-    if (problems.length) return { ok: false, reason: 'old-format', message: SeasonFormat.refusalMessage(problems) };
+    if (problems.length) return { ok: false, reason: SeasonFormat.hasIdentityProblems(problems) ? 'invalid-ids' : 'old-format', message: SeasonFormat.refusalMessage(problems) };
     // data.id is already === id here: unwrap() enforces envelope.seasonId
     // === data.id, and the check above enforces envelope.seasonId === id.
     // A validated envelope's identity is never reassigned.

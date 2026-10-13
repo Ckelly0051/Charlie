@@ -16,9 +16,24 @@
 import puppeteer from './test-browser.mjs';
 import { createFirstTeam } from './hub-setup.mjs';
 import { APP_URL } from './app-entry.mjs';
+import { TauriBackend } from '../js/storage-backend.js';
+import { SnapshotEnvelope } from '../js/snapshot-envelope.js';
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
+const duplicate = { id: 'rec-identity', seasonName: 'Duplicate Game IDs', games: [{ id: 'same', plays: [] }, { id: 'same', plays: [] }] };
+const mirrorBytes = JSON.stringify(SnapshotEnvelope.wrap(duplicate.id, duplicate));
+let writes = 0;
+const mirror = { mirrorDir: 1, MIRROR_ROOT: 'GridIron IQ', _ok: () => true,
+  fs: { exists: async () => true, readDir: async () => [{ name: duplicate.id, isDirectory: true }],
+    readTextFile: async () => mirrorBytes, writeTextFile: async () => { writes++; } },
+  _ensureCatalog: async () => ({ listSeasons: async () => [], saveSeason: async () => { writes++; return true; } }),
+};
+const [identityCandidate] = await TauriBackend.prototype.scanRecoverableSeasons.call(mirror);
+ok(identityCandidate?.reason === 'invalid-ids' && identityCandidate.valid === false, 'real mirror scan distinguishes duplicate IDs from old format', JSON.stringify(identityCandidate));
+const identityRestore = await TauriBackend.prototype.recoverSeasonFromMirror.call(mirror, duplicate.id, { confirmOverwrite: true });
+ok(identityRestore.reason === 'invalid-ids' && /unsafe or duplicate IDs/.test(identityRestore.message || '') && writes === 0,
+  'duplicate-ID mirror cannot be restored and scan/restore write nothing', JSON.stringify({ identityRestore, writes }));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 800 });
@@ -87,14 +102,15 @@ await page.click('[data-overlay-action="ok"]');
 await page.waitForFunction(() => !document.querySelector('.gi-overlay-panel'));
 
 // ---- 4. Real candidates: valid, existsInCatalog, invalid, and old-format, all in one scan ----
-await page.evaluate(() => {
+await page.evaluate(identityCandidate => {
   window.__scanResult = [
     { id: 'rec-valid', valid: true, name: 'Recovered Season', team: 'Recovery Test', gameCount: 3, playCount: 42, revision: '2026-01-01T00:00:00Z', timestamp: '2026-01-01T00:00:00Z', existsInCatalog: false },
     { id: 'rec-conflict', valid: true, name: 'Conflicting Season', team: 'Recovery Test', gameCount: 1, playCount: 5, revision: '2026-01-02T00:00:00Z', timestamp: '2026-01-02T00:00:00Z', existsInCatalog: true },
     { id: 'rec-broken', valid: false, reason: 'checksum-mismatch', name: 'Corrupt Snapshot', team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog: false },
     { id: 'rec-legacy', valid: false, reason: 'old-format', name: 'Old Format Season', team: '', gameCount: null, playCount: null, revision: null, timestamp: null, existsInCatalog: false },
+    identityCandidate,
   ];
-});
+}, identityCandidate);
 await page.evaluate(() => [...document.querySelectorAll('.library-overview-actions button')]
   .find(button => /Recover seasons/.test(button.textContent || ''))?.click());
 await page.waitForSelector('[data-overlay-id="team-hub-recover-seasons"]');
@@ -102,6 +118,7 @@ r = await page.evaluate(() => {
   const rows = [...document.querySelectorAll('.gi-hub-recover-row')];
   const legacyRow = rows.find(row => row.textContent.includes('Old Format Season'));
   const brokenRow = rows.find(row => row.textContent.includes('Corrupt Snapshot'));
+  const identityRow = rows.find(row => row.textContent.includes('Duplicate Game IDs'));
   const shown = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
   return {
     count: rows.length,
@@ -112,10 +129,13 @@ r = await page.evaluate(() => {
     legacyButtons: legacyRow?.querySelectorAll('button').length,
     legacyReason: shown(legacyRow?.querySelector('.gi-hub-recover-reason')) ? legacyRow.querySelector('.gi-hub-recover-reason').textContent : null,
     legacyMeta: legacyRow?.querySelector('small')?.textContent,
+    identityLabel: identityRow?.querySelector('.gi-hub-recover-state')?.textContent,
+    identityReason: identityRow?.querySelector('.gi-hub-recover-reason')?.textContent,
+    identityButtons: identityRow?.querySelectorAll('button').length,
     validMeta: rows.find(row => row.textContent.includes('Recovered Season'))?.querySelector('small')?.textContent,
   };
 });
-ok(r.count === 4 && r.names.join('|') === 'Recovered Season|Conflicting Season|Corrupt Snapshot|Old Format Season',
+ok(r.count === 5 && r.names.join('|') === 'Recovered Season|Conflicting Season|Corrupt Snapshot|Old Format Season|Duplicate Game IDs',
   'every scanned candidate renders as its own row, in scan order', JSON.stringify(r));
 // ---- 4b. A candidate that cannot be recovered stays VISIBLE -- the coach can
 // see the file exists -- and offers NO action. Installed smoke 1.12.0-103,
@@ -126,6 +146,8 @@ ok(r.brokenButtons === 0 && r.brokenReason === 'It cannot be recovered.', 'an in
 ok(r.legacyLabel === 'Old format', 'an old-format candidate is plainly labeled, not silently hidden', JSON.stringify(r));
 ok(r.legacyButtons === 0, 'an old-format candidate offers no Recover control -- it cannot be imported', JSON.stringify(r));
 ok(r.legacyReason === 'Saved in an old GridIron IQ format. It cannot be recovered.', 'the old-format row says why in visible text, plainly', JSON.stringify(r));
+ok(r.identityLabel === 'Invalid IDs' && r.identityReason === 'This snapshot has unsafe or duplicate IDs. It cannot be recovered.' && r.identityButtons === 0,
+  'duplicate-ID mirror has its identity label, no old-format claim and no recovery action', JSON.stringify(r));
 ok(!r.legacyMeta && /Recovery Test · 3 games · 42 plays/.test(r.validMeta || ''),
   'unknown counts print nothing (never "0 games" or "null"); known counts still print', JSON.stringify(r));
 r = await page.evaluate(() => window.__recoverCalls.length);

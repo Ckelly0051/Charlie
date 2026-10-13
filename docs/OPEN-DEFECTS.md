@@ -127,6 +127,9 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
   native containment is not protection against a compromised renderer.
 - **Rust advisory coverage.** `cargo-audit` is not installed; the dependency
   advisory check remains open.
+- **Mirror identity label smoke.** Source repaired. An unsafe/duplicate-ID
+  mirror is labeled "Invalid IDs", not "Old format", and cannot be recovered.
+  Verify the label on an isolated installed test profile, not coach data.
 - **Global save helper.** App still publishes `window.ffaSaveBlob`, used by
   seven modules. Replace it with injected save delivery at the owning seam;
   include it in the old-pattern inventory. This is separate from the ID and

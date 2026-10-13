@@ -268,12 +268,14 @@ function RecoverCandidate({ candidate, onRecover }) {
   const [error, setError] = useState('');
   const label = candidate.valid ? 'Recoverable'
     : candidate.reason === 'old-format' ? 'Old format'
+    : candidate.reason === 'invalid-ids' ? 'Invalid IDs'
     : `Not recoverable (${candidate.reason || 'unreadable'})`;
   // An invalid candidate stays visible, so the coach knows the file exists,
   // with its reason as visible text and no action (a disabled button would
   // hide the reason in a tooltip it never shows).
   const reason = candidate.valid ? null
     : candidate.reason === 'old-format' ? 'Saved in an old GridIron IQ format. It cannot be recovered.'
+    : candidate.reason === 'invalid-ids' ? 'This snapshot has unsafe or duplicate IDs. It cannot be recovered.'
     : 'It cannot be recovered.';
   const count = (n, noun) => Number.isFinite(n) ? `${n} ${noun}${n === 1 ? '' : 's'}` : null;
   const run = async (confirmOverwrite) => {
