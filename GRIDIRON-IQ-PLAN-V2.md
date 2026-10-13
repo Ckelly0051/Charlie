@@ -93,11 +93,11 @@ failed saves that roll back only their own season, game or program, and
    finished as possible before any reporting work, because the next reporting
    step is a full rebuild (below) and should be built once against the final
    charted fields. The Break Down cleanup is done (`1.12.0-111`, smoke passed
-   2026-10-06). Remaining, in order:
-   - removing the stranded legacy DOM layer found in the 2026-10-06 code review;
-   - new charting fields. Each ships with its charting and a Study dimension
-     (registered in `AnalyticsRegistry`, film-linked, with its sample); its
-     Reports come in step 4, after the rebuild (coach, 2026-10-06):
+   2026-10-06), and the stranded legacy DOM layer is removed (2026-10-07,
+   enforced by `e2e-stranded-code`). Remaining: new charting fields. Each
+   ships with its charting and a Study dimension (registered in
+   `AnalyticsRegistry`, film-linked, with its sample); its Reports come in
+   step 5, after the rebuild (coach, 2026-10-06):
      - pass target and catch location: field side and depth of target and
        catch, separate from total gain, never inferred from play direction;
      - receiver route and release, tied to the identified receiver;
@@ -105,7 +105,7 @@ failed saves that roll back only their own season, game or program, and
        more than one player per play; uncharted is not zero. Built
        2026-10-07, coach-smoked in `1.12.0-113` on 2026-10-09 with the
        unrelated scrubbing defect deferred; charting contract in `GRIDIRON-IQ-TAG-MODEL.md` §3a.
-       Exception to step 4 (coach, 2026-10-07): defensive missed tackles get
+       Exception to step 5 (coach, 2026-10-07): defensive missed tackles get
        Reports now, in the Defense, Players (an added column) and Season tabs,
        each from its own comp; offense and Special Teams reports wait.
 
@@ -133,33 +133,24 @@ failed saves that roll back only their own season, game or program, and
    is paired with this work, not built alone (coach, 2026-10-06): a play's
    number is its film reference, so renumbering rewrites Plan links and
    needs an impact report and confirmation.
-4. **Reports for every charted field.** Audit every charted field against
+   The conventional two-team box score is built inside the rebuild (coach,
+   2026-10-13): score by quarter, first downs, rushing/passing/total yards,
+   completions/attempts, turnovers and penalties, each from the registry and
+   reconciled with the detailed reports, which makes it an acceptance check for
+   the rebuild; unsupported categories are absent. The rebuild also registers
+   drive-level measures over the one drive grouping (`football-rules.js`) for
+   step 4.
+4. **Interactive drive chart**, right after the rebuild and on it (coach,
+   2026-10-13): every possession in order with start/end field position, play
+   count, outcome, points, and rushing/passing/penalty yards; selecting a drive
+   opens exactly that drive's film; incomplete charting is disclosed, not
+   inferred. It exposes its sample and matches the drive measures.
+5. **Reports for every charted field.** Audit every charted field against
    Reports, then add the missing reports. Known gaps: motion start/end, RPO
    read and Give/Keep/Throw decision, QB-run type (designed / scramble / RPO
    keeper), and the step 2 fields (pass target and catch location, route and
    release, missed tackles). Each report reuses the analytics registry, shows its eligible
    sample and opens exact film; no parallel formulas.
-5. **Reporting expansion** (each must expose its sample, match its table and
-   open its film):
-   - interactive drive chart: every possession in order with start/end field
-     position, play count, outcome, points, and rushing/passing/penalty yards;
-     selecting a drive opens exactly that drive's film; incomplete charting is
-     disclosed, not inferred;
-   - conventional two-team box score: score by quarter, first downs,
-     rushing/passing/total yards, completions/attempts, turnovers, penalties,
-     each reconciled with the detailed reports; unsupported categories absent;
-   - saved composable reports: registered dimensions and approved measures with
-     filters, scope and perspective, saved and rerun as games are charted.
-     Study stays the query engine. Rev 1 built 2026-10-10 as Reports >
-     Dashboards (`docs/REPORTS-CONTRACTS.md`), ahead of steps 3-4 at the
-     coach's request; opponent perspective and the full reports suite come
-     with the rebuild. Dashboards stay separate from the reporting rebuild
-     (coach, 2026-10-12). Rev 2, a small rework after smoke 116 findings 1-3:
-     a canvas the coach fills through the module picker, each module with its
-     own unit, games, filters, measure and view, so offense yards per play
-     can sit beside defense yards per play; Open and Edit, and every action
-     on the picker page. Rev 2 is packaged in 117; installed acceptance is
-     pending (`SMOKE-1.12.0-117.md`).
 6. **Coach-owned AI analysis exchange.** Export a versioned season analysis pack
    (one row per play, stable `gameId::playId`, charted fields, data dictionary;
    no video, film paths or player identities by default). Then optionally
@@ -173,6 +164,17 @@ failed saves that roll back only their own season, game or program, and
    Review and Study views, clear film-source and save status, desktop-only
    storage operations explained rather than shown broken. Cloud sync and
    multi-user collaboration are separate future products.
+
+**Dashboards** (saved composable reports; outside the sequence, separate from
+the reporting rebuild, coach 2026-10-12): registered dimensions and approved
+measures with filters, scope and perspective, saved and rerun as games are
+charted; Study stays the query engine. Rev 1 built 2026-10-10 as Reports >
+Dashboards (`docs/REPORTS-CONTRACTS.md`). Rev 2, a small rework after smoke 116
+findings 1-3: a canvas the coach fills through the module picker, each module
+with its own unit, games, filters, measure and view, so offense yards per play
+can sit beside defense yards per play; Open and Edit, and every action on the
+picker page. Rev 2 is packaged in 117; installed acceptance is pending
+(`SMOKE-1.12.0-117.md`). Opponent perspective comes with the rebuild.
 
 **Legacy excision and platform lane** (coach, 2026-09-25 and 2026-10-13; not
 yet placed in the sequence). The goal is to remove the original browser-first
