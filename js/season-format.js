@@ -30,6 +30,15 @@ export class SeasonFormat {
 
   static MESSAGE = 'This file uses an old GridIron IQ format and was not opened. Export it again from the current app.';
   static RESTORE_MESSAGE = 'This restore point was saved in an old format and cannot be restored. Nothing was changed.';
+  static ID_MESSAGE = 'This file has unsafe or duplicate IDs and was not opened. Nothing was changed.';
+
+  static hasIdentityProblems(problems) {
+    return problems.some(p => ['unsafe season ID', 'unsafe game ID', 'duplicate game ID'].includes(p.problem));
+  }
+
+  static refusalMessage(problems, restore = false) {
+    return this.hasIdentityProblems(problems) ? this.ID_MESSAGE : restore ? this.RESTORE_MESSAGE : this.MESSAGE;
+  }
 
   static UNITS = Object.freeze(['offense', 'defense', 'special']);
 

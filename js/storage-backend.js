@@ -150,8 +150,9 @@ export class StorageBackend {
     };
   }
   slugify(s) {
-    return String(s || '').trim().toLowerCase()
+    const slug = String(s || '').trim().toLowerCase()
       .replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'season';
+    return safeStorageId(slug) ? slug : `season-${slug}`;
   }
   _uniqueId(base, taken) {
     let id = base, n = 2;
@@ -686,7 +687,8 @@ export class TauriBackend extends StorageBackend {
     const data = result.envelope.data;
     if (!data || !Array.isArray(data.games)) return { ok: false, reason: 'malformed' };
     // Old format: refused before any catalog lookup or write (step 6).
-    if (!SeasonFormat.isCurrentSeason(data)) return { ok: false, reason: 'old-format', message: SeasonFormat.MESSAGE };
+    const problems = SeasonFormat.seasonProblems(data);
+    if (problems.length) return { ok: false, reason: 'old-format', message: SeasonFormat.refusalMessage(problems) };
     // data.id is already === id here: unwrap() enforces envelope.seasonId
     // === data.id, and the check above enforces envelope.seasonId === id.
     // A validated envelope's identity is never reassigned.

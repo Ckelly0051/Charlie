@@ -116,74 +116,22 @@ the installed check):
 
 ## Open defects
 
-Codex job (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): item 1's
-listed active-code patterns are removed in source, not packaged. The renamed
-HTML export is repaired pending installed smoke. The empty-roster lock is
-corrected to the current contract. The first security boundary review found two
-P2s below; the coach approved both fixes. Both are repaired in source with
-focused and native validation. Rust advisory coverage remains open.
+The Codex job is built in source, not packaged. Installed drawing, film preview
+and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
 
-- **SEC-1: imported game ID can delete sibling managed film (P2).** Reviewed
-  at `32f608ad`, 2026-10-13. `SeasonFormat.seasonProblems` accepts a game ID
-  of `.` and `SeasonStore._normalize` keeps it. After that game is deleted and
-  its undo window closes, `TauriBackend.deleteFilm` recursively removes
-  `seasons/<season>/films/.`, the whole season film root rather than one game.
-  Root: `js/storage-backend.js:1042`; sink: `1128`; caller:
-  `js/storage.js:1402`. Reproduced using the production validators and backend
-  with an in-memory filesystem. Pinned Tauri permits the dot component and
-  recursive AppData removal. No actual file was removed. Proposed repair:
-  refuse unsafe imported IDs without rewriting them, and independently enforce
-  a canonical, non-root per-game deletion target. Needs failing-first import
-  and direct-backend regressions plus a normal sibling-preservation control.
-  **Repaired in source (coach approved, 2026-10-13).** Unsafe opaque IDs are
-  refused without rewriting; absolute managed-folder resolution also refuses
-  them. The renderer's recursive delete is removed: `delete_managed_film`
-  validates both IDs natively and refuses roots, outside-owner paths and game
-  junctions and aliased parent folders. Imports also refuse duplicate game IDs,
-  including Windows case aliases. Synthetic regression: 50/50 (35 failures
-  before the initial repair; accepting dot again produces six failures; both
-  duplicate-ID checks failed before their repair). Four native tests pass, including
-  real temporary-folder sibling preservation and Windows junction refusal.
-  Fifteen focused harnesses pass. No coach data, full gate or installer. Installed
-  normal game deletion/Undo still needs smoke on disposable data.
-- **SEC-2: imported linked path bypasses folder consent (P2).** With approved
-  root `D:/FilmRoot`, `D:/FilmRoot/../Private` passes
-  `TauriBackend.isDirAllowed` (`js/storage-backend.js:1284`). Opening the game
-  calls `allow_library_dir` for it (`js/storage.js:828`); the Rust command
-  checks existence, not consent (`src-tauri/src/main.rs:13`). Tauri grants the
-  canonical outside directory. Reproduced through the real auto-load and
-  open-folder methods with fake native calls; no real scope was granted and
-  no directory was read. Proposed repair: canonicalize target and approved
-  roots, including junctions, and enforce consent at the native grant owner;
-  distinguish native-picker consent from automatic reauthorization. Test
-  parent paths, junctions, normal roots and explicitly picked outside folders.
-  No remote exfiltration or script execution was established.
-  **Repaired in source (coach approved, 2026-10-13).** The old unrestricted
-  `allow_library_dir` command is removed. `authorize_film_path` resolves the
-  target and approved roots before granting directory or file access. Roots
-  come from machine settings or actual native-picker selections, never the
-  imported game's target as consent. Recursive listing and asset URLs use
-  this boundary; rejected file aliases cannot count as healthy film, while
-  approved alias roots retain nested clips. Listing tracks resolved directories
-  to avoid junction loops. Synthetic regression: 22/22 (15 failures before the
-  initial repair; three failures when the alias/listing fixes are reverted).
-  A native authorization mutation on a temporary source copy fails two of four
-  tests. Fifteen focused harnesses and four native tests pass. Receipt:
-  `artifacts/gate-logs/2026-10-13T05-46-09-704Z-JpslNc/receipt.json`.
-  No coach data, full gate or installer. Installed smoke still needs normal
-  linked playback after restart, approved alias/nested folders, explicit outside
-  folder linking and library-root change/rollback. CSP and capabilities unchanged.
-
-Security review receipt: scan `6e67940b-330c-4be6-9718-1135c6fcaa3a`, source
-`32f608add8e5f6f886eac2645e859f2d01451c6b`. The local Codex Security report
-retains source evidence and synthetic results. Active UI/export escaping,
-prepared SQL, credentials and signed updater controls were reviewed with no
-additional proven exploit. Production npm audit reported zero advisories; two
-high build-tool advisories do not reach shipped runtime. `cargo-audit` was not
-available, so the Rust advisory check is still needed. Independent reviewers
-hit usage limits; this was sequential local review, not independent confirmation
-or a claim that every repository file was audited. Parked OCR and non-running
-network services were excluded. No coach-data writes, full gate or installer.
+- **SEC-1: managed-film deletion smoke.** Source repaired. Check normal game
+  deletion and Undo on disposable data, preserving sibling film.
+- **SEC-2: linked-film authorization.** Source repair needs an early native
+  spelling check before resolving an unapproved target. Installed smoke needs
+  playback after restart, approved alias/nested folders, explicit outside-folder
+  linking and library-root change/rollback. The renderer supplies approved roots;
+  native containment is not protection against a compromised renderer.
+- **Rust advisory coverage.** `cargo-audit` is not installed; the dependency
+  advisory check remains open.
+- **Global save helper.** App still publishes `window.ffaSaveBlob`, used by
+  seven modules. Replace it with injected save delivery at the owning seam;
+  include it in the old-pattern inventory. This is separate from the ID and
+  linked-film repairs.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does

@@ -1682,7 +1682,7 @@ export class StorageManager {
       // refused before any scaffold season or the open game is touched; the file
       // on disk is unchanged.
       if (parsed && (Array.isArray(parsed.games) || Array.isArray(parsed.plays)) && !SeasonFormat.isCurrentSeason(parsed)) {
-        this.tagger?.toast?.(SeasonFormat.MESSAGE, 8000);
+        this.tagger?.toast?.(SeasonFormat.refusalMessage(SeasonFormat.seasonProblems(parsed)), 8000);
         return;
       }
 

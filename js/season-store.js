@@ -95,7 +95,7 @@ export class SeasonStore {
     if (problems.length) {
       const name = String(parsed.seasonName || seasonId);
       this.openRefusal = { seasonId, problems,
-        message: `${name} uses an old GridIron IQ format and was not opened. Nothing was changed, and the season you had open is still open.` };
+        message: `${name} ${SeasonFormat.hasIdentityProblems(problems) ? 'has unsafe or duplicate IDs' : 'uses an old GridIron IQ format'} and was not opened. Nothing was changed, and the season you had open is still open.` };
       try { console.warn('[season-format] open refused:', seasonId, problems.slice(0, 5)); } catch (e) {}
       return null;
     }
@@ -946,7 +946,8 @@ export class SeasonStore {
     if (!data || !Array.isArray(data.games)) return null;
     // A restore point in an old format is refused before the safety snapshot,
     // so nothing is written.
-    if (!SeasonFormat.isCurrentSeason(data)) { this.lastRestoreRefusal = SeasonFormat.RESTORE_MESSAGE; return null; }
+    const problems = SeasonFormat.seasonProblems(data);
+    if (problems.length) { this.lastRestoreRefusal = SeasonFormat.refusalMessage(problems, true); return null; }
     const safetyId = await this.snapshot('Before restore');
     if (!safetyId) return null;
     if (moved()) return stopped();
@@ -1045,7 +1046,8 @@ export class SeasonStore {
    */
   async adopt(parsed) {
     // Old-format payloads are refused before anything is staged (step 6).
-    if (parsed && !SeasonFormat.isCurrentSeason(parsed)) return { ok: false, data: null, oldFormat: true };
+    const problems = parsed ? SeasonFormat.seasonProblems(parsed) : [];
+    if (problems.length) return { ok: false, data: null, oldFormat: true, message: SeasonFormat.refusalMessage(problems) };
     const destSeasonId = this.currentSeasonId;
     const prior = this.data;
     if (!parsed || !Array.isArray(parsed.games)) return { ok: false, data: null };

@@ -83,28 +83,11 @@ log.
 - **Built since 116, not packaged (2026-10-12):** Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
-  green; Codex reviewed it (one finding, fixed in `1e926859`). Next, Codex's
-  job in `docs/CODEX-JOB-2026-10-12.md`: item 1 is built, not packaged.
-  Listed service reach-throughs now use their owners/injected dependencies;
-  active HTML-string renderers and native alerts are removed. Detection Review
-  and Play Diagram use the shared overlay service, including focus, Escape,
-  local cancellation and replacement cleanup. Their 1440/390px captures were
-  inspected; focused harnesses pass, with failing-first and mutation-checked
-  defect regressions. Remaining inventory is intentional: App publication and
-  parked OCR (2 global references, 4 HTML writers). Item 2 supplies the native
-  HTML save filter so extensionless renamed reports receive `.html` before
-  permission/overwrite confirmation; focused exports pass. Item 3 was a stale
-  roster contract and dependency setup, not an app defect. Its corrected matrix
-  passes 108/108, with both roster/playbook rules mutation-verified. Item 4's
-  security boundary review found SEC-1 and SEC-2 (P2): unsafe imported game IDs
-  can widen film deletion, and noncanonical linked paths bypass folder consent.
-  The coach approved both fixes. Both are repaired in source, with synthetic
-  import/deletion/consent checks and native canonical-path/sibling/junction
-  checks. Fifteen focused harnesses and four native tests pass; installed
-  linked-film and disposable deletion/Undo smoke remains pending.
-  Rust advisory coverage remains incomplete.
-  See `docs/OPEN-DEFECTS.md` for reproductions, repair evidence and limits.
-  Installed drawing, real-film preview and native file delivery still need smoke.
+  green. The Codex job in `docs/CODEX-JOB-2026-10-12.md` is built in source:
+  native views/shared overlays, HTML save filters, the current roster contract
+  and film path checks. Installed drawing, preview, file delivery and disposable
+  deletion/Undo checks remain pending. The native early path check and Rust
+  advisory coverage remain open; see `docs/OPEN-DEFECTS.md`.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:
