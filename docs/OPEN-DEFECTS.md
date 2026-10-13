@@ -26,8 +26,8 @@ shortcuts layout issue below; the candidate is not accepted.
   the toolbar's Keyboard shortcuts button. Owner: `js/native-shortcuts.jsx`
   and `css/native-shortcuts.css`. Keep the existing type size and separate
   the key groups from their descriptions. Repaired in source with bounded,
-  wrapping shortcut chips at unchanged type size; installed verification in
-  the next package remains pending.
+  wrapping shortcut chips at unchanged type size. Coach directed verification
+  to the next installed smoke test (2026-10-13); no separate re-smoke of 117.
 
 ## Awaiting the 1.12.0-117 smoke: carried findings
 
