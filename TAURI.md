@@ -102,9 +102,13 @@ Tauri v2 requires explicit permission grants in `capabilities/default.json`:
   `opener:allow-reveal-item-in-dir` scoped to `$APPDATA` and `$DOCUMENT`
 
 Linked-film access uses `authorize_film_path` in `src-tauri/src/main.rs`.
-It canonicalizes the target and approved roots before extending asset/fs scope.
-Approved roots come from machine settings or actual native-picker selections,
-not imported season metadata. Recursive listing and file URLs use this boundary,
+The trusted renderer supplies approved roots from machine settings or actual
+native-picker selections, not imported season metadata. Rust checks the target's
+spelling against supplied roots and their canonical forms before resolving the
+target, then checks canonical containment before extending asset/fs scope.
+It does not maintain an independent consent registry or protect against a script
+that compromises the renderer and supplies its own roots.
+Recursive listing and file URLs use these checks,
 including junction and file aliases. Unapproved film is refused and needs re-linking.
 Managed film deletion separately uses `delete_managed_film`, which validates
 opaque owner IDs and confines deletion to one canonical, non-junction game folder.

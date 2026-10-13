@@ -1,17 +1,42 @@
 use std::path::Path;
 
+fn spelling(path: &Path) -> Option<String> {
+    if !path.is_absolute() { return None; }
+    let mut text = path.to_str()?.replace('\\', "/");
+    if text.get(..8).is_some_and(|s| s.eq_ignore_ascii_case("//?/UNC/")) {
+        text = format!("//{}", &text[8..]);
+    } else if text.starts_with("//?/") {
+        if !text.as_bytes().get(5).is_some_and(|c| *c == b':') { return None; }
+        text = text[4..].to_owned();
+    }
+    if text.starts_with("//./") || text.split('/').any(|part| part == "." || part == ".." || part.ends_with(['.', ' '])) {
+        return None;
+    }
+    text = text.trim_end_matches('/').to_owned();
+    if cfg!(windows) { text.make_ascii_lowercase(); }
+    Some(text)
+}
+
 pub fn authorize(path: &str, approved_roots: &[String], directory: bool) -> Result<std::path::PathBuf, String> {
     let input = Path::new(path);
-    if !input.is_absolute() { return Err("Film path must be absolute".into()); }
+    let requested = spelling(input).ok_or("Film path must be absolute and have a safe spelling")?;
+    // Resolve only supplied roots first. An unrelated target must not cause an
+    // OS lookup (notably a connection to an unapproved network share).
+    let roots: Vec<_> = approved_roots.iter().filter_map(|root| {
+        let input = Path::new(root);
+        let original = spelling(input)?;
+        let canonical = input.canonicalize().ok().filter(|p| p.is_dir())?;
+        Some((original, canonical))
+    }).collect();
+    let under = |base: &str| requested == base || requested.starts_with(&format!("{base}/"));
+    if !roots.iter().any(|(original, canonical)| under(original) || spelling(canonical).is_some_and(|s| under(&s))) {
+        return Err("Film path has not been approved on this computer".into());
+    }
     let target = input.canonicalize().map_err(|e| e.to_string())?;
     if (directory && !target.is_dir()) || (!directory && !target.is_file()) {
         return Err("Film path has the wrong type".into());
     }
-    let approved = approved_roots.iter().filter_map(|root| {
-        let root = Path::new(root);
-        if !root.is_absolute() { return None; }
-        root.canonicalize().ok().filter(|p| p.is_dir())
-    }).any(|root| target.starts_with(root));
+    let approved = roots.iter().any(|(_, root)| target.starts_with(root));
     if !approved { return Err("Film path has not been approved on this computer".into()); }
     Ok(target)
 }
@@ -107,6 +132,8 @@ mod tests {
         assert!(authorize(root.to_str().unwrap(), &roots, true).is_ok());
         assert!(authorize(root.join("week-1/clip.mp4").to_str().unwrap(), &roots, false).is_ok());
         assert!(authorize(sibling.to_str().unwrap(), &roots, true).is_err());
+        assert_eq!(authorize(base.join("unapproved-missing/clip.mp4").to_str().unwrap(), &roots, false).unwrap_err(),
+            "Film path has not been approved on this computer");
         assert!(authorize(root.join("../approved-other").to_str().unwrap(), &roots, true).is_err());
         assert!(authorize(root.to_str().unwrap(), &[], true).is_err());
         assert!(authorize("relative", &roots, true).is_err());
@@ -137,7 +164,10 @@ mod tests {
         let roots = vec![root.to_string_lossy().into_owned()];
         assert!(authorize(link.to_str().unwrap(), &roots, true).is_err());
         assert!(authorize(link.join("clip.mp4").to_str().unwrap(), &roots, false).is_err());
-        assert!(authorize(link.to_str().unwrap(), &[other.to_string_lossy().into_owned()], true).is_ok());
+        assert!(authorize(link.to_str().unwrap(), &[other.to_string_lossy().into_owned()], true).is_err());
+        let alias_roots = vec![link.to_string_lossy().into_owned()];
+        assert!(authorize(link.to_str().unwrap(), &alias_roots, true).is_ok());
+        assert!(authorize(other.join("clip.mp4").to_str().unwrap(), &alias_roots, false).is_ok());
         assert!(delete_managed(&base, "safe-season", "linked-game").is_err());
         assert_eq!(std::fs::read(other.join("clip.mp4")).unwrap(), b"keep");
         std::fs::remove_dir(link).unwrap();

@@ -86,8 +86,8 @@ log.
   green. The Codex job in `docs/CODEX-JOB-2026-10-12.md` is built in source:
   native views/shared overlays, HTML save filters, the current roster contract
   and film path checks. Installed drawing, preview, file delivery and disposable
-  deletion/Undo checks remain pending. The native early path check and Rust
-  advisory coverage remain open; see `docs/OPEN-DEFECTS.md`.
+  deletion/Undo checks remain pending. Rust advisory coverage remains open;
+  see `docs/OPEN-DEFECTS.md`.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

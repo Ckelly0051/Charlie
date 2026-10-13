@@ -11,8 +11,9 @@ fn delete_managed_film(app: tauri::AppHandle, season_id: String, game_id: String
     film_paths::delete_managed(&base, &season_id, &game_id)
 }
 
-/// Imported film paths carry no consent. Only machine-owned settings and native
-/// picker selections supply approved roots; resolve both before granting scope.
+/// The trusted renderer supplies roots from machine settings/picker selections.
+/// Refuse unrelated spellings before target lookup, then enforce canonical
+/// containment. This is not a consent registry against renderer compromise.
 #[tauri::command]
 fn authorize_film_path(app: tauri::AppHandle, path: String, approved_roots: Vec<String>, directory: bool) -> Result<String, String> {
     let p = film_paths::authorize(&path, &approved_roots, directory)?;

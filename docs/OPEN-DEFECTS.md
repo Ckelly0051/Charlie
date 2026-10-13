@@ -121,8 +121,7 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
 
 - **SEC-1: managed-film deletion smoke.** Source repaired. Check normal game
   deletion and Undo on disposable data, preserving sibling film.
-- **SEC-2: linked-film authorization.** Source repair needs an early native
-  spelling check before resolving an unapproved target. Installed smoke needs
+- **SEC-2: linked-film authorization smoke.** Source repaired. Installed smoke needs
   playback after restart, approved alias/nested folders, explicit outside-folder
   linking and library-root change/rollback. The renderer supplies approved roots;
   native containment is not protection against a compromised renderer.
