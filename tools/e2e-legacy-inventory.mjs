@@ -8,7 +8,7 @@
  * Run:  node tools/e2e-legacy-inventory.mjs
  */
 import { readFileSync } from 'node:fs';
-import { inventory } from './audit-legacy.mjs';
+import { inventory, countGlobalSaveBlobRefs } from './audit-legacy.mjs';
 
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
@@ -35,6 +35,26 @@ const newDead = now.deadNames.filter(name => !baseline.deadNames.includes(name))
 ok(!newDead.length, 'every dead-name candidate was already recorded', newDead.join(', '));
 const newOrphans = now.orphanModules.filter(file => !baseline.orphanModules.includes(file));
 ok(!newOrphans.length, 'no module newly imported by nothing', newOrphans.join(', '));
+
+console.log('\n== 3. Global save detector syntax controls ==');
+for (const source of [
+  'window.ffaSaveBlob(blob, name)',
+  'globalThis.ffaSaveBlob(blob, name)',
+  'window?.ffaSaveBlob?.(blob, name)',
+  'window["ffaSaveBlob"](blob, name)',
+  "globalThis['ffaSaveBlob'](blob, name)",
+  "window?.['ffaSaveBlob']?.(blob, name)",
+  'globalThis?.["ffaSaveBlob"]?.(blob, name)',
+  "window ?. [ 'ffaSaveBlob' ] ?. (blob, name)",
+]) {
+  ok(countGlobalSaveBlobRefs(source) === 1, `detects ${source}`);
+}
+ok(countGlobalSaveBlobRefs('this.saveBlob(blob, name); app.saveBlob(blob, name);') === 0,
+  'injected save functions are not legacy globals');
+ok(countGlobalSaveBlobRefs('window.ffaSaveBlobExtra(blob, name); window["other"]();') === 0,
+  'unrelated global property names are not counted');
+ok(countGlobalSaveBlobRefs('window.ffaSaveBlob(); globalThis["ffaSaveBlob"]();') === 2,
+  'every distinct global reference is counted');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

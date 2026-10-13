@@ -29,6 +29,10 @@ const toolFiles = () => readdirSync(path.join(ROOT, 'tools')).filter(f => /\.(mj
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
 const count = (text, re) => (text.match(re) || []).length;
 
+export function countGlobalSaveBlobRefs(text) {
+  return count(text, /\b(?:window|globalThis)\s*(?:(?:\?\.|\.)\s*ffaSaveBlob\b|(?:\?\.\s*)?\[\s*['"]ffaSaveBlob['"]\s*\])/g);
+}
+
 /** Names defined at top level or as class methods and referenced nowhere else
  *  in js/ or tools/. A candidate list: string-built or dynamic use must be
  *  checked by hand before a deletion (plan, Phase 1). */
@@ -89,7 +93,7 @@ export function inventory() {
     deadNames: dead.length,
     orphanModules: orphanModules.length,
     retiredTests: existsSync(path.join(ROOT, 'tools', 'retired')) ? readdirSync(path.join(ROOT, 'tools', 'retired')).length : 0,
-    globalSaveBlobRefs: count(js, /\b(?:window|globalThis)\s*(?:\?\.|\.)\s*ffaSaveBlob\b|\b(?:window|globalThis)\s*\[\s*['"]ffaSaveBlob['"]\s*\]/g),
+    globalSaveBlobRefs: countGlobalSaveBlobRefs(js),
     // B: second copies of the one unit rule (football-rules.countedUnit).
     inlineUnitRules: count(unitRules, /\bunit\s*\|\|\s*'offense'|\.unit\)\s*\|\|\s*'offense'|tags\??\.unit\s*\|\|\s*this\.defaultUnit/g),
     projectedPairsAlias: count(js, /PlayGrid\.PROJECTED_PAIRS/g),

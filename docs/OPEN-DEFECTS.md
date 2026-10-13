@@ -135,7 +135,8 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
   Reports, Dashboards, Plan, season and cut-up exports in the installed app,
   including renamed files, cancellation and failed saves. Desktop failures
   return false and never use an anchor-download fallback; verify a refused save
-  on disposable export data.
+  on disposable export data. The inventory guards direct and optional
+  dot/bracket references to the removed global save helper.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does
