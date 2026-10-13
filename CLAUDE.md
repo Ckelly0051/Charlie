@@ -46,6 +46,10 @@ npm run dev
 - Unsigned installers: `cargo tauri build --bundles nsis` with a scratch config
   setting `bundle.createUpdaterArtifacts:false`; build from a clean checkout at
   the committed bump. Releases are cut by pushing a `v*` tag, only when asked.
+- **The web version never limits the apps** (coach, 2026-10-13): build desktop
+  (and later mobile) features natively even when a browser cannot support
+  them; the web version shows them as unavailable, never broken
+  (`GRIDIRON-IQ-PLAN-V2.md` > Platform lane).
 - Web deploy is the `gh-pages` branch, a verbatim `dist/` copy (clear it first;
   asset names are content-hashed).
 

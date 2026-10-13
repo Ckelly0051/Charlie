@@ -28,6 +28,11 @@ health understandable to the coach.
 - Deep, football-correct charting; optional fields stay optional.
 - Coach-controlled vocabulary and workflows.
 - Desktop-first full workflow; mobile is a focused companion.
+- **The web version never limits the apps** (coach, 2026-10-13). The browser
+  build stays, but the desktop app and the eventual mobile app are never
+  compromised because a browser cannot support a feature. Such a feature is
+  built natively, and the web version shows it as unavailable rather than
+  broken.
 - Known-bad data is never migrated for parity; destructive changes need an
   explanation and coach confirmation.
 - **Anything charted has a report** (coach, 2026-10-04). A field the coach
@@ -168,6 +173,21 @@ failed saves that roll back only their own season, game or program, and
    Review and Study views, clear film-source and save status, desktop-only
    storage operations explained rather than shown broken. Cloud sync and
    multi-user collaboration are separate future products.
+
+**Platform lane** (coach, 2026-10-13; not yet placed in the sequence). The
+remaining browser-first constraints on the desktop app, carried from the legacy
+excision (`docs/archive/plans/LEGACY-EXCISION-PLAN.md`, Pass 3 and after):
+
+- settings, the library root and approved film folders out of localStorage
+  into the catalog or a desktop settings file;
+- native SQLite in place of sql.js's whole-file catalog saves;
+- the storage layers (`storage.js`, `storage-backend.js`, `season-store.js`,
+  the catalog) consolidated;
+- the browser backend kept as its own lighter path behind `StorageBackend`,
+  allowed to lack desktop features.
+
+Each storage step touches coach data: impact report with exact counts and the
+coach's confirmation immediately before any write.
 
 **Functional beta acceptance** requires a cold-start Assistant Coach Test on a
 clean Windows profile with no fixture data and no verbal help: install, choose
