@@ -80,7 +80,7 @@ log.
   `688418106A932F7ECEA8807100DC0801BD4798F085E8FFEA1799802805571DA3`.
   Installer and application product/file versions verified. No installation,
   push, tag or publication performed; coach data unchanged.
-- **Packaged, awaiting smoke: `1.12.0-117`** (2026-10-13,
+- **Packaged, partial installed smoke: `1.12.0-117`** (2026-10-13,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
@@ -94,6 +94,10 @@ log.
   `04226572261B5FA04ECBD0FC8C4D3AFD474177751B83C2414691B40394778539`.
   Installer and application product/file versions verified. Independent
   packaged-asset inspection and coach-installed acceptance remain pending.
+  Codex's read-only Computer Use pass verified populated reports, linked
+  playback, Film Room filtering and the native Dashboard export dialog; it
+  found overlapping Keyboard Shortcuts labels. Full results and untested
+  checks are in the smoke record. No coach charting was changed.
   Installed drawing, preview, file delivery and disposable
   deletion/Undo checks remain pending. Rust advisory coverage and compatible
   dependency repairs are complete in source; remaining upstream warnings

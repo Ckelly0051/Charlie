@@ -30,7 +30,9 @@
 
 ## Result
 
-**Pending coach-installed smoke.** The gate records installed approval as
+**Partial installed smoke by Codex, 2026-10-13; not accepted.** Read-only
+Computer Use checks found one shortcuts-dialog layout issue. Remaining checks
+and coach acceptance are pending. The gate records installed approval as
 `not-assessed`. This candidate supersedes 116 for the next smoke; 116 was not
 accepted. Design approval status is unchanged.
 
@@ -72,4 +74,32 @@ claim a repair. Record a recurrence without restarting that investigation.
 
 ## Findings
 
-Not assessed yet; no installed smoke has been performed for 117.
+1. **Keyboard Shortcuts: overlapping text.** At the observed 1402 x 932
+   window, the Play Type and Result key chips overlap their descriptions;
+   the long Redo chord overlaps its description too. Reproduced by opening
+   the toolbar's Keyboard shortcuts button and confirmed in a second capture.
+   Escape dismisses the centered dialog and returns focus to its opener.
+
+## Codex Read-Only Checks
+
+- Installed More menu identifies `1.12.0-117`. Home renders the six-game
+  canonical 2025 JV season with film thumbnails and scores.
+- The existing Test 1 Dashboard renders its number, bar, share, game and
+  table modules. Its Holy Family yards/play point is 7.9, matching Overview.
+- Overview, Defense, Special Teams and Players render; the detail tabs do
+  not repeat the Overview score banner.
+- Linked film visibly advances in Chart and Film Room. Filtering Film Room
+  to Offense shows 34 plays, 7.9 yards/play and 59.4% success, matching
+  Overview. Watch 34 opens a 34-play film session and plays film; exiting
+  removes the session controls. The temporary filter was cleared.
+- Dashboard Export opens the native HTML Save As dialog; Escape cancels
+  without an error. Renamed-file delivery, overwrite and file contents were
+  not verified. No export file was written.
+- Study renders its current-game Formation results. Plan renders its empty
+  existing plan; its export is disabled, so Plan delivery remains untested.
+- No tags, notes, scores, roster, film links or season records were edited or
+  deleted. Navigation and film selection may persist ordinary view state.
+
+Save/draft, restart, Dashboard mutations, actual export delivery, diagram and
+analysis review, updater, managed-film deletion/Undo and invalid-ID recovery
+remain untested in this pass. Use an isolated profile for data-mutating checks.

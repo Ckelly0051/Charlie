@@ -15,7 +15,17 @@ with three Dashboards findings, built since as Dashboards rev 2
 (`docs/archive/smoke/SMOKE-1.12.0-116.md`). Candidate `1.12.0-117` is packaged
 for the next smoke; independent package inspection and installed acceptance
 remain pending (`SMOKE-1.12.0-117.md`). Installed smoke does not change the
-design approval registry.
+design approval registry. Codex's partial read-only installed smoke found the
+shortcuts layout issue below; the candidate is not accepted.
+
+## 1.12.0-117 installed smoke
+
+- **Keyboard Shortcuts text overlaps.** In the installed app at the observed
+  1402 x 932 window, Play Type and Result shortcut chips overlap their
+  descriptions, and the Redo chord overlaps its description. Reproduce with
+  the toolbar's Keyboard shortcuts button. Owner: `js/native-shortcuts.jsx`
+  and `css/native-shortcuts.css`. Keep the existing type size and separate
+  the key groups from their descriptions. No fix started.
 
 ## Awaiting the 1.12.0-117 smoke: carried findings
 
