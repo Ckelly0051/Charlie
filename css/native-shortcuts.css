@@ -3,9 +3,9 @@
 .gi-shortcuts h3{margin:0 0 9px;color:var(--gi-12);font-size:12px;text-transform:uppercase}
 .gi-shortcuts dl{display:grid;gap:7px;margin:0}
 .gi-shortcuts dl>div{display:grid;grid-template-columns:minmax(90px,.65fr) 1fr;align-items:start;gap:10px}
-.gi-shortcuts dt{display:flex;flex-wrap:wrap;gap:4px}
+.gi-shortcuts dt{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
 .gi-shortcuts dd{margin:0;color:var(--gi-11);font-size:12px;line-height:1.4}
-.gi-shortcuts kbd{display:inline-block;min-width:24px;padding:3px 5px;border:1px solid var(--gi-7);border-bottom-color:var(--gi-8);border-radius:var(--gi-radius);background:var(--gi-1);color:var(--gi-12);font:700 11.5px ui-monospace,SFMono-Regular,Consolas,monospace;text-align:center;white-space:nowrap}
+.gi-shortcuts kbd{display:inline-block;box-sizing:border-box;min-width:24px;max-width:100%;padding:3px 5px;border:1px solid var(--gi-7);border-bottom-color:var(--gi-8);border-radius:var(--gi-radius);background:var(--gi-1);color:var(--gi-12);font:700 11.5px ui-monospace,SFMono-Regular,Consolas,monospace;text-align:center;white-space:normal;overflow-wrap:anywhere}
 @media(max-width:700px){.gi-shortcuts{grid-template-columns:1fr}.gi-shortcuts dl>div{grid-template-columns:minmax(100px,.65fr) 1fr}}
 /* ══ S6-6g — DESIGN RULES LAST. Section heading = lower-third plate. ═════════ */
 .gi-shortcuts h3{

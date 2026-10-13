@@ -96,7 +96,8 @@ log.
   packaged-asset inspection and coach-installed acceptance remain pending.
   Codex's read-only Computer Use pass verified populated reports, linked
   playback, Film Room filtering and the native Dashboard export dialog; it
-  found overlapping Keyboard Shortcuts labels. Full results and untested
+  found overlapping Keyboard Shortcuts labels, now repaired in source but
+  not in the 117 installer. Full results and untested
   checks are in the smoke record. No coach charting was changed.
   Installed drawing, preview, file delivery and disposable
   deletion/Undo checks remain pending. Rust advisory coverage and compatible

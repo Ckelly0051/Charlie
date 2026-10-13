@@ -947,6 +947,31 @@ ok(r.allPresent && r.minHeight >= 44 && r.retiredOwnersAbsent,
   'Mobile More keeps Undo, Redo, and Shortcuts touch-reachable without reviving the drawer', JSON.stringify(r));
 await page.click('[data-popover-item="shortcuts"]');
 await page.waitForSelector('[data-overlay-id="keyboard-shortcuts"] [data-native-shortcuts]', { timeout: 10000 });
+for (const width of [1402, 1280, 768, 390]) {
+  await page.setViewport({ width, height: 932 });
+  await page.evaluate(() => document.fonts.ready);
+  const collisions = await page.evaluate(() => {
+    const hits = [];
+    for (const row of document.querySelectorAll('.gi-shortcuts dl>div')) {
+      const description = row.querySelector('dd').getBoundingClientRect();
+      const bounds = row.getBoundingClientRect();
+      for (const key of row.querySelectorAll('kbd')) {
+        const range = document.createRange();
+        range.selectNodeContents(key);
+        const rects = [key.getBoundingClientRect(), ...range.getClientRects()];
+        if (rects.some(rect => rect.right > bounds.right + 1 || rect.left < bounds.left - 1
+          || (rect.right > description.left && rect.left < description.right
+            && rect.bottom > description.top && rect.top < description.bottom))) {
+          hits.push(key.textContent);
+        }
+      }
+    }
+    return hits;
+  });
+  ok(collisions.length === 0, `Shortcuts keys stay within their rows and clear of descriptions at ${width}px`, JSON.stringify(collisions));
+  await capture(`shortcuts-spacing-${width}`);
+}
+await page.setViewport({ width: 390, height: 844 });
 await capture('shortcuts-390x844');
 r = await page.evaluate(() => ({
   shortcutsOpen: !!document.querySelector('[data-overlay-id="keyboard-shortcuts"] [data-native-shortcuts]'),

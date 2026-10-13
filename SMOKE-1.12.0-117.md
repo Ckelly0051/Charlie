@@ -79,6 +79,8 @@ claim a repair. Record a recurrence without restarting that investigation.
    the long Redo chord overlaps its description too. Reproduced by opening
    the toolbar's Keyboard shortcuts button and confirmed in a second capture.
    Escape dismisses the centered dialog and returns focus to its opener.
+   Repaired in source after this smoke; the 117 installer remains unchanged.
+   The next package must verify the repaired dialog in WebView2.
 
 ## Codex Read-Only Checks
 
