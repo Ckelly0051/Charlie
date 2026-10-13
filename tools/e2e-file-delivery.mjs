@@ -42,9 +42,21 @@ const cancelled = await ffaSaveBlob(new Blob(['report']), 'report.html', { notif
 ok(cancelled === false && writes.length === 1 && messages.length === 1 && anchors === 0,
   'cancel writes nothing and emits no success notice', { cancelled, writes, messages, anchors });
 mode = 'fail';
-await ffaSaveBlob(new Blob(['report']), 'report.html', { notify });
+const failed = await ffaSaveBlob(new Blob(['report']), 'report.html', { notify });
 ok(messages.at(-1) === 'Save failed — try saving into Documents or Downloads.' && other.length === 0,
   'save failure notifies only its injected owner', { messages, other });
+ok(failed === false && anchors === 0 && writes.length === 1,
+  'a failed native write returns false and never falls back to an ignored anchor download', { failed, anchors, writes });
+const originalDialog = window.__TAURI__.dialog;
+window.__TAURI__.dialog = { save: async () => { throw new Error('synthetic dialog failure'); } };
+const dialogFailed = await ffaSaveBlob(new Blob(['report']), 'report.html', { notify });
+ok(dialogFailed === false && anchors === 0 && writes.length === 1,
+  'a native dialog failure returns false with no anchor or write', { dialogFailed, anchors, writes });
+window.__TAURI__.dialog = null;
+const unavailable = await ffaSaveBlob(new Blob(['report']), 'report.html', { notify });
+ok(unavailable === false && anchors === 0 && writes.length === 1,
+  'an incomplete desktop save bridge refuses delivery instead of claiming an anchor save', { unavailable, anchors, writes });
+window.__TAURI__.dialog = originalDialog;
 mode = 'save';
 for (const filename of ['game_report.html', 'defensive_report.html', 'season_report.html', 'dashboard.html']) {
   chosenPath = `C:/scratch/Coach renamed ${filename.replace('.html', '')}`;
@@ -65,5 +77,9 @@ ok(writes.length === beforeCancel, 'cancelling a renamed HTML save writes nothin
 mode = 'save';chosenPath = 'C:/scratch/plays.csv';
 await ffaSaveBlob(new Blob(['csv'], { type: 'text/csv' }), 'plays.csv', { notify });
 ok(!dialogs.at(-1).filters && writes.at(-1).path === chosenPath, 'non-HTML export delivery stays unchanged', dialogs.at(-1));
+delete window.__TAURI__;
+const beforeBrowser = anchors;
+const browserSaved = await ffaSaveBlob(new Blob(['browser']), 'browser.txt', { notify });
+ok(browserSaved === true && anchors === beforeBrowser + 1, 'browser exports still use the anchor download', { browserSaved, anchors });
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

@@ -133,7 +133,9 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
 - **Injected export delivery smoke.** Source uses one App-bound save function
   across all seven export consumers; no global save helper remains. Verify
   Reports, Dashboards, Plan, season and cut-up exports in the installed app,
-  including renamed files, cancellation and failed saves.
+  including renamed files, cancellation and failed saves. Desktop failures
+  return false and never use an anchor-download fallback; verify a refused save
+  on disposable export data.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does

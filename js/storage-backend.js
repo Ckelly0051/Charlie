@@ -1475,8 +1475,11 @@ export function detectBackend() {
  */
 export async function ffaSaveBlob(blob, filename, { notify } = {}) {
   const t = typeof window !== 'undefined' && window.__TAURI__;
-  if (t && t.dialog && t.fs) {
+  if (t) {
     try {
+      if (typeof t.dialog?.save !== 'function' || typeof t.fs?.writeFile !== 'function') {
+        throw new Error('Native save services are unavailable.');
+      }
       const options = { defaultPath: filename };
       if (/\.html?$/i.test(filename) || blob.type.split(';')[0].toLowerCase() === 'text/html') {
         // The native dialog owns extension completion, permission and overwrite
@@ -1515,8 +1518,9 @@ export async function ffaSaveBlob(blob, filename, { notify } = {}) {
       try { notify?.(`Saved: ${path}`); } catch (e) { /* toast is best-effort */ }
       return true;
     } catch (e) {
-      console.warn('Native save failed; falling back to anchor download', e);
+      console.warn('Native save failed', e);
       try { notify?.('Save failed — try saving into Documents or Downloads.'); } catch (e2) {}
+      return false;
     }
   }
   const url = URL.createObjectURL(blob);
