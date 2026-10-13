@@ -67,6 +67,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Shared file delivery | `e2e-file-delivery` (synthetic Tauri save, extensionless HTML rename/default extension, exact returned paths, bytes, cancellation and notification ownership) |
 | Managed film path boundary | `e2e-film-path-security` (unsafe/duplicate import IDs, identity refusal messages, reserved-name season creation/reopen in both backends, no writes on refusal, direct backend refusal and native deletion dispatch); `cargo test --manifest-path src-tauri/Cargo.toml film_paths::tests` (temporary-folder deletion, sibling preservation and Windows junction refusal) |
 | Linked film consent boundary | `e2e-linked-film-security` (parent paths, machine-owned consent, fresh picker, rollback, canonical alias recursion, rejected file aliases and asset URLs); native `film_paths::tests` (refusal before target lookup, canonical containment, outside junctions, case variants and explicit alias/outside approval) |
+| Stranded markup and CSS | `e2e-stranded-code` (unproduced element IDs, dead selector branches, empty/comment-only CSS blocks and detector controls); semantic orphan comments still require source review |
 | Settings and libraries | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library`, `e2e-tag-library-storage`, `e2e-beta-config` |
 | Game form | `e2e-native-game`, `e2e-game-form-context`, `e2e-game-form-visual` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-core` |

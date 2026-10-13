@@ -15,6 +15,7 @@
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import postcss from 'postcss';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PARKED = {
@@ -66,6 +67,21 @@ ok(parkedLive.length === Object.keys(PARKED).length, 'every parked exception sti
 const report = execFileSync(process.execPath, [`${ROOT}/tools/prune-dead-css.mjs`, '--strict'], { cwd: ROOT, encoding: 'utf8' });
 const dead = Number((report.match(/(\d+) dead branches/) || [])[1]);
 ok(dead === 0, 'no stylesheet keeps a selector branch no production source can produce', report.trim().split('\n').slice(-3).join(' | '));
+
+const emptyBlocks = (source, file) => {
+  const out = [];
+  postcss.parse(source, { from: file }).walk(node => {
+    if (['rule', 'atrule'].includes(node.type) && node.nodes && !node.nodes.some(child => child.type !== 'comment')) {
+      out.push(`${file}:${node.source.start.line}`);
+    }
+  });
+  return out;
+};
+ok(emptyBlocks('@media (width: 1px) { /* retired */ } .gone {} .kept { color: red }', 'probe.css').length === 2,
+  'the CSS guard detects empty and comment-only blocks without flagging live rules');
+const empty = fs.readdirSync(`${ROOT}/css`).filter(f => f.endsWith('.css'))
+  .flatMap(f => emptyBlocks(fs.readFileSync(`${ROOT}/css/${f}`, 'utf8'), f));
+ok(empty.length === 0, 'no stylesheet keeps empty rule or at-rule blocks', empty.join(', '));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

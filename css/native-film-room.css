@@ -56,8 +56,6 @@
 .gi-film-save-filter input:focus-visible,.gi-film-table-wrap td>button:focus-visible{
   outline:none;box-shadow:var(--gi-focus)}
 
-@media(max-width:600px){}
-
 /* THE TABLE'S CONTROLS (2026-09-24). Their own region, placed by the Break Down
    composition; they style themselves rather than borrowing the table's rules.
    Base: a bar over the table (table beside the film, or a phone). The route

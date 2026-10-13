@@ -897,8 +897,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   touch-action: manipulation;
 }
 
-/* --- In-app confirmation modal (reliable replacement for window.confirm) --- */
-
 html { height: auto; }
 body {
   overflow-x: hidden;
@@ -1364,20 +1362,6 @@ body { font-size: 13px; }
 .btn.btn-accent:hover:not(.ws-shell *) {
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
-
-/* =====================================================================
-   DESIGN REFRESH v2 — play table, transport & the signature D&D badge
-   (§4.5–4.7).
-   ===================================================================== */
-
-/* =====================================================================
-   DESIGN REFRESH v2 — overlays & cards (§4.8). Light overlays already
-   inherit the new tokens (white cards, flat shadows); this unifies the
-   modal backdrop and adds a subtle, reduced-motion-safe entrance.
-   ===================================================================== */
-
-@media (prefers-reduced-motion: reduce) {
-  }
 
 /* Cards are border-only; shadows are reserved for floating layers. */
 .stat-card { box-shadow: none; }
