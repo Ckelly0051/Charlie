@@ -88,8 +88,9 @@ log.
   and film path checks. Mirror recovery distinguishes invalid IDs; export
   consumers share one injected save function without a window global.
   Installed drawing, preview, file delivery and disposable
-  deletion/Undo checks remain pending. Rust advisory coverage remains open;
-  see `docs/OPEN-DEFECTS.md`.
+  deletion/Undo checks remain pending. Rust advisory coverage and compatible
+  dependency repairs are complete in source; remaining upstream warnings
+  and installed updater smoke are in `docs/OPEN-DEFECTS.md`.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
   or failed, `releaseEligible: true`. Receipt:

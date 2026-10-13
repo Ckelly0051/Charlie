@@ -125,15 +125,16 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
   playback after restart, approved alias/nested folders, explicit outside-folder
   linking and library-root change/rollback. The renderer supplies approved roots;
   native containment is not protection against a compromised renderer.
-- **Rust dependency advisories.** Audit completed; dependency repairs remain
-  open. The Windows updater depends on rustls 0.23.40
-  (RUSTSEC-2026-0285; patched in 0.23.45). quick-xml 0.39.4 has
-  RUSTSEC-2026-0194/0195 (patched in 0.41.0); no affected Windows input
-  path was identified. anyhow 1.0.102 has an unsoundness warning
-  (RUSTSEC-2026-0190; patched in 1.0.103), with no affected call found in
-  the app or inspected Tauri runtime sources. Transitive maintenance warnings
-  also remain. Update compatible dependencies and repeat the audit before
-  closing; the audit report is in local `artifacts/security/`.
+- **Rust transitive maintenance advisories.** The compatible dependency
+  repairs remove the reported vulnerabilities and the anyhow/event-listener
+  unsoundness warnings. Remaining warnings are unmaintained proc-macro-error
+  and five unic crates, plus glib 0.18.5 unsoundness (RUSTSEC-2024-0429).
+  glib and proc-macro-error are absent from the Windows dependency tree;
+  unic remains through Tauri's urlpattern dependency. Track upstream
+  replacements; do not suppress the advisories or force incompatible GTK
+  versions into Tauri. Repeat `cargo audit --file src-tauri/Cargo.lock`
+  after future dependency updates. Installed updater/launch smoke remains
+  required for the repaired lockfile.
 - **Mirror identity label smoke.** Source repaired. An unsafe/duplicate-ID
   mirror is labeled "Invalid IDs", not "Old format", and cannot be recovered.
   Verify the label on an isolated installed test profile, not coach data.
