@@ -57,7 +57,7 @@ no separate copy step.
 
 ```bash
 npm ci                      # install frontend dependencies
-cargo tauri build            # runs `npm run build` (Vite) automatically, then
+cargo tauri build -- --locked # runs `npm run build` (Vite) automatically, then
                               # -> native installers in src-tauri/target/release/bundle
 ```
 
@@ -70,7 +70,7 @@ then `tauri-apps/tauri-action`).
 
 For debug builds (faster, includes devtools):
 ```bash
-cargo tauri build --debug   # -> src-tauri/target/debug/bundle
+cargo tauri build --debug -- --locked # -> src-tauri/target/debug/bundle
 ```
 
 ## Tauri v2 API notes
@@ -83,8 +83,11 @@ With `withGlobalTauri: true` in `tauri.conf.json`, plugin APIs are on
 - `readDir()` returns `{ name, isFile, isDirectory }` entries
 - Permissions are granted via `src-tauri/capabilities/default.json`
 
-`TauriBackend` reads/writes `season.json` and `backups/season_<ts>.json` under
-`BaseDirectory.AppData` — covered by the `$APPDATA/**` scope.
+`CatalogPersistence` owns the canonical `seasons/library.db` under app data,
+including seasons, games, plays, restore points and game versions. Current
+checksummed JSON snapshots mirror to `Documents/GridIron IQ/`; recovery is
+explicit and confirmed. Leftover per-season `season.json` files are never
+silently imported. Native access is covered by the configured filesystem scope.
 
 ## Capabilities (permissions)
 

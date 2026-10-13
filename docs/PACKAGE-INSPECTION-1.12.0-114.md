@@ -54,5 +54,5 @@ HTML strings to compare their DOM structures.
 
 This passes the packaged-asset check only. Installed smoke remains the coach's
 decision. The recorded full gate remains **157/158 at `075522ce`**, with the
-coach-accepted focused reruns described in `SMOKE-1.12.0-114.md`; this review
+coach-accepted focused reruns described in `docs/archive/smoke/SMOKE-1.12.0-114.md`; this review
 does not turn that into a green full gate on the final packaged bytes.

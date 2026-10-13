@@ -38,7 +38,7 @@ Updated 2026-10-13.
 The one place release state is kept current. Replace entries; do not append a
 log.
 
-- **Latest coach-smoked installer: `1.12.0-113`** (2026-10-09,
+- **Latest coach-accepted installer: `1.12.0-113`** (2026-10-09,
   `SMOKE-1.12.0-113.md`): PASS with the intermittent rapid-scrubbing defect
   deferred in `docs/OPEN-DEFECTS.md`; no further coach findings. Includes missed
   tackles, smoke 112 repairs, Drive in Situation and kick coverage tackles.
@@ -50,13 +50,13 @@ log.
   PASS (2026-10-09). Installed smoke acceptance is separate from the gate
   receipt's historical `installedApproval: not-assessed` and does not move the
   design approval registry. No push, tag or publication authorized here.
-- **Smoked: `1.12.0-114`** (2026-10-10, `SMOKE-1.12.0-114.md`): Chart's draft
+- **Smoked: `1.12.0-114`** (2026-10-10, `docs/archive/smoke/SMOKE-1.12.0-114.md`): Chart's draft
   and Save, unit changes as saves with a charted-data prompt, tacklers on a
   change of possession, Dashboards rev 1. Coach checks 1-2 passed and Claude's
   installed checks 8-10 passed; the coach closed the findings list (six
   findings) for fixing. Packaged-asset inspection PASS.
 - **Smoked with three findings: `1.12.0-115`** (2026-10-12,
-  `SMOKE-1.12.0-115.md`): the smoke 114 fixes (Dashboards home, read-only
+  `docs/archive/smoke/SMOKE-1.12.0-115.md`): the smoke 114 fixes (Dashboards home, read-only
   templates, Special Teams teal, prose, the installed-check defects, bar
   scale) and one yards rule across the reports, Study and Dashboards
   (`docs/REPORTS-CONTRACTS.md` > Yards). Codex review rounds closed with no
@@ -67,7 +67,7 @@ log.
   `EE10EAFE802F5ECD05FAF58B156F05F119CE41CCCFAEDBAB3A2009BEF6A7677A`.
   Its findings are built in 116; installed acceptance was not granted.
   Packaged-asset inspection not run. Superseded by 116 for the next smoke.
-- **Smoked, not accepted: `1.12.0-116`** (2026-10-12, `SMOKE-1.12.0-116.md`):
+- **Smoked, not accepted: `1.12.0-116`** (2026-10-12, `docs/archive/smoke/SMOKE-1.12.0-116.md`):
   three Dashboards findings, built since as Dashboards rev 2 (a canvas of
   modules); no other findings. Independent package inspection not run. Dashboards navigation
   strip and neutral buttons; one success/stop rule across Reports, Study and
@@ -80,21 +80,28 @@ log.
   `688418106A932F7ECEA8807100DC0801BD4798F085E8FFEA1799802805571DA3`.
   Installer and application product/file versions verified. No installation,
   push, tag or publication performed; coach data unchanged.
-- **Built since 116, not packaged (2026-10-12):** Dashboards rev 2 (`e68bb5ef`):
+- **Packaged, awaiting smoke: `1.12.0-117`** (2026-10-13,
+  `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
   green. The Codex job in `docs/CODEX-JOB-2026-10-12.md` is built in source:
   native views/shared overlays, HTML save filters, the current roster contract
   and film path checks. Mirror recovery distinguishes invalid IDs; export
   consumers share one injected save function without a window global.
+  Built from clean version-only bump `a60b0809`; `e2e-p0-exit` 20/20.
+  Artifact: `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-117_x64-setup.exe`,
+  4,060,134 bytes, SHA-256
+  `04226572261B5FA04ECBD0FC8C4D3AFD474177751B83C2414691B40394778539`.
+  Installer and application product/file versions verified. Independent
+  packaged-asset inspection and coach-installed acceptance remain pending.
   Installed drawing, preview, file delivery and disposable
   deletion/Undo checks remain pending. Rust advisory coverage and compatible
   dependency repairs are complete in source; remaining upstream warnings
   and installed updater smoke are in `docs/OPEN-DEFECTS.md`.
-  The full gate and installer 117 after this job each need the coach's yes.
-- **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
+  Nothing installed, pushed, tagged or published; coach data unchanged.
+- **Latest full gate:** 162/162 green at `970294b5` (2026-10-13), zero skipped
   or failed, `releaseEligible: true`. Receipt:
-  `artifacts/gate-logs/2026-10-12T22-41-45-511Z-zsOpDC/receipt.json`.
+  `artifacts/gate-logs/2026-10-13T16-47-06-259Z-LeHtWB/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

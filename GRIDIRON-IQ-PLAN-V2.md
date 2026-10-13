@@ -153,7 +153,8 @@ failed saves that roll back only their own season, game or program, and
      a canvas the coach fills through the module picker, each module with its
      own unit, games, filters, measure and view, so offense yards per play
      can sit beside defense yards per play; Open and Edit, and every action
-     on the picker page.
+     on the picker page. Rev 2 is packaged in 117; installed acceptance is
+     pending (`SMOKE-1.12.0-117.md`).
 6. **Coach-owned AI analysis exchange.** Export a versioned season analysis pack
    (one row per play, stable `gameId::playId`, charted fields, data dictionary;
    no video, film paths or player identities by default). Then optionally

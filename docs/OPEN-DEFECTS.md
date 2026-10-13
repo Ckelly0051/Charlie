@@ -7,15 +7,17 @@ open, check its fix and smoke status in git.
 
 ## Release Status
 
-Latest coach-smoked build: `1.12.0-113` (2026-10-09), PASS with the
+Latest coach-accepted build: `1.12.0-113` (2026-10-09), PASS with the
 intermittent scrubbing defect deferred. `1.12.0-114` smoked with six
 findings, fixed in `1.12.0-115`. The 115 smoke found three further issues,
 fixed in `1.12.0-116`. The 116 smoke closed (2026-10-12), not accepted,
 with three Dashboards findings, built since as Dashboards rev 2
-(`SMOKE-1.12.0-116.md`). Installed smoke does not change the
+(`docs/archive/smoke/SMOKE-1.12.0-116.md`). Candidate `1.12.0-117` is packaged
+for the next smoke; independent package inspection and installed acceptance
+remain pending (`SMOKE-1.12.0-117.md`). Installed smoke does not change the
 design approval registry.
 
-## Awaiting the 1.12.0-116 smoke: smoke 115 findings
+## Awaiting the 1.12.0-117 smoke: carried findings
 
 - **Dashboards strip** (findings 1-2): inside a dashboard, Back to
   dashboards, Prev / Next through the home's order, and Go to reports set
@@ -28,11 +30,10 @@ design approval registry.
   unavailable, not 0%, including Top call and the Formation x Play Type matrix.
 - **Button styling:** disabled Prev / Next are grey; New dashboard is neutral.
 
-The full gate passed 158/158 at `af7e48cc` (2026-10-12), zero skips/failures;
-the version-only bump is `8bd32ffd`, with `e2e-p0-exit` 20/20. Installer
-details and the full smoke checklist are in `SMOKE-1.12.0-116.md`.
+Installer details, current gate evidence and the full smoke checklist are in
+`SMOKE-1.12.0-117.md`.
 
-## Carried forward for the 1.12.0-116 smoke
+## Carried forward for the 1.12.0-117 smoke
 
 Carried from 114:
 
@@ -66,7 +67,7 @@ Carried from 114:
   plays by the offense they faced. Smoke: open each template on the real season, add a
   widget, filter to 3rd down, click a bar and a heat-map cell to watch film,
   relaunch and reopen the dashboard.
-- **Dashboards rev 2, built since 116** (smoke 116 findings 1-3; coach,
+- **Dashboards rev 2, packaged in 117** (smoke 116 findings 1-3; coach,
   2026-10-12; `docs/REPORTS-CONTRACTS.md` > Dashboards): a canvas of modules,
   each with its own unit, games and filters, colored by its unit; Open and Edit,
   with Edit on the picker page and in the dashboard; Export, Rename, Duplicate
@@ -75,7 +76,7 @@ Carried from 114:
   saves a copy); delete a dashboard. The coach deleted the six rev 1 dashboards
   in 116 (2026-10-12).
 
-Smoke 114 findings, built in 115 (`SMOKE-1.12.0-114.md`, coach findings and
+Smoke 114 findings, built in 115 (`docs/archive/smoke/SMOKE-1.12.0-114.md`, coach findings and
 the installed check):
 
 - **Dashboards home** (findings 1-2): one home page that always stays
@@ -116,7 +117,7 @@ the installed check):
 
 ## Open defects
 
-The Codex job is built in source, not packaged. Installed drawing, film preview
+The Codex job is packaged in 117. Installed drawing, film preview
 and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
 
 - **SEC-1: managed-film deletion smoke.** Source repaired. Check normal game
@@ -153,8 +154,7 @@ and export checks remain pending (`docs/CODEX-JOB-2026-10-12.md`).
   wrote an extensionless file. Pinned tauri-plugin-dialog 2.7.1/rfd 0.16.0
   source confirms Windows takes the default extension from the first filter.
   HTML saves now supply that filter; the returned path is never rewritten after
-  native permission/overwrite confirmation. Four synthetic export regressions
-  fail first and under the wrong-extension mutation; file delivery is 11/11.
+  native permission/overwrite confirmation.
   Smoke Game, Defense, Season and Dashboards exports with a new basename,
   explicit `.html`, cancellation and overwrite. Other export types are unchanged.
 - **Rapid timeline scrubbing can falsely show "Film unavailable"** (intermittent,
