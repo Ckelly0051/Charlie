@@ -119,7 +119,46 @@ the installed check):
 Codex job (coach, 2026-10-12; `docs/CODEX-JOB-2026-10-12.md`): item 1's
 listed active-code patterns are removed in source, not packaged. The renamed
 HTML export is repaired pending installed smoke. The empty-roster lock is
-corrected to the current contract; the first security review remains.
+corrected to the current contract. The first security boundary review found two
+P2s below; fixes await the coach's approval. Rust advisory coverage remains open.
+
+- **SEC-1: imported game ID can delete sibling managed film (P2).** Reviewed
+  at `32f608ad`, 2026-10-13. `SeasonFormat.seasonProblems` accepts a game ID
+  of `.` and `SeasonStore._normalize` keeps it. After that game is deleted and
+  its undo window closes, `TauriBackend.deleteFilm` recursively removes
+  `seasons/<season>/films/.`, the whole season film root rather than one game.
+  Root: `js/storage-backend.js:1042`; sink: `1128`; caller:
+  `js/storage.js:1402`. Reproduced using the production validators and backend
+  with an in-memory filesystem. Pinned Tauri permits the dot component and
+  recursive AppData removal. No actual file was removed. Proposed repair:
+  refuse unsafe imported IDs without rewriting them, and independently enforce
+  a canonical, non-root per-game deletion target. Needs failing-first import
+  and direct-backend regressions plus a normal sibling-preservation control.
+  **Not repaired; import/refusal behavior needs approval.**
+- **SEC-2: imported linked path bypasses folder consent (P2).** With approved
+  root `D:/FilmRoot`, `D:/FilmRoot/../Private` passes
+  `TauriBackend.isDirAllowed` (`js/storage-backend.js:1284`). Opening the game
+  calls `allow_library_dir` for it (`js/storage.js:828`); the Rust command
+  checks existence, not consent (`src-tauri/src/main.rs:13`). Tauri grants the
+  canonical outside directory. Reproduced through the real auto-load and
+  open-folder methods with fake native calls; no real scope was granted and
+  no directory was read. Proposed repair: canonicalize target and approved
+  roots, including junctions, and enforce consent at the native grant owner;
+  distinguish native-picker consent from automatic reauthorization. Test
+  parent paths, junctions, normal roots and explicitly picked outside folders.
+  No remote exfiltration or script execution was established.
+  **Not repaired; native authorization behavior needs approval.**
+
+Security review receipt: scan `6e67940b-330c-4be6-9718-1135c6fcaa3a`, source
+`32f608add8e5f6f886eac2645e859f2d01451c6b`. The local Codex Security report
+retains source evidence and synthetic results. Active UI/export escaping,
+prepared SQL, credentials and signed updater controls were reviewed with no
+additional proven exploit. Production npm audit reported zero advisories; two
+high build-tool advisories do not reach shipped runtime. `cargo-audit` was not
+available, so the Rust advisory check is still needed. Independent reviewers
+hit usage limits; this was sequential local review, not independent confirmation
+or a claim that every repository file was audited. Parked OCR and non-running
+network services were excluded. No coach-data writes, full gate or installer.
 
 - **A renamed HTML report does not open after saving.** Coach-reproduced for
   Defense Report and Game Report: the default filename works, a changed one does

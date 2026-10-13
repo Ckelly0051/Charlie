@@ -95,7 +95,11 @@ log.
   HTML save filter so extensionless renamed reports receive `.html` before
   permission/overwrite confirmation; focused exports pass. Item 3 was a stale
   roster contract and dependency setup, not an app defect. Its corrected matrix
-  passes 108/108, with both roster/playbook rules mutation-verified. Item 4 remains.
+  passes 108/108, with both roster/playbook rules mutation-verified. Item 4's
+  security boundary review found SEC-1 and SEC-2 (P2): unsafe imported game IDs
+  can widen film deletion, and noncanonical linked paths bypass folder consent.
+  Both await approval before fixes; Rust advisory coverage remains incomplete.
+  See `docs/OPEN-DEFECTS.md` for reproductions, proposed repairs and limits.
   Installed drawing, real-film preview and native file delivery still need smoke.
   The full gate and installer 117 after this job each need the coach's yes.
 - **Latest full gate:** 158/158 green at `033a46fa` (2026-10-12), zero skipped
