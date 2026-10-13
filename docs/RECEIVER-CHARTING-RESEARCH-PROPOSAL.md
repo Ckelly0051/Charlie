@@ -1,6 +1,38 @@
 # Receiver Charting: Research and Proposal
 
-**2026-10-13. Proposed, not approved. Nothing built.**
+**2026-10-13. Design decided by the coach; comp not yet made; nothing built.**
+
+## Decisions (coach, 2026-10-13)
+
+These override anything below that differs. The research and the rest of the
+contract stand.
+
+1. **Scope:** the identified target only (the offensive Receiver role, one
+   jersey number). All-receiver charting is not planned.
+2. **Release:** `Inside` or `Outside` only, judged against the hash:
+   Inside is a release toward the hashes (the middle of the field), Outside
+   toward the sideline. No `Vertical` value and no release technique. Leave
+   blank when the release cannot be judged.
+3. **Route names:** the proposed list as written: Flat, Slant, Hitch, Out,
+   In, Cross, Comeback, Corner, Post, Go, Wheel, Angle, Screen, Option,
+   Double Move; coach-editable through `TagLibrary.DEFINITIONS`.
+4. **Route paths:** tabled. No path drawing, no `path`/`pathComplete`
+   members in this work.
+5. **Target and catch location:** nine zones, Left / Middle / Right by
+   Short / Medium / Deep, from the offense's view. No exact-point mode and no
+   other depth bands. The yard boundaries for Short / Medium / Deep (proposed:
+   Short behind the line through 9 yards, Medium 10-19, Deep 20+) are
+   confirmed with the coach in the comp. Target is where the ball actually
+   arrived; Catch is recorded only on a completion; neither changes total
+   gain.
+6. **Placement:** inline in the deck under the Receiver row, never over the
+   film.
+
+**Order:** a rendered comp of the deck editor at desktop and narrow widths
+for the coach's approval, then build checkpoint 1 (route and release, with
+their Study dimensions), then checkpoint 2 (target and catch zones on the
+same field graphic, with their Study dimensions). Reports wait for plan
+step 5.
 
 For `GRIDIRON-IQ-PLAN-V2.md` step 2. Route and release first; design pass
 target and catch location alongside them. Chart and film-linked Study ship
@@ -374,25 +406,11 @@ Step 5 report sketches (not implementation or layout approval):
 
 ## Approval Questions
 
-1. **Scope:** approve identified-target only first? Recommendation: yes;
-   all-receiver work is substantially slower and a different data model.
-2. **Release:** do you want Inside/Outside/Vertical only initially, or technique
-   too? Recommendation: direction first; technique collapsed if approved.
-   Confirm that the proposed center-relative meaning matches your coaching.
-3. **Route library:** accept the initial names, particularly Cross, Option and
-   Double Move, or substitute your vocabulary? No numbered-tree assumption.
-4. **Detail cost:** include marked route paths in the first build, or route
-   names/release with the field reserved for the location checkpoint?
-   Recommendation: optional path mode, never mandatory drawing.
-5. **Locations:** approve coarse three-thirds/depth bands as the fast path and
-   exact points as detail? Confirm target means observed arrival/attempt, not
-   a guessed intended destination. Neither becomes total gain.
-6. **Placement:** approve receiver-adjacent inline deck expansion, not an
-   overlay? This mock establishes interaction, not final visual approval.
+Answered; see Decisions at the top.
 
 ## Build Acceptance After Approval
 
-Before implementation, settle the six questions and approve a rendered comp
+Before implementation, the coach approves a rendered comp
 at desktop/narrow widths. Then make Chart + registry one bounded checkpoint;
 location charting follows on the shared visual. No Reports work until step 5.
 

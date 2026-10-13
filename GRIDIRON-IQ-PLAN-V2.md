@@ -105,9 +105,13 @@ failed saves that roll back only their own season, game or program, and
        2026-10-13): charting first, their Reports in step 5. They are granular
        and slow to chart for what they give, so charting is likely best as a
        visual (marking the field) and their reports need a visual to be
-       readable. Before any design or build, research how other film and
-       scouting apps chart and report pass location and routes, and bring
-       the findings to the coach;
+       readable. Research done and design decided (coach, 2026-10-13;
+       `docs/RECEIVER-CHARTING-RESEARCH-PROPOSAL.md` > Decisions): the
+       identified target only; route from the standard list; release Inside
+       or Outside judged against the hash; target and catch in nine zones
+       (Left/Middle/Right by Short/Medium/Deep); inline under the Receiver row;
+       route paths tabled. Next: a rendered comp, then route and release,
+       then the zones;
      - missed tackles: a play-level event plus optional player attribution,
        more than one player per play; uncharted is not zero. Built
        2026-10-07, coach-smoked in `1.12.0-113` on 2026-10-09 with the
