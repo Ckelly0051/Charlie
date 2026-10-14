@@ -140,18 +140,22 @@ requested viewport. Supplemental states have their relevant open and closed
 captures. The actual unmodified `offense` snapshot is also available for
 comparison; no preview additions are needed to review ordinary spacing.
 
-## Coach Questions
+## Coach Decisions
 
-1. **Opening/next-play policy:** proposed default for a newly marked or blank
-   play is Situation. When navigating already-existing plays in the same unit,
-   keep the section the coach was using, if that section exists; fall back to
-   Situation when the unit changes or that section is unavailable. Or should
-   every play start on Situation? The comp does not decide this preference.
-2. **Closed-section keyboard feedback:** proposed behavior keeps every current
-   shortcut active and preserves the open section. Update the closed summary
-   immediately and briefly announce the exact changed field/value in the deck
-   header, with a live-region announcement. Shift+3 demonstrates this without
-   opening Situation. Prefer this, or automatically open the changed section?
+Settled 2026-10-14; these behavior decisions do not approve the full comp or
+authorize production changes.
+
+1. **Opening/next-play policy:** a newly marked or blank play opens Situation.
+   Navigating existing plays retains the working section when available;
+   use Situation if that section is unavailable.
+2. **Closed-section keyboard feedback:** shortcuts stay active, update the
+   closed summary immediately and briefly announce the changed field/value
+   in the header, with a live-region announcement. They never open another
+   section or close the working section. Shift+3 demonstrates this feedback.
+3. **Stable on the current play:** once opened, an applicable section stays
+   open through edits, shortcuts, saves and refreshes. Only the coach closing
+   it or deliberately opening another section changes that disclosure state.
+   The one-open-section rule still applies to deliberate section navigation.
 
 No other behavior decision is reopened: Save stays unavailable on an unchanged
 play, now at the far left, and the receiver's local disclosure stays as built.

@@ -126,7 +126,14 @@ failed saves that roll back only their own season, game or program, and
        "Not charted". First a full-deck comp that keeps every real control
        (transport, Clear tags, Save, top-bar tools) on real season data for
        the coach's approval; then one migration across the whole deck, never
-       half-restyled. Acceptance checklist (coach's installed screenshot,
+       half-restyled. Section behavior settled 2026-10-14: new/blank plays
+       open Situation; existing-play navigation retains the working section
+       when available. Edits, shortcuts, saves and refreshes never close it
+       while the coach stays on that play. Shortcuts update closed summaries
+       and briefly announce the changed field without opening another section.
+       Only deliberate section navigation changes the open section. Comp and
+       checklist mapping: `design-comps/chart-deck-polish-2026-10-14/RATIONALE.md`;
+       full-comp design approval remains pending. Acceptance checklist (coach's installed screenshot,
        2026-10-14), each fixed explicitly:
        - one chip system: no fixed four-column centered grid beside
          text-sized chips (Formation and Backfield versus Personnel, QB
