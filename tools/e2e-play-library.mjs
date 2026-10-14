@@ -20,6 +20,7 @@
  */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
+import { chartDeckControls } from './chart-deck-test.mjs';
 import { TagLibrary } from '../js/tag-library.js';
 import { PlayTagger } from '../js/play-tagger.js';
 import { readFileSync } from 'node:fs';
@@ -81,7 +82,7 @@ console.log('\n-- PL-2 Option is a built-in, owned once --');
 
 // ---------------------------------------------------------------------------
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 60000 });
-const page = await browser.newPage();
+const page = chartDeckControls(await browser.newPage());
 page.setDefaultTimeout(9000);
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];

@@ -941,8 +941,7 @@ ok(picker.defaultDimension === 'formationFamily' && picker.declaredDefault === '
 // real addition, not a reshuffle of what already worked.
 ok(picker.measure.groups.join(',') === 'Coaching metrics,Advanced,Penalties,Special Teams',
   'The Study metric picker groups coaching metrics ahead of advanced measures, with Penalties/Special Teams as their own lenses', picker.measure.groups.join(','));
-ok(picker.dimension.groups.length === 7 && picker.dimension.groups[0] === 'Situation'
-  && !picker.dimension.groups.includes('Other'),
+ok(picker.dimension.groups.join(',') === 'Situation,Offensive look,Defensive call,Outcome & risk,Special Teams,Players,Receiver,Custom',
   'Study dimensions are grouped by football category with none left unclassified', JSON.stringify(picker.dimension.groups));
 // The guarantee that actually matters: grouping is presentation. Every option
 // still exists, with the same value, in the same order — so every saved view

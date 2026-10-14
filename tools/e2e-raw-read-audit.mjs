@@ -72,7 +72,7 @@ const ACK = [
   { file: 'js/advanced-metrics.js', method: 'summarize', code: 'x.play.tags[key]', count: 1, reason: "E3b: EPA groupBy() branches on StatsEngine.PROJECTED_FIELDS — the six go through projField(), and this raw read is reachable ONLY for non-projected keys (playType, down, …), which keep their existing 'Unknown' bucket." },
   // PlayGrid presentation reads and native editor seeds go through projField;
   // only the explicit edit commit may write the coach's stored value directly.
-  { file: 'js/play-grid.js', method: '_applyEdit', code: 'play.tags[col.key]', count: 2, reason: "EDITOR writes (an enum column and a free-text detail column such as the RPO defender number): commit the coach's explicit choice to the stored tag. Raw by design — display never writes." },
+  { file: 'js/play-grid.js', method: '_editValues', code: 'play.tags[col.key]', count: 2, reason: "EDITOR writes (an enum column and a free-text detail column such as the RPO defender number): commit the coach's explicit choice to the stored tag. Raw by design — display never writes." },
   // E4-2: the former `_applyEdit` `play.tags[sibling]` ACK (count 2) is GONE on
   // purpose — the promote-then-strip logic moved into
   // TagProjection.reconcileSiblings (tag-projection.js, not a scanned file: it

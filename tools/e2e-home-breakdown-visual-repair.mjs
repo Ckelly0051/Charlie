@@ -228,7 +228,8 @@ for (const [unit, playId] of units) {
         const box = btn.getBoundingClientRect();
         const preceding = btn.previousElementSibling?.getBoundingClientRect();
         return { field: owner?.dataset?.nativeField || (owner?.matches('.gi-play-call') ? 'playCall' : undefined),
-          gap: preceding ? box.left - preceding.right : null, spare: right != null ? right - box.right : null };
+          gap: preceding ? box.left - preceding.right : null, spare: right != null ? right - box.right : null,
+          baseline: preceding ? Math.abs((box.top + box.bottom) / 2 - (preceding.top + preceding.bottom) / 2) : null };
       });
       return {
         formScroll: form ? form.scrollWidth : null, formClient: form ? form.clientWidth : null,
@@ -239,16 +240,12 @@ for (const [unit, playId] of units) {
     // 10. scrollWidth <= clientWidth + 1 at every required width, per unit.
     ok(data.formScroll != null && data.formScroll <= data.formClient + 1, `${unit} at ${width}: charting pane has no internal horizontal scrollbar`, data);
     ok(data.pageOverflow <= 1, `${unit} at ${width}: no page-level horizontal overflow`, data);
-    // 11. SUPERSEDED 2026-09-22 (5d8936a): the coach's 1.12.0-93 screenshot
-    // rejected Edit Library stranded at the far module edge. Each one now sits
-    // beside its own label -- 4-12px after the preceding label element, the
-    // same rule e2e-native-tagging pins -- and never crosses its field's edge.
-    // SUPERSEDED 2026-09-23: the play-call Edit library joins them. It was left
-    // at the module edge, so one deck carried two placements for one action.
+    // Every library action shares its label row and the field's right edge.
+    ok(data.editAlign.length > 0 || unit === 'special', `${unit} at ${width}: library actions are present where chartable`, data.editAlign);
     for (const entry of data.editAlign) {
-      if (entry.gap == null || entry.spare == null) continue;
-      ok(entry.gap >= 4 && entry.gap <= 12 && entry.spare >= -1,
-        `${unit} at ${width}: Edit Library (${entry.field}) sits beside its label inside the field`, entry);
+      ok(entry.gap != null && entry.gap >= 4 && entry.spare != null
+        && Math.abs(entry.spare) <= 1 && entry.baseline != null && entry.baseline <= 1,
+        `${unit} at ${width}: Edit library (${entry.field}) aligns right without overlapping its label`, entry);
     }
   }
 }
