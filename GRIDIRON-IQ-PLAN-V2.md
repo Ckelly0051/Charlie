@@ -139,7 +139,8 @@ failed saves that roll back only their own season, game or program, and
        tightened section-entry spacing. Authority:
        `design-approvals/chart-deck-polish/manifest.json`. The whole-deck
        presentation migration is built in source, IMPLEMENTED_UNVERIFIED;
-       next is coach visual review, release verification and installed smoke.
+       Charlie Gate visual review is PASS (coach, 2026-10-14); next is
+       release verification and installed smoke.
        Current disclosure contract: `docs/VISUAL-SYSTEM-RULES.md` > Chart Deck.
        Acceptance checklist (coach's installed screenshot,
        2026-10-14), each fixed explicitly:

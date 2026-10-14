@@ -15,8 +15,9 @@ Chart and scheme copies), opening a valid mismatched receiver record as hidden
 data, dropping it on Save, and exact Study film.
 Target/Catch is not built. Whole-deck polish is built in source,
 IMPLEMENTED_UNVERIFIED, from the COMP_APPROVED full-control comp, including
-compact section-entry spacing. Coach visual review and installed verification
-are pending: retained modules, shortcut feedback and Y focus, compact/fine and
+compact section-entry spacing. Charlie Gate visual review is PASS (coach,
+2026-10-14). Release and installed verification remain pending: retained
+modules, shortcut feedback and Y focus, compact/fine and
 coarse controls, managed libraries, roster/receiver editing, Save/Undo and real
 film layout/scrolling. The coach's latest disclosure rule permits multiple open
 modules and shortcut opening, but never automatic closing on the current play.

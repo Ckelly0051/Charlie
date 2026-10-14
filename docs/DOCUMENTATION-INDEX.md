@@ -109,7 +109,8 @@ log.
   IMPLEMENTED_UNVERIFIED against its COMP_APPROVED artifact. The latest coach
   disclosure rule allows another module to open, but never auto-closes one
   already open on the same play; see `docs/VISUAL-SYSTEM-RULES.md` > Chart Deck.
-  Coach visual review, release verification and installed smoke are pending.
+  Charlie Gate visual review is PASS (coach, 2026-10-14); release verification
+  and installed smoke remain pending.
   Rust advisory coverage and compatible
   dependency repairs are complete in source; remaining upstream maintenance
   warnings are in `docs/OPEN-DEFECTS.md`. Rapid scrubbing remains
