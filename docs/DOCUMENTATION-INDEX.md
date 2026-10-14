@@ -115,9 +115,11 @@ log.
   dependency repairs are complete in source; remaining upstream maintenance
   warnings are in `docs/OPEN-DEFECTS.md`. Rapid scrubbing remains
   deferred. Coach approval authorizes no push, tag or publication.
-- **Latest full gate:** 162/162 green at `970294b5` (2026-10-13), zero skipped
-  or failed, `releaseEligible: true`. Receipt:
-  `artifacts/gate-logs/2026-10-13T16-47-06-259Z-LeHtWB/receipt.json`.
+- **Latest full gate:** 162/166 green at `7964f68f` (2026-10-14), zero
+  skipped, four failed; `releaseEligible: false`. Packaging is blocked by
+  `e2e-home-breakdown-visual-repair`, `e2e-play-library`,
+  `e2e-raw-read-audit` and `e2e-study-screen`. Receipt:
+  `artifacts/gate-logs/2026-10-14T19-25-26-388Z-93IGhW/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

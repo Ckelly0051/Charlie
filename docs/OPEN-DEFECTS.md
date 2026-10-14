@@ -7,6 +7,12 @@ open, check its fix and smoke status in git.
 
 ## Release Status
 
+Packaging is blocked by the latest full gate: four harnesses need repair.
+The visual-repair harness still requires the replaced Edit library adjacency;
+the play-library workflow clicks a control in a closed section; the raw-read
+audit names the prior owner method; the Study grouping expectation omits
+Receiver. A green full gate is required before the next version bump or installer.
+
 Receiver route/release checkpoint 1 is built in source after comp approval
 (2026-10-14), not packaged or installed-smoked. Release verification still
 needs the full gate and installed checks for Save/reopen, library editing,
