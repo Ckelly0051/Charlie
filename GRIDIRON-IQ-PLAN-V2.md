@@ -216,7 +216,8 @@ Dashboards (`docs/REPORTS-CONTRACTS.md`). Rev 2, a small rework after smoke 116
 findings 1-3: a canvas the coach fills through the module picker, each module
 with its own unit, games, filters, measure and view, so offense yards per play
 can sit beside defense yards per play; Open and Edit, and every action on the
-picker page. Rev 2 is packaged in 117; installed acceptance is pending
+picker page. Rev 2 is packaged in 117; installed smoke passed with the coach's
+approval on 2026-10-14
 (`SMOKE-1.12.0-117.md`). Opponent perspective comes with the rebuild.
 
 **Legacy excision and platform lane** (coach, 2026-09-25 and 2026-10-13; not

@@ -30,11 +30,16 @@
 
 ## Result
 
-**Partial installed smoke by Codex, 2026-10-13; not accepted.** Read-only
-Computer Use checks found one shortcuts-dialog layout issue. Remaining checks
-and coach acceptance are pending. The gate records installed approval as
-`not-assessed`. This candidate supersedes 116 for the next smoke; 116 was not
-accepted. Design approval status is unchanged.
+**PASS - coach-approved installed smoke, 2026-10-14.** Coach: "record 117 as
+passed smoke test." This is the latest accepted installer; 116 was not
+accepted. The rapid-scrubbing defect remains deferred. The shortcuts-dialog
+repair and receiver checkpoint 1 are source-only changes, not in installer
+117, and require their next installed smoke.
+
+The read-only Codex checks below remain evidence of that limited pass, not
+claims that Codex performed every coach check. Independent packaged-asset
+inspection remains pending. The gate's historical `not-assessed` value and
+the design approval registry are unchanged by coach acceptance.
 
 ## What to Check
 
@@ -104,4 +109,5 @@ claim a repair. Record a recurrence without restarting that investigation.
 
 Save/draft, restart, Dashboard mutations, actual export delivery, diagram and
 analysis review, updater, managed-film deletion/Undo and invalid-ID recovery
-remain untested in this pass. Use an isolated profile for data-mutating checks.
+were not tested by Codex in this read-only pass. Coach approval above is
+separate; it does not turn these into independently performed Codex checks.
