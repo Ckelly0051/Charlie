@@ -33,7 +33,7 @@ removes what a play cannot show.
   confirming a Quick Chart entry, or a parent change.
 - **Save stores what Chart shows.** It runs `PlayShape.settle` on the draft and
   copies the charting (tags, penalties, resulting situation, Special Teams,
-  notes, diagram) onto the play as one change: one Undo step.
+  notes, diagram, receiver details) onto the play as one change: one Undo step.
 - **A parent change is a Save** (`PlayTagger.changeParent`): the unit (Chart's
   buttons, the C key, Film Room's Unit column), the Special Teams unit and a
   try's attempt type. When it would remove values the coach charted, an in-app

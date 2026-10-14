@@ -1,0 +1,88 @@
+import assert from 'node:assert/strict';
+import puppeteer from './test-browser.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
+import { mkdir } from 'node:fs/promises';
+let checks=0;
+const check=(name,value) => { assert.ok(value,name); checks++; };
+const browser=await puppeteer.launch({args:['--no-sandbox']});
+try {
+  const page=await browser.newPage(), errors=[]; page.on('pageerror',error => errors.push(error.message)); await page.setViewport({width:1440,height:900}); await gotoApp(page,APP_URL);
+  const result=await page.evaluate(async mutations => {
+    const app=window.app, tagger=app.tagger;
+    if (mutations.save) tagger.constructor.DRAFT_FIELDS=tagger.constructor.DRAFT_FIELDS.filter(field => field !== 'receiverDetail');
+    if (mutations.cancel) {
+      const setField=app.nativeTagging.setField.bind(app.nativeTagging);
+      app.nativeTagging.setField=(key,value) => { app.nativeTagging._protectCallOverride(key); return setField(key,value); };
+    }
+    await app.storage.createSeason({name:'Receiver checkpoint test',team:'Test',year:'2026'});
+    const play={id:1,timestamp:{start:0,end:4},notes:'',annotations:[],tags:{...tagger.constructor.blankTags({unit:'offense'}),runPass:'Pass',result:'Gain',yardage:'8',players:{receiver:'22'},down:'1',distance:'10'}};
+    tagger.plays=[play]; tagger.selectPlay(1);
+    const output={};
+    output.written=tagger.setReceiverDetail('route','Slant');
+    output.draftOnly=!play.receiverDetail && tagger.getCurrentPlay().receiverDetail?.route === 'Slant' && tagger.hasUnsavedChanges();
+    tagger.setReceiverDetail('releaseDirection','Inside');
+    output.twoFields=tagger.getCurrentPlay().receiverDetail?.releaseDirection === 'Inside';
+    tagger.undoDraft(); output.undo=tagger.getCurrentPlay().receiverDetail?.route === 'Slant' && !tagger.getCurrentPlay().receiverDetail?.releaseDirection;
+    tagger.redoDraft(); output.redo=tagger.getCurrentPlay().receiverDetail?.releaseDirection === 'Inside';
+    tagger.saveDraft(); output.saved=play.receiverDetail?.route === 'Slant' && play.receiverDetail?.releaseDirection === 'Inside';
+    const store=app.storage.seasonStore;
+    const copy=JSON.parse(JSON.stringify({...store.data,games:[{...store.activeGame(),plays:[play]}]}));
+    output.roundtrip=store._normalize(copy).games[0].plays[0].receiverDetail?.route === 'Slant';
+    const values=app.analyticsRegistry.values('receiverRoute',play); output.registry=values.join() === 'Slant';
+    const result=app.study.run({plays:[{...play,__gid:'game-one'},{...play,id:2,__gid:'game-two',receiverDetail:undefined}],dimension:'receiverRoute',measures:[]});
+    output.study=result;
+    const original=tagger._confirmDialog; tagger._confirmDialog=async () => false;
+    tagger.getCurrentPlay().tags.playCallDefaults={runPass:'Pass'};
+    await app.nativeTagging.setField('runPass','Run');
+    output.cancelKeepsCallDefaults=tagger.getCurrentPlay().tags.playCallDefaults.runPass === 'Pass';
+    await tagger.setPlayerValue('receiver','7'); output.cancel=tagger.getCurrentPlay().tags.players.receiver === '22' && tagger.getCurrentPlay().receiverDetail?.route === 'Slant';
+    tagger._confirmDialog=async () => true;
+    await tagger.setPlayerValue('receiver','7'); output.clear=tagger.getCurrentPlay().tags.players.receiver === '7' && !tagger.getCurrentPlay().receiverDetail;
+    tagger.setPlayerValue('receiver','22, 7'); output.unresolved=tagger.setReceiverDetail('route','Out') === false;
+    output.choose=tagger.setReceiverDetail('route','Out','7') === true && tagger.getCurrentPlay().tags.players.receiver === '22, 7';
+    tagger.saveDraft(); output.multipleSaved=play.receiverDetail?.receiverNumber === '7';
+    tagger._confirmDialog=async () => false; await tagger.setTagValue('runPass','Run'); output.cancelRun=tagger.getCurrentPlay().tags.runPass === 'Pass';
+    tagger._confirmDialog=async () => true; await tagger.setTagValue('runPass','Run'); output.clearRun=!tagger.getCurrentPlay().receiverDetail && tagger.getCurrentPlay().tags.runPass === 'Run';
+    tagger._confirmDialog=original;
+    output.sack=app.analyticsRegistry.values('receiverRoute',{...play,tags:{...play.tags,result:'Sack'}}).length === 0;
+    output.noPlay=app.analyticsRegistry.values('receiverRoute',{...play,penalties:[{playCounts:false,disposition:'accepted'}]}).length === 0;
+    output.unresolvedPenalty=app.analyticsRegistry.values('receiverRoute',{...play,penalties:[{playCounts:null,disposition:'accepted'}]}).length === 0;
+    output.blank=app.analyticsRegistry.values('receiverRelease',{...play,receiverDetail:{receiverNumber:'7',route:'Out'}}).length === 0;
+    app.customChips.library.add('receiverRoute','Coach Choice'); app.customChips.reload();
+    output.custom=app.nativeTagging.snapshot().libraries.receiverRoute.includes('Coach Choice');
+    app.customChips.library.remove('receiverRoute','Coach Choice'); app.customChips.reload();
+    tagger.discardDraft(); play.tags.players.receiver='22'; play.receiverDetail={receiverNumber:'22',route:'Slant',releaseDirection:'Inside'}; tagger.selectPlay(1);
+    await app.workspaceShell.show('breakdown');
+    app.roster.players=[{num:'22',name:'Logan Spencer',side:'O'}];
+    tagger.plays=[play]; tagger.currentPlayId=null; tagger.selectPlay(1);
+    app.nativeTagging._publish();
+    return output;
+  },{save:process.argv.includes('--mutate-save'),cancel:process.argv.includes('--mutate-cancel')});
+  for(const [name,value] of Object.entries(result)) if(name !== 'study') check(name,value === true);
+  check('Study groups have exact film references',JSON.stringify(result.study.groups[0].matchingPlayIds) === JSON.stringify(['game-one::1']));
+  check('Study exposes field sample and omissions',JSON.stringify(result.study.dimensionSample) === JSON.stringify({eligible:2,charted:1,omitted:1}));
+  await page.waitForSelector('[data-receiver-editor]');
+  await page.click('.gi-receiver-toggle');
+  check('15 default route choices',await page.$$eval('[aria-label="Receiver route"] button',buttons => buttons.length === 15));
+  check('27px fine chips',await page.$$eval('.gi-receiver-chips button',buttons => buttons.every(button => button.getBoundingClientRect().height === 27)));
+  check('two release choices only',await page.$$eval('[aria-label="Receiver release"] button',buttons => buttons.map(button => button.textContent).join() === 'Inside,Outside'));
+  await page.evaluate(() => document.querySelector('[aria-label="Receiver route"] button').click());
+  check('real deck writes draft',await page.evaluate(() => window.app.tagger.getCurrentPlay().receiverDetail?.route === 'Flat' && window.app.tagger.getPlay(1).receiverDetail?.route === 'Slant'));
+  if(process.argv.includes('--captures')) {
+    await mkdir('artifacts/receiver-checkpoint1',{recursive:true});
+    await page.addStyleTag({content:'.gi-toast-stack{display:none!important}'});
+    await page.screenshot({path:'artifacts/receiver-checkpoint1/desktop.png'});
+    await (await page.$('.gi-receiver-row')).screenshot({path:'artifacts/receiver-checkpoint1/receiver-desktop.png'});
+  }
+  await page.setViewport({width:390,height:844});
+  const cdp=await page.createCDPSession(); await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1});
+  check('44px coarse targets',await page.$$eval('.gi-receiver-chips button',buttons => buttons.every(button => {const r=button.getBoundingClientRect();return r.height >= 44 && r.width >= 44;})));
+  check('no mobile page overflow',await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  if(process.argv.includes('--captures')) await (await page.$('.gi-receiver-row')).screenshot({path:'artifacts/receiver-checkpoint1/receiver-mobile.png'});
+  await page.evaluate(async () => { window.app.tagger.saveDraft(); await window.app.workspaceShell.show('study'); });
+  check('Receiver dimensions are selectable in Study',await page.$$eval('#wsStudyDimension option',options => ['receiverRoute','receiverRelease'].every(value => options.some(option => option.value === value))));
+  await page.select('#wsStudyDimension','receiverRoute');
+  check('Receiver Route is selected in the real Study UI',await page.$eval('#wsStudyDimension',element => element.value === 'receiverRoute'));
+  check('No page errors',errors.length === 0);
+  console.log(`== RESULT: ${checks} passed, 0 failed ==`);
+} finally { await browser.close(); }

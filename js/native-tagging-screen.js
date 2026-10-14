@@ -7,6 +7,7 @@ import { PlayCallModel } from './play-call-model.js';
 import { ChartingDetails } from './charting-details.js';
 import { PlayDiagram } from './play-diagram.js';
 import { PlayShape } from './play-shape.js';
+import { ReceiverDetails } from './receiver-details.js';
 
 /**
  * Native tag-form presentation.
@@ -172,6 +173,7 @@ export class NativeTaggingScreen {
       enabled: !!play, currentPlayId: play?.id ?? null,
       // Unsaved changes on the open play, and what the play can show.
       dirty: !!this.tagger?.hasUnsavedChanges?.(),
+      receiverDetail: ReceiverDetails.read(play), receiverTargets: ReceiverDetails.targets(play), receiverEnabled: ReceiverDetails.holds(play),
       lookSide: play ? PlayShape.lookSide(play) : null, kickFake: play ? PlayShape.isKickFake(play) : false,
       baseRoles: play ? PlayShape.baseRoles(play) : [],
       unit: play ? countedUnit(play) : (this.tagger?.defaultUnit || 'offense'),
@@ -181,6 +183,7 @@ export class NativeTaggingScreen {
       libraries: {
         formationFamily:library('formationFamily'), backfield:library('backfield'), defFront:library('front'),
         coverage:library('coverage'), playType:library('playType'), blitz:library('blitz'),
+        receiverRoute:library('receiverRoute'),
       },
       chartingPresets: this.app.customChips?.library?.presets?.().filter(item => item.mode === (this.app.settingsScreen?.chartingPresetMode?.() || 'program')) || [],
       playbookCalls, recentCalls,
@@ -205,11 +208,10 @@ export class NativeTaggingScreen {
   toggleField(key, value) {
     const play = this.tagger?.getCurrentPlay?.();
     if (!play) return false;
-    this._protectCallOverride(key);
     // Untoggling Fumble clears its recovery owner in the same write.
     if (key === 'result' && value === 'Fumble' && this.tagger.displayTagValue('result').split(/\s*\+\s*/).includes('Fumble')) play.tags.fumbleRecovery = '';
     // A tap that removes the Play Type opening populated details asks first.
-    const outcome = this.tagger.requestTagValue(key, value, { toggle: true, play });
+    const outcome = this.tagger.requestTagValue(key, value, { toggle: true, play, beforeWrite:() => this._protectCallOverride(key) });
     if (outcome && typeof outcome.then === 'function') { outcome.then(() => this._queuePublish()); return outcome; }
     this._queuePublish(); return true;
   }
@@ -225,10 +227,9 @@ export class NativeTaggingScreen {
   setField(key, value) {
     const play = this.tagger?.getCurrentPlay?.();
     if (!play) return false;
-    this._protectCallOverride(key);
     // A change that removes the field opening populated details (Motion, or the
     // Play Direction a Gap sits under) asks first; declining changes nothing.
-    const outcome = this.tagger.requestTagValue(key, value, { play });
+    const outcome = this.tagger.requestTagValue(key, value, { play, beforeWrite:() => this._protectCallOverride(key) });
     if (outcome && typeof outcome.then === 'function') { outcome.then(() => this._queuePublish()); return outcome; }
     this._queuePublish(); return true;
   }
@@ -258,7 +259,12 @@ export class NativeTaggingScreen {
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.app.settingsScreen?.openPlaybook?.({ name:String(name || '').trim(), returnFocus });
   }
-  setPlayer(role, value) { if(!this.tagger?.setPlayerValue?.(role, value))return false; this.app.breakdownCharting?.syncSpecialist?.(role); this._queuePublish(); return true; }
+  setPlayer(role, value) {
+    const outcome = this.tagger?.setPlayerValue?.(role, value);
+    const finish = ok => { if (ok !== false) this.app.breakdownCharting?.syncSpecialist?.(role); this._queuePublish(); return ok !== false; };
+    return outcome && typeof outcome.then === 'function' ? outcome.then(finish) : finish(outcome);
+  }
+  setReceiverDetail(field, value, receiverNumber) { const result=this.tagger.setReceiverDetail(field,value,receiverNumber); this._queuePublish(); return result; }
   setGrade(role, value) { if(!this.tagger?.setGradeValue?.(role, value))return false; this._queuePublish(); return true; }
   setNotes(value) { const ok = this.app.notes?.setNotes?.(value); if (ok) this._queuePublish(); return !!ok; }
   addCustomTag(value) { const play=this.tagger?.getCurrentPlay?.(),clean=String(value||'').trim(); if(!play||!clean)return false; if(!Array.isArray(play.tags.custom))play.tags.custom=[]; if(!play.tags.custom.includes(clean))play.tags.custom.push(clean); this.tagger._emit('play-updated',play); return true; }

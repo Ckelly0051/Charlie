@@ -6,6 +6,7 @@ import { SeasonFormat } from './season-format.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { ChartingDetails } from './charting-details.js';
 import { PlayShape } from './play-shape.js';
+import { ReceiverDetails } from './receiver-details.js';
 // No import cycle: stats-engine.js does not import play-tagger.js.
 import { StatsEngine } from './stats-engine.js';
 import { h } from 'preact';
@@ -427,7 +428,7 @@ export class PlayTagger {
   // unsaved, and their loss never asks.
 
   /** The parts of a play charting edits; identity and film stay on the play. */
-  static DRAFT_FIELDS = Object.freeze(['tags', 'penalties', 'resultingSituation', 'specialTeams', 'notes', 'diagram', '_autoSit']);
+  static DRAFT_FIELDS = Object.freeze(['tags', 'penalties', 'resultingSituation', 'specialTeams', 'notes', 'diagram', '_autoSit', 'receiverDetail']);
 
   _chartingJson(play) {
     return JSON.stringify(PlayTagger.DRAFT_FIELDS.map(field => play?.[field] ?? null));
@@ -480,6 +481,7 @@ export class PlayTagger {
     put('penalties', play?.penalties);
     put('notes', play?.notes);
     put('diagram', play?.diagram);
+    put('receiverDetail', play?.receiverDetail);
     return out;
   }
 
@@ -535,7 +537,7 @@ export class PlayTagger {
     const auto = play === this.draft?.play ? this.draft.auto : new Set();
     // A value the play already cannot show is not the coach's to lose here:
     // any save drops it.
-    const hidden = PlayShape.hidden(play).map(item => (item.field === 'specialTeams' ? 'specialTeams' : `tags.${item.field}`));
+    const hidden = PlayShape.hidden(play).map(item => (['specialTeams','receiverDetail'].includes(item.field) ? item.field : `tags.${item.field}`));
     const wasHidden = path => hidden.some(field => path === field || path.startsWith(`${field}.`));
     return Object.keys(before).filter(path => after[path] !== before[path] && !auto.has(path) && after[path] == null && !wasHidden(path))
       .map(path => ({ path, label: PlayTagger._lossLabel(path), value: before[path] }));
@@ -549,6 +551,7 @@ export class PlayTagger {
     tackler: 'Tackler(s)', opponentTackler: 'Opponent Tackler(s)', fumbleRecovery: 'Fumble recovery',
   });
   static _lossLabel(path) {
+    if (path.startsWith('receiverDetail')) return 'Receiver Route / Release';
     if (path.startsWith('specialTeams')) return 'Special Teams details';
     if (path === 'penalties') return 'Penalties';
     if (path === 'notes') return 'Notes';
@@ -768,6 +771,7 @@ export class PlayTagger {
    */
   setTagValue(key, value, play = this.getCurrentPlay()) {
     if (!play) return false;
+    if (this._receiverTagOrphan(play,key,value)) return this._clearReceiverForChange(play, () => this.setTagValue(key, value, play));
     play.tags[key] = value == null ? '' : value;
 
     // The coach edited the situation by hand — it's theirs now. Auto D&D
@@ -815,13 +819,20 @@ export class PlayTagger {
    * writes at once. Returns a boolean, or a promise of one when it asked.
    * `toggle` treats `value` as a chip tap (see toggleTagValue).
    */
-  requestTagValue(key, value, { toggle = false, play = this.getCurrentPlay() } = {}) {
+  requestTagValue(key, value, { toggle = false, play = this.getCurrentPlay(), beforeWrite = () => {} } = {}) {
     if (!play) return false;
     const next = toggle ? this.toggledTagValue(key, value, play) : (value == null ? '' : value);
     const removals = ChartingDetails.orphans(play.tags, key, next);
-    const write = () => (toggle ? this.toggleTagValue(key, value, play) : this.setTagValue(key, value, play));
-    if (!removals.length) return write();
-    return this._confirmDialog(ChartingDetails.clearMessage(removals), 'Clear').then(ok => (ok ? write() : false));
+    const receiverRemoval = this._receiverTagOrphan(play,key,next);
+    const write = () => {
+      if (receiverRemoval) delete play.receiverDetail;
+      beforeWrite();
+      return toggle ? this.toggleTagValue(key, value, play) : this.setTagValue(key, value, play);
+    };
+    if (!removals.length && !receiverRemoval) return write();
+    const before=this._chartingJson(play), game=this._gameKey();
+    const message=[removals.length ? ChartingDetails.clearMessage(removals) : '',receiverRemoval ? `This change clears the Receiver's Route and Release on Play ${play.id}.` : ''].filter(Boolean).join(' ');
+    return this._confirmDialog(message, 'Clear').then(ok => ok && game === this._gameKey() && this.owns(play) && before === this._chartingJson(play) ? write() : false);
   }
 
   /** The value a chip tap on `key` would store: the toggled multi-select
@@ -869,10 +880,50 @@ export class PlayTagger {
   /** Player attribution (jersey #) by role; blank removes it. */
   setPlayerValue(role, value, play = this.getCurrentPlay()) {
     if (!play) return false;
+    if (role === 'receiver' && play.receiverDetail) {
+      const candidate = { ...play, tags:{ ...play.tags, players:{ ...play.tags.players, receiver:String(value ?? '').trim() } } };
+      if (!ReceiverDetails.targets(candidate).includes(play.receiverDetail.receiverNumber)) return this._clearReceiverForChange(play, () => this.setPlayerValue(role, value, play));
+    }
     if (!play.tags.players) play.tags.players = {};
     const val = String(value ?? '').trim();
     if (val) play.tags.players[role] = val;
     else delete play.tags.players[role];
+    this._emit('play-updated', play);
+    return true;
+  }
+
+  _receiverTagOrphan(play,key,value) {
+    if (!play?.receiverDetail || !['runPass','playType'].includes(key)) return false;
+    const candidate=JSON.parse(JSON.stringify(play));
+    candidate.tags[key]=value ?? '';
+    if (key === 'playType') candidate.tags.runPass=PlayTagger.runPassForPlayType(candidate.tags.playType) || candidate.tags.runPass;
+    return !ReceiverDetails.holds(candidate);
+  }
+
+  _clearReceiverForChange(play, write) {
+    const before = this._chartingJson(play), game = this._gameKey();
+    return this._confirmDialog(`This change clears the Receiver's Route and Release on Play ${play.id}.`, 'Clear').then(ok => {
+      if (!ok || game !== this._gameKey() || !this.owns(play) || before !== this._chartingJson(play)) return false;
+      delete play.receiverDetail;
+      return write();
+    });
+  }
+
+  setReceiverDetail(field, value, receiverNumber, play = this.getCurrentPlay()) {
+    if (!play || !ReceiverDetails.holds(play) || !['route','releaseDirection'].includes(field)) return false;
+    const targets = ReceiverDetails.targets(play);
+    const number = receiverNumber || ReceiverDetails.read(play)?.receiverNumber || (targets.length === 1 ? targets[0] : '');
+    if (!targets.includes(number)) return false;
+    const old = ReceiverDetails.read(play);
+    if (old && old.receiverNumber !== number) return false;
+    const detail = { ...(old || {}), receiverNumber:number };
+    const text = String(value ?? '').trim();
+    if (text) detail[field] = text; else delete detail[field];
+    if (!detail.route && !detail.releaseDirection) delete play.receiverDetail;
+    else {
+      if (ReceiverDetails.problems({ ...play, receiverDetail:detail }).length) return false;
+      play.receiverDetail = detail;
+    }
     this._emit('play-updated', play);
     return true;
   }

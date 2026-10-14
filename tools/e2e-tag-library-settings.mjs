@@ -71,12 +71,14 @@ let state=await page.evaluate(()=>({
  owners:document.querySelectorAll('[data-settings-panel="charting"]').length,
  legacy:!!document.getElementById('settingsDrawer')||!!document.getElementById('drawerScrim')||!!document.getElementById('tagLibraryDialog')||!!document.querySelector('.tag-section'),
  tabs:document.querySelectorAll('[data-settings-panel="charting"] [role="tab"]').length,
+ groups:[...document.querySelectorAll('[data-settings-panel="charting"] [data-chart-group]')].map(element=>element.dataset.chartGroup).sort(),
+ expectedGroups:Object.keys(window.app.customChips.library.constructor.DEFINITIONS).sort(),
  rows:document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]').length,
  expectedRows:window.app.customChips.library.group('formationFamily').values.length,
  values:[...document.querySelectorAll('[data-settings-panel="charting"] [data-tag-value]')].map(row=>row.dataset.tagValue),
  promises:[...document.querySelectorAll('[data-settings-panel="charting"] .gi-settings-truth')].map(el=>el.textContent||''),
 }));
-ok(state.owners===1&&!state.legacy&&state.tabs===6&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting owns all six managed libraries, and no legacy chip markup exists',JSON.stringify(state));
+ok(state.owners===1&&!state.legacy&&JSON.stringify(state.groups)===JSON.stringify(state.expectedGroups)&&state.tabs===state.expectedGroups.length&&state.rows===state.expectedRows&&['I-Form','Split Back'].every(value=>state.values.includes(value)),'Native Charting owns every library definition, including Receiver Routes, and no legacy chip markup exists',JSON.stringify(state));
 ok(state.promises.some(text=>/Hiding is not deleting/.test(text)&&/analytics stay unchanged/.test(text)),'Charting states the non-destructive visibility contract');
 
 await page.evaluate(()=>{const play=window.app.tagger.getCurrentPlay();play.tags.formationFamily='Wing-T';window.app.tagger._emit('play-updated',play);});

@@ -1,8 +1,11 @@
 # Receiver Charting: Research and Proposal
 
-**2026-10-13, clarified 2026-10-14. Comp rendered and awaiting approval;
-production is not built.** See
+**2026-10-13, clarified and comp approved 2026-10-14. Checkpoint 1 is built
+in source, awaiting release verification; checkpoint 2 is not built.** See
 `design-comps/receiver-charting-2026-10-13/RATIONALE.md`.
+Current route/release storage and behavior live in `GRIDIRON-IQ-TAG-MODEL.md`
+section "Receiver Route and Release". The historical proposal below is not a
+production schema.
 
 ## Decisions (coach, 2026-10-13; clarified 2026-10-14)
 

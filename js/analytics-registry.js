@@ -10,6 +10,7 @@ import { MissedTackles } from './missed-tackles.js';
 import { PenaltyModel } from './penalty-model.js';
 import { countedUnit, driveLabel, drivePossessionSide, driveNumberOf } from './football-rules.js';
 import { PlayShape } from './play-shape.js';
+import { ReceiverDetails } from './receiver-details.js';
 
 export class AnalyticsRegistry {
   constructor(statsEngine) {
@@ -98,6 +99,8 @@ export class AnalyticsRegistry {
       // Run and motion details (ChartingDetails). A blank is uncharted and yields
       // no value, never a zero or an "Unknown" bucket.
       ready('gap', 'Gap', tag('gap'), 'play.tags.gap'),
+      ready('receiverRoute', 'Receiver Route', p => this._receiverDetailValue(p, 'route'), 'ReceiverDetails.read.route', {sample:p => this._receiverEligible(p)}),
+      ready('receiverRelease', 'Receiver Release', p => this._receiverDetailValue(p, 'releaseDirection'), 'ReceiverDetails.read.releaseDirection', {sample:p => this._receiverEligible(p)}),
       ready('motionStart', 'Motion Starts', tag('motionStart'), 'play.tags.motionStart'),
       ready('motionEnd', 'Motion Ends', tag('motionEnd'), 'play.tags.motionEnd'),
       ready('rpoRead', 'RPO Read', tag('rpoRead'), 'play.tags.rpoRead'),
@@ -393,6 +396,14 @@ export class AnalyticsRegistry {
   }
 
   listDimensions() { return [...this._dimensionMap.values()]; }
+  _receiverDetailValue(play, field) {
+    if (!this._receiverEligible(play)) return [];
+    return this._one(ReceiverDetails.read(play)?.[field]);
+  }
+  _receiverEligible(play) {
+    const SE = this._SE;
+    return !SpecialTeamsModel.isRunPassTry(play) && ReceiverDetails.holds(play) && ReceiverDetails.targets(play).length > 0 && SE.countsFootballRoles(play) && SE.isPass(play) && SE.isPassAttemptResult(play) && SE._tryPenaltyResolved(play);
+  }
   listMeasures() { return [...this._measureMap.values()]; }
   listBlocks() { return [...this._blockMap.values()]; }
   getDimension(id) { return this._dimensionMap.get(id) || null; }

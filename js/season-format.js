@@ -1,6 +1,7 @@
 import { TagProjection } from './tag-projection.js';
 import { ChartingDetails } from './charting-details.js';
 import { safeStorageId } from './storage-paths.js';
+import { ReceiverDetails } from './receiver-details.js';
 
 /**
  * The current season format, and the one place that knows the retired shapes.
@@ -37,6 +38,7 @@ export class SeasonFormat {
   }
 
   static refusalMessage(problems, restore = false) {
+    if (problems.some(item => item.problem === 'invalid receiver detail')) return 'This file has invalid receiver details and was not opened. Nothing was changed.';
     return this.hasIdentityProblems(problems) ? this.ID_MESSAGE : restore ? this.RESTORE_MESSAGE : this.MESSAGE;
   }
 
@@ -52,6 +54,7 @@ export class SeasonFormat {
   static playProblems(play) {
     if (!this._isObject(play)) return ['malformed play'];
     const out = [];
+    out.push(...ReceiverDetails.problems(play));
     const tags = play.tags;
     if (!this._isObject(tags)) out.push('missing tags');
     else {

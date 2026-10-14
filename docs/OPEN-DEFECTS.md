@@ -7,6 +7,13 @@ open, check its fix and smoke status in git.
 
 ## Release Status
 
+Receiver route/release checkpoint 1 is built in source after comp approval
+(2026-10-14), not packaged or installed-smoked. Release verification still
+needs the full gate and installed checks for Save/reopen, library editing,
+multiple receiver attribution, clearing/cancellation and exact Study film.
+Target/Catch and whole-deck polish are not built; the latter needs its own
+full-control comp on real season data before production changes.
+
 Latest coach-accepted build: `1.12.0-113` (2026-10-09), PASS with the
 intermittent scrubbing defect deferred. `1.12.0-114` smoked with six
 findings, fixed in `1.12.0-115`. The 115 smoke found three further issues,

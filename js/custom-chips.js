@@ -33,6 +33,7 @@ export class CustomChips {
     { key: 'coverage', field: 'coverage', label: 'coverage call' },
     { key: 'playType', field: 'playType', label: 'play type' },
     { key: 'blitz', field: 'blitz', label: 'blitz' },
+    { key: 'receiverRoute', field: 'receiverRoute', label: 'receiver route' },
   ];
 
   constructor(tagger) {

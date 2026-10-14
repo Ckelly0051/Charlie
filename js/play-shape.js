@@ -2,6 +2,7 @@ import { countedUnit } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { MissedTackles } from './missed-tackles.js';
 import { ChartingDetails } from './charting-details.js';
+import { ReceiverDetails } from './receiver-details.js';
 
 /**
  * What a play can hold, read from its own parents: the unit, the Special Teams
@@ -111,6 +112,7 @@ export class PlayShape {
     const out = [];
     const tags = play?.tags || {};
     const filled = value => value != null && String(value).trim() !== '';
+    if (play?.receiverDetail && !ReceiverDetails.read(play)) out.push({ field:'receiverDetail', value:'Route / Release' });
     for (const [key, value] of Object.entries(tags)) {
       if (['players', 'grades', 'custom', 'customFields'].includes(key)) continue;
       if (typeof value === 'object') continue;
@@ -133,7 +135,7 @@ export class PlayShape {
     const removed = PlayShape.hidden(play);
     const tags = play?.tags;
     for (const { field } of removed) {
-      if (field === 'specialTeams') delete play.specialTeams;
+      if (field === 'specialTeams' || field === 'receiverDetail') delete play[field];
       else if (field.startsWith('players.')) delete tags.players[field.slice(8)];
       else if (field.startsWith('grades.')) delete tags.grades[field.slice(7)];
       else tags[field] = '';

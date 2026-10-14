@@ -95,6 +95,33 @@ offered):
 - Backfield never holds a QB alignment.
 - Coverage Call never holds a coverage family.
 
+## Receiver Route and Release
+
+Approved comp: `design-comps/receiver-charting-2026-10-13` (coach,
+2026-10-14). Checkpoint 1 is built in source, awaiting release verification.
+Owner: `js/receiver-details.js`; writes: `PlayTagger.setReceiverDetail`.
+
+- Optional `play.receiverDetail`: `receiverNumber`, optional `route`, optional
+  `releaseDirection`. At least one detail is filled; an empty record is absent.
+- Bound to one jersey number in the offensive `players.receiver` role. With
+  multiple numbers the coach chooses one target for detail, without rewriting
+  existing attribution. The play's Save remains available without any detail.
+- Route is a single coach-named value from `TagLibrary.DEFINITIONS.receiverRoute`.
+  Hidden/custom names remain readable on existing plays and in Study.
+- Release is Inside or Outside, judged against the hashes: toward the
+  hashes/middle or toward the sideline. Blank when unclear; no inference.
+- Shows on a charted Pass where the offensive receiver role is available.
+  Receiver identity or Run/Pass changes that orphan filled detail ask before
+  clearing it. Cancel preserves both; unit changes use the Save contract.
+- Chart edits the draft, Save stores it, Undo restores it. The record is never
+  copied by templates or Carry Scheme. Invalid imported detail is refused,
+  not guessed or assigned to another player.
+- Study Route and Release each expose charted/eligible/omitted target counts
+  and exact film refs. The canonical pass-attempt and penalty rules apply;
+  sacks, unresolved/no-play penalties and all tries are excluded. A blank
+  field gives no value, never zero. Reports wait for roadmap step 5.
+- Target/Catch zones remain checkpoint 2; no paths, technique or point drawing.
+
 ## 3a. Missed tackles
 
 Approved 2026-10-07 (`design-comps/missed-tackles-2026-10-06`); owner `js/missed-tackles.js`.

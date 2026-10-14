@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-Updated 2026-10-13.
+Updated 2026-10-14.
 
 ## Current authority
 
@@ -28,7 +28,8 @@ Updated 2026-10-13.
   production acceptance status.
 - `docs/RECEIVER-CHARTING-RESEARCH-PROPOSAL.md` - receiver route, release and
   target/catch zones: research, the coach's decisions and the data contract
-  (becomes part of `GRIDIRON-IQ-TAG-MODEL.md` when built).
+  (route/release checkpoint 1 is now contracted in `GRIDIRON-IQ-TAG-MODEL.md`
+  section "Receiver Route and Release"; Target/Catch remains checkpoint 2).
 - `docs/AI-RECOGNITION-PLAN.md` - parked AI recognition plan.
 - `docs/LEGACY-RECHART-LIST.md` - plays the coach still needs to re-chart.
 - `docs/HUDL-DEFENSE-REPORTING-REFERENCE.md` - reference for future Defense

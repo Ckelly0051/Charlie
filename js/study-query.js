@@ -153,7 +153,15 @@ export class StudyQuery {
       if (scopedStats) for (const id of measures) measureRefs[id] = this.registry.readRefs(scopedStats, id);
       return { value, sampleSize, belowMinSample, matchingPlayIds, measures: groupMeasures, measureRefs };
     });
-    return { dimension, total: cohort.length, measures: measures.slice(), minSample, groups, warnings };
+    return { dimension, total: cohort.length, measures: measures.slice(), minSample, groups, warnings, ...this._dimensionSample(dimension,cohort,context) };
+  }
+
+  _dimensionSample(dimension, cohort, context) {
+    const entry=this.registry.getDimension(dimension);
+    if (typeof entry.sample !== 'function') return {};
+    const eligible=cohort.filter(play => entry.sample(play));
+    const charted=eligible.filter(play => this.registry.values(dimension,play,context).length > 0).length;
+    return {dimensionSample:{eligible:eligible.length,charted,omitted:eligible.length-charted}};
   }
 
   _num(v) {
@@ -226,7 +234,7 @@ export class StudyQuery {
       for (const id of metricIds) groupMetrics[id] = metricsEngine.metric(groupPlays, id, context, metricOptions);
       return { value, sampleSize, belowMinSample, matchingPlayIds, metrics: groupMetrics };
     });
-    return { dimension, total: cohort.length, metricIds: metricIds.slice(), minSample, groups, warnings };
+    return { dimension, total: cohort.length, metricIds: metricIds.slice(), minSample, groups, warnings, ...this._dimensionSample(dimension,cohort,context) };
   }
 
   /**

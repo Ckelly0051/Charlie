@@ -31,7 +31,8 @@
     "design-approvals/breakdown-drive-situation/manifest.json",
     "design-approvals/missed-tackles/manifest.json",
     "design-approvals/reports/missed-tackles/manifest.json",
-    "design-approvals/reports/missed-tackles-r2/manifest.json"
+    "design-approvals/reports/missed-tackles-r2/manifest.json",
+    "design-approvals/receiver-charting/manifest.json"
   ],
   "releases": [
     {

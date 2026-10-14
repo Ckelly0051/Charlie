@@ -38,7 +38,7 @@ function queryModel(screen, s, sets, result, metric, rich) {
   return {
     kind: 'rows', metricHead: name, deltaHead: rich ? '' : 'Explosive Plays Rate',
     summary: `${refs.length} matching play${refs.length === 1 ? '' : 's'}`,
-    summaryMeta: `${screen.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension} · ${scopeName(s, sets)}`,
+    summaryMeta: `${screen.app.analyticsRegistry.getDimension(result.dimension)?.name || result.dimension} · ${scopeName(s, sets)}${result.dimensionSample ? ` · ${result.dimensionSample.charted} of ${result.dimensionSample.eligible} targets charted · ${result.dimensionSample.omitted} uncharted` : ''}`,
     rows: groups.map(g => {
       const m = rich ? g.metrics[metric] : null;
       const rowMix = rich ? screen._runPassForRefs(m?.refs || []) : g.measures;

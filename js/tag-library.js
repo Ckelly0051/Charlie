@@ -48,6 +48,7 @@ export class TagLibrary {
     // default a saved library has never listed is shown (see _normalize).
     playType: ['Run Inside','Run Outside','Screen','Short Pass','Medium Pass','Deep Pass','Play Action','RPO','Option','QB Run','Reverse','Trick Play'],
     blitz: ['A-Gap','B-Gap','C-Gap','Edge','DB Blitz','Zone Blitz'],
+    receiverRoute: ['Flat','Slant','Hitch','Out','In','Cross','Comeback','Corner','Post','Go','Wheel','Angle','Screen','Option','Double Move'],
   };
 
   constructor({ storage, teamId } = {}) {

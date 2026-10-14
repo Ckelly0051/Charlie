@@ -5,6 +5,7 @@ import { SpecialTeamsModel } from './special-teams.js';
 import { PlayShape } from './play-shape.js';
 import { ChartingDetails } from './charting-details.js';
 import { MissedTackles } from './missed-tackles.js';
+import { ReceiverDetails } from './receiver-details.js';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -430,10 +431,11 @@ function Players({screen, state}) {
           <option value="">Count</option>{OPTIONS.missedTackles.map(value => <option key={value} value={value}>{value}</option>)}
         </select>
       </div>;
-      return <div class={state.activeRole === role ? 'is-active' : ''} key={role}>
+      return <div class={`${state.activeRole === role ? 'is-active' : ''}${role === 'receiver' ? ' gi-receiver-row' : ''}`} key={role}>
         <strong>{opposingSpecialist(role) ? `${state.perspective === 'scout' ? 'Other team' : 'Opponent'} ` : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
         <input aria-label={`${role} player number`} class={ungraded(role) ? 'is-wide' : undefined} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
+        {role === 'receiver' && <span class="gi-receiver-name">{String(state.players.receiver || '').split(/\s*[,;+]\s*/).map(number => state.roster.find(player => String(player.num) === number)?.name).filter(Boolean).join(' / ') || 'Not charted'}</span>}
         {!ungraded(role) && <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
           <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
         </select>}
@@ -445,8 +447,28 @@ function Players({screen, state}) {
           <button type="button" key={player.num} class={selected(state.players[role]?.replace(/,\s*/g,' + '),String(player.num)) ? 'is-active' : ''}
             title={player.name ? `#${player.num} ${player.name}` : `#${player.num}`}
             onClick={() => { screen.setActiveRole(role); screen.quickPickPlayer(player.num); }}>{player.num}</button>)}</div>}
+        {role === 'receiver' && <ReceiverEditor screen={screen} state={state}/>}
       </div>})}</div>
   </Group>;
+}
+
+function ReceiverEditor({screen, state}) {
+  const [open,setOpen] = useState(false), [chosen,setChosen] = useState('');
+  const targets = state.receiverTargets || [], detail = state.receiverDetail;
+  const targetKey = targets.join(',');
+  useLayoutEffect(() => { setChosen(''); setOpen(false); }, [state.currentPlayId,targetKey]);
+  if (!state.receiverEnabled || !targets.length) return null;
+  const target = detail?.receiverNumber || (targets.length === 1 ? targets[0] : targets.includes(chosen) ? chosen : '');
+  if (!target) return <section class="gi-receiver-editor" data-receiver-editor><b>Choose one target</b><div class="gi-receiver-chips">{targets.map(number => <button type="button" key={number} onClick={() => {setChosen(number);setOpen(true);}}>#{number}</button>)}</div></section>;
+  const routes = [...(state.libraries.receiverRoute || [])];
+  if (detail?.route && !routes.includes(detail.route)) routes.push(detail.route);
+  return <section class="gi-receiver-editor" data-receiver-editor>
+    <button class="gi-receiver-toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}><span aria-hidden="true">{open ? '\u25be' : '\u25b8'}</span><b>Route &amp; Release</b><span>{[detail?.route,detail?.releaseDirection].filter(Boolean).join(' / ') || 'Not charted'}</span></button>
+    {open && <div><div class="gi-receiver-label"><b>Route</b><button type="button" onClick={() => screen.openLibrary('receiverRoute')}>Edit library</button></div>
+      <div class="gi-receiver-chips" role="group" aria-label="Receiver route">{routes.map(route => <button key={route} type="button" aria-pressed={detail?.route === route} onClick={() => screen.setReceiverDetail('route',detail?.route === route ? '' : route,target)}>{route}</button>)}</div>
+      <div class="gi-receiver-label"><b>Release</b></div><div class="gi-receiver-chips" role="group" aria-label="Receiver release">{ReceiverDetails.RELEASES.map(release => <button key={release} type="button" aria-pressed={detail?.releaseDirection === release} onClick={() => screen.setReceiverDetail('releaseDirection',detail?.releaseDirection === release ? '' : release,target)}>{release}</button>)}</div>
+        </div>}
+  </section>;
 }
 
 function PlayResult({screen, state, chips}) {

@@ -111,7 +111,10 @@ failed saves that roll back only their own season, game or program, and
        or Outside judged against the hash; target and catch in nine zones
        (Left/Middle/Right by Short/Medium/Deep); inline under the Receiver row;
        route paths tabled. Comp: `design-comps/receiver-charting-2026-10-13`.
-       Next: route and release, then the zones;
+       Comp approved 2026-10-14. Route/release and their sampled, film-linked
+       Study dimensions are built in source; release verification is pending.
+       The receiver editor already uses the approved composition. Next:
+       the full-deck polish comp below; Target/Catch remains checkpoint 2;
      - **Chart deck polish** (coach, 2026-10-14), right after receiver route
        and release: bring the whole Chart deck to the receiver comp's
        composition. Same font and sizes; the change is layout: each closed

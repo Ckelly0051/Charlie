@@ -1,0 +1,17 @@
+{
+  "surfaceId": "breakdown.receiver-charting",
+  "title": "Receiver route, release and pass-location editor",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "IMPLEMENTED_UNVERIFIED",
+  "approvedOn": "2026-10-14",
+  "approvalNote": "Coach approved the revised receiver comp: route and Inside/Outside release under Receiver; multiple receiver numbers defer details only, never the play's Save; no Release explanation control; nine-zone depths labeled once by row. Receiver editor uses this composition now. Whole-deck polish requires a separate comp retaining every real control on real season data before its production migration.",
+  "canonicalArtifact": {
+    "path": "design-comps/receiver-charting-2026-10-13",
+    "kind": "directory",
+    "sha256": "64ce2765ce700fe86d475c39e3692ee4814397f330145381f35eed793588051c",
+    "fileCount": 30
+  },
+  "decisionRecord": "docs/RECEIVER-CHARTING-RESEARCH-PROPOSAL.md",
+  "productionNote": "Checkpoint 1 route/release and sampled film-linked Study dimensions are built in source, not packaged or installed-smoked. Checkpoint 2 Target/Catch is not built; Reports wait for roadmap step 5. Whole-deck polish remains design-first.",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
+}

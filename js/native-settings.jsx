@@ -3,7 +3,7 @@ import { TagLibrary } from './tag-library.js';
 import '../css/native-settings.css';
 
 const JERSEY_COLORS = ['white','black','red','blue','navy','green','yellow','orange','purple','maroon','gray','teal'];
-const CHART_GROUPS = [['formationFamily','Formations'],['backfield','Backfields'],['front','Fronts'],['coverage','Coverages'],['playType','Play Types'],['blitz','Blitzes']];
+const CHART_GROUPS = [['formationFamily','Formations'],['backfield','Backfields'],['front','Fronts'],['coverage','Coverages'],['playType','Play Types'],['blitz','Blitzes'],['receiverRoute','Receiver Routes']];
 const DRAW_TOOLS = [['line','Line'],['arrow','Arrow'],['circle','Circle'],['rect','Rectangle'],['freehand','Draw'],['text','Text']];
 const DRAW_COLORS = ['#ffffff','#ffff00','#ff4444','#4488ff','#44ff44','#ff8800'];
 const FILTERS = {

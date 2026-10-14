@@ -7,6 +7,7 @@ export class TagLibrarySettings {
     { key: 'coverage', label: 'Coverages', singular: 'coverage call', placeholder: 'e.g. Cover 7' },
     { key: 'playType', label: 'Play Types', singular: 'play type', placeholder: 'e.g. Counter' },
     { key: 'blitz', label: 'Blitzes', singular: 'blitz', placeholder: 'e.g. Mike Plug' },
+    { key: 'receiverRoute', label: 'Receiver Routes', singular: 'receiver route', placeholder: '' },
   ];
 
   constructor(customChips, tagger, openSettings) {

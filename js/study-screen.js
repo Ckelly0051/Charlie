@@ -7,7 +7,7 @@ export class StudyScreen {
     // score-at-snap reconstruction, so it would be unusable.
     return ['playCall', 'playConcept', 'formationFamily', 'receiverSet', 'qbAlignment', 'playType', 'runPass', 'down', 'distance', 'fieldZone', 'quarter',
       'drive', 'unit', 'hash', 'personnel', 'backfield', 'strength', 'motion', 'motionStart', 'motionEnd',
-      'playDir', 'gap', 'rpoRead', 'rpoDecision', 'qbRun', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'missedTackles', 'playerRole', 'grade',
+      'playDir', 'gap', 'rpoRead', 'rpoDecision', 'qbRun', 'receiverRoute', 'receiverRelease', 'defFront', 'coverage', 'coverageFamily', 'blitz', 'result', 'missedTackles', 'playerRole', 'grade',
       'specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier',
       'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts',
       'customTag', 'customField'];
@@ -216,6 +216,7 @@ export class StudyScreen {
       { name: 'Outcome & risk', ids: ['result', 'missedTackles', 'penaltyTeam', 'penaltyFoul', 'penaltyRuling', 'penaltyPhase', 'penaltyPlayCounts'] },
       { name: 'Special Teams', ids: ['specialTeamsPhase', 'specialTeamsUnit', 'specialTeamsOutcome', 'specialTeamsRole', 'specialTeamsScore', 'specialTeamsModifier'] },
       { name: 'Players', ids: ['unit', 'playerRole', 'grade'] },
+      { name: 'Receiver', ids: ['receiverRoute', 'receiverRelease'] },
       { name: 'Custom', ids: ['customTag', 'customField'] },
     ];
   }
