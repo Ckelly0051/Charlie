@@ -133,7 +133,11 @@ failed saves that roll back only their own season, game or program, and
        and briefly announce the changed field without opening another section.
        Only deliberate section navigation changes the open section. Comp and
        checklist mapping: `design-comps/chart-deck-polish-2026-10-14/RATIONALE.md`;
-       full-comp design approval remains pending. Acceptance checklist (coach's installed screenshot,
+       full comp is COMP_APPROVED by the coach (2026-10-14), including the
+       tightened section-entry spacing. Authority:
+       `design-approvals/chart-deck-polish/manifest.json`. Production is not
+       built; next is the whole-deck presentation migration, followed by
+       release verification and installed smoke. Acceptance checklist (coach's installed screenshot,
        2026-10-14), each fixed explicitly:
        - one chip system: no fixed four-column centered grid beside
          text-sized chips (Formation and Backfield versus Personnel, QB

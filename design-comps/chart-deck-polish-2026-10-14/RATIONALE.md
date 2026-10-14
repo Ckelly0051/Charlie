@@ -1,6 +1,7 @@
 # Chart Deck Polish
 
-2026-10-14. PROPOSED; awaiting coach design approval. No production changes.
+2026-10-14. COMP_APPROVED by the coach, including the compact section-entry
+spacing. Production is not built; installed verification remains separate.
 
 Authority: `GRIDIRON-IQ-PLAN-V2.md` step 2, Chart deck polish and its acceptance
 checklist; `CLAUDE.md` Break Down rules. Style reference:
@@ -168,8 +169,7 @@ comparison; no preview additions are needed to review ordinary spacing.
 
 ## Coach Decisions
 
-Settled 2026-10-14; these behavior decisions do not approve the full comp or
-authorize production changes.
+Settled 2026-10-14 and included in the coach's full-comp design approval.
 
 1. **Opening/next-play policy:** a newly marked or blank play opens Situation.
    Navigating existing plays retains the working section when available;
@@ -203,6 +203,8 @@ hit targets and keyboard feedback. JPEG screenshots keep this review artifact
 smaller; there is no image downscaling. Rendered desktop and narrow scenes were
 visually inspected. These checks are not the full gate or an installed smoke.
 
-No production files, approval registry, coach data, gate, installer, push or
-tag are changed by this checkpoint. Approval is required before the whole-deck
-production migration; it must replace the old layout in one pass.
+No production files or coach data are changed by this comp. The design is
+COMP_APPROVED; its frozen artifact is registered separately in
+`design-approvals/chart-deck-polish/manifest.json`. The whole-deck production
+migration is next and must replace the old layout in one pass. No full gate,
+installer, push or tag was run for the comp.

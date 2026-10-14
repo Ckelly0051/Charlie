@@ -1,0 +1,16 @@
+{
+  "surfaceId": "breakdown.chart-deck-polish",
+  "title": "Whole Chart deck composition and compact spacing",
+  "designStatus": "COMP_APPROVED",
+  "productionStatus": "DRAFT",
+  "approvedOn": "2026-10-14",
+  "approvalNote": "Coach approved the full-control comp, including the final compact section-heading-to-content spacing. Text-sized left-aligned chips, plain read-only values, consistent closed summaries, retained controls and the built receiver editor share one composition. New/blank plays open Situation; existing navigation retains the working section when available; edits and shortcuts do not close it.",
+  "canonicalArtifact": {
+    "path": "design-comps/chart-deck-polish-2026-10-14",
+    "kind": "directory",
+    "sha256": "bd3a0899bc5b829576f220943b478e3de0044b2d34b54be8197eec76530e8161",
+    "fileCount": 322
+  },
+  "decisionRecord": "design-comps/chart-deck-polish-2026-10-14/RATIONALE.md",
+  "productionNote": "Not built. Implement as one whole-deck presentation migration, removing replaced layout in the same change. Charting behavior and stored data remain unchanged. Release verification and installed smoke are separate checkpoints."
+}
