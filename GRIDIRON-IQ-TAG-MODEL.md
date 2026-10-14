@@ -116,8 +116,10 @@ Owner: `js/receiver-details.js`; writes: `PlayTagger.setReceiverDetail`.
   Cancel preserves the entire edit and does not advance Quick Chart; unit
   changes use the Save contract.
 - Chart edits the draft, Save stores it, Undo restores it. The record is never
-  copied by templates or Carry Scheme. Invalid imported detail is refused,
-  not guessed or assigned to another player.
+  copied by templates or Carry Scheme. Malformed imported records are refused
+  (keys, jersey number, route and release). A valid record that no longer fits
+  the play opens as hidden data and is dropped on the next Save, not guessed
+  or assigned to another player.
 - Study Route and Release each expose charted/eligible/omitted target counts
   and exact film refs. The canonical pass-attempt and penalty rules apply;
   sacks, unresolved/no-play penalties and all tries are excluded. A blank

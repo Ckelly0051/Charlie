@@ -11,7 +11,8 @@ Receiver route/release checkpoint 1 is built in source after comp approval
 (2026-10-14), not packaged or installed-smoked. Release verification still
 needs the full gate and installed checks for Save/reopen, library editing,
 multiple receiver attribution, clearing/cancellation (also Film Room, Quick
-Chart and scheme copies) and exact Study film.
+Chart and scheme copies), opening a valid mismatched receiver record as hidden
+data, dropping it on Save, and exact Study film.
 Target/Catch and whole-deck polish are not built; the latter needs its own
 full-control comp on real season data before production changes.
 

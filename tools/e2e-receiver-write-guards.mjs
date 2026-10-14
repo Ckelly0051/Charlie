@@ -59,6 +59,20 @@ try {
       play.notes = 'newer edit'; answer(true); await pending;
       out['changed play while confirmation pending is not overwritten'] = play.tags.runPass === 'Pass' && !!play.receiverDetail && play.notes === 'newer edit';
     } else out['changed play while confirmation pending is not overwritten'] = false;
+    for (const mismatch of ['receiver', 'runPass']) {
+      tagger.discardDraft();
+      const hidden = fixture(4);
+      if (mismatch === 'receiver') hidden.tags.players.receiver = '7';
+      else hidden.tags.runPass = 'Run';
+      tagger.plays = [hidden]; tagger.currentPlayId = null; tagger.selectPlay(4);
+      let asks = 0;
+      tagger._confirmDialog = async () => { asks++; return false; };
+      await tagger.setTagValue('runPass', 'Run');
+      await tagger.setPlayerValue('receiver', '9');
+      out[`${mismatch} already hidden detail does not ask`] = asks === 0;
+      tagger.saveDraft();
+      out[`${mismatch} hidden detail drops on real Save`] = !hidden.receiverDetail && hidden.tags.players.receiver === '9';
+    }
     return out;
   }, process.argv.includes('--mutate-guard'));
   for (const [name, ok] of Object.entries(results)) check(name, ok);

@@ -18,7 +18,8 @@ commit message, not here.
 ## Choosing what to run
 
 Receiver route/release: `e2e-receiver-details` covers the record, identity,
-shape and format contract; `e2e-receiver-charting` covers draft/Save/Undo,
+shape and format contract, including stored-season mismatches opening as
+hidden values without play-data writes; `e2e-receiver-charting` covers draft/Save/Undo,
 confirmed clearing, Study samples and exact film refs, managed routes and
 mounted desktop/coarse editor geometry. `--captures` writes local-only shots.
 `e2e-receiver-write-guards` covers cancellation and accepted receiver-detail

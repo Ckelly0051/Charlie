@@ -888,7 +888,7 @@ export class PlayTagger {
   /** Player attribution (jersey #) by role; blank removes it. */
   setPlayerValue(role, value, play = this.getCurrentPlay()) {
     if (!play) return false;
-    if (role === 'receiver' && play.receiverDetail) {
+    if (role === 'receiver' && ReceiverDetails.read(play)) {
       const candidate = { ...play, tags:{ ...play.tags, players:{ ...play.tags.players, receiver:String(value ?? '').trim() } } };
       if (!ReceiverDetails.targets(candidate).includes(play.receiverDetail.receiverNumber)) return this._clearReceiverForChange(play, () => this.setPlayerValue(role, value, play));
     }
@@ -901,7 +901,7 @@ export class PlayTagger {
   }
 
   _receiverTagOrphan(play,key,value) {
-    if (!play?.receiverDetail || !['runPass','playType'].includes(key)) return false;
+    if (!ReceiverDetails.read(play) || !['runPass','playType'].includes(key)) return false;
     const candidate=JSON.parse(JSON.stringify(play));
     candidate.tags[key]=value ?? '';
     if (key === 'playType') candidate.tags.runPass=PlayTagger.runPassForPlayType(candidate.tags.playType) || candidate.tags.runPass;

@@ -20,13 +20,14 @@ export class ReceiverDetails {
     if (typeof detail !== 'object' || Array.isArray(detail)) return ['invalid receiver detail'];
     const keys = Object.keys(detail);
     if (keys.some(key => !['receiverNumber','route','releaseDirection'].includes(key)) ||
-      !this.holds(play) || !this.targets(play).includes(detail.receiverNumber) ||
-      (detail.route != null && (typeof detail.route !== 'string' || !detail.route.trim() || detail.route.length > 120)) ||
-      (detail.releaseDirection != null && !this.RELEASES.includes(detail.releaseDirection)) ||
+      typeof detail.receiverNumber !== 'string' || !/^\d{1,2}$/.test(detail.receiverNumber) ||
+      (Object.hasOwn(detail, 'route') && (typeof detail.route !== 'string' || !detail.route.trim() || detail.route.length > 120)) ||
+      (Object.hasOwn(detail, 'releaseDirection') && !this.RELEASES.includes(detail.releaseDirection)) ||
       (!detail.route && !detail.releaseDirection)) return ['invalid receiver detail'];
     return [];
   }
   static read(play) {
-    return play?.receiverDetail && !this.problems(play).length ? { ...play.receiverDetail } : null;
+    return play?.receiverDetail && !this.problems(play).length && this.holds(play) &&
+      this.targets(play).includes(play.receiverDetail.receiverNumber) ? { ...play.receiverDetail } : null;
   }
 }
