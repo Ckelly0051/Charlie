@@ -116,6 +116,6 @@ try {
   const after=hash(await readFile(livePath));
   if(after !== before) throw Error('Live catalog changed during read-only capture; investigate before handoff');
   if(hash(await readFile(CANONICAL_SEASON)) !== hash(canonicalBytes)) throw Error('Canonical fixture changed');
-  await writeFile(resolve(root,'PROVENANCE.json'),JSON.stringify({sourceCommit:'cadf3333',canonicalHash:hash(canonicalBytes),liveHashBefore:before,liveHashAfter:after,states:provenance},null,2));
+  await writeFile(resolve(root,'PROVENANCE.json'),JSON.stringify({sourceCommit:'8c1c9699',canonicalHash:hash(canonicalBytes),liveHashBefore:before,liveHashAfter:after,states:provenance},null,2));
   console.log(Object.fromEntries(Object.entries(states).map(([key,s]) => [key,s.sections])));
 } finally {await browser.close();}

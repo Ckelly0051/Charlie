@@ -17,7 +17,7 @@ try {
       const sections=await page.evaluate(()=>window.COMP_CURRENT.sections);
       const inventory=await page.evaluate(()=>{
         const selectors='[data-native-tagging] button,[data-native-tagging] input,[data-native-tagging] select,[data-native-tagging] textarea,.gi-theater-transport button,.gi-theater-transport select,.gi-theater-actions button,.gi-breakdown-toolbar button,.ws-global-tools button';
-        const normalize=text=>text.replace(/^←\s*/,'').trim();
+        const normalize=text=>text.replace(/^←\s*/,'').replaceAll(' / ',' · ').trim();
         const expected=window.COMP_STATES[window.COMP_CURRENT.state].controls.filter(c=>!/^▾(?:Play Call|Opponent Play|Play Type)$/.test(c.label)).map(c=>c.tag+':'+normalize(c.label)).sort();
         const actual=[...document.querySelectorAll(selectors)].map(el=>el.tagName+':'+normalize(el.getAttribute('aria-label')||el.textContent.trim())).sort();
         return{expected,actual};
@@ -49,8 +49,25 @@ try {
         check(label+' production chip type unchanged',JSON.stringify(geometry.chipType)===JSON.stringify(baseline.chipType));
         check(label+' fine chips 27px or expanded for long text',geometry.chipHeights.every(h=>h>=27));
         check(label+' exactly requested section open',geometry.open===(section==='closed'?0:1));
+        if(section==='situation') check(label+' all five Quarter chips share one row',await page.$$eval('[data-native-field=quarter] .gi-tag-chips button',buttons=>new Set(buttons.map(b=>b.getBoundingClientRect().top)).size===1));
+        if(section==='closed') {
+          check(label+' closed summaries use one structural separator',await page.$$eval('.gi-tag-group',groups=>groups.every(g=>{
+            const call=g.querySelector('.gi-play-call-entry input')?.value || '';
+            const text=g.querySelector('.gi-comp-summary').textContent.replace(call,'');
+            return !text.includes(' / ')&&!text.includes(' + ');
+          })));
+          check(label+' no invented tool or diagram summary',await page.$$eval('[data-section=more-tools] .gi-comp-summary,[data-section=play-diagram] .gi-comp-summary',spans=>spans.every(s=>s.textContent==='')));
+          check(label+' call leads Formation and Call summary',await page.$$eval('.gi-tag-group:has(.gi-play-call-entry)',groups=>groups.every(g=>{
+            const call=g.querySelector('.gi-play-call-entry input').value;
+            return !call||g.querySelector('.gi-comp-summary').textContent.startsWith(call);
+          })));
+        }
         check(label+' at most one deck scroller',geometry.scrollOwners.length<=1,geometry.scrollOwners);
-        if(section==='situation') check(label+' situation row baselines aligned',await page.$$eval('.gi-tag-situation-row',rows=>rows.every(row=>{const tops=[...row.children].map(el=>el.querySelector('button,input').getBoundingClientRect().top);return Math.max(...tops)-Math.min(...tops)<.5;})));
+        if(section==='situation') check(label+' situation row baselines aligned',await page.$$eval('.gi-tag-situation-row',rows=>rows.every(row=>{
+          const peers=new Map();for(const el of row.children){const labelTop=el.querySelector('.gi-tag-field-label,span').getBoundingClientRect().top,top=el.querySelector('button,input').getBoundingClientRect().top;
+            const key=Math.round(labelTop);if(!peers.has(key))peers.set(key,[]);peers.get(key).push(top);}
+          return [...peers.values()].every(tops=>Math.max(...tops)-Math.min(...tops)<.5);
+        })));
         check(label+' text stays inside chips',await page.$$eval('.gi-tag-group[open] .gi-tag-chips button,.gi-tag-group[open] .gi-receiver-chips button',buttons=>buttons.every(b=>{if(!b.getClientRects().length)return true;const r=b.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(b);const t=range.getBoundingClientRect();return t.left>=r.left&&t.right<=r.right+.5&&t.top>=r.top&&t.bottom<=r.bottom+.5;})));
         await page.screenshot({path:resolve(captures,`${state}-${section}-${viewport.width}x${viewport.height}.jpg`),type:'jpeg',quality:82,fullPage:viewport.width<=1000});
         if(viewport.width<=1000&&section!=='closed') {
@@ -66,6 +83,9 @@ try {
     check(`${viewport.width} coarse chip targets 44px`,await page.$$eval('.gi-tag-group[open] .gi-tag-chips button',buttons=>buttons.every(b=>{const r=b.getBoundingClientRect();return r.width>=44&&r.height>=44;})));
     check(`${viewport.width} coarse no page overflow`,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:resolve(captures,`coarse-formation-${viewport.width}x${viewport.height}.jpg`),type:'jpeg',quality:82,fullPage:viewport.width<=1000});
+    await page.evaluate(()=>window.COMP_OPEN('situation'));
+    check(`${viewport.width} coarse Quarter stays one row`,await page.$$eval('[data-native-field=quarter] .gi-tag-chips button',buttons=>new Set(buttons.map(b=>b.getBoundingClientRect().top)).size===1));
+    await page.screenshot({path:resolve(captures,`coarse-situation-${viewport.width}x${viewport.height}.jpg`),type:'jpeg',quality:82,fullPage:viewport.width<=1000});
     await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:false});await cdp.detach();
   }
   await page.setViewport({width:1440,height:900});await page.goto(`${base}#full/closed`);

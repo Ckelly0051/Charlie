@@ -5,7 +5,7 @@
 Authority: `GRIDIRON-IQ-PLAN-V2.md` step 2, Chart deck polish and its acceptance
 checklist; `CLAUDE.md` Break Down rules. Style reference:
 `design-comps/receiver-charting-2026-10-13`. Receiver checkpoint 1 is the
-implemented editor at `1924ffb3..cadf3333`, not its future Target/Catch proposal.
+implemented editor at `88aa0289..8c1c9699`, not its future Target/Catch proposal.
 
 ## Composition
 
@@ -41,12 +41,29 @@ representative film still. No production module is loaded by the review page.
 | Plan item | Where this comp fixes it |
 |---|---|
 | One chip system; no four-column centered library grid | `#full/formation-and-call`: Formation and Backfield flow with the same text-sized geometry as Personnel and QB Alignment. `#full/play-and-result`: all ten Gap choices wrap when needed. `#stress/formation-and-call`: the long custom Formation/Backfield value fits without smaller type. |
-| Situation labels and controls share baselines | `#full/situation`: Quarter/Down/Distance have identical label/control starts; Hash/Field position/Yard line/Drive do too. Numeric input gap matches chip-field gap. Coarse mode reflows these into two-column rows instead of forcing the fine layout. Capture checks measure the fine baselines, not just an absence of overflow. |
+| Situation labels and controls share baselines | `#full/situation`: fields on each row share label/control starts and gaps. Desktop gives Quarter its intrinsic width so OT stays with Q1-Q4. Compact and coarse layouts give Quarter a full row, then pair Down/Distance; other fields reflow into two-column rows. Capture checks measure peer baselines and all five Quarter chips, not just an absence of overflow. |
 | One border level and no second deck scrollbar | Every view: unframed form and section bands with one separating rule. `#full/players-and-grades`: roster buttons expand in the same scroll owner. The footer is outside the scrolling form. No new scrollbar-width, scrollbar-color or scrollbar-gutter is declared. Chromium checks scroll ownership, not Windows scrollbar chrome. |
 | One disclosure pattern; consistent Edit library position | Every section's caret is at the same left inset, followed by its title. Play Call and Play Type no longer have separate field-fold buttons; their containing section is the disclosure. `#full/formation-and-call` and `#defense/our-defensive-call`: every Edit library is at the right edge of its label row. The unchanged local Receiver/roster disclosures also use a left caret. |
 | Consistent deck header controls | Every view: Same as Last, Templates and Delete play share height, spacing and type. Coarse mode reflows Delete play beneath the first two instead of introducing a horizontal scroller. Template Save/Delete options are retained inside the real select. |
 | No placeholder instructions, disabled Save wedged in navigation, or Previous arrow | Play Call's example placeholder is removed. Save is retained at the left, with its original availability rule. Previous is literal text. Operational field labels remain; the More Tools explanatory paragraph is hidden, not its controls. |
 | Closed summaries and one section open | `#full/closed` and all `#.../closed` views show plain right-aligned values. Clicking any summary closes the previously open section. Each section has a repeatable fragment and capture. No real section is omitted. |
+
+## Requested Corrections
+
+- Quarter stays on one row at every captured width, including coarse-pointer
+  mode. No nowrap chip row or hard minimum width is introduced.
+- Every structural summary separator is ` · `, including Route & Release.
+  Punctuation inside a coach's value (the preview call `Slant / Flat`) stays
+  unchanged. Control inventory comparison normalizes only this separator and
+  the approved Previous arrow removal; the complete control multiset remains
+  checked.
+- More Tools and Play Diagram have blank summaries rather than invented
+  captions. Their real controls remain in their open sections.
+- Formation & Call leads with the play call, then Formation and Personnel,
+  followed by the remaining charted look fields.
+
+These are comp-only presentation changes. The settled disclosure behavior and
+all other approved controls remain unchanged.
 
 No checklist item is rejected. The Save availability rule and the receiver's
 local disclosure should stay as built: these are charting behavior and an
@@ -104,6 +121,9 @@ preview-only additions. No season or catalog is committed with this folder.
   selected example. The real play metadata is not inferred from this image.
   No film file is opened, copied or altered. Media bounds retain production's
   rectangle at each viewport; no deck opening resizes or overlays it.
+- Every player name is fictionalized consistently before rendering. Jersey
+  numbers and all other source values stay intact; private roster data remains
+  outside the public repo.
 
 ## Review Views
 
@@ -118,7 +138,7 @@ not an approved default. Replace the fragment to inspect any state:
 | `#full/formation-and-call` | Whole offensive look, managed libraries and Motion |
 | `#full/defense-faced` | Defensive look |
 | `#full/play-and-result` | Run/Pass, Play Type, Direction, Gap, Result, Yards |
-| `#full/players-and-grades` | Actual roster names, roles and built receiver editor |
+| `#full/players-and-grades` | Fictional roster names, original roles and built receiver editor |
 | `#full/penalties` | Add penalty entry point |
 | `#full/notes-and-details` | Notes, custom fields/tags and editing commands |
 | `#full/play-diagram` | Diagram and Clear/Draw |

@@ -4,7 +4,10 @@
   const inputValue = el => el.tagName === 'SELECT' ? el.options[el.selectedIndex]?.textContent : el.value;
   function summary(group) {
     const title=group.querySelector('summary strong').textContent;
-    const value=field=>{const el=group.querySelector(`[data-native-field="${field}"]`);return el?.querySelector('input')?.value || [...(el?.querySelectorAll('button[aria-pressed=true]')||[])].map(b=>b.textContent.trim()).join(' + ') || '';};
+    const value=field=>{const el=group.querySelector(`[data-native-field="${field}"]`);return el?.querySelector('input')?.value || [...(el?.querySelectorAll('button[aria-pressed=true]')||[])].map(b=>b.textContent.trim()).join(' · ') || '';};
+    if(group.querySelector('.gi-play-call-entry')) return [group.querySelector('.gi-play-call-entry input').value,
+      ...['formationFamily','personnel','qbAlignment','backfield','strength','receiverSet','motion','motionStart','motionEnd'].map(value)]
+      .filter(Boolean).join(' · ') || 'Not charted';
     if(title === 'Situation') {
       const down=value('down'),distance=value('distance'),side=value('fieldSide'),yard=value('yardLine'),drive=value('driveNumber');
       return [down ? `${down}${['','st','nd','rd','th'][Number(down)]} & ${distance || '—'}` : '',yard ? `${side} ${yard}` : '',value('hash'),value('quarter'),drive ? `Drive ${drive}` : ''].filter(Boolean).join(' · ') || 'Not charted';
@@ -15,12 +18,11 @@
       return [...players,detail&&detail!=='Not charted'?detail:''].filter(Boolean).join(' · ') || 'Not charted';
     }
     if(title === 'Play & Result') return [value('runPass'),value('playType'),value('playDir'),value('gap'),value('result'),value('yardage')?`${value('yardage')} yds`:''].filter(Boolean).join(' · ') || 'Not charted';
-    if(title === 'Play Diagram') return group.querySelector('img[src]') ? 'Diagram charted' : 'None';
-    if(title === 'More Tools') return 'Charting setup';
-    if(title === 'Penalties') return [...group.querySelectorAll('.gi-penalty-card header strong')].map(el=>el.textContent).join(' / ') || 'None';
+    if(title === 'Play Diagram' || title === 'More Tools') return '';
+    if(title === 'Penalties') return [...group.querySelectorAll('.gi-penalty-card header strong')].map(el=>el.textContent).join(' · ') || 'None';
     const pressed=[...group.querySelectorAll('button[aria-pressed=true]')].map(el => el.textContent.trim());
     const inputs=[...group.querySelectorAll('input:not([type=checkbox]),textarea')].map(el=>el.value.trim()).filter(Boolean);
-    return [...new Set([...pressed,...inputs])].join(' / ') || 'Not charted';
+    return [...new Set([...pressed,...inputs])].join(' · ') || 'Not charted';
   }
   function render() {
     const parts=location.hash.slice(1).split('/'), stateKey=window.COMP_STATES[parts[0]] ? parts[0] : 'full';
@@ -35,6 +37,9 @@
       const label=document.createElement('span');label.textContent=button.querySelector('span')?.textContent || button.textContent;button.replaceWith(label);
     });
     form.querySelectorAll('.gi-tag-hint').forEach(el=>el.hidden=true);
+    form.querySelectorAll('.gi-receiver-toggle').forEach(toggle=>{
+      toggle.lastElementChild.textContent=[...toggle.closest('.gi-receiver-editor').querySelectorAll('[aria-pressed=true]')].map(el=>el.textContent.trim()).join(' · ') || 'Not charted';
+    });
     const groups=[...form.querySelectorAll('.gi-tag-group')];
     groups.forEach((group,index) => {
       const title=group.querySelector('summary strong').textContent, id=keyFor(title);
@@ -67,7 +72,7 @@
       editor.querySelector('.gi-receiver-toggle').onclick=()=>{const toggle=editor.querySelector('.gi-receiver-toggle'),open=toggle.getAttribute('aria-expanded')!=='true';toggle.setAttribute('aria-expanded',String(open));toggle.nextElementSibling.hidden=!open;toggle.firstElementChild.textContent=open?'▾':'▸';};
       editor.querySelectorAll('.gi-receiver-chips button').forEach(chip=>chip.onclick=()=>{
         const active=chip.getAttribute('aria-pressed')==='true';chip.parentElement.querySelectorAll('button').forEach(other=>other.setAttribute('aria-pressed','false'));chip.setAttribute('aria-pressed',String(!active));
-        editor.querySelector('.gi-receiver-toggle>span:last-child').textContent=[...editor.querySelectorAll('[aria-pressed=true]')].map(el=>el.textContent).join(' / ') || 'Not charted';updateSummary(editor.closest('.gi-tag-group'));
+        editor.querySelector('.gi-receiver-toggle>span:last-child').textContent=[...editor.querySelectorAll('[aria-pressed=true]')].map(el=>el.textContent).join(' · ') || 'Not charted';updateSummary(editor.closest('.gi-tag-group'));
       });
     }));
     deck.querySelectorAll('.gi-tag-chips button,.gi-receiver-chips button,.gi-play-call-quick button').forEach(button => button.addEventListener('click',() => {
@@ -77,7 +82,7 @@
       if(!multi) button.parentElement.querySelectorAll('button').forEach(other=>{other.setAttribute('aria-pressed','false');other.classList.remove('is-active');});
       button.setAttribute('aria-pressed',String(!selected));button.classList.toggle('is-active',!selected);
       const editor=button.closest('.gi-receiver-editor');
-      if(editor?.querySelector('.gi-receiver-toggle')) editor.querySelector('.gi-receiver-toggle>span:last-child').textContent=[...editor.querySelectorAll('[aria-pressed=true]')].map(el=>el.textContent.trim()).join(' / ') || 'Not charted';
+      if(editor?.querySelector('.gi-receiver-toggle')) editor.querySelector('.gi-receiver-toggle>span:last-child').textContent=[...editor.querySelectorAll('[aria-pressed=true]')].map(el=>el.textContent.trim()).join(' · ') || 'Not charted';
       updateSummary(button.closest('.gi-tag-group'));
     }));
     deck.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('change',()=>updateSummary(el.closest('.gi-tag-group'))));
