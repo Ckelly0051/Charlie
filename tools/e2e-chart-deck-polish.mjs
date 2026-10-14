@@ -47,6 +47,11 @@ try {
   await page.focus('[data-section=formation-and-call]>summary');await page.keyboard.press('Enter');await settle();
   ok(JSON.stringify(await opened())==='["situation"]'&&await page.evaluate(()=>JSON.stringify(app.tagger.getCurrentPlay())===window.__deckBefore),'keyboard disclosure closes only its module and never advances or changes the play');
   await page.click('[data-section=formation-and-call]>summary');await settle();
+  await page.evaluate(()=>app.tagger._emit('play-created'));await settle();
+  ok((await opened()).includes('formation-and-call'),'background clip creation notification never closes the current working module');
+  await page.evaluate(()=>app.tagger._emit('play-created',app.tagger.getPlay(app.tagger.currentPlayId)));await settle();
+  ok(JSON.stringify(await opened())==='["situation"]','creation notification for the selected play opens Situation');
+  await page.click('[data-section=formation-and-call]>summary');await settle();
   await page.evaluate(()=>{app.nativeTagging.setField('hash','Left');app.nativeTagging._publish();});await settle();
   ok((await opened()).includes('formation-and-call'),'edit and refresh retain the open module');
   await page.click('[data-native-save]');await settle();

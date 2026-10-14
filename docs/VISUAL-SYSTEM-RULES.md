@@ -327,6 +327,7 @@ IMPLEMENTED_UNVERIFIED until the coach's installed smoke.
   working modules, falling back to Situation when none remains available.
   Partial charting and unfinished tries are not blank; stats/progress completion
   rules do not decide disclosure. Seeded Unit, Own and drive 1 alone are blank.
+  Background clip-creation notifications do not reset the current disclosure.
 - Latest coach decision (2026-10-14): opening a module or using a shortcut must
   not automatically close another module on the current play. One module opens
   initially; multiple coach-opened modules may remain open. Only deliberate

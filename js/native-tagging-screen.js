@@ -99,7 +99,9 @@ export class NativeTaggingScreen {
   }
 
   _bindDomainEvents() {
-    this.tagger?.on('play-created', () => { this.openSections = new Set(['situation']); });
+    this.tagger?.on('play-created', play => {
+      if (play && play.id === this.tagger.currentPlayId) this.openSections = new Set(['situation']);
+    });
     ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded', 'draft-updated']
       .forEach(event => this.tagger?.on(event, () => this._queuePublish()));
   }
