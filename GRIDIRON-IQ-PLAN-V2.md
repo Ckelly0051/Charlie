@@ -110,8 +110,20 @@ failed saves that roll back only their own season, game or program, and
        identified target only; route from the standard list; release Inside
        or Outside judged against the hash; target and catch in nine zones
        (Left/Middle/Right by Short/Medium/Deep); inline under the Receiver row;
-       route paths tabled. Next: a rendered comp, then route and release,
-       then the zones;
+       route paths tabled. Comp: `design-comps/receiver-charting-2026-10-13`.
+       Next: route and release, then the zones;
+     - **Chart deck polish** (coach, 2026-10-14), right after receiver route
+       and release: bring the whole Chart deck to the receiver comp's
+       composition. Same font and sizes; the change is layout: each closed
+       section shows its value as a right-aligned summary and only the
+       section being worked opens; chips sized to their text and
+       left-aligned, replacing the fixed four-column library grid
+       (`css/native-tagging.css` `.gi-tag-chips.is-library`); plain text
+       instead of boxes for read-only values such as player names and
+       "Not charted". First a full-deck comp that keeps every real control
+       (transport, Clear tags, Save, top-bar tools) on real season data for
+       the coach's approval; then one migration across the whole deck, never
+       half-restyled;
      - missed tackles: a play-level event plus optional player attribution,
        more than one player per play; uncharted is not zero. Built
        2026-10-07, coach-smoked in `1.12.0-113` on 2026-10-09 with the
