@@ -1,0 +1,137 @@
+{
+  "sourceCommit": "cadf3333",
+  "canonicalHash": "0abcd7e571f62c57fc263dba6572ad2c602144161606b3a702e86e022c7ef4b8",
+  "liveHashBefore": "ddcfdacb2ebc454bfaede08b8e50e79eda6b20cf7119e3b432d5cd95d4548918",
+  "liveHashAfter": "ddcfdacb2ebc454bfaede08b8e50e79eda6b20cf7119e3b432d5cd95d4548918",
+  "states": {
+    "offense": {
+      "source": "canonical fixture",
+      "seasonId": "2025-st-joseph-mavericks-jv",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 31,
+      "previewOnly": {}
+    },
+    "defense": {
+      "source": "canonical fixture",
+      "seasonId": "2025-st-joseph-mavericks-jv",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 3,
+      "previewOnly": {}
+    },
+    "special": {
+      "source": "scratch copy of live catalog",
+      "seasonId": "2026-varsity-demo",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 1,
+      "previewOnly": {}
+    },
+    "try": {
+      "source": "scratch copy of live catalog",
+      "seasonId": "2026-varsity-demo",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 11,
+      "previewOnly": {}
+    },
+    "penalty": {
+      "source": "scratch copy of live catalog",
+      "seasonId": "2026-varsity-demo",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 4,
+      "previewOnly": {}
+    },
+    "uncharted": {
+      "source": "scratch copy of live catalog",
+      "seasonId": "2026-varsity-demo",
+      "gameId": "gmqo9g65dqzba4",
+      "game": "Week 4 vs OL Sorrows Lancers",
+      "playId": 18,
+      "previewOnly": {}
+    },
+    "full": {
+      "source": "canonical fixture",
+      "seasonId": "2025-st-joseph-mavericks-jv",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 31,
+      "previewOnly": {
+        "tags": {
+          "playCall": "Slant / Flat",
+          "personnel": "21",
+          "formationFamily": "Trips",
+          "receiverSet": "3x1",
+          "motion": "Jet",
+          "motionStart": "Left",
+          "motionEnd": "Right",
+          "strength": "Right",
+          "coverage": "Cover 3",
+          "coverageFamily": "Zone",
+          "blitz": "Edge"
+        },
+        "receiverDetail": {
+          "receiverNumber": "81",
+          "route": "Slant",
+          "releaseDirection": "Inside"
+        }
+      }
+    },
+    "multiple": {
+      "source": "canonical fixture",
+      "seasonId": "2025-st-joseph-mavericks-jv",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 31,
+      "previewOnly": {
+        "receiver": "22, 7"
+      }
+    },
+    "stress": {
+      "source": "canonical fixture",
+      "seasonId": "2025-st-joseph-mavericks-jv",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 31,
+      "previewOnly": {
+        "tags": {
+          "playCall": "Slant / Flat",
+          "personnel": "21",
+          "formationFamily": "Trips",
+          "receiverSet": "3x1",
+          "motion": "Jet",
+          "motionStart": "Left",
+          "motionEnd": "Right",
+          "strength": "Right",
+          "coverage": "Cover 3",
+          "coverageFamily": "Zone",
+          "blitz": "Edge"
+        },
+        "receiverDetail": {
+          "receiverNumber": "81",
+          "route": "Slant",
+          "releaseDirection": "Inside"
+        },
+        "name": "Christopher Alexander Montgomery-Worthington"
+      }
+    },
+    "rpo": {
+      "source": "canonical fixture",
+      "seasonId": "2025-st-joseph-mavericks-jv",
+      "gameId": "gmq9plozwgukpk",
+      "game": "Week 1 vs St. Peter Lutheran Patriots",
+      "playId": 15,
+      "previewOnly": {}
+    },
+    "qb": {
+      "source": "scratch copy of live catalog",
+      "seasonId": "2026-varsity-demo",
+      "gameId": "gmqpt95xh58z0a",
+      "game": "Week 5 vs OL Lakes Lakers",
+      "playId": 72,
+      "previewOnly": {}
+    }
+  }
+}
