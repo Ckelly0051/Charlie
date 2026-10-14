@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import puppeteer from './test-browser.mjs';
+import { chartDeckControls } from './chart-deck-test.mjs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
 import { mkdir } from 'node:fs/promises';
 let checks=0;
 const check=(name,value) => { assert.ok(value,name); checks++; };
 const browser=await puppeteer.launch({args:['--no-sandbox']});
 try {
-  const page=await browser.newPage(), errors=[]; page.on('pageerror',error => errors.push(error.message)); await page.setViewport({width:1440,height:900}); await gotoApp(page,APP_URL);
+  const page=chartDeckControls(await browser.newPage()), errors=[]; page.on('pageerror',error => errors.push(error.message)); await page.setViewport({width:1440,height:900}); await gotoApp(page,APP_URL);
   const result=await page.evaluate(async mutations => {
     const app=window.app, tagger=app.tagger;
     if (mutations.save) tagger.constructor.DRAFT_FIELDS=tagger.constructor.DRAFT_FIELDS.filter(field => field !== 'receiverDetail');

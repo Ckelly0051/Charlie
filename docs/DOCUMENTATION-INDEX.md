@@ -105,7 +105,12 @@ log.
   not in the 117 installer; verify that repair in the next installed smoke.
   The smoke record distinguishes Codex's limited read-only checks from the
   coach's acceptance. Receiver checkpoint 1 is also source-only and needs
-  its own gate and installed smoke. Rust advisory coverage and compatible
+  its own gate and installed smoke. Whole Chart deck polish is source-built,
+  IMPLEMENTED_UNVERIFIED against its COMP_APPROVED artifact. The latest coach
+  disclosure rule allows another module to open, but never auto-closes one
+  already open on the same play; see `docs/VISUAL-SYSTEM-RULES.md` > Chart Deck.
+  Coach visual review, release verification and installed smoke are pending.
+  Rust advisory coverage and compatible
   dependency repairs are complete in source; remaining upstream maintenance
   warnings are in `docs/OPEN-DEFECTS.md`. Rapid scrubbing remains
   deferred. Coach approval authorizes no push, tag or publication.

@@ -122,7 +122,7 @@ console.log('\n== BD-UX-1: deck rhythm ==');
 const deck = await page.evaluate(() => {
   const root = document.querySelector('[data-native-tagging]');
   const labels = [...root.querySelectorAll('.gi-tag-field > .gi-tag-field-label, .gi-play-call > .gi-tag-field-label')].filter(node => node.getClientRects().length)
-    .map(node => ({ field: node.parentElement.dataset.nativeField || 'playCall', h: Math.round(node.getBoundingClientRect().height), left: Math.round(node.getBoundingClientRect().left),
+    .map(node => ({ field: node.parentElement.dataset.nativeField || 'playCall', h: Math.round(node.getBoundingClientRect().height), action:!!node.querySelector('button'),left: Math.round(node.getBoundingClientRect().left),
       // Situation pairs (Quarter | Down, Hash | Field position) are deliberate side-by-side columns.
       column: !!node.closest('.gi-tag-situation-row, .gi-tag-grid') }));
   const gap = root.querySelector('[data-native-field="gap"]'), dir = root.querySelector('[data-native-field="playDir"]');
@@ -133,10 +133,10 @@ const deck = await page.evaluate(() => {
     off: off ? { text: off.textContent.trim(), active: off.classList.contains('is-active'), full: Math.abs(off.getBoundingClientRect().width - grid.width) <= 1, clipped: off.scrollWidth > off.clientWidth + 1 } : null };
 });
 const heights = [...new Set(deck.labels.map(label => label.h))];
-ok(deck.labels.length >= 8 && heights.length === 1 && heights[0] >= 22, 'Every field label row has one height, with or without an action', { heights, labels: deck.labels });
+ok(deck.labels.length >= 8 && deck.labels.every(label=>label.h===(label.action?22:18)), 'Labels use the compact 18px line box; Edit library retains its 22px target', { heights, labels: deck.labels });
 ok(new Set(deck.labels.filter(label => !label.column).map(label => label.left)).size === 1, 'Every full-width field label starts on the deck inset', deck.labels);
 ok(!deck.gapInDetail && deck.gapIndent === 0 && deck.gapLeft === deck.dirLeft, 'Gap is a plain field aligned with Play Direction, not an indented detail', deck);
-ok(deck.off && deck.off.text === 'Trey Open Wide' && deck.off.active && deck.off.full && !deck.off.clipped, 'A stored Formation the library does not offer is selected and read in full on its own row', deck.off);
+ok(deck.off && deck.off.text === 'Trey Open Wide' && deck.off.active && !deck.off.clipped, 'A stored Formation the library does not offer stays selected and readable as a text-sized chip', deck.off);
 
 // A stored name longer than the deck is wide wraps inside its full row; it is never cut.
 const LONG = 'Doubles Tight Bunch Right Unbalanced Over Wing Slot Trade Motion Formation';

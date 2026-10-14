@@ -538,7 +538,7 @@ class App {
          content; every other key and every other target is unchanged. */
       const target = e.target;
       const ownsKey = (e.code === 'Space' || e.key === 'Enter')
-        && (tag === 'BUTTON' || tag === 'A' || target?.isContentEditable
+        && (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || target?.isContentEditable
           || target?.getAttribute?.('role') === 'button');
       if (ownsKey) return;
 
@@ -1032,7 +1032,7 @@ class App {
 
     if (e.shiftKey && e.code >= 'Digit1' && e.code <= 'Digit4') {
       e.preventDefault();
-      this.tagger.toggleTagValue('down', e.code.replace('Digit', ''));
+      this.nativeTagging.shortcut('down', () => this.tagger.toggleTagValue('down', e.code.replace('Digit', '')));
       return true;
     }
 
@@ -1047,9 +1047,7 @@ class App {
     // closing the only step that still forced a mouse trip every play.
     if (e.code === 'KeyY' && !e.shiftKey) {
       e.preventDefault();
-      const nativeYd = document.querySelector('[data-native-tagging] [data-native-field="yardage"] input');
-      const yd = nativeYd?.getClientRects().length ? nativeYd : null;
-      if (yd) { yd.focus(); yd.select(); }
+      this.nativeTagging.focusYardage();
       return true;
     }
 
@@ -1058,7 +1056,7 @@ class App {
       e.preventDefault();
       const order = ['offense', 'defense', 'special'];
       const nextUnit = order[(order.indexOf(curUnit) + 1) % order.length];
-      this.tagger.setChartingUnit(nextUnit);
+      this.nativeTagging.shortcut('unit', () => this.tagger.setChartingUnit(nextUnit));
       return true;
     }
 
@@ -1071,7 +1069,7 @@ class App {
       const n = parseInt(e.code.replace('Digit', ''), 10);
       if (n >= 1 && n <= units.length) {
         e.preventDefault();
-        this.breakdownCharting?.setSpecialUnit?.(units[n - 1]);
+        this.nativeTagging.shortcut('special', () => this.breakdownCharting?.setSpecialUnit?.(units[n - 1]));
         return true;
       }
     }
@@ -1082,7 +1080,7 @@ class App {
     e.preventDefault();
     // Multi-select fields (e.g. Play Type) toggle membership; single replace.
     const [field, value] = mapped;
-    this.tagger.toggleTagValue(field, value);
+    this.nativeTagging.shortcut(field, () => this.tagger.toggleTagValue(field, value));
     return true;
   }
 

@@ -13,9 +13,13 @@ needs the full gate and installed checks for Save/reopen, library editing,
 multiple receiver attribution, clearing/cancellation (also Film Room, Quick
 Chart and scheme copies), opening a valid mismatched receiver record as hidden
 data, dropping it on Save, and exact Study film.
-Target/Catch and whole-deck polish are not built. The whole-deck full-control
-comp on real season data is COMP_APPROVED (2026-10-14), including compact
-section-entry spacing; next is its production migration and release verification.
+Target/Catch is not built. Whole-deck polish is built in source,
+IMPLEMENTED_UNVERIFIED, from the COMP_APPROVED full-control comp, including
+compact section-entry spacing. Coach visual review and installed verification
+are pending: retained modules, shortcut feedback and Y focus, compact/fine and
+coarse controls, managed libraries, roster/receiver editing, Save/Undo and real
+film layout/scrolling. The coach's latest disclosure rule permits multiple open
+modules and shortcut opening, but never automatic closing on the current play.
 
 Latest coach-accepted build: `1.12.0-117`, smoke PASS by the coach on
 2026-10-14 (`SMOKE-1.12.0-117.md`). The carried 114-116 repair checks are
@@ -132,7 +136,7 @@ proving no change. The split is part of the reports rebuild
 
 ## Structural limits (planning inputs, not defects)
 
-- Settings live in localStorage (about 87 call sites): the quota failed once,
+- Settings live in localStorage: the quota failed once,
   settings do not travel with a season, and nothing syncs them. Blocks the
   mobile companion.
 - Chromium harnesses prove behavior and geometry, not installed WebView2

@@ -2,7 +2,7 @@
   "surfaceId": "breakdown.chart-deck-polish",
   "title": "Whole Chart deck composition and compact spacing",
   "designStatus": "COMP_APPROVED",
-  "productionStatus": "DRAFT",
+  "productionStatus": "IMPLEMENTED_UNVERIFIED",
   "approvedOn": "2026-10-14",
   "approvalNote": "Coach approved the full-control comp, including the final compact section-heading-to-content spacing. Text-sized left-aligned chips, plain read-only values, consistent closed summaries, retained controls and the built receiver editor share one composition. New/blank plays open Situation; existing navigation retains the working section when available; edits and shortcuts do not close it.",
   "canonicalArtifact": {
@@ -12,5 +12,5 @@
     "fileCount": 322
   },
   "decisionRecord": "design-comps/chart-deck-polish-2026-10-14/RATIONALE.md",
-  "productionNote": "Not built. Implement as one whole-deck presentation migration, removing replaced layout in the same change. Charting behavior and stored data remain unchanged. Release verification and installed smoke are separate checkpoints."
+  "productionNote": "Built in source as one whole-deck migration with replaced grids, field folds and nested scroller removed. Latest coach decision 2026-10-14 overrides the comp's enforced-one-open rule: modules and shortcuts may open another section but never auto-close a coach-opened module on the same play. One section opens initially. Current contract: docs/VISUAL-SYSTEM-RULES.md > Chart Deck. No charting-data or save behavior change. Coach visual review, release verification and installed smoke remain pending."
 }

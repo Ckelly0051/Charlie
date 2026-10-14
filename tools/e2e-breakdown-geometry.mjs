@@ -93,11 +93,8 @@ ok(state.composition.left===6&&state.composition.right===6,'1440 composition own
 // its own label (4-12px, the rule e2e-native-tagging pins) and never crosses
 // the module's 12px content inset; the play-call Edit Library keeps that inset
 // as its right edge.
-const besideLibrary=state.libraryAlignment.filter(item=>item.beside);
-ok(besideLibrary.length>=3
-  && besideLibrary.every(item=>item.gap>=4&&item.gap<=12&&item.bodyRight-item.right>=11)
-  && state.libraryAlignment.filter(item=>!item.beside).every(item=>Math.abs(item.delta-12)<=1),
-  'Edit Library actions sit beside their labels inside the module content edge',JSON.stringify(state.libraryAlignment));
+ok(state.libraryAlignment.length>=3&&state.libraryAlignment.every(item=>item.gap>=4&&item.delta<=.5),
+  'Every Edit library is at the section content right edge without overlapping its label',JSON.stringify(state.libraryAlignment));
 // The Chart chip is 27px by the registered charting comp (CLAUDE.md Density, VISUAL-SYSTEM-RULES); its type stays >=12px.
 ok(state.type.route.font>=12&&state.type.eyebrow===null&&state.type.title.font>=18&&state.type.unit.font>=12&&state.type.action.font>=12&&state.type.action.height>=30&&state.type.chip.font>=12&&state.type.chip.height===27&&!state.type.title.clipped,'1440 charting matches the compact comp without redundant Charting copy or clipped controls',JSON.stringify(state.type));
 ok(state.overlap===0&&state.overflow<=1,'1440 split never overlays film or overflows the page',JSON.stringify(state));

@@ -1,6 +1,7 @@
 import { mountNativeTagging, unmountNativeTagging } from './native-tagging.jsx';
 import { StatsEngine } from './stats-engine.js';
-import { countedUnit } from './football-rules.js';
+import { countedUnit, isPlayTagged } from './football-rules.js';
+import { chartSections } from './chart-deck-presentation.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PlayCallModel } from './play-call-model.js';
@@ -35,10 +36,11 @@ export class NativeTaggingScreen {
     this._publishQueued = false;
     this._saveConfirmed = false;
     this._saveTimer = null;
-    // Collapsible fields (coach direction 2026-09-23): the custom Play Call and
-    // the built-in Play Type lists fold independently. A view preference only,
-    // so it lives beside the other Breakdown view settings in localStorage.
-    this.collapsedFields = NativeTaggingScreen.readCollapsed();
+    this.openSections = new Set(['situation']);
+    this._sectionPlay = null;
+    this.shortcutFeedback = '';
+    this._feedbackTimer = null;
+    this._yardageFocus = 0;
     this._bindDomainEvents();
     // Formation/Backfield/Front vocabulary can change (Team & Film Settings)
     // while this form is already mounted and showing it, with no play-data
@@ -50,23 +52,54 @@ export class NativeTaggingScreen {
     this.app.playbook?.onChange?.(() => this._queuePublish());
   }
 
-  static COLLAPSE_KEY = 'ffa_chart_collapsed_fields';
-  static COLLAPSIBLE = Object.freeze(['playCall', 'playType']);
-  static readCollapsed(storage = (typeof localStorage !== 'undefined' ? localStorage : null)) {
-    let raw = null;
-    try { raw = JSON.parse(storage?.getItem(NativeTaggingScreen.COLLAPSE_KEY) || 'null'); } catch (e) { raw = null; }
-    return new Set(Array.isArray(raw) ? raw.filter(field => NativeTaggingScreen.COLLAPSIBLE.includes(field)) : []);
-  }
-  toggleFieldCollapsed(field) {
-    if (!NativeTaggingScreen.COLLAPSIBLE.includes(field)) return false;
-    if (this.collapsedFields.has(field)) this.collapsedFields.delete(field); else this.collapsedFields.add(field);
-    try { localStorage.setItem(NativeTaggingScreen.COLLAPSE_KEY, JSON.stringify([...this.collapsedFields])); }
-    catch (e) { console.error('Chart field collapse could not be saved', e); }
+  toggleSection(id) {
+    if (!chartSections(this.tagger?.getCurrentPlay?.()).includes(id)) return false;
+    if (this.openSections.has(id)) this.openSections.delete(id); else this.openSections.add(id);
     this._queuePublish();
-    return this.collapsedFields.has(field);
+    return this.openSections.has(id);
+  }
+
+  _syncSections(play) {
+    const scope = JSON.stringify([this.app.storage?.seasonStore?.currentSeasonId, this.app.storage?._loadedGameId, play?.id]);
+    const available = chartSections(play);
+    if (scope !== this._sectionPlay) {
+      this._sectionPlay = scope;
+      this.openSections = new Set(!isPlayTagged(play) ? ['situation'] : [...this.openSections].filter(id => available.includes(id)));
+      if (!this.openSections.size) this.openSections.add('situation');
+      this.shortcutFeedback = '';
+    }
+    // Conditional sections that no longer exist cannot stay open; all others
+    // retain their state through edits, saves and presentation refreshes.
+    for (const id of this.openSections) if (!available.includes(id)) this.openSections.delete(id);
+  }
+
+  shortcut(field, write) {
+    const play = this.tagger?.getCurrentPlay?.();
+    const scope = this._sectionPlay;
+    const finish = ok => {
+      if (ok === false || this._sectionPlay !== scope || this.tagger?.getCurrentPlay?.()?.id !== play?.id) return ok;
+      const labels = {down:'Down',playType:'Play Type',result:'Result',unit:'Unit',special:'Special Teams'};
+      const current = this.tagger?.getCurrentPlay?.();
+      const value = field === 'special' ? SpecialTeamsModel.unitOptions().find(([unit]) => unit === current?.specialTeams?.unit)?.[1]
+        : field === 'unit' ? countedUnit(current) : this.tagger.displayTagValue(field, current);
+      this.shortcutFeedback = `${labels[field] || field}: ${String(value || 'Not charted').split(' + ').join(' · ')}`;
+      clearTimeout(this._feedbackTimer);
+      this._queuePublish();
+      this._feedbackTimer = setTimeout(() => { this.shortcutFeedback = ''; this._queuePublish(); }, 1800);
+      return ok;
+    };
+    const result = write();
+    return result?.then ? result.then(finish) : finish(result);
+  }
+
+  focusYardage() {
+    this.openSections.add('play-and-result');
+    this._yardageFocus++;
+    this._publish();
   }
 
   _bindDomainEvents() {
+    this.tagger?.on('play-created', () => { this.openSections = new Set(['situation']); });
     ['play-selected', 'play-created', 'play-updated', 'play-deleted', 'plays-loaded', 'draft-updated']
       .forEach(event => this.tagger?.on(event, () => this._queuePublish()));
   }
@@ -115,6 +148,7 @@ export class NativeTaggingScreen {
     if (index >= 0) this._hosts.splice(index, 1);
     if (this._hosts.length) return;
     clearTimeout(this._saveTimer);
+    clearTimeout(this._feedbackTimer);
     this._saveTimer = null;
     this._saveConfirmed = false;
   }
@@ -142,6 +176,7 @@ export class NativeTaggingScreen {
   snapshot() {
     const gameInfo = this.app.storage?.gameInfo || {};
     const play = this.tagger?.getCurrentPlay?.() || null;
+    this._syncSections(play);
     const raw = play?.tags || {};
     const projected = play ? StatsEngine.proj(play) : {};
     const index = this.tagger?.plays?.findIndex(item => item.id === play?.id) ?? -1;
@@ -200,7 +235,7 @@ export class NativeTaggingScreen {
       canCopyPrevious: index > 0, canPrevious: index > 0,
       autoDD: !!this.tagger?.autoDD, carryScheme: !!this.tagger?.carryScheme, diagram,
       autoOcr: !!this.app.ocr?.autoOnPlayEnd, saveConfirmed: this._saveConfirmed,
-      collapsed: Object.fromEntries(NativeTaggingScreen.COLLAPSIBLE.map(field => [field, this.collapsedFields.has(field)])),
+      openSections: [...this.openSections], shortcutFeedback: this.shortcutFeedback, yardageFocus: this._yardageFocus,
     };
   }
 

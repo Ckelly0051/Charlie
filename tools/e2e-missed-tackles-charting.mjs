@@ -162,7 +162,7 @@ await installExportCapture(page);
       res({ rowGap: getComputedStyle(grid).rowGap, pad: getComputedStyle(row).paddingTop, toggle: getComputedStyle(toggle).minHeight, height: Math.round(row.getBoundingClientRect().height) });
     }, 200));
   });
-  ok(geo.rowGap === '2px' && geo.pad === '6px' && geo.toggle === '20px' && geo.height === 90, 'collapsed player rows sit tight: 2px gap, 6px padding, 20px Show roster, 90px rows with their 1px borders', geo);
+  ok(geo.rowGap === '8px' && geo.pad === '0px' && geo.toggle === '20px' && geo.height === 51, 'plain player rows use the approved 8px group gap with no nested inset or border and a 20px roster disclosure', geo);
 
   console.log('\n== CSV ==');
   const csv = await page.evaluate(async () => {

@@ -6,6 +6,7 @@ import { PlayShape } from './play-shape.js';
 import { ChartingDetails } from './charting-details.js';
 import { MissedTackles } from './missed-tackles.js';
 import { ReceiverDetails } from './receiver-details.js';
+import { joinSummary, sectionSummary } from './chart-deck-presentation.js';
 import '../css/native-tagging.css';
 
 // Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
@@ -41,38 +42,28 @@ const MULTI = new Set(['playType','result','defFront','blitz']);
 const typeSelected = (value, type) => String(value || '').split(' + ').includes(type);
 const selected = (value, option) => String(value || '').split(' + ').includes(option);
 
-/* A collapsible field's label is its disclosure control. Folded, the field
-   keeps its header and states what is selected, so a coach never has to open a
-   long list to read the current call. */
-function FieldLabel({screen, field, label, hint, collapsible, collapsed, summary, children}) {
-  if (!collapsible) return <div class="gi-tag-field-label"><span>{label}</span>{hint && <small>{hint}</small>}{children}</div>;
-  return <div class="gi-tag-field-label">
-    <button type="button" class="gi-tag-field-toggle" aria-expanded={!collapsed} aria-controls={`giTagField-${field}`}
-      onClick={() => screen.toggleFieldCollapsed(field)}><i aria-hidden="true">▾</i><span>{label}</span></button>
-    {collapsed ? <small class="gi-tag-field-summary" data-field-summary={field}>{summary || 'None'}</small> : hint && <small>{hint}</small>}
-    {children}
-  </div>;
+function FieldLabel({label, hint, children}) {
+  return <div class="gi-tag-field-label"><span>{label}</span>{hint && <small>{hint}</small>}{children}</div>;
 }
 
-function Chips({screen, field, label, options, value, hint, library, collapsible = false, collapsed = false}) {
+function Chips({screen, field, label, options, value, hint, library}) {
   const choices = options.map(option => typeof option === 'string' ? { value: option, label: option } : option);
   // A stored value the library does not offer (a hidden or removed custom choice)
   // is still shown, selected, at the end of the list.
   if (library) for (const item of String(value || '').split(' + ').filter(Boolean)) {
     if (!choices.some(option => option.value === item)) choices.push({ value: item, label: item, offLibrary: true });
   }
-  const summary = String(value || '').split(' + ').filter(Boolean).map(item => choices.find(option => option.value === item)?.label || item).join(' + ');
-  return <div class={`gi-tag-field gi-tag-field-${field}${collapsed ? ' is-collapsed' : ''}`} data-native-field={field} data-library-align={library ? '' : undefined}>
-    <FieldLabel screen={screen} field={field} label={label} hint={hint} collapsible={collapsible} collapsed={collapsed} summary={summary}>
+  return <div class={`gi-tag-field gi-tag-field-${field}`} data-native-field={field} data-library-align={library ? '' : undefined}>
+    <FieldLabel label={label} hint={hint}>
       {library && <button type="button" class="gi-tag-library" onClick={() => screen.openLibrary(library)}>Edit library</button>}
     </FieldLabel>
-    {!collapsed && <div class={`gi-tag-chips${library ? ' is-library' : ''}`} id={collapsible ? `giTagField-${field}` : undefined}>{choices.map(option =>
+    <div class="gi-tag-chips">{choices.map(option =>
       <button type="button" key={option.value} class={`${selected(value, option.value) ? 'is-active' : ''}${option.offLibrary ? ' is-off-library' : ''}`.trim()}
         aria-pressed={selected(value, option.value)} title={option.label}
         onClick={() => MULTI.has(field) ? screen.toggleField(field, option.value) : screen.setField(field, selected(value, option.value) ? '' : option.value)}>
         {option.label}
       </button>)}
-    </div>}
+    </div>
   </div>;
 }
 
@@ -114,16 +105,15 @@ function PlayCallField({screen, state}) {
     return outcome;
   };
   const commit = candidate => pick(candidate ?? draft);
-  const collapsed = !!state.collapsed?.playCall;
   const label = state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play';
-  return <section class={`gi-play-call${collapsed ? ' is-collapsed' : ''}`} data-native-play-call data-library-align="">
-    <FieldLabel screen={screen} field="playCall" label={label} collapsible collapsed={collapsed} summary={value}
+  return <section class="gi-play-call" data-native-play-call data-library-align="">
+    <FieldLabel label={label}
       hint={state.values.playConcept ? `Concept: ${state.values.playConcept}` : ''}>
       <button type="button" class="gi-tag-library gi-play-call-library" onClick={() => screen.editPlayCallLibrary()}>Edit library</button>
     </FieldLabel>
-    {!collapsed && <div class="gi-play-call-body" id="giTagField-playCall">
+    <div class="gi-play-call-body">
     <div class="gi-play-call-entry">
-      <input type="text" list="giPlayCallChoices" value={draft} placeholder="e.g. 26 Blast"
+      <input type="text" list="giPlayCallChoices" value={draft}
         aria-label={state.unit === 'offense' && state.perspective !== 'scout' ? 'Play Call' : 'Opponent Play'}
         onInput={event => setDraft(event.currentTarget.value)}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); commit(event.currentTarget.value); event.currentTarget.blur(); }}}/>
@@ -142,7 +132,7 @@ function PlayCallField({screen, state}) {
     {applied.length > 0 && <div class="gi-play-call-defaults" aria-label="Defaults applied by this call">
       <span>Applied:</span>{applied.map(([key,fieldValue]) => <em key={key}>{CALL_DEFAULT_LABELS[key] || key}: {fieldValue}</em>)}
     </div>}
-    </div>}
+    </div>
   </section>;
 }
 
@@ -201,18 +191,14 @@ function RpoConflict({screen, state}) {
   </div>;
 }
 
-function Group({title, open=false, syncOpen=false, children}) {
-  const [expanded,setExpanded] = useState(open);
-  // Offense/Defense/Special Teams groups pass syncOpen: their `open` prop is
-  // a function of the active unit, not a one-time default. useState only
-  // reads its argument on mount, so a coach who mounted the form on Defense
-  // then clicked back to Offense saw the Offense group stay collapsed --
-  // the primary group for the unit they were actually charting. Re-syncing
-  // whenever `open` itself changes (i.e. the unit changed) fixes that while
-  // still letting a manual toggle stick within one unit's session.
-  useLayoutEffect(() => { if (syncOpen) setExpanded(open); }, [open, syncOpen]);
-  return <details class="gi-tag-group" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-    <summary><strong>{title}</strong><i aria-hidden="true">▾</i></summary>
+function Group({screen, state, id, title, summary, children}) {
+  const expanded = state.openSections.includes(id);
+  const value = summary ?? sectionSummary(id, state);
+  return <details class="gi-tag-group" data-section={id} open={expanded}>
+    <summary onClick={event => { event.preventDefault(); screen.toggleSection(id); }}>
+      <i aria-hidden="true">{expanded ? '▾' : '▸'}</i><strong>{title}</strong>
+      <span class="gi-tag-summary" title={value}>{value}</span>
+    </summary>
     <div class="gi-tag-group-body">{children}</div>
   </details>;
 }
@@ -226,7 +212,7 @@ function Choice({label, options, value, choose}) {
 }
 
 function Penalties({screen, state}) {
-  return <Group title="Penalties">
+  return <Group screen={screen} state={state} id="penalties" title="Penalties">
     <button type="button" class="gi-tag-add" onClick={() => screen.addPenalty()}>Add penalty</button>
     {state.penalties.map((penalty, index) =>
       <article class="gi-penalty-card" key={penalty.id || index}>
@@ -341,7 +327,11 @@ function SpecialTeams({screen, state}) {
   const needsRecovery = st && (['recovered','muffed','blocked'].includes(st.outcome.status) || (st.outcome.score === 'touchdown' && ['kickoff','fieldGoalBlock'].includes(st.unit)));
   const subject = state.perspective === 'scout' ? 'Scouted team' : 'Our team';
   const other = state.perspective === 'scout' ? 'Other team' : 'Opponent';
-  return <Group title="Special Teams" open>
+  const summary = joinSummary([ST_UNITS.find(([unit]) => unit === st?.unit)?.[1],
+    ST_OUTCOMES[st?.unit]?.find(([value]) => value === st?.outcome?.status)?.[1],
+    isTry ? ({kick:'Kick XP',runPass:'Run/Pass'}[st.attemptType] || '') : '',
+    isTry ? ({converted:'Converted',failed:'Failed',noPlay:'No Play / Retry'}[st.result] || '') : '']) || 'Not charted';
+  return <Group screen={screen} state={state} id="special-teams" title="Special Teams" summary={summary}>
     <Choice label="Unit" value={st?.unit} options={ST_UNITS} choose={value => screen.setSpecialUnit(value)}/>
     {isTry ? <TryEditor screen={screen} state={state} st={st}/> : st && <>
       {/* No Attempt selector. The field-goal units attempt a field goal, and
@@ -421,7 +411,9 @@ function Players({screen, state}) {
   // opponent's tacklers are numbers only, never graded.
   const missedRole = role => role === MissedTackles.ROLE;
   const ungraded = role => missedRole(role) || role === OPPONENT_TACKLER;
-  return <Group title="Players & Grades" open>
+  const playerSummary = joinSummary([...roles.map(role => state.players[role] ? `${LABELS[role] || role} #${state.players[role]}` : ''),
+    state.values.missedTackles !== '' && state.values.missedTackles != null ? `Missed Tackles ${state.values.missedTackles}` : '', state.receiverDetail?.route, state.receiverDetail?.releaseDirection]) || 'Not charted';
+  return <Group screen={screen} state={state} id="players-and-grades" title="Players & Grades" summary={playerSummary}>
     <div class="gi-tag-players">{roles.map(role => {
       const rosterOpen = openRoles.has(role) && allowed(role).length > 0;
       if (role === MISSED_COUNT) return <div key={role}>
@@ -435,7 +427,7 @@ function Players({screen, state}) {
         <strong>{opposingSpecialist(role) ? `${state.perspective === 'scout' ? 'Other team' : 'Opponent'} ` : ''}{LABELS[role] || role.replace(/([A-Z])/g,' $1')}</strong>
         <input aria-label={`${role} player number`} class={ungraded(role) ? 'is-wide' : undefined} value={state.players[role] || ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onClick={() => { screen.setActiveRole(role); openRole(role); }}
           onChange={event => screen.setPlayer(role,event.currentTarget.value)}/>
-        {role === 'receiver' && <span class="gi-receiver-name">{String(state.players.receiver || '').split(/\s*[,;+]\s*/).map(number => state.roster.find(player => String(player.num) === number)?.name).filter(Boolean).join(' / ') || 'Not charted'}</span>}
+        <span class={role === 'receiver' ? 'gi-receiver-name' : 'gi-player-name'}>{String(state.players[role] || '').split(/\s*[,;+]\s*/).map(number => !opposingSpecialist(role) && role !== OPPONENT_TACKLER ? state.roster.find(player => String(player.num) === number)?.name : '').filter(Boolean).join(' / ') || (state.players[role] ? '' : 'Not charted')}</span>
         {!ungraded(role) && <select aria-label={`${role} grade`} value={state.grades[role] ?? ''} onFocus={() => { screen.setActiveRole(role); openRole(role); }} onChange={event => screen.setGrade(role,event.currentTarget.value)}>
           <option value="">Grade</option>{[-2,-1,0,1,2].map(value => <option key={value} value={value}>{value > 0 ? `+${value}` : value}</option>)}
         </select>}
@@ -463,7 +455,7 @@ function ReceiverEditor({screen, state}) {
   const routes = [...(state.libraries.receiverRoute || [])];
   if (detail?.route && !routes.includes(detail.route)) routes.push(detail.route);
   return <section class="gi-receiver-editor" data-receiver-editor>
-    <button class="gi-receiver-toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}><span aria-hidden="true">{open ? '\u25be' : '\u25b8'}</span><b>Route &amp; Release</b><span>{[detail?.route,detail?.releaseDirection].filter(Boolean).join(' / ') || 'Not charted'}</span></button>
+    <button class="gi-receiver-toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}><span aria-hidden="true">{open ? '\u25be' : '\u25b8'}</span><b>Route &amp; Release</b><span>{joinSummary([detail?.route,detail?.releaseDirection]) || 'Not charted'}</span></button>
     {open && <div><div class="gi-receiver-label"><b>Route</b><button type="button" onClick={() => screen.openLibrary('receiverRoute')}>Edit library</button></div>
       <div class="gi-receiver-chips" role="group" aria-label="Receiver route">{routes.map(route => <button key={route} type="button" aria-pressed={detail?.route === route} onClick={() => screen.setReceiverDetail('route',detail?.route === route ? '' : route,target)}>{route}</button>)}</div>
       <div class="gi-receiver-label"><b>Release</b></div><div class="gi-receiver-chips" role="group" aria-label="Receiver release">{ReceiverDetails.RELEASES.map(release => <button key={release} type="button" aria-pressed={detail?.releaseDirection === release} onClick={() => screen.setReceiverDetail('releaseDirection',detail?.releaseDirection === release ? '' : release,target)}>{release}</button>)}</div>
@@ -473,8 +465,8 @@ function ReceiverEditor({screen, state}) {
 
 function PlayResult({screen, state, chips}) {
   const playTypeValue = state.values.playType;
-  return <Group title="Play &amp; Result" open>
-    {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={playTypeValue} library="playType" collapsible collapsed={!!state.collapsed?.playType}/>
+  return <Group screen={screen} state={state} id="play-and-result" title="Play &amp; Result">
+    {chips('runPass','Run / Pass',OPTIONS.runPass)}<Chips screen={screen} field="playType" label="Play Type" options={state.libraries.playType} value={playTypeValue} library="playType"/>
     {typeSelected(playTypeValue,'RPO') && <div class="gi-tag-detail" data-native-detail="rpo">
       {chips('rpoRead','Read defender',OPTIONS.rpoRead)}
       <Field screen={screen} field="rpoDefender" label="Defender #" value={state.values.rpoDefender} min="0" max="99" placeholder="Jersey number"/>
@@ -493,6 +485,11 @@ export function NativeTagging({screen}) {
   const [state,setState] = useState(() => screen.snapshot());
   const [customTag,setCustomTag] = useState('');
   const root = useRef(null);
+  useLayoutEffect(() => {
+    if (!state.yardageFocus) return;
+    const input = root.current?.querySelector('[data-native-field="yardage"] input');
+    input?.focus(); input?.select();
+  }, [state.yardageFocus]);
   useLayoutEffect(() => screen.subscribe(setState), [screen]);
   useLayoutEffect(() => {
     const host = root.current.parentElement;
@@ -519,6 +516,7 @@ export function NativeTagging({screen}) {
       {state.perspective === 'scout'
         ? <p class="gi-tag-subject">Opponent film — the charted team is the subject</p>
         : null}
+      <p class="gi-tag-key-feedback" aria-live="polite" aria-atomic="true">{state.shortcutFeedback}</p>
     </header>
     <div class="gi-tag-actions">
       <button type="button" disabled={!state.canCopyPrevious} onClick={() => screen.copyPrevious()}>Same as Last</button>
@@ -535,7 +533,7 @@ export function NativeTagging({screen}) {
     </div>
     {!state.enabled ? <div class="gi-tag-empty">Select or mark a play to begin charting.</div> : <main class="gi-native-form">
       <datalist id="giPenaltyFouls">{['False Start','Holding','Illegal Formation','Illegal Motion','Delay of Game','Offside','Encroachment','Defensive Pass Interference','Facemask','Personal Foul','Unsportsmanlike','Block in the Back','Roughing the Kicker'].map(v => <option key={v}>{v}</option>)}</datalist>
-      <Group title="Situation" open>
+      <Group screen={screen} state={state} id="situation" title="Situation">
         <div class="gi-tag-situation-row is-primary" data-situation-row="primary">
           {chips('quarter','Quarter',OPTIONS.quarter)}{chips('down','Down',OPTIONS.down)}
           <Field screen={screen} field="distance" label="Distance" value={state.values.distance} min="1" max="99"/>
@@ -555,7 +553,7 @@ export function NativeTagging({screen}) {
         // second. The group a coach is actually charting leads. A run/pass or
         // Fake try shows the attempting or defending side's groups.
         const side = lookSide(state);
-        const offense = <Group key="off" title={side === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Formation & Call' : 'Formation & Call'} open={side !== 'defense'} syncOpen>
+        const offense = <Group key="off" screen={screen} state={state} id="formation-and-call" title={side === 'defense' ? 'Offense Faced' : state.perspective === 'scout' ? 'Opponent Formation & Call' : 'Formation & Call'}>
           <PlayCallField screen={screen} state={{ ...state, unit: side }}/>
           {chips('formationFamily','Formation',state.libraries.formationFamily,'','formationFamily')}
           {chips('personnel','Personnel',OPTIONS.personnel)}
@@ -568,7 +566,7 @@ export function NativeTagging({screen}) {
             {chips('motionStart','Starts',OPTIONS.motionStart)}{chips('motionEnd','Ends',OPTIONS.motionEnd)}
           </div>}
         </Group>;
-        const defense = <Group key="def" title={side === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'} open={side === 'defense'} syncOpen>
+        const defense = <Group key="def" screen={screen} state={state} id="defense-faced" title={side === 'defense' ? (state.perspective === 'scout' ? 'Opponent Defensive Call' : 'Our Defensive Call') : 'Defense Faced'}>
           {chips('defFront','Front',state.libraries.defFront,'','front')}{chips('coverage','Coverage Call',state.libraries.coverage,'','coverage')}
           {chips('coverageFamily','Coverage Family',OPTIONS.coverageFamily)}{chips('blitz','Blitz',state.libraries.blitz,'','blitz')}
         </Group>;
@@ -577,7 +575,7 @@ export function NativeTagging({screen}) {
       })()}
       <Players screen={screen} state={state}/>
       <Penalties screen={screen} state={state}/>
-      <Group title="Notes & Details">
+      <Group screen={screen} state={state} id="notes-and-details" title="Notes & Details">
         <label class="gi-tag-input"><span>Play notes</span><textarea value={state.notes} onInput={e => screen.setNotes(e.currentTarget.value)}/></label>
         <button type="button" onClick={() => screen.addNoteTimestamp()}>Add video time</button>
         {state.customFields.map(def => def.options?.length
@@ -587,11 +585,11 @@ export function NativeTagging({screen}) {
           <input value={customTag} placeholder="Custom tag" onInput={e => setCustomTag(e.currentTarget.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); screen.addCustomTag(customTag); setCustomTag(''); }}}/></div>
         <button type="button" onClick={() => screen.openCustomFields()}>Edit custom fields</button>
       </Group>
-      <Group title="Play Diagram">
+      <Group screen={screen} state={state} id="play-diagram" title="Play Diagram">
         <div class="gi-tag-actions"><button type="button" onClick={() => screen.clearDiagram()}>Clear</button><button type="button" onClick={() => screen.drawDiagram()}>Draw</button></div>
         {state.diagram && <img src={state.diagram} alt="Current play diagram"/>}
       </Group>
-      <Group title="More Tools">
+      <Group screen={screen} state={state} id="more-tools" title="More Tools">
         <div class="gi-tag-toggles">
           <label class="gi-tag-check"><input type="checkbox" checked={state.autoDD} onChange={e => screen.setAutoDD(e.currentTarget.checked)}/> Auto down &amp; distance</label>
           <label class="gi-tag-check"><input type="checkbox" checked={state.carryScheme} onChange={e => screen.setCarryScheme(e.currentTarget.checked)}/> Carry formation to next play</label>
@@ -615,13 +613,12 @@ export function NativeTagging({screen}) {
           <select data-native-context="direction" value={state.direction} onChange={e => screen.setDirection(e.currentTarget.value)}>
             <option value="">Not set</option><option value="right">Left to right</option><option value="left">Right to left</option>
           </select></label>
-        <p class="gi-tag-hint">Only used by play detection. Leave unset unless you are running auto-detect.</p>
       </Group>
-      <footer class="gi-tag-nav"><button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>← Previous</button>
-        <button type="button" onClick={() => screen.skip()}>Skip</button>
-        <button type="button" data-native-save disabled={!state.dirty} onClick={() => screen.save()}>Save</button>
-        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : <span>Save & Next</span>}</button></footer>
     </main>}
+      {state.enabled && <footer class="gi-tag-nav"><button type="button" data-native-save disabled={!state.dirty} onClick={() => screen.save()}>Save</button>
+        <button type="button" disabled={!state.canPrevious} onClick={() => screen.previous()}>Previous</button>
+        <button type="button" onClick={() => screen.skip()}>Skip</button>
+        <button type="button" class={`is-primary${state.saveConfirmed ? ' is-confirmed' : ''}`} aria-live="polite" onClick={() => screen.saveNext()}>{state.saveConfirmed ? 'Saved' : <span>Save & Next</span>}</button></footer>}
   </section>;
 }
 

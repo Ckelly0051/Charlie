@@ -17,6 +17,14 @@ commit message, not here.
 
 ## Choosing what to run
 
+Whole Chart deck: `e2e-chart-deck-polish` checks section state across edits,
+Save and navigation; keyboard disclosure and shortcut/live feedback; real Yards
+focus without auto-closing modules; control retention and replacement removal;
+compact spacing, label baselines, fine/coarse targets, library alignment,
+unchanged film bounds/node, one form scroll owner and four-viewport containment.
+Data-workflow harnesses use `chart-deck-test.mjs` to deliberately open the real
+section before driving a control; disclosure checks run without that helper.
+
 Receiver route/release: `e2e-receiver-details` covers the record, identity,
 shape and format contract, including stored-season mismatches opening as
 hidden values without play-data writes; `e2e-receiver-charting` covers draft/Save/Undo,

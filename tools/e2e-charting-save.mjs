@@ -282,8 +282,8 @@ try {
     app.roster.players = kept;
     return out;
   });
-  ok(roster && roster.scroll > roster.height && Math.abs(roster.height - (roster.row * 4 + 9)) <= 1,
-    'a long roster shows four whole rows before it scrolls; no row is cut', roster);
+  ok(roster && roster.scroll === roster.height && roster.row === 27,
+    'a long roster uses complete 27px wrapping rows in the shared form, not a nested scroller', roster);
 
   console.log('\n== Film Room edits are saves ==');
   const grid = await page.evaluate(() => {

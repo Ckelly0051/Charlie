@@ -105,7 +105,7 @@ console.log('\n== 3. Gap sits under Play Direction and is independent ==');
   });
   ok(geo.directlyBelow, 'the Gap field opens immediately below Play Direction');
   ok(geo.labels.join() === 'L-A,L-B,L-C,L-D,R-A,R-B,R-C,R-D,Center,Other', 'ten choices in the approved order', geo.labels.join());
-  ok(geo.rows === 1 && geo.overflow <= 1 && !geo.clipped, 'the ten choices sit in one desktop row without clipping', JSON.stringify(geo));
+  ok(geo.rows === 2 && geo.overflow <= 1 && !geo.clipped, 'all ten text-sized Gap choices wrap into readable desktop rows without clipping', JSON.stringify(geo));
   await page.evaluate(() => window.__resetSteps());
   await P.chip('gap', 'L-B'); await settle();
   let t = await P.tags();
@@ -423,17 +423,18 @@ for (const [w, h] of [[1440, 900], [1280, 800]]) {
       newDrive: text.includes('New Drive'), oldRow: !!document.querySelector('.gi-tag-drive-row') };
   });
   ok(g.order.at(-1) === 'driveNumber' && g.order.length === 4, `${w}: Drive is the fourth field in Situation's second row`, JSON.stringify(g.order));
-  ok(g.top[1] === g.field[1] && g.top[2] === g.field[2], `${w}: Down sits over Field position and Distance over Yard line`, JSON.stringify(g));
+  ok(g.top[0]===g.field[0]&&g.top[0]<g.top[1]&&g.top[1]<g.top[2]&&g.field.every((x,i)=>i===0||x>g.field[i-1]), `${w}: both Situation rows are ordered and aligned at the common inset with intrinsic Quarter/Down widths`, JSON.stringify(g));
   ok(g.driveWidth === 40 && g.fits && g.value === '30', `${w}: the 40px Drive box holds two digits and writes the drive`, JSON.stringify(g));
   ok(g.rows.every(n => n <= 0) && g.page <= 0, `${w}: no Situation row or page overflows`, JSON.stringify(g));
   ok(!g.newDrive && !g.oldRow, `${w}: New Drive and the Notes & Details drive row are gone`, JSON.stringify(g));
 }
 await page.setViewport({ width: 1440, height: 900 }); await settle();
 
-console.log('\n== The defensive call heading has room around its text (smoke 112 finding 7) ==');
+console.log('\n== The defensive call uses the shared plain heading ==');
 {
   await P.select(1);
   await page.evaluate(() => window.app.nativeTagging.setUnit('defense')); await settle();
+  await page.evaluate(()=>{app.nativeTagging.openSections.add('defense-faced');app.nativeTagging._publish();});await settle();
   const heading = await page.evaluate(() => {
     const groups = [...document.querySelectorAll('[data-native-tagging] details.gi-tag-group')];
     const cyan = groups.find(g => g.open && g.querySelector('[data-native-field="defFront"]'))?.querySelector(':scope>summary strong');
@@ -441,10 +442,10 @@ console.log('\n== The defensive call heading has room around its text (smoke 112
     if (!cyan || !plain) return null;
     const text = el => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); };
     const box = cyan.getBoundingClientRect(), inner = text(cyan);
-    return { label: cyan.textContent.trim(), left: Math.round(inner.left - box.left), right: Math.round(box.right - inner.right),
+    return { label: cyan.textContent.trim(), background:getComputedStyle(cyan).backgroundColor,left: Math.round(inner.left - box.left), right: Math.round(box.right - inner.right),
       textLeft: Math.round(inner.left), plainLeft: Math.round(text(plain).left) };
   });
-  ok(heading && heading.left >= 6 && heading.right >= 6, 'the cyan heading has at least 6px of fill on each side of its text', JSON.stringify(heading));
+  ok(heading && heading.background==='rgba(0, 0, 0, 0)'&&heading.left===0&&heading.right===0, 'the defensive heading is plain text with no colored fill or nested padding', JSON.stringify(heading));
   ok(heading && Math.abs(heading.textLeft - heading.plainLeft) <= 1, 'its text stays aligned with the other group headings', JSON.stringify(heading));
   await page.evaluate(() => window.app.nativeTagging.setUnit('offense')); await settle();
 }

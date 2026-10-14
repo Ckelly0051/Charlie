@@ -19,6 +19,7 @@ import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
    dropdown's placeholder option text shows a "(N)" count when a rare result
    is active, replacing the old show/hide/auto-open behavior. */
 import puppeteer from './test-browser.mjs';
+import { chartDeckControls } from './chart-deck-test.mjs';
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
@@ -29,7 +30,7 @@ const ok = (cond, label, extra = '') => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
-const page = await browser.newPage();
+const page = chartDeckControls(await browser.newPage());
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));

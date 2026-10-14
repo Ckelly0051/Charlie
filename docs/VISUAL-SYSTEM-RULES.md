@@ -310,6 +310,33 @@ production-to-comp mapping are in
 - Never truncate team names in score or matchup presentation. Team identity and
   its aligned score must remain visually unambiguous.
 
+## Chart Deck
+
+The whole-deck authority is the COMP_APPROVED artifact in
+`design-approvals/chart-deck-polish/manifest.json`. Production is
+IMPLEMENTED_UNVERIFIED until the coach's installed smoke.
+
+- One 12px inset and one form scroll owner. The footer sits outside that
+  scroller; Save is far left and retains dirty-driven availability.
+- Shared text-sized, left-aligned wrapping chips: 27px fine, 44px coarse,
+  unchanged type. Quarter stays together; peer labels/controls share baselines.
+- Compact open-heading entry spacing; plain read-only values. Closed summaries
+  are right-aligned with ` · ` separators; Formation & Call leads with the call,
+  Formation and Personnel. More Tools and Play Diagram have no summary.
+- New/blank plays open Situation. Existing-play navigation retains available
+  working modules, falling back to Situation when none remains available.
+- Latest coach decision (2026-10-14): opening a module or using a shortcut must
+  not automatically close another module on the current play. One module opens
+  initially; multiple coach-opened modules may remain open. Only deliberate
+  closing or a parent that makes the module unavailable removes it.
+- Shortcuts update the current draft, summaries and a brief header/live-region
+  announcement. Y opens Play & Result and focuses the existing real Yards input
+  without closing other modules. No duplicate or inferred charting value exists.
+- Section carets are on the left; Edit library is at each label row's right.
+  Play Call and Play Type have no separate field-fold state or preference reader.
+  Film bounds and video-node identity are unchanged; Windows scrollbar rendering
+  still requires installed verification.
+
 ## Dashboard Composition
 
 - The approved comp is the dashboard schema. Module order, static row/tile

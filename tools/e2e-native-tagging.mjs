@@ -1,12 +1,13 @@
 /* Chart edits a draft (GRIDIRON-IQ-SAVE-CONTRACT.md): every switch of play, game or season and every commit below saves the open play first, as the coach would. */
 import puppeteer from './test-browser.mjs';
+import { chartDeckControls } from './chart-deck-test.mjs';
 import fs from 'fs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
 
 let pass=0, fail=0;
 const ok=(value,label,detail='')=>value?(pass++,console.log('  PASS  '+label)):(fail++,console.log('  FAIL  '+label+(detail?' -- '+detail:'')));
 const browser=await puppeteer.launch({args:['--no-sandbox']});
-const page=await browser.newPage();
+const page=chartDeckControls(await browser.newPage());
 // A unit change that would remove charted values asks first (GRIDIRON-IQ-SAVE-CONTRACT.md;
 // e2e-charting-save proves the prompt). These sections chart across units, so
 // the coach's answer here is always Change unit.
@@ -97,7 +98,7 @@ ok(inference.custom.playType==='Fake Run Pass'&&inference.custom.runPass===''&&i
 // Roles now carry football labels ("Tackler(s)") rather than camel-cased field
 // names ("ball Carrier"). Match the label a coach reads.
 ok(['Ball Carrier','Passer','Receiver','Tackler(s)','Takeaway'].every(role=>state.players.includes(role))&&state.notes>0&&state.custom&&state.penalties,'Every production offense, defense, player, custom, note, and situation control remains present in the native form',JSON.stringify(state));
-ok(state.playersOpen,'Players & Grades opens with the form so tackle charting is visible without hunting',JSON.stringify({open:state.playersOpen}));
+ok(!state.playersOpen,'Players & Grades starts closed under the single initial Situation policy',JSON.stringify({open:state.playersOpen}));
 state=await page.evaluate(()=>{
   const root=document.querySelector('[data-native-tagging]');
   const values=field=>[...root.querySelectorAll(`[data-native-field="${field}"] button`)].map(button=>button.textContent.trim());
@@ -265,8 +266,8 @@ state=await page.evaluate(()=>{
 });
 ok(!!state.possession&&!!state.end,'Punt exposes both Possession spot and End spot controls',JSON.stringify(state));
 ok(state.possession?.inputWidth<=90&&state.end?.inputWidth<=90,'The yard-line input is compact, not the old stretched oversized empty box',JSON.stringify(state));
-ok(JSON.stringify(state.possession?.chipLabels)==='["Own","Opp"]'&&Math.abs(state.possession.chipWidths[0]-state.possession.chipWidths[1])<=2,'Own and Opp render at identical, stable widths on Possession spot',JSON.stringify(state.possession));
-ok(JSON.stringify(state.end?.chipLabels)==='["Own","Opp"]'&&Math.abs(state.end.chipWidths[0]-state.end.chipWidths[1])<=2,'Own and Opp render at identical, stable widths on End spot',JSON.stringify(state.end));
+ok(JSON.stringify(state.possession?.chipLabels)==='["Own","Opp"]'&&state.possession.chipWidths.every(w=>w>=27),'Own and Opp retain readable text-sized targets on Possession spot',JSON.stringify(state.possession));
+ok(JSON.stringify(state.end?.chipLabels)==='["Own","Opp"]'&&state.end.chipWidths.every(w=>w>=27),'Own and Opp retain readable text-sized targets on End spot',JSON.stringify(state.end));
 ok(Math.abs((state.possession?.inputWidth||0)-(state.end?.inputWidth||0))<=2,'Possession spot and End spot share the same compact yard-line width',JSON.stringify(state));
 
 /* A blocked punt the receiving team recovers and returns for a touchdown is
@@ -339,7 +340,7 @@ state=await page.evaluate(()=>{
   const btns=chips?[...chips.querySelectorAll('button')].filter(x=>x.getClientRects().length):[];
   const bodies=[...root.querySelectorAll('.gi-tag-group-body')];
   const titles=[...root.querySelectorAll('.gi-tag-group>summary strong')];
-  const descs=[...root.querySelectorAll('.gi-tag-group>summary span')].filter(x=>x.textContent.trim());
+  const descs=[...root.querySelectorAll('.gi-tag-group>summary span:not(.gi-tag-summary)')].filter(x=>x.textContent.trim());
   const pad=x=>parseFloat(cs(x).paddingTop)+'/'+parseFloat(cs(x).paddingBottom);
   const face=x=>cs(x).fontFamily.split(',')[0].replace(/"/g,'')+' '+cs(x).fontWeight+' '+parseFloat(cs(x).fontSize);
   const libraryLabels=['defFront','coverage','blitz'].map(field=>{
@@ -367,67 +368,43 @@ state=await page.evaluate(()=>{
 });
 if(process.env.GIQ_NATIVE_TAGGING_DEFENSE_SCREENSHOT)
   await (await page.$('[data-native-tagging]')).screenshot({path:process.env.GIQ_NATIVE_TAGGING_DEFENSE_SCREENSHOT});
-ok(state.libraryLabels.every(row=>row.buttonLeft>=row.precedingRight+4
-  && row.buttonLeft-row.precedingRight<=12 && row.buttonRight<=row.rowRight),
-  'Defense Edit library controls sit beside their labels without a dead spacer',JSON.stringify(state.libraryLabels));
+ok(state.libraryLabels.every(row=>row.buttonLeft>=row.precedingRight+4&&Math.abs(row.buttonRight-row.rowRight)<=.5),
+  'Defense Edit library controls align at the right edge without overlapping labels',JSON.stringify(state.libraryLabels));
 // The approved comp uses content-sized vocabulary chips, wrapping rather
 // than squeezing seven labels into equal-width tracks.
 ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,
   'Coverage Call keeps all labels readable in compact wrapping rows',JSON.stringify(state));
 // Coach direction 2026-09-23 tightened the deck rhythm (was 8/12): density from
 // spacing, never from chip text, weight or the 30px chip floor.
-ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='6/10',
-  'Every native charting group body owns the one 6px lead and 10px closing rhythm',JSON.stringify(state));
+ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='0/12',
+  'Every native charting group has no lead padding and the shared 12px closing rhythm',JSON.stringify(state));
 ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])&&state.descCount===0,
   'Charting group headers keep one title hierarchy with no explanatory prose',JSON.stringify(state));
 ok(state.pageOverflow<=0,'The charting deck introduces no page-level horizontal overflow',JSON.stringify(state));
 
-console.log('\n== 6b. Play Call and Play Type fold independently and state their selection ==');
-await page.evaluate(()=>{localStorage.removeItem('ffa_chart_collapsed_fields');window.app.nativeTagging.collapsedFields.clear();});
-await page.evaluate(()=>window.app.nativeTagging?.setUnit?.('offense'));
+console.log('\n== 6b. Sections own disclosure and summaries ==');
+await page.evaluate(()=>window.app.nativeTagging.setUnit('offense'));
 await page.evaluate(()=>{const t=window.app.tagger,p=t.getCurrentPlay();p.tags.playType='Run Inside + RPO';p.tags.playCall='26 Blast';t._emit('play-updated',p);});
-await new Promise(r=>setTimeout(r,200));
-const foldState=()=>page.evaluate(()=>{
-  const root=document.querySelector('[data-native-tagging]');
-  document.querySelectorAll('.gi-tag-group').forEach(g=>{g.open=true;});
-  const read=field=>{
-    const owner=field==='playCall'?root.querySelector('[data-native-play-call]'):root.querySelector(`[data-native-field="${field}"]`);
-    const toggle=owner?.querySelector('.gi-tag-field-toggle');
-    return{expanded:toggle?.getAttribute('aria-expanded'),controls:toggle?.getAttribute('aria-controls'),
-      body:!!document.getElementById(toggle?.getAttribute('aria-controls')||'-'),
-      summary:owner?.querySelector('[data-field-summary]')?.textContent||null,
-      library:!!owner?.querySelector('.gi-tag-library'),chips:owner?.querySelectorAll('.gi-tag-chips button').length||0,
-      input:!!owner?.querySelector('.gi-play-call-entry input')};
-  };
-  return{playCall:read('playCall'),playType:read('playType'),stored:localStorage.getItem('ffa_chart_collapsed_fields')};
+await new Promise(r=>setTimeout(r,100));
+let fold=await page.evaluate(()=>{
+  const screen=app.nativeTagging;screen.openSections=new Set(['formation-and-call','play-and-result']);screen._publish();
+  return {fieldsRetired:!screen.collapsedFields&&!document.querySelector('.gi-tag-field-toggle'),stored:localStorage.getItem('ffa_chart_collapsed_fields')};
 });
-let fold=await foldState();
-ok(fold.playCall.expanded==='true'&&fold.playCall.body&&fold.playCall.input&&fold.playType.expanded==='true'&&fold.playType.body&&fold.playType.chips>5&&fold.stored===null,
-  'Both fields open by default with their controls wired to their bodies',JSON.stringify(fold));
-await page.click('[data-native-field="playType"] .gi-tag-field-toggle');
+ok(fold.fieldsRetired,'Separate field folds and their preference reader are removed',JSON.stringify(fold));
+await page.click('[data-section=play-and-result]>summary');
+fold=await page.evaluate(()=>({call:document.querySelector('[data-section=formation-and-call]').open,type:document.querySelector('[data-section=play-and-result]').open,
+ summary:document.querySelector('[data-section=play-and-result] .gi-tag-summary').textContent,
+ library:!!document.querySelector('[data-native-field=playType] .gi-tag-library'),chips:document.querySelectorAll('[data-native-field=playType] .gi-tag-chips button').length}));
+ok(!fold.type&&fold.call&&fold.summary.includes('Run Inside · RPO')&&fold.library&&fold.chips>5,
+  'Closing Play & Result retains its values and controls without closing Formation & Call',JSON.stringify(fold));
+await page.focus('[data-section=formation-and-call]>summary');await page.keyboard.press('Enter');
+fold=await page.evaluate(()=>({open:document.querySelector('[data-section=formation-and-call]').open,summary:document.querySelector('[data-section=formation-and-call] .gi-tag-summary').textContent}));
+ok(!fold.open&&fold.summary.startsWith('26 Blast'),'Keyboard disclosure closes the section and shows its call first',JSON.stringify(fold));
+await page.evaluate(()=>{app.nativeTagging.toggleSection('formation-and-call');app.nativeTagging.toggleSection('play-and-result');});
 await new Promise(r=>setTimeout(r,100));
-fold=await foldState();
-ok(fold.playType.expanded==='false'&&!fold.playType.body&&fold.playType.chips===0&&fold.playType.summary==='Run Inside + RPO'&&fold.playType.library,
-  'Folding Play Type hides its chips, keeps Edit library and states every selected type',JSON.stringify(fold.playType));
-ok(fold.playCall.expanded==='true'&&fold.playCall.input,'Folding Play Type leaves Play Call open',JSON.stringify(fold.playCall));
-await page.focus('[data-native-play-call] .gi-tag-field-toggle');
-await page.keyboard.press('Enter');
-await new Promise(r=>setTimeout(r,100));
-fold=await foldState();
-ok(fold.playCall.expanded==='false'&&!fold.playCall.input&&fold.playCall.summary==='26 Blast'&&fold.playType.expanded==='false',
-  'Play Call folds from the keyboard and states the charted call',JSON.stringify(fold.playCall));
-ok(JSON.stringify(JSON.parse(fold.stored||'[]').sort())==='["playCall","playType"]','Both folds are stored as a view preference',String(fold.stored));
-await page.evaluate(()=>{const t=window.app.tagger,cur=t.currentPlayId,next=t.plays.find(p=>p.id!==cur);next.tags.unit='offense';t.saveDraft(),t.selectPlay(next.id);window.app.nativeTagging.setUnit('offense');});
-await new Promise(r=>setTimeout(r,150));
-fold=await foldState();
-ok(fold.playCall.expanded==='false'&&fold.playType.expanded==='false','Folds persist across play changes',JSON.stringify(fold));
-state=await page.evaluate(()=>{const W=window.app.nativeTagging.constructor;return{junk:[...W.readCollapsed({getItem:()=>'{x'})],other:[...W.readCollapsed({getItem:()=>JSON.stringify(['formationFamily','playType'])})]};});
-ok(state.junk.length===0&&JSON.stringify(state.other)==='["playType"]','An unreadable or foreign stored fold is ignored',JSON.stringify(state));
-await page.click('[data-native-field="playType"] .gi-tag-field-toggle');
-await page.click('[data-native-play-call] .gi-tag-field-toggle');
-await new Promise(r=>setTimeout(r,100));
-fold=await foldState();
-ok(fold.playCall.expanded==='true'&&fold.playType.expanded==='true'&&fold.stored==='[]','Both reopen and the stored preference clears',JSON.stringify(fold));
+fold=await page.evaluate(()=>({call:document.querySelector('[data-section=formation-and-call]').open,type:document.querySelector('[data-section=play-and-result]').open,
+ folds:document.querySelectorAll('.gi-tag-field-toggle').length}));
+ok(fold.call&&fold.type&&fold.folds===0,'Coach-opened modules remain open together with one disclosure pattern',JSON.stringify(fold));
 
 console.log('\n== 7. S7-a: diagram, OCR and templates on the native surface, across a relaunch ==');
 // These three capability ids used to be claimed by e2e-s5c-preflight.mjs, which

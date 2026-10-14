@@ -118,8 +118,7 @@ failed saves that roll back only their own season, game or program, and
      - **Chart deck polish** (coach, 2026-10-14), right after receiver route
        and release: bring the whole Chart deck to the receiver comp's
        composition. Same font and sizes; the change is layout: each closed
-       section shows its value as a right-aligned summary and only the
-       section being worked opens; chips sized to their text and
+       section shows its value as a right-aligned summary; chips sized to their text and
        left-aligned, replacing the fixed four-column library grid
        (`css/native-tagging.css` `.gi-tag-chips.is-library`); plain text
        instead of boxes for read-only values such as player names and
@@ -130,14 +129,19 @@ failed saves that roll back only their own season, game or program, and
        open Situation; existing-play navigation retains the working section
        when available. Edits, shortcuts, saves and refreshes never close it
        while the coach stays on that play. Shortcuts update closed summaries
-       and briefly announce the changed field without opening another section.
-       Only deliberate section navigation changes the open section. Comp and
+       and briefly announce the changed field. Latest coach decision
+       (2026-10-14): opening another module, including by a shortcut, must not
+       auto-close an already open module. Y may open Play & Result and focus
+       its real Yards input. One module opens initially; subsequent disclosures
+       are coach-controlled, not an enforced accordion. Comp and
        checklist mapping: `design-comps/chart-deck-polish-2026-10-14/RATIONALE.md`;
        full comp is COMP_APPROVED by the coach (2026-10-14), including the
        tightened section-entry spacing. Authority:
-       `design-approvals/chart-deck-polish/manifest.json`. Production is not
-       built; next is the whole-deck presentation migration, followed by
-       release verification and installed smoke. Acceptance checklist (coach's installed screenshot,
+       `design-approvals/chart-deck-polish/manifest.json`. The whole-deck
+       presentation migration is built in source, IMPLEMENTED_UNVERIFIED;
+       next is coach visual review, release verification and installed smoke.
+       Current disclosure contract: `docs/VISUAL-SYSTEM-RULES.md` > Chart Deck.
+       Acceptance checklist (coach's installed screenshot,
        2026-10-14), each fixed explicitly:
        - one chip system: no fixed four-column centered grid beside
          text-sized chips (Formation and Backfield versus Personnel, QB
@@ -153,8 +157,8 @@ failed saves that roll back only their own season, game or program, and
          Templates, Delete play);
        - no placeholder instructions ("e.g. 26 Blast"), no disabled Save
          wedged between Skip and Save & Next, no arrow on Previous;
-       - closed sections show summaries and one section is open, so a play
-         is not several screens of chips;
+       - closed sections show summaries and one section opens initially;
+         opening another never auto-closes a coach-opened module;
      - missed tackles: a play-level event plus optional player attribution,
        more than one player per play; uncharted is not zero. Built
        2026-10-07, coach-smoked in `1.12.0-113` on 2026-10-09 with the
