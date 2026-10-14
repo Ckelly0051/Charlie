@@ -84,6 +84,15 @@ log.
   `688418106A932F7ECEA8807100DC0801BD4798F085E8FFEA1799802805571DA3`.
   Installer and application product/file versions verified. No installation,
   push, tag or publication performed; coach data unchanged.
+- **Latest candidate: `1.12.0-118`**, built from clean version-only bump
+  `d8998f22`; focused `e2e-p0-exit` 20/20. Artifact:
+  `src-tauri/target/release/bundle/nsis/GridIron IQ_1.12.0-118_x64-setup.exe`,
+  4,062,986 bytes, SHA-256
+  `B72A05220761E051B065F8F35BA5CF9FF50939F5B923F2D1D32F15B876CC9BD5`.
+  Contains receiver route/release checkpoint 1, whole Chart deck polish and
+  the shortcuts-dialog repair. Charlie Gate visual review is PASS;
+  independent packaged-asset inspection and installed smoke are pending.
+  Production remains IMPLEMENTED_UNVERIFIED. Checklist: `SMOKE-1.12.0-118.md`.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
@@ -101,25 +110,23 @@ log.
   smoke on 2026-10-14.
   Codex's read-only Computer Use pass verified populated reports, linked
   playback, Film Room filtering and the native Dashboard export dialog; it
-  found overlapping Keyboard Shortcuts labels, now repaired in source but
-  not in the 117 installer; verify that repair in the next installed smoke.
+  found overlapping Keyboard Shortcuts labels, repaired and packaged in 118
+  but not in the 117 installer; verify that repair in the 118 installed smoke.
   The smoke record distinguishes Codex's limited read-only checks from the
-  coach's acceptance. Receiver checkpoint 1 is also source-only and needs
-  its own gate and installed smoke. Whole Chart deck polish is source-built,
+  coach's acceptance. Receiver checkpoint 1 and Whole Chart deck polish are
+  packaged in 118 but not installed-smoked. The deck remains
   IMPLEMENTED_UNVERIFIED against its COMP_APPROVED artifact. The latest coach
   disclosure rule allows another module to open, but never auto-closes one
   already open on the same play; see `docs/VISUAL-SYSTEM-RULES.md` > Chart Deck.
-  Charlie Gate visual review is PASS (coach, 2026-10-14); release verification
+  Charlie Gate visual review is PASS (coach, 2026-10-14); packaged inspection
   and installed smoke remain pending.
   Rust advisory coverage and compatible
   dependency repairs are complete in source; remaining upstream maintenance
   warnings are in `docs/OPEN-DEFECTS.md`. Rapid scrubbing remains
   deferred. Coach approval authorizes no push, tag or publication.
-- **Latest full gate:** 162/166 green at `7964f68f` (2026-10-14), zero
-  skipped, four failed; `releaseEligible: false`. Packaging is blocked by
-  `e2e-home-breakdown-visual-repair`, `e2e-play-library`,
-  `e2e-raw-read-audit` and `e2e-study-screen`. Receipt:
-  `artifacts/gate-logs/2026-10-14T19-25-26-388Z-93IGhW/receipt.json`.
+- **Latest full gate:** 166/166 green at `a5238591` (2026-10-14), zero
+  skipped or failed; `releaseEligible: true`. Receipt:
+  `artifacts/gate-logs/2026-10-14T19-46-40-309Z-96k7d5/receipt.json`.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

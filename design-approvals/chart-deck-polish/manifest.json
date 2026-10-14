@@ -18,5 +18,5 @@
     "sourceRange": "3fbb8492..c09c4713",
     "approvalNote": "Coach reported no visual findings and approved the built deck."
   },
-  "productionNote": "Built in source as one whole-deck migration with replaced grids, field folds and nested scroller removed. Latest coach decision 2026-10-14 overrides the comp's enforced-one-open rule: modules and shortcuts may open another section but never auto-close a coach-opened module on the same play. One section opens initially. Current contract: docs/VISUAL-SYSTEM-RULES.md > Chart Deck. No charting-data or save behavior change. Charlie Gate visual review is PASS; release verification and installed smoke remain pending."
+  "productionNote": "Packaged in 1.12.0-118 from clean bump d8998f22 after the full gate passed 166/166 at a5238591. Built as one whole-deck migration with replaced grids, field folds and nested scroller removed. Latest coach decision 2026-10-14 overrides the comp's enforced-one-open rule: modules and shortcuts may open another section but never auto-close a coach-opened module on the same play. One section opens initially. Current contract: docs/VISUAL-SYSTEM-RULES.md > Chart Deck. No charting-data or save behavior change. Charlie Gate visual review is PASS; independent packaged-asset inspection and installed smoke remain pending."
 }

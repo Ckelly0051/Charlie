@@ -7,20 +7,20 @@ open, check its fix and smoke status in git.
 
 ## Release Status
 
-The four harness failures from the latest full gate are repaired and
-mutation-verified. The authorized full rerun is pending; a green full gate is
-required before the next version bump or installer.
+Installer `1.12.0-118` is built from clean bump `d8998f22` after the full gate
+passed 166/166 at `a5238591`. Independent packaged-asset inspection and
+installed smoke remain pending (`SMOKE-1.12.0-118.md`).
 
 Receiver route/release checkpoint 1 is built in source after comp approval
-(2026-10-14), not packaged or installed-smoked. Release verification still
-needs the full gate and installed checks for Save/reopen, library editing,
+(2026-10-14), packaged in 118 but not installed-smoked. Installed checks remain
+for Save/reopen, library editing,
 multiple receiver attribution, clearing/cancellation (also Film Room, Quick
 Chart and scheme copies), opening a valid mismatched receiver record as hidden
 data, dropping it on Save, and exact Study film.
 Target/Catch is not built. Whole-deck polish is built in source,
 IMPLEMENTED_UNVERIFIED, from the COMP_APPROVED full-control comp, including
 compact section-entry spacing. Charlie Gate visual review is PASS (coach,
-2026-10-14). Release and installed verification remain pending: retained
+2026-10-14). Packaged in 118; installed verification remains pending: retained
 modules, shortcut feedback and Y focus, compact/fine and
 coarse controls, managed libraries, roster/receiver editing, Save/Undo and real
 film layout/scrolling. The coach's latest disclosure rule permits multiple open
@@ -46,6 +46,9 @@ historical gate receipt. Rapid scrubbing remains deferred.
 - **117 packaged-asset inspection.** Still needs independent inspection of
   installer assets against the reviewed build; coach smoke approval is
   separate evidence.
+
+- **118 packaged-asset inspection.** Still needs independent inspection of
+  installer assets against the clean bump build before release acceptance.
 
 - **Rust transitive maintenance advisories.** The compatible dependency
   repairs remove the reported vulnerabilities and the anyhow/event-listener

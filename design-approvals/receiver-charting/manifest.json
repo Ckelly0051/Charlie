@@ -12,6 +12,6 @@
     "fileCount": 30
   },
   "decisionRecord": "docs/RECEIVER-CHARTING-RESEARCH-PROPOSAL.md",
-  "productionNote": "Checkpoint 1 route/release and sampled film-linked Study dimensions are built in source, not packaged or installed-smoked. Checkpoint 2 Target/Catch is not built; Reports wait for roadmap step 5. Whole-deck polish remains design-first.",
+  "productionNote": "Checkpoint 1 route/release and sampled film-linked Study dimensions are packaged in 1.12.0-118, not installed-smoked. Independent packaged-asset inspection remains pending. Checkpoint 2 Target/Catch is not built; Reports wait for roadmap step 5. Whole-deck polish is also packaged in 118, with Charlie Gate PASS and installed smoke pending.",
   "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

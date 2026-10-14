@@ -112,9 +112,9 @@ failed saves that roll back only their own season, game or program, and
        (Left/Middle/Right by Short/Medium/Deep); inline under the Receiver row;
        route paths tabled. Comp: `design-comps/receiver-charting-2026-10-13`.
        Comp approved 2026-10-14. Route/release and their sampled, film-linked
-       Study dimensions are built in source; release verification is pending.
-       The receiver editor already uses the approved composition. Next:
-       the full-deck polish comp below; Target/Catch remains checkpoint 2;
+       Study dimensions are packaged in 118; installed verification is pending.
+       The receiver editor uses the approved composition. Whole-deck polish
+       below is also packaged; Target/Catch remains checkpoint 2, not built;
      - **Chart deck polish** (coach, 2026-10-14), right after receiver route
        and release: bring the whole Chart deck to the receiver comp's
        composition. Same font and sizes; the change is layout: each closed
@@ -138,9 +138,9 @@ failed saves that roll back only their own season, game or program, and
        full comp is COMP_APPROVED by the coach (2026-10-14), including the
        tightened section-entry spacing. Authority:
        `design-approvals/chart-deck-polish/manifest.json`. The whole-deck
-       presentation migration is built in source, IMPLEMENTED_UNVERIFIED;
+       presentation migration is packaged in 118, IMPLEMENTED_UNVERIFIED;
        Charlie Gate visual review is PASS (coach, 2026-10-14); next is
-       release verification and installed smoke.
+       independent packaged-asset inspection and installed smoke.
        Current disclosure contract: `docs/VISUAL-SYSTEM-RULES.md` > Chart Deck.
        Acceptance checklist (coach's installed screenshot,
        2026-10-14), each fixed explicitly:
