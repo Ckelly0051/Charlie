@@ -24,11 +24,16 @@ function render() {
   $('target-summary').textContent=zoneLabel(state.target); $('catch-summary').textContent=state.complete ? zoneLabel(state.catch) : 'No completion';
   $('field').setAttribute('aria-labelledby',`${state.layer}-tab`);
   $('zones').setAttribute('aria-label',`${state.layer === 'target' ? 'Target' : 'Catch'} zone`); $('zones').classList.toggle('catch',state.layer === 'catch');
-  $('zones').replaceChildren(...ZONES.map(zone => {
+  $('field').querySelector('.field-side').replaceChildren(...['','Left','Middle','Right'].map(side => { const label=document.createElement('span'); label.textContent=side; return label; }));
+  $('zones').replaceChildren(...['Deep','Medium','Short'].flatMap(depth => {
+    const label=document.createElement('div'); label.className='depth-label';
+    const name=document.createElement('b'); name.textContent=depth;
+    const band=document.createElement('span'); band.textContent=depth === 'Deep' ? '20+' : depth === 'Medium' ? '10-19' : 'Behind LOS to 9'; label.append(name,band);
+    return [label,...ZONES.filter(zone => zone.depth === depth).map(zone => {
     const button=document.createElement('button'); button.dataset.zone=zone.id;
     button.setAttribute('aria-label',`${zone.side}, ${zone.depth}, ${zone.band} yards`); button.setAttribute('aria-pressed',String(state[state.layer] === zone.id));
-    const depth=document.createElement('b'); depth.textContent=zone.depth; const band=document.createElement('span'); band.textContent=zone.band;
-    button.append(depth,band); button.addEventListener('click',() => { state[state.layer]=state[state.layer] === zone.id ? '' : zone.id; render(); }); return button;
+    button.addEventListener('click',() => { state[state.layer]=state[state.layer] === zone.id ? '' : zone.id; render(); }); return button;
+    })];
   }));
   $('location-state').textContent=`${state.layer === 'target' ? 'Target' : 'Catch'}: ${zoneLabel(state[state.layer])}`;
   const single=/^\d{1,2}$/.test(state.receiver);
@@ -38,7 +43,7 @@ function render() {
     const button=document.createElement('button'); button.textContent=`#${number}`;
     button.addEventListener('click',() => { state.receiver=number; $('receiver').value=number; $('receiver-name').textContent=number === '22' ? 'Andrew Keasey' : 'Ben Kelly'; clearDetail(); render(); }); return button;
   }));
-  $('save').disabled=!single;
+  $('save').disabled=false;
   $('result-value').textContent=state.complete ? 'Gain' : 'Incomplete'; $('gain').textContent=state.complete ? '+18' : 'Not charted';
 }
 function scenario() {

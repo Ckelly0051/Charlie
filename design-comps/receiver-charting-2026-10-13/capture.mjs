@@ -67,7 +67,14 @@ try {
       }
       if(mode === 'multiple') {
         check(`${viewport.width}: unresolved target blocks detail`,await page.$eval('#receiver-detail',element => element.hidden));
-        check(`${viewport.width}: unresolved target blocks save`,await page.$eval('#save',element => element.disabled));
+        check(`${viewport.width}: unresolved target leaves play save available`,await page.$eval('#save',element => !element.disabled));
+        await page.click('#save');
+        check(`${viewport.width}: unresolved target can activate play save`,await page.$eval('#save',element => element.textContent === 'Preview only'));
+      }
+      check(`${viewport.width} ${mode}: no Release explanation control`,await page.$('#release-help') === null);
+      if(['target','catch','incomplete','stress'].includes(mode)) {
+        check(`${viewport.width} ${mode}: three depth labels and nine selectable zones`,await page.evaluate(() => document.querySelectorAll('.depth-label').length === 3 && document.querySelectorAll('[data-zone]').length === 9));
+        check(`${viewport.width} ${mode}: zone cells do not repeat row labels`,await page.$$eval('[data-zone]',buttons => buttons.every(button => !button.textContent.trim())));
       }
       if(mode === 'incomplete') check(`${viewport.width}: catch locked on incomplete`,await page.$eval('#catch-tab',element => element.disabled));
     }

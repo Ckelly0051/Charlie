@@ -1,6 +1,6 @@
 # Receiver Charting Comp
 
-2026-10-13. **PROPOSED: awaiting coach design approval.** Production is not
+2026-10-13, revised 2026-10-14. **PROPOSED: awaiting coach design approval.** Production is not
 built. This folder is a standalone interactive comp, not an application route.
 
 Authority: `docs/RECEIVER-CHARTING-RESEARCH-PROPOSAL.md` > Decisions
@@ -26,6 +26,10 @@ and Catch have independent selections and a clear command. Edit library
 demonstrates show/hide and adding a coach-named route, entirely in memory.
 The field changes no gain, result, direction or receiver alignment. Selecting
 one target in the multiple-number state starts with no receiver detail.
+Save & Next stays available for the rest of the play while receiver detail
+waits for one target. The Release explanation button is removed. Each depth
+row is labeled once on the left; individual zone cells have accessible names
+but do not repeat the visible depth or yard range.
 
 ## Composition
 
@@ -60,7 +64,10 @@ one target in the multiple-number state starts with no receiver detail.
 Columns are offense-view Left / Middle / Right. Rows run Deep at the top,
 then Medium, then Short. These are categorical bands, not a yard-scaled
 field or exact plotted points. Equal cell widths serve readable tap targets;
-they do not decide where the coach's Middle begins on the real field.
+they do not represent measured field proportions. The coach settled lateral
+semantics: Middle is between the hashes, Left is outside the left hash and
+Right is outside the right hash, from the offense's view. Existing Pass
+Left/Right remains independent and does not fill Target or Catch.
 
 Proposed depth bands, awaiting confirmation:
 
@@ -91,7 +98,7 @@ profile, catalog, Documents mirror or coach data is read or written.
 Production receiver changes must follow the Save contract's confirmed removal
 and cancellation rules. The comp's editable number box is a state preview,
 not a proposed replacement for that owner logic. Multiple identities block
-new receiver detail and the preview Save. Unrelated existing charting must not
+new receiver detail only, never the play's Save. Unrelated existing charting must not
 be rewritten just to select the target in the production implementation.
 
 Tab and Enter/Space operate the buttons; browser focus remains visible.
@@ -121,11 +128,7 @@ constitutes coach approval or an installed WebView2 smoke.
 
 1. Confirm **Short through 9 / Medium 10-19 / Deep 20+**, including behind LOS
    in Short, or give different boundaries.
-2. For the lateral zones, should **Middle mean between the hashes**, with
-   Left/Right outside them, or a broader coach-judged middle? The equal-sized
-   picker cells do not settle that football definition. Recommendation:
-   between the hashes, manually judged; no automatic coordinate inference.
-3. Approve this receiver-adjacent disclosure, route ordering, and separate
+2. Approve this receiver-adjacent disclosure, route ordering, and separate
    Target/Catch tabs? The mobile size is an ergonomics check, not mobile
    product authorization.
 

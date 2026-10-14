@@ -1,14 +1,17 @@
 # Receiver Charting: Research and Proposal
 
-**2026-10-13. Design decided by the coach; comp not yet made; nothing built.**
+**2026-10-13, clarified 2026-10-14. Comp rendered and awaiting approval;
+production is not built.** See
+`design-comps/receiver-charting-2026-10-13/RATIONALE.md`.
 
-## Decisions (coach, 2026-10-13)
+## Decisions (coach, 2026-10-13; clarified 2026-10-14)
 
 These override anything below that differs. The research and the rest of the
 contract stand.
 
 1. **Scope:** the identified target only (the offensive Receiver role, one
-   jersey number). All-receiver charting is not planned.
+   jersey number). All-receiver charting is not planned. Multiple numbers
+   defer receiver details only; Save & Next still saves the rest of the play.
 2. **Release:** `Inside` or `Outside` only, judged against the hash:
    Inside is a release toward the hashes (the middle of the field), Outside
    toward the sideline. No `Vertical` value and no release technique. Leave
@@ -24,9 +27,12 @@ contract stand.
    Short behind the line through 9 yards, Medium 10-19, Deep 20+) are
    confirmed with the coach in the comp. Target is where the ball actually
    arrived; Catch is recorded only on a completion; neither changes total
-   gain.
+   gain. Middle is between the hashes; Left and Right are outside the
+   corresponding hash, from the offense's view. Pass Left/Right stays
+   independent and never supplies Target or Catch automatically.
 6. **Placement:** inline in the deck under the Receiver row, never over the
-   film.
+   film. No Release explanation button. Label each location depth row once
+   on the side, not again in every selectable zone.
 
 **Order:** a rendered comp of the deck editor at desktop and narrow widths
 for the coach's approval, then build checkpoint 1 (route and release, with
