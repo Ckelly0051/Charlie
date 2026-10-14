@@ -49,6 +49,14 @@ try {
         check(label+' production chip type unchanged',JSON.stringify(geometry.chipType)===JSON.stringify(baseline.chipType));
         check(label+' fine chips 27px or expanded for long text',geometry.chipHeights.every(h=>h>=27));
         check(label+' exactly requested section open',geometry.open===(section==='closed'?0:1));
+        if(section!=='closed') check(label+' shared compact section entry',await page.$eval('.gi-tag-group[open]',group=>{
+          const body=group.querySelector('.gi-tag-group-body'),heading=group.querySelector('summary');
+          return Math.abs(body.getBoundingClientRect().top-heading.getBoundingClientRect().bottom)<.5&&parseFloat(getComputedStyle(body).paddingTop)===0;
+        }));
+        if(section==='situation') check(label+' heading to first chip reduced by at least half',await page.$eval('.gi-tag-group[open]',group=>{
+          const range=document.createRange();range.selectNodeContents(group.querySelector('summary strong'));
+          return group.querySelector('.gi-tag-chips button').getBoundingClientRect().top-range.getBoundingClientRect().bottom<=41.75/2;
+        }));
         if(section==='situation') check(label+' all five Quarter chips share one row',await page.$$eval('[data-native-field=quarter] .gi-tag-chips button',buttons=>new Set(buttons.map(b=>b.getBoundingClientRect().top)).size===1));
         if(section==='closed') {
           check(label+' closed summaries use one structural separator',await page.$$eval('.gi-tag-group',groups=>groups.every(g=>{

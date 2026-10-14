@@ -61,6 +61,12 @@ representative film still. No production module is loaded by the review page.
   captions. Their real controls remain in their open sections.
 - Formation & Call leads with the play call, then Formation and Personnel,
   followed by the remaining charted look fields.
+- Open headings use compact top padding with no bottom padding or body top
+  padding. All modules share this section-entry spacing. Field labels retain
+  their type size with an 18px minimum line box and a 1px label/control gap.
+  Situation's title-text-to-first-chip gap is about 20px, less than half the
+  previous 41.75px. Chips remain 27px fine / 44px coarse; closed section spacing
+  and the film rectangle stay unchanged.
 
 These are comp-only presentation changes. The settled disclosure behavior and
 all other approved controls remain unchanged.

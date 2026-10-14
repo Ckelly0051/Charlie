@@ -1,5 +1,5 @@
 {
-  "passed": 1964,
+  "passed": 2156,
   "failed": 0,
   "errors": [],
   "results": [
@@ -104,6 +104,10 @@
     },
     {
       "name": "1440 offense/formation-and-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 offense/formation-and-call shared compact section entry",
       "ok": true
     },
     {
@@ -221,6 +225,14 @@
       "ok": true
     },
     {
+      "name": "1440 full/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1440 full/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1440 full/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -277,6 +289,10 @@
       "ok": true
     },
     {
+      "name": "1440 full/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 full/formation-and-call at most one deck scroller",
       "ok": true,
       "data": [
@@ -324,6 +340,10 @@
     },
     {
       "name": "1440 full/defense-faced exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 full/defense-faced shared compact section entry",
       "ok": true
     },
     {
@@ -377,6 +397,10 @@
       "ok": true
     },
     {
+      "name": "1440 full/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 full/play-and-result at most one deck scroller",
       "ok": true,
       "data": [
@@ -424,6 +448,10 @@
     },
     {
       "name": "1440 full/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 full/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -477,6 +505,10 @@
       "ok": true
     },
     {
+      "name": "1440 full/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 full/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -522,6 +554,10 @@
     },
     {
       "name": "1440 full/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 full/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -573,11 +609,13 @@
       "ok": true
     },
     {
+      "name": "1440 full/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 full/play-diagram at most one deck scroller",
       "ok": true,
-      "data": [
-        "gi-native-form"
-      ]
+      "data": []
     },
     {
       "name": "1440 full/play-diagram text stays inside chips",
@@ -620,6 +658,10 @@
     },
     {
       "name": "1440 full/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 full/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -737,6 +779,14 @@
       "ok": true
     },
     {
+      "name": "1440 defense/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1440 defense/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1440 defense/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -793,6 +843,10 @@
       "ok": true
     },
     {
+      "name": "1440 defense/our-defensive-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 defense/our-defensive-call at most one deck scroller",
       "ok": true,
       "data": [
@@ -840,6 +894,10 @@
     },
     {
       "name": "1440 defense/offense-faced exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 defense/offense-faced shared compact section entry",
       "ok": true
     },
     {
@@ -893,6 +951,10 @@
       "ok": true
     },
     {
+      "name": "1440 defense/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 defense/play-and-result at most one deck scroller",
       "ok": true,
       "data": [
@@ -940,6 +1002,10 @@
     },
     {
       "name": "1440 defense/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 defense/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -993,6 +1059,10 @@
       "ok": true
     },
     {
+      "name": "1440 defense/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 defense/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -1038,6 +1108,10 @@
     },
     {
       "name": "1440 defense/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 defense/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -1089,6 +1163,10 @@
       "ok": true
     },
     {
+      "name": "1440 defense/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 defense/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -1134,6 +1212,10 @@
     },
     {
       "name": "1440 defense/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 defense/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -1251,6 +1333,14 @@
       "ok": true
     },
     {
+      "name": "1440 special/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1440 special/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1440 special/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -1307,6 +1397,10 @@
       "ok": true
     },
     {
+      "name": "1440 special/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 special/special-teams at most one deck scroller",
       "ok": true,
       "data": [
@@ -1354,6 +1448,10 @@
     },
     {
       "name": "1440 special/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 special/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -1405,6 +1503,10 @@
       "ok": true
     },
     {
+      "name": "1440 special/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 special/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -1450,6 +1552,10 @@
     },
     {
       "name": "1440 special/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 special/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -1501,6 +1607,10 @@
       "ok": true
     },
     {
+      "name": "1440 special/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 special/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -1546,6 +1656,10 @@
     },
     {
       "name": "1440 special/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 special/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -1661,6 +1775,14 @@
       "ok": true
     },
     {
+      "name": "1440 try/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1440 try/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1440 try/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -1717,6 +1839,10 @@
       "ok": true
     },
     {
+      "name": "1440 try/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 try/special-teams at most one deck scroller",
       "ok": true,
       "data": [
@@ -1764,6 +1890,10 @@
     },
     {
       "name": "1440 try/formation-and-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 try/formation-and-call shared compact section entry",
       "ok": true
     },
     {
@@ -1817,6 +1947,10 @@
       "ok": true
     },
     {
+      "name": "1440 try/defense-faced shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 try/defense-faced at most one deck scroller",
       "ok": true,
       "data": [
@@ -1864,6 +1998,10 @@
     },
     {
       "name": "1440 try/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 try/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -1917,6 +2055,10 @@
       "ok": true
     },
     {
+      "name": "1440 try/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 try/players-and-grades at most one deck scroller",
       "ok": true,
       "data": [
@@ -1967,6 +2109,10 @@
       "ok": true
     },
     {
+      "name": "1440 try/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 try/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -2012,6 +2158,10 @@
     },
     {
       "name": "1440 try/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 try/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -2065,6 +2215,10 @@
       "ok": true
     },
     {
+      "name": "1440 try/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 try/play-diagram at most one deck scroller",
       "ok": true,
       "data": [
@@ -2112,6 +2266,10 @@
     },
     {
       "name": "1440 try/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 try/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -2229,6 +2387,10 @@
       "ok": true
     },
     {
+      "name": "1440 penalty/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 penalty/penalties at most one deck scroller",
       "ok": true,
       "data": [
@@ -2340,6 +2502,14 @@
     },
     {
       "name": "1440 uncharted/situation exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 uncharted/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1440 uncharted/situation heading to first chip reduced by at least half",
       "ok": true
     },
     {
@@ -2463,6 +2633,10 @@
       "ok": true
     },
     {
+      "name": "1440 multiple/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 multiple/players-and-grades at most one deck scroller",
       "ok": true,
       "data": [
@@ -2577,6 +2751,10 @@
       "ok": true
     },
     {
+      "name": "1440 stress/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 stress/formation-and-call at most one deck scroller",
       "ok": true,
       "data": [
@@ -2624,6 +2802,10 @@
     },
     {
       "name": "1440 stress/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 stress/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -2741,6 +2923,10 @@
       "ok": true
     },
     {
+      "name": "1440 rpo/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1440 rpo/play-and-result at most one deck scroller",
       "ok": true,
       "data": [
@@ -2852,6 +3038,10 @@
     },
     {
       "name": "1440 qb/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1440 qb/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -2985,6 +3175,10 @@
       "ok": true
     },
     {
+      "name": "1280 offense/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 offense/formation-and-call at most one deck scroller",
       "ok": true,
       "data": [
@@ -3099,15 +3293,21 @@
       "ok": true
     },
     {
+      "name": "1280 full/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1280 full/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1280 full/situation all five Quarter chips share one row",
       "ok": true
     },
     {
       "name": "1280 full/situation at most one deck scroller",
       "ok": true,
-      "data": [
-        "gi-native-form"
-      ]
+      "data": []
     },
     {
       "name": "1280 full/situation situation row baselines aligned",
@@ -3154,6 +3354,10 @@
     },
     {
       "name": "1280 full/formation-and-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 full/formation-and-call shared compact section entry",
       "ok": true
     },
     {
@@ -3207,6 +3411,10 @@
       "ok": true
     },
     {
+      "name": "1280 full/defense-faced shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 full/defense-faced at most one deck scroller",
       "ok": true,
       "data": [
@@ -3254,6 +3462,10 @@
     },
     {
       "name": "1280 full/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 full/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -3307,6 +3519,10 @@
       "ok": true
     },
     {
+      "name": "1280 full/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 full/players-and-grades at most one deck scroller",
       "ok": true,
       "data": [
@@ -3357,6 +3573,10 @@
       "ok": true
     },
     {
+      "name": "1280 full/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 full/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -3402,6 +3622,10 @@
     },
     {
       "name": "1280 full/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 full/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -3455,6 +3679,10 @@
       "ok": true
     },
     {
+      "name": "1280 full/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 full/play-diagram at most one deck scroller",
       "ok": true,
       "data": [
@@ -3502,6 +3730,10 @@
     },
     {
       "name": "1280 full/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 full/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -3619,15 +3851,21 @@
       "ok": true
     },
     {
+      "name": "1280 defense/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1280 defense/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1280 defense/situation all five Quarter chips share one row",
       "ok": true
     },
     {
       "name": "1280 defense/situation at most one deck scroller",
       "ok": true,
-      "data": [
-        "gi-native-form"
-      ]
+      "data": []
     },
     {
       "name": "1280 defense/situation situation row baselines aligned",
@@ -3674,6 +3912,10 @@
     },
     {
       "name": "1280 defense/our-defensive-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 defense/our-defensive-call shared compact section entry",
       "ok": true
     },
     {
@@ -3727,6 +3969,10 @@
       "ok": true
     },
     {
+      "name": "1280 defense/offense-faced shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 defense/offense-faced at most one deck scroller",
       "ok": true,
       "data": [
@@ -3774,6 +4020,10 @@
     },
     {
       "name": "1280 defense/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 defense/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -3827,6 +4077,10 @@
       "ok": true
     },
     {
+      "name": "1280 defense/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 defense/players-and-grades at most one deck scroller",
       "ok": true,
       "data": [
@@ -3877,6 +4131,10 @@
       "ok": true
     },
     {
+      "name": "1280 defense/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 defense/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -3922,6 +4180,10 @@
     },
     {
       "name": "1280 defense/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 defense/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -3975,6 +4237,10 @@
       "ok": true
     },
     {
+      "name": "1280 defense/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 defense/play-diagram at most one deck scroller",
       "ok": true,
       "data": [
@@ -4022,6 +4288,10 @@
     },
     {
       "name": "1280 defense/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 defense/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -4139,6 +4409,14 @@
       "ok": true
     },
     {
+      "name": "1280 special/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1280 special/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1280 special/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -4195,6 +4473,10 @@
       "ok": true
     },
     {
+      "name": "1280 special/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 special/special-teams at most one deck scroller",
       "ok": true,
       "data": [
@@ -4242,6 +4524,10 @@
     },
     {
       "name": "1280 special/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 special/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -4295,6 +4581,10 @@
       "ok": true
     },
     {
+      "name": "1280 special/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 special/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -4343,11 +4633,13 @@
       "ok": true
     },
     {
+      "name": "1280 special/notes-and-details shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 special/notes-and-details at most one deck scroller",
       "ok": true,
-      "data": [
-        "gi-native-form"
-      ]
+      "data": []
     },
     {
       "name": "1280 special/notes-and-details text stays inside chips",
@@ -4393,11 +4685,13 @@
       "ok": true
     },
     {
+      "name": "1280 special/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 special/play-diagram at most one deck scroller",
       "ok": true,
-      "data": [
-        "gi-native-form"
-      ]
+      "data": []
     },
     {
       "name": "1280 special/play-diagram text stays inside chips",
@@ -4440,6 +4734,10 @@
     },
     {
       "name": "1280 special/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 special/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -4557,6 +4855,14 @@
       "ok": true
     },
     {
+      "name": "1280 try/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1280 try/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1280 try/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -4615,6 +4921,10 @@
       "ok": true
     },
     {
+      "name": "1280 try/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 try/special-teams at most one deck scroller",
       "ok": true,
       "data": [
@@ -4662,6 +4972,10 @@
     },
     {
       "name": "1280 try/formation-and-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 try/formation-and-call shared compact section entry",
       "ok": true
     },
     {
@@ -4715,6 +5029,10 @@
       "ok": true
     },
     {
+      "name": "1280 try/defense-faced shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 try/defense-faced at most one deck scroller",
       "ok": true,
       "data": [
@@ -4762,6 +5080,10 @@
     },
     {
       "name": "1280 try/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 try/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -4815,6 +5137,10 @@
       "ok": true
     },
     {
+      "name": "1280 try/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 try/players-and-grades at most one deck scroller",
       "ok": true,
       "data": [
@@ -4865,6 +5191,10 @@
       "ok": true
     },
     {
+      "name": "1280 try/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 try/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -4910,6 +5240,10 @@
     },
     {
       "name": "1280 try/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 try/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -4963,6 +5297,10 @@
       "ok": true
     },
     {
+      "name": "1280 try/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 try/play-diagram at most one deck scroller",
       "ok": true,
       "data": [
@@ -5010,6 +5348,10 @@
     },
     {
       "name": "1280 try/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 try/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -5127,6 +5469,10 @@
       "ok": true
     },
     {
+      "name": "1280 penalty/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 penalty/penalties at most one deck scroller",
       "ok": true,
       "data": [
@@ -5241,15 +5587,21 @@
       "ok": true
     },
     {
+      "name": "1280 uncharted/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "1280 uncharted/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "1280 uncharted/situation all five Quarter chips share one row",
       "ok": true
     },
     {
       "name": "1280 uncharted/situation at most one deck scroller",
       "ok": true,
-      "data": [
-        "gi-native-form"
-      ]
+      "data": []
     },
     {
       "name": "1280 uncharted/situation situation row baselines aligned",
@@ -5360,6 +5712,10 @@
     },
     {
       "name": "1280 multiple/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 multiple/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -5477,6 +5833,10 @@
       "ok": true
     },
     {
+      "name": "1280 stress/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 stress/formation-and-call at most one deck scroller",
       "ok": true,
       "data": [
@@ -5524,6 +5884,10 @@
     },
     {
       "name": "1280 stress/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 stress/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -5641,6 +6005,10 @@
       "ok": true
     },
     {
+      "name": "1280 rpo/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "1280 rpo/play-and-result at most one deck scroller",
       "ok": true,
       "data": [
@@ -5752,6 +6120,10 @@
     },
     {
       "name": "1280 qb/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "1280 qb/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -5885,6 +6257,10 @@
       "ok": true
     },
     {
+      "name": "768 offense/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 offense/formation-and-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -5997,6 +6373,14 @@
       "ok": true
     },
     {
+      "name": "768 full/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "768 full/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "768 full/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -6053,6 +6437,10 @@
       "ok": true
     },
     {
+      "name": "768 full/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 full/formation-and-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -6098,6 +6486,10 @@
     },
     {
       "name": "768 full/defense-faced exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 full/defense-faced shared compact section entry",
       "ok": true
     },
     {
@@ -6149,6 +6541,10 @@
       "ok": true
     },
     {
+      "name": "768 full/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 full/play-and-result at most one deck scroller",
       "ok": true,
       "data": []
@@ -6194,6 +6590,10 @@
     },
     {
       "name": "768 full/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 full/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -6245,6 +6645,10 @@
       "ok": true
     },
     {
+      "name": "768 full/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 full/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -6290,6 +6694,10 @@
     },
     {
       "name": "768 full/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 full/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -6341,6 +6749,10 @@
       "ok": true
     },
     {
+      "name": "768 full/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 full/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -6386,6 +6798,10 @@
     },
     {
       "name": "768 full/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 full/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -6501,6 +6917,14 @@
       "ok": true
     },
     {
+      "name": "768 defense/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "768 defense/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "768 defense/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -6557,6 +6981,10 @@
       "ok": true
     },
     {
+      "name": "768 defense/our-defensive-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 defense/our-defensive-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -6602,6 +7030,10 @@
     },
     {
       "name": "768 defense/offense-faced exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 defense/offense-faced shared compact section entry",
       "ok": true
     },
     {
@@ -6653,6 +7085,10 @@
       "ok": true
     },
     {
+      "name": "768 defense/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 defense/play-and-result at most one deck scroller",
       "ok": true,
       "data": []
@@ -6698,6 +7134,10 @@
     },
     {
       "name": "768 defense/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 defense/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -6749,6 +7189,10 @@
       "ok": true
     },
     {
+      "name": "768 defense/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 defense/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -6794,6 +7238,10 @@
     },
     {
       "name": "768 defense/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 defense/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -6845,6 +7293,10 @@
       "ok": true
     },
     {
+      "name": "768 defense/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 defense/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -6890,6 +7342,10 @@
     },
     {
       "name": "768 defense/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 defense/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -7005,6 +7461,14 @@
       "ok": true
     },
     {
+      "name": "768 special/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "768 special/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "768 special/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -7061,6 +7525,10 @@
       "ok": true
     },
     {
+      "name": "768 special/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 special/special-teams at most one deck scroller",
       "ok": true,
       "data": []
@@ -7106,6 +7574,10 @@
     },
     {
       "name": "768 special/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 special/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -7157,6 +7629,10 @@
       "ok": true
     },
     {
+      "name": "768 special/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 special/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -7202,6 +7678,10 @@
     },
     {
       "name": "768 special/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 special/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -7253,6 +7733,10 @@
       "ok": true
     },
     {
+      "name": "768 special/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 special/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -7298,6 +7782,10 @@
     },
     {
       "name": "768 special/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 special/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -7413,6 +7901,14 @@
       "ok": true
     },
     {
+      "name": "768 try/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "768 try/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "768 try/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -7469,6 +7965,10 @@
       "ok": true
     },
     {
+      "name": "768 try/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 try/special-teams at most one deck scroller",
       "ok": true,
       "data": []
@@ -7514,6 +8014,10 @@
     },
     {
       "name": "768 try/formation-and-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 try/formation-and-call shared compact section entry",
       "ok": true
     },
     {
@@ -7565,6 +8069,10 @@
       "ok": true
     },
     {
+      "name": "768 try/defense-faced shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 try/defense-faced at most one deck scroller",
       "ok": true,
       "data": []
@@ -7610,6 +8118,10 @@
     },
     {
       "name": "768 try/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 try/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -7661,6 +8173,10 @@
       "ok": true
     },
     {
+      "name": "768 try/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 try/players-and-grades at most one deck scroller",
       "ok": true,
       "data": []
@@ -7706,6 +8222,10 @@
     },
     {
       "name": "768 try/penalties exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 try/penalties shared compact section entry",
       "ok": true
     },
     {
@@ -7757,6 +8277,10 @@
       "ok": true
     },
     {
+      "name": "768 try/notes-and-details shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 try/notes-and-details at most one deck scroller",
       "ok": true,
       "data": []
@@ -7805,6 +8329,10 @@
       "ok": true
     },
     {
+      "name": "768 try/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 try/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -7850,6 +8378,10 @@
     },
     {
       "name": "768 try/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 try/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -7965,6 +8497,10 @@
       "ok": true
     },
     {
+      "name": "768 penalty/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 penalty/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -8074,6 +8610,14 @@
     },
     {
       "name": "768 uncharted/situation exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 uncharted/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "768 uncharted/situation heading to first chip reduced by at least half",
       "ok": true
     },
     {
@@ -8197,6 +8741,10 @@
       "ok": true
     },
     {
+      "name": "768 multiple/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 multiple/players-and-grades at most one deck scroller",
       "ok": true,
       "data": []
@@ -8309,6 +8857,10 @@
       "ok": true
     },
     {
+      "name": "768 stress/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 stress/formation-and-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -8354,6 +8906,10 @@
     },
     {
       "name": "768 stress/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 stress/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -8469,6 +9025,10 @@
       "ok": true
     },
     {
+      "name": "768 rpo/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "768 rpo/play-and-result at most one deck scroller",
       "ok": true,
       "data": []
@@ -8578,6 +9138,10 @@
     },
     {
       "name": "768 qb/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "768 qb/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -8709,6 +9273,10 @@
       "ok": true
     },
     {
+      "name": "390 offense/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 offense/formation-and-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -8821,6 +9389,14 @@
       "ok": true
     },
     {
+      "name": "390 full/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "390 full/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "390 full/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -8877,6 +9453,10 @@
       "ok": true
     },
     {
+      "name": "390 full/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 full/formation-and-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -8922,6 +9502,10 @@
     },
     {
       "name": "390 full/defense-faced exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 full/defense-faced shared compact section entry",
       "ok": true
     },
     {
@@ -8973,6 +9557,10 @@
       "ok": true
     },
     {
+      "name": "390 full/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 full/play-and-result at most one deck scroller",
       "ok": true,
       "data": []
@@ -9018,6 +9606,10 @@
     },
     {
       "name": "390 full/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 full/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -9069,6 +9661,10 @@
       "ok": true
     },
     {
+      "name": "390 full/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 full/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -9114,6 +9710,10 @@
     },
     {
       "name": "390 full/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 full/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -9165,6 +9765,10 @@
       "ok": true
     },
     {
+      "name": "390 full/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 full/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -9210,6 +9814,10 @@
     },
     {
       "name": "390 full/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 full/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -9325,6 +9933,14 @@
       "ok": true
     },
     {
+      "name": "390 defense/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "390 defense/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "390 defense/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -9381,6 +9997,10 @@
       "ok": true
     },
     {
+      "name": "390 defense/our-defensive-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 defense/our-defensive-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -9426,6 +10046,10 @@
     },
     {
       "name": "390 defense/offense-faced exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 defense/offense-faced shared compact section entry",
       "ok": true
     },
     {
@@ -9477,6 +10101,10 @@
       "ok": true
     },
     {
+      "name": "390 defense/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 defense/play-and-result at most one deck scroller",
       "ok": true,
       "data": []
@@ -9522,6 +10150,10 @@
     },
     {
       "name": "390 defense/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 defense/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -9573,6 +10205,10 @@
       "ok": true
     },
     {
+      "name": "390 defense/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 defense/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -9618,6 +10254,10 @@
     },
     {
       "name": "390 defense/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 defense/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -9669,6 +10309,10 @@
       "ok": true
     },
     {
+      "name": "390 defense/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 defense/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -9714,6 +10358,10 @@
     },
     {
       "name": "390 defense/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 defense/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -9829,6 +10477,14 @@
       "ok": true
     },
     {
+      "name": "390 special/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "390 special/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "390 special/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -9885,6 +10541,10 @@
       "ok": true
     },
     {
+      "name": "390 special/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 special/special-teams at most one deck scroller",
       "ok": true,
       "data": []
@@ -9930,6 +10590,10 @@
     },
     {
       "name": "390 special/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 special/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -9981,6 +10645,10 @@
       "ok": true
     },
     {
+      "name": "390 special/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 special/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -10026,6 +10694,10 @@
     },
     {
       "name": "390 special/notes-and-details exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 special/notes-and-details shared compact section entry",
       "ok": true
     },
     {
@@ -10077,6 +10749,10 @@
       "ok": true
     },
     {
+      "name": "390 special/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 special/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -10122,6 +10798,10 @@
     },
     {
       "name": "390 special/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 special/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -10237,6 +10917,14 @@
       "ok": true
     },
     {
+      "name": "390 try/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "390 try/situation heading to first chip reduced by at least half",
+      "ok": true
+    },
+    {
       "name": "390 try/situation all five Quarter chips share one row",
       "ok": true
     },
@@ -10293,6 +10981,10 @@
       "ok": true
     },
     {
+      "name": "390 try/special-teams shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 try/special-teams at most one deck scroller",
       "ok": true,
       "data": []
@@ -10338,6 +11030,10 @@
     },
     {
       "name": "390 try/formation-and-call exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 try/formation-and-call shared compact section entry",
       "ok": true
     },
     {
@@ -10389,6 +11085,10 @@
       "ok": true
     },
     {
+      "name": "390 try/defense-faced shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 try/defense-faced at most one deck scroller",
       "ok": true,
       "data": []
@@ -10434,6 +11134,10 @@
     },
     {
       "name": "390 try/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 try/play-and-result shared compact section entry",
       "ok": true
     },
     {
@@ -10485,6 +11189,10 @@
       "ok": true
     },
     {
+      "name": "390 try/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 try/players-and-grades at most one deck scroller",
       "ok": true,
       "data": []
@@ -10530,6 +11238,10 @@
     },
     {
       "name": "390 try/penalties exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 try/penalties shared compact section entry",
       "ok": true
     },
     {
@@ -10581,6 +11293,10 @@
       "ok": true
     },
     {
+      "name": "390 try/notes-and-details shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 try/notes-and-details at most one deck scroller",
       "ok": true,
       "data": []
@@ -10629,6 +11345,10 @@
       "ok": true
     },
     {
+      "name": "390 try/play-diagram shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 try/play-diagram at most one deck scroller",
       "ok": true,
       "data": []
@@ -10674,6 +11394,10 @@
     },
     {
       "name": "390 try/more-tools exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 try/more-tools shared compact section entry",
       "ok": true
     },
     {
@@ -10789,6 +11513,10 @@
       "ok": true
     },
     {
+      "name": "390 penalty/penalties shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 penalty/penalties at most one deck scroller",
       "ok": true,
       "data": []
@@ -10898,6 +11626,14 @@
     },
     {
       "name": "390 uncharted/situation exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 uncharted/situation shared compact section entry",
+      "ok": true
+    },
+    {
+      "name": "390 uncharted/situation heading to first chip reduced by at least half",
       "ok": true
     },
     {
@@ -11021,6 +11757,10 @@
       "ok": true
     },
     {
+      "name": "390 multiple/players-and-grades shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 multiple/players-and-grades at most one deck scroller",
       "ok": true,
       "data": []
@@ -11133,6 +11873,10 @@
       "ok": true
     },
     {
+      "name": "390 stress/formation-and-call shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 stress/formation-and-call at most one deck scroller",
       "ok": true,
       "data": []
@@ -11178,6 +11922,10 @@
     },
     {
       "name": "390 stress/players-and-grades exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 stress/players-and-grades shared compact section entry",
       "ok": true
     },
     {
@@ -11293,6 +12041,10 @@
       "ok": true
     },
     {
+      "name": "390 rpo/play-and-result shared compact section entry",
+      "ok": true
+    },
+    {
       "name": "390 rpo/play-and-result at most one deck scroller",
       "ok": true,
       "data": []
@@ -11402,6 +12154,10 @@
     },
     {
       "name": "390 qb/play-and-result exactly requested section open",
+      "ok": true
+    },
+    {
+      "name": "390 qb/play-and-result shared compact section entry",
       "ok": true
     },
     {

@@ -8,21 +8,23 @@
 .gi-tag-group>summary i{grid-column:1;grid-row:1;justify-self:start;transform:none!important;font-size:12px}
 .gi-tag-group>summary strong{grid-column:2;grid-row:1;background:transparent!important;color:var(--gi-12)!important;margin:0!important;padding:0!important;letter-spacing:0;line-height:1.4}
 .gi-comp-summary{grid-column:3;grid-row:1;text-align:right;color:var(--gi-bd-copy);font:400 12.5px/1.4 var(--gi-sans);overflow-wrap:anywhere}
-.gi-tag-group[open]>summary{border:0}
+.gi-tag-group[open]>summary{border:0;padding:4px 0 0;min-height:0}
+.gi-tag-group[open]>summary strong{min-height:0}
 .gi-tag-group[open] .gi-comp-summary{display:none}
-.gi-tag-group-body{padding:4px 0 12px;gap:8px}
-.gi-tag-field-label{min-height:22px}
+.gi-tag-group-body{padding:0 0 12px;gap:8px}
+.gi-tag-field,.gi-tag-input{gap:1px}
+.gi-tag-field-label{min-height:18px}
 .gi-tag-field-label .gi-tag-library,.gi-play-call .gi-tag-library{margin-left:auto!important}
 .gi-tag-chips,.gi-tag-chips.is-library,.gi-tag-gap-row,.gi-player-quick,.gi-play-call-quick{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px;max-height:none;overflow:visible;min-width:0}
 .gi-tag-chips button,.gi-tag-chips.is-library button,.gi-tag-gap-row button,.gi-player-quick button,.gi-play-call-quick button{flex:0 1 auto;width:auto;min-width:0;max-width:100%;height:auto;min-height:27px;padding:3px 8px!important;text-align:left;white-space:normal;overflow-wrap:anywhere;line-height:19px}
 .gi-tag-field-summary,.gi-tag-hint{border:0;background:transparent}
-.gi-tag-input>span{display:flex;align-items:center;min-height:22px}
+.gi-tag-input>span{display:flex;align-items:center;min-height:18px}
 .gi-tag-situation-row{align-items:start;gap:6px}
 .gi-tag-situation-row.is-primary{grid-template-columns:max-content max-content minmax(0,1fr)}
 .gi-tag-situation-row.is-field{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 54px 42px}
 .gi-tag-situation-row :is(input,.gi-tag-chips button){min-height:27px}
 .gi-tag-situation-row input{height:27px;padding:3px 6px}
-.gi-tag-situation-row .gi-tag-input{gap:3px}
+.gi-tag-situation-row .gi-tag-input{gap:1px}
 .gi-play-call-defaults em{border:0;background:transparent;padding:0;font-style:normal}
 #videoContainer .brand-bug{display:none}
 .gi-tag-actions{padding:6px 12px;gap:6px}
