@@ -123,7 +123,24 @@ failed saves that roll back only their own season, game or program, and
        "Not charted". First a full-deck comp that keeps every real control
        (transport, Clear tags, Save, top-bar tools) on real season data for
        the coach's approval; then one migration across the whole deck, never
-       half-restyled;
+       half-restyled. Acceptance checklist (coach's installed screenshot,
+       2026-10-14), each fixed explicitly:
+       - one chip system: no fixed four-column centered grid beside
+         text-sized chips (Formation and Backfield versus Personnel, QB
+         Alignment, Down);
+       - labels and controls share rows: Quarter/Down/Distance and
+         Hash/Field position/Yard line/Drive start on one baseline;
+       - one level of borders: no outer deck frame around banded,
+         bordered section headers, and no second scrollbar inside the deck;
+       - one disclosure pattern: every caret in the same place (no left
+         caret on Play Call alone, no far-right section carets), and
+         "Edit library" in the same position on every field;
+       - consistent controls in the deck header row (Same as Last,
+         Templates, Delete play);
+       - no placeholder instructions ("e.g. 26 Blast"), no disabled Save
+         wedged between Skip and Save & Next, no arrow on Previous;
+       - closed sections show summaries and one section is open, so a play
+         is not several screens of chips;
      - missed tackles: a play-level event plus optional player attribution,
        more than one player per play; uncharted is not zero. Built
        2026-10-07, coach-smoked in `1.12.0-113` on 2026-10-09 with the
