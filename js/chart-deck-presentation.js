@@ -1,6 +1,15 @@
 import { PlayShape } from './play-shape.js';
 
 export const joinSummary = values => values.filter(value => value !== '' && value != null).map(String).join(' · ');
+export function isBlankChartPlay(play) {
+  if (!play) return true;
+  const hasValue = value => value != null && value !== '' && (typeof value !== 'object' || Object.values(value).some(hasValue));
+  if (String(play.notes || '').trim() || play.diagram?.length || play.penalties?.length || play.specialTeams?.unit || hasValue(play.receiverDetail)) return false;
+  // Unit, Own field position and drive 1 are seeded even on untouched plays.
+  // Completion/accounting predicates must not classify partial charting as blank.
+  return !Object.entries(play.tags || {}).some(([key,value]) => key !== 'unit' && !key.startsWith('_')
+    && !(key === 'fieldSide' && value === 'own') && !(key === 'driveNumber' && String(value) === '1') && hasValue(value));
+}
 export function chartSections(play) {
   const ids = ['situation'];
   if (play?.tags?.unit === 'special') ids.push('special-teams');

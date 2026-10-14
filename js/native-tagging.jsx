@@ -280,6 +280,7 @@ function Spot({label, code, spot, screen}) {
 }
 
 export const TRY_RESULT_LABELS = { converted: 'Converted', failed: 'Failed', noPlay: 'No Play / Retry' };
+const TRY_ATTEMPT_CHOICES = [['extraPoint','Kick XP'],['twoPoint','Run/Pass'],['fake','Fake']];
 
 /** The side whose look groups a play shows: its unit, or for a run/pass or
  *  Fake try the attempting or defending side (PlayShape.lookSide). */
@@ -294,7 +295,7 @@ function TryEditor({screen, state, st}) {
   const noPlayMismatch = state.penalties.some(p => p.playCounts === false) && st.result !== 'noPlay';
   return <>
     <Choice label="Attempt" value={st.attemptType === 'twoPoint' && st.isFake ? 'fake' : st.attemptType}
-      options={[['extraPoint','Kick XP'],['twoPoint','Run/Pass'],['fake','Fake']]} choose={v => screen.specialAction('tryAttempt',v)}/>
+      options={TRY_ATTEMPT_CHOICES} choose={v => screen.specialAction('tryAttempt',v)}/>
     <Choice label="Official result" value={st.result} options={Object.entries(TRY_RESULT_LABELS)} choose={v => screen.specialAction('tryResult',v)}/>
     <div class="gi-tag-field"><div class="gi-tag-field-label"><span>What happened</span></div><div class="gi-tag-chips">
       {[['badSnap','Bad Snap'],['blocked','Blocked'],['defensiveReturn','Defensive Return']].map(([v,l]) =>
@@ -329,8 +330,8 @@ function SpecialTeams({screen, state}) {
   const other = state.perspective === 'scout' ? 'Other team' : 'Opponent';
   const summary = joinSummary([ST_UNITS.find(([unit]) => unit === st?.unit)?.[1],
     ST_OUTCOMES[st?.unit]?.find(([value]) => value === st?.outcome?.status)?.[1],
-    isTry ? ({kick:'Kick XP',runPass:'Run/Pass'}[st.attemptType] || '') : '',
-    isTry ? ({converted:'Converted',failed:'Failed',noPlay:'No Play / Retry'}[st.result] || '') : '']) || 'Not charted';
+    isTry ? TRY_ATTEMPT_CHOICES.find(([key]) => key === (st.attemptType === 'twoPoint' && st.isFake ? 'fake' : st.attemptType))?.[1] : '',
+    isTry ? TRY_RESULT_LABELS[st.result] : '']) || 'Not charted';
   return <Group screen={screen} state={state} id="special-teams" title="Special Teams" summary={summary}>
     <Choice label="Unit" value={st?.unit} options={ST_UNITS} choose={value => screen.setSpecialUnit(value)}/>
     {isTry ? <TryEditor screen={screen} state={state} st={st}/> : st && <>

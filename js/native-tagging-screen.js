@@ -1,7 +1,7 @@
 import { mountNativeTagging, unmountNativeTagging } from './native-tagging.jsx';
 import { StatsEngine } from './stats-engine.js';
-import { countedUnit, isPlayTagged } from './football-rules.js';
-import { chartSections } from './chart-deck-presentation.js';
+import { countedUnit } from './football-rules.js';
+import { chartSections, isBlankChartPlay } from './chart-deck-presentation.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PlayCallModel } from './play-call-model.js';
@@ -64,7 +64,7 @@ export class NativeTaggingScreen {
     const available = chartSections(play);
     if (scope !== this._sectionPlay) {
       this._sectionPlay = scope;
-      this.openSections = new Set(!isPlayTagged(play) ? ['situation'] : [...this.openSections].filter(id => available.includes(id)));
+      this.openSections = new Set(isBlankChartPlay(play) ? ['situation'] : [...this.openSections].filter(id => available.includes(id)));
       if (!this.openSections.size) this.openSections.add('situation');
       this.shortcutFeedback = '';
     }

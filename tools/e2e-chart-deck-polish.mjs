@@ -53,9 +53,15 @@ try {
   ok((await opened()).includes('formation-and-call'),'Save retains the open module');
   await page.evaluate(()=>{const t=app.tagger;const p=t.plays.find(p=>p.id!==t.currentPlayId&&p.tags.unit==='offense'&&p.tags.playType);window.__otherPlay=p.id;t.selectPlay(p.id);});await settle();
   ok((await opened()).includes('formation-and-call'),'existing-play navigation retains the working module');
+  await page.evaluate(()=>{const t=app.tagger;t.saveDraft();t.plays.push({id:9997,timestamp:{start:0,end:1},notes:'Coaching note',tags:{...t.constructor.blankTags(),down:'2',distance:'10'}});t.selectPlay(9997);});await settle();
+  ok((await opened()).includes('formation-and-call'),'partially charted play retains working module rather than being treated as blank');
+  await page.evaluate(()=>{const t=app.tagger;t.saveDraft();t.plays.push({id:9996,timestamp:{start:0,end:1},notes:'',specialTeams:{unit:'try',attemptType:'twoPoint'},tags:t.constructor.blankTags({unit:'special'})});t.selectPlay(9996);});await settle();
+  ok((await opened()).includes('formation-and-call'),'incomplete run/pass try retains its available working module');
+  ok(await page.$eval('[data-section=special-teams] .gi-tag-summary',e=>e.textContent.includes('Run/Pass')),'try summary uses the charted attempt vocabulary');
   await page.evaluate(()=>{const t=app.tagger;t.saveDraft();t.plays.push({id:9999,timestamp:{start:0,end:1},notes:'',tags:{unit:'offense',players:{},grades:{}}});t.selectPlay(9999);});await settle();
   ok(JSON.stringify(await opened())==='["situation"]','blank play opens Situation only');
   await page.evaluate(()=>{app.tagger.saveDraft();app.tagger.selectPlay(window.__otherPlay);});await settle();
+  for(const id of await opened())await page.click(`[data-section=${id}]>summary`);
   await page.click('[data-section=formation-and-call]>summary');await settle();
   await page.evaluate(()=>{app.tagger.saveDraft();app.tagger.plays.push({id:9998,timestamp:{start:0,end:1},specialTeams:{unit:'kickoff'},tags:{unit:'special',players:{},grades:{}}});app.tagger.selectPlay(9998);});await settle();
   ok(!(await opened()).includes('formation-and-call')&&(await opened()).includes('situation'),'unavailable working module falls back to Situation');
@@ -74,6 +80,9 @@ try {
   const captureDir=process.env.GIQ_DECK_CAPTURE_DIR;
   if(captureDir){
     mkdirSync(captureDir,{recursive:true});
+    // Captures use the clean populated preview, not the navigation-only test plays.
+    await page.evaluate(({plays,id})=>{const t=app.tagger;t.discardDraft();t.plays=plays;t.currentPlayId=null;t.selectPlay(id);app.nativeTagging._publish();app.breakdownTheater._publish();},{plays:game.plays,id:chosen.id});
+    await settle();
     const still='data:image/png;base64,'+readFileSync(resolve('design-comps/receiver-charting-2026-10-13/film-frame.png')).toString('base64');
     await page.evaluate(still=>{const video=document.getElementById('videoPlayer');video.poster=still;video.style.display='block';document.querySelectorAll('#videoPlaceholder,#videoLoadState,.gi-film-health').forEach(e=>e.hidden=true);},still);
   }
@@ -112,7 +121,14 @@ try {
         ok(await page.$$eval('.gi-tag-situation-row',rows=>rows.every(row=>{const peers=new Map();for(const f of row.children){const label=f.querySelector('.gi-tag-field-label,span').getBoundingClientRect(),control=f.querySelector('button,input').getBoundingClientRect();const key=Math.round(label.top);if(!peers.has(key))peers.set(key,[]);peers.get(key).push(control.top);}return[...peers.values()].every(tops=>Math.max(...tops)-Math.min(...tops)<.5);})),`${viewport.width} Situation peer baselines aligned`);
       }
       if(captureDir&&[1440,390].includes(viewport.width)&&['situation','formation-and-call','players-and-grades'].includes(id)){
-        if(viewport.width===390)await page.$eval('.gi-tag-group[open]',e=>e.scrollIntoView({block:'start'}));
+        if(viewport.width===390)await page.$eval('.gi-tag-group[open]',e=>{
+          e.scrollIntoView({block:'start'});
+          const desired=document.querySelector('.gi-breakdown-toolbar').getBoundingClientRect().bottom+12;
+          const correction=Math.max(0,desired-e.getBoundingClientRect().top);
+          for(let owner=e.parentElement;owner;owner=owner.parentElement){
+            if(/auto|scroll/.test(getComputedStyle(owner).overflowY)&&owner.scrollHeight>owner.clientHeight+1){owner.scrollTop=Math.max(0,owner.scrollTop-correction);break;}
+          }
+        });
         await page.screenshot({path:resolve(captureDir,`built-${id}-${viewport.width}x${viewport.height}.png`),fullPage:viewport.width===390});
       }
     }
