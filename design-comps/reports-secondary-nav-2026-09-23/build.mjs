@@ -1,3 +1,4 @@
+import { fictionalRoster } from '../../tools/fictional-player-names.mjs';
 /* Builds the Reports secondary-navigation comp captures (2026-09-23).
  *
  *   npm run build && node design-comps/reports-secondary-nav-2026-09-23/build.mjs
@@ -23,6 +24,7 @@ const SOURCE = 'C:/Users/charl/OneDrive/Documents/GridIron IQ/seasons/2025-st-jo
 const raw = readFileSync(SOURCE);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const game = season.games.find(g => /St\. Peter Lutheran/i.test(g.gameInfo?.opponent || ''));
 mkdirSync(OUT, { recursive: true });
 

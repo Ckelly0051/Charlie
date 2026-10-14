@@ -8,9 +8,10 @@
   "canonicalArtifact": {
     "path": "design-comps/missed-tackles-reports-2026-10-07",
     "kind": "directory",
-    "sha256": "391ea4fbbd89444b42c0235a8c186809cb24bf529140483fa8199ea5763d21c4",
+    "sha256": "49343d732f7241985fc69a683c91f6e1630d5743199d3308d0bc8120aa692805",
     "fileCount": 18
   },
   "decisionRecord": "design-comps/missed-tackles-reports-2026-10-07/RATIONALE.md",
-  "productionNote": "Built 2026-10-07. One departure, decided by the coach: Players > Tackles narrows its number columns (40 / 46 / 36px, 8px padding) so MTkl fits without clipping long names. Installed smoke pending."
+  "productionNote": "Built 2026-10-07. One departure, decided by the coach: Players > Tackles narrows its number columns (40 / 46 / 36px, 8px padding) so MTkl fits without clipping long names. Installed smoke pending.",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

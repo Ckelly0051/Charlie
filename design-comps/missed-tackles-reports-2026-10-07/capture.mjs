@@ -1,3 +1,4 @@
+import { fictionalRoster } from '../../tools/fictional-player-names.mjs';
 // Missed tackles Reports comp: the real built app with the canonical season.
 // Step 1 captures today's Defense, Players and Season tabs. Isolated browser
 // data only; no coach file is written.
@@ -8,6 +9,7 @@ import { CANONICAL_SEASON } from 'file:///C:/Users/charl/Charlie/tools/canonical
 
 const OUT = process.argv[2];
 const season = JSON.parse(fs.readFileSync(CANONICAL_SEASON, 'utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_hint_shown', '1'));

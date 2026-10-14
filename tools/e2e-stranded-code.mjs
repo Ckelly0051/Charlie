@@ -16,6 +16,8 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import postcss from 'postcss';
+import { privateRoster, trackedNameLeaks, containsRealRosterName } from './roster-privacy.mjs';
+import { fictionalRoster } from './fictional-player-names.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PARKED = {
@@ -83,5 +85,11 @@ const empty = fs.readdirSync(`${ROOT}/css`).filter(f => f.endsWith('.css'))
   .flatMap(f => emptyBlocks(fs.readFileSync(`${ROOT}/css/${f}`, 'utf8'), f));
 ok(empty.length === 0, 'no stylesheet keeps empty rule or at-rule blocks', empty.join(', '));
 
+const roster=privateRoster();
+ok(roster.length>0 && containsRealRosterName(roster[0].name,roster) &&
+  !containsRealRosterName(JSON.stringify(fictionalRoster(roster)),roster),
+  'privacy guard detects private roster names and accepts fictional identities');
+const nameLeaks=trackedNameLeaks(roster);
+ok(nameLeaks.length===0,'no real player names in tracked public-repo files',nameLeaks.join(', '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

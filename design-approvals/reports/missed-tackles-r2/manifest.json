@@ -8,9 +8,10 @@
   "canonicalArtifact": {
     "path": "design-comps/missed-tackles-reports-r2-2026-10-07",
     "kind": "directory",
-    "sha256": "d0bbae4e7ef898ba01f73ee1b50d0ffa569713ae15f3c05597095ff848458e79",
+    "sha256": "feb1bba1e3831f3c7ce289c692621d93c58e1765d92bb3c25605e59fca68b846",
     "fileCount": 9
   },
   "decisionRecord": "design-comps/missed-tackles-reports-r2-2026-10-07/RATIONALE.md",
-  "productionNote": "Built 2026-10-07. One departure, decided by the coach: eleven tiles fit the widest value (100.0%) at full size only from 1640px, so the strip wraps to six then five below 1640 instead of shrinking type. Installed smoke pending."
+  "productionNote": "Built 2026-10-07. One departure, decided by the coach: eleven tiles fit the widest value (100.0%) at full size only from 1640px, so the strip wraps to six then five below 1640 instead of shrinking type. Installed smoke pending.",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

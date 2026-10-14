@@ -1,3 +1,4 @@
+import { fictionalRoster } from './fictional-player-names.mjs';
 /** Reports global strip (coach-approved comp, 2026-09-22) on the canonical season.
  *
  * design-comps/reports-global-strip-2026-09-22.html approves NAVIGATION GEOMETRY
@@ -64,6 +65,7 @@ if (!existsSync(SOURCE)) {
 const raw = readFileSync(SOURCE);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const stPeter = season.games.find(game => /St\. Peter Lutheran/i.test(game.gameInfo?.opponent || ''));
 if (!stPeter) throw new Error('Canonical St. Peter Lutheran game missing');
 mkdirSync(OUT, { recursive: true });
@@ -328,7 +330,7 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
     JSON.stringify([...byTable.values()].map(rows => rows.map(row => `${row.num}:${row.x?.toFixed(2)}`))));
   const five = names.find(row => row.num === '#5'), fortyTwo = names.find(row => row.num === '#42');
   ok(five && fortyTwo && five.table === fortyTwo.table ? Math.abs(five.x - fortyTwo.x) < 0.5 : !!(five && fortyTwo),
-    `${width}: #5 Ben Kelly and #42 share a name column where they share a table`, JSON.stringify({ five, fortyTwo }));
+    `${width}: #5 Noah Hayes and #42 share a name column where they share a table`, JSON.stringify({ five, fortyTwo }));
 }
 
 /* 5. The outer frame, measured at the wide width where the cap exposed it. */

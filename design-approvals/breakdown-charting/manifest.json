@@ -8,8 +8,9 @@
   "canonicalArtifact": {
     "path": "design-comps/breakdown-charting-2026-09-27",
     "kind": "directory",
-    "sha256": "1ab598c12528cb767762708087b8090ddb9c818d3a4e5afaab88829e286f022f",
+    "sha256": "f339453f94589164b4f6fc0941f356f7f2d4082aeab1b0ede9924788431e4559",
     "fileCount": 15
   },
-  "decisionRecord": "design-comps/breakdown-charting-2026-09-27/RATIONALE.md"
+  "decisionRecord": "design-comps/breakdown-charting-2026-09-27/RATIONALE.md",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

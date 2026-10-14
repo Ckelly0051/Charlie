@@ -100,6 +100,11 @@ credited to the charted Passer (college convention), never a passing attempt or
 passing yards; called Run/Pass is unchanged (`docs/REPORTS-CONTRACTS.md`).
 
 **Coach data**
+- This repository is public. Real player names never enter it: comps,
+  fixtures, harnesses and docs use consistent fictional identities. Real data
+  stays outside the repo. Sanitize names before rendering or exporting public
+  artifacts; the stranded-code guard checks tracked files against the private
+  external roster and fails if that reference is unavailable.
 - Never migrate, clear or rewrite known-bad data. Cleanup needs an impact report
   with exact counts and explicit confirmation immediately before the write.
 - Never delete managed film on the coach's behalf without the same confirmation.

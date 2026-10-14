@@ -1,3 +1,4 @@
+import { fictionalRoster } from './fictional-player-names.mjs';
 /** Read-only review captures for the three remaining Reports tabs. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from 'puppeteer';
@@ -12,6 +13,7 @@ if (!existsSync(source)) throw new Error(`Canonical season missing: ${source}`);
 const raw = readFileSync(source);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const games = season.games || [];
 const plays = games.reduce((sum, game) => sum + (game.plays || []).length, 0);
 if (season.id !== '2025-st-joseph-mavericks-jv' || games.length !== 6 || plays !== 449) {

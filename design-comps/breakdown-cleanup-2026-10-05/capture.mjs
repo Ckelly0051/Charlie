@@ -1,3 +1,4 @@
+import { fictionalRoster } from '../../tools/fictional-player-names.mjs';
 // Break Down cleanup comp: the real built app with the canonical season, the
 // proposed presentation applied in the page, captured as still screens.
 // Isolated browser data only; no coach file or film is written.
@@ -8,6 +9,7 @@ import { CANONICAL_SEASON } from 'file:///C:/Users/charl/Charlie/tools/canonical
 
 const OUT = process.argv[2];
 const season = JSON.parse(fs.readFileSync(CANONICAL_SEASON, 'utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const film = fs.readFileSync('D:/Football/Film/Holy Family/20251011_135753.mp4');
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();

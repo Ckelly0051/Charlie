@@ -13007,7 +13007,7 @@ existed, in a group that was COLLAPSED by default. For a control used on nearly
 every defensive snap that is functionally missing. Players & Grades now opens
 with the form, roster quick-pick chips are always visible (one click per play,
 never behind a focus step), and chips are jersey NUMBERS in a capped grid — they
-had rendered as `#2 Colt Mihailovich`, wider than their 180px card, so a roster
+had rendered as `#2 Evan Brooks`, wider than their 180px card, so a roster
 stacked one per line and cost most of a screen.
 
 **S6-4h — F3/F4.** Opponent scouting aggregation always worked; it was only ever

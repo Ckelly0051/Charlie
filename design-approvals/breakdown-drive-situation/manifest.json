@@ -8,9 +8,10 @@
   "canonicalArtifact": {
     "path": "design-comps/breakdown-drive-situation-2026-10-07",
     "kind": "directory",
-    "sha256": "113f6373465129a01c939796d9a4725cc84f2d1631b7164276d4725d373b10b6",
+    "sha256": "ac1f1448d81048e5c75bc0ab53b4db31cdac007e0f81bd55ccaa9493a99e2d4f",
     "fileCount": 8
   },
   "decisionRecord": "design-comps/breakdown-drive-situation-2026-10-07/RATIONALE.md",
-  "productionNote": "Built 2026-10-07 as drawn: Drive is the fourth field of Situation's second row on the shared four-column grid; New Drive, PlayTagger.newDrive and currentDrive are removed (a new play still starts on drive 1). Narrow (620px) and coarse-pointer layouts keep the same order."
+  "productionNote": "Built 2026-10-07 as drawn: Drive is the fourth field of Situation's second row on the shared four-column grid; New Drive, PlayTagger.newDrive and currentDrive are removed (a new play still starts on drive 1). Narrow (620px) and coarse-pointer layouts keep the same order.",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

@@ -8,9 +8,10 @@
   "canonicalArtifact": {
     "path": "design-comps/breakdown-cleanup-2026-10-05",
     "kind": "directory",
-    "sha256": "e0ff019571f30ecf7f2db8dff8f68ccfa7437bd44d036620d2f8bf9d0d249cdb",
+    "sha256": "2afcbee4d2fe3d4e6ef5df189586f52efeba1d983a1c9bd973f74679923afc45",
     "fileCount": 8
   },
   "decisionRecord": "design-comps/breakdown-cleanup-2026-10-05/RATIONALE.md",
-  "productionNote": "Built 2026-10-05. Two departures from the comp, both raised with the coach: the deck-header Delete deleted a template, so it became Delete play and Save / Delete template moved into the Templates menu; and the Get started finding was a loading state, not copy, so Home shows \"Loading seasons…\" until the first load instead of new Get started copy."
+  "productionNote": "Built 2026-10-05. Two departures from the comp, both raised with the coach: the deck-header Delete deleted a template, so it became Delete play and Save / Delete template moved into the Templates menu; and the Get started finding was a loading state, not copy, so Home shows \"Loading seasons…\" until the first load instead of new Get started copy.",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

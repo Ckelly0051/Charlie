@@ -41,7 +41,7 @@ function render() {
   $('receiver-detail').hidden=!single; $('target-choice').hidden=single || numbers.length < 2;
   $('target-options').replaceChildren(...[...new Set(numbers)].map(number => {
     const button=document.createElement('button'); button.textContent=`#${number}`;
-    button.addEventListener('click',() => { state.receiver=number; $('receiver').value=number; $('receiver-name').textContent=number === '22' ? 'Andrew Keasey' : 'Ben Kelly'; clearDetail(); render(); }); return button;
+    button.addEventListener('click',() => { state.receiver=number; $('receiver').value=number; $('receiver-name').textContent=number === '22' ? 'Logan Spencer' : 'Noah Hayes'; clearDetail(); render(); }); return button;
   }));
   $('save').disabled=false;
   $('result-value').textContent=state.complete ? 'Gain' : 'Incomplete'; $('gain').textContent=state.complete ? '+18' : 'Not charted';
@@ -52,7 +52,7 @@ function scenario() {
   if(mode === 'catch') { state.layer='catch'; state.catch='Medium-Right'; }
   if(mode === 'incomplete') { state.catch=''; state.target='Deep-Left'; }
   if(mode === 'multiple') { state.receiver='22, 7'; clearDetail(); }
-  $('receiver-name').textContent=mode === 'stress' ? 'Christopher Montgomery-Washington' : mode === 'multiple' ? 'Andrew Keasey / Ben Kelly' : 'Andrew Keasey';
+  $('receiver-name').textContent=mode === 'stress' ? 'Christopher Montgomery-Washington' : mode === 'multiple' ? 'Logan Spencer / Noah Hayes' : 'Logan Spencer';
   $('receiver').value=state.receiver;
   $('preview-state').textContent=state.checkpoint === 2 ? 'Pass location - checkpoint 2' : mode === 'closed' ? 'Closed summary' : mode === 'multiple' ? 'Choose target' : 'Route & release';
   render();

@@ -141,7 +141,7 @@ least one more row visible above the scroll boundary in the same space.
 
 Context worth carrying into the fix, from S6-4g: these chips were deliberately
 made a capped grid of jersey NUMBERS because they previously rendered as
-`#2 Colt Mihailovich` — wider than their own 180px card, so a roster stacked one
+`#2 Evan Brooks` — wider than their own 180px card, so a roster stacked one
 per line and ate most of the screen. **Shrinking them must not reintroduce the
 name**, and must keep one-click attribution: quick-pick is used on nearly every
 defensive snap and must never sit behind a focus step.

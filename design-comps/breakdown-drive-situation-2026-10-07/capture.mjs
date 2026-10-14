@@ -1,3 +1,4 @@
+import { fictionalRoster } from '../../tools/fictional-player-names.mjs';
 // Drive in Situation comp, revision 2: the real built app with the canonical
 // season, the Drive box moved into Situation's second row (Hash, Field
 // position, Yard line, Drive) and New Drive removed, applied in the page and
@@ -10,6 +11,7 @@ import { CANONICAL_SEASON } from 'file:///C:/Users/charl/Charlie/tools/canonical
 
 const OUT = process.argv[2];
 const season = JSON.parse(fs.readFileSync(CANONICAL_SEASON, 'utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const film = fs.readFileSync('D:/Football/Film/Holy Family/20251011_135753.mp4');
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();

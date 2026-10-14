@@ -1,3 +1,4 @@
+import { fictionalRoster } from './fictional-player-names.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,6 +11,7 @@ import { CANONICAL_SEASON } from './canonical-season.mjs';
 const seasonPath = process.env.GIQ_COMP_SEASON || CANONICAL_SEASON;
 const filmPath = process.env.GIQ_COMP_FILM || 'D:/Football/Film/Holy Family/20251011_135753.mp4';
 const season = JSON.parse(fs.readFileSync(seasonPath, 'utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const originalHash = createHash('sha256').update(fs.readFileSync(seasonPath)).digest('hex');
 const film = fs.readFileSync(filmPath);
 const output = path.resolve('artifacts/breakdown-comp-live');

@@ -8,9 +8,10 @@
   "canonicalArtifact": {
     "path": "design-comps/missed-tackles-2026-10-06",
     "kind": "directory",
-    "sha256": "d148eed1da33aa07c7416ce48b1c347d3c09ab022a2b2c200b0b99d699ece1ee",
+    "sha256": "c1387f8dd08d3f32cfa867199cabbf1104919abf8bca56de7772e22c9ccff5cc",
     "fileCount": 11
   },
   "decisionRecord": "design-comps/missed-tackles-2026-10-06/RATIONALE.md",
-  "productionNote": "Built 2026-10-07. Collapsed player rows measure 90px (the comp said 88px, which left out the 1px borders; corrected in RATIONALE.md). Installed smoke pending."
+  "productionNote": "Built 2026-10-07. Collapsed player rows measure 90px (the comp said 88px, which left out the 1px borders; corrected in RATIONALE.md). Installed smoke pending.",
+  "privacyNote": "2026-10-14: fictional player names and name-safe generators/captures; design approval and production status unchanged."
 }

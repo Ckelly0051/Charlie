@@ -38,7 +38,7 @@ Every comp renders the **same real content**, so the only variable is art direct
   run", "motion is a tell"), every quarter score is carried across all three.
 - **Break Down** — Week 5 vs OL Lakes Lakers, Play 80 of 82, 3rd & 19 on the Opp 45,
   middle hash, Maverick front / Cover 3, Run Outside, Loss −1, inside the
-  "#5 Ben Kelly · Game 4 of 5" cut-up, with plays 78–83 in the strip.
+  "#5 Noah Hayes · Game 4 of 5" cut-up, with plays 78–83 in the strip.
 
 No number was invented, rounded, or made more flattering. Where the app says
 "3rd & short — no data", the comps say it too.

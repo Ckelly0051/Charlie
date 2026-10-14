@@ -1,3 +1,4 @@
+import { fictionalRoster } from '../../tools/fictional-player-names.mjs';
 // Missed tackles Reports, revision 2: the built app (Tackling module as
 // approved 2026-10-07) with the canonical season, the proposed complete
 // Tackling module and comparison row applied in the page. Isolated browser
@@ -9,6 +10,7 @@ import { CANONICAL_SEASON } from 'file:///C:/Users/charl/Charlie/tools/canonical
 
 const OUT = process.argv[2];
 const season = JSON.parse(fs.readFileSync(CANONICAL_SEASON, 'utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_hint_shown', '1'));
