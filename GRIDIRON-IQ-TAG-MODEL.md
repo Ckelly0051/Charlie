@@ -112,7 +112,9 @@ Owner: `js/receiver-details.js`; writes: `PlayTagger.setReceiverDetail`.
   hashes/middle or toward the sideline. Blank when unclear; no inference.
 - Shows on a charted Pass where the offensive receiver role is available.
   Receiver identity or Run/Pass changes that orphan filled detail ask before
-  clearing it. Cancel preserves both; unit changes use the Save contract.
+  clearing it, including Film Room, Quick Chart, Same as Last and templates.
+  Cancel preserves the entire edit and does not advance Quick Chart; unit
+  changes use the Save contract.
 - Chart edits the draft, Save stores it, Undo restores it. The record is never
   copied by templates or Carry Scheme. Invalid imported detail is refused,
   not guessed or assigned to another player.

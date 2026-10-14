@@ -408,6 +408,11 @@ export class PlayGrid {
 
   /** Apply an inline edit with the SAME semantics as the tag form. */
   _applyEdit(play, col, value) {
+    this._editValues(play, col, value);
+    this.tagger._emit('play-updated', play);
+  }
+
+  _editValues(play, col, value) {
     if (col.key === 'notes') {
       play.notes = value;
     } else if (col.key === 'playCall') {
@@ -452,7 +457,6 @@ export class PlayGrid {
         play.tags.yardage = String(res.includes('Loss') || res.includes('Sack') ? -mag : mag);
       }
     }
-    this.tagger._emit('play-updated', play);
   }
 
   // ---------- Bulk watch ----------
@@ -656,7 +660,9 @@ export class PlayGrid {
       ? ChartingDetails.orphans(play.tags, col.key, next)
       : col.key === 'playCall'
         ? PlayCallModel.losses(play, value, this.playbook, playType => PlayTagger.runPassForPlayType(playType)) : [];
-    const commit = () => { this._applyEdit(play, col, value); this.refresh(); return true; };
+    const commit = () => this.tagger.requestReceiverChange(play,
+      copy => this._editValues(copy, col, value),
+      () => { this._applyEdit(play, col, value); this.refresh(); return true; });
     if (!removals.length) return commit();
     return this.tagger._confirmDialog(ChartingDetails.clearMessage(removals), 'Clear').then(ok => (ok ? commit() : false));
   }

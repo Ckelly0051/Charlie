@@ -315,11 +315,15 @@ export class PlayTagger {
     const idx = this.plays.findIndex(p => p.id === play.id);
     if (idx <= 0) return; // no previous play
     const prev = this.plays[idx - 1];
-    PlayTagger.SCHEME_KEYS.forEach(k => { play.tags[k] = prev.tags[k] || (k === 'unit' ? 'offense' : ''); });
+    const apply = target => PlayTagger.SCHEME_KEYS.forEach(k => { target.tags[k] = prev.tags[k] || (k === 'unit' ? 'offense' : ''); });
     // Copying carries `unit` too — if the result is special, the alignment fields
     // it just copied are forbidden and must be stripped (ST invariant, any op).
-    this._stripStAlignment(play);
-    this._emit('play-updated', play);
+    return this.requestReceiverChange(play, apply, () => {
+      apply(play);
+      this._stripStAlignment(play);
+      this._emit('play-updated', play);
+      return true;
+    });
   }
 
   _templateStore() {
@@ -353,16 +357,20 @@ export class PlayTagger {
     if (!play) return false;
     const tpl = this._templateStore()[name];
     if (!tpl) return false;
-    this.selectedTemplate = name;
     // A template saved before the 2026-09-26 conversion can carry retired values
     // or an old combined look; those values are not applied (the coach re-saves
     // the template). Everything current applies.
-    Object.entries(SeasonFormat.currentTagValues(tpl)).forEach(([k, v]) => { play.tags[k] = v; });
+    const values = SeasonFormat.currentTagValues(tpl);
+    const apply = target => Object.entries(values).forEach(([k, v]) => { target.tags[k] = v; });
     // A template can carry `unit:'special'` + forbidden alignment (saved from a
     // mis-tagged play); strip it when the result is special (ST invariant).
-    this._stripStAlignment(play);
-    this._emit('play-updated', play);
-    return true;
+    return this.requestReceiverChange(play, apply, () => {
+      this.selectedTemplate = name;
+      apply(play);
+      this._stripStAlignment(play);
+      this._emit('play-updated', play);
+      return true;
+    });
   }
 
   async deleteTemplate(name = this.selectedTemplate) {
@@ -898,6 +906,15 @@ export class PlayTagger {
     candidate.tags[key]=value ?? '';
     if (key === 'playType') candidate.tags.runPass=PlayTagger.runPassForPlayType(candidate.tags.playType) || candidate.tags.runPass;
     return !ReceiverDetails.holds(candidate);
+  }
+
+  /** Preview a compound edit without mutating it; every writer uses the same
+   * receiver-loss confirmation and stale-owner fence. Hidden values do not ask. */
+  requestReceiverChange(play, apply, write) {
+    if (!ReceiverDetails.read(play)) return write();
+    const candidate = this._copyCharting(play, { ...play });
+    apply(candidate);
+    return ReceiverDetails.read(candidate) ? write() : this._clearReceiverForChange(play, write);
   }
 
   _clearReceiverForChange(play, write) {

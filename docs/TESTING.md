@@ -21,6 +21,8 @@ Receiver route/release: `e2e-receiver-details` covers the record, identity,
 shape and format contract; `e2e-receiver-charting` covers draft/Save/Undo,
 confirmed clearing, Study samples and exact film refs, managed routes and
 mounted desktop/coarse editor geometry. `--captures` writes local-only shots.
+`e2e-receiver-write-guards` covers cancellation and accepted receiver-detail
+loss in Film Room, Quick Chart and scheme copies, plus stale confirmation.
 
 Select by **affected behavior and ownership**: which contracts can now behave
 differently? Searching `tools/` for the touched module finds candidates; it is

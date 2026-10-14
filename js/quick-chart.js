@@ -292,9 +292,12 @@ export class QuickChart {
   }
 
   _confirmAndAdvance() {
-    // Apply the quick-chart entry to the current play
     const play = this.tagger.getCurrentPlay();
-    if (play) {
+    return play ? this.tagger.requestReceiverChange(play,
+      copy => this._applyEntry(copy), () => this._saveAndAdvance(play)) : this._saveAndAdvance(null);
+  }
+
+  _applyEntry(play) {
       if (this.currentEntry.playType) {
         play.tags.playType = this.currentEntry.playType;
         // Auto-classify Run/Pass for unambiguous play types (RPO/PA/Trick left blank).
@@ -340,6 +343,11 @@ export class QuickChart {
         if (!play.tags.custom.includes('1st Down')) play.tags.custom.push('1st Down');
       }
 
+  }
+
+  _saveAndAdvance(play) {
+    if (play) {
+      this._applyEntry(play);
       this.tagger._emit('play-updated', play);
       // Confirming a Quick Chart entry is its save.
       this.tagger.saveDraft();
@@ -368,6 +376,7 @@ export class QuickChart {
 
     this._updateDisplay();
     this._emit('play-charted');
+    return true;
   }
 
   _updateDisplay() {

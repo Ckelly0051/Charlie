@@ -362,9 +362,9 @@ export class NativeTaggingScreen {
 
   copyPrevious() {
     if (!this.tagger?.getCurrentPlay?.()) return false;
-    this.tagger.copyFromPrevious();
-    this._queuePublish();
-    return true;
+    const done = this.tagger.copyFromPrevious();
+    const after = ok => { this._queuePublish(); return !!ok; };
+    return done?.then ? done.then(after) : after(done);
   }
 
   applyChartingPreset(id) {
@@ -380,9 +380,10 @@ export class NativeTaggingScreen {
   }
 
   applyTemplate(name) {
-    if (!name || !this.tagger.applyTemplate(name)) return false;
-    this._queuePublish();
-    return true;
+    if (!name) return false;
+    const done = this.tagger.applyTemplate(name);
+    const after = ok => { this._queuePublish(); return !!ok; };
+    return done?.then ? done.then(after) : after(done);
   }
 
   async saveTemplate() {
