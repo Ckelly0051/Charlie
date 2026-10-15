@@ -286,7 +286,7 @@ kept out of every analytics cohort (`GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md`).
 
 ## 9. Tests
 
-`e2e-tag-model`, `e2e-tag-fields`, `e2e-tag-projform`, `e2e-tag-library`,
+`e2e-tag-model`, `e2e-native-tagging`, `e2e-tag-projform`, `e2e-tag-library`,
 `e2e-tag-library-storage`, `e2e-receiver-look`, `e2e-charting-details`,
-`e2e-charting-cutover-deck`, `e2e-season-format`, `e2e-csv-projection`,
+`e2e-charting-cutover-deck`, `e2e-season-format`, `e2e-csv-roundtrip`,
 `e2e-crosstab` and `e2e-parity` pin this contract.

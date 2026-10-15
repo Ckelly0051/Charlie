@@ -114,6 +114,11 @@ log.
   pass is complete; Claude review returned no findings (coach, 2026-10-15).
   The subsequent film fixes require separate review. Remaining Reports cleanup and the
   stats-engine split stay with its rebuild. See the cleanup report above.
+- **Test-suite consolidation:** CSV encoding, independent columns and atomic
+  import refusal share the existing Node `e2e-csv-roundtrip` owner; duplicate
+  browser startup and the synthetic Blob reader are gone. Mounted CSV/export
+  delivery coverage remains separate. No production code or coach data changed;
+  Reports suites remain outside this pass.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:
