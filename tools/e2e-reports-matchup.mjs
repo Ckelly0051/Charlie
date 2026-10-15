@@ -18,7 +18,8 @@
  * Every count, rate, ranking and tie below is reproducible by hand from the
  * play list.
  */
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
+import { reportReady, reportFrame, clippedTableText } from './report-test.mjs';
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
@@ -28,17 +29,7 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
-   coach-facing floor. This board has NOT been migrated to it: raising its labels
-   means re-deriving the fixed row math its approved comp pins, so the migration
-   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
-   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
-   synthetic data cannot establish Reports visual parity. The number below is
-   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
-   and mirrored here as a same-fixture regression guard only. The
-   canonical minimum for this board is 11px. Pinning it here means the board
-   cannot drift further from the floor while it waits, and the number moves only
-   when the migration moves it -- it is a deferral, not a second standard. */
+// The shared type floor applies to every visible label on this fixture.
 const MATCHUP_TYPE_FLOOR = 12.5;
 
 
@@ -49,8 +40,7 @@ await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell
 const errors = [];
 page.on('pageerror', e => errors.push(e.stack || e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-await page.goto(TEST_APP_URL, { waitUntil: 'networkidle0' });
-await sleep(600);
+await gotoApp(page, TEST_APP_URL);
 await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Matchup QA', team: 'Mavericks', year: '2026', level: 'JV' });
 });
@@ -240,21 +230,21 @@ const load = async (games, opponent = '', activeId = 'g1') => {
     store.data.activeGameId = active;
     await window.app.storage._loadActiveGame();
   }, games, activeId);
-  await sleep(400);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));
-  await sleep(200);
   await page.evaluate(name => {
     window.app.reportsScreen.matchupOpponent = name;
     window.app.reportsScreen.matchupTab = 'our-offense';
   }, opponent);
   await page.evaluate(() => window.app.reportsScreen.selectTab('matchup'));
-  await sleep(600);
+  await reportReady(page, 'matchup', '.gi-matchup-board');
 };
-const frame = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+const frame = () => reportFrame(page);
 const setDirection = async label => {
   await page.evaluate(text => [...document.querySelectorAll('[data-reports-secbar] .gi-mu-directions button')]
     .find(b => b.textContent.trim() === text)?.click(), label);
-  await sleep(350);
+  await page.waitForFunction(label => [...document.querySelectorAll('.gi-mu-directions button')]
+    .some(button => button.getAttribute('aria-selected') === 'true' && button.textContent.trim() === label), {}, label);
+  await reportFrame(page);
 };
 const model = () => page.evaluate(() => window.app.stats.matchupReport(window.app.reportsScreen.matchupOpponent));
 const rows = selector => page.evaluate(sel => [...document.querySelectorAll(`${sel} tbody tr`)]
@@ -690,31 +680,10 @@ for (const [w, h] of [[1440, 900], [1280, 720]]) {
   for (const direction of ['Our Offense vs Their Defense', 'Our Defense vs Their Offense']) {
     await setDirection(direction);
     await frame();
-    const measured = await page.evaluate(() => {
+    const tableClips = await page.evaluate(clippedTableText, {selector:'table.gi-mu-table td, table.gi-mu-table th',allowTitledEllipsis:true,maxLabel:34});
+    const measured = await page.evaluate(tableClips => {
       const doc = document.documentElement;
-      /* `table-layout:fixed` overflows SILENTLY, so a clipped cell is invisible
-         to scrollWidth. Measure the text against the cell's own content box. A
-         truncation is ALLOWED only when the element ellipsises AND keeps the
-         full value on its own title -- a clipped column header, which has no
-         title to fall back on, is always a defect. */
-      const bounded = cell => {
-        const inner = cell.firstElementChild;
-        if (!inner || cell.childElementCount !== 1) return false;
-        const style = getComputedStyle(inner);
-        return style.textOverflow === 'ellipsis' && style.overflow !== 'visible'
-          && !!(inner.getAttribute('title') || '').trim();
-      };
-      const clips = [];
-      document.querySelectorAll('table.gi-mu-table td, table.gi-mu-table th').forEach(cell => {
-        if (!cell.getClientRects().length) return;
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        const text = range.getBoundingClientRect().width;
-        const style = getComputedStyle(cell);
-        const inner = cell.getBoundingClientRect().width
-          - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-        if (text - inner > 1 && !bounded(cell)) clips.push(cell.textContent.trim().slice(0, 34));
-      });
+      const clips = tableClips;
       /* A film control that cannot show its own label is a defect the cell
          measurement above cannot see, because the button sits in an
          overflow-visible cell. */
@@ -729,7 +698,7 @@ for (const [w, h] of [[1440, 900], [1280, 720]]) {
         }),
         scrollers: [...document.querySelectorAll('.gi-mu-section .gi-table-wrap')]
           .filter(el => el.scrollWidth - el.clientWidth > 1).length };
-    });
+    }, tableClips);
     if (measured.overflow > 0) overflowAt.push(`${w}:${direction}=${measured.overflow}`);
     if (measured.clips.length) clipped.push(`${w}:${direction}: ${measured.clips.join(' | ')}`);
     if (measured.scrollers) clipped.push(`${w}:${direction}: ${measured.scrollers} engaged scroller(s)`);

@@ -15,10 +15,7 @@ await page.evaluateOnNewDocument(()=>{new MutationObserver(()=>{const ok=[...doc
 const errors=[];
 const screenshotPath=process.env.GIQ_NATIVE_TAGGING_SCREENSHOT||'';
 page.on('pageerror',error=>errors.push(error.stack||error.message));
-page.on('console',message=>{if(message.text().startsWith('S4:'))console.log('        '+message.text());if(message.type()==='error')errors.push(message.text())});
-// Diagnostics for an intermittent gate-only crash in section 4 ('Promise was
-// collected', 2026-09-25): name the step reached and any navigation.
-page.on('framenavigated',frame=>{if(frame===page.mainFrame())console.log('        navigated: '+frame.url())});
+page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
 await page.setViewport({width:1440,height:900});
 await gotoApp(page, APP_URL);
 await page.waitForFunction(()=>window.app?.nativeTagging&&document.querySelector('[data-native-home]'));
@@ -224,16 +221,16 @@ console.log('\n== 4. Structured football workflows ==');
 // task starts from a SYNCHRONOUS evaluate, the harness polls a completion flag, a
 // page-task error is re-thrown, and the result is read back. Assertions unchanged.
 await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window.__s4State=null;(async fixture=>{
-  console.log('S4: switching game');app.tagger.saveDraft();await app.storage.switchToGame(fixture.firstId,{persist:false});console.log('S4: game switched');app.tagger.saveDraft(),app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');console.log('S4: breakdown shown');
+  app.tagger.saveDraft();await app.storage.switchToGame(fixture.firstId,{persist:false});app.tagger.saveDraft(),app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
   const root=()=>document.querySelector('[data-native-tagging]');
   const button=label=>{const found=[...root().querySelectorAll('button')].find(b=>b.textContent.trim()===label);if(!found)throw new Error('Missing native button '+label+' among '+[...root().querySelectorAll('button')].map(b=>b.textContent.trim()).join('|'));return found};
-  await app.nativeTagging.setUnit('special');console.log('S4: special unit set');
+  await app.nativeTagging.setUnit('special');
   const unitChoice=()=>root().querySelector('[data-native-choice=Unit]');for(let i=0;i<10&&!unitChoice();i++)await new Promise(r=>setTimeout(r,10));if(!unitChoice())throw new Error('No ST unit choice after unit change');const punt=[...unitChoice().querySelectorAll('button')].find(b=>b.textContent.trim()==='Punt');punt.click();await new Promise(r=>setTimeout(r,30));if(!app.tagger.getCurrentPlay().specialTeams)throw new Error('Punt did not create structured model');button('Returned').click();await new Promise(r=>setTimeout(r,30));
   window.__s4ReturnBox=[...root().querySelectorAll('.gi-tag-input')].some(l=>l.textContent.includes('Return yards'));app.nativeTagging.specialAction('spot','landing:opp');app.nativeTagging.specialInput('landing-yard','30');app.nativeTagging.specialAction('spot','end:opp');app.nativeTagging.specialInput('end-yard','42');await new Promise(r=>setTimeout(r,0));
   button('Add penalty').click();await new Promise(r=>setTimeout(r,0));const card=root().querySelector('.gi-penalty-card');const inputs=[...card.querySelectorAll('input')];inputs.find(i=>i.getAttribute('list')) .value='Holding';inputs.find(i=>i.getAttribute('list')).dispatchEvent(new Event('change',{bubbles:true}));button('Play counts').click();await new Promise(r=>setTimeout(r,0));app.nativeTagging.addPenalty();await new Promise(r=>setTimeout(r,0));app.nativeTagging.penaltyInput(1,'foul','Facemask');app.nativeTagging.penaltyAction(1,'disposition','declined');app.nativeTagging.penaltyAction(1,'playCounts','true');
   // On our punt the returner belongs to the opponent, not our roster.
   const returner=root().querySelector('[aria-label="returner player number"]');
-  console.log('S4: penalty added');returner.value='22';returner.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,0));console.log('S4: opponent returner entered');
+  returner.value='22';returner.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,0));
   const notes=[...root().querySelectorAll('textarea')][0];notes.value='Punt return right';notes.dispatchEvent(new Event('input',{bubbles:true}));
   const calls={draw:0,clear:0,set:0,read:0};
   app.playDiagram.openEditor=()=>calls.draw++;app.playDiagram.clearCurrent=()=>calls.clear++;app.ocr.startRegionSelect=()=>calls.set++;app.ocr.readNow=()=>calls.read++;
@@ -907,6 +904,33 @@ await touchPage.waitForSelector('[data-native-tagging]');
 state=await touchPage.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');const targets=[...root.querySelectorAll('button,select,input:not([type="checkbox"]),textarea,.gi-tag-check')].filter(n=>n.getClientRects().length);return{coarse:matchMedia('(pointer:coarse)').matches,overflow:document.documentElement.scrollWidth-innerWidth,min:Math.min(...targets.map(n=>n.getBoundingClientRect().height)),small:targets.filter(n=>n.getBoundingClientRect().height<44).map(n=>({tag:n.tagName,text:n.textContent.trim().slice(0,30),h:n.getBoundingClientRect().height,cls:n.className})).slice(0,12),count:targets.length}});
 ok(state.coarse&&state.count>0&&state.overflow<=1&&state.min>=44,'Mobile native form has no page overflow and keeps 44px action targets',JSON.stringify(state));
 await touchContext.close();
+await page.evaluate(async () => {
+  const tagger = window.app.tagger;
+  tagger.discardDraft();
+  tagger.plays = [
+    {id:1,timestamp:{start:0,end:3},notes:'',tags:{...tagger.constructor.blankTags({unit:'offense'}),motion:'Jet',playDir:'Left'}},
+    {id:2,timestamp:{start:3,end:6},notes:'',tags:{...tagger.constructor.blankTags({unit:'defense'}),defFront:'Maverick + Jumbo Shift'}},
+  ];
+  tagger.currentPlayId = null; tagger.selectPlay(1);
+  await window.app.workspaceShell.show('breakdown');
+});
+state = await page.evaluate(() => {
+  const labels = key => [...document.querySelectorAll(`[data-native-field="${key}"] .gi-tag-chips button`)].map(button => button.textContent.trim());
+  return {motion:labels('motion'),direction:labels('playDir'),fronts:app.customChips.library.group('front').values,
+    formations:app.customChips.library.group('formationFamily').values,multi:app.tagger.constructor.MULTI_TAGS.includes('defFront')};
+});
+ok(state.fronts.includes('3-3-5'),'3-3-5 chip present');
+ok(state.fronts.includes('Jumbo Shift'),'Jumbo Shift chip present');
+ok(state.multi,'Front group is multi-select');
+ok(['I-Form','Split Back','Power-I','Spread','Wing-T','Flexbone','Double Wing'].every(value=>state.formations.includes(value)),
+  'I-Form/Split Back and core structural looks are standard formation chips');
+ok(['Jet','Orbit','Shift','Trade'].every(value=>state.motion.includes(value)),'Motion chips Jet/Orbit/Shift/Trade');
+ok(['Left','Middle','Right'].every(value=>state.direction.includes(value)),'Direction chips L/M/R');
+await page.evaluate(() => {app.tagger.discardDraft();app.tagger.selectPlay(2);});
+state = await page.evaluate(() => ({active:[...document.querySelectorAll('[data-native-field="defFront"] .gi-tag-chips button.is-active')].map(button=>button.textContent.trim()).sort(),
+  value:app.tagger.displayTagValue('defFront')}));
+ok(JSON.stringify(state.active)===JSON.stringify(['Jumbo Shift','Maverick']),'Native form shows both front chips active for multi play');
+ok(state.value==='Maverick + Jumbo Shift','PlayTagger value round-trips the multi string');
 state=await page.evaluate(async()=>{
   app.workspaceShell.disable();
   // Final Engine Independence: mount()/restore() no longer adopt, hide, or

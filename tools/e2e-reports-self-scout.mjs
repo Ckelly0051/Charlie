@@ -14,7 +14,8 @@ import { installExportCapture } from './export-capture.mjs';
  * column geometry it measures the rendered cell against its own content box,
  * because `table-layout:fixed` overflows silently rather than growing.
  */
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
+import { reportReady, reportFrame, clippedTableText } from './report-test.mjs';
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
@@ -24,17 +25,7 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
-   coach-facing floor. This board has NOT been migrated to it: raising its labels
-   means re-deriving the fixed row math its approved comp pins, so the migration
-   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
-   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
-   synthetic data cannot establish Reports visual parity. The number below is
-   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
-   and mirrored here as a same-fixture regression guard only. The
-   canonical minimum for this board is 11px. Pinning it here means the board
-   cannot drift further from the floor while it waits, and the number moves only
-   when the migration moves it -- it is a deferral, not a second standard. */
+// The shared type floor applies to every visible label on this fixture.
 const SELF_SCOUT_TYPE_FLOOR = 12.5;
 
 
@@ -46,8 +37,7 @@ await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell
 const errors = [];
 page.on('pageerror', e => errors.push(e.stack || e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-await page.goto(TEST_APP_URL, { waitUntil: 'networkidle0' });
-await sleep(600);
+await gotoApp(page, TEST_APP_URL);
 await page.evaluate(async () => {
   await window.app.storage.createSeason({ name: '2026 Self-Scout QA', team: 'Ridgebacks', year: '2026', level: 'Varsity' });
 });
@@ -155,17 +145,17 @@ const load = async plays => {
     store.data.activeGameId = 'g-0';
     await window.app.storage._loadActiveGame();
   }, plays);
-  await sleep(450);
   await page.evaluate(() => window.app.workspaceShell.show('reports'));
-  await sleep(250);
   await page.evaluate(() => { window.app.reportsScreen.selfScoutSection = 'summary'; });
   await page.evaluate(() => window.app.reportsScreen.selectTab('selfscout'));
-  await sleep(650);
+  await reportReady(page, 'selfscout', '.gi-selfscout-board');
 };
 const setSection = async title => {
   await page.evaluate(t => [...document.querySelectorAll('[data-reports-secbar] .gi-selfscout-pages button')]
     .find(b => b.textContent.trim().startsWith(t))?.click(), title);
-  await sleep(320);
+  await page.waitForFunction(title => [...document.querySelectorAll('.gi-selfscout-pages button')]
+    .some(button => button.getAttribute('aria-selected') === 'true' && button.textContent.trim().startsWith(title)), {}, title);
+  await reportFrame(page);
 };
 /** The engine's own Self-Scout models over the rendered cohort. */
 const model = () => page.evaluate(() => {
@@ -681,7 +671,8 @@ for (const [w, h] of widths) {
   for (const title of SECTION_TITLES) {
     await setSection(title);
     await frame();
-    const measured = await page.evaluate(() => {
+    const tableClips = await page.evaluate(clippedTableText, {selector:'table.gi-ss-table td, table.gi-ss-table th',allowTitledEllipsis:true,maxLabel:34});
+    const measured = await page.evaluate(tableClips => {
       const doc = document.documentElement;
       const bands = [...document.querySelectorAll('.gi-ss-band.b-2')];
       const paired = bands.map(band => {
@@ -689,34 +680,11 @@ for (const [w, h] of widths) {
         return mods.length === 2 && Math.abs(mods[0].getBoundingClientRect().top
           - mods[1].getBoundingClientRect().top) < 2;
       });
-      // `table-layout:fixed` overflows SILENTLY, so a clipped cell is invisible
-      // to scrollWidth. Measure the text against the cell's own content box.
-      // A truncation is ALLOWED only when the element ellipsises AND the full
-      // value stays available on that element's own title. Anything else --
-      // a clipped column header above all, which has no title to fall back
-      // on -- is a defect.
-      const clips = [];
-      const bounded = cell => {
-        const inner = cell.firstElementChild;
-        if (!inner || cell.childElementCount !== 1) return false;
-        const style = getComputedStyle(inner);
-        return style.textOverflow === 'ellipsis' && style.overflow !== 'visible'
-          && !!(inner.getAttribute('title') || '').trim();
-      };
-      document.querySelectorAll('table.gi-ss-table td, table.gi-ss-table th').forEach(cell => {
-        if (!cell.getClientRects().length) return;
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        const text = range.getBoundingClientRect().width;
-        const style = getComputedStyle(cell);
-        const inner = cell.getBoundingClientRect().width
-          - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-        if (text - inner > 1 && !bounded(cell)) clips.push(cell.textContent.trim().slice(0, 34));
-      });
+      const clips = tableClips;
       return { overflow: doc.scrollWidth - doc.clientWidth, paired, clips,
         scrollers: [...document.querySelectorAll('.gi-table-wrap')]
           .filter(el => el.scrollWidth - el.clientWidth > 1).length };
-    });
+    }, tableClips);
     if (measured.overflow > 0) overflowAt.push(`${w}:${title}=${measured.overflow}`);
     if (measured.clips.length) clipped.push(`${w}:${title}: ${measured.clips.join(' | ')}`);
     if (measured.paired.some(x => !x)) stacked.push(`${w}:${title}`);

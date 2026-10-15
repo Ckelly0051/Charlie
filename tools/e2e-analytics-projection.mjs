@@ -148,6 +148,22 @@ const results = (() => {
   t('EPA byFormation OMITS the alignment-only play (no Unknown/Shotgun)',
     !epaForms.includes('Unknown') && !epaForms.includes('Shotgun'), JSON.stringify(epaForms));
 
+  const multiPlays = [
+    { unit:'defense', defFront:'Maverick + Jumbo Shift', coverage:'Cover 3', runPass:'Run', playType:'Run Inside', result:'Loss', yardage:'-3' },
+    { unit:'defense', defFront:'Maverick', coverage:'Cover 3', runPass:'Pass', playType:'Short Pass', result:'Gain', yardage:'5' },
+    { unit:'defense', defFront:'Eagle + Jumbo Shift', coverage:'Man', runPass:'Pass', playType:'Deep Pass', result:'Incomplete', yardage:'0' },
+    { unit:'offense', formationFamily:'Wing-T', motion:'Jet', playDir:'Left', runPass:'Run', playType:'Run Outside', result:'Gain', yardage:'7' },
+    { unit:'offense', formationFamily:'Wing-T', motion:'Jet', playDir:'Left', runPass:'Run', playType:'Run Inside', result:'Gain', yardage:'4' },
+    { unit:'offense', formationFamily:'Flexbone', motion:'', playDir:'Right', runPass:'Run', playType:'Run Outside', result:'Gain', yardage:'12' },
+  ].map((tags, index) => ({ id:index+1, timestamp:{start:index,end:index+1}, tags:{custom:[],players:{},grades:{},down:'1',distance:'10',...tags} }));
+  const multi = eng.compute(multiPlays);
+  t('Jumbo Shift is its own front row (2 plays)', multi.defensive.fronts.find(row => row.name === 'Jumbo Shift')?.count === 2);
+  t('Maverick counted on both its plays', multi.defensive.fronts.find(row => row.name === 'Maverick')?.count === 2);
+  t('Maverick + Cover 3 combo split from multi-front (2 plays)', multi.frontCoverageCombos.list.some(row => row.name === 'Maverick + Cover 3' && row.count === 2));
+  t('Cut filter finds both Jumbo Shift plays', eq(multiPlays.filter(eng._buildCutFilter('defFront','Jumbo Shift')).map(play => play.id), [1,3]));
+  t('Direction: 2 plays went Left', multi.dirMotion.dirList.find(row => row.name === 'Left')?.count === 2);
+  t('Motion: 2 Jet plays', multi.dirMotion.motionList.find(row => row.name === 'Jet')?.count === 2);
+  t('No-motion bucket counts remaining offense plays', multi.dirMotion.noMotion.count === 1);
   return { out };
 })();
 

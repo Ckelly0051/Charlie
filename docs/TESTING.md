@@ -29,6 +29,15 @@ compact spacing, label baselines, fine/coarse targets, library alignment,
 unchanged film bounds/node, one form scroll owner and four-viewport containment.
 Data-workflow harnesses use `chart-deck-test.mjs` to deliberately open the real
 section before driving a control; disclosure checks run without that helper.
+Multi-front attribution and motion/direction counts run without a browser in
+`e2e-analytics-projection`; their rendered chips and multi-selection run in
+`e2e-native-tagging`, sharing that journey rather than booting a separate app.
+Report workflows share `report-test.mjs`: wait for the requested visible pane
+and loaded fonts, then layout frames, rather than a guessed delay. Shared table
+clipping is positively exercised by `e2e-responsive-containment` with overflowing,
+fitting, hidden and titled/untitled ellipsis cells. Ellipsis without a title is
+not an exemption. Report-specific paired layout, film controls and overflow
+assertions remain in their report journeys.
 
 Receiver route/release: `e2e-receiver-details` covers the record, identity,
 shape and format contract, including stored-season mismatches opening as
@@ -79,7 +88,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Team Hub, registry, season workflow | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-native-season` |
 | Shell, context, cross-cutting | `e2e-workspace-shell`, `e2e-workspace-context`, `e2e-game-context`, `e2e-p0-exit`, `e2e-p0-capabilities`, `e2e-responsive-containment`, `e2e-native-overlay`, `e2e-xss-names`, `e2e-copy-standard`, `e2e-design-system`, `e2e-css-ownership`, `audit-design-approvals` |
 | Break Down theater and film | `e2e-breakdown-visual-finish`, `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle`, `e2e-breakdown-viewport`, `e2e-breakdown-a11y`, `e2e-mark-flow`, `e2e-film-load-race`, `e2e-multi-angle`, `e2e-video-cors` |
-| Charting | `e2e-native-tagging` (also real diagram/review overlays: save, cancel, focus, literal analysis text and replacement lifecycle), `e2e-missed-tackles-charting`, `e2e-tagging`, `e2e-tag-fields`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields`, `e2e-st-try-charting` (tries and Special Teams roster ownership), `e2e-charting-details`, `e2e-charting-cutover-deck` |
+| Charting | `e2e-native-tagging` (also real diagram/review overlays: save, cancel, focus, literal analysis text and replacement lifecycle), `e2e-missed-tackles-charting`, `e2e-tagging`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields`, `e2e-st-try-charting` (tries and Special Teams roster ownership), `e2e-charting-details`, `e2e-charting-cutover-deck` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout`, `e2e-film-room-columns`, `e2e-film-room-sheet`, `e2e-unit-ownership` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
 | Reports | `e2e-native-reports`, `e2e-missed-tackles-reports`, `e2e-reports-global-strip`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-down-distance`, `e2e-run-gap-report`, `e2e-reports-module-system`, `e2e-reports-view-parity`, `e2e-explosive-labels`, `e2e-self-scout` |
@@ -194,7 +203,7 @@ owns navigation. Keep them separate.
   old code proves it detects that bug; removing each defense in turn shows which
   one actually catches it.
 - **Off-gate matrix:** `node tools/pc-adversarial-matrix.mjs` checks synthetic
-  persistence locks. Section 13 uses injected services: an empty season roster
+  persistence contracts; every failed assertion exits nonzero. Section 13 uses injected services: an empty season roster
   clears its prior roster; an empty cached playbook preserves populated calls.
   Positive controls prove updates still work and roster players are copied.
 - **Re-save, never just open.** Persistence checks edit and save, then reopen.

@@ -31,7 +31,8 @@ import { fictionalRoster } from './fictional-player-names.mjs';
  * 9. Narrow layouts at 768 and 390: the bar stacks inside the viewport and no
  *    tab overflows the page.
  */
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
+import { reportReady } from './report-test.mjs';
 import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -80,8 +81,7 @@ await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell
 /** Fresh app, canonical season in memory, St. Peter open, Reports shown. */
 async function boot(width, height) {
   await page.setViewport({ width, height });
-  await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-  await sleep(500);
+  await gotoApp(page, APP_URL);
   await page.evaluate(async (data, gameId) => {
     const app = window.app;
     const store = app.storage.seasonStore;
@@ -93,7 +93,8 @@ async function boot(width, height) {
     if (data.roster) app.roster.players = JSON.parse(JSON.stringify(data.roster));
     app.workspaceShell.show('reports');
   }, season, stPeter.id);
-  await sleep(400);
+  const tab = await page.evaluate(() => window.app.reportsScreen.activeTab);
+  await reportReady(page, tab, `[data-pane="${tab}"]`);
   await quiet();
 }
 const quiet = () => page.evaluate(() => document.querySelectorAll('.gi-native-toast').forEach(node => node.remove()));
@@ -101,7 +102,7 @@ const quiet = () => page.evaluate(() => document.querySelectorAll('.gi-native-to
 /** Click a top-level tab the way a coach does. */
 async function go(tab) {
   await page.evaluate(id => document.querySelector(`[data-report-tab="${id}"]`).click(), tab);
-  await sleep(300);
+  await reportReady(page, tab, `[data-pane="${tab}"]`);
   await quiet();
 }
 

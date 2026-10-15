@@ -1,4 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { clippedTableText } from './report-test.mjs';
 /**
  * UX-3 responsive shell containment (S6-4b).
  *
@@ -207,6 +208,22 @@ ok(contained.escapeCount === 0 && restored.escapeCount === 0,
 ok(!bare.pageOverflow,
   'The shell contains an over-wide route child instead of letting it scroll the page', JSON.stringify({ pageOverflow: bare.pageOverflow, scrollWidth: bare.scrollWidth, viewportWidth: bare.viewportWidth }));
 
+await page.evaluate(() => {
+  const table = document.createElement('table'); table.id = 'clipping-probe';
+  table.style.cssText = 'position:fixed;left:0;top:0;width:40px;table-layout:fixed;font:13px monospace';
+  table.innerHTML = '<tbody><tr><td style="white-space:nowrap">Clipped-long-value</td></tr>'
+    + '<tr><td><span title="Titled-long-value" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Titled-long-value</span></td></tr>'
+    + '<tr><td><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Untitled-long-value</span></td></tr>'
+    + '<tr><td>Fit</td></tr><tr style="display:none"><td>Hidden-long-value</td></tr></tbody>';
+  document.body.append(table);
+});
+const strictClips = await page.evaluate(clippedTableText, {selector:'#clipping-probe td'});
+const titledClips = await page.evaluate(clippedTableText, {selector:'#clipping-probe td',allowTitledEllipsis:true});
+ok(JSON.stringify(strictClips) === JSON.stringify(['Clipped-long-value','Titled-long-value','Untitled-long-value']),
+  'shared table measurement detects real clipping but excludes fitting and hidden cells', JSON.stringify(strictClips));
+ok(JSON.stringify(titledClips) === JSON.stringify(['Clipped-long-value','Untitled-long-value']),
+  'only titled ellipsis is exempt; untitled truncation remains a failure', JSON.stringify(titledClips));
+await page.evaluate(() => document.getElementById('clipping-probe').remove());
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

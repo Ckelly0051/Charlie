@@ -99,6 +99,11 @@ log.
   off-gate shell diagnostic is removed. These changes are not in installer 118.
   Obsolete repair-history commentary and false type-floor deferrals are removed;
   production executable syntax and the built assets are unchanged.
+  Tag-field model checks now share the DOM-free analytics suite and their UI
+  checks share native Chart; the separate tag-fields browser harness is removed.
+  Reports share rendered-state waits and table clipping; the persistence matrix
+  no longer has historical target/lock or expected-failure scaffolding. Final
+  focused verification is pending; no full gate or new package has run.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
