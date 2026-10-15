@@ -192,6 +192,9 @@ failed saves that roll back only their own season, game or program, and
    is paired with this work, not built alone (coach, 2026-10-06): a play's
    number is its film reference, so renumbering rewrites Plan links and
    needs an impact report and confirmation.
+   Known layout defect to fix in the rebuild, not before (coach, 2026-10-15):
+   the Defense board's content is horizontally narrower than every other
+   report (wider side margins at 1920px); all boards share one width.
    The conventional two-team box score is built inside the rebuild (coach,
    2026-10-13): score by quarter, first downs, rushing/passing/total yards,
    completions/attempts, turnovers and penalties, each from the registry and

@@ -99,3 +99,7 @@ fixes start until the coach closes the list.
    (not from our roster), how it binds and is cleared like the offensive
    detail, the defensive Study dimensions, and whether Target/Catch zones
    (checkpoint 2) follow on defense too.
+5. **Defense board narrower than other reports (deferred).** The Defense
+   report's content area is horizontally narrower than every other board.
+   Not fixed in this smoke: the coach assigned it to the Reports rebuild,
+   recorded in `GRIDIRON-IQ-PLAN-V2.md` step 3.
