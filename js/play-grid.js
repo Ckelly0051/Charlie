@@ -14,53 +14,48 @@ import { MissedTackles } from './missed-tackles.js';
 import { OPTIONS as TAG_OPTIONS, RESULT_OPTIONS } from './native-tagging.jsx';
 
 export class PlayGrid {
-  /**
-   * Column registry. `src` is the tag-form chip group whose options the
-   * editor lists (single source of truth); `unit` marks side-specific
-   * columns for the presets. `sit` is the composite Down & Distance column;
-   * `notes` edits play.notes (the call), not a tag.
-   */
+  // Column types drive editors; unit marks presets. Notes edit play.notes, not tags.
   static COLUMNS = [
     // Unit is always shown first and edited in the row, so a play's unit is
     // charted where the coach is charting. Pinned: not in the Columns list
     // and not part of any stored set.
     { key: 'unit',      label: 'Unit',      type: 'enum', pinned: true },
     { key: 'sit',       label: 'Dn & Dist', type: 'sit' },
-    { key: 'quarter',   label: 'Qtr',       type: 'enum', src: 'tagQuarter' },
-    { key: 'hash',      label: 'Hash',      type: 'enum', src: 'tagHash' },
-    { key: 'formationFamily', label: 'Formation', type: 'enum', src: 'tagFormationFamily',       unit: 'offense' },
-    { key: 'receiverSet', label: 'Rec Align', type: 'enum', src: 'tagReceiverSet',             unit: 'offense' },
+    { key: 'quarter',   label: 'Qtr',       type: 'enum' },
+    { key: 'hash',      label: 'Hash',      type: 'enum' },
+    { key: 'formationFamily', label: 'Formation', type: 'enum',       unit: 'offense' },
+    { key: 'receiverSet', label: 'Rec Align', type: 'enum',             unit: 'offense' },
     // QB Alignment, Backfield, Strength and Coverage Family are single-select
     // look fields, edited inline with the plain `enum` editor. Not in any
     // default preset, but available in the Columns menu like any other column.
-    { key: 'qbAlignment', label: 'QB Align', type: 'enum', src: 'tagQbAlignment',              unit: 'offense' },
-    { key: 'backfield', label: 'Backfield', type: 'enum', src: 'tagBackfield',                 unit: 'offense' },
-    { key: 'strength',  label: 'OL Strength',  type: 'enum', src: 'tagStrength',                  unit: 'offense' },
-    { key: 'personnel', label: 'Pers',      type: 'enum', src: 'tagPersonnel',                unit: 'offense' },
-    { key: 'motion',    label: 'Motion',    type: 'enum', src: 'tagMotion',                   unit: 'offense' },
+    { key: 'qbAlignment', label: 'QB Align', type: 'enum',              unit: 'offense' },
+    { key: 'backfield', label: 'Backfield', type: 'enum',                 unit: 'offense' },
+    { key: 'strength',  label: 'OL Strength',  type: 'enum',                  unit: 'offense' },
+    { key: 'personnel', label: 'Pers',      type: 'enum',                unit: 'offense' },
+    { key: 'motion',    label: 'Motion',    type: 'enum',                   unit: 'offense' },
     // A motion's path opens with the motion (ChartingDetails.TRIGGERS): a cell is
     // locked while its opening field is blank.
-    { key: 'motionStart', label: 'Mot Start', type: 'enum', src: 'tagMotionStart',            unit: 'offense' },
-    { key: 'motionEnd', label: 'Mot End',   type: 'enum', src: 'tagMotionEnd',                unit: 'offense' },
+    { key: 'motionStart', label: 'Mot Start', type: 'enum',            unit: 'offense' },
+    { key: 'motionEnd', label: 'Mot End',   type: 'enum',                unit: 'offense' },
     { key: 'playCall',  label: 'Play Call', type: 'call',                                  unit: 'offense' },
     { key: 'playConcept', label: 'Concept', type: 'text-tag',                               unit: 'offense' },
-    { key: 'runPass',   label: 'R/P',       type: 'enum', src: 'tagRunPass' },
-    { key: 'playType',  label: 'Type',      type: 'enum', src: 'tagPlayType',  multi: true },
-    { key: 'playDir',   label: 'Dir',       type: 'enum', src: 'tagPlayDir' },
-    { key: 'gap',       label: 'Gap',       type: 'enum', src: 'tagGap' },
-    { key: 'rpoRead',   label: 'RPO Read',  type: 'enum', src: 'tagRpoRead' },
+    { key: 'runPass',   label: 'R/P',       type: 'enum' },
+    { key: 'playType',  label: 'Type',      type: 'enum',  multi: true },
+    { key: 'playDir',   label: 'Dir',       type: 'enum' },
+    { key: 'gap',       label: 'Gap',       type: 'enum' },
+    { key: 'rpoRead',   label: 'RPO Read',  type: 'enum' },
     { key: 'rpoDefender', label: 'RPO Def #', type: 'text-tag' },
-    { key: 'rpoDecision', label: 'RPO Dec', type: 'enum', src: 'tagRpoDecision' },
-    { key: 'qbRun',     label: 'QB Run',    type: 'enum', src: 'tagQbRun' },
-    { key: 'result',    label: 'Result',    type: 'enum', src: 'tagResult',    multi: true },
+    { key: 'rpoDecision', label: 'RPO Dec', type: 'enum' },
+    { key: 'qbRun',     label: 'QB Run',    type: 'enum' },
+    { key: 'result',    label: 'Result',    type: 'enum',    multi: true },
     // The opponent's count, 0-9, editable on their snaps; on ours it shows the
     // players named and is read-only; locked where the snap has no row.
-    { key: 'missedTackles', label: 'MTkl', type: 'enum', src: 'tagMissedTackles' },
+    { key: 'missedTackles', label: 'MTkl', type: 'enum' },
     { key: 'yardage',   label: 'Yds',       type: 'yds' },
-    { key: 'defFront',  label: 'Front',     type: 'enum', src: 'tagDefFront',  multi: true,   unit: 'defense' },
-    { key: 'coverage',  label: 'Cover',     type: 'enum', src: 'tagCoverage',                 unit: 'defense' },
-    { key: 'coverageFamily', label: 'Cov Family', type: 'enum', src: 'tagCoverageFamily',      unit: 'defense' },
-    { key: 'blitz',     label: 'Blitz',     type: 'enum', src: 'tagBlitz',     multi: true,   unit: 'defense' },
+    { key: 'defFront',  label: 'Front',     type: 'enum',  multi: true,   unit: 'defense' },
+    { key: 'coverage',  label: 'Cover',     type: 'enum',                 unit: 'defense' },
+    { key: 'coverageFamily', label: 'Cov Family', type: 'enum',      unit: 'defense' },
+    { key: 'blitz',     label: 'Blitz',     type: 'enum',     multi: true,   unit: 'defense' },
     { key: 'stUnit',    label: 'ST Unit',   type: 'st-readonly',                              unit: 'special' },
     { key: 'stOutcome', label: 'ST Outcome',type: 'st-readonly',                              unit: 'special' },
     { key: 'stKick',    label: 'Kick',      type: 'st-readonly',                              unit: 'special' },
@@ -85,21 +80,12 @@ export class PlayGrid {
     this.vc = videoController;
     this.cutup = cutupPlayer;
     this.playbook = playbook;
-    // Final Engine Independence: _options() used to read a column's option
-    // list off the legacy .tag-section chip DOM (`#tagFormation .pick` etc.,
-    // now deleted). Library-backed vocabulary (formation/backfield/front)
-    // comes from CustomChips/TagLibrary -- the same source native-tagging.jsx
-    // reads -- injected explicitly rather than reached for off the global app.
     this.customChips = customChips;
 
     // Filter state: AND across groups, OR within a group.
     this.f = { unit: '', downs: new Set(), rp: '', flags: new Set() };
     this.selected = new Set();
-    // V2-H: bumped only on a wholesale play-list replacement (plays-loaded --
-    // game switch, season open, undo/redo of the whole list). The windowed
-    // native table uses this to reset its scroll position; a stale scroll
-    // offset left over from a much longer previous game could otherwise slice
-    // a shorter new list out of range and render nothing.
+    // Whole-list replacement resets the virtual table's scroll position.
     this.loadGeneration = 0;
     this._raf = null;
     this._optionCache = {};
@@ -189,9 +175,6 @@ export class PlayGrid {
   }
 
   // ---------- Filtering ----------
-  // Run/pass and result splitting go through StatsEngine (the canonical
-  // classifiers) so the grid never disagrees with the stats dashboard —
-  // e.g. legacy 'Play Action'/'RPO' plays without an explicit runPass.
 
   static isUntagged(p) {
     return !isPlayTagged(p);
@@ -285,11 +268,6 @@ export class PlayGrid {
       const pct = Math.round((runs / rp.length) * 100);
       return pct >= 50 ? `Run ${pct}%` : `Pass ${100 - pct}%`;
     }
-    // QB Alignment/Backfield/Strength/Coverage Family are single-value, so the
-    // multi-value split below is a no-op for them; routing through the
-    // identical enum math costs nothing and keeps exactly one denominator/
-    // eligibility implementation for every projected column instead of a
-    // second, divergence-prone copy.
     if (col.type === 'enum') {
       const counts = {};
       let total = 0;
@@ -298,11 +276,7 @@ export class PlayGrid {
         // The inline editor writes the coach's explicit stored value.
         const vals = String(StatsEngine.projField(p, col.key) || '')
           .split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
-        // §6.5 ELIGIBLE denominator: `total` counts each eligible PLAY ONCE — never
-        // once per token. A multi-value play ("Wing-T + Trips") lands in several
-        // rows but must not inflate the denominator, or a value present on EVERY
-        // eligible play reads below 100%. A blank projection is omitted entirely
-        // (not eligible), never an invented 'Unknown' bucket.
+        // Count each nonblank play once, even when it carries several values.
         if (!vals.length) return;
         total++;
         vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
@@ -369,15 +343,7 @@ export class PlayGrid {
 
   // ---------- Inline editing ----------
 
-  /** Options for an enum column, read live from the tag form's chip group so
-   *  the grid can never offer values the form wouldn't. */
-  // Final Engine Independence: a column's vocabulary used to be read live off
-  // the legacy .tag-section chip DOM via col.src (e.g. `#tagFormation .pick`)
-  // -- that markup is deleted. Library-backed fields (team-customizable
-  // formation/backfield/front) now read the same TagLibrary source
-  // native-tagging.jsx does; fixed-vocabulary fields read the same OPTIONS/
-  // RESULT_OPTIONS constants that file exports, so there is exactly one copy
-  // of each field's vocabulary, not two drifting apart.
+  // Use the same managed libraries and fixed options as Chart.
   static LIBRARY_COLUMNS = { formationFamily:'formationFamily', backfield:'backfield', defFront:'front', coverage:'coverage', playType:'playType', blitz:'blitz' };
   _options(col, current = []) {
     let opts = this._optionCache[col.key];
@@ -423,8 +389,6 @@ export class PlayGrid {
       // gates on !_autoSit).
       play._autoSit = false;
     } else {
-      // Multi-select fields: drop mutually-exclusive rivals exactly like the
-      // form (no more "Gain + Loss", which flipped a gain negative below).
       if (col.multi) value = PlayTagger.normalizeMulti(col.key, value);
       play.tags[col.key] = value;
       // Unambiguous play type auto-fills Run/Pass (mirror of setTagValue).
@@ -442,15 +406,8 @@ export class PlayGrid {
     if (col.key === 'yardage' && !play.tags.result) {
       if ((parseInt(String(play.tags.yardage), 10) || 0) > 0) play.tags.result = 'Gain';
     }
-    // Yardage is a magnitude; Loss/Sack supply the sign (mirror of
-    // _applyYardageSign — keep stored values consistent with form entry).
-    if (col.key === 'yardage' || col.key === 'result') {
-      const raw = String(play.tags.yardage ?? '').trim();
-      if (raw !== '') {
-        const mag = Math.abs(parseInt(raw, 10) || 0);
-        const res = StatsEngine.splitResults(play.tags.result);
-        play.tags.yardage = String(res.includes('Loss') || res.includes('Sack') ? -mag : mag);
-      }
+    if ((col.key === 'yardage' || col.key === 'result') && String(play.tags.yardage ?? '').trim() !== '') {
+      this.tagger._applyYardageSign(play);
     }
   }
 
@@ -501,7 +458,8 @@ export class PlayGrid {
   nativeSnapshot() {
     const plays = this.tagger.plays || [];
     const visible = this._visiblePlays();
-    const columns = this._visibleCols().map(col => ({
+    const visibleCols = this._visibleCols();
+    const columns = visibleCols.map(col => ({
       key: col.key, label: col.label, type: col.type, multi: !!col.multi,
       tendency: visible.length >= 5 ? this._tendency(col, visible) : '',
       editable: col.type !== 'st-readonly' && col.type !== 'pen-readonly',
@@ -511,7 +469,6 @@ export class PlayGrid {
     // (PlayGrid.cellLocked), in every scope: a custom Offense set can carry a
     // Special Teams column.
     const scope = this._colScope();
-    const visibleCols = this._visibleCols();
     const rows = visible.map(play => {
       const unit = countedUnit(play);
       const na = visibleCols.filter(col => PlayGrid.cellLocked(play, col)).map(col => col.key);
@@ -632,7 +589,7 @@ export class PlayGrid {
     };
   }
   /** Commits an edit. A change that removes the field opening populated details
-   *  (Motion, the RPO or QB Run play type, the Play Direction a Gap sits under)
+   *  (Motion, the RPO or QB Run play type)
    *  says what it clears and waits; the whole edit is then one undoable write.
    *  Returns a boolean, or a promise of one when it asked. */
   nativeCommitEdit(playId, colKey, value) {
