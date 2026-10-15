@@ -1,32 +1,5 @@
-/* CATALOG PERSISTENCE HARNESS (Node) ----------------------------------------
-   Proves CatalogPersistence — the layer that makes the SQLite catalog the
-   ONLY canonical desktop season store (PC-2) — before any desktop wiring.
-   Real sql.js + a fake in-memory fs, so the whole canonical-write path is
-   verified here; the Tauri glue that supplies the real fs adapter + lazy-
-   loads the wasm is the only piece left for a manual smoke.
-
-   PC-2 (Convergence Plan Invariant #5): per-season app-data season.json is
-   RETIRED as a live read/write authority. saveSeason()/reconcileFallbacks()
-   never call fs.writeJson at all any more; loadSeason() never reads it as a
-   fallback. The one surviving reader, fs.readJson, is used ONLY by
-   migrateJsonSeasons() -- a one-time bootstrap of PRE-EXISTING legacy files,
-   proven in section 8, untouched by this checkpoint. The Documents mirror
-   survives as the sole sidecar, downgraded to a best-effort recovery
-   SNAPSHOT that a normal load never reads back (Invariant #4/#6): a season
-   absent from the db is genuinely unavailable, not "degrade to a weaker
-   source".
-
-   Checks: lossless db round-trip across a reopen; two seasons isolated in one
-   shared db; a MISSING db returns null rather than resurrecting from a stale
-   season.json (section 3); a CORRUPT db throws a VISIBLE failure rather than
-   silently opening empty (section 4, PC-2 fix of Inventory Sec 3.0 -- the
-   most severe finding on record); the mirror is best-effort; a db-write
-   failure is ATOMIC (zero mirror/in-memory-catalog writes, and season.json
-   is never touched by any path -- section 6); delete removes the season and
-   the fake fs's writeJson is asserted to be called ZERO times across the
-   entire run (the structural proof, not just per-assertion spot checks).
-
-   Run:  node tools/e2e-catalog-persistence.mjs */
+/* Canonical catalog persistence over real sql.js and an in-memory filesystem.
+ * Covers durable writes, rollback, isolation and explicit recovery boundaries. */
 import initSqlJs from 'sql.js';
 import assert from 'node:assert';
 import { SqlCatalog } from '../js/sql-catalog.js';
@@ -39,12 +12,7 @@ const deepEq = (a, b) => { try { assert.deepStrictEqual(a, b); return true; } ca
 
 const SQL = await initSqlJs();
 
-// ---- fake fs (one shared library db + legacy per-season json + optional mirror) ----
-// `writeJson` remains DEFINED so a regression that reintroduces the call
-// writes visibly into state.json/state.jsonWriteCalls instead of throwing
-// "not a function" -- absence of writes is what proves PC-2, not absence of
-// the interface. `jsonWriteCalls` is the cumulative structural proof: it
-// must still read 0 at the very end of the file, across every section.
+// Keep the forbidden sidecar writer observable, rather than failing on a missing method.
 function makeFs() {
   const state = { db: null, json: new Map(), mirror: new Map(), mirrorFail: false, writeDbFail: false, readDbFail: false, jsonWriteCalls: 0 };
   return {
@@ -95,6 +63,7 @@ const refA = await refRoundTrip(seasonA());
     'PC-2: save writes the canonical db + Documents mirror only -- season.json is never written',
     JSON.stringify({ db: !!fs.state.db, json: fs.state.json.has('s1'), mirror: fs.state.mirror.has('s1') }));
   // Reopen as a fresh session sharing the same db bytes.
+  fs.state.json.set('s1', clone(seasonB()));
   const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   const loaded = await cp2.loadSeason('s1');
   ok(loaded && loaded.source === 'db', 'load is db-only', JSON.stringify(loaded?.source));
@@ -115,14 +84,7 @@ const refA = await refRoundTrip(seasonA());
   ok(a.data.seasonName === 'Alpha' && b.data.seasonName === 'Bravo', 'each season reassembles its own identity');
 }
 
-// ---- 3. missing db -> genuinely unavailable, NOT resurrected from json ----
-// PC-2 (Invariant #4/#5): a load that finds no matching db row must NOT
-// silently resurrect a season from a stale season.json -- that is exactly
-// the "JSON competing with the catalog for authority" pattern this
-// checkpoint removes. Recovering a season whose db row is missing is now
-// the explicit, previewed, confirmed PC-3 recovery flow (owned at the
-// TauriBackend layer: scanRecoverableSeasons/recoverSeasonFromMirror),
-// never an automatic side effect of an ordinary load.
+// A missing canonical season is unavailable until explicit recovery.
 {
   const fs = trackFs();
   await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).saveSeason('s1', seasonA());
@@ -134,12 +96,7 @@ const refA = await refRoundTrip(seasonA());
   ok(!fs.state.db, 'no self-heal write happens: the db is not silently repopulated from json on a normal load', String(!!fs.state.db));
 }
 
-// ---- 4. corrupt db MUST throw a visible failure, never silently open empty -
-// PC-2 fix of Inventory Sec 3.0, the most severe finding on record: a
-// db.open() failure on real corrupt bytes previously fell through to a
-// fresh EMPTY db with no exception, so a season with intact bytes on disk
-// could be silently reported as "no seasons" -- exactly what Invariant #4
-// ("if it cannot initialize, the desktop app fails closed") forbids.
+// Corrupt bytes must never become an empty catalog.
 {
   const fs = trackFs();
   await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).saveSeason('s1', seasonA());
@@ -148,16 +105,13 @@ const refA = await refRoundTrip(seasonA());
   try { await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1'); }
   catch (e) { threw = true; }
   ok(threw, 'a corrupt on-disk db surfaces a VISIBLE failure (throws) instead of silently opening empty');
+  let reconcileThrew = false;
+  try { await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).reconcileFallbacks(); }
+  catch { reconcileThrew = true; }
+  ok(reconcileThrew && fs.state.mirror.has('s1'), 'corrupt-catalog reconciliation refuses without losing the recovery mirror');
 }
 
-// ---- 4b. a READ FAILURE on an EXISTING db is not the same as "no bytes ever
-// existed" -- it too must throw, never silently collapse to a fresh empty
-// catalog (PC-2 repair, Codex review 89e34c6, finding 1). Section 4 above
-// proves corrupt BYTES throw once catalog.open() sees them; this proves the
-// read itself failing (a locked file, a permission error, a transient disk
-// fault on a genuinely-existing db) must ALSO throw, never be silently
-// swallowed into "there is no db" -- exactly the class of failure Inventory
-// Sec 3.0 was originally about, one layer earlier than where it was closed.
+// An unreadable existing catalog is distinct from a missing catalog.
 {
   const fs = trackFs();
   await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).saveSeason('s1', seasonA());
@@ -175,13 +129,7 @@ const refA = await refRoundTrip(seasonA());
   ok(recovered && recovered.data.seasonName === 'Alpha', 'once the disk read recovers, the season is intact', JSON.stringify(recovered && recovered.data.seasonName));
 }
 
-// ---- 4c. PC-4: the monotonic revision survives the canonical SQLite round trip
-// The desktop path reconstructs a season from columns plus a `body_json` blob.
-// If `revision` were dropped there, the persisted sequence would silently reset
-// on every desktop reload and the durable half of PC-4's fence would be inert --
-// a failure that looks identical to working code from SeasonStore's side, and
-// that section 1's round-trip check cannot see (it compares against a reference
-// SqlCatalog round trip, so a field dropped by BOTH sides compares equal).
+// Check revision independently: a reference round-trip could drop it on both sides.
 {
   const fs = trackFs();
   const withRevision = seasonA();
@@ -266,7 +214,7 @@ const refA = await refRoundTrip(seasonA());
   ok(typeof cp.migrateJsonSeasons !== 'function', 'there is no JSON migration to call');
 }
 
-// ---- 9. delete DB-write failure must NOT split-brain (Codex A3 review #2) ------
+// Delete failure preserves both the live catalog and its recovery mirror.
 {
   const fs = trackFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
@@ -289,8 +237,7 @@ const refA = await refRoundTrip(seasonA());
   ok(res2 === true && (await new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs }).loadSeason('s1')) === null, 'a retried delete succeeds durably once the db write recovers');
 }
 
-// ---- 10. delete rollback must survive writeDb AND readDb both failing --------
-// (Codex A3 accept follow-up #1: snapshot-based rollback, not disk re-read.)
+// Rollback must still work when both writes and reads fail.
 {
   const fs = trackFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
@@ -359,13 +306,7 @@ const refA = await refRoundTrip(seasonA());
   ok((await cp2.listBackups('s1')).length === 25, 'backup ring prunes to RETENTION (25)', String((await cp2.listBackups('s1')).length));
 }
 
-// ---- 12b. PC-5 review repair (Codex `1de3c54`): createBackup() must roll
-//     back and report FAILURE, not a truthy id, when the canonical writeDb
-//     fails -- a restore point that exists only in memory is not durable,
-//     and SeasonStore.restoreBackup()'s pre-restore safety snapshot depends
-//     on this method's success meaning "genuinely on disk." Mirrors the
-//     deleteSeason() rollback shape (sections 9/10) exactly, applied to the
-//     one other mutation in this file that used to swallow the failure.
+// A failed backup write must roll back its in-memory row and report failure.
 {
   const fs = trackFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
@@ -437,9 +378,7 @@ const refA = await refRoundTrip(seasonA());
     'C2: the LINKED game reopens from the db still linked to its D: child folder (no silent downgrade to managed)', JSON.stringify(dbRefuge && { m: dbRefuge.filmMode, d: dbRefuge.filmDir }));
   ok((dbManaged?.filmMode == null || dbManaged.filmMode === 'managed') && dbManaged?.filmDir == null,
     'C2: the managed game stays managed — linked metadata does not bleed across games', JSON.stringify(dbManaged && { m: dbManaged.filmMode, d: dbManaged.filmDir }));
-  // PC-2: a missing db is now genuinely unavailable, not a silent downgrade
-  // to managed AND not a resurrection from any sidecar -- proves the C2
-  // guarantee survives the removal of the json self-heal path.
+  // Missing canonical data cannot silently downgrade linked film to managed film.
   fs.state.db = null;
   const cp3 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
   const afterWipe = await cp3.loadSeason('s-film');
@@ -463,11 +402,7 @@ const refA = await refRoundTrip(seasonA());
   ok(!fs.state.json.has('s1') && !fs.state.json.has('s2'), 'rejected save writes zero json bytes (season.json is never written by any path)');
 }
 
-// ---- 15. reconcileFallbacks() rewrites the mirror from canonical truth ------
-// PC-2: reconcileFallbacks() no longer repairs a misrouted season.json (that
-// interface is gone); it now repairs the Documents MIRROR the same way --
-// proving reconciliation still exists as a genuine catalog-is-truth guard,
-// just retargeted to the one surviving sidecar.
+// Reconciliation repairs recovery mirrors from canonical data.
 {
   const fs = trackFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
@@ -480,10 +415,7 @@ const refA = await refRoundTrip(seasonA());
   ok(!fs.state.json.has('s1'), 'reconciliation writes zero season.json bytes');
 }
 
-// ---- 16. STRUCTURAL PROOF: fs.writeJson is never invoked anywhere in this file
-// The strongest form of the PC-2 removal: not "every spot check we thought to
-// write passed", but "the interface method was literally never called" across
-// EVERY scenario above, including failure paths, migrations, and repairs.
+// Count forbidden sidecar writes across every filesystem instance.
 ok(anyJsonWriteEverSeen === false, 'fs.writeJson was never called by ANY CatalogPersistence operation across the entire run (structural proof, not per-assertion)');
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

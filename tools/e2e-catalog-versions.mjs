@@ -1,10 +1,5 @@
-/* CATALOG VERSION-HISTORY HARNESS (Node) — the version-history migration off
-   localStorage `ffa_versions_<season::game>` onto rows in the shared library db.
-   Named/auto save-points become rows keyed by (season_id, game_id), capped at
-   VMAX per game, evicting AUTO-saves before MANUAL ones (VersionManager's rule).
-   VersionManager's store since 2026-09-24. Verifies: save/list/get/delete,
-   per-game scoping, reopen durability, the eviction policy, rollback on a
-   failed write, all-or-nothing import, and serialized concurrent writes. Run:  node tools/e2e-catalog-versions.mjs */
+/* Catalog version history: scoped reads/deletes, durability, eviction,
+ * rollback and serialized concurrent writes over real sql.js. */
 import initSqlJs from 'sql.js';
 import { SqlCatalog } from '../js/sql-catalog.js';
 import { CatalogPersistence } from '../js/catalog-persistence.js';
@@ -44,6 +39,12 @@ function makeFs() {
   ok(g1[0].label === 'First' && g1[0].manual === true, 'listVersions returns oldest-first with meta (label/manual/playCount)', JSON.stringify(g1[0]));
   const got = await cp.getVersionScoped('s1', 'g1', a1);
   ok(got && got.plays.length === 3, 'getVersionScoped returns the full snapshot payload (data)', JSON.stringify(got && got.plays.length));
+  for (const [seasonId, gameId] of [['s2', 'g1'], ['s1', 'g2'], ['s2', 'g2']]) {
+    ok(await cp.getVersionScoped(seasonId, gameId, a1) === null, `${seasonId}/${gameId} cannot read another scope's version`);
+    ok(await cp.deleteVersionScoped(seasonId, gameId, a1) === false, `${seasonId}/${gameId} cannot delete another scope's version`);
+    ok((await cp.getVersionScoped('s1', 'g1', a1))?.plays.length === 3, 'rejected foreign deletion leaves the owned version readable');
+  }
+  ok(typeof cp.catalog.getVersion !== 'function' && typeof cp.catalog.deleteVersion !== 'function', 'only scoped version read and delete APIs exist');
 }
 
 // ---- 2. delete + reopen durability -----------------------------------------
@@ -92,10 +93,7 @@ function makeFs() {
   ok(lost === null && listed.length === 1 && listed[0].label === 'Kept',
     'a version whose db write fails returns null and is rolled back out of memory', JSON.stringify({ lost, listed }));
 }
-// ---- 5. Concurrency: a later write is never overwritten by an earlier one ---
-// Codex repro (2026-09-24): delay the FIRST of two concurrent saveVersion disk
-// writes, let the second finish, then release the first. Both reported
-// success, but the reopened catalog held only the first.
+// Hold the first write while a second operation is queued.
 const idle = () => new Promise(r => setTimeout(r, 20));
 {
   const fs = makeFs();

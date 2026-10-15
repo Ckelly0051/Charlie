@@ -1,32 +1,5 @@
-/* PC-4 REVISION-FENCED AUTOSAVE HARNESS (Node) --------------------------------
-   Proves Convergence Plan Invariant #7 and closes Inventory Sec 3.2, the one
-   finding PC-0 recorded as "structurally real but not yet reproduced as a
-   concrete field symptom". It is reproduced concretely here.
-
-   Every safeguard before PC-4 fenced against a SEASON SWITCH landing mid-flight
-   (PC-1). None fenced two writes to the SAME season against each other, and
-   both of the following were reproduced against the committed classes before
-   this checkpoint:
-
-     1. Two overlapping persists to one season completed OUT OF ORDER, so the
-        chronologically-earlier payload landed last and silently reverted the
-        newer one. Observed durable write order: [2 plays, 1 play] -- the coach's
-        second edit was durably lost while memory still showed it.
-     2. A persist dispatched BEFORE a restore landed AFTER it. Observed order:
-        [1 play (restore), 3 plays (pre-restore)] -- memory showed the restore
-        had worked while disk held the state the coach had just discarded, so
-        the restore silently un-did itself on the next reload.
-
-   The fix is two mechanisms, both proven here:
-     - a per-season FIFO write queue, so durable writes for one season can never
-       complete out of dispatch order (and can never even be in flight
-       concurrently);
-     - a monotonic `data.revision`, persisted and additive, that makes "which
-       state is newer" explicit -- used to fail a DELAYED write closed when its
-       frozen payload has been superseded, and wired into PC-3's snapshot
-       envelope, which had been carrying a timestamp placeholder.
-
-   Run:  node tools/e2e-revision-fence.mjs */
+/* Per-season write ordering and monotonic revisions over synthetic backends.
+ * Explicitly gated writes cover concurrent edits, restore and delayed callbacks. */
 import { SeasonStore } from '../js/season-store.js';
 import { SnapshotEnvelope } from '../js/snapshot-envelope.js';
 
@@ -67,7 +40,7 @@ console.log('\n-- 1. the revision field: additive, monotonic, and hostile-value 
   const store = new SeasonStore(gatedBackend());
   ok(store._empty().revision === 0, 'a fresh season starts at revision 0', JSON.stringify(store._empty().revision));
 
-  // A season saved before PC-4 has no `revision` key at all.
+  // Missing revision starts at zero.
   const legacy = store._normalize(season('L', 'Legacy'));
   ok(legacy.revision === 0, 'a legacy season with no revision key normalizes to 0 (backward compatible)', JSON.stringify(legacy.revision));
 
@@ -267,8 +240,7 @@ console.log('\n-- 7. a DELAYED disk write whose frozen payload is superseded fai
 
 console.log('\n-- 8. the PC-3 snapshot envelope carries the REAL commit revision --');
 {
-  // PC-3 built the envelope's `revision` field and filled it with a timestamp
-  // placeholder, disclosing that the real monotonic counter was PC-4's work.
+  // Recovery envelopes carry the season's monotonic revision.
   const data = season('A', 'Season A', [play(1)]);
   data.revision = 42;
   const env = SnapshotEnvelope.wrap('A', data);
@@ -283,7 +255,7 @@ console.log('\n-- 8. the PC-3 snapshot envelope carries the REAL commit revision
   ok(b.revision > a.revision, 'two snapshots are strictly ordered by commit even when their timestamps are identical',
     JSON.stringify({ a: a.revision, b: b.revision, sameTimestamp: a.timestamp === b.timestamp }));
 
-  // Backward compatibility: a season written before PC-4 has no revision key.
+  // A missing revision starts at zero.
   const legacy = season('A', 'Season A', [play(1)]);
   const legacyEnv = SnapshotEnvelope.wrap('A', legacy);
   ok(typeof legacyEnv.revision === 'string' && SnapshotEnvelope.unwrap(legacyEnv).ok === true,

@@ -101,9 +101,10 @@ log.
   production executable syntax and the built assets are unchanged.
   Tag-field model checks now share the DOM-free analytics suite and their UI
   checks share native Chart; the separate tag-fields browser harness is removed.
-  Reports share rendered-state waits and table clipping; the persistence matrix
-  no longer has historical target/lock or expected-failure scaffolding. Final
-  focused verification and sensitivity checks passed; no full gate or new
+  Reports share rendered-state waits and table clipping. Persistence tests
+  separate basic catalog contracts from import/restore/close races; duplicate
+  matrix sections and repair histories are removed, with shared backend setup.
+  Focused and sensitivity checks cover the consolidation; no full gate or new
   package has run on the maintenance changes.
   Canonical Offense/Defense and global-strip galleries are now opt-in via
   `--capture`; their default runs retain every geometry/data assertion and

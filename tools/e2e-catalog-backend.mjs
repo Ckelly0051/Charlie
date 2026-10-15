@@ -51,11 +51,7 @@ const result = await (async () => {
     const { be } = makeBackend({ saveSeason: async () => false, deleteSeason: async () => true });
     out.saveFalse = await be.saveSeason('s1', { id: 's1', games: [] });
   }
-  // 1e. PC-1 (repair of Codex 4ae34e8 finding 2): a rejected canonical save
-  //     must not advance library.json metadata either. Reproduced directly
-  //     before this fix: saveSeason() called _touchMeta() unconditionally,
-  //     regardless of the canonical result, so a rejected import's name/
-  //     counts still landed in the library index.
+  // A rejected canonical save cannot advance library metadata.
   {
     const { be, calls } = makeBackend({ saveSeason: async () => false, deleteSeason: async () => true });
     const before = JSON.stringify(calls.lib);
@@ -77,10 +73,7 @@ const result = await (async () => {
     out.crossSave = await be.saveSeason('s1', { id: 's2', games: [] });
     out.crossSaveCalls = calls;
   }
-  // 1d. PC-1: an INCORRECT ambient this.currentId must not be able to redirect
-  //     the operation. be.currentId is deliberately set to a season neither the
-  //     explicit destination nor the payload names; the explicit destination id
-  //     alone must decide where the write lands.
+  // Explicit destination ownership wins over an incorrect ambient pointer.
   {
     let seenId = null;
     const { be } = makeBackend({ saveSeason: async (id) => { seenId = id; return true; }, deleteSeason: async () => true });
@@ -130,9 +123,7 @@ const result = await (async () => {
     await be.deleteBackup('s1', 'bk_1');
     out.bkDeleted = ring.length === 0;
   }
-  // 3b. PC-1: an incorrect ambient this.currentId must not redirect a backup
-  //     read either -- getBackup('s2', ...) must reach the catalog scoped to
-  //     's2' even though be.currentId is deliberately pinned to 's1'.
+  // Backup reads use the explicit season, not ambient scope.
   {
     let seenScope = null;
     const cat = {
@@ -146,22 +137,7 @@ const result = await (async () => {
     out.ambientBkScope = seenScope;                 // must be 's2', not 's1'
     out.ambientBkName = got && got.seasonName;       // 'restored-s2'
   }
-  // 3c. PC-5 review repair (Codex re-review `1de3c54`, 2026-08-22): the cache
-  //     that used to answer a duplicate createBackup() call is REMOVED
-  //     entirely -- this method now performs a real write every single call,
-  //     with no memory of what it returned last time. Three properties that
-  //     must hold with no cache present:
-  //     (c) the happy path -- two genuinely separate calls, even with
-  //         byte-identical data, create two genuinely separate rows (proves
-  //         the cache is really gone, not just hidden);
-  //     a failed catalog write is never masked as a truthy id (the exact
-  //         shape of finding #1: an undurable write must never look like a
-  //         successful backup to a caller);
-  //     (b) a backup that has since been DELETED is never returned again --
-  //         creating a new backup for the same (now-unchanged) data after
-  //         the prior one was deleted produces a genuinely NEW, genuinely
-  //         retrievable id, never the stale/deleted one (the exact shape of
-  //         finding #2).
+  // Separate backup calls create separate durable rows; failure or deletion cannot return a cached id.
   {
     let catalogCalls = 0;
     const rows = new Map();
@@ -205,14 +181,7 @@ const result = await (async () => {
     out.recreatedDiffersFromDeleted = third && third.id !== first.id;
     out.recreatedReadable = third && (await be.getBackup('s1', third.id)) != null;
   }
-  // 4. PC-1 (repair of Codex 1aefe8b finding 1): writeDisk() must gate BOTH
-  //    the snapshot backup and the Documents-mirror write on the canonical
-  //    saveSeason() succeeding. Reproduced directly before this fix:
-  //    writeDisk() called _mirrorToDocuments() unconditionally, so a
-  //    REJECTED canonical save still landed the rejected payload in the
-  //    recovery mirror. be.mirrorDir is given a distinct, defined baseDir
-  //    value (1, vs be.baseDir=14) so mirror writes can be isolated from the
-  //    unrelated library.json write by the baseDir they're tagged with.
+  // Distinct base directories separate mirror writes from library metadata writes.
   {
     const mirrorWrites = [];
     let catalogBackupCalled = false;
@@ -241,14 +210,7 @@ const result = await (async () => {
     out.writeDiskOkRet = await be.writeDisk('s1', { id: 's1', games: [] }, { snapshot: false, label: 'test' });
     out.writeDiskOkMirrorWrites = mirrorWrites.filter(w => w.baseDir === be.mirrorDir).length;
   }
-  // 5. PC-2 (Invariant #4/#5): when the catalog GENUINELY cannot be opened --
-  //    not "no db file exists yet", but _ensureCatalog() itself returning
-  //    null (the SQL engine failed to load) -- every identity-sensitive
-  //    method fails CLOSED. No method may silently fall back to reading or
-  //    writing any season.json/library.json sidecar as a substitute
-  //    authority. Unlike sections 1-4b above, this does NOT bypass
-  //    _ensureCatalog via be._catalog -- it forces the REAL init path to
-  //    fail, so this exercises the actual guard this checkpoint changed.
+  // Fail the real catalog initializer, not an already-injected catalog stub.
   {
     const be = new TauriBackend();
     const fsCalls = [];
@@ -281,11 +243,7 @@ const result = await (async () => {
     out.failClosedNoSidecarWrites = fsCalls.filter(([op]) => op === 'writeTextFile' || op === 'writeFile').length;
     out.failClosedCalls = fsCalls.map(c => c[0]);
   }
-  // 6. PC-2 repair (Codex review 89e34c6, finding 2): recovery identity must be
-  //    bound to the snapshot's OWN declared seasonId, never coerced to match
-  //    whatever mirror folder it happened to be found under. Exercised
-  //    directly against the real scanRecoverableSeasons()/
-  //    recoverSeasonFromMirror() implementations, not a UI stub.
+  // Recovery ownership comes from the snapshot, never its containing folder.
   {
     const mirrorRoot = 'GridIron IQ/seasons';
     // A current-format season (legacy excision step 6: recovery refuses old or malformed plays).
@@ -331,10 +289,7 @@ const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', pla
     out.folderMatchRecover = await be.recoverSeasonFromMirror('s-C', {});
     out.folderMatchSaveCalls = saveCalls;                          // must record exactly the matching id
   }
-  // 7. PC-2 repair (Codex review 89e34c6, finding 3): recoverSeasonFromMirror()
-  //    must fail CLOSED when it cannot confirm whether the destination season
-  //    already exists -- never default to "no conflict" and silently proceed
-  //    to save, bypassing the required overwrite confirmation.
+  // Unknown destination existence cannot bypass overwrite confirmation.
   {
     const mirrorRoot = 'GridIron IQ/seasons';
     const seasonDData = { id: 's-D', seasonName: 'Season D', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }] }] };
@@ -357,18 +312,10 @@ const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', pla
     out.existsCheckFailedResult = await be.recoverSeasonFromMirror('s-D', {});
     out.existsCheckFailedSaveCalled = saveCalled;
   }
-  // 8. PC-2 repair (Codex review d206b58, finding 1): the production
-  //    persistence boundary rejects EVERY !result.ok outcome, including the
-  //    disclosed legacy-unenveloped case -- not just an invalid-checksum
-  //    candidate. Disabling the Team Hub button is a UI convenience; this
-  //    method is the boundary that actually protects the catalog from an
-  //    unverified write, regardless of which caller invokes it. Exercised
-  //    directly against the real recoverSeasonFromMirror(), never a UI mock.
+  // The backend itself refuses unverified recovery data, even without the UI guard.
   {
     const mirrorRoot = 'GridIron IQ/seasons';
-    // A bare pre-PC-3 season.json: no envelopeVersion, no checksum, no
-    // validated identity at all -- exactly what unwrap() classifies as
-    // 'legacy-unenveloped'.
+    // Bare snapshots have neither an envelope nor a verified checksum.
     const bareLegacySeason = { id: 's-E', seasonName: 'Old Format Season', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }, { id: 2, tags: { unit: 'defense' } }] }] };
     const files = new Map([[`${mirrorRoot}/s-E/season.json`, JSON.stringify(bareLegacySeason)]]);
     const be = new TauriBackend();

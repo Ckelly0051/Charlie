@@ -125,6 +125,10 @@ const rec = cat2.createSeason({ name: 'Fresh', team: 'Mavericks', year: '2025', 
 ok(rec && rec.id && cat2.listSeasons().some(s => s.id === rec.id && s.name === 'Fresh'), 'createSeason + listSeasons');
 const bkId = cat2.createBackup('sea_noclip', norm(noClipSeason), 'test point');
 ok(cat2.listBackups('sea_noclip').some(b => b.id === bkId) && deepEq(cat2.getBackup('sea_noclip', bkId), norm(noClipSeason)), 'backup ring create/list/get round-trips');
+cat2.setCurrentSeason('wrong-ambient-season');
+ok(cat2.getBackup('foreign-season', bkId) === null, 'a foreign season cannot read the backup regardless of ambient scope');
+cat2.deleteBackup('foreign-season', bkId);
+ok(deepEq(cat2.getBackup('sea_noclip', bkId), norm(noClipSeason)), 'a foreign deletion leaves the owned backup readable');
 
 // 7. the coach's REAL recovered season (when present) — realistic round-trip
 const REAL = 'C:/Users/charl/AppData/Roaming/com.gridironiq.app/seasons/2026-varsity-demo/season.json';

@@ -19,6 +19,16 @@ const clone = x => JSON.parse(JSON.stringify(x));
 
 const SQL = await initSqlJs();
 
+function backendFor(overrides) {
+  return {
+    currentId: null, RETENTION: 25,
+    setCurrentSeason(id) { this.currentId = id; },
+    async loadSeason() { return null; },
+    async touchOpened() {},
+    ...overrides,
+  };
+}
+
 function makeFs() {
   const state = { db: null, json: new Map(), mirror: new Map(), writeDbFail: false };
   return {
@@ -31,10 +41,6 @@ function makeFs() {
   };
 }
 
-/** Minimal in-memory indexedDB, just enough for BrowserBackend's `handles`/
- *  `backups` object stores. Mirrors the project's own "inject a fake fs"
- *  pattern (see makeFs above) rather than reimplementing BrowserBackend's
- *  logic -- this fakes the PLATFORM API, never the code under test. */
 function installFakeIndexedDB() {
   const objectStores = { handles: new Map(), backups: new Map() };
   globalThis.indexedDB = {
@@ -47,9 +53,7 @@ function installFakeIndexedDB() {
           onclose: null, onversionchange: null,
           close() {},
           transaction(_storeName) {
-            // The caller sets .oncomplete on whatever this returns -- it must
-            // be the SAME object the queued microtask checks, or the promise
-            // this backs (BrowserBackend._tx) never settles.
+            // Completion must run on the same transaction object the caller receives.
             const tx = { oncomplete: null, onerror: null };
             tx.objectStore = (n) => {
               const map = objectStores[n];
@@ -73,8 +77,6 @@ function installFakeIndexedDB() {
   };
 }
 
-/** Minimal in-memory localStorage, just enough for TeamRegistry's reads --
- *  the same "fake the platform API" discipline as the indexedDB shim above. */
 function installFakeLocalStorage() {
   const map = new Map();
   globalThis.localStorage = {
@@ -96,70 +98,10 @@ const season = (id, name, extra = {}) => ({
 let crashed = false;
 try {
 
-// ============================================================================
-// 1. LOCK — "Destination id differs from payload id: zero writes."
-// ============================================================================
-section('1. Destination id differs from payload id: zero writes [LOCK]');
+section("Import durability");
 {
-  const fs = makeFs();
-  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const mismatched = season('season-A', 'A'); mismatched.id = 'season-B';
-  const wrote = await cp.saveSeason('season-A', mismatched);
-  ok(wrote === false, 'saveSeason(destinationId, payloadWithDifferentId) returns false');
-  ok(!fs.state.db, 'no db bytes were ever written on a destination/payload mismatch');
-  ok(!fs.state.json.has('season-A') && !fs.state.json.has('season-B'), 'no season.json was written for either id');
-}
-flush();
-
-// ============================================================================
-// 2. LOCK — "SQLite is corrupt, locked, or unavailable: visible failure, no
-//    fallback authority." Inventory Sec 3.0, the most severe finding on
-//    record. CLOSED at PC-2: CatalogPersistence._ensureLoaded() now
-//    distinguishes "bytes exist but failed to open" (throws) from "no bytes
-//    ever existed" (opens clean); the throw propagates through
-//    reconcileFallbacks()/loadSeason() uncaught, so a corrupt on-disk
-//    catalog can never be silently reported as "zero seasons."
-// ============================================================================
-section('2. Corrupt catalog must fail visibly, never silently report empty [LOCK, closed PC-2]');
-{
-  const fs = makeFs();
-  const cp1 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  await cp1.saveSeason('real-season', season('real-season', 'Real Season With Real Games'));
-  ok((await cp1.listSeasons()).some(s => s.id === 'real-season'), 'positive control: the season is genuinely saved before corruption is introduced');
-
-  fs.state.db = new Uint8Array([1, 2, 3, 4, 5]); // simulates on-disk corruption / a torn write
-
-  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  let threw = false, result = null;
-  try { result = await cp2.reconcileFallbacks(); }
-  catch (e) { threw = true; }
-  ok(threw, 'a corrupt on-disk catalog surfaces a VISIBLE failure (throws) instead of silently opening empty',
-    threw ? '' : `reconcileFallbacks() returned ${JSON.stringify(result)} with no exception`);
-  // PC-2: season.json is retired as a live authority, so the real season's
-  // recoverable evidence now lives ONLY in the Documents-mirror recovery
-  // snapshot (never in an app-data season.json fallback that no longer
-  // exists). The decisive claim is unchanged in spirit -- the real season is
-  // never reported as absent while an intact recovery copy of it exists --
-  // just retargeted to the surviving sidecar.
-  ok(fs.state.mirror.has('real-season') && threw,
-    'the real season is never reported as absent while its Documents-mirror recovery snapshot is intact',
-    `mirror snapshot present=${fs.state.mirror.has('real-season')}, threw=${threw}`);
-}
-flush();
-
-// ============================================================================
-// 3. TARGET — season-file import must be BOTH destination-correct AND
-//    durably awaitable with a visible failure path. Inventory Sec 3.1.
-//    Repair of 529d8ae finding 3: reassigning the id alone must not be
-//    sufficient to satisfy this contract.
-// ============================================================================
-section('3. Importing a season file must persist under the destination id, awaitably, and fail visibly on a rejected write [LOCK, closed PC-1]');
-{
-  // Case A: today's real bug -- the destination id is never reassigned.
   const fsA = makeFs();
-  const backendA = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
+  const backendA = backendFor({
     async createSeason(meta) { return { id: 'lib-' + Math.random().toString(36).slice(2, 8), name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
     async loadSeason(seasonId) { return fsA.state.json.get(seasonId) || null; },
     async saveSeason(seasonId, data) {
@@ -167,9 +109,8 @@ section('3. Importing a season file must persist under the destination id, await
       fsA.state.json.set(seasonId, clone(data));
       return true;
     },
-    async touchOpened() {},
-    diskStatus() { return { bound: false }; },
-  };
+    diskStatus() { return { bound: false }; }
+  });
   const storeA = new SeasonStore(backendA);
   const recA = await backendA.createSeason({ name: 'Imported Season' });
   storeA.currentSeasonId = recA.id; backendA.setCurrentSeason(recA.id);
@@ -180,19 +121,13 @@ section('3. Importing a season file must persist under the destination id, await
   ok(fsA.state.json.has(recA.id), 'the imported season is durably saved under the destination library id',
     fsA.state.json.has(recA.id) ? '' : `nothing was written under '${recA.id}'; adopt() left data.id='${storeA.data.id}', destination was '${recA.id}'`);
 
-  // Case B: even a future id-reassignment fix must not be satisfiable by a
-  // fire-and-forget persist(). adopt() must return an awaitable result, and a
-  // REJECTED durable write must be visibly reported, not silently accepted.
   const fsB = makeFs();
-  const backendB = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
+  const backendB = backendFor({
     async createSeason(meta) { return { id: 'lib-' + Math.random().toString(36).slice(2, 8), name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
     async loadSeason(_seasonId) { return null; },
-    async saveSeason(_seasonId, _data) { return false; }, // simulates a genuine durable-write failure (disk full, catalog down, etc.)
-    async touchOpened() {},
-    diskStatus() { return { bound: false }; },
-  };
+    async saveSeason(_seasonId, _data) { return false; },
+    diskStatus() { return { bound: false }; }
+  });
   const storeB = new SeasonStore(backendB);
   const recB = await backendB.createSeason({ name: 'Imported Season 2' });
   storeB.currentSeasonId = recB.id; backendB.setCurrentSeason(recB.id);
@@ -211,42 +146,7 @@ section('3. Importing a season file must persist under the destination id, await
 }
 flush();
 
-// ============================================================================
-// 3b. LOCK (closed PC-1, repair of Codex `1aefe8b` finding 1) -- proves the
-//     finding at the REAL production caller, not just inside SeasonStore.
-//     Section 3 proved adopt() itself is fixed (destination-id reassignment +
-//     awaitable durable result); this section proves StorageManager.
-//     loadProject() (js/storage.js:1257) actually CONSUMES that result rather
-//     than proceeding as though every import succeeded, AND that the whole
-//     import is ATOMIC end to end: a rejected save must never mutate the live
-//     in-memory store, and must never arm the debounced disk/Documents-mirror
-//     write that would otherwise land the rejected payload on disk 2.5s
-//     later. This constructs a REAL StorageManager (not a fake) via a minimal
-//     platform shim (window/document/FileReader/alert -- the same "fake the
-//     platform, not the code under test" discipline as the indexedDB/
-//     localStorage shims above) and drives its actual loadProject() method.
-//
-//     `1aefe8b` finding 1, reproduced independently before this fix, verbatim:
-//     "A rejected import still replaces the live in-memory season and writes
-//     the failed payload to the desktop sidecar... the new caller test uses
-//     bound:false, so it cannot detect either mutation." This section fixes
-//     both root causes (js/season-store.js adopt()/persist()) and uses
-//     bound:true plus the SAME real-callback-capture technique section 4
-//     already established for _scheduleDiskWrite(), so the disk/mirror timer
-//     is genuinely reachable and this can prove it is never armed -- not
-//     merely assumed to be safe because the fixture never exercised it.
-//
-//     Deliberately isolated from finding 3a: with the id-reassignment fix in
-//     place, a destination/payload id mismatch can no longer be the reason a
-//     write fails, so this fixture instead simulates a genuine EXTERNAL
-//     durable-write failure (disk full, catalog rejected the write) on an
-//     ALREADY-open season being overwritten by import -- the failure a caller
-//     can still hit even after 3a is fixed. Both a failure case and a
-//     success case are driven through the same real caller, with the success
-//     case proving the timer/mirror mechanism is genuinely alive (not merely
-//     silent because everything in the fixture is broken).
-// ============================================================================
-section('3b. StorageManager.loadProject() must be atomic: no live mutation, no disk/mirror write, and a visible failure when the durable save is rejected [LOCK, closed PC-1]');
+section("Import rollback and editor ownership");
 {
   if (!globalThis.window) globalThis.window = globalThis;
   if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -270,30 +170,19 @@ section('3b. StorageManager.loadProject() must be atomic: no live mutation, no d
 
     const writes = [];
     const diskWrites = [];
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
+    const backend = backendFor({
       async createSeason(meta) { return { id: 'lib-imported', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
-      async loadSeason() { return null; },
       async saveSeason(seasonId, data) {
         const idMatches = !!(data && data.id === seasonId);
         const ok = saveSeasonImpl(idMatches);
         writes.push({ id: data && data.id, idMatches, ok });
         return ok;
       },
-      async touchOpened() {},
-      // PC-1: must be bound:true -- Codex's exact finding 1 was that a
-      // bound:false fixture cannot observe either mutation this section
-      // exists to prove is now impossible.
       diskStatus() { return { bound: true }; },
       async writeDisk(seasonId, data, opts) { diskWrites.push({ seasonId, id: data && data.id, snapshot: !!(opts && opts.snapshot) }); return true; },
-      async createBackup() { return null; },
-    };
+      async createBackup() { return null; }
+    });
     const store = new SeasonStore(backend);
-    // A season is ALREADY open before the import (the realistic case this
-    // finding targets: importing a replacement file into the current
-    // editor) -- isolates loadProject()'s own no-current-season bootstrap
-    // branch (createSeason-on-first-import) from the behavior under test.
     store.currentSeasonId = 'lib-imported';
     backend.setCurrentSeason('lib-imported');
     store.data = store._empty();
@@ -307,11 +196,6 @@ section('3b. StorageManager.loadProject() must be atomic: no live mutation, no d
     return { sm, store, writes, diskWrites, toasts, get clearCalled() { return clearCalled; }, get loadCalled() { return loadCalled; } };
   }
 
-  // Drives one full import attempt, capturing every _scheduleDiskWrite()
-  // timer armed during it (the real 2.5s debounce, matched by delay), then
-  // FIRES each captured timer exactly as the real debounce eventually would
-  // -- so "zero sidecar/mirror writes" is proven by actually letting the
-  // timer window elapse, not assumed from the timer never being armed.
   async function runImport(saveSeasonImpl, fileSeasonName) {
     const h = makeHarness(saveSeasonImpl);
     const priorSnapshot = clone(h.store.data);
@@ -329,9 +213,6 @@ section('3b. StorageManager.loadProject() must be atomic: no live mutation, no d
     return { ...h, priorSnapshot, timersArmed: capturedTimers.length };
   }
 
-  // Case A: the durable write genuinely fails for an external reason, even
-  // though the destination/payload id is correct (proving this is NOT a
-  // re-test of 3a's id-mismatch bug).
   const failing = await runImport(() => false, 'Imported Season');
 
   ok(failing.writes.some(w => w.idMatches && !w.ok),
@@ -351,12 +232,6 @@ section('3b. StorageManager.loadProject() must be atomic: no live mutation, no d
   ok(failing.toasts.some(t => /import failed/i.test(t.msg)), 'loadProject() surfaces the durable-write failure to the coach with a visible toast',
     JSON.stringify(failing.toasts));
 
-  // Case B: the SUCCESSFUL control -- same caller, same shape of file, but
-  // the durable write genuinely succeeds. Proves the failure guards above are
-  // not simply refusing every import unconditionally, AND that the timer/
-  // mirror mechanism genuinely fires and writes when the save is legitimate
-  // (so the "zero writes" result above isn't vacuously true because nothing
-  // in this fixture can ever write at all).
   const succeeding = await runImport(() => true, 'Imported Season 2');
 
   ok(succeeding.clearCalled === true && succeeding.loadCalled === true,
@@ -370,18 +245,7 @@ section('3b. StorageManager.loadProject() must be atomic: no live mutation, no d
 }
 flush();
 
-// ============================================================================
-// 3c. LOCK (closed PC-1, repair of Codex `1aefe8b` finding 1, second half) --
-//     "roll back a destination created solely for a failed first-run
-//     import." Section 3b exercises the already-open-season path exclusively
-//     (hasCurrent() true throughout); this section exercises the OTHER
-//     branch of StorageManager.loadProject() -- a genuine first-run import
-//     with no season open, where loadProject() calls seasonStore.
-//     createSeason() to bootstrap a destination BEFORE adopt() runs. If that
-//     import then fails, the freshly-created season is an orphaned, empty,
-//     purposeless library entry -- it must be deleted, not left behind.
-// ============================================================================
-section('3c. A first-run import that creates its own destination season rolls that season back on a rejected durable save [LOCK, closed PC-1]');
+section("Failed first-run import cleanup");
 {
   const { StorageManager } = await import('../js/storage.js');   // globals from section 3b already installed
   const noopEmitter = { on() {}, off() {} };
@@ -392,9 +256,7 @@ section('3c. A first-run import that creates its own destination season rolls th
   const sm = new StorageManager(vc, tagger, canvas);
 
   const seasons = new Map();   // models the library: id -> meta
-  const backend = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
+  const backend = backendFor({
     async createSeason(meta) {
       const rec = { id: 'lib-fresh-' + Math.random().toString(36).slice(2, 8), name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 };
       seasons.set(rec.id, rec);
@@ -402,10 +264,9 @@ section('3c. A first-run import that creates its own destination season rolls th
     },
     async deleteSeason(id) { return seasons.delete(id); },
     async loadSeason(_seasonId) { return null; },
-    async saveSeason(_seasonId, _data) { return false; },   // the import's durable write always fails
-    async touchOpened() {},
-    diskStatus() { return { bound: false }; },
-  };
+    async saveSeason(_seasonId, _data) { return false; },
+    diskStatus() { return { bound: false }; }
+  });
   const store = new SeasonStore(backend);
   ok(!store.hasCurrent(), 'sanity: no season is open before the first-run import (hasCurrent() is false)');
   sm.seasonStore = store;
@@ -428,45 +289,16 @@ section('3c. A first-run import that creates its own destination season rolls th
 }
 flush();
 
-// ============================================================================
-// 3d. LOCK (closed PC-1, repair of Codex `4ae34e8` finding 1) -- "A season
-//     switch while an import save is pending can restore or delete the wrong
-//     season in memory." Sections 3/3b/3c prove adopt()/loadProject() are
-//     atomic and durable IN ISOLATION; none of their backends leave a real
-//     window for a concurrent switch to land inside the pending save (3b/3c's
-//     saveSeason() resolves on the SAME microtask turn the test drives). This
-//     section deliberately holds saveSeason() pending via a real unresolved
-//     Promise, drives a genuine season switch through it, and only then
-//     resolves the save -- proving both cases Codex named explicitly:
-//     (i) an already-open season A being overwritten by an import, while the
-//         coach switches to B before A's save resolves (adopt()'s own
-//         rollback branch);
-//     (ii) a genuine first-run import that creates a fresh scaffold season S,
-//          while the coach opens B before S's import resolves -- the more
-//          destructive half, since the OLD code re-read
-//          `this.seasonStore.currentSeasonId` (by then 'B') to decide what
-//          to delete on failure, instead of the scaffold id it actually
-//          created (StorageManager.loadProject()).
-//
-//     Reproduced directly before this fix, verbatim from Codex's review:
-//     "begin an import into A, open B while the backend save is pending,
-//     resolve the A save false; the store ends as { currentSeasonId:'B',
-//     data.id:'A', data.seasonName:'Season A' }."
-// ============================================================================
-section('3d. A season switch while an import save is pending never restores or deletes the wrong season in memory [LOCK, closed PC-1]');
+section("Season switches during import");
 {
-  // -- (i) already-open A -> B switch, adopt()'s own rollback -------------
   {
     let resolveSave;
     const savePromise = new Promise(res => { resolveSave = res; });
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
+    const backend = backendFor({
       async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
-      async saveSeason() { return savePromise; },   // the import's durable write for A stays pending
-      async touchOpened() {},
-      diskStatus() { return { bound: false }; },
-    };
+      async saveSeason() { return savePromise; },
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -474,7 +306,6 @@ section('3d. A season switch while an import save is pending never restores or d
     const importedFile = season('A', 'Imported'); // a real exported file, id already matches A (isolates this from 3a)
     const adoptPromise = store.adopt(importedFile);   // begins the import into A; blocks on savePromise
 
-    // The coach switches to B WHILE the import save is still pending.
     await store.openSeason('B');
     ok(store.currentSeasonId === 'B' && store.data.id === 'B',
       "sanity: the coach genuinely switched to season B while A's import save was still pending",
@@ -490,7 +321,6 @@ section('3d. A season switch while an import save is pending never restores or d
       JSON.stringify({ currentSeasonId: store.currentSeasonId, data: store.data && { id: store.data.id, seasonName: store.data.seasonName } }));
   }
 
-  // -- (ii) first-run scaffold S -> B switch, loadProject()'s scaffold-delete
   {
     if (!globalThis.window) globalThis.window = globalThis;
     if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -513,9 +343,7 @@ section('3d. A season switch while an import save is pending never restores or d
     const savePromise = new Promise(res => { resolveSave = res; });
     const seasons = new Map();
     const deletedIds = [];
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
+    const backend = backendFor({
       async createSeason(meta) {
         const rec = { id: 'lib-fresh-scaffold', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 };
         seasons.set(rec.id, rec);
@@ -523,10 +351,9 @@ section('3d. A season switch while an import save is pending never restores or d
       },
       async deleteSeason(id) { deletedIds.push(id); return seasons.delete(id); },
       async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
-      async saveSeason() { return savePromise; },   // the scaffold import's durable write stays pending
-      async touchOpened() {},
-      diskStatus() { return { bound: false }; },
-    };
+      async saveSeason() { return savePromise; },
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     ok(!store.hasCurrent(), 'sanity: no season is open before the first-run import (hasCurrent() is false)');
     sm.seasonStore = store;
@@ -543,7 +370,6 @@ section('3d. A season switch while an import save is pending never restores or d
     ok(seasons.has('lib-fresh-scaffold'),
       'sanity: the orphaned scaffold season genuinely exists before the coach switches away');
 
-    // The coach opens season B WHILE the scaffold's import save is still pending.
     await store.openSeason('B');
     ok(store.currentSeasonId === 'B' && store.data.id === 'B',
       "sanity: the coach genuinely opened season B while the scaffold's import save was still pending");
@@ -563,91 +389,8 @@ section('3d. A season switch while an import save is pending never restores or d
 }
 flush();
 
-// ============================================================================
-// 3e. LOCK (closed PC-1, repair of Codex `4ae34e8` finding 2) -- "A rejected
-//     SQLite import still writes the rejected payload to live JSON/mirror
-//     metadata, so the import is not atomic on the real desktop stack."
-//     Section 3b proved SeasonStore does not SCHEDULE a later writeDisk()
-//     after a rejected save; it never drove a REAL CatalogPersistence through
-//     an actual writeDb() failure, so it could not see that
-//     CatalogPersistence.saveSeason() itself still wrote season.json and the
-//     Documents mirror unconditionally after a writeDb() rejection
-//     (js/catalog-persistence.js), independent of anything SeasonStore does.
-//     This section drives the REAL CatalogPersistence + real SqlCatalog
-//     through a genuine writeDb() failure and proves every sidecar sink --
-//     json, mirror, AND the in-memory catalog itself (a same-session,
-//     faster-than-disk variant of the identical resurrection hazard) --
-//     remains completely untouched, alongside a successful-save control on a
-//     fresh instance proving the same mechanism genuinely writes when the
-//     save legitimately succeeds.
-// ============================================================================
-section('3e. A rejected canonical (db) write produces zero json, mirror, or in-memory-catalog writes [LOCK, closed PC-1]');
+section("Season switches during scaffold creation and successful import");
 {
-  const fs = makeFs();
-  fs.state.writeDbFail = true;
-  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const okDb = await cp.saveSeason('s1', season('s1', 'Rejected Import'));
-
-  ok(okDb === false, 'a rejected canonical (db) write reports failure', String(okDb));
-  ok(!fs.state.json.has('s1'),
-    'a rejected canonical write performs ZERO writes to season.json (reproduced before this fix: the rejected payload was written to the json fallback unconditionally)',
-    JSON.stringify([...fs.state.json.keys()]));
-  ok(!fs.state.mirror.has('s1'),
-    'a rejected canonical write performs ZERO writes to the Documents mirror',
-    JSON.stringify([...fs.state.mirror.keys()]));
-
-  // The in-memory catalog must not diverge from disk either -- a same-session
-  // load on the SAME cp instance must not read the rejected payload straight
-  // back out of memory, even though nothing was ever written to disk.
-  fs.state.writeDbFail = false;
-  const reload = await cp.loadSeason('s1');
-  ok(reload === null,
-    "the in-memory catalog rolls back on a writeDb failure -- a later load on the same instance does not read the rejected payload back out of memory (a same-session, faster-than-disk variant of the resurrection hazard)",
-    JSON.stringify(reload));
-
-  // Successful control: the same mechanism genuinely writes the mirror when
-  // the canonical save legitimately succeeds, on a FRESH instance so the
-  // prior failed attempt cannot leave any state behind to fake this. PC-2:
-  // season.json is never written by any path, including this one -- pinned
-  // explicitly here rather than assumed.
-  const fs2 = makeFs();
-  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs: fs2 });
-  const okDb2 = await cp2.saveSeason('s2', season('s2', 'Legitimate Save'));
-  ok(okDb2 === true && !fs2.state.json.has('s2') && fs2.state.mirror.has('s2'),
-    'a SUCCESSFUL canonical save writes the mirror only -- season.json is never written (PC-2), proving the gate above is not simply disabling every sidecar write entirely',
-    JSON.stringify({ okDb2, json: fs2.state.json.has('s2'), mirror: fs2.state.mirror.has('s2') }));
-}
-flush();
-
-// ============================================================================
-// 3f. LOCK (closed PC-1, repair of Codex `4d75bca`, the P0 remaining after
-//     section 3d/3e) -- section 3d proved a season switch racing an import's
-//     PENDING SAVE never restores/deletes the wrong season; it did not prove
-//     two narrower things Codex's re-review named: (i) a season switch racing
-//     the SCAFFOLD's OWN durable creation (before adopt() is even called --
-//     3d's scaffold sub-test used the OLD unconditional-switch createSeason()
-//     to BUILD its scaffold with no race exercised there, only during the
-//     later adopt() await); and (ii) a stale but GENUINELY SUCCESSFUL import
-//     still unconditionally firing StorageManager.loadProject()'s final
-//     `_clearForNewGame()`/`_loadActiveGame()` reload against whatever
-//     DIFFERENT season the coach has since opened -- 3d/3b only ever tested
-//     the failure path for that reload gate, since adopt() itself already
-//     protects `this.data`, but the CALLER-level reload was never gated on
-//     ownership at all.
-//
-//     (i) is closed by SeasonStore.createUnclaimedSeasonIfEmpty(): the
-//     scaffold's durable creation and its live-state claim are now two
-//     separate steps, with the claim happening ONLY IF hasCurrent() is still
-//     false when the durable create resolves -- so a concurrent
-//     open/createSeason() landing during that create can never be clobbered.
-//     (ii) is closed by capturing `destSeasonId` once in loadProject(),
-//     immediately before calling adopt() (identical to the value adopt()
-//     itself captures -- no await separates the two), and gating the final
-//     reload on the store still owning it after adopt() resolves.
-// ============================================================================
-section('3f. Scaffold creation cannot be clobbered by a concurrent season switch during its own await, and a stale but successful import never reloads a different season\'s editor [LOCK, closed PC-1]');
-{
-  // -- (i) a season switch racing the SCAFFOLD's OWN durable creation ------
   {
     if (!globalThis.window) globalThis.window = globalThis;
     if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -670,9 +413,7 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
     const createPromise = new Promise(res => { resolveCreate = res; });
     const seasons = new Map();
     const deletedIds = [];
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
+    const backend = backendFor({
       async createSeason(meta) {
         await createPromise;   // the scaffold's OWN durable creation stays pending
         const rec = { id: 'lib-fresh-scaffold', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 };
@@ -681,10 +422,9 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
       },
       async deleteSeason(id) { deletedIds.push(id); return seasons.delete(id); },
       async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
-      async saveSeason() { return true; },   // never reached -- the scaffold is unclaimed, so adopt() never targets it
-      async touchOpened() {},
-      diskStatus() { return { bound: false }; },
-    };
+      async saveSeason() { return true; },
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     ok(!store.hasCurrent(), 'sanity: no season is open before the first-run import begins');
     sm.seasonStore = store;
@@ -698,8 +438,6 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
     sm.loadProject(fakeFile);   // begins createUnclaimedSeasonIfEmpty(); blocks inside backend.createSeason
     await new Promise(r => setTimeout(r, 20));   // let the FileReader microtask reach the pending create
 
-    // The coach opens season B WHILE the scaffold's own durable creation is
-    // still in flight -- BEFORE adopt() is ever called, unlike section 3d.
     await store.openSeason('B');
     ok(store.currentSeasonId === 'B' && store.data.id === 'B',
       "sanity: the coach genuinely opened season B while the scaffold's own durable creation was still pending");
@@ -718,8 +456,6 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
     ok(toasts.some(t => /import failed/i.test(t.msg)), 'the coach sees the failure toast', JSON.stringify(toasts));
   }
 
-  // -- (ii) a stale but GENUINELY SUCCESSFUL import must not reload a
-  //         different season's editor -----------------------------------
   {
     if (!globalThis.window) globalThis.window = globalThis;
     if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -733,14 +469,11 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
 
     let resolveSave;
     const savePromise = new Promise(res => { resolveSave = res; });
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
+    const backend = backendFor({
       async loadSeason(seasonId) { return seasonId === 'B' ? season('B', 'Season B') : null; },
-      async saveSeason() { return savePromise; },   // the import's durable write for A stays pending
-      async touchOpened() {},
-      diskStatus() { return { bound: false }; },
-    };
+      async saveSeason() { return savePromise; },
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -755,7 +488,6 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
     sm.loadProject(fakeFile);
     await new Promise(r => setTimeout(r, 20));   // let adopt() reach the pending save
 
-    // The coach switches to B WHILE the import's own save is still pending.
     await store.openSeason('B');
     ok(store.currentSeasonId === 'B' && store.data.id === 'B',
       "sanity: the coach genuinely switched to season B while the stale import into A was still pending");
@@ -773,32 +505,7 @@ section('3f. Scaffold creation cannot be clobbered by a concurrent season switch
 }
 flush();
 
-// ============================================================================
-// 3g. LOCK (closed PC-1, repair of Codex `95e28c9`, the final remaining P0)
-//     -- "First-run import launches two saves to the same season: an
-//     unawaited blank scaffold save, and the actual imported-season save.
-//     Without PC-4 revision fencing, the blank save can finish last and
-//     overwrite the successfully imported season." Root cause:
-//     SeasonStore.createUnclaimedSeasonIfEmpty() called this.persist()
-//     (fire-and-forget, unawaited) immediately after claiming the blank
-//     scaffold as current; StorageManager.loadProject() then immediately
-//     called adopt(), which performs its OWN awaited save to the SAME
-//     season id. Nothing fenced the two backend.saveSeason() calls against
-//     each other, so whichever one's own internal chain of awaits happened
-//     to resolve LAST would win -- and a fire-and-forget call starting
-//     first has no guarantee of finishing first.
-//
-//     Fixed by removing the redundant scaffold persist entirely rather than
-//     trying to make the two writes race correctly: this method's one
-//     caller (loadProject()'s first-run bootstrap) always calls adopt()
-//     immediately afterward, which durably UPSERTs the real imported
-//     payload to this exact id -- no pre-existing body row is needed. This
-//     section proves the exact contract the review asked for: first-run
-//     import now performs exactly ONE canonical (backend.saveSeason) write,
-//     and that one write contains the imported payload, never a blank
-//     scaffold shape.
-// ============================================================================
-section('3g. First-run import performs exactly one canonical write, and it contains the imported payload, never a blank scaffold [LOCK, closed PC-1]');
+section("One canonical first-run import write");
 {
   if (!globalThis.window) globalThis.window = globalThis;
   if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -818,15 +525,11 @@ section('3g. First-run import performs exactly one canonical write, and it conta
   const sm = new StorageManager(vc, tagger, canvas);
 
   const saveCalls = [];
-  const backend = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
+  const backend = backendFor({
     async createSeason(meta) { return { id: 'lib-fresh-scaffold', name: meta.name || 'Untitled', team: '', year: '', level: '', games: 0, plays: 0 }; },
-    async loadSeason() { return null; },
     async saveSeason(seasonId, data) { saveCalls.push({ seasonId, data: clone(data) }); return true; },
-    async touchOpened() {},
-    diskStatus() { return { bound: false }; },
-  };
+    diskStatus() { return { bound: false }; }
+  });
   const store = new SeasonStore(backend);
   ok(!store.hasCurrent(), 'sanity: no season is open before the first-run import begins');
   sm.seasonStore = store;
@@ -835,10 +538,6 @@ section('3g. First-run import performs exactly one canonical write, and it conta
   sm._clearForNewGame = () => { clearCalled = true; };
   sm._loadActiveGame = () => { loadCalled = true; return Promise.resolve(); };
 
-  // The imported payload's own game carries id 'g1' (via the shared season()
-  // fixture) -- a structural marker distinguishing it from a blank scaffold,
-  // whose game id is freshly generated by _empty()/_newId() and can never
-  // equal 'g1'.
   const importedSeasonJson = season('original-machine-id-xyz', 'Imported Season');
   const fakeFile = { name: 'imported.json', __text: JSON.stringify(importedSeasonJson) };
   sm.loadProject(fakeFile);
@@ -854,23 +553,16 @@ section('3g. First-run import performs exactly one canonical write, and it conta
 }
 flush();
 
-// ============================================================================
-// 4. LOCK — "Delayed save for season A completes after switching to B: zero
-//    writes to B." Repair of 529d8ae finding 2: drives the REAL callback.
-// ============================================================================
-section('4. A delayed disk write scheduled for season A must not land on season B after a switch [LOCK]');
+section("Delayed write ownership after a season switch");
 {
   const writes = [];
-  const backend = {
-    currentId: null, RETENTION: 25,
-    setCurrentSeason(id) { this.currentId = id; },
+  const backend = backendFor({
     async createSeason(meta) { return { id: meta.name, name: meta.name, team: '', year: '', level: '', games: 0, plays: 0 }; },
     async loadSeason(_seasonId) { return null; },
     async saveSeason(_seasonId, _data) { return true; },
-    async touchOpened() {},
-    diskStatus() { return { bound: true }; }, // must be bound, or _scheduleDiskWrite no-ops before arming anything
-    async writeDisk(seasonId, data) { writes.push({ target: seasonId, id: data && data.id }); return true; },
-  };
+    diskStatus() { return { bound: true }; },
+    async writeDisk(seasonId, data) { writes.push({ target: seasonId, id: data && data.id }); return true; }
+  });
   const store = new SeasonStore(backend);
   const realSetTimeout = globalThis.setTimeout;
   const arm = () => {
@@ -884,10 +576,6 @@ section('4. A delayed disk write scheduled for season A must not land on season 
   store.currentSeasonId = recA.id; backend.setCurrentSeason(recA.id);
   store.data = store._empty(); store.data.id = recA.id;
 
-  // POSITIVE control FIRST: firing the real callback while nothing has
-  // changed must actually write. This is what makes the negative case below
-  // meaningful rather than a check that would pass on a callback that never
-  // writes at all.
   const capturedOnA = arm();
   ok(typeof capturedOnA === 'function', 'a real disk-write callback was armed via the real setTimeout call');
   capturedOnA();
@@ -895,7 +583,6 @@ section('4. A delayed disk write scheduled for season A must not land on season 
     "firing the real callback while still on season A performs exactly one write, to season A's slot",
     JSON.stringify(writes));
 
-  // NEGATIVE case: arm again, switch seasons, THEN fire the SAME real callback.
   writes.length = 0;
   const capturedBeforeSwitch = arm();
   const recB = await backend.createSeason({ name: 'Season-B' });
@@ -908,133 +595,7 @@ section('4. A delayed disk write scheduled for season A must not land on season 
 }
 flush();
 
-// ============================================================================
-// 5/6. TARGET — "Backup, restore, or import carries the wrong id: rejected
-//      before mutation." (backup half). Inventory Sec 3.3.
-// ============================================================================
-section('5/6. A backup id from a DIFFERENT season must be rejected, not silently served or deleted (SqlCatalog) [LOCK, closed PC-1]');
-{
-  const cat = new SqlCatalog(SQL);
-  await cat.open();
-  cat.setCurrentSeason('season-A');
-  cat.saveSeason(season('season-A', 'Alpha', { games: [mkGame('gA')] }));
-  cat.setCurrentSeason('season-B');
-  cat.saveSeason(season('season-B', 'Bravo', { games: [mkGame('gB')] }));
-
-  const bId = cat.createBackup('season-B', season('season-B', 'Bravo Backup', { games: [mkGame('gB')] }), 'B point');
-  // LOCK: own-scope positive control -- B/B must be able to read its own
-  // backup, or the cross-season target reds below could be "achieved" by a
-  // broken createBackup/getBackup pair rather than a real ownership gap
-  // (Codex 6ed3bb1 finding 2).
-  ok(cat.getBackup('season-B', bId)?.seasonName === 'Bravo Backup', "positive control: season-B, scoped to itself, can read its own backup");
-
-  // PC-1: an explicit seasonId argument -- not this.currentId -- is what
-  // determines scope now. Deliberately point the ambient pointer at the
-  // WRONG season (season-A) while still passing 'season-A' explicitly, so
-  // this proves the explicit id is what refuses the read, not a coincidence
-  // of whatever the ambient pointer happened to hold.
-  cat.setCurrentSeason('WRONG-AMBIENT-SEASON');
-  const leaked = cat.getBackup('season-A', bId);
-  ok(leaked === null, 'getBackup(seasonId, id) scoped to season-A refuses a backup id that belongs to season-B, regardless of the ambient pointer',
-    leaked ? `returned season data for '${leaked.seasonName}' instead of null` : '');
-
-  cat.deleteBackup('season-A', bId);
-  const stillThere = cat.getBackup('season-B', bId);
-  ok(stillThere !== null, "deleteBackup(seasonId, id) scoped to season-A must NOT delete season-B's backup",
-    stillThere ? '' : "season-B's backup was deleted by a call scoped to season-A");
-  cat.close();
-}
-flush();
-
-// ============================================================================
-// 7. TARGET — same shape as #5/#6, tested by BEHAVIOR (two real scoped
-//    records, foreign get/delete), not by function arity. Repair of 529d8ae
-//    finding 4.
-// ============================================================================
-section('7. Version ownership: only the scoped seam exists [LOCK]');
-{
-  const cat = new SqlCatalog(SQL);
-  await cat.open();
-  const vA = cat.saveVersion('season-A', 'game-A', { label: 'A point', time: new Date().toISOString(), manual: true, playCount: 3, data: { seasonName: 'A secret data' } });
-  const vB = cat.saveVersion('season-B', 'game-B', { label: 'B point', time: new Date().toISOString(), manual: true, playCount: 5, data: { seasonName: 'B secret data' } });
-  // LOCK: positive control -- own-scope reads must keep working, or the
-  // target reds below could be "achieved" by a broken save/read, not by a
-  // real ownership check (Codex 6ed3bb1 finding 2).
-  ok(!!cat.getVersionScoped('season-A', 'game-A', vA), 'positive control: a version genuinely exists and reads back for its own scope');
-  // The unscoped getVersion(id)/deleteVersion(id) were deleted (2026-10-04):
-  // no production caller, and they crossed season/game scope.
-  ok(typeof cat.getVersion !== 'function' && typeof cat.deleteVersion !== 'function', 'no unscoped version read or delete exists on SqlCatalog');
-
-  // PRODUCTION CONTRACT, CLOSED PC-1 (js/sql-catalog.js, js/catalog-persistence.js):
-  //   getVersionScoped(seasonId, gameId, id)    -> the version's body if it
-  //     belongs to (seasonId, gameId), else null.
-  //   deleteVersionScoped(seasonId, gameId, id) -> true if a version owned by
-  //     (seasonId, gameId) was deleted; false (no-op, nothing deleted)
-  //     otherwise.
-  // The four assertions below call EXACTLY those method names on the real
-  // SqlCatalog instance. This file contains NO local implementation of the
-  // ownership logic -- it exercises the real production seam directly.
-  const vB2 = cat.saveVersion('season-B', 'game-B', { label: 'B point 2', time: new Date().toISOString(), manual: true, playCount: 1, data: { seasonName: 'B second record' } });
-  const callScoped = (methodName, ...args) => {
-    const fn = cat[methodName];
-    if (typeof fn !== 'function') return { available: false };
-    try { return { available: true, result: fn.apply(cat, args) }; }
-    catch (e) { return { available: true, threw: true, message: e && e.message }; }
-  };
-  const unavailable = (r) => `SqlCatalog.${r.name} does not exist -- the PC-1 scoped seam is missing/regressed`;
-
-  let r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-B', 'game-B', vB2) };
-  ok(r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
-    'B/B (correctly scoped) can read its own version through the production getVersionScoped seam',
-    r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
-
-  r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-A', 'game-A', vB2) };
-  ok(r.available && !r.threw && r.result === null,
-    "A/A (foreign) cannot read season-B/game-B's version through the production getVersionScoped seam",
-    r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
-
-  r = { name: 'deleteVersionScoped', ...callScoped('deleteVersionScoped', 'season-A', 'game-A', vB2) };
-  ok(r.available && !r.threw && r.result === false,
-    "A/A (foreign) cannot delete season-B/game-B's version through the production deleteVersionScoped seam",
-    r.available ? (r.threw ? r.message : `deleted=${r.result}`) : unavailable(r));
-
-  // The decisive check: B/B must STILL read it afterward through the SAME
-  // production seam -- rules out a naive "every scoped read returns null"
-  // implementation, which would otherwise satisfy the two checks above for free.
-  r = { name: 'getVersionScoped', ...callScoped('getVersionScoped', 'season-B', 'game-B', vB2) };
-  ok(r.available && !r.threw && r.result && r.result.seasonName === 'B second record',
-    'B/B can STILL read its own version through getVersionScoped after the rejected A/A attempt (rules out an always-null implementation)',
-    r.available ? (r.threw ? r.message : JSON.stringify(r.result)) : unavailable(r));
-  cat.close();
-}
-flush();
-
-// ============================================================================
-// 9. LOCK — new: does NOT throw on a genuinely legitimate startup where the
-//    JSON sidecar is simply STALE (out of date) while SQLite is fine. Direct
-//    contrast with section 2 (corrupt db). "Stale JSON/library sidecars
-//    disagree with SQLite: ignored by normal startup."
-// ============================================================================
-section('9. A stale JSON sidecar is ignored on normal startup when the catalog is healthy [LOCK]');
-{
-  const fs = makeFs();
-  const cp1 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  await cp1.saveSeason('s1', season('s1', 'Current, correct name'));
-  // Simulate a stale sidecar left behind by an interrupted prior write --
-  // the db is healthy and current; only the json copy disagrees.
-  fs.state.json.set('s1', season('s1', 'STALE name from an old write'));
-
-  const cp2 = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const loaded = await cp2.loadSeason('s1');
-  ok(loaded.source === 'db', 'a normal load prefers the healthy catalog over a disagreeing json sidecar', `source=${loaded.source}`);
-  ok(loaded.data.seasonName === 'Current, correct name', 'the stale sidecar\'s content is ignored, not merged or preferred', `seasonName='${loaded.data.seasonName}'`);
-}
-flush();
-
-// ============================================================================
-// 10. LOCK — new: "TeamRegistry peeks do not alter active identity."
-// ============================================================================
-section('10. TeamRegistry.recoverFromWipe() never mutates active season identity while inspecting seasons [LOCK]');
+section("Registry recovery preserves active identity");
 {
   installFakeLocalStorage();
   const fakeSeasons = [
@@ -1046,9 +607,6 @@ section('10. TeamRegistry.recoverFromWipe() never mutates active season identity
     s2: { teamProfile: { teamName: 'Mavericks', jerseyColor: 'red' }, roster: [], games: [] },
   };
   const setCurrentSeasonCalls = [];
-  // A REAL SeasonStore, not a fake seasonStore-shaped object, so
-  // recoverFromWipe() exercises the actual SeasonStore.peekSeason() chain
-  // (Codex 6ed3bb1 finding 4). Only the underlying backend is faked.
   const backend = {
     currentId: 'already-active-season', RETENTION: 25,
     setCurrentSeason(id) { setCurrentSeasonCalls.push(id); this.currentId = id; },
@@ -1056,10 +614,6 @@ section('10. TeamRegistry.recoverFromWipe() never mutates active season identity
     async peekSeason(id) { return fakeSeasonData[id] || null; },
   };
   const store = new SeasonStore(backend);
-  // Pin BOTH real mutable pointers to an already-active season BEFORE
-  // recovery runs, modeling the real scenario: localStorage identity keys
-  // were wiped, but a season is already loaded in memory from before the
-  // wipe was detected. Recovery inspecting OTHER seasons must not disturb it.
   store.currentSeasonId = 'already-active-season';
 
   const openSeasonCalls = [];
@@ -1080,36 +634,22 @@ section('10. TeamRegistry.recoverFromWipe() never mutates active season identity
   ok(recovered === true, 'recovery succeeds against seasons that still exist on disk', `recovered=${recovered}`);
   ok(openSeasonCalls.length === 0, 'recoverFromWipe() never calls the real SeasonStore.openSeason (would mutate active identity)', JSON.stringify(openSeasonCalls));
   ok(setCurrentSeasonCalls.length === 0, 'recoverFromWipe() never calls backend.setCurrentSeason directly', JSON.stringify(setCurrentSeasonCalls));
-  // The decisive check Codex named: not "was a suspicious method avoided" but
-  // "is the real identity byte-for-byte the same afterward."
   ok(store.currentSeasonId === beforeSeasonStoreId, 'SeasonStore.currentSeasonId is byte-for-byte unchanged after recoverFromWipe()', `before='${beforeSeasonStoreId}', after='${store.currentSeasonId}'`);
   ok(store.backend.currentId === beforeBackendId, 'StorageBackend.currentId is byte-for-byte unchanged after recoverFromWipe()', `before='${beforeBackendId}', after='${store.backend.currentId}'`);
   ok(registry.hasTeam() && registry.teamProfile().teamName === 'Mavericks', 'identity is genuinely rebuilt from the peeked season data', JSON.stringify(registry.teamProfile()));
 }
 flush();
 
-// ============================================================================
-// 11. TARGET — the BrowserBackend twin of section 5/6: "Browser backup
-//     ownership" was named as an omission in 529d8ae finding 5.
-// ============================================================================
-section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER backend too, not just SqlCatalog [LOCK, closed PC-1]');
+section("Browser backup ownership");
 {
   installFakeIndexedDB();
   const backend = new BrowserBackend();
   await backend.createBackup('season-A', season('season-A', 'Alpha'), 'A point');
   const bId = (await backend.createBackup('season-B', season('season-B', 'Bravo'), 'B point')).id;
-  // LOCK: own-scope positive control (Codex 6ed3bb1 finding 2).
   ok((await backend.getBackup('season-B', bId))?.seasonName === 'Bravo', 'positive control: season-B, scoped to itself, can read its own BrowserBackend backup');
 
-  // PC-1: an incorrect ambient this.currentId ('WRONG-AMBIENT-SEASON', neither
-  // season-A nor season-B) must not be able to redirect the read -- only the
-  // explicit seasonId argument decides scope.
   backend.currentId = 'WRONG-AMBIENT-SEASON';
   const leaked = await backend.getBackup('season-A', bId);
-  // BrowserBackend.getBackup's not-found path can surface as `undefined`
-  // (a real quirk of _tx's out.result normalization on a miss), not
-  // strictly `null` as its own doc comment promises -- use a loose/"is
-  // this absent" check so that quirk doesn't mask the real assertion.
   ok(leaked == null, "BrowserBackend.getBackup(seasonId, id) scoped to season-A refuses a backup id that belongs to season-B, regardless of the ambient pointer",
     leaked != null ? `returned season data for '${leaked.seasonName}' instead of nothing` : '');
 
@@ -1120,25 +660,7 @@ section('11. A backup id from a DIFFERENT season must be rejected in the BROWSER
 }
 flush();
 
-// ============================================================================
-// 12. LOCK (closed PC-1) — the SeasonStore-level consequence of the same bug.
-//     "restore provenance" (named as omitted in 529d8ae finding 5).
-//
-//     Rewritten for PC-1: the original fixture built a fully hand-rolled fake
-//     backend whose getBackup(id) was DELIBERATELY written to mirror "today's
-//     real bug: no ownership check against this.currentId" -- so it could
-//     never exercise the real fix landing one layer down in
-//     BrowserBackend.getBackup(). SeasonStore.restoreBackup(id) has no
-//     ownership logic of its own; it is `await this.backend.getBackup(id)`
-//     then bails if that returns falsy -- so it is protected transitively,
-//     with ZERO new code in restoreBackup itself, once the backend beneath it
-//     is scoped correctly (confirmed by reading js/season-store.js:623-636).
-//     This now drives the REAL BrowserBackend (same indexedDB shim as
-//     section 11) through a REAL SeasonStore, proving the full integrated
-//     stack rather than a fixture that could drift from what the backend
-//     actually does.
-// ============================================================================
-section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to a different season, not just the storage layer beneath it [LOCK, closed PC-1]");
+section("Foreign backup refusal through SeasonStore");
 {
   installFakeIndexedDB();
   const backend = new BrowserBackend();
@@ -1153,15 +675,10 @@ section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to 
   store.data = store._empty(); store.data.id = recB.id; store.data.seasonName = 'Season B live data';
   const bBackupId = (await backend.createBackup(recB.id, clone(store.data), 'B point')).id;
 
-  // LOCK: own-scope positive control -- restoring season-B's OWN backup while
-  // still scoped to season-B must genuinely work, or the cross-season lock
-  // below could be "achieved" by a broken restoreBackup entirely rather than
-  // a real ownership gap (Codex 6ed3bb1 finding 2).
   store.data.seasonName = 'mutated before restore';
   const selfRestored = await store.restoreBackup(bBackupId);
   ok(selfRestored && selfRestored.seasonName === 'Season B live data', 'positive control: season-B, scoped to itself, can restore its own backup', JSON.stringify(selfRestored));
 
-  // Switch back to A, then attempt to restore B's backup id while scoped to A.
   store.currentSeasonId = recA.id; backend.setCurrentSeason(recA.id);
   store.data = store._empty(); store.data.id = recA.id; store.data.seasonName = 'Season A live data';
 
@@ -1173,25 +690,7 @@ section("12. SeasonStore.restoreBackup(id) must refuse a backup that belongs to 
 }
 flush();
 
-// ============================================================================
-// 13. LOCK (closed PC-4) -- Invariant #7's SAME-season half, and the lifecycle
-//     paths PC-4's scope names ("Audit ... backup/restore ... and shutdown").
-//
-//     Every fence before PC-4 protected against a SEASON SWITCH landing
-//     mid-flight (sections 3d/3f/4). Inventory Sec 3.2 recorded the same-season
-//     case as "structurally real but not yet reproduced as a concrete field
-//     symptom" -- it is reproduced concretely now, and the full contract lives
-//     in tools/e2e-revision-fence.mjs. What is pinned HERE is the coach-facing
-//     lifecycle half, which needs a real StorageManager rather than a bare
-//     SeasonStore: a debounced autosave still describing the state a coach just
-//     chose to DISCARD must not survive their restore; a pending save is flushed
-//     on shutdown rather than dying with the window; and a commit never mirrors
-//     an EMPTY roster/playbook over a populated one -- the last of which is a
-//     PRE-EXISTING bug (teamProfile had that guard, roster/playbook did not)
-//     that PC-4's shutdown flush made reachable at a new moment, and that the
-//     full gate caught via e2e-wipe-recovery rather than any focused suite.
-// ============================================================================
-section('13. A pending autosave never outlives the restore that discarded its state, shutdown flushes it, and a commit never clobbers saved identity with empties [LOCK, closed PC-4]');
+section("Restore cancellation, shutdown flush and injected identity");
 {
   if (!globalThis.window) globalThis.window = globalThis;
   if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -1201,19 +700,15 @@ section('13. A pending autosave never outlives the restore that discarded its st
   const tagger = { ...noopEmitter, plays: [], toast() {} };
   const canvas = { ...noopEmitter, annotations: [] };
 
-  // -- (i) restore cancels a pending autosave -------------------------------
   {
     const sm = new StorageManager(vc, tagger, canvas);
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() { return true; },
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
+      diskStatus() { return { bound: false }; },
       async createBackup() { return 'bk1'; },
       async getBackup() { return season('A', 'Restored'); },
-      async writeDisk() { return true; },
-    };
+      async writeDisk() { return true; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -1230,17 +725,13 @@ section('13. A pending autosave never outlives the restore that discarded its st
       JSON.stringify({ pendingAutosave: !!sm.autoSaveTimer }));
   }
 
-  // -- (ii) shutdown flushes a pending autosave (Inventory Sec 3.4) ---------
   {
     const sm = new StorageManager(vc, tagger, canvas);
     const saves = [];
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason(id) { saves.push(id); return true; },
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
-    };
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -1248,38 +739,24 @@ section('13. A pending autosave never outlives the restore that discarded its st
     sm._loadedGameId = store.data.activeGameId;   // so commitActive's guard passes
     sm._serialize = () => ({ ...store.data.games[0] });
 
-    // PC-4 repair (Codex 50e2e50, finding 3): flushPendingSaves() is now
-    // consistently async, and "idle" resolves TRUE (genuinely safe to
-    // proceed), not false -- false is reserved exclusively for an observed
-    // save FAILURE, which is what lets a close hook gate on the boolean
-    // without conflating "nothing to do" with "something failed".
     const idleFlush = await sm.flushPendingSaves();
     ok(idleFlush === true && saves.length === 0,
       'flushing with nothing armed is an honest no-op, not a spurious write',
       JSON.stringify({ idleFlush, saves: saves.length }));
 
     sm._autoSave();
-    // PC-4 repair (finding 3): flushPendingSaves() now returns the real
-    // promise chain instead of a synchronous `true` the instant the write
-    // starts, so a genuine close hook can await it. Await it here too, rather
-    // than a bare setTimeout(0) that only worked because the old code never
-    // returned anything worth awaiting.
     const flushed = await sm.flushPendingSaves();
     ok(flushed === true && saves.length === 1 && !sm.autoSaveTimer,
       "a pending debounced save is flushed on shutdown instead of dying with the window -- before PC-4 nothing anywhere flushed on exit, so a coach closing within ~1s of their last edit lost that edit's canonical write entirely (Inventory Sec 3.4)",
       JSON.stringify({ flushed, saves: saves.length, stillArmed: !!sm.autoSaveTimer }));
   }
 
-  // -- (iii) the injected, season-owned roster is authoritative even when
-  // empty. The cached playbook keeps its separate empty-cache protection.
   {
     const sm = new StorageManager(vc, tagger, canvas);
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; }, async saveSeason() { return true; },
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
-    };
+    const backend = backendFor({
+      async saveSeason() { return true; },
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -1312,57 +789,32 @@ section('13. A pending autosave never outlives the restore that discarded its st
 }
 flush();
 
-// ============================================================================
-// 14. LOCK (closed PC-4 repair) -- Codex's 618862c re-review of PC-4 (33b8af1):
-//     the per-season write queue section 13 depends on was applied to
-//     persist()/saveNow()'s canonical half but not to every OTHER call site
-//     that also reaches saveSeason (via writeDisk, which TauriBackend.
-//     writeDisk() implements as a SECOND, full canonical saveSeason call
-//     before its mirror/backup work -- confirmed by reading the real method,
-//     not assumed) or to deleteSeason at all. Each finding was reproduced
-//     directly against the real SeasonStore before being fixed, per standing
-//     discipline. Full detail: docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
-// ============================================================================
-section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered against the per-season queue, and a season switch mid-write cannot smear payloads across seasons [LOCK, closed PC-4 repair]');
+section("Write ordering, deletion and captured payloads");
 {
   const tick = () => new Promise(r => setTimeout(r, 0));
 
-  // -- (i) an older snapshot() cannot land after a newer persist() ----------
-  // Reproduced before this fix exactly as described: snapshot()'s writeDisk
-  // reached the backend directly, so a 1-play snapshot's write could complete
-  // AFTER a 2-play persist() and silently revert it.
   {
     const canonicalWrites = [];
     let gate = null;
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason(id, data) {
         const snap = clone(data);
         if (gate) { const g = gate; gate = null; return new Promise(res => { g.release = () => { canonicalWrites.push(snap); res(true); }; }); }
         canonicalWrites.push(snap); return true;
       },
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
-      // Mirrors the real TauriBackend.writeDisk shape: it performs a second,
-      // full canonical saveSeason call, not merely a mirror write.
+      diskStatus() { return { bound: true }; },
       async writeDisk(id, data) { return this.saveSeason(id, data); },
-      async createBackup() { return 'bk1'; },
-    };
+      async createBackup() { return 'bk1'; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
 
     const held = { release: null };
     gate = held;
-    // Start (do not await) a snapshot of the CURRENT 1-play state -- its
-    // writeDisk is gated pending.
     const snapPromise = store.snapshot('Auto');
     await tick();
 
-    // The coach keeps working: a second play is added. This persist() must
-    // now be genuinely queued behind the still-pending gated snapshot write,
-    // not race ahead of it -- so start it too without awaiting yet.
     store.data.games[0].plays.push({ id: 2 });
     const persistPromise = store.persist();
 
@@ -1377,21 +829,17 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
       JSON.stringify({ order: canonicalWrites.map(w => w.games[0].plays.length) }));
   }
 
-  // -- (ii) deleteSeason() cannot be resurrected by a save already in flight -
   {
     const callOrder = [];
     let gate = null;
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() {
         if (gate) { const g = gate; gate = null; return new Promise(res => { g.release = () => { callOrder.push('save-done'); res(true); }; }); }
         callOrder.push('save-done'); return true;
       },
       async deleteSeason() { callOrder.push('delete-done'); return true; },
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
-    };
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -1401,9 +849,6 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
     const savePromise = store.persist();          // a save is in flight for A, gated
     await tick();
 
-    // The coach deletes A WHILE that save is still pending. cancelPending
-    // DiskWrite() only clears a future-scheduled timer; it cannot cancel a
-    // write already dispatched, so the delete itself must queue behind it.
     const deletePromise = store.deleteSeason('A');
 
     held.release();                                // the stale pending save now lands
@@ -1415,20 +860,15 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
       JSON.stringify({ callOrder }));
   }
 
-  // -- (iii) saveNow() bails closed on a rejected canonical write, performing
-  //          zero disk/backup side effects -----------------------------------
   {
     const diskWrites = [];
     const backupWrites = [];
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
-      async saveSeason() { return false; },   // the canonical write REJECTS
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
+    const backend = backendFor({
+      async saveSeason() { return false; },
+      diskStatus() { return { bound: true }; },
       async writeDisk(id, data) { diskWrites.push({ id, plays: data.games[0].plays.length }); return true; },
-      async createBackup(id, data) { backupWrites.push({ id, plays: data.games[0].plays.length }); return 'bk'; },
-    };
+      async createBackup(id, data) { backupWrites.push({ id, plays: data.games[0].plays.length }); return 'bk'; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
@@ -1440,25 +880,19 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
       JSON.stringify({ result, diskWrites, backupWrites }));
   }
 
-  // -- (iv) saveNow()'s disk/backup writes use the payload captured at
-  //         DISPATCH time, never whatever the live season holds after a
-  //         season switch lands during the canonical write's own await ------
   {
     const diskWrites = [];
     const backupWrites = [];
     let gate = null;
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() {
         if (gate) { const g = gate; gate = null; return new Promise(res => { g.release = () => res(true); }); }
         return true;
       },
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      diskStatus() { return { bound: true }; },
       async writeDisk(id, data) { diskWrites.push({ id, seasonName: data.seasonName, plays: data.games[0].plays.length }); return true; },
-      async createBackup(id, data) { backupWrites.push({ id, seasonName: data.seasonName, plays: data.games[0].plays.length }); return 'bk'; },
-    };
+      async createBackup(id, data) { backupWrites.push({ id, seasonName: data.seasonName, plays: data.games[0].plays.length }); return 'bk'; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });
@@ -1468,7 +902,6 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
     const saveNowPromise = store.saveNow('Manual save');
     await tick();
 
-    // A season switch lands WHILE the canonical write for A is still pending.
     store.currentSeasonId = 'B';
     backend.setCurrentSeason('B');
     store.data = season('B', 'Season B');
@@ -1482,11 +915,6 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
       JSON.stringify({ diskWrites, backupWrites }));
   }
 
-  // -- (v) StorageManager._wireDesktopCloseFlush() -- the actual mechanism
-  //        finding 3 asked for, not just flushPendingSaves()'s awaitability.
-  //        A real close request is deferred (preventDefault, synchronously),
-  //        the pending save is genuinely awaited, then the window is
-  //        explicitly closed. No-op and non-throwing on the browser build.
   {
     if (!globalThis.window) globalThis.window = globalThis;
     if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -1496,7 +924,6 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
     const tagger = { ...noopEmitter, plays: [], toast() {} };
     const canvas = { ...noopEmitter, annotations: [] };
 
-    // No window.__TAURI__ (the browser build) -- must be a safe, non-throwing no-op.
     {
       const prevTauri = globalThis.window.__TAURI__;
       delete globalThis.window.__TAURI__;
@@ -1507,7 +934,6 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
       ok(!threw, '_wireDesktopCloseFlush() is a safe no-op on the browser build (no window.__TAURI__)');
     }
 
-    // window.__TAURI__ present (desktop) -- the real close-deferral behavior.
     {
       let capturedHandler = null;
       let closeCalled = false;
@@ -1527,13 +953,10 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
       try {
         const sm = new StorageManager(vc, tagger, canvas);
         const saves = [];
-        const backend = {
-          currentId: null, RETENTION: 25,
-          setCurrentSeason(id) { this.currentId = id; },
-          async loadSeason() { return null; },
+        const backend = backendFor({
           async saveSeason(id) { saves.push(id); return true; },
-          async touchOpened() {}, diskStatus() { return { bound: false }; },
-        };
+          diskStatus() { return { bound: false }; }
+        });
         const store = new SeasonStore(backend);
         store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
         store.data = season('A', 'Season A');
@@ -1561,37 +984,20 @@ section('14. Every writeDisk/deleteSeason/saveNow call site is genuinely ordered
 }
 flush();
 
-// ============================================================================
-// 15. LOCK (closed PC-4 repair round 2) -- Codex's 50e2e50 re-review of
-//     95fc1df: three lifecycle races the section-14 repair's own new cases
-//     only covered the EASY direction of (work queued BEFORE delete; a close
-//     while the debounce timer is still armed). All three reproduced directly
-//     against the committed classes before being fixed, per standing
-//     discipline. Full detail: docs/archive/plans/GRIDIRON-IQ-PERSISTENCE-INVENTORY.md.
-// ============================================================================
-section('15. A save dispatched after delete starts cannot resurrect the season, a close awaits an already-running write, and a failed final save keeps the window open [LOCK, closed PC-4 repair round 2]');
+section("Save-after-delete refusal and close failure");
 {
-  // -- (i) a save dispatched WHILE delete is already in flight is refused,
-  //        not merely ordered after it -----------------------------------
   {
     const store2 = new Map();
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason(id, data) { store2.set(id, data); return true; },
       async deleteSeason(id) { store2.delete(id); return true; },
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
-    };
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
     store2.set('A', store.data);
 
-    // The season remains "current" until deleteSeason's own await resolves,
-    // so this persist() is genuinely dispatched WHILE delete is in flight --
-    // not before it started, the case the prior repair already ordered
-    // correctly.
     const deletePromise = store.deleteSeason('A');
     const persistPromise = store.persist('A', season('A', 'Season A (edited)'));
     await Promise.allSettled([deletePromise, persistPromise]);
@@ -1605,10 +1011,6 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
       JSON.stringify({ persistResult: await persistPromise }));
   }
 
-  // -- (ii) a shutdown close genuinely awaits a write already in flight,
-  //         whether it started from the debounce timer's own natural fire or
-  //         from an EARLIER flushPendingSaves() call (beforeunload and the
-  //         desktop close-requested hook can both fire for one real close) --
   {
     if (!globalThis.window) globalThis.window = globalThis;
     if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -1618,17 +1020,13 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
     const tagger = { ...noopEmitter, plays: [], toast() {} };
     const canvas = { ...noopEmitter, annotations: [] };
 
-    // Positive control: the underlying write eventually SUCCEEDS.
     {
       const sm = new StorageManager(vc, tagger, canvas);
       let release = null;
-      const backend = {
-        currentId: null, RETENTION: 25,
-        setCurrentSeason(id) { this.currentId = id; },
-        async loadSeason() { return null; },
+      const backend = backendFor({
         async saveSeason() { return new Promise(res => { release = () => res(true); }); },
-        async touchOpened() {}, diskStatus() { return { bound: false }; },
-      };
+        diskStatus() { return { bound: false }; }
+      });
       const store = new SeasonStore(backend);
       store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
       store.data = season('A', 'Season A');
@@ -1637,13 +1035,8 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
       sm._serialize = () => ({ ...store.data.games[0] });
 
       sm._autoSave();
-      // A FIRST close-flush trigger starts the write and clears the debounce
-      // timer (mirrors either the timer's own natural fire or an earlier
-      // flushPendingSaves() call).
       const first = sm.flushPendingSaves();
       const saveStillPendingAtSecondCall = typeof release === 'function';
-      // A SECOND caller runs while that write is STILL IN FLIGHT -- this is
-      // the exact interleaving Codex's reproduction names.
       const second = sm.flushPendingSaves();
       release();
       const [r1, r2] = await Promise.all([Promise.resolve(first), Promise.resolve(second)]);
@@ -1656,18 +1049,13 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
         JSON.stringify({ r1, r2 }));
     }
 
-    // Negative control: the underlying write ultimately FAILS -- both callers
-    // must observe the failure, not a false positive.
     {
       const sm = new StorageManager(vc, tagger, canvas);
       let release = null;
-      const backend = {
-        currentId: null, RETENTION: 25,
-        setCurrentSeason(id) { this.currentId = id; },
-        async loadSeason() { return null; },
+      const backend = backendFor({
         async saveSeason() { return new Promise(res => { release = () => res(false); }); },
-        async touchOpened() {}, diskStatus() { return { bound: false }; },
-      };
+        diskStatus() { return { bound: false }; }
+      });
       const store = new SeasonStore(backend);
       store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
       store.data = season('A', 'Season A');
@@ -1686,9 +1074,6 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
     }
   }
 
-  // -- (iii) the desktop close hook keeps the window open and surfaces the
-  //          error on a genuinely FAILED final save, instead of destroying
-  //          the window regardless -----------------------------------------
   {
     if (!globalThis.window) globalThis.window = globalThis;
     if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -1699,13 +1084,10 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
     const canvas = { ...noopEmitter, annotations: [] };
 
     const sm = new StorageManager(vc, tagger, canvas);
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
-      async saveSeason() { return false; },   // the final canonical write REJECTS
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
-    };
+    const backend = backendFor({
+      async saveSeason() { return false; },
+      diskStatus() { return { bound: false }; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -1714,12 +1096,7 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
     sm._serialize = () => ({ ...store.data.games[0] });
     let errorSurfaced = false;
     store.onPersistError = () => { errorSurfaced = true; };
-    // _persistNow()'s own _persistFailed() already calls onPersistError on a
-    // rejected persist() -- independent of the close hook. Pre-arming the
-    // "warned once already" guard suppresses THAT call, so the only way
-    // errorSurfaced can become true below is via _wireDesktopCloseFlush()'s
-    // OWN explicit call -- otherwise this assertion would pass even with
-    // that call deleted, since _persistNow's own signal would still fire.
+    // Isolate the close hook's warning from the save owner's separate warning.
     store._persistWarned = true;
 
     let destroyed = false;
@@ -1753,23 +1130,7 @@ section('15. A save dispatched after delete starts cannot resurrect the season, 
 }
 flush();
 
-// ============================================================================
-// 16. LOCK (closed PC-4 repair round 3) -- Codex's c962437 re-review of
-//     3dab9f4: pendingWrite() (and by extension the section-15 flush fix) is
-//     a SNAPSHOT of the most recently dispatched write, not a stable
-//     all-writes drain. If write B is dispatched behind write A while a
-//     caller is already awaiting A's snapshot, that caller's already-
-//     captured reference resolves the instant A settles, oblivious to B --
-//     section 15's own tests only proved two callers awaiting the SAME
-//     already-existing write, never a NEWER write arriving mid-await. Both
-//     branches (the timer-armed dispatch and the pendingWrite fallback) were
-//     reproduced directly against the committed classes before being fixed,
-//     using INDEPENDENTLY gated writes -- a first probe attempt raced the
-//     microtask queue instead and produced a misleading "safe" result purely
-//     from incidental .then()-hop-count timing, not a real guarantee; that
-//     construction defect is recorded here so it is not repeated.
-// ============================================================================
-section('16. flushPendingSaves() drains to a genuinely stable tail -- a write dispatched while an older one is still unresolved is never abandoned, and a freshly re-armed autosave mid-drain is picked up too [LOCK, closed PC-4 repair round 3]');
+section("Stable-tail flushing with independently gated writes");
 {
   if (!globalThis.window) globalThis.window = globalThis;
   if (!globalThis.document) globalThis.document = { getElementById: () => null };
@@ -1779,15 +1140,13 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
   const tagger = { ...noopEmitter, plays: [], toast() {} };
   const canvas = { ...noopEmitter, annotations: [] };
 
+  // Independent release gates prove ordering; microtask timing alone cannot.
   function gatedBackend() {
     const gates = [];   // one release fn per dispatched saveSeason call, in order
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() { return new Promise(res => { gates.push(v => res(v)); }); },
-      async touchOpened() {}, diskStatus() { return { bound: false }; },
-    };
+      diskStatus() { return { bound: false }; }
+    });
     return { backend, gates };
   }
   const freshStore = (backend) => {
@@ -1804,8 +1163,6 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
     return sm;
   };
 
-  // -- (i) timer-armed branch: B dispatched (persist()) while A is still
-  //        unresolved must be awaited too, before the flush resolves -------
   {
     const { backend, gates } = gatedBackend();
     const store = freshStore(backend);
@@ -1834,8 +1191,6 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
       JSON.stringify({ settledOnAAlone }));
   }
 
-  // -- (ii) same interleaving, but B FAILS -- the close hook must keep the
-  //         window open, not merely reflect A's earlier success ------------
   {
     const { backend, gates } = gatedBackend();
     const store = freshStore(backend);
@@ -1880,9 +1235,6 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
     }
   }
 
-  // -- (iii) the pendingWrite-fallback branch (a second flushPendingSaves()
-  //          call, matching beforeunload + close-requested both firing) is
-  //          drained just as stably -----------------------------------------
   {
     const { backend, gates } = gatedBackend();
     const store = freshStore(backend);
@@ -1913,9 +1265,6 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
       JSON.stringify({ settledOnAAlone }));
   }
 
-  // -- (iv) a debounce timer re-armed WHILE the flush is draining an
-  //         already-dispatched write is picked up before the flush resolves,
-  //         not lost -- Codex's explicit second requirement -----------------
   {
     const { backend, gates } = gatedBackend();
     const store = freshStore(backend);
@@ -1925,8 +1274,6 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
     const flushPromise = sm.flushPendingSaves();   // dispatches A (gates[0])
     await new Promise(r => setTimeout(r, 0));
 
-    // A fresh edit arms a NEW debounce timer while the flush is still
-    // draining A -- not a direct persist() call this time, the timer itself.
     sm._autoSave();
     await new Promise(r => setTimeout(r, 0));
 
@@ -1950,31 +1297,16 @@ section('16. flushPendingSaves() drains to a genuinely stable tail -- a write di
 }
 flush();
 
-// ============================================================================
-// 17. LOCK (closed PC-5 review repair, Codex `1de3c54`) -- SeasonStore.
-//     snapshot()/saveNow() create each backup ONCE. When diskStatus().bound
-//     is true, writeDisk()'s own internal createBackup() call is the SOLE
-//     owner; the backend's separate, directly-callable createBackup() must
-//     never be invoked a second time for the same write. And when writeDisk's
-//     internal attempt genuinely fails to produce a durable backup,
-//     snapshot()/restoreBackup() must fail closed -- never silently retry
-//     and never let the live season data be mutated.
-// ============================================================================
-section('17. snapshot()/saveNow() create each backup exactly once; a genuinely failed safety backup keeps restore fail-closed [LOCK, closed PC-5 review repair]');
+section("Single backup creation and fail-closed restore");
 {
-  // -- (i) snapshot(): writeDisk's internal success is used directly; the
-  //        separate createBackup() is never called a second time -------------
   {
     let directCalls = 0;
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() { return true; },
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      diskStatus() { return { bound: true }; },
       async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = { id: 'bk-internal', seasonName: data.seasonName }; return true; },
-      async createBackup() { directCalls++; return 'bk-should-not-happen'; },
-    };
+      async createBackup() { directCalls++; return 'bk-should-not-happen'; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -1986,20 +1318,14 @@ section('17. snapshot()/saveNow() create each backup exactly once; a genuinely f
       JSON.stringify({ directCalls, result }));
   }
 
-  // -- (ii) snapshot(): writeDisk's internal attempt genuinely fails a
-  //         durable write -- snapshot() reports failure honestly, never a
-  //         masked success, and never retries via the direct call -----------
   {
     let directCalls = 0;
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() { return true; },
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
-      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = null; return true; },   // the internal backup write genuinely failed
-      async createBackup() { directCalls++; return 'bk-should-not-happen'; },
-    };
+      diskStatus() { return { bound: true }; },
+      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = null; return true; },
+      async createBackup() { directCalls++; return 'bk-should-not-happen'; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A');
@@ -2011,19 +1337,14 @@ section('17. snapshot()/saveNow() create each backup exactly once; a genuinely f
       JSON.stringify({ result, directCalls }));
   }
 
-  // -- (iii) restoreBackup(): a genuinely failed safety snapshot (case ii's
-  //          exact shape) keeps restore fail-closed -- live data untouched --
   {
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() { return true; },
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
-      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = null; return true; },   // the pre-restore safety backup genuinely fails
+      diskStatus() { return { bound: true }; },
+      async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = null; return true; },
       async createBackup() { return null; },
-      async getBackup() { return season('A', 'Restored from backup'); },   // a real backup to restore FROM exists
-    };
+      async getBackup() { return season('A', 'Restored from backup'); }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     const live = season('A', 'Live unsaved edits');
@@ -2036,19 +1357,14 @@ section('17. snapshot()/saveNow() create each backup exactly once; a genuinely f
       JSON.stringify({ restored: restored, dataUnchanged: store.data === live }));
   }
 
-  // -- (iv) saveNow(): the same create-each-backup-once contract, for the
-  //         explicit "Save Season" path ---------------------------------------
   {
     let directCalls = 0;
-    const backend = {
-      currentId: null, RETENTION: 25,
-      setCurrentSeason(id) { this.currentId = id; },
-      async loadSeason() { return null; },
+    const backend = backendFor({
       async saveSeason() { return true; },
-      async touchOpened() {}, diskStatus() { return { bound: true }; },
+      diskStatus() { return { bound: true }; },
       async writeDisk(id, data, opts) { if (opts && opts.snapshot) opts.createdBackup = { id: 'bk-internal-2' }; return true; },
-      async createBackup() { directCalls++; return 'bk-should-not-happen'; },
-    };
+      async createBackup() { directCalls++; return 'bk-should-not-happen'; }
+    });
     const store = new SeasonStore(backend);
     store.currentSeasonId = 'A'; backend.setCurrentSeason('A');
     store.data = season('A', 'Season A', { games: [{ ...mkGame('g1'), plays: [{ id: 1 }] }] });

@@ -207,9 +207,12 @@ owns navigation. Keep them separate.
   old code proves it detects that bug; removing each defense in turn shows which
   one actually catches it.
 - **Off-gate matrix:** `node tools/pc-adversarial-matrix.mjs` checks synthetic
-  persistence contracts; every failed assertion exits nonzero. Section 13 uses injected services: an empty season roster
-  clears its prior roster; an empty cached playbook preserves populated calls.
-  Positive controls prove updates still work and roster players are copied.
+  import races, restore/close lifecycles and queued-write ownership; every
+  failed assertion exits nonzero. Basic catalog failure/sidecar contracts live
+  in `e2e-catalog-persistence`, backup scope in `e2e-sql-catalog`, and version
+  scope in `e2e-catalog-versions`, not repeated in the matrix. Its shared backend
+  fixture supplies platform boilerplate only; each case supplies its write
+  behavior. Injected roster/playbook checks retain their positive controls.
 - **Re-save, never just open.** Persistence checks edit and save, then reopen.
 - **A gate must be shown to fail.** Any runner or checker is verified against a
   known-green and a known-red run before it is trusted (`--self-test`).
