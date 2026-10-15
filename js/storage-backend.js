@@ -134,10 +134,7 @@ export class StorageBackend {
   }
   _tsSlug(d = new Date()) {
     const p = (n, w = 2) => String(n).padStart(w, '0');
-    // Millisecond suffix: backup/snapshot filenames are keyed on this slug, and
-    // two snapshots in the same SECOND (forced restore-point + autosave) used to
-    // produce an identical filename and overwrite each other. Zero-padded ms
-    // preserves chronological sort.
+    // Zero-padded milliseconds distinguish rapid snapshots while preserving filename order.
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}-${p(d.getMilliseconds(), 3)}`;
   }
 }
@@ -379,8 +376,7 @@ export class BrowserBackend extends StorageBackend {
     await this._tx('versions', 'readwrite', os => os.delete(key));
     return true;
   }
-  /** Same eviction rule as the catalog and the old VersionManager: at most 20
-   *  per game, automatic saves before named ones, oldest first. */
+  /** Keep at most 20 versions per game; evict automatic saves before named ones, oldest first. */
   async _pruneVersions(seasonId, gameId) {
     const recs = await this._versionRecords(seasonId, gameId);
     let over = recs.length - 20;

@@ -83,9 +83,6 @@ export class StorageManager {
   }
 
   _bindEvents() {
-    // Final Engine Independence: the legacy #btnSave top-bar button is gone
-    // -- saveProject() is called directly from WorkspaceShell's More menu
-    // ("Save season") now, not proxied through a relocated legacy button.
     this.projectFileInput?.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       if (file) this.loadProject(file);
@@ -1305,9 +1302,7 @@ export class StorageManager {
     const wasActive = data && id === data.activeGameId;
     const beforeGames = data ? data.games.slice() : [];
     const beforeActive = data && data.activeGameId;
-    // Stash the node in memory so the post-delete toast can offer Undo (the
-    // undo stack is game-scoped by design — lesson #19 — so game deletion
-    // needs its own one-shot restore). Session-only, overwritten per delete.
+    // Game deletion has a session-only Undo stash; play history is game-scoped.
     const games = (this.seasonStore.data && this.seasonStore.data.games) || [];
     const gi = games.findIndex(g => g.id === id);
     // A new delete closes the PREVIOUS delete's undo window → purge that game's
@@ -1402,13 +1397,7 @@ export class StorageManager {
       return copy;
     });
 
-    // Film index — derive from the PLAYS' own clip identities (durable: they
-    // survive even when the film isn't in the library) UNIONED with the live
-    // playlist (fresh clips + real duration / load state). Deriving from the
-    // playlist ALONE silently WIPED a game's film index every time it was opened
-    // without its film loaded (79 clips -> 11, 83 -> 0, isMultiClip -> false).
-    // The plays keep clipName/clipPath, so they are the source of truth for
-    // which clips the game references; the index must never shrink below them.
+    // Preserve play-backed clip identities even when no film is loaded.
     const clipIndex = this._buildClipIndex();
 
     return {
@@ -1485,16 +1474,8 @@ export class StorageManager {
     return true;
   }
 
-  // Ordered clip index for the game node: the game's OWN durable clip records,
-  // unioned with every clip the PLAYS reference (their durable clipName/
-  // clipPath) and with the live playlist's load state. Never shrinks below what
-  // the plays reference — the fix for the film-index wipe — and never below what
-  // the game already recorded, which is the fix for the reverse wipe: opening a
-  // game WITHOUT its film left the playlist empty, so a save rebuilt the index
-  // from the plays alone and silently pruned every clip that had no play
-  // (OL Lakes: 89 durable records against 83 charted clips). The only way an
-  // identity leaves is `forgetClipIdentity` — a deliberate in-app deletion —
-  // and only when no surviving play still references it.
+  // Union durable clips, play references and live playlist state in stable order.
+  // Only forgetClipIdentity can remove an identity, and never while a play references it.
   _buildClipIndex() {
     const order = [];
     const byId = new Map();
@@ -1636,7 +1617,6 @@ export class StorageManager {
   _projectFileBase() {
     const projectName = (this.gameInfo && this.gameInfo.projectName) || '';
     const raw = projectName || (this.videoFileName || 'project').replace(/\.[^.]+$/, '');
-    // Filesystem-safe slug
     return raw.trim().replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'project';
   }
 
@@ -1736,13 +1716,11 @@ export class StorageManager {
       return;
     }
 
-    // Create offscreen canvas at video resolution
     const offscreen = document.createElement('canvas');
     offscreen.width = video.videoWidth;
     offscreen.height = video.videoHeight;
     const ctx = offscreen.getContext('2d');
 
-    // Draw video frame
     ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
     // Draw annotations on top (scale from normalized to video resolution)
@@ -1902,7 +1880,6 @@ export class StorageManager {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) return { count: 0, error: 'Need at least a header row and one data row' };
 
-    // Detect delimiter
     const firstLine = lines[0];
     let delim = ',';
     if (firstLine.split('\t').length > firstLine.split(',').length) delim = '\t';
@@ -1929,7 +1906,6 @@ export class StorageManager {
 
     const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-    // Map headers to our tag field names
     const colMap = {};
     const aliases = {
       playtype: 'playType', type: 'playType', odk: 'playType',
@@ -2061,13 +2037,7 @@ export class StorageManager {
         charted = true;
       }
 
-      // Skip only a row where the coach charted NOTHING. The old guard demanded a
-      // playType, result, yardage, down, or penalty, so a play charted solely as
-      // "Shotgun + Trips" or "Cover 3" was silently DROPPED on import — which
-      // contradicts the standing rule that a coach may chart only the fields they
-      // want (blank values are valid; Save & Next never required a chip). `charted`
-      // is set by the mapping loop above, so any real value on any mapped column
-      // keeps the row, while a genuinely blank row is still skipped.
+      // Keep any row with a charted mapped value; skip only genuinely blank rows.
       if (!charted && !notes && !penalties.length && !resultingSituation) continue;
 
       const play = {

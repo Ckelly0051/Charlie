@@ -278,12 +278,7 @@ export class SeasonStore {
     SeasonStore.ST_ALIGNMENT_KEYS.forEach(k => { if (p.tags[k]) p.tags[k] = ''; });
   }
 
-  // Our custom defensive fronts (the .our-def-only chips in index.html) can never
-  // be a "defense faced" on an OFFENSE snap — the opponent doesn't run our team's
-  // named fronts. So an our-own front on a non-defense play is carry leak (the
-  // Save-&-Next carry copied our defensive front onto an offense snap before the
-  // v1.9.20 same-unit fix). Strip just those components, keeping any real faced
-  // front: "Maverick + 5-2" → "5-2", "Maverick" → "". Mirrors the chip list.
+  // Remove our named defensive fronts from non-defense snaps, preserving faced fronts.
   static OUR_DEF_ONLY_FRONTS = ['Maverick', 'Eagle', 'Falcon', 'Jumbo Shift'];
   static stripLeakedFronts(p) {
     if (!p || !p.tags || countedUnit(p) === 'defense') return;
@@ -888,11 +883,7 @@ export class SeasonStore {
     const body = isOpen ? this.data : await this.peekSeason(scout);
     if (!body || body.kind !== 'scout') return { ok: false, reason: 'not-a-scout' };
     const previous = String(body.programSeasonId || '');
-    // ALWAYS a copy, never the live object. Sharing the reference made the live
-    // update a side effect of building the payload, so the explicit assignment
-    // below could be deleted with no visible consequence -- a guard that cannot
-    // fail is not a guard. The two updates are now independent and each is
-    // separately provable.
+    // Copy the payload so constructing it cannot mutate live state.
     const payload = JSON.parse(JSON.stringify(body));
     payload.programSeasonId = parent;
     if (isOpen) this.data.programSeasonId = parent;
@@ -992,9 +983,7 @@ export class SeasonStore {
     // canonical save that failed first.
     const writeOpts = { snapshot: true, label: label || 'Manual save', prompt: true };
     if (this.diskStatus().bound) {
-      // Queued, not direct: see the identical writeDisk fix on snapshot()/
-      // bindDisk() above -- keeps this write ordered against a concurrent
-      // debounced disk-mirror or restore-point write for the same season.
+      // Queue this write with the season's other mirror and restore-point writes.
       wroteDisk = await this._enqueueWrite(seasonId, () => this.backend.writeDisk(seasonId, data, writeOpts));
     }
     if (writeOpts.createdBackup === undefined) {

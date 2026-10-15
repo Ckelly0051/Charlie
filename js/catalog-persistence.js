@@ -11,13 +11,8 @@ export class CatalogPersistence {
     this._tail = Promise.resolve();
   }
 
-  /**
-   * One writer at a time. Every mutation changes the shared in-memory db and
-   * exports all of it; unserialized, a slower earlier write could land last and
-   * lose a later one, and a rollback could undo someone else's change. Each
-   * mutation's snapshot, change, disk write and rollback run inside this queue.
-   * Reads are not queued; no queued method calls another.
-   */
+  /** Serialize each mutation's snapshot, change, durable write and rollback.
+   * Reads are unqueued; queued methods must not call each other. */
   _exclusive(fn) {
     const run = this._tail.then(fn, fn);
     this._tail = run.then(() => {}, () => {});
@@ -68,11 +63,7 @@ export class CatalogPersistence {
       let okDb = false;
       try { await this.fs.writeDb(this.catalog.toBytes()); okDb = true; } catch (e) { okDb = false; }
       if (!okDb) {
-        // The on-disk db is unchanged (write failed); re-sync memory to it so
-        // the in-memory catalog cannot diverge from disk, mirroring
-        // deleteSeason()'s own rollback shape. A failed canonical commit must
-        // produce zero writes anywhere -- json, mirror, or the in-memory
-        // catalog itself.
+        // Restore memory from rollback bytes; a failed canonical save must not reach the mirror.
         try {
           this.catalog.close();
           await this.catalog.open(snapshot && snapshot.length ? snapshot : undefined);

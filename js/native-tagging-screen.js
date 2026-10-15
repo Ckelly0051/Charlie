@@ -175,14 +175,7 @@ export class NativeTaggingScreen {
       const group = this.app.customChips?.library?.group?.(key);
       return group ? group.values.filter(value => group.enabled.includes(value)) : [];
     };
-    // PlayDiagram.toDataURL is the same static renderer the legacy preview
-    // canvas and the Call Sheet thumbnail already use — rendering to a fresh
-    // detached canvas here instead of reading a persistent <canvas>
-    // element's own .toDataURL() means the diagram no longer needs a
-    // permanent DOM home. Called for every play with a selection (matching
-    // the old preview canvas, which rendered the blank-field background even
-    // with zero shapes) so this is a genuine no-op for display, not a
-    // behavior change.
+    // Render a detached diagram canvas for every selected play, including an empty diagram.
     let diagram = '';
     try { if (play) diagram = PlayDiagram.toDataURL(play.diagram || []); } catch {}
     const playbookCalls = this.app.playbook?.list?.() || [];
@@ -316,8 +309,6 @@ export class NativeTaggingScreen {
     this._saveTimer = setTimeout(() => { this._saveConfirmed = false; this._queuePublish(); }, 650);
   }
   skip() { this.app._advancePlay({skip:true}); }
-  // S7 demolition: every one of these now calls a real domain method directly
-  // — no hidden checkbox, no synthetic click, no fake DOM event/target mock.
   setAutoDD(value) { const ok=this.tagger?.setAutoDD?.(value); if(ok)this._queuePublish(); return !!ok; }
   setCarryScheme(value) { const ok=this.tagger?.setCarryScheme?.(value); if(ok)this._queuePublish(); return !!ok; }
   addPenalty() { return this.app.breakdownCharting?.addPenalty?.() === true; }
@@ -367,19 +358,7 @@ export class NativeTaggingScreen {
     return done && typeof done.then === 'function' ? done.then(after) : after(done);
   }
 
-  /**
-   * F2a — perspective is DERIVED, never asked for.
-   *
-   * Charting our own game, the perspective simply IS the unit: pick Defense and
-   * you are looking at our defense. Charting an opponent against a third team,
-   * the subject is the team being charted no matter which unit is selected. So
-   * the only thing a coach ever had to decide is already decided at game setup,
-   * and the per-play control was pure extra clicking.
-   *
-   * `scout` is therefore sticky: it is a property of the FILM, set when the game
-   * is created, and a unit change must never silently turn opponent film into
-   * our own game.
-   */
+  /** Perspective derives from game setup; unit changes must preserve scout film identity. */
   _derivePerspective(unit) {
     // fromUnit: the service refuses this while scouting, so a unit change can
     // never silently turn opponent film into one of our own games.

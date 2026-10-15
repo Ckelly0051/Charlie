@@ -126,9 +126,7 @@ export class PlayTagger {
     return untouched ? p : null;
   }
 
-  /** Marking needs film. Clicking Mark with nothing loaded used to no-op
-   *  silently — the #1 novice trap ("is the app broken?"). Loaded = the src
-   *  attribute (set by setSrc/loadUrl, removed by unloadVideo) or currentSrc. */
+  /** Film is loaded when src or currentSrc is present. */
   _requireVideo() {
     const el = this.vc && this.vc.videoElement;
     if (el && (el.getAttribute('src') || el.currentSrc)) return true;
@@ -217,8 +215,6 @@ export class PlayTagger {
     );
     if (!ok) return;
 
-    // In-situ recovery (UX audit A2): the deletion lands on the undo stack —
-    // offer Undo right in the toast instead of requiring Ctrl+Z knowledge.
     const undoToast = () => {
       if (this.toast) this.toast(`Deleted Play ${id}`, {
         action: { label: 'Undo', fn: () => this.history?.undo() },
@@ -239,11 +235,8 @@ export class PlayTagger {
       return;
     }
 
-    // Single-video mode: remove the play. Keep the film loaded while other
-    // plays remain — select the adjacent play so tagging flows on.
-    // This branch also covers deleting a play with NO film loaded, which is
-    // where a durable clip record used to survive its own play indefinitely:
-    // the playlist is empty, so nothing else ever signalled the removal.
+    // Keep film loaded while plays remain, selecting the adjacent play.
+    // Also remove durable clip identity when deleting a play without loaded film.
     const idx = this.plays.findIndex(p => p.id === id);
     const removedIdentity = ((play?.clipPath || play?.clipName) || '').trim();
     if (removedIdentity) this.storage?.forgetClipIdentity?.(removedIdentity);
@@ -289,8 +282,6 @@ export class PlayTagger {
     // form and only refresh on play-selected — re-announce the (now blank)
     // play so they don't stay lit and read as "the clear didn't work".
     if (play) this._emit('play-selected', play);
-    // In-situ recovery (UX audit A2): the clear is on the undo stack — offer
-    // it right here instead of requiring the coach to know Ctrl+Z.
     if (play && this.toast) {
       this.toast(`Cleared tags on Play ${id}`, {
         action: { label: 'Undo', fn: () => this.history?.undo() },
@@ -970,12 +961,7 @@ export class PlayTagger {
     play.tags.yardage = String(neg ? -mag : mag);
   }
 
-  // Mutually-exclusive members within a multi-select field: a play can't be
-  // both Gain and Loss, or two realized pass looks. Single source of truth for
-  // BOTH the charting deck (toggleTagValue) and the Film Room grid's
-  // inline editor, so the two can never disagree (they used to: the grid had no
-  // exclusivity and could store "Gain + Loss", which then flipped a gain
-  // negative in _applyEdit).
+  // Shared exclusivity rules for Chart and Film Room prevent contradictory multi-select values.
   static EXCLUSIVE_GROUPS = {
     result: [['Gain', 'Loss', 'No Gain', 'Incomplete', 'Sack', 'Kneel', 'Spike'],
              ['Good', 'No Good']],
@@ -1046,13 +1032,7 @@ export class PlayTagger {
   }
   static UNIT_NAMES = Object.freeze({ offense: 'Offense', defense: 'Defense', special: 'Special Teams' });
 
-  /**
-   * The coach-facing, STICKY unit change (the toggle a coach taps while
-   * charting). Named distinctly from `setUnit()` below, which is an internal
-   * carry-forward helper (auto-fills an untagged play's unit from the
-   * previous one) with deliberately different, non-sticky semantics — the two
-   * used to share a name by coincidence, which silently shadowed one of them.
-   */
+  /** Sticky coach-facing unit change; setUnit() only carries a unit into an untagged play. */
   setChartingUnit(unit) {
     if (!['offense', 'defense', 'special'].includes(unit)) return false;
     // Sticky once applied: the coach's choice seeds the next new play.
@@ -1335,10 +1315,7 @@ export class PlayTagger {
    * clears the mark and freezes the values (see setTagValue).
    */
   applyNextSituation(prev, next) {
-    // The game clock doesn't reset when the ball changes hands — carry the
-    // quarter into a blank field no matter how the previous play ended (it
-    // used to carry only mid-possession, so every score/punt/turnover dropped
-    // it and the next series came up unquartered).
+    // Carry the quarter into a blank field even when possession changes.
     const carriedQuarter = !next.tags.quarter && !!prev.tags.quarter;
     if (carriedQuarter) next.tags.quarter = prev.tags.quarter;
 
