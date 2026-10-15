@@ -130,7 +130,7 @@ export class AdvancedMetrics {
       const m = {};
       const projected = StatsEngine.PROJECTED_FIELDS.includes(key);
       for (const x of withEpa) {
-        // E3b: read the PROJECTED value for the six projected fields, and OMIT a
+        // Read look fields through their shared owner, and omit a
         // blank instead of imputing 'Unknown' (§6.4) — an alignment-only play has
         // no structural formation and must fall out of formation EPA, not invent a
         // category. Non-projected keys keep their existing 'Unknown' bucket.

@@ -97,13 +97,11 @@ global app instead of its owner or an injected dependency.
 native owner; each one is an escaping risk.
 - `js/scoreboard-ocr.js` 4 (OCR is parked)
 
-The two active editors use the shared overlay owner. Each opening has its own
-component lifecycle: replacing a diagram discards local marks; replacing
-Detection Review stops and removes its previous preview listener. Both reset
-checks fail without the opening key. Installed drawing and real-film preview
-still need smoke; this job has not run the full gate or built an installer.
+Installed drawing and real-film Detection Review preview still need smoke.
+Their shared overlay owners have per-opening lifecycles covered by focused
+replacement/reset checks.
 
-**`js/stats-engine.js` size** (6,549 lines). Split by area, with `e2e-parity`
+**`js/stats-engine.js` size.** Split by area, with `e2e-parity`
 proving no change. The split is part of the reports rebuild
 (`GRIDIRON-IQ-PLAN-V2.md`, coach 2026-10-10), so changes until then skip it.
 

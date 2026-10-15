@@ -1,22 +1,6 @@
-/* CONTEXT OWNERSHIP HARNESS (Node) --------------------------------------------
-   Codex review of f698ef0b (2026-10-02). Each case below was reproduced against
-   the committed classes before its repair:
-
-     1. A failed season read opened an EMPTY season, and the next persist()
-        replaced the saved plays with zero plays.
-     2. A version restore that waited on its reads finished against whatever
-        game was open by then: it backed up B, replaced B with A's snapshot and
-        committed B.
-     3. Two overlapping season opens finishing out of order left the season id
-        and backend pointer on B while the loaded data was A.
-     4. Film repair resumed after its copy without checking the context: A's
-        video loaded into B and commitActive() committed B.
-     5. Film repair reported success when the season save failed.
-     6. On desktop, every canonical save was followed 2.5s later by a deferred
-        disk sync that saved the whole season AGAIN, although the canonical
-        save had already written the recovery mirror.
-
-   Run:  node tools/e2e-context-ownership.mjs */
+/* Persistence context contracts: failed reads preserve the active season,
+ * latest-wins opens keep pointers/data together, restores and film repair
+ * fence their owner across awaits, and desktop saves write once. */
 import { SeasonStore } from '../js/season-store.js';
 import { CatalogPersistence } from '../js/catalog-persistence.js';
 import { VersionManager } from '../js/version-manager.js';

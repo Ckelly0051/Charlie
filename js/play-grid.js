@@ -75,7 +75,7 @@ export class PlayGrid {
     { key: 'notes',     label: 'Notes',      type: 'text' },
   ];
 
-  // E3b coach decision: Offense/Default place QB Alignment AFTER Formation;
+  // Offense/Default place QB Alignment after Formation;
   // Defense places Coverage Family AFTER Coverage Call.
   static PRESETS = {
     default: ['sit', 'playCall', 'formationFamily', 'receiverSet', 'qbAlignment', 'playType', 'result', 'yardage', 'penalty'],
@@ -299,8 +299,8 @@ export class PlayGrid {
       const counts = {};
       let total = 0;
       visible.forEach(p => {
-        // E3b: DISPLAY surface → read the PROJECTED value for the six projected
-        // fields (raw passthrough otherwise). The inline EDITOR still reads/writes raw.
+        // Look fields use the shared reader; other fields pass through raw.
+        // The inline editor writes the coach's explicit stored value.
         const vals = String(StatsEngine.projField(p, col.key) || '')
           .split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
         // §6.5 ELIGIBLE denominator: `total` counts each eligible PLAY ONCE — never

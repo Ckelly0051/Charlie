@@ -1,48 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
-/* CANONICAL SEASON SAVE/REOPEN DURABILITY PROOF — the pre-package item named
-   as outstanding since early E3b and never substituted for by anything in
-   E4-1/E4-2. Every existing projection test (e2e-tag-projform.mjs,
-   e2e-film-room.mjs) proves persistence only within the SAME live session:
-   its "revisit" is `t.selectPlay(id)` in the same page, and e2e-integrity.mjs's
-   "reload" op calls `backend.loadSeason()` in the same JS context and checks
-   only play COUNTS. None of them tear down the live app and reload from
-   nothing but what actually landed in the canonical store — the one thing a
-   coach closing and reopening the app actually does.
-
-   This harness does that for real: tag plays through the REAL tag-form/Film-
-   Room UI (genuine field-level commits, not hand-built tag objects), commit +
-   persist through the REAL StorageManager/SeasonStore path, then
-   `page.reload()` — which destroys every live JS object, including
-   `window.app` itself — and reopen the season fresh from BrowserBackend's
-   localStorage store, the same canonical path a relaunch uses. Only then is
-   the play's raw AND projected state re-read and compared against what was
-   true before the reload — the relevant projection fields (unit, formation,
-   qbAlignment, backfield, strength, coverage, coverageFamily) via the `pick()`
-   helper below, not a literal full-object diff (reload legitimately fills in
-   unrelated blank schema keys a hand-built synthetic fixture may omit; see
-   the `pick()` comment).
-
-   Covers, through this genuine reload boundary (every play is current format;
-   each look field is its own field — legacy excision step 7):
-     1. Clearing the formation chip leaves the QB alignment untouched.
-     2. A coverage call added beside a stored coverage family.
-     3. Pistol + Empty backfield, committed via an explicit Formation edit.
-     4. The same look, committed via Save & Next.
-     5. A Film Room grid edit on Backfield.
-     6. A QB alignment CLEAR (re-tapping the active chip) is stored, not hidden.
-     7. A fully charted play as a plain sanity baseline.
-   Plus: history is fresh (no leaked undo stack) after the reopen, play count
-   is unchanged, and cross-surface parity (tag-form chip state) matches
-   pre-reload for every case.
-
-   A second, optional section repeats the same shape against a COPY of a real
-   season -- the canonical current-format fixture (tools/canonical-season.mjs),
-   fail-open convention as e2e-realdata.mjs's GIQ_REALDATA_OPTIONAL — a
-   missing mirror is a skip, never a silent false pass, and it is never
-   written back to).
-
-   Run after build: npm run build && node tools/e2e-projform-durability.mjs */
+/* Save and reopen through the real browser store, destroying the live app
+ * with page.reload(). Verify independent look fields, chip state and fresh Undo.
+ * The optional canonical-fixture section works on an in-memory copy only. */
 import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import path from 'path';
@@ -69,7 +29,7 @@ const frame = () => page.evaluate(() => new Promise(res => requestAnimationFrame
 // Final Engine Independence: .tag-section/#tagFormation etc. are deleted.
 // The native form's chip buttons carry no data-value attribute -- they are
 // matched by their rendered text, same convention as every other rewritten
-// harness this checkpoint (e2e-tag-fields.mjs, e2e-tag-library-settings.mjs).
+// field/library harnesses (e2e-native-tagging.mjs, e2e-tag-library-settings.mjs).
 // mountNativeForm() must be called once per fresh page context (initial load
 // AND after every page.reload(), since reload destroys window.app entirely).
 const mountNativeForm = () => page.evaluate(() => {

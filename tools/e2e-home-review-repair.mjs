@@ -1,20 +1,5 @@
-/* Regression coverage for the CODEX REVIEW OF ccce567 -- CHANGES REQUESTED
-   (2026-08-31) repair. Five findings, each with its own discriminating
-   proof here rather than a single broad assertion:
-     1. The year-grouped season rail and library/first-use states are real,
-        functioning Home content -- not a placeholder link out.
-     2. (No dedicated test -- a dependency-audit/commit-scope finding, not a
-        runtime behavior. See the repair changelog entry instead.)
-     3. GameThumbnailService and HomeScreen.requestThumbnail() fence
-        resolution to the season/request identity captured at request time,
-        never applying a stale or wrong-identity result.
-     4. Thumbnail decode is visibility-driven (IntersectionObserver), not
-        fired for every mounted card regardless of scroll position.
-     5. .ws-game-row stretches its thumbnail to the card's full width instead
-        of inheriting the legacy shell row's align-items:center.
-
-   Original mutation evidence is recorded with the corresponding repair.
-   Sections 6-8 cover the independently reproduced e3930fb findings. */
+/* Home library/first-use content, season-scoped thumbnail requests, visibility-
+ * driven decoding and full-width card thumbnails through the native route. */
 import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from './test-browser.mjs';

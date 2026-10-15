@@ -43,45 +43,9 @@ const measure=async(width,height,focus)=>{
     return{composition:{left:theater.left,right:innerWidth-deck.right},theater:{left:theater.left,right:theater.right,width:theater.width},media:{left:media.left,right:media.right,top:media.top,bottom:media.bottom,width:pictureWidth,height:pictureHeight},deck:{left:deck.left,right:deck.right,width:deck.width,display:getComputedStyle(document.querySelector('.gi-breakdown-deck')).display},type:{route:styleOf('.gi-breakdown-toolbar button'),eyebrow:styleOf('.gi-breakdown-deck .gi-tag-title .gi-eyebrow'),title:styleOf('.gi-breakdown-deck .gi-tag-title h2'),unit:styleOf('.gi-breakdown-deck .gi-unit-switch button'),action:styleOf('.gi-breakdown-deck .gi-native-tagging>.gi-tag-actions button'),chip:styleOf('.gi-breakdown-deck .gi-tag-chips button')},libraryAlignment,overlap:Math.max(0,Math.min(media.right,deck.right)-Math.max(media.left,deck.left))*Math.max(0,Math.min(media.bottom,deck.bottom)-Math.max(media.top,deck.top)),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,tagOverflow:tagging?tagging.scrollWidth-tagging.clientWidth:0,tagOffenders,rows:theaterRows,focus:button?.getAttribute('aria-pressed'),stored:localStorage.getItem('ffa_breakdown_film_focus')};
   });
 };
-// Broadcast Density Part 1 (CLAUDE.md, 2026-08-16) adds a REQUIRED live
-// below-film lower-third between the stage and the transport. A visible,
-// legible strip necessarily spends some of the stage's minmax(...,1fr) row —
-// there is no padding trim that makes it free.
-//
-// CORRECTED (Codex review 2026-08-16, commit 2d4a5df): the first version of
-// this comment claimed every case "still materially exceeds" the
-// pre-lower-third legacy baseline. That is false and the review named the
-// exact contradiction — 945x531.5 does not exceed 963x542. The accepted
-// lower-third costs a modest, real amount of picture; that is a disclosed
-// cost of the accepted composition, not a regression, but it must be
-// recorded as what it is. Also note (per the same review): media.width
-// below is the 16:9-CORRECTED PICTURE width
-// (Math.min(media.width, media.height*16/9)), so a height loss from the
-// chyron proportionally reduces the reported width too in every case below —
-// it is not only the height that moved.
-//
-// Measured before (pre-lower-third, S5a) -> after (accepted composition):
-//   1440 split:       963x542   -> ~945x531.5
-//   1920 split:      1338x753   -> ~1265x711.5
-//   1440 Film Focus:  1159x652  -> ~1116x627.5
-//   1920 Film Focus:  1479x832  -> ~1436x807.5
-// RE-MEASURED for V2-A (2026-08-23): the persistent Program/Season/Game
-// context bar (req 1 of the V2-A build contract) is coach-approved and
-// reachable on every route including Break Down, and even in its most
-// compact route-scoped form (22px, no label row, 11px value type -- shrunk
-// as far as it can go without becoming illegible) it costs a further real,
-// disclosed slice of the picture budget on top of the lower-third's own
-// disclosed cost above. Measured again, chyron-composition -> V2-A:
-//   1440 split:       ~945x531.5 -> ~906x509.5
-//   1920 split:      ~1265x711.5 -> ~1226x689.5
-//   1440 Film Focus:  ~1116x627.5 -> ~1076x605.5
-//   1920 Film Focus:  ~1436x807.5 -> ~1396x785.5
-// The floors below assert the ACCEPTED post-V2A picture budget (a small
-// margin under the measured values so normal rendering variance can't flake
-// this), not "still beats legacy" or "still beats the chyron composition" —
-// do not lower them further without the same kind of honest re-measurement,
-// and do not re-inflate the wording to claim they exceed either prior
-// baseline again.
+// Picture floors reserve space for the accepted context bar, lower-third and
+// navigation rail. Measure the actual 16:9 picture, not only its stage box.
+// Geometry thresholds change only with coach-approved composition changes.
 console.log('\n== 1. Default split improves film without crowding charting ==');
 let state=await measure(1440,900,false);
 ok(state.media.width>=895&&state.media.height>=500,'1440 split meets the accepted post-V2A picture budget (a small, disclosed reduction from the post-chyron 945x531.5)',JSON.stringify(state));
@@ -89,10 +53,7 @@ ok(state.media.width>=895&&state.media.height>=500,'1440 split meets the accepte
 // 400px deck, compact 18px play identity, and 12px/30px selection controls.
 ok(state.deck.width===400&&state.tagOverflow<=1,'1440 charting deck matches the approved bounded width',JSON.stringify(state));
 ok(state.composition.left===6&&state.composition.right===6,'1440 composition owns equal 6px outer gutters',JSON.stringify(state.composition));
-// SUPERSEDED 2026-09-22 (5d8936a): a chip field's Edit library sits beside
-// its own label (4-12px, the rule e2e-native-tagging pins) and never crosses
-// the module's 12px content inset; the play-call Edit Library keeps that inset
-// as its right edge.
+// Library actions share the content right edge without overlapping labels.
 ok(state.libraryAlignment.length>=3&&state.libraryAlignment.every(item=>item.gap>=4&&item.delta<=.5),
   'Every Edit library is at the section content right edge without overlapping its label',JSON.stringify(state.libraryAlignment));
 // The Chart chip is 27px by the registered charting comp (CLAUDE.md Density, VISUAL-SYSTEM-RULES); its type stays >=12px.

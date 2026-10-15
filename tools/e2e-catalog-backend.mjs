@@ -1,62 +1,6 @@
-/* A3 TauriBackend delegation regression (Codex review, flag-ON failure paths),
-   extended for PC-1's explicit-identity API (js/storage-backend.js).
-   The flag-OFF 33/33 suite never exercises these because BrowserBackend is the
-   headless default. Here we construct a TauriBackend directly from its owning
-   module with a FAKE window.__TAURI__ fs + an INJECTED fake catalog, so the
-   delegation contract is verified without the real wasm/desktop:
-     1. saveSeason() must PROPAGATE the catalog's boolean — a canonical (db) write
-        that returns false must NOT be reported as success.
-     2. deleteSeason() must RETAIN the season.json / mirror / library entry when
-        the catalog delete fails (else a stale db resurrects a season whose safety
-        copies are gone), and only remove them when the delete is durable.
-     3. PC-1: every identity-sensitive method (saveSeason/createBackup/listBackups/
-        getBackup/deleteBackup) now takes seasonId as an EXPLICIT first parameter.
-        An incorrect ambient this.currentId must not be able to redirect an
-        operation the caller explicitly scoped elsewhere -- proven directly by
-        pointing be.currentId at the WRONG season while passing the correct
-        explicit id, and confirming the explicit id wins.
-     4. PC-1 repair (Codex review c51a12c/4ae34e8, finding 2): a rejected
-        canonical save must not advance library.json metadata either --
-        saveSeason() used to call _touchMeta() unconditionally regardless of
-        the canonical result.
-     6. PC-2 repair (Codex review 89e34c6, finding 2): scanRecoverableSeasons()/
-        recoverSeasonFromMirror() must bind recovery identity to the snapshot's
-        OWN declared seasonId, never coerce it to match whatever mirror folder
-        it happened to be found under -- proven directly against the real
-        implementations with a genuinely valid envelope whose declared identity
-        disagrees with its folder.
-     7. PC-2 repair (Codex review 89e34c6, finding 3): recoverSeasonFromMirror()
-        must fail CLOSED when it cannot confirm whether the destination season
-        already exists, never default to "no conflict" and proceed to save.
-     8. PC-2 repair (Codex review d206b58, finding 1): recoverSeasonFromMirror()
-        rejects EVERY invalid unwrap() result, including the disclosed
-        'legacy-unenveloped' case, at the production boundary itself -- not
-        just via a disabled Team Hub button -- with zero catalog writes.
-     9. Found by a one-time dry run against a copy of the real coach catalog
-        (2026-08-22): SeasonStore.snapshot()
-        and StorageManager.saveNow() both called writeDisk({snapshot:true,
-        ...}) and then made a SEPARATE, immediate createBackup() call with
-        the identical payload. writeDisk()'s own internal createBackup() call
-        already created that backup; the redundant second call originally
-        collided with a de-dup guard that answered it with `null`, which
-        SeasonStore.snapshot()'s caller read as "no backup was created" even
-        though one genuinely was -- restore refused to proceed on the real
-        desktop app every single time.
-     10. PC-5 review repair (Codex re-review `1de3c54`, 2026-08-22): the
-        cache-based fix for finding 9 was itself unsafe -- it could return a
-        truthy cached id for a call whose OWN write had genuinely failed, and
-        it had no way to know a cached backup had since been deleted or
-        pruned. The structural fix instead REMOVES createBackup()'s cache
-        entirely (this method now performs a real write on every call, every
-        time) and closes the redundant-call shape at its root:
-        StorageManager.writeDisk() now reports its own internal backup result
-        back to its caller via an out-parameter (opts.createdBackup), so
-        SeasonStore.snapshot()/saveNow() read the REAL, already-durability-
-        verified result instead of ever calling createBackup() a second time
-        for the same payload. Section 3c below now proves the corrected
-        contract directly at this layer: two genuinely separate calls with
-        identical data create two genuinely separate rows (no cache), and a
-        failed catalog write is never masked as a truthy id. */
+/* Desktop backend delegation and failure contracts over synthetic catalog,
+ * file and version stores. Exercise real backend owners, not reimplemented
+ * persistence logic; every refused write must preserve its prior state. */
 import { TauriBackend } from '../js/storage-backend.js';
 import { SnapshotEnvelope } from '../js/snapshot-envelope.js';
 

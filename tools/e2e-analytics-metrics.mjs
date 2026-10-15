@@ -1,19 +1,5 @@
-/**
- * Pure-Node contract tests for js/analytics-metrics.js — the shared cohort/
- * metric seam for the bounded analytics architecture cleanup. No browser: the
- * module is genuinely DOM-free, and so are the StatsEngine statics + the
- * `this`-free instance methods (_isSuccessfulPlay, _isSuccessfulPlayEligible,
- * _buildCutFilter for the cut types exercised here) it reuses rather than
- * reimplements.
- *
- * Covers the five Codex review findings from 2026-08-14 explicitly, each
- * under its own section header below:
- *   1. Metric polarity is per unit (offense-produced vs defense-framed pairs).
- *   2. Metric and film cohorts cannot silently disagree (allowUnlinkedPlays).
- *   3. Missing/insufficient data is a distinct state, not silently "ok".
- *   4. (Registry duplication — see e2e-analytics-registry.mjs / AnalyticsRegistry.metricsEngine().)
- *   5. (missingAsZero forwarding is asserted with strict inequality below.)
- */
+/* DOM-free analytics cohort/metric contracts: unit polarity, exact eligible
+ * film refs, missing-data state and missingAsZero forwarding. */
 import assert from 'node:assert/strict';
 import { StatsEngine } from '../js/stats-engine.js';
 import { AnalyticsMetrics, MetricPolarity, compositeRef } from '../js/analytics-metrics.js';

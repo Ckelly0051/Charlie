@@ -667,16 +667,7 @@ ok(type.thSize === 12.5 && type.thWeight === 600 && /Plex Sans/.test(type.thFace
   'table headers are 12.5px semibold Plex Sans', `${type.thSize} / ${type.thWeight}`);
 ok(type.tdSize === 13 && type.rowHeight === 38, 'table rows are 13px on 38px rows',
   `${type.tdSize} / ${type.rowHeight}`);
-/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the
-   coach-facing floor; this board has not been migrated to it, because raising
-   its labels means re-deriving its fixed row math. The migration is open work
-   in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC FIXTURE, so it cannot
-   establish the value: the canonical minimum is measured by
-   `tools/e2e-reports-typefloor-realdata.mjs` and mirrored here as a same-fixture
-   regression guard only. The smallest
-   text on this board is 11px, so that is pinned EXACTLY: the board cannot
-   drift further from the floor while it waits, and this number moves only when
-   the migration moves it. */
+// The shared type floor applies to every visible label on this fixture.
 const SEASON_TYPE_FLOOR = 12.5;
 ok(type.floor >= SEASON_TYPE_FLOOR,
   `the board holds the shared ${SEASON_TYPE_FLOOR}px coach-facing floor`,

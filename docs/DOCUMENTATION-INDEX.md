@@ -97,6 +97,8 @@ log.
   mapped in `AGENTS.md`, with exact module coverage guarded by `e2e-p0-exit`.
   Runtime engine privacy now shares the existing shell journey; the redundant
   off-gate shell diagnostic is removed. These changes are not in installer 118.
+  Obsolete repair-history commentary and false type-floor deferrals are removed;
+  production executable syntax and the built assets are unchanged.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and

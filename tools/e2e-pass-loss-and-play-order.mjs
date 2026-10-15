@@ -1,15 +1,5 @@
-/* PASS-FOR-LOSS AND PLAYBACK ORDER HARNESS (Node) -----------------------------
-   Codex review of f698ef0b (2026-10-02), both reproduced before the repair:
-
-     - A completed pass stopped behind the line (Run/Pass Pass, result Loss,
-       -3 yards) produced 0 attempts, 0 completions and -3 passing yards: the
-       completion check knew Gain, No Gain and Touchdown only. The same gap was
-       in the Defense board, play action, individual credits and Study.
-     - Cut-ups sorted by timestamp.start. In a multi-clip game each play's
-       timestamps are local to its own clip, so play 1 starting 30s into its
-       clip played after plays 2 and 3 starting at 0 in theirs.
-
-   Run:  node tools/e2e-pass-loss-and-play-order.mjs */
+/* Completed passes for a loss count as attempts, completions and signed yards.
+ * Multi-clip cut-ups use play order; continuous film uses its timeline. */
 import { StatsEngine } from '../js/stats-engine.js';
 import { CutupPlayer } from '../js/cutup-player.js';
 import { CrossGameCutup } from '../js/cross-game-cutup.js';

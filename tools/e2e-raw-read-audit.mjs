@@ -1,28 +1,7 @@
-/* E3a-6b — AST-based raw-read audit: the SECOND line of defense (§19 item 6b).
-   The behavioral tests (e2e-analytics-projection.mjs) are the primary, syntax-proof
-   guarantee; this catches a raw read on a surface nobody wrote a behavioral probe
-   for. A grep is insufficient — the analytics code already uses optional chaining
-   (`p?.tags?.formationFamily`), computed brackets (`p?.tags?.[key]`), aliases
-   (`const t = p.tags; t.formationFamily`) and destructuring, all of which evade a string
-   match. So we PARSE each file and walk member expressions rooted at a `.tags`
-   object.
-
-   For the six projected fields (formationFamily/receiverSet/backfield/strength/coverage/qbAlignment/
-   coverageFamily) this FAILS on any resolvable raw read:
-     - dot / optional-chain:      X.tags.formationFamily   X?.tags?.formationFamily
-     - bracket string literal:    X.tags['formationFamily']
-     - alias:                     const t = X.tags; … t.formationFamily
-     - destructuring:             const { formation } = X.tags
-   and FLAGS every computed `X.tags[expr]` (expr not a string literal) for manual
-   classification — it can't be resolved statically, so a human must confirm it
-   never routes one of the six fields around StatsEngine.proj. Each flag must be
-   ACKnowledged with a reason, or the audit fails (a NEW unreviewed computed read
-   is a finding).
-
-   Scan (E3a): the analytics engine, its registry, and the parity harness. The
-   allowlist may name ONLY sites inside these scanned files (§19). E3b widens the
-   scan to Study/Film Room/export consumers.
-   Run: node tools/e2e-raw-read-audit.mjs */
+/* Parse analytics and display consumers to enforce the shared look-field read.
+ * Resolve direct, optional, aliased and destructured tag accesses. Computed
+ * accesses require exact method/expression/count acknowledgements; sensitivity
+ * probes reject a new site, moved site, duplicate or removed expression. */
 import { parse } from 'acorn';
 import fs from 'node:fs';
 import path from 'node:path';

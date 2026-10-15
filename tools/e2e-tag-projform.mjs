@@ -1,51 +1,10 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
-/* E4 (D-projform) — docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §18. The tag FORM (not Film
-   Room's grid, covered separately by e2e-film-room.mjs) shows each look field as
-   stored and writes only on the coach's explicit edit. Plays are current format
-   (legacy excision step 7): the promote/strip of old combined values is deleted
-   with the old shape, and so are the sections that tested it. Proves the
-   five coach-approved safeguards + the "must prove" list from §20:
-     1. Opening/selecting a play NEVER writes.
-     2. Programmatic form load MUST NOT mark the play dirty.
-     3. An explicit save writes ONLY the affected field — field-level merge,
-        never a whole-tags replace.
-     4. Editing one field never rewrites a sibling that already has an
-        explicit value (existing explicit sibling wins).
-     5. Clearing a value is intentional (a coach re-tapping an active chip
-        gets a real clear, not a silent revert).
-     6. Formation, QB Alignment, Coverage Call, and Coverage Family round-trip
-        INDEPENDENTLY.
-     7. The tag form's write lands in the SAME shape Film Room / the registry
-        already independently prove correct — no new divergent write path.
-
-   IMPORTANT test-harness discipline (found the hard way while writing this):
-   NEVER hold a play OBJECT reference across a page.evaluate() boundary.
-   Something in the app (autosave/commit cycle) can rebuild tagger.plays with
-   fresh objects between evaluate calls, orphaning any JS-side captured
-   reference from an earlier call while t.plays holds a new object with the
-   same id. Every section below re-fetches its play via t.getPlay(id) FRESH,
-   inside the SAME evaluate call it acts on it.
-
-   All tag clicks, history restores, and form reloads asserted below are
-   synchronous production operations. Keep those page.evaluate callbacks
-   synchronous too: double-requestAnimationFrame waits previously left a
-   remote Promise alive across the CDP boundary, and Chromium intermittently
-   collected it before Puppeteer received the result.
-
-   Final Engine Independence: .tag-section/#tagFormation etc. are deleted.
-   The real native tag form is mounted into a scratch host (mountNativeForm)
-   and chip interactions/reads go through clickChip/activeChips/allChipValues
-   below — each its OWN page.evaluate() round-trip, never combined with a DOM
-   read inside the SAME synchronous callback that just clicked a chip. That
-   split matters: NativeTaggingScreen republishes on a queued microtask
-   (queueMicrotask, not requestAnimationFrame), which drains between two
-   separate page.evaluate() calls but NOT mid-function inside one -- so a
-   click and a DOM chip-state read must be two round-trips, while a click and
-   a raw tags.* read (application state, not DOM) may safely stay in one,
-   since the field mutation itself is synchronous.
-
-   Run after build: npm run build && node tools/e2e-tag-projform.mjs */
+/* Chart field independence through the mounted deck: selection does not write,
+ * explicit edits preserve sibling fields, clearing is intentional, and Save
+ * creates one undoable stored change. Fetch plays inside each evaluate call;
+ * autosave can replace object identities. Read chip DOM in a later round-trip
+ * because the controller publishes on a microtask. */
 import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;

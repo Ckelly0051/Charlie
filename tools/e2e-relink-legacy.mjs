@@ -1,19 +1,7 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* LEGACY RE-ADD RELINK HARNESS (the St. Peter dup bug) ---------------------
-   A game tagged BEFORE folder-path identity existed has plays whose only clip
-   identity is a BASENAME (clipName="IMG_6251", clipPath undefined). When the
-   coach re-adds the film FOLDER, each file now carries a full relative path
-   ("St Peter/IMG_6251.mp4" -> identity "St Peter/IMG_6251"). The re-add path
-   (addFiles -> _relinkSavedPlays) matched EXACT identity only, so
-   "St Peter/IMG_6251" != "IMG_6251" -> no relink -> _autoCreatePlays made a
-   DUPLICATE untagged play for every clip. That is exactly what corrupted the
-   St. Peter game (139 plays for 69 clips).
-
-   This drives the REAL PlaylistManager: seed legacy basename-only plays, wipe
-   the live playlist (reopen), re-add the folder, and assert the plays RELINK
-   1:1 with NO duplicates. A genuinely-new file must still auto-create one play.
-
-   Run after build:  node tools/e2e-relink-legacy.mjs */
+/* Folder re-add through PlaylistManager: basename fallback, renamed clips,
+ * distinct paths and explicit matched/new/cancel choices cannot create ghosts.
+ * Synthetic files only; decoder failures from their empty payload are expected. */
 import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;

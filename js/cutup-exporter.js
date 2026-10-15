@@ -15,7 +15,7 @@
  *   - Modal progress overlay with current play, count, progress bar, cancel
  *   - Title cards (optional) overlaid between plays showing play number + tags
  *
- * E3b: the title-card look line is TagProjection.lookLabel (a presentation
+ * The title-card look line is TagProjection.lookLabel (a presentation
  * string), not a raw `tags.formation` read.
  */
 import { TagProjection } from './tag-projection.js';

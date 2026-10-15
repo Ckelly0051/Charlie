@@ -97,7 +97,7 @@ export class PlanExport {
       ).join('') : '<tr><td colspan="8" class="muted">No linked film.</td></tr>';
       // "Look" (not "Formation") — this column shows the composed alignment +
       // structure spoken-call phrase (TagProjection.lookLabel), and labeling that
-      // "Formation" would repeat the exact classification mistake E1-E3 corrected.
+      // Use the field's own label rather than calling every look a formation.
       return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Look</th><th>Play Call</th><th>Concept</th><th>Play Type</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
     }).join('');
 

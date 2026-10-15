@@ -1,23 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
-/* E2E tagging-speed harness — drives the built bundle headless through the
-   Phase A speed/correctness fixes: form guard when no play is selected,
-   Enter-in-yardage advance, auto-Gain from positive yardage, Y hotkey,
-   drawing-digit gate, real Skip vs Save & Next, penalty down-replay in
-   Auto D&D, markEnd feedback, rare-result expander. Run after build:
-     npm run build && node tools/e2e-tagging.mjs
-
-   Final Engine Independence: .tag-section/#tagForm is deleted. The native
-   tag form is mounted into a scratch host and driven the same way every
-   other rewritten harness this checkpoint does: chip clicks/reads through
-   [data-native-field], and a "form enabled" reading through the form's own
-   .gi-native-tagging.is-disabled class (which the native form derives
-   independently from tagger.getCurrentPlay(), not from the legacy
-   _updateFormEnabled() DOM toggle, deleted 2026-09-24). The rare-
-   result UI itself changed shape: the old expandable chip section is now a
-   <select> "More results" dropdown (native-tagging.jsx's ResultField) — the
-   dropdown's placeholder option text shows a "(N)" count when a rare result
-   is active, replacing the old show/hide/auto-open behavior. */
+/* Keyboard and charting workflows through the mounted native deck: empty-play
+ * guard, Yards/Enter, auto-Gain, drawing shortcuts, Skip vs Save & Next,
+ * penalty down replay, clip marks and the More results selector. */
 import puppeteer from './test-browser.mjs';
 import { chartDeckControls } from './chart-deck-test.mjs';
 
