@@ -158,7 +158,7 @@ const setSection = async title => {
   await reportFrame(page);
 };
 /** The engine's own Self-Scout models over the rendered cohort. */
-const model = () => page.evaluate(() => {
+const model = (summaryOnly = false) => page.evaluate(summaryOnly => {
   const screen = window.app.reportsScreen;
   const engine = window.app.stats;
   const { scoped } = screen._selfScoutCohort();
@@ -166,22 +166,22 @@ const model = () => page.evaluate(() => {
   const report = engine.generateSelfScout(scoped);
   const callRows = engine._selfScoutRows(engine._selfScoutGroup(performance.offPlays,
     p => p.tags.playCall || p.tags.playConcept || null));
+  const summary = report ? engine.selfScoutSummary(performance, callRows) : null;
+  if (summaryOnly) return { summary };
   return {
-    summary: report ? engine.selfScoutSummary(performance, callRows) : null,
+    summary,
     defSummary: engine.selfScoutDefenseSummary(performance),
     efficiency: performance.efficiency, downs: performance.downs, scoring: performance.scoring,
     rushing: performance.rushing, passing: performance.passing,
     negative: performance.negativePlays, redZone: performance.situational.redZone,
     defensive: performance.defensive,
-    offRefs: Object.fromEntries(callRows.map(r => [r.key, r.refs])),
     offPlayCalls: performance.offPlays.map(p => ({
       ref: engine.constructor._compositeRef(p), call: p.tags.playCall || p.tags.playConcept || null })),
     defPlayCalls: performance.defPlays.map(p => ({
       ref: engine.constructor._compositeRef(p), call: engine.constructor._defenseCallKey(p) })),
     defYards: performance.defPlays.reduce((sum, p) => sum + (parseInt(p.tags.yardage) || 0), 0),
-    totalPlays: report ? report.totalPlays : 0,
   };
-});
+}, summaryOnly);
 const frame = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 
 /* ══ 1. The approved composition ══════════════════════════════════════════ */
@@ -203,7 +203,6 @@ const comp = await page.evaluate(() => {
       && Math.abs(box(bar).top - box(document.querySelector('[data-reports-strip]')).bottom) < 0.5,
     exportLabel: acts?.textContent.trim(),
     capped: Math.round(box(report).width) <= 1648,
-    centred: Math.abs(box(report).left - (window.innerWidth - box(report).width - box(report).left)) < 40,
     navCounts: [...nav.querySelectorAll('button > b')].map(b => b.textContent.trim()),
     active: nav.querySelector('button.active')?.firstChild.textContent.trim(),
     sample: [...(document.querySelector('.gi-selfscout-sample')?.querySelectorAll('b') || [])]
@@ -320,7 +319,6 @@ const summaryDom = await page.evaluate(() => {
       .map(k => [k.querySelector('span').textContent.trim(), k.querySelector('strong').textContent.trim()]),
     bandShape: bands.map(b => b.className.trim()),
     modules: bands.map(b => [...b.querySelectorAll('.gi-ss-module > header strong')].map(s => s.textContent.trim())),
-    positive: rows(bands[0]), negative: bands[0] ? rows(bands[0]) : [],
     rowsByModule: [...document.querySelectorAll('.gi-ss-module')].map(mod => [
       mod.querySelector('header strong').textContent.trim(), rows(mod)]),
     columns: [...document.querySelectorAll('table.gi-ss-table thead')]
@@ -393,7 +391,7 @@ ok(descending([...rank.worstCalls].reverse()), 'Worst Calls is that same ranking
   JSON.stringify(rank.worstCalls.map(r => `${r.key} ${r.succRate}% ${r.avg} n=${r.n}`)));
 ok(!rank.topCalls.some(row => rank.worstCalls.some(worst => worst.key === row.key)),
   'Top and Worst offensive calls never repeat a qualified call');
-const rerun = await model();
+const rerun = await model(true);
 ok(JSON.stringify(rerun.summary.topCalls.map(r => r.key)) === JSON.stringify(rank.topCalls.map(r => r.key))
   && JSON.stringify(rerun.summary.worstCalls.map(r => r.key)) === JSON.stringify(rank.worstCalls.map(r => r.key)),
 'the ranking is deterministic across repeated evaluation');
@@ -547,18 +545,11 @@ ok(returned === 'Structure', 'leaving and returning to Self-Scout keeps the sect
 console.log('\n== 10. Interaction states ==');
 await setSection('Offensive Summary');
 const states = await page.evaluate(() => {
-  const probe = el => {
-    if (!el) return null;
-    const before = getComputedStyle(el);
-    const rest = { bg: before.backgroundColor, color: before.color,
-      w: el.getBoundingClientRect().width, h: el.getBoundingClientRect().height };
-    return rest;
-  };
   const nav = document.querySelector('[data-reports-secbar] .gi-selfscout-pages button:not(.active)');
   const th = document.querySelector('table.gi-ss-table thead th');
   const row = document.querySelector('table.gi-ss-table tbody tr.cut-row');
   return {
-    navRest: probe(nav), thCursor: th ? getComputedStyle(th).cursor : '',
+    thCursor: th ? getComputedStyle(th).cursor : '',
     rowCursor: row ? getComputedStyle(row).cursor : '',
     rowTabIndex: row ? row.tabIndex : null, rowRole: row ? row.getAttribute('role') : null,
     exportCursor: getComputedStyle(document.querySelector('[data-reports-secbar] [data-report-export="selfscout"]')).cursor,
@@ -581,10 +572,10 @@ await frame();
 const afterHover = await page.evaluate(() => {
   const nav = document.querySelector('[data-reports-secbar] .gi-selfscout-pages button:not(.active)');
   const box = nav.getBoundingClientRect();
-  return { bg: getComputedStyle(nav).backgroundColor, w: box.width, h: box.height };
+  return { w: box.width, h: box.height };
 });
 ok(Math.abs(afterHover.w - hover.w) < 0.5 && Math.abs(afterHover.h - hover.h) < 0.5,
-  'hover changes colour without changing layout dimensions');
+  'hover preserves navigation dimensions');
 const sortCycle = await page.evaluate(async () => {
   const table = document.querySelector('table.gi-ss-table');
   const widths = () => [...table.querySelectorAll('thead th')].map(th => Math.round(th.getBoundingClientRect().width));
@@ -640,7 +631,7 @@ const defStillThere = await page.evaluate(() => document.querySelectorAll('.gi-o
 ok(defStillThere === 6, 'Defense still reports when no offensive play classifies', String(defStillThere));
 
 await load(SPARSE);
-const sparse = await model();
+const sparse = await model(true);
 ok(sparse.summary.topCalls.every(r => r.n >= 3) && sparse.summary.topCalls.length === 1,
   'a sparse season ranks only the calls that qualify',
   JSON.stringify(sparse.summary.topCalls.map(r => `${r.key}:${r.n}`)));

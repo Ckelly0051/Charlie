@@ -149,7 +149,6 @@ await load([GAME_A, GAME_B]);
 
 const comp = await page.evaluate(() => {
   const board = document.querySelector('.gi-players-board');
-  const report = document.querySelector('.gi-players-report');
   // Role navigation and scope live in the shared secondary bar under the strip
   // (coach-approved comp, 2026-09-23); the board's own toolbar keeps the sample.
   const bar = document.querySelector('[data-reports-secbar] [data-reports-secbar-bar]');
@@ -181,8 +180,6 @@ const comp = await page.evaluate(() => {
     roleHeadSize: roleHead ? getComputedStyle(roleHead).fontSize : null,
     // Role headers carry the role name and the player count, nothing else.
     metas: [...document.querySelectorAll('.gi-player-module > header span')].map(s => s.textContent.trim()),
-    // The report canvas is capped on a wide display.
-    canvasCap: report ? getComputedStyle(report).maxWidth : null,
   };
 });
 ok(comp.board, 'the Players tab renders the approved board');
@@ -542,8 +539,7 @@ const cohorts = await page.evaluate(() => {
   const stats = window.app.stats.compute(window.app.reportsScreen._playersCohort().scoped);
   const rec = stats.individuals.receivers.find(r => String(r.num) === '84');
   const rush = stats.individuals.rushers.find(r => String(r.num) === '22');
-  const recv22 = stats.individuals.receivers.find(r => String(r.num) === '22');
-  return { rec: rec?.refs || [], rush: rush?.refs || [], recv22: recv22?.refs || [] };
+  return { rec: rec?.refs || [], rush: rush?.refs || [] };
 });
 ok(cohorts.rec.length && cohorts.rush.length
   && !cohorts.rec.some(r => cohorts.rush.includes(r)),
@@ -559,7 +555,6 @@ await setScope('season');
 const grades = await page.evaluate(() => {
   const cells = [...document.querySelectorAll('.gi-player-table td[data-col="grade"]')];
   return { total: cells.length, blank: cells.filter(c => !c.textContent.trim()).length,
-    values: cells.map(c => c.textContent.trim()).slice(0, 6),
     classed: cells.filter(c => /grade-(pos|neg)/.test(c.className)).length };
 });
 ok(grades.total > 0 && grades.blank === 0,
@@ -1112,15 +1107,10 @@ ok(situ.within,
 const relevance = await page.evaluate(num => {
   const app = window.app;
   const scoped = app.reportsScreen._playersScopedPlays || [];
-  const detail = app.stats.playerDetail(scoped, num, {});
   const dims = app.stats.constructor.PLAYER_DIMENSIONS;
   const offered = role => dims.filter(item => item.roles.includes(role)).map(item => item.key);
-  const rendered = [...document.querySelectorAll('.gi-pd-situ select')]
-    .at(-1)?.querySelectorAll('option');
   return {
-    roles: detail.roles.map(role => role.key),
     rushing: offered('rushing'), tackles: offered('tackles'), returns: offered('returns'),
-    renderedCount: rendered ? rendered.length : 0,
     empty: dims.filter(item => app.stats.playerSituational(scoped, num, 'rushing', item.key).length
       && !item.roles.includes('rushing')).map(item => item.key),
   };
@@ -1226,8 +1216,6 @@ const heterogeneous = await page.evaluate(async () => {
   const scoped = app.reportsScreen._playersScopedPlays || [];
   const kicker = app.stats.playerSituational(scoped, '19', 'kicking', 'quarter');
   const defender = app.stats.playerSituational(scoped, '21', 'tackles', 'quarter');
-  const kickerDetail = app.stats.playerDetail(scoped, '19', {});
-  const defenderDetail = app.stats.playerDetail(scoped, '21', {});
   app.reportsScreen.openPlayerDetail('19');
   await new Promise(r => setTimeout(r, 300));
   const kickerCell = [...document.querySelectorAll('[data-pd-game]')].map(b => b.textContent.trim());
@@ -1237,7 +1225,6 @@ const heterogeneous = await page.evaluate(async () => {
   return {
     kickerRows: kicker.map(row => ({ n: row.n, measures: row.measures.map(m => [m.label, m.value]) })),
     defenderRows: defender.map(row => ({ n: row.n, measures: row.measures.map(m => [m.label, m.value]) })),
-    kickerGames: kickerDetail.games.length, defenderGames: defenderDetail.games.length,
     kickerCell, defenderCell,
   };
 });

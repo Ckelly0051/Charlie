@@ -166,13 +166,11 @@ const setSection = async title => {
 };
 const model = () => page.evaluate(() => {
   const m = window.app.season.reportModel();
-  return { summary: m.summary, trends: m.trends, progression: m.progression, winLoss: m.winLoss,
-    winLossCounts: m.winLossCounts, situationalTiles: m.situationalTiles, turnoverScoring: m.turnoverScoring,
-    gameLog: m.gameLog, perGame: m.perGame.map(row => ({ id: row.id, name: row.name, result: row.result,
+  return { summary: m.summary, trends: m.trends, winLoss: m.winLoss,
+    gameLog: m.gameLog, perGame: m.perGame.map(row => ({ id: row.id, result: row.result,
       totalYards: row.totalYards, turnoverMargin: row.turnoverMargin, touchdowns: row.touchdowns,
-      chartedPlays: row.chartedPlays, hasOffense: row.hasOffense, hasMargin: row.hasMargin })),
-    gameIds: m.games.map(game => String(game.id)),
-    refs: [...new Set(m.allPlays.map(p => window.app.stats.constructor._compositeRef(p)).filter(Boolean))].sort() };
+      chartedPlays: row.chartedPlays, hasMargin: row.hasMargin })),
+    gameIds: m.games.map(game => String(game.id)) };
 });
 const rowsOf = sel => page.evaluate(s => [...document.querySelectorAll(s)]
   .map(tr => [...tr.children].map(td => td.textContent.trim())), sel);
@@ -328,7 +326,7 @@ for (const [title, board] of CHILD) {
   await setSection(title);
   const seen = await page.evaluate(cls => {
     const host = document.querySelector('.gi-season-sections');
-    return { board: !!host.querySelector('.' + cls), kids: host.children.length,
+    return { board: !!host.querySelector('.' + cls),
       text: host.textContent,
       /* Players Revision 2 opens film from a STATISTIC rather than the row, so
          its film affordance is a stat button; every other child board still
@@ -475,7 +473,6 @@ await setSection('Trends');
 const sparseTrends = await page.evaluate(() => ({
   window: window.app.season.reportModel().trends.windowSize,
   kpi: document.querySelectorAll('.gi-season-board .gi-overview-kpi')[1]?.querySelector('span').textContent.trim(),
-  wl: [...document.querySelectorAll('.gi-season-module > header strong')].map(s => s.textContent.trim()),
 }));
 ok(sparseTrends.window === 1 && sparseTrends.kpi === 'Last 1 Record',
   'two charted games open a First 1 / Last 1 window with matching labels',
@@ -484,7 +481,6 @@ await load(SINGLE);
 await setSection('Trends');
 const single = await page.evaluate(() => ({
   empty: document.querySelector('.gi-reports-empty h3')?.textContent.trim(),
-  body: document.querySelector('.gi-reports-empty p')?.textContent.trim(),
   wl: window.app.season.reportModel().winLoss,
   counts: window.app.season.reportModel().winLossCounts,
 }));
