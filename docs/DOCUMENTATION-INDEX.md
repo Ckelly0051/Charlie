@@ -112,6 +112,14 @@ log.
   pass is complete; Claude review returned no findings (coach, 2026-10-15).
   The subsequent film fixes require separate review. Remaining Reports cleanup and the
   stats-engine split stay with its rebuild. See the cleanup report above.
+- **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
+  verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
+  stayed clean and unchanged; fixture hashes were unchanged. Receipt:
+  `artifacts/gate-logs/2026-10-15T12-03-14-704Z-Yz1t2X/receipt.json`.
+  The existing Node film suite passes 37 checks, including cancellation and
+  duration ownership; five fault injections each fail named assertions.
+  No new harness was added. No full gate, package or installed approval is
+  implied; the repairs remain outside installer 118.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and

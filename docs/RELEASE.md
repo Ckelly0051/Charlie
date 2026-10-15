@@ -50,7 +50,7 @@ dialogs, the asset protocol and app lifecycle. It always covers, on real film:
 - switch games several times with no duplicate clips;
 - a stat row's Watch opens exactly the counted plays, and charting navigation
   stays inside the selected set;
-- every item the build's `docs/OPEN-DEFECTS.md` "awaiting the next installer"
+- every item the build's `docs/OPEN-DEFECTS.md` "Awaiting the next installed smoke"
   list names.
 
 ## Smoke record

@@ -43,9 +43,10 @@ historical gate receipt. Rapid scrubbing remains deferred.
   settle, and only current-season/current-source frames may appear.
 
 - **Keyboard Shortcuts text overlaps in installer 117.** Repaired in source
-  with bounded, wrapping shortcut chips at unchanged type size. The coach
+  and packaged in 118 with bounded, wrapping shortcut chips at unchanged type
+  size. The coach
   deferred verification to the next installed smoke (2026-10-13); accepting
-  117 does not verify this source-only repair. Check Play Type, Result and
+  117 does not verify the repair packaged in 118. Check Play Type, Result and
   the Redo chord at the observed 1402 x 932 window. Owners:
   `js/native-shortcuts.jsx` and `css/native-shortcuts.css`.
 

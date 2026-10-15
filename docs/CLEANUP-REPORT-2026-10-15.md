@@ -158,3 +158,12 @@ not assessed. No full gate or installer was authorized for this cleanup.
 Claude's cleanup review is complete. The film follow-up needs its own review.
 Full-gate and installed verification remain separate steps
 requiring the coach's authorization; installer 118's acceptance is unchanged.
+
+## Film Follow-Up Verification
+
+Source fix `cbe0f47f`: fresh build and 12/12 focused suites passed, zero
+failed/skipped, 23.670 seconds, with clean unchanged source and fixture hashes.
+Receipt: `artifacts/gate-logs/2026-10-15T12-03-14-704Z-Yz1t2X/receipt.json`.
+The existing Node film suite now has 37 checks; no browser or harness was added.
+Both defects failed before repair; five separate in-memory fault injections
+produce named assertion failures. Evidence is in the fix commit message.
