@@ -23,17 +23,7 @@ const ok = (condition, label, detail = '') => {
   else { fail++; console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`); }
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-/* DEFERRED TYPE FLOOR. `docs/VISUAL-SYSTEM-RULES.md` sets 12.5px as the shared
-   coach-facing floor. This board has NOT been migrated to it: raising its labels
-   means re-deriving the fixed row math its approved comp pins, so the migration
-   is open work in `docs/OPEN-DEFECTS.md`. THIS HARNESS RUNS A SYNTHETIC
-   FIXTURE, so it cannot establish the value -- `CLAUDE.md` is explicit that
-   synthetic data cannot establish Reports visual parity. The number below is
-   measured on the canonical season by `tools/e2e-reports-typefloor-realdata.mjs`
-   and mirrored here as a same-fixture regression guard only. The
-   canonical minimum for this board is 11px. Pinning it here means the board
-   cannot drift further from the floor while it waits, and the number moves only
-   when the migration moves it -- it is a deferral, not a second standard. */
+// Every visible label holds the shared coach-facing type floor.
 const PLAYERS_TYPE_FLOOR_DEFERRED = 11;
 
 

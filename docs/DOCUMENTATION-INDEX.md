@@ -103,11 +103,13 @@ log.
   checks share native Chart; the separate tag-fields browser harness is removed.
   Reports share rendered-state waits and table clipping; the persistence matrix
   no longer has historical target/lock or expected-failure scaffolding. Final
-  focused verification is pending; no full gate or new package has run.
+  focused verification and sensitivity checks passed; no full gate or new
+  package has run on the maintenance changes.
   Canonical Offense/Defense and global-strip galleries are now opt-in via
   `--capture`; their default runs retain every geometry/data assertion and
-  refuse stray screenshot calls. Final focused verification covers this policy
-  together with the consolidation. Installer 118 is unchanged.
+  refuse stray screenshot calls. Clean focused verification covers this policy
+  together with the consolidation. Production assets remain byte-identical to
+  installer 118; its installed-smoke status is unchanged.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
