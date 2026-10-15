@@ -73,12 +73,7 @@ export class SettingsScreen {
   }
 
   open({ required = false, returnFocus = null, initialTab = 'film', chartGroup = 'formationFamily', initialPlayCall = '' } = {}) {
-    // A sheet is ALREADY open. It is non-modal, so the coach can reach the
-    // charting deck's `Edit library` and the play-call field's
-    // `Add to Playbook` while it is up — and returning the existing result here
-    // discarded the requested tab, chart group and typed play-call name, so both
-    // controls did nothing at all and said nothing. Retarget the live sheet
-    // instead: same sheet, new destination.
+    // Retarget an open non-modal sheet to the requested tab and editor.
     if (this.handle) {
       const tab = this._resolveTab(required, initialTab);
       this.activeTab = tab;
@@ -109,7 +104,6 @@ export class SettingsScreen {
       // Closing Settings (Done, the close button, Escape) keeps a team
       // identity the coach typed.
       this._flushTeamDraft();
-      // S7-c: the legacy overlay is gone; the native Team Hub owns this view.
       this.app.teamHubScreen?.load?.();
       this.app.homeScreen?.refreshFilm?.();
     });
@@ -246,10 +240,7 @@ export class SettingsScreen {
     return { ok:durable, durable, calls:this.playbookSnapshot() };
   }
 
-  /** Status is computed directly from the live backend/vision state, never
-   *  read back out of rendered text. Reading the DOM as a data source is how
-   *  this once reported a status no coach could actually see. An explicit
-   *  Claude Vision key takes precedence, then the optional local CV server. */
+  /* Compute status from live backend/vision state; an explicit vision key takes precedence over local CV. */
   analysisProfile() {
     const app = this.app;
     const hasVision = !!app.vision?.apiKey;
@@ -277,9 +268,7 @@ export class SettingsScreen {
     return saved;
   }
 
-  /** Opt in to the optional local Python CV server: until this is called we
-   *  never touch the network. This is the only reachable opt-in -- the earlier
-   *  entry point was never clickable by a coach. */
+  /* Opt in to the optional local CV server; disabled sessions make no network calls. */
   async enableLocalServer() {
     const backend = this.app.backend;
     if (!backend) return { ok: false, message: 'No local CV backend is configured.' };

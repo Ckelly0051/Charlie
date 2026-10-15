@@ -18,9 +18,6 @@ export class QuickChart {
     this.yardageStr = '';
     this.yardageNegative = false;
 
-    // Final Engine Independence: the legacy #btnQuickChart top-bar button is
-    // gone -- toggle() is called directly from the Break Down toolbar's
-    // [data-bd-context="quick"] control (breakdown-workspace.js).
     this._clearPanelRefs();
     this._bindEvents();
   }
@@ -243,7 +240,7 @@ export class QuickChart {
     };
     if (resultMap[key] && !e.shiftKey && !e.ctrlKey) {
       this.currentEntry.result = resultMap[key];
-      // Auto-set some flags
+
       if (key === 'U' || key === 'F') this.currentEntry.turnover = true;
       if (key === 'N') {
         this.yardageStr = '0';
@@ -295,7 +292,6 @@ export class QuickChart {
         if (prev?.tags.quarter) play.tags.quarter = prev.tags.quarter;
       }
 
-      // Store player assignments
       const carrier = this.inputBallCarrier?.value?.trim();
       const passer = this.inputPasser?.value?.trim();
       const receiver = this.inputReceiver?.value?.trim();
@@ -334,13 +330,11 @@ export class QuickChart {
       this.tagger.saveDraft();
     }
 
-    // Clear player inputs
     if (this.inputBallCarrier) this.inputBallCarrier.value = '';
     if (this.inputPasser) this.inputPasser.value = '';
     if (this.inputReceiver) this.inputReceiver.value = '';
     if (this.inputTackler) this.inputTackler.value = '';
 
-    // Advance to next clip
     const clipIdx = this.playlist.activeClipIndex;
     const totalClips = this.playlist.clips.length;
 
@@ -391,7 +385,6 @@ export class QuickChart {
     if (this.displayStatus) this.displayStatus.textContent = msg;
   }
 
-  // Event system
   on(event, callback) {
     if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(callback);

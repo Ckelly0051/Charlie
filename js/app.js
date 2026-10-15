@@ -1,4 +1,4 @@
-import { countedUnit, isPlayTagged } from './football-rules.js';
+import { countedUnit } from './football-rules.js';
 /**
  * App - Main bootstrap module. Wires all components together and manages keyboard shortcuts.
  */
@@ -32,8 +32,6 @@ import { GameScreen } from './game-screen.js';
 import { HomeScreen } from './home-screen.js';
 import { GameThumbnailService } from './game-thumbnail.js';
 import { getNativeOverlayService } from './native-root.jsx';
-import { h } from 'preact';
-import { ConfirmDeleteForm } from './native-team-hub.jsx';
 import { StudyPlan } from './study-plan.js';
 import { PlanExport } from './plan-export.js';
 import { PlanScreen } from './plan-screen.js';
@@ -64,12 +62,8 @@ import { PlaybookLibrary } from './playbook-library.js';
 import { PlayGrid } from './play-grid.js';
 import { AutoDetectScreen } from './auto-detect-screen.js';
 import { configureBetaDefaults } from './beta-config.js';
-// LAST IMPORT ON PURPOSE. The material layer (edge light, elevation, the ramp)
-// crosses every route, so it has to win on source order against the per-route
-// stylesheets those modules pull in. Importing it after them puts it last in
-// the CSS graph. Verified in the BUILT bundle, not assumed — an earlier version
-// of this block sat inside native-reports.css and was already being overridden
-// by .gi-overlay-panel 8kb further down the output.
+// Import material styles last so they win source order over route styles.
+
 import '../design-system/material.css';
 
 /**
@@ -87,7 +81,7 @@ class App {
       { notify: message => this.history?._toast?.(message) });
     try { this.autoPlayNext = localStorage.getItem('ffa_autoplay_next') !== '0'; }
     catch { this.autoPlayNext = true; }
-    // Initialize components
+
     this.vc = new VideoController({ notify: (message, durationMs) => this.overlays.toast({ message, durationMs }) });
     this.canvas = new CanvasOverlay(this.vc);
     this.tagger = new PlayTagger(this.vc);
@@ -139,21 +133,15 @@ class App {
     });
     this.playGrid = new PlayGrid(this.tagger, this.vc, this.cutupPlayer, this.playbook, this.customChips);
     this.season = new SeasonManager(this.stats, { storage: this.storage, roster: this.roster, saveBlob: this.saveBlob });
-    // S7-c: the team/season identity layer. SeasonLibrary's overlay is dead but
-    // twelve of its private members were still the registry, so the data moved
-    // here first and the overlay becomes the by-product.
-    // S7-d1: the per-game charting context. Perspective, direction and team
-    // identity used to travel through hidden inputs in #legacyGameContextState
-    // and a synthetic `change` event on #gamePerspective — an event bus made of
-    // markup that S7-d8 deletes. This is that bus, DOM-free.
+
     this.gameContext = new GameContext({
       storage: this.storage,
       applyDraft: patch => this._applyGameInfoDraft(patch),
     });
     this.teamRegistry = new TeamRegistry({
       app: () => this,
-      // Team identity propagates into the active game's canonical metadata
-      // through the draft path, not through hidden inputs inside #app.
+      // Team identity updates canonical game metadata through the draft path.
+
       syncGame: profile => {
         const store = this.storage?.seasonStore;
         if (store?.data && store.data.kind !== 'scout') {
@@ -198,48 +186,25 @@ class App {
     this.callSheet = new CallSheetBuilder(this.tagger, this.overlays);
     this.uiPolish = new UIPolish(this);
     this.vc.beforeFilesSelected = files => this.uiPolish.prepareFilmFiles(files);
-    // S7-b: the legacy onboarding Wizard is retired. It was default-dismissed
-    // with no toggle control and injected its bar into the hidden classic
-    // outlet, so no coach could reach it — but it stayed subscribed to
-    // video-loaded and navigated away from Reports, which is what blanked
-    // native Reports in 1.12.0-14. Deleting the module closes that class at the
-    // root; e2e-native-reports asserts its absence so it cannot return.
 
-    // Give storage references
     this.storage.playlist = this.playlist;
     this.storage.filter = this.filter;
     this.storage.versions = this.versions;
 
-    // Wire cross-module events
     this._wireEvents();
 
-    // Wire game info form
     this._bindGameInfo();
 
-    // Keyboard shortcuts
     this._bindKeyboard();
 
-    // Drawing tool UI
     this._bindToolUI();
 
-    // Sidebar panel toggles are handled by UIPolish._initPanelCollapse().
-    // (A second binding here previously double-toggled every panel, so a
-    // collapsed panel like Roster opened then instantly closed on tap.)
+    // Keep backend availability fresh for native Analysis settings.
 
-    // Auto-detect UI: AutoDetectScreen owns operation + presentation now (see
-    // its constructor call above); nothing left to bind here.
-
-    // Probe the local CV backend and re-probe periodically so
-    // backend.isAvailable() stays accurate for the native Analysis settings
-    // tab, which reads it directly rather than a legacy status badge.
     this._bindBackendStatus();
 
-    // Enable auto-save + surface its state on the top-bar Save button
-    // ("● Saving…" while a debounced write is armed → "✓ Saved" settled), so
-    // the coach always knows their work persisted (UX audit A1/C2).
     this.storage.onSaveState = (s) => this._renderSaveState(s);
     this.storage.enableAutoSave();
-
 
     // Surface tagger feedback (e.g. "Mark the start first") through the
     // shared toast. Lazy lambda — history may not exist yet at bind time.
@@ -270,12 +235,9 @@ class App {
       get overlays() { return app.overlays; },
     };
 
-    // Scout mode UI
     this._bindScoutMode();
 
-    // Keyboard shortcuts legend
     this._bindShortcuts();
-
 
     // The single top-bar undo/redo also drives canvas annotation undo when
     // there's no play-data action left to undo (mirrors Ctrl+Z).
@@ -324,18 +286,7 @@ class App {
     return this._versionLabel || `GridIron IQ v${APP_VERSION} · ${window.__TAURI__ ? 'Desktop' : 'Web'}`;
   }
 
-  /**
-   * The single authoritative "open this game into the workspace" command (C1).
-   * Every entry route — Home, the Season Library schedule, the classic top-bar
-   * game dropdown, the games panel, and the season-stats modal — funnels
-   * through here so active-game selection, chrome refresh, and the workspace
-   * transition are identical no matter where the coach clicked. That is what
-   * makes Settings/More availability a deterministic workspace state rather
-   * than an accident of which route mounted the screen.
-   *
-   * Idempotent: re-opening the already-active game does NOT re-switch,
-   * re-persist, or reload film. A failed switch opens nothing and returns false.
-   */
+  /* Open the game through one idempotent command; a failed switch opens nothing and returns false. */
   /**
    * The one game-entry command. `opts.route` is the destination route (the
    * shell game switcher keeps the coach on the route they were reading);
@@ -347,20 +298,13 @@ class App {
     if (!store?.data || gid == null) return false;
     const already = String(store.data.activeGameId) === String(gid);
     if (!already) {
-      // switchToGame owns commit/persist/history-reset/film-load. AWAIT it so
-      // Break Down never renders before the target game is live (the
-      // delayed-switch race); a stale film-health or prior-game callback that
-      // resolves later cannot move the selection back, because the switch has
-      // already committed by the time the workspace transition runs.
+      // Await the switch so the target game is live before the workspace transition.
+
       const ok = await this.storage.switchToGame(gid);
       if (ok === false) return false;
     }
-    // Workspace transition. Break Down is a shell route: its render relocates the
-    // canonical Settings/More chrome, so every entry route lands on identical
-    // chrome. The redesigned shell is the unconditional product and owns the
-    // workspace.
-    // The `.root` check is "is the shell mounted" (always true in the product);
-    // the else is pure crash-safety, not a second product route.
+    // The mounted shell owns navigation; the fallback handles a missing shell root.
+
     if (this.workspaceShell?.root) {
       // A requested route that the workspace guard rejects for this game falls
       // back to Break Down rather than stranding the coach on a blocked route.
@@ -417,10 +361,7 @@ class App {
               gi.scoreThem !== undefined && gi.scoreThem !== '');
   }
 
-  /**
-   * Derive the display fields for a game row. Called once per game per render
-   * by the dropdown, games panel, and (via SeasonManager) the season-stats list.
-   */
+  /* Derive the display fields shared by game lists and selectors. */
   _gameRowInfo(g, idx, store, activeId) {
     const isActive = g.id === activeId;
     const isFinal = store.gameStatus(g) === 'final';
@@ -439,28 +380,22 @@ class App {
       projectName: '', week: '', opponent: '', date: '', scoreUs: '', scoreThem: '',
       homeAway: '', gameType: 'game', direction: '', perspective: 'offense',
     };
-    // S7-d1: a new game resets to the offense default and republishes. force,
-    // because the outgoing game may already have been 'offense' while every
-    // subscriber still needs to re-render for the new game.
+    // Force publication because a new game can share the outgoing game's unit.
+
     this.gameContext?.notify({ force: true });
     this._trackedScore = null;
   }
   _wireEvents() {
-    // Re-render only when playback enters/leaves an annotated frame. Clearing a
-    // full-resolution transparent canvas on every timeupdate caused visible
-    // hitches even in the overwhelmingly common no-drawings path.
+    // Repaint only when entering or leaving an annotated frame; full-resolution clears are costly.
+
     this.vc.on('time-update', () => {
       this.canvas.renderPlaybackFrame();
     });
 
-    // Persist added film through ONE choke point: the playlist's onFilmFiles
-    // hook fires for every add that goes through addFiles (the top-bar picker's
-    // folder/multi path AND the Playlist-panel "Add Clips" button), so we no
-    // longer call importFilm inline for that path (the panel path used to skip
-    // it, dropping its clips on reopen). No-ops on browser; skips linked games.
+    // The playlist hook persists every addFiles path; browser and linked-film imports are no-ops.
+
     this.playlist.onFilmFiles = (files) => this.storage.importFilm(files);
 
-    // Handle file selection from top bar (single or multi)
     this.vc.on('files-selected', ({ files }) => {
       if (files.length === 1 && !this.playlist.hasClips) {
         // A single continuous video doesn't go through addFiles → persist here.
@@ -518,7 +453,6 @@ class App {
       this.canvas.render();
     });
 
-    // Re-sync canvas overlay when multi-angle layout changes
     this.multiAngle.on('view-changed', () => requestAnimationFrame(() => this.canvas._syncSize()));
     this.multiAngle.on('angle-loaded', () => requestAnimationFrame(() => this.canvas._syncSize()));
     this.multiAngle.on('angle-removed', () => requestAnimationFrame(() => this.canvas._syncSize()));
@@ -529,13 +463,7 @@ class App {
       // Don't capture keys when typing in inputs
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      /* NOR WHEN A CONTROL OWNS THE KEY. Space and Enter are the native
-         activation keys for a focused button, so swallowing them here made
-         every keyboard-operated control in the app dead to Space — the rail's
-         year disclosures included — while the same press also toggled film
-         playback behind the coach's back. The guard covers native buttons,
-         links, anything explicitly given the button role, and editable
-         content; every other key and every other target is unchanged. */
+      /* Focused controls own Space and Enter; do not also trigger playback. */
       const target = e.target;
       const ownsKey = (e.code === 'Space' || e.key === 'Enter')
         && (tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || target?.isContentEditable
@@ -598,11 +526,8 @@ class App {
           e.preventDefault();
           this.tagger.markEnd();
           break;
-        // Drawing-tool digits arm when no play is selected OR the settings
-        // drawer (Drawing Tools panel) is open — a play is now auto-selected
-        // the moment film loads, so "no play selected" alone was unreachable.
-        // While tagging with the drawer closed, a stray digit must never
-        // silently switch to the crosshair.
+        // Drawing digits apply only with no selected play or with Drawing Tools open, never during ordinary tagging.
+
         case 'Digit1':
           if (this._drawingArmed()) this._selectTool('line');
           break;
@@ -654,7 +579,7 @@ class App {
   }
 
   _bindToolUI() {
-    // Tool buttons
+
     document.querySelectorAll('.tool-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const tool = btn.dataset.tool;
@@ -662,7 +587,6 @@ class App {
       });
     });
 
-    // Color swatches
     document.querySelectorAll('.swatch').forEach(swatch => {
       swatch.addEventListener('click', () => {
         document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
@@ -682,21 +606,11 @@ class App {
     document.querySelectorAll('.tool-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tool === toolName);
     });
-    // Update cursor
+
     this.canvas.canvas.style.cursor = toolName ? 'crosshair' : 'default';
   }
 
-  /**
-   * Keep the local Python CV backend's live availability fresh, so
-   * SettingsScreen.analysisProfile() (read by the native Analysis tab, which
-   * computes its own status/enable affordance directly from backend.
-   * isAvailable()/vision.apiKey) never reads a stale probe result.
-   *
-   * There is no status badge to write into. The coach-facing opt-in lives in
-   * Settings → Analysis (SettingsScreen.enableLocalServer()); this method only
-   * keeps backend.probe()'s own network-only-when-enabled invariant doing its
-   * background work.
-   */
+  /* Keep backend availability fresh without network calls while the integration is disabled. */
   _bindBackendStatus() {
     // Kick off an initial probe (non-blocking; probe() itself no-ops with no
     // network call while backend.enabled is false, so a default session
@@ -718,9 +632,7 @@ class App {
   }
 
   _bindGameInfo() {
-    // S7-d1: the hidden context inputs are gone. GameContext is the bus, and
-    // native Settings owns the analysis provider/model, so nothing here binds
-    // to legacy form DOM. Vision is seeded straight from storage.
+
     const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
     if (savedKey) this.vision.apiKey = savedKey;
     const savedModel = localStorage.getItem('ffa_claude_model') || '';
@@ -743,11 +655,7 @@ class App {
     this._trackedScore = this.stats.computeScoreboard();
   }
 
-  /** Mark the onboarding checklist's "See your stats" step complete once the
-   *  coach opens Reports for THEIR OWN data (not the demo -- exploring the
-   *  demo shouldn't silently complete onboarding). Flag read by
-   *  _checklistItems. Called from WorkspaceShell.show('reports') -- Reports
-   *  is a native shell route now, not a legacy button click. */
+  /* Complete the stats checklist only for the coach's own data, never the demo. */
   _markSeenStats() {
     const store = this.storage?.seasonStore;
     if (store && this.storage.isDemoSeason(store.currentSeasonId)) return;
@@ -762,7 +670,7 @@ class App {
     this.vision.apiKey = apiKey;
   }
 
-  /** Persist native Analysis settings without depending on retired form DOM. */
+  /* Persist native Analysis settings. */
   _saveAnalysisPreferences(apiKey, model) {
     const nextModel = String(model || 'claude-opus-4-6');
     try {
@@ -776,8 +684,7 @@ class App {
     }
   }
 
-  /** Apply game-owned metadata without reading a retired DOM form or writing
-   * durable storage. The caller owns the transaction and persist decision. */
+  /* Apply game-owned metadata; the caller owns the transaction and durable write. */
   _applyGameInfoDraft(draft = {}) {
     const current = this.storage.gameInfo || {};
     const priorPerspective = current.perspective || 'offense';
@@ -788,10 +695,7 @@ class App {
       : '';
     this.storage.gameInfo = {
       ...current, ...draft, projectName, week, opponent,
-      // S7-d1: the draft and the stored value are the only sources. The hidden
-      // #gameTeamName / #gameJerseyColor / #gameDirection reads are gone —
-      // `direction` in particular used to fall back to an input that S7-d8
-      // deletes, which would have written '' over the coach's stored value.
+
       teamName: draft.teamName ?? current.teamName ?? '',
       jerseyColor: draft.jerseyColor ?? current.jerseyColor ?? '',
       direction: draft.direction ?? current.direction ?? '',
@@ -799,9 +703,8 @@ class App {
       gameType: draft.gameType || current.gameType || 'game',
     };
 
-    // S7-d1: publish through the service instead of dispatching a synthetic
-    // `change` on a hidden <select>. notify() no-ops when nothing moved, so a
-    // reload does not churn every subscriber.
+    // notify() skips unchanged context.
+
     if (this.storage.gameInfo.perspective !== priorPerspective) this.gameContext?.notify();
     this._checkFinishHint();
     return this.storage.gameInfo;
@@ -813,12 +716,7 @@ class App {
     this.storage._autoSave();
   }
 
-  /**
-   * Commit the current game context. S7-d1: this used to re-read four hidden
-   * inputs and write them back, which is how `direction` would have been
-   * blanked once they were deleted. gameInfo is already authoritative, so this
-   * only persists and mirrors team identity forward.
-   */
+  /* Persist authoritative gameInfo and carry team identity forward. */
   _saveGameInfo() {
     if (this._loadingGameInfo) return;
     this.storage._autoSave();
@@ -853,8 +751,8 @@ class App {
   _applyTeamProfile() {
     let profile = {};
     try { profile = JSON.parse(localStorage.getItem('ffa_team_profile') || '{}') || {}; } catch (e) { return; }
-    // S7-d1: carry identity forward through the context service. Only fills a
-    // BLANK field, so a game that carries its own identity is never overwritten.
+    // Fill only blank identity fields; a game's own identity wins.
+
     const current = this.gameContext.snapshot();
     const patch = {};
     if (!current.teamName && profile.teamName) patch.teamName = profile.teamName;
@@ -865,20 +763,16 @@ class App {
   _loadGameInfo(info) {
     if (!info) return;
     this._loadingGameInfo = true;
-    // S7-d1: opening a game republishes the context. force, because the
-    // incoming game may share the outgoing game's perspective while every
-    // subscriber still has to re-render for the new game.
+    // Force publication because the incoming game can share the outgoing game's perspective.
+
     this.gameContext?.notify({ force: true });
     const savedKey = localStorage.getItem('ffa_claude_api_key') || '';
     if (savedKey) this.vision.apiKey = savedKey;
     const savedModel = localStorage.getItem('ffa_claude_model') || '';
     if (savedModel) this.vision.model = savedModel;
     this._loadingGameInfo = false;
-    // S7-d1: a game with no stored identity inherits the team profile. This
-    // used to happen by accident — the hidden #gameTeamName input kept the
-    // previous game's value across _deserialize's gameInfo overwrite, and
-    // _saveGameInfo read it back out of the DOM. With the input gone the carry
-    // has a real owner: the team profile, which is where it always belonged.
+    // A game with no stored identity inherits the team profile.
+
     this._applyTeamProfile();
   }
   /** Global `?` keyboard shortcut (see the keydown handler elsewhere in this
@@ -895,11 +789,7 @@ class App {
     };
   }
 
-  /**
-   * Scout mode follows the game context. S7-d1: this was a `change` listener on
-   * the hidden #gamePerspective <select>; it is now a GameContext subscriber,
-   * so the sticky charting unit survives deleting that markup.
-   */
+  /* Scout mode follows the game context without changing its carried charting unit. */
   _bindScoutMode() {
     const unitFromPerspective = (p) => {
       if (p === 'defense') return 'defense';
@@ -930,11 +820,7 @@ class App {
    * past the last play but more video clips remain, jump to the next clip so a
    * folder upload keeps flowing video-to-video. Shows a brief toast at the end.
    */
-  /** Render the autosave state on the native Break Down route's save
-   *  indicator: "Saving..." while a debounced write is armed, settling to
-   *  "Saved". Ctrl+S / the More menu remain the explicit-save action; this
-   *  just makes persistence VISIBLE. Final Engine Independence: the legacy
-   *  #btnSave top-bar button this used to also render into is gone. */
+  /* Publish debounced autosave state on the native Break Down indicator; explicit save remains separate. */
   _renderSaveState(state) {
     this.breakdownWorkspace?.setSaveState(state);
   }
@@ -967,9 +853,7 @@ class App {
       ? this.tagger.nextPlay()
       : this.tagger.nextPlayWithSituation();
     if (advanced) {
-      // "Saved" acknowledgment on Save & Next lives entirely on the native
-      // Save & Next button now (NativeTaggingScreen.saveNext's saveConfirmed
-      // flag) -- there is no separate top-bar button here to flash any more.
+
       this._autoPlayCurrent();
       return;
     }
@@ -1043,8 +927,6 @@ class App {
     // only seeds a play that does not exist yet.
     const curUnit = curPlay ? countedUnit(curPlay) : (this.tagger.defaultUnit || 'offense');
 
-    // Y jumps to the yardage input (type the number, Enter advances) —
-    // closing the only step that still forced a mouse trip every play.
     if (e.code === 'KeyY' && !e.shiftKey) {
       e.preventDefault();
       this.nativeTagging.focusYardage();
@@ -1060,10 +942,8 @@ class App {
       return true;
     }
 
-    // In Special Teams mode, digits 1-8 pick the Special Teams unit, in the
-    // model's own order (SpecialTeamsModel.unitOptions): Kickoff, Kick Return,
-    // Punt, Punt Return / Block, Field Goal, Field Goal Block, Try, Defending a
-    // Try. The same write the deck's unit chips make; the old stType is retired.
+    // Special Teams digits 1-8 use the model's unit order and the same write as the deck chips.
+
     if (curUnit === 'special' && !e.shiftKey && /^Digit[1-9]$/.test(e.code)) {
       const units = SpecialTeamsModel.unitOptions().map(([unit]) => unit);
       const n = parseInt(e.code.replace('Digit', ''), 10);
@@ -1084,9 +964,6 @@ class App {
     return true;
   }
 
-  // _drawMotionGraph moved to AutoDetectScreen.drawMotionGraph (Final Engine
-  // Independence) -- same imperative canvas renderer, now called with the
-  // Preact panel's own canvas ref instead of #motionGraphCanvas.
 }
 
 // Boot the app

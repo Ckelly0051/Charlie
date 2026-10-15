@@ -24,7 +24,7 @@ export class BreakdownWorkspace {
 
   constructor(app) {
     this.app = app;
-    // S7-d1: game context comes from the service, not a hidden <select>.
+
     this.host = null;
     this.saveState = 'saved';
     this.view = 'chart';
@@ -123,15 +123,8 @@ export class BreakdownWorkspace {
 
   _setView(view, { userInitiated = false } = {}) {
     const filmRoom = view === 'film-room';
-    // H2 — Chart and Film Room were dead inside Film Focus. Focus removes the
-    // deck from layout, so swapping the hidden hosts underneath it did nothing
-    // visible and the coach had to go back through Show Charting. Asking for a
-    // surface IS asking to leave focus.
-    //
-    // But ONLY when the coach asked. Mount/restore also calls this to reapply
-    // the stored view, and exiting focus there wiped the persisted Film Focus
-    // on every remount — caught by e2e-breakdown-geometry, which is exactly the
-    // regression that harness exists for.
+    // Only an explicit surface request exits Film Focus; mount/restore must preserve it.
+
     if (userInitiated && this.filmFocus) this._setFilmFocus(false);
     this.view = filmRoom ? 'film-room' : 'chart';
     this.app.breakdownTheater?.setView(this.view);

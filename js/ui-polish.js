@@ -9,7 +9,6 @@ export class UIPolish {
     this._initVideoLoadedHint();
   }
 
-
   _filmBackend() { return this.app?.storage?.seasonStore?.backend || null; }
 
   _isDesktopFilm() {
@@ -66,10 +65,6 @@ export class UIPolish {
     return false;
   }
 
-  // Final Engine Independence: the legacy #btnSidebarToggle launcher is gone
-  // -- WorkspaceShell's own .ws-global-tools "settings" button calls
-  // settingsScreen.open() directly now.
-
   _initPanelCollapse() {
     document.querySelectorAll('.panel-title[data-toggle]').forEach(title => {
       title.addEventListener('click', () => {
@@ -80,10 +75,6 @@ export class UIPolish {
     });
   }
 
-  /**
-   * Bottom tab bar (mobile only). Routes taps to existing UI rather than
-   * restructuring the DOM. Four tabs: Video / Tag / Stats / More.
-   */
   /**
    * Turn the empty video area into a giant tap target that loads a video.
    */
@@ -130,8 +121,6 @@ export class UIPolish {
       : mode === 'managed'
         ? 'Imported film is copied into GridIron IQ. Link a folder to use it in place.'
         : 'Choose where film should live before adding it.';
-    // The native empty-state hint above is the sole surface for this status
-    // text; the former top-bar owners are deleted.
   }
 
   /**

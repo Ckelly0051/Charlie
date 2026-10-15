@@ -83,7 +83,7 @@ export class SeasonStore {
     this.openRefusal = null;
     const data = this._normalize(parsed);
     data.id = seasonId;
-    this._seedRevision(seasonId, data);   // PC-4: continue the persisted sequence
+    this._seedRevision(seasonId, data);   // Continue the persisted revision sequence.
     return data;
   }
 
@@ -96,9 +96,7 @@ export class SeasonStore {
       // season carries '' — it IS its own parent. This is the durable
       // relationship; nothing infers it from team/year/level or lastOpened.
       programSeasonId: '',
-      // A brand-new season is born owning its roster: the marker is part of the
-      // blank shape, so a freshly created season is never a migration candidate
-      // and its first open performs no compatibility write.
+      // New seasons own their roster from creation; opening one requires no compatibility write.
       teamProfile: {}, roster: [], rosterOwnership: SeasonStore.ROSTER_OWNERSHIP,
       playbook: { version: 1, calls: [] },
       games: [g], activeGameId: g.id,
@@ -261,16 +259,7 @@ export class SeasonStore {
     if (typeof p.tags.strength !== 'string') p.tags.strength = '';
   }
 
-  // Special-teams plays can't carry offensive/defensive alignment — the ST tag
-  // form hides the Formation/Personnel and Front/Coverage/Blitz groups entirely,
-  // so there is no way to set them on an ST snap. Any such value on a
-  // unit:'special' play is therefore a leak (classically: an offensive formation
-  // that propagated play-to-play through the Save-&-Next carry, coding every ST
-  // play as "Under Center"). Strip it. Idempotent and safe — nothing intentional
-  // can ever live in these fields on an ST play.
-  //
-  // The one strip list; play-tagger reads it rather than keeping a copy
-  // (GRIDIRON-IQ-TAG-MODEL.md §8, GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md §8).
+  // The shared strip list removes alignment fields hidden on Special Teams plays; play-tagger uses this same list.
   static ST_ALIGNMENT_KEYS = ['qbAlignment', 'formationFamily', 'receiverSet', 'backfield', 'strength',
     'personnel', 'defFront', 'coverage', 'coverageFamily', 'blitz'];
   static stripStAlignment(p) {
@@ -287,7 +276,7 @@ export class SeasonStore {
       .filter(x => x && !SeasonStore.OUR_DEF_ONLY_FRONTS.includes(x)).join(' + ');
   }
 
-  /** Coerce any loaded object into a well-formed season (back-compat safe). */
+  /* Normalize a validated current-format season. */
   _normalize(d) {
     d.version = this.SCHEMA; d.type = 'season';
     if (!Array.isArray(d.games) || !d.games.length) d.games = [this.blankGame()];
@@ -335,7 +324,7 @@ export class SeasonStore {
     d.team = d.team || (d.teamProfile && d.teamProfile.teamName) || '';
     d.year = d.year || '';
     d.level = d.level || '';
-    d.plans = this._normalizePlans(d.plans);   // Phase 3: season-level game-plan workspace (backward-compat default [])
+    d.plans = this._normalizePlans(d.plans);
     // An untrusted revision (missing, malformed or hand-edited) normalizes to 0.
     // The upper bound matters too: at Number.MAX_SAFE_INTEGER `revision + 1`
     // stops incrementing and the fence would silently stop working.
@@ -452,22 +441,7 @@ export class SeasonStore {
     return { rec, claimed: true };
   }
 
-  /**
-   * Open an existing season by id and load its data as the current season.
-   *
-   * Nothing changes until the read has finished: the season id, the backend
-   * pointer and the data switch together, in one synchronous step, so no edit,
-   * save or film load in between can see a season id paired with another
-   * season's data.
-   *
-   * Returns null and opens NOTHING when
-   *   - the read fails (a failed read is not "no season saved yet": opening it
-   *     empty let the next persist() replace the saved plays with none),
-   *   - the stored season is in an old format (`_hydrate`), or
-   *   - a later openSeason() started while this one was reading; the latest
-   *     request owns the result.
-   * The season the coach already had open stays open with its data untouched.
-   */
+  /* Open only after read and validation succeed, switching id, backend pointer and data synchronously. Failed or superseded reads leave the current season untouched. */
   async openSeason(id) {
     const seq = ++this._openSeq;
     const superseded = () => seq !== this._openSeq;
@@ -511,16 +485,7 @@ export class SeasonStore {
     try {
       ok = await this._rawEnqueue(id, () => this.backend.deleteSeason(id));
     } finally {
-      // Season ids can be REUSED (StorageBackend.createSeason slugifies the
-      // name and only checks against the CURRENTLY-LISTED seasons, so a
-      // freshly deleted "Season A" frees up its exact id for a brand new
-      // "Season A"). The fence must not outlive this one delete attempt --
-      // on failure the season is still legitimately open and must stay
-      // writable; on success the id must become writable again the moment a
-      // new season claims it. By the time this resolves nothing could have
-      // queued a write behind THIS delete's own dispatch (the fence blocked
-      // every attempt for the entire window), so clearing it here is safe
-      // either way.
+      // Release the delete fence after this attempt so failed deletions and later reused ids remain writable; no write can queue behind the fenced delete.
       this._deletingSeasons.delete(id);
     }
     // Only tear down the open editor when the delete was durable. A backend that
@@ -563,10 +528,7 @@ export class SeasonStore {
     gameObj.id = prev.id;
     gameObj.name = this.gameName(gameObj, i);
     gameObj.status = gameObj.status || prev.status || 'active';
-    // Film source mode (`managed` default | `linked`) + the linked folder live on
-    // the game node, NOT in _serialize() output — so carry them forward, or the
-    // commitActive() right after linking a game would drop them and linked film
-    // wouldn't survive a reopen. (Same reason status is carried above.)
+    // Preserve game-owned filmMode and filmDir, which are not part of _serialize() output.
     if (prev.filmMode && !gameObj.filmMode) { gameObj.filmMode = prev.filmMode; gameObj.filmDir = prev.filmDir; }
     this.data.games[i] = gameObj;
   }
@@ -723,26 +685,13 @@ export class SeasonStore {
     if (tail) {
       next = tail.then(run, run);   // contention: strictly after the in-flight write, pass or fail
     } else {
-      // NO contention: start the backend write SYNCHRONOUSLY. persist() has
-      // always had the property that a fire-and-forget call has already begun
-      // its write by the time it returns, and callers depend on it -- notably
-      // the browser backend, whose localStorage write completes synchronously,
-      // so `store.persist(); await backend.loadSeason(id)` reads back the state
-      // just written. Deferring every write to a microtask silently broke that
-      // and was caught by the integrity fuzzer's persist-then-reload check
-      // (8 RELOAD violations across 5 seeds), not by any focused test.
+      // Start uncontended writes synchronously so fire-and-forget browser persist() is visible to an immediate read.
       try { next = Promise.resolve(run()); } catch (e) { next = Promise.reject(e); }
     }
     // This write's own durable result, for pendingWrite(). Never rejects:
     // a rejected write reports false.
     this._lastWrite.set(seasonId, next.then(v => v !== false, () => false));
-    // Drop the tail as soon as it drains, so the next uncontended write again
-    // starts synchronously instead of chaining onto an already-resolved
-    // promise. This MUST happen in the same continuation that observes `next`
-    // settling, not a chained `.then` on top of it: a chained cleanup lands one
-    // microtask later, and an op dispatched inside that gap still saw a stale
-    // tail and got deferred (the integrity fuzzer went 8 -> 5 RELOAD violations
-    // rather than to 0 until this was tightened).
+    // Drop the tail in the same continuation that observes completion; a later microtask would defer the next uncontended write.
     let settled;
     const drain = () => { if (this._writeChain.get(seasonId) === settled) this._writeChain.delete(seasonId); };
     settled = next.then(drain, drain);

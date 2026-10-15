@@ -25,18 +25,13 @@ export class GameScreen {
     const scout = store.data?.kind === 'scout';
     const scoutTarget = String(store.data?.scout?.opponent || '').trim();
     const source = mode === 'create' ? {} : clone(storage.gameInfo || active.gameInfo || {});
-    // School/nickname prefill (2026-08-31 Home naming contract): an existing
-    // game predating these fields has no `opponentSchool`/`sourceTeamASchool`
-    // — its own intact `opponent`/`sourceTeamA`/`sourceTeamB` is the honest
-    // default (never a heuristic split), so leaving nickname untouched and
-    // resaving composes back to byte-identical prior identity.
+    // Prefill school with the intact stored identity and nickname blank; never guess a split.
+
     const initial = {
       week: source.week || '',
       opponent: source.opponentSchool || source.opponent || '', opponentNickname: source.opponentNickname || '',
       date: source.date || (mode === 'create' ? new Date().toISOString().slice(0, 10) : ''),
-      // No `perspective` here: the form no longer renders or submits one, and
-      // carrying a dead value into its state would be the only place left that
-      // implies the coach chooses it.
+
       homeAway: source.homeAway || '', gameType: source.gameType || 'game',
       sourceTeamA: source.sourceTeamASchool || source.sourceTeamA || scoutTarget, sourceTeamANickname: source.sourceTeamANickname || '',
       sourceTeamB: source.sourceTeamBSchool || source.sourceTeamB || '', sourceTeamBNickname: source.sourceTeamBNickname || '',
@@ -134,13 +129,8 @@ export class GameScreen {
         await storage._loadActiveGame();
       }
 
-      // School/nickname compose into the compatibility identity field here,
-      // at the one seam every save passes through, so `opponent` /
-      // `sourceTeamA` / `sourceTeamB` remain the full identity every
-      // existing reader (reports, CSV, scout aggregation) already consumes
-      // unchanged (2026-08-31 Home naming contract). The raw school/nickname
-      // pair is also stored, additively, so the next edit can prefill
-      // without guessing a split of the composed name.
+      // Compose full identity at save and retain the school/nickname pair for unambiguous editing.
+
       if (store.data?.kind === 'scout') {
         const aSchool = String(values.sourceTeamA || '').trim(), aNickname = String(values.sourceTeamANickname || '').trim();
         const bSchool = String(values.sourceTeamB || '').trim(), bNickname = String(values.sourceTeamBNickname || '').trim();
@@ -151,13 +141,8 @@ export class GameScreen {
         };
       } else {
         const school = String(values.opponent || '').trim(), nickname = String(values.opponentNickname || '').trim();
-        // A PROGRAM SEASON MAKES PROGRAM GAMES, derived here and asked nowhere.
-        // Any `perspective` arriving with the values is dropped: the form no
-        // longer sends one, and nothing else may make a program game scout.
-        // On create we seed the existing `offense` default, which is what
-        // `unitFromPerspective` already turns into Break Down's opening unit.
-        // On edit we omit the field entirely so `_applyGameInfoDraft` preserves
-        // whatever the game already stores -- editing must not reset context.
+        // Season kind determines game perspective; on edit, omit perspective to preserve the game's stored context.
+
         const { perspective: _fromForm, ...rest } = values;
         const gameType = String(rest.gameType || '').trim();
         values = {

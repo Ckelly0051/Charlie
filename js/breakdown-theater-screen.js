@@ -41,14 +41,8 @@ export class BreakdownTheaterScreen {
     ['video-loaded', 'video-unloaded', 'play-state-change', 'loop-change', 'rate-change']
       .forEach(event => this.app.vc?.on(event, () => this._publish()));
     this.app.vc?.on('time-update', () => {
-      // V2-H: this used to fork on fullscreen -- a direct DOM write to the
-      // time/scrub nodes in fullscreen, a FULL _publish() (snapshot + a
-      // Preact diff of the entire play strip) everywhere else. Nothing else
-      // in the snapshot depends on playback time -- the transport is the
-      // ONLY thing time-update needs to keep live -- so the "everywhere
-      // else" branch was pure waste on every media tick, measured at ~0.6ms
-      // apiece on a 700-play game and continuous for the whole time the
-      // route is mounted, in or out of fullscreen. One direct write, always.
+      // Only transport time and scrub position change on a playback tick; avoid rebuilding the play-strip snapshot.
+
       const duration = Number(this.app.vc?.duration) || 0;
       const time = Number(this.app.vc?.currentTime) || 0;
       this._native?.updatePlayback?.({
@@ -193,11 +187,7 @@ export class BreakdownTheaterScreen {
         : '',
       chyron: this._chyron(current),
       playSheet: this._playSheet(current),
-      // V2-H: the play strip only ever reads this count (its header line),
-      // never the array itself -- mapping every play through _playView here
-      // was pure duplicate work, since _driveGroups below already builds the
-      // identical per-play view for real use. Doubled the per-play cost of
-      // every publish for a value nothing consumed but its own length.
+
       playCount: (tagger?.plays || []).length,
       groups: this._driveGroups(tagger?.plays || []),
       stripCollapsed: this.stripCollapsed,
@@ -214,15 +204,7 @@ export class BreakdownTheaterScreen {
     };
   }
 
-  /**
-   * THE PLAY SHEET (coach direction, 2026-09-24). Film Room's play card lists
-   * every field the coach can chart for the selected play, grouped, so the
-   * charting can be checked against the film without reading a wide table row.
-   * Values come from the same projection and result wording as the chyron, so
-   * the two cannot disagree. A field the play's unit charts but nobody filled
-   * is `null` and renders `Not charted`; groups with nothing to say (no
-   * penalty, no notes) are left out rather than padded. Nothing is inferred.
-   */
+  /* List the selected play's chartable fields; blank fields read Not charted and empty optional groups are omitted. */
   _playSheet(play) {
     if (!play) return null;
     const tags = { ...(play.tags || {}), ...(StatsEngine.proj ? StatsEngine.proj(play) : {}) };
@@ -319,14 +301,7 @@ export class BreakdownTheaterScreen {
     return { playId: play.id, unit, groups };
   }
 
-  /**
-   * The live below-film lower-third (Broadcast Density Part 1). Reads exactly
-   * the current play's real tags through StatsEngine.proj — the same
-   * projection NativeTaggingScreen.snapshot() merges over raw tags — so the
-   * chyron can never show a value that disagrees with the tag form beside it.
-   * Nothing here is inferred: an uncharted field renders the honest '—'
-   * placeholder, never a guess.
-   */
+  /* Read the lower-third through the same projection as Chart; uncharted fields stay blank. */
   _chyron(play) {
     if (!play) return null;
     const raw = play.tags || {};
@@ -401,17 +376,7 @@ export class BreakdownTheaterScreen {
     };
   }
 
-  /**
-   * Result text + colour. Structured Special Teams (play.specialTeams) is
-   * read first and colours via SpecialTeamsModel.scoringTeam() — the same
-   * ownership resolver the rest of the app uses, so the chyron can't invent
-   * a winner a coach never confirmed. Everything else uses the legacy
-   * result/yardage tags with unit- and ownership-aware semantics: green/red
-   * mean the outcome was genuinely good/bad for the charted unit's own job
-   * (the offense trying to gain, the defense trying to stop it) — not a
-   * blind "Touchdown is always green" substring match, which is exactly what
-   * made a defensive Loss/Sack/Interception red and an opponent score green.
-   */
+  /* Structured Special Teams resolves outcome ownership through the model; other tones reflect the charted unit's result. */
   _chyronResult(play, tags, unit) {
     if (unit === 'special') return this._chyronSpecialResult(play);
 
@@ -584,11 +549,7 @@ export class BreakdownTheaterScreen {
     return { situation, call, result };
   }
 
-  /** Drive groups on composite possession-side + drive-number identity. The
-   *  raw `driveNumber` tag alone merged our Drive 1 with the opponent's
-   *  Drive 1 into one group, because each team runs its own drive sequence.
-   *  The identity and the labels are owned by football-rules.js so Study's
-   *  Drive dimension cannot disagree with this strip. */
+  /* Group drives by possession side and number through football-rules.js, shared with Study. */
   _driveGroups(plays) {
     return groupPlaysByDrive(plays, { project: play => this._playView(play), mode: this._driveLabelMode() });
   }

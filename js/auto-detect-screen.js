@@ -118,9 +118,7 @@ export class AutoDetectScreen {
     this._publish();
   }
 
-  /** Draw the motion-signal graph into a canvas the Preact panel owns. Pure
-   *  reuse of the original imperative renderer -- it always took a canvas
-   *  element parameter, never assumed a fixed DOM id. */
+  /* Draw the motion-signal graph into the panel-owned canvas. */
   drawMotionGraph(canvas) {
     if (!canvas) return;
     const motionData = this.detector.motionData;
@@ -204,9 +202,7 @@ export class AutoDetectScreen {
     this._setState({ status: 'done', progress: 100, resultText, canReview: false, canApply: false });
   }
 
-  /** Start a scan. Mirrors the original click handler's orchestration exactly
-   *  -- PlayDetector scan, Vision/local-CV tagging fallback chain, tag
-   *  stamping -- but writes to native state instead of DOM elements. */
+  /* Scan with PlayDetector, then apply the vision/local-CV fallback chain and publish progress. */
   async start() {
     if (this.detector.isScanning) return;
     const app = this.app;

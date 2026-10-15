@@ -38,8 +38,8 @@ export class PlaylistManager {
       }
     });
 
-    // Drop handling is centralized in VideoController → files-selected → App.
-    // No duplicate handler here — that caused double-adds.
+    // Drop handling is centralized in VideoController -> files-selected -> App.
+
   }
 
   /**
@@ -141,13 +141,8 @@ export class PlaylistManager {
 
     const relinked = this._relinkSavedPlays(newClips, liveIds);
 
+    // Persist new film through the shared addFiles hook; browser and linked-film paths do not copy.
 
-    // Persist genuinely-new film to the desktop library through the single
-    // choke point (App wires this to storage.importFilm). BOTH the top-bar
-    // picker and the Playlist-panel "Add Clips" button funnel through addFiles,
-    // so wiring the hook here means no add path can skip persistence — the panel
-    // path used to bypass importFilm entirely, so its clips vanished on reopen.
-    // The hook no-ops on the browser build and skips linked games (never copied).
     if (this.onFilmFiles && acceptedFiles.length) { try { this.onFilmFiles(acceptedFiles); } catch (e) {} }
 
     // Create plays before activating a clip. Duration probes run separately in
@@ -246,14 +241,8 @@ export class PlaylistManager {
     let created = false;
     let firstNewId = null;
     const newClips = this.clips.filter(c => c.playId === null);
-    // Create the plays SYNCHRONOUSLY — there must be NO await between deciding to
-    // create them and pushing them into this.tagger.plays. _deserialize reassigns
-    // tagger.plays to another game's array on a switch, so any yield here let a
-    // late push land a clip's play in the WRONG game (cross-game corruption) OR,
-    // if we aborted to avoid that, ORPHANED already-copied film with no play.
-    // Pushing synchronously into the current game closes the window on both:
-    // durations are unknown for a beat and get backfilled in the background below.
-    // (Pinned by tools/e2e-addfiles-race.mjs + e2e-integrity.)
+    // Create and push plays synchronously: yielding could attach them to a different game or leave copied film without plays. Probe durations afterward.
+
     for (const clip of newClips) {
       const play = {
         id: this.tagger.nextId++,
@@ -278,8 +267,8 @@ export class PlaylistManager {
       if (firstNewId === null) firstNewId = play.id;
     }
 
-    // Backfill real durations in the background — the plays already exist in the
-    // correct game, so this can never misplace or lose them.
+    // Backfill durations after synchronous play creation.
+
     this._backfillDurations(newClips);
 
     // Plays were pushed directly (not via tagger.createPlay), so listeners —
@@ -296,10 +285,7 @@ export class PlaylistManager {
     }
   }
 
-  /** Probe clip durations in the background (capped pool) and write the real end
-   *  time onto the already-created plays. Fire-and-forget: the plays exist in the
-   *  correct game regardless, so a game switch mid-probe can't misplace them —
-   *  at worst a play keeps its sentinel end until the coach reopens/repairs. */
+  /* Probe durations in a capped background pool and update the existing plays' end times. */
   _backfillDurations(clips) {
     const POOL = 8;
     let next = 0;
@@ -621,24 +607,7 @@ export class PlaylistManager {
     if (removedPlay) this.tagger._emit('play-deleted');
   }
 
-  /**
-   * Sync the live playlist to a wholesale plays replacement (Undo / Redo).
-   * HistoryManager snapshots plays only — a File and an object URL cannot
-   * round-trip through JSON — so the clips a deletion removed are held in
-   * `_undoClips` and reconciled here instead.
-   *
-   * Scoped on purpose to clips THIS manager removed: a game load also emits
-   * `plays-loaded`, and sweeping live clips on that signal would tear down a
-   * freshly loaded playlist. `reset()` clears the stash, and it runs before that
-   * event, so an incoming game starts with nothing to reconcile.
-   *
-   * The SELECTION is History's, not this method's. `switchToClip` selects
-   * whatever clip it loads, so switching to the adjacent clip that happened to
-   * be active after the deletion overwrote the play History had just restored —
-   * Undo put the clip back and then landed the coach on the next play. The
-   * restored play's own clip is preferred as the switch target, and where the
-   * target has to be some other clip its selection is put back afterwards.
-   */
+  /* Reconcile only this manager's undo-stashed clips after a plays replacement; reset clears the stash on game load. History owns selection, so prefer its restored play's clip and preserve its selection. */
   _reconcileUndoClips() {
     if (!this._undoClips.size) return false;
     const live = new Set((this.tagger.plays || []).map(p => p.id));
@@ -746,7 +715,6 @@ export class PlaylistManager {
     return `clip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   }
 
-  // Event system
   on(event, callback) {
     if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(callback);

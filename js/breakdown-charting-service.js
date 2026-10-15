@@ -144,10 +144,8 @@ export class BreakdownChartingService {
       if (st.outcome.status === 'good') st.outcome.score = st.attemptType;
       else if (st.outcome.score === 'fieldGoal' || st.outcome.score === 'extraPoint') st.outcome.score = null;
     });
-    // `stAttempt` is DELETED, not narrowed: it existed only to choose between
-    // Field Goal and Extra Point on the field-goal units, and an extra point
-    // authored there is always credited to the subject team. `Try` and
-    // `Defending a Try` are the only XP/two-point authoring paths.
+    // Try and Defending a Try are the only XP/two-point authoring paths.
+
     if (key === 'stScore') return this._saveSpecial(st => {
       st.outcome.score = st.outcome.score === value ? null : value;
       st.outcome.scoredBy = null;

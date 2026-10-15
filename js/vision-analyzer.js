@@ -45,9 +45,8 @@ export class VisionAnalyzer {
       body.temperature = 0;
     }
 
-    // Bound the request so a hung/slow model can't stall the whole scan forever
-    // (the coach has no way to cancel an in-flight fetch otherwise). AbortError
-    // propagates to the caller, which falls back to heuristics.
+    // Timeout or cancel aborts the request; AbortError propagates to the heuristic fallback.
+
     const controller = new AbortController();
     this._activeController = controller;
     const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs || 120000);
@@ -274,13 +273,7 @@ IMPORTANT:
 
   // ----- Response parsing -----------------------------------------------
 
-  /**
-   * Allowed values for each enum field — must match the <option> values in
-   * index.html exactly. Any value Claude returns that isn't in this set is
-   * dropped, because assigning an unknown value to a <select> silently
-   * fails (the dropdown shows blank) while still polluting play.tags and,
-   * downstream, the stats engine and CSV export.
-   */
+  /* Drop enum values outside the current charting vocabulary before they reach play tags. */
   static get ALLOWED() {
     return {
       // Each look field on its own: an alignment is never a formation, 'Empty'
@@ -289,11 +282,8 @@ IMPORTANT:
       formationFamily: [...TagLibrary.DEFINITIONS.formationFamily],
       backfield: ['Empty'],
       personnel: ['00', '10', '11', '12', '13', '20', '21', '22', '23', 'Jumbo', 'Goal Line'],
-      // The charting vocabulary has ONE owner. Carrying a copy here meant a new
-      // built-in reached the deck, the grid and the reports while a valid vision
-      // response naming it was SILENTLY DISCARDED by this validator — the enum
-      // in the prompt above is generated from this same list, so the two can no
-      // longer disagree either.
+      // TagLibrary owns both the prompt enum and response validation vocabulary.
+
       playType: [...TagLibrary.DEFINITIONS.playType],
       result: ['Gain', 'Loss', 'No Gain', 'Incomplete', 'Interception', 'Touchdown', 'Sack', 'Fumble', 'Penalty', 'Punt', 'Field Goal', 'Good', 'No Good', 'Kneel', 'Spike'],
       hash: ['Left', 'Middle', 'Right'],

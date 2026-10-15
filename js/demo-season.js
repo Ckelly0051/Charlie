@@ -27,7 +27,7 @@ const QB = ['7', '12'];
 const WR = ['80', '11', '84', '3', '17'];
 const DEF = ['55', '9', '24', '40', '52', '31', '90'];
 
-// Roster with real names so the individual-stats tables read "#22 Carter".
+// Fictional names make individual-stat labels readable.
 const DEMO_ROSTER = [
   { num: '7',  name: 'Jordan Hayes',   pos: 'QB', side: 'O' },
   { num: '12', name: 'Eli Brooks',     pos: 'QB', side: 'O' },

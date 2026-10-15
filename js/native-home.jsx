@@ -78,18 +78,7 @@ function FirstLaunch({ screen, hub, mode }) {
   </main>;
 }
 
-/** ONE detached, muted, never-DOM-attached capture per card -- the same
- *  `GameThumbnailService` the coach's real film already resolves through
- *  (managed copy or linked folder), never a second image-resolution path.
- *
- *  Demand is VISIBILITY-driven, not mount-driven: a season with dozens of
- *  games would otherwise fire one decode per row the instant Home renders,
- *  regardless of how many rows are actually on screen. An IntersectionObserver
- *  requests exactly once, the moment the card is about to enter the viewport
- *  (a 200px lookahead margin so scrolling feels instant), then disconnects --
- *  it never re-fires for a card that scrolls off and back on. The selected-
- *  game detail panel is exempt: it is, by construction, on screen the instant
- *  it renders, so it requests immediately rather than waiting on a callback. */
+/* Request each card's thumbnail once when it nears the viewport; the visible detail panel requests immediately. */
 function Thumbnail({ screen, game, detail = false }) {
   const url = screen.thumbnailSourceMatches(game) ? screen.thumbnailFor(game.id) : null;
   const film = screen.rowFilmView(game.id);
@@ -283,13 +272,7 @@ function orderedSeasons(seasons) {
     ((LEVEL_RANK[a.level] ?? 3) - (LEVEL_RANK[b.level] ?? 3)) ||
     String(a.name || '').localeCompare(String(b.name || '')));
 }
-/** THE ONE YEAR-GROUP KEY. Grouping and the active-year test must agree or a
- *  season falls between them: grouping normalized a missing year to `Undated`
- *  while the active-year test normalized it to an empty string, so a legacy
- *  season with no year was grouped under `Undated`, matched no active year, and
- *  its group was collapsible with the OPEN season inside it. Nothing here reads
- *  or writes stored metadata — it only decides which heading a row appears
- *  under. */
+/* Grouping and active-year detection share one key, including Undated. */
 function yearGroupKey(season) {
   const year = String(season?.year ?? '').trim();
   return year || 'Undated';
@@ -305,33 +288,9 @@ function groupByYear(seasons) {
   return [...groups.entries()];
 }
 
-/** Persistent season rail. This is a LIVE view onto `TeamHubScreen` -- the
- *  same TeamHubScreen controller used by the focused dialogs -- not a second season-
- *  management implementation. Every action (create/open/delete a season,
- *  the season-scoped tools) is the existing `TeamHubScreen`/`HomeScreen`
- *  method, called directly; the rail owns only the year-grouped presentation
- *  the approved comp specifies. "Season library" opens Home's full library
- *  state; focused settings and recovery remain owned by their dialogs. */
-/** A season's row inside the compact context rail. Deliberately NOT the
- *  full library `SeasonRow` -- that card carries a 4-column grid, a state
- *  pill, a film badge, and Open/Delete action buttons sized for a full-width
- *  list, and squeezing it into a 236px column is exactly what left the
- *  season name a 75px sliver (the reviewed regression). The rail's job is
- *  identity + a count, at a glance, in a year-grouped list a coach scans
- *  in half a second -- so this is a purpose-built compact row: one label,
- *  one count, one click. Delete/rename stay in Team Hub and the full season
- *  library grid (SeasonLibraryPanel below still renders the real
- *  `SeasonRow`), which is the only place this app offers that destructive
- *  action -- not duplicated here. */
-/** The row's label inside a tree that is ALREADY grouped by year, so the
- *  year never repeats in the row itself. A program season is identified by
- *  its level; a scout season's name composes as
- *  `year · level · opponent · Scout`, so the year and the `Scout` suffix are
- *  dropped and the row reads `opponent · level`. LEVEL IS AN IDENTITY
- *  BREAKPOINT, not decoration: two same-year scouts of the same opponent at
- *  different levels are otherwise indistinguishable, so it is kept and the
- *  opponent leads because that is what a coach scans for. Falls back to the
- *  full stored name whenever the name does not match that composition. */
+/* The rail owns presentation; TeamHubScreen and HomeScreen own season actions. */
+/* Compact rail rows show identity and count; delete/rename stay in Team Hub and the full library. */
+/* Within a year group, omit the repeated year but keep level to distinguish same-opponent scouts; unmatched names remain intact. */
 function railLabel(season) {
   if (!season.isScout) return season.level || season.name || 'Season';
   const year = String(season.year || '');
@@ -352,10 +311,7 @@ function RailSeasonRow({ season, hub }) {
      that changes which season is current — first paint, a program switch, a
      season switch, a reload — the current row is brought into its scroller.
      `nearest` so an already-visible row never jumps under the coach. */
-  /* A RESIZE RE-LAYS OUT THE RAIL WITHOUT RE-RENDERING IT, so keeping the open
-     season visible needs the listener as well as the render pass: measured at
-     1440 and 1280, the current row had scrolled out of a now-shorter tree.
-     `nearest` is idempotent — a row already inside its scroller does not move. */
+  /* Resize can move the current row outside the scroller without a render; nearest leaves visible rows in place. */
   useEffect(() => {
     if (!season.current) return undefined;
     const keep = () => ref.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -370,28 +326,8 @@ function RailSeasonRow({ season, hub }) {
     {icon('folder')}<span><strong>{label}</strong><small>{count}</small></span>
   </button>;
 }
-/** One of the rail's two permanent trees. Both render unconditionally
- *  whenever a team exists -- neither is hidden, replaced, or collapsed
- *  because a workspace, season, scout, or route was selected. That was the
- *  recorded defect: entering Opponent Scout swapped the whole rail to
- *  Opponents and reported "No opponents yet" while the coach's program
- *  seasons still existed and were still the open season scope. */
-/** One of the rail's two permanent trees, grouped by year.
- *
- *  THE ACTIVE YEAR IS EXPANDED AND HAS NO COLLAPSE CONTROL. The year holding
- *  the open season shows every one of its seasons and offers no disclosure at
- *  all — an action that cannot honestly complete is worse than no action, and
- *  a folded year that still rendered its current row left `aria-expanded=false`
- *  over visibly rendered content, so the DOM and the accessibility state
- *  disagreed. Older years are ordinary disclosures and fold completely.
- *
- *  Opening a season in another year therefore expands that year by definition,
- *  reveals every season in it, and leaves the year the coach came from at
- *  whatever disclosure state they had chosen.
- *
- *  Collapse state is CONTROLLER state keyed by TEAM, section and year, so it
- *  survives an ordinary re-render but can never leak from one program into
- *  another — two programs' 2024s are different years. */
+/* Both season trees remain rendered whenever a team exists, independent of the selected workspace. */
+/* The active year is always expanded without a collapse control. Other years retain disclosure state keyed by team, section and year. */
 function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, screen, cls = '' }) {
   const groups = groupByYear(seasons);
   const [, force] = useState(0);
@@ -424,10 +360,7 @@ function RailSection({ title, seasons, hub, onCreate, createLabel, emptyText, sc
               {active
                 // The open season's year: a heading, not a control. It keeps the
                 // count and the year, and it is always fully expanded.
-                /* NO DISCLOSURE GLYPH. A caret on a heading that cannot be
-                   pressed states an affordance that does not exist; the row
-                   keeps its alignment with the disclosure rows through an empty
-                   non-semantic spacer of the caret's own width. */
+
                 ? <span class="rail-year-toggle is-static" data-rail-year={year} data-rail-active-year="true">
                   <span class="rail-year-spacer" aria-hidden="true" />
                   <span class="rail-year-name">{year}</span>
@@ -465,18 +398,14 @@ function SeasonRail({ screen, hub, hubState }) {
   const programs = all.filter(season => !season.isScout);
   const scouts = all.filter(season => season.isScout);
   const logo = openScout ? '' : screen.teamLogo();
-  // Until the hub's first load the team list is unknown, not empty: offering
-  // Get started then sent a program with seasons to first-run setup.
+  // Before the hub's first load, the team list is unknown, not empty.
+
   const hasTeam = !!hubState.teams?.length;
   const noTeam = hubState.loaded === true && !hasTeam;
   return <nav class="rail-year" aria-label="Program seasons and opponent scouts">
     <button type="button" class="rail-library-link" onClick={() => hasTeam && screen.openSeasonLibrary()}>{icon('folder')}Season library</button>
     {noTeam && <button type="button" class="rail-library-link is-current">{icon('tag')}Get started</button>}
-    {/* PROGRAM SEASONS TAKES THE RAIL'S FLEXIBLE HEIGHT. Both trees previously
-        held an equal 1fr with a 112px floor, so the season tree was pinned to
-        about one row while the fixed tool block held half the rail — the
-        installed screenshot showed 2026 while 2025 JV was the open season.
-        Scouts are content-sized under a cap; seasons take the rest. */}
+    {/* Scouts are content-sized under a cap; program seasons take the remaining rail height. */}
     {hasTeam && <div class="rail-trees">
       <RailSection title="Program Seasons" seasons={programs} hub={hub} screen={screen} cls="is-seasons"
         createLabel="New season" onCreate={event => hub.openCreateSeason(event.currentTarget)}
@@ -613,13 +542,7 @@ function EmptyScoutLibrary({ create }) {
  */
 function UnassignedScouts({ hub, hubState }) {
   const scouts = hubState.unassignedScouts || [];
-  /* Selection is held per SCOUT ID, never in the DOM. The rows were unkeyed with
-     uncontrolled selects: when one row disappeared after being assigned, Preact
-     reused its DOM node for the next scout, so the season the coach had chosen
-     for the assigned scout stayed selected and could be submitted through the
-     NEXT scout's handler -- assigning the wrong scout to a season nobody picked
-     for it. Keyed rows plus id-scoped state means a newly exposed row always
-     starts blank, and `busy` blocks a second submit while one is in flight. */
+  /* Key rows and selection state by scout id so assignment cannot reuse another scout's selection; busy blocks duplicate submits. */
   const [choice, setChoice] = useState({});
   const [busy, setBusy] = useState('');
   if (!scouts.length) return null;
@@ -673,17 +596,7 @@ function UnassignedScouts({ hub, hubState }) {
   </section>;
 }
 
-/** The library state -- no season is currently open. Home owns this
- *  presentation while TeamHubScreen remains the sole data/action service.
- *  A coach landing here gets a readable operational season list and useful
- *  program context instead of generic Team Hub rows repacked as small cards.
- *  When no team exists anywhere yet, this
- *  does NOT duplicate Team Hub's own first-team form inline -- Team Hub
- *  already owns and enforces that step before Home is ever reachable at
- *  boot (this route stays mounted, hidden, behind it), and a second live
- *  copy of the same form would be indistinguishable from the real one to
- *  any selector or the coach's own eyes. It points at the one real form
- *  instead. */
+/* Home owns the library view; TeamHubScreen owns data and first-team setup, with no duplicate hidden form. */
 function SeasonLibraryPanel({ screen, hub, hubState, hasTeam }) {
   if (!hasTeam) {
     return <div class="ws-empty-panel">
@@ -745,14 +658,8 @@ function NativeHome({ screen }) {
   const app = screen.app;
   const hub = app.teamHubScreen;
   const hubState = useScreen(hub);
-  // Refresh whenever Home BECOMES the active route (state.active flips
-  // true), not just once on first idle load -- a season can be created,
-  // deleted, or explored (the sample-season action) through TeamHubScreen
-  // while a focused Team Hub dialog was open, which durably changes
-  // canonical data without ever re-running TeamHubScreen's own load() a
-  // second time. Without this, the rail/library can render a stale,
-  // pre-change season list (including "no seasons" right after one was
-  // just created) until something UNRELATED happens to trigger a reload.
+  // Reload when Home becomes active because Team Hub actions can change seasons while Home is hidden.
+
   useEffect(() => { if (hub && state.active) hub.load(); }, [hub, state.active, state.seasonId]);
   const store = app.storage?.seasonStore;
   const hasSeason = !!store?.hasCurrent?.();
@@ -765,31 +672,12 @@ function NativeHome({ screen }) {
   // during the brief window before hub.load() first resolves.
   const hubReady = hub && hubState.loaded === true;
   const hasTeam = hubReady ? !!hubState.teams?.length : !!c.team;
-  // Opponent Scout with the PARENT program season open is the scout LIBRARY --
-  // the parent's own scoped list of opponents, or its empty state. It renders
-  // without closing the parent, which is what makes the switch one transition.
-  // Before this, `hasSeason` was true (the parent stays open by design) so the
-  // program game workspace won and the approved scout composition was reachable
-  // only through `_openLibrary()`, i.e. by closing the season -- the bounce.
-  // An open SCOUT keeps the ordinary game workspace below.
+  // The parent program stays open while its scout library is shown; an open scout keeps the game workspace.
+
   const browsingScoutLibrary = hasTeam && hasSeason && !scout && hubState.workspaceMode === 'scout';
 
-  // HomeHead ALWAYS renders -- its Team & Film Settings / Season report /
-  // + Add game actions are the coach's persistent way out of any state
-  // (addGame() itself already redirects to the library when nothing is set
-  // up yet), and this route stays mounted, hidden, behind Team Hub on a
-  // genuine first boot. Below the head, an OPEN SEASON always wins first --
-  // a season being open is on its own sufficient proof there is something to
-  // show, whether or not TeamHubScreen's own team cache has ever resolved
-  // (an import, a fixture, or a season opened before hub.load() settles must
-  // never be hidden behind an onboarding wall just because the cache lags).
-  // `state.active` (set by HomeScreen.show(), cleared by leave()) is the
-  // gate for anything below that reuses TeamHubScreen's OWN components
-  // (SeasonRail, SeasonLibraryPanel's season cards) -- this route's tree
-  // never unmounts, so rendering that reused markup unconditionally would
-  // leave a second, hidden copy of Team Hub's own DOM sitting behind it for
-  // the rest of the session. GameWorkspace/EmptySeasonPanel render only
-  // Home-scoped markup shared with nothing else, so they are unaffected.
+  // HomeHead remains available in every state and an open season wins over an unresolved hub cache. Gate reused Team Hub markup on state.active to avoid hidden duplicate controls.
+
   return <div class="ws-home-page" data-native-home>
     <div class="home-with-rail">
       {state.active && <SeasonRail screen={screen} hub={hub} hubState={hubState} />}

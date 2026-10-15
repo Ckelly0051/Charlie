@@ -28,15 +28,9 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
   };
   const applyTracked = () => setValues(current => ({ ...current, scoreUs: String(trackedScore.us), scoreThem: String(trackedScore.them) }));
   return <form class="gi-game-form" data-native-game-form data-mode={mode} onSubmit={submit}>
-    {/* Supporting copy only where it carries information the coach needs for
-        the next decision. A scout game's exclusion from our record is that;
-        "Set the game context before film is added" was narration. */}
+    {}
     {scout && <p class="gi-game-intro">Source film from {scoutTarget || 'the opponent'}. It stays outside our schedule and record.</p>}
-    {/* School/nickname are separate fields (2026-08-31 Home naming contract).
-        Editing an existing game prefills the school input with the intact
-        stored `opponent`/`sourceTeamA`/`sourceTeamB` value and leaves nickname
-        blank — never a heuristic split — so an unmodified resave composes
-        back to the exact same identity. */}
+    {/* Keep school/nickname separate; prefill an existing full identity intact so an unchanged save preserves it. */}
     <div class="gi-game-group">
       <h3>{scout ? 'Teams on this film' : 'Opponent'}</h3>
       <div class="gi-game-grid is-identity">
@@ -60,9 +54,7 @@ export function NativeGameForm({ mode, initial, trackedScore, onSubmit, onCancel
       {scout ? <label><span>Film purpose</span><input value="Opponent scout" disabled /></label> : <label><span>Game type</span><select name="gameType" value={values.gameType} onInput={update}><option value="game">Game</option><option value="scrimmage">Scrimmage</option><option value="playoff">Playoff</option></select></label>}
       </div>
     </div>
-    {/* A group, not a fieldset: the bordered legend box read as a second card
-        inside an already-bordered dialog, and its score inputs rendered as
-        unbordered filled bars unlike every other input on the form. */}
+    {}
     <div class="gi-game-group">
       <h3>Final score <small>optional</small></h3>
       <div class="gi-game-score">

@@ -9,9 +9,7 @@ const configuredGame = games => (games || []).find(game => {
   return [info.opponent, info.week, info.date].some(value => String(value || '').trim());
 });
 
-/** Native Team Hub controller. It is the only Team Hub: the legacy
- * SeasonLibrary overlay was deleted in S7-c, and TeamRegistry owns the
- * registry/identity data it used to hold. */
+/* Native Team Hub controller; TeamRegistry owns registry and identity data. */
 export class TeamHubScreen {
   constructor(app, overlays) {
     this.app = app;
@@ -59,8 +57,6 @@ export class TeamHubScreen {
   snapshot() { return clone(this._state); }
   _emit() { const state = this.snapshot(); for (const listener of this._listeners) listener(state); }
   _set(patch) { this._state = { ...this._state, ...patch }; this._emit(); }
-  /** S7-c: the team/season identity layer. Was twelve private members of the
-   *  legacy SeasonLibrary overlay; now one public service that owns no DOM. */
   _registry() { return this.app.teamRegistry; }
   _storage() { return this.app.storage; }
   _store() { return this.app.storage?.seasonStore; }
@@ -108,26 +104,7 @@ export class TeamHubScreen {
   /** The one owner of the Home parent context (`app.workspace`). */
   _context() { return this.app.workspace || null; }
 
-  /**
-   * ONE ATOMIC WORKSPACE TRANSITION.
-   *
-   * Our Program and Opponent Scout are two VIEWS of one parent program season,
-   * so switching between them changes a view, not a season. There is exactly
-   * one state change and one render:
-   *
-   *   - Entering Opponent Scout keeps the parent program season open and
-   *     renders its own scoped scout library. It does not close the season, does
-   *     not call `_openLibrary()`, and never auto-opens a scout — the coach picks
-   *     one.
-   *   - Returning to Our Program re-opens the parent only when the OPEN document
-   *     is a scout, and then by the scout's exact `programSeasonId`. If the
-   *     parent is already the open season there is no open at all.
-   *
-   * What this replaced: set mode -> load() (render 1) -> search every team
-   * season by kind and `lastOpened` -> openSeason() (render 2) ->
-   * show('home') (render 3), or `_openLibrary()` when nothing matched — which is
-   * the Scout / library / unrelated-season bounce the coach reported.
-   */
+  /* Switch workspace views without closing the parent program season. Return from an open scout through its exact programSeasonId, never recency. */
   async selectWorkspace(mode) {
     const context = this._context();
     const workspaceMode = mode === 'scout' ? 'scout' : 'program';
@@ -221,18 +198,7 @@ export class TeamHubScreen {
         if (resolved?.status === 'inferred') programSeasonId = context.setParentSeason(resolved.programSeasonId);
       }
       const parentSeason = teamSeasons.find(season => String(season.id) === String(programSeasonId)) || null;
-      // `seasons` stays the MAIN-PANEL filtered collection (the library grid
-      // and Team Hub's own list follow the coach's workspace choice).
-      // `railSeasons` is the COMPLETE team collection, unfiltered: the Home
-      // rail is a context navigator, not a view of the selected workspace
-      // mode, so entering Opponent Scout must never remove the program
-      // seasons from navigation (the recorded rail defect). Two collections,
-      // one source -- no second storage or ownership path.
-      // Opponent Scout shows only the scouts belonging to THIS parent program
-      // season, through the durable `programSeasonId` relationship (or the
-      // documented single-candidate inference for a legacy record). A scout
-      // belonging to another season, year, level or team cannot appear, and
-      // `lastOpened` only orders what is already correctly scoped.
+      // seasons is the main-panel filtered collection; railSeasons is the complete team collection. Scout lists follow the parent relationship; lastOpened orders them but never establishes ownership.
       const seasons = workspaceMode === 'scout'
         ? WorkspaceContext.scoutsForParent(teamSeasons, programSeasonId)
         : teamSeasons.filter(season => season.kind !== 'scout');
@@ -288,14 +254,7 @@ export class TeamHubScreen {
     };
   }
 
-  /** Resolves each row's real film state in the background and patches it
-   *  into _state.seasons as each one completes — never blocking the initial
-   *  render. `token` is the load() call this verification belongs to: a
-   *  season/team switch calls load() again, bumping _loadToken, and every
-   *  check below this closure was already committed to reads against by
-   *  the time that happens; the guard makes a stale check's late-arriving
-   *  patch a silent no-op instead of overwriting a newer render with an
-   *  answer about a season the coach has since navigated away from. */
+  /* Verify film in the background and patch rows only while this load token owns the view. */
   _verifyFilmHealth(rows, currentSeasonId, token) {
     rows.forEach(async row => {
       const games = String(row.id) === String(currentSeasonId)
@@ -320,11 +279,7 @@ export class TeamHubScreen {
     catch (e) { return null; }
   }
 
-  /** `seasonId` is the season these games BELONG to, and it is required: a
-   *  closed season's managed film lives under its own season directory, so a
-   *  check that omitted it resolved against `backend.currentId` and answered
-   *  about the OPEN season's film whenever the two seasons reuse a game id.
-   *  Every Home and library presentation consumes this one result. */
+  /* seasonId is required because managed film belongs to the checked season, not the backend current pointer. */
   async _aggregateFilm(games, seasonId) {
     // Peek failed (unreadable file, race with a delete) — stay honest rather
     // than claim "no film linked" for a season we could not actually read.
@@ -340,21 +295,11 @@ export class TeamHubScreen {
     // this line against the opened season, and "linked" cannot be reconciled
     // with "5 of 6" by looking at it.
     const linkedOf = count => `${count} of ${games.length} game${games.length === 1 ? '' : 's'} linked`;
-    // Only a genuinely in-flight check is 'checking'. A settled season always
-    // ends on an explicit count: with one linked game beside one game that has
-    // no film added, neither `missing` nor `every(ready)` held, so the row sat
-    // on "Checking film…" permanently — a transient label over a final answer.
+    // Only in-flight work is checking; every settled season shows an explicit result.
     if (health.some(item => ['checking', 'saving', 'repairing'].includes(item.state))) {
       return { state: 'checking', label: 'Checking film…', expected, found, missing, seasonId: season };
     }
-    // A failed lookup cannot contribute an honest denominator or linked count.
-    // Check it before the zero-expected shortcut, which would otherwise turn
-    // an all-failed season into "No film linked".
-    // Gating the attention state on
-    // `action === 'reconnect'` instead swallowed the ordinary partial case: a
-    // linked game missing one clip also asks to reconnect, so the coach's real
-    // 2025 JV season (89 expected, 88 on disk in one of six games) reported
-    // `Film needs attention` where the honest answer is `5 of 6 games linked`.
+    // Failed lookups cannot supply a count or denominator; distinguish them from readable games with missing film.
     if (health.some(item => item.state === 'unauthorized' || ['linked-list-failed', 'managed-list-failed', 'health-lookup-failed'].includes(item.detail))) {
       return { state: 'missing', label: 'Film needs attention', expected, found, missing, seasonId: season };
     }
@@ -420,10 +365,7 @@ export class TeamHubScreen {
       store.closeSeason();
       storage._clearForNewGame();
     }
-    // The Home parent context belongs to the OUTGOING team. Cleared in the same
-    // step that changes the active team, before anything can read it: a stale
-    // parent here meant a scout created under the new team could be stamped with
-    // the previous team's program-season id.
+    // Clear the outgoing team Home parent context before adopting the new team.
     this._context()?.clearParent();
     this._registry().setActiveTeamId(id);
     this._registry().saveTeamProfile({ teamName: next.teamName, school:next.school || '', nickname:next.nickname || '', jerseyColor: next.jerseyColor || '' });
@@ -533,9 +475,7 @@ export class TeamHubScreen {
     if (!WorkspaceContext.isValidParent(teamSeasons, parent)) {
       return { ok: false, message: 'That program season is no longer available. Pick another.' };
     }
-    // THE SCOUT MUST BELONG TO THE ACTIVE TEAM. Validating only the parent left
-    // the scout resolved from the whole catalog, so a direct call with another
-    // team's scout id would have attached it to this team's season.
+    // The scout and parent must both belong to the active team.
     const record = teamSeasons.find(season => String(season.id) === scout);
     if (!record || record.kind !== 'scout') {
       return { ok: false, message: 'That opponent scout could not be found for this team.' };
@@ -596,25 +536,7 @@ export class TeamHubScreen {
     if (!current()) return { ok: false, message: 'The workspace changed. Reopen the form and try again.' };
     if (duplicate) return { ok: false, message: `A ${cleanYear} · ${cleanLevel} scout of ${cleanOpponent} already exists.`, duplicateId: duplicate.id, duplicateName: duplicate.name };
     const seasonName = [cleanYear, cleanLevel, opponentIdentity, 'Scout'].filter(Boolean).join(' · ');
-    // The scout is created INSIDE a parent program season's workspace, so that
-    // season's id is stored on it durably. Without a parent there is nothing to
-    // own the scout, and inventing one from team/year/level is the guess this
-    // model exists to remove.
-    // Created inside a parent program season's Opponent Scout view, that season
-    // owns it. Created at FIRST LAUNCH -- the accepted opponent-first setup path,
-    // where no program season exists yet -- it is born unassigned and surfaced
-    // as needing a parent, exactly like a legacy scout. Refusing here instead
-    // would delete a coach flow, and inventing a program season to own it would
-    // be the guess this model exists to remove.
-    // FAIL CLOSED from the sample season. It can never own a scout (a
-    // disposable season would trap real opponent film, and a parent that owns
-    // scouts cannot be deleted), and silently creating the scout unassigned here
-    // would be indistinguishable from first launch while the coach is plainly
-    // sitting in a season. Nothing is written -- this returns before any record
-    // is created, so there is no partially saved scout.
-    // Only the SAMPLE season blocks. An open SCOUT does not: creating a second
-    // scout from inside the Opponent Scout workspace is ordinary, and the parent
-    // context is held by WorkspaceContext, not by whichever document is open.
+    // Create scouts under the held parent; first-launch scouts may be unassigned. Refuse creation from a disposable sample season before any write.
     const openData = this._store()?.data;
     if (openData && (openData.isDemo || openData.kind === 'demo')) {
       return { ok: false, message: 'The sample season cannot own an opponent scout. Open or create a program season first.' };
@@ -838,11 +760,7 @@ export class TeamHubScreen {
     return true;
   }
 
-  /** Resolves against the COMPLETE team collection, not the main-panel
-   *  filtered one: the persistent Home rail lists every program season and
-   *  every opponent scout at once, so a coach in Opponent Scout mode
-   *  clicking a program-season row must open it. Resolving from the filtered
-   *  list would make exactly those rows dead. */
+  /* Resolve rail opens against the complete team collection, not the filtered main-panel list. */
   _findSeasonRow(id) {
     const wanted = String(id);
     return (this._state.railSeasons || []).find(season => season.id === wanted)
@@ -854,13 +772,7 @@ export class TeamHubScreen {
     const row = this._findSeasonRow(id);
     if (!row) return false;
     try {
-      // "Already open?" is answered by the LIVE STORE, never by the row's cached
-      // `current` flag. A rail row carries the flag from the `load()` that built
-      // it, and `load()` cancels itself when a newer one starts (`_loadToken`),
-      // so a superseded pass leaves rows still flagged current for a season the
-      // coach has since navigated away from. Trusting that flag made this method
-      // skip the open entirely and report success -- the rail row looked dead,
-      // intermittently, depending on which load won the race.
+      // Check the live store for already-open state; cached row flags can outlive a superseded load.
       const alreadyOpen = String(this._store()?.currentSeasonId || '') === String(row.id);
       // Fail closed on a REFUSED open too, not only on a thrown one: the store
       // returns false when a legacy roster migration conflict blocks the season,
@@ -912,9 +824,7 @@ export class TeamHubScreen {
       ? 'Your teams, roster, and other seasons are untouched.'
       : 'Managed film copies stored by GridIron IQ for this season are also removed. Linked original folders are never deleted.';
     const impact = `${row.gameCount} game${row.gameCount === 1 ? '' : 's'} and ${row.playCount} play${row.playCount === 1 ? '' : 's'} will be removed. ${linkedCopy}`;
-    // J8 — the sample season is disposable and regenerable, so it keeps the
-    // ordinary confirm. A real season does not: it is the largest destructible
-    // object in the product and there is no undo for it.
+    // The regenerable sample uses ordinary confirmation; real season deletion requires typed confirmation.
     let choice;
     if (row.isDemo) {
       choice = await this.overlays.dialog({

@@ -10,10 +10,8 @@ export class BackendClient {
     this.lastProbeTime = 0;
     this.probeTimeoutMs = opts.probeTimeoutMs || 1500;
     this._listeners = new Map();
-    // The local CV server is optional and off by default. We don't probe it
-    // automatically, since fetching an unreachable 127.0.0.1 port makes the
-    // browser log a noisy ERR_CONNECTION_REFUSED on every page load. The user
-    // opts in (by clicking the status badge), which flips this flag.
+    // The optional local CV server is off by default; Settings owns opt-in.
+
     this.enabled = (typeof localStorage !== 'undefined'
       && localStorage.getItem('ffa_backend_enabled') === '1');
   }
@@ -78,11 +76,7 @@ export class BackendClient {
     }
   }
 
-  /**
-   * POST with an abort timeout so a hung local server can't stall the scan
-   * forever (there was no way to cancel an in-flight analyze request). The
-   * controller is stashed so cancel() can abort the current call.
-   */
+  /* Bound POST requests with a timeout and retain the controller so cancel() can abort them. */
   async _post(url, form, ms) {
     const controller = new AbortController();
     this._activeController = controller;

@@ -34,7 +34,7 @@ export class CanvasOverlay {
   _syncSize() {
     const video = this.vc.videoElement;
     if (!video.videoWidth) {
-      // No video loaded yet, fill container
+
       this.canvas.width = this.container.clientWidth * devicePixelRatio;
       this.canvas.height = this.container.clientHeight * devicePixelRatio;
       this.canvas.style.width = this.container.clientWidth + 'px';
@@ -104,7 +104,6 @@ export class CanvasOverlay {
       if (this.isDrawing) this._onEnd(e);
     });
 
-    // Touch support
     this.canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       this._onStart(e.touches[0]);
@@ -296,7 +295,7 @@ export class CanvasOverlay {
     const frameDur = 1 / (Number(this.vc.fps) || 30);
 
     let hasVisible = false;
-    // Render finalized annotations near current time
+
     for (const a of this.annotations) {
       if (Math.abs(a.timestamp - currentTime) <= frameDur / 2) {
         hasVisible = true;
@@ -503,7 +502,6 @@ export class CanvasOverlay {
     return Math.sqrt((point.x - projX) ** 2 + (point.y - projY) ** 2);
   }
 
-  // Event system
   on(event, callback) {
     if (!this._listeners) this._listeners = {};
     if (!this._listeners[event]) this._listeners[event] = [];

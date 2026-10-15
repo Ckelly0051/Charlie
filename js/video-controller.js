@@ -6,12 +6,7 @@ export class VideoController {
     this.notify = notify;
     this.video = document.getElementById('videoPlayer');
     this.placeholder = document.getElementById('videoPlaceholder');
-    // V2-H: NOT cached. UIPolish._initEmptyStateCTA() rewrites the
-    // placeholder's entire innerHTML (the empty-state dropzone card) right
-    // after this constructor runs, so a reference captured here would point
-    // at a node detached moments later -- exactly what silently broke the
-    // "couldn't play / re-link the film" message for every session. Queried
-    // live, by the stable id that markup owns, at the one call site below.
+    // Query the placeholder status node live because empty-state rendering can replace it after construction.
     this.loadState = document.getElementById('videoLoadState');
     this.loadStateText = document.getElementById('videoLoadStateText');
     this.fileInput = document.getElementById('videoFileInput');
@@ -38,7 +33,6 @@ export class VideoController {
   }
 
   _bindEvents() {
-    // File input — supports multiple files
     this.fileInput.addEventListener('change', async (e) => {
       const files = this._filterVideoFiles(Array.from(e.target.files));
       if (files.length > 0) {
@@ -47,7 +41,6 @@ export class VideoController {
       }
     });
 
-    // Folder picker (webkitdirectory) — scoops every video file inside
     if (this.folderInput) {
       this.folderInput.addEventListener('change', async (e) => {
         const files = this._filterVideoFiles(Array.from(e.target.files))
@@ -67,7 +60,6 @@ export class VideoController {
     // a dropped folder.
     this._bindDropTarget(this.placeholder);
 
-    // Video events
     this.video.addEventListener('loadedmetadata', () => {
       // A load that reaches metadata is valid — if it was a no-crossOrigin
       // retry, that proves crossOrigin was the culprit. Latch it now, before
@@ -212,9 +204,7 @@ export class VideoController {
     const code = me ? me.code : '?';
     const msg = me ? me.message : '';
     const src = this.video.currentSrc || this.video.getAttribute('src') || '';
-    // console.WARN (not error): a media error is an expected, handled condition
-    // (bad codec, CORS retry, a fixture's fake clip) — the e2e "no console errors"
-    // gate must not trip on it, and the app surfaces it via the placeholder + toast.
+    // Media errors are handled with the placeholder and toast; warn without reporting an unhandled console error.
     console.warn(`Video error code=${code} msg="${msg}" src="${src.slice(0, 200)}"`);
     if (this._shouldCorsRetry(src)) {
       // Retry WITHOUT crossOrigin. Don't latch corsBlocked yet — only if this
@@ -450,7 +440,6 @@ export class VideoController {
     return this.playbackRate;
   }
 
-  // Simple event system
   on(event, callback) {
     if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(callback);

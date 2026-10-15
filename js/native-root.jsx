@@ -38,13 +38,8 @@ function OverlayPanel({ overlay, service, top, effectiveModal }) {
       const first = overlay.type === 'sheet'
         ? panel?.querySelector(`.gi-overlay-body ${focusableSelector}, .gi-overlay-actions ${focusableSelector}`)
         : panel?.querySelector(focusableSelector);
-      // NEVER STEAL FOCUS THE COACH HAS ALREADY PLACED. This frame is deferred,
-      // and under load it can land well after the panel paints -- long enough
-      // for someone to have clicked or tabbed into a different field and begun
-      // typing. Yanking focus back then sends the rest of their keystrokes to
-      // the wrong input: the full gate caught an opponent name landing in the
-      // Week field, as `week: "2Bravo Bears"`. Initial focus applies only while
-      // focus is still outside the panel.
+      // Deferred initial focus applies only while focus is outside the panel; never steal focus already placed by the coach.
+
       const active = document.activeElement;
       if (panel && active && active !== document.body && panel.contains(active)) return;
       // An explicitly requested field owns focus even when a destructive
@@ -170,9 +165,8 @@ function NativeOverlayHost({ service }) {
     };
   }, [state.overlays, narrow]);
 
-  // One key listener for the host's life, reading the open overlay on each key:
-  // attached only while overlays existed, it went in after the dialog painted,
-  // and an Escape pressed in that gap (a throttled or busy window) was lost.
+  // Keep one Escape listener for the host lifetime so dismissal works immediately when a dialog paints.
+
   useEffect(() => {
     const onKeyDown = event => {
       const current = service.snapshot().overlays.at(-1);

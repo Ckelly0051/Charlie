@@ -201,11 +201,7 @@ export class BrowserBackend extends StorageBackend {
   async deleteSeason(id) {
     try { localStorage.removeItem(this._seasonKey(id)); } catch (e) {}
     this._writeLib(this._readLib().filter(s => s.id !== id));
-    // Drop this season's backups. Deletes directly via _tx rather than the
-    // public deleteBackup(id) below: this sweep legitimately removes EVERY
-    // backup owned by `id`, which is very often NOT this.currentId (deleting
-    // a non-active season from the library while a different one is open) --
-    // the public method's own-scope check would wrongly refuse most of these.
+    // Delete every backup owned by id directly; deleting a non-active season must not depend on currentId.
     try {
       const all = await this._tx('backups', 'readonly', os => os.getAll());
       for (const r of (all || [])) if (r && r.seasonId === id) await this._tx('backups', 'readwrite', os => os.delete(r.id));
@@ -253,12 +249,9 @@ export class BrowserBackend extends StorageBackend {
 
   // ---- IndexedDB (handles + backups) ----
   _idb() {
-    // Cache the open connection — every backup op went through a fresh
-    // indexedDB.open, and deleteSeason/_prune loops multiplied that. Reopen only
-    // if the cached connection errored or was closed.
+    // Cache the IndexedDB connection; reopen only after error or close.
     if (this._idbPromise) return this._idbPromise;
     this._idbPromise = new Promise((resolve, reject) => {
-      // v3 adds `versions` (per-game version history, moved off localStorage).
       const req = indexedDB.open('ffa_fs', 3);
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -316,11 +309,7 @@ export class BrowserBackend extends StorageBackend {
       .map(({ data, ...meta }) => meta)
       .sort((a, b) => b.id - a.id);
   }
-  // A backup id listed under a DIFFERENT season can no longer be read or
-  // deleted just by knowing its id -- the caller's own explicit seasonId is
-  // the only source of scope. Use `== null` rather than `!==`: a real miss
-  // can surface as `undefined` (see _tx's out.result handling), and both
-  // mean "not found" here.
+  // Require explicit seasonId ownership; both null and undefined mean a backup is absent.
   async getBackup(seasonId, id) {
     const rec = await this._tx('backups', 'readonly', os => os.get(id));
     if (rec == null || rec.seasonId !== seasonId) return null;
@@ -389,10 +378,7 @@ export class BrowserBackend extends StorageBackend {
   // ---- disk (File System Access API) ----
   supportsDisk() { return typeof window !== 'undefined' && 'showDirectoryPicker' in window; }
   diskStatus() {
-    // "bound" requires a REAL, named directory handle. A restored handle can
-    // deserialize without a usable .name (seen in the browser), which made the
-    // Season modal claim "Backing up to undefined" and attempt futile writes.
-    // Gate on the name so status + write-gating reflect an actual folder.
+    // A bound disk target requires a usable directory name, not merely a restored handle.
     const name = (this.dirHandle && this.dirHandle.name) ? this.dirHandle.name : '';
     return {
       supported: this.supportsDisk(),
@@ -922,8 +908,7 @@ export class TauriBackend extends StorageBackend {
   }
   async listBackups(seasonId) {
     if (!this._ok() || !seasonId) return [];
-    // Merge the canonical db ring with any legacy backup JSON files, so flipping
-    // the catalog flag on never hides restore points created under the file ring.
+    // Merge canonical db restore points with legacy file backups so both remain visible.
     const cp = await this._ensureCatalog();
     let fromDb = [];
     if (cp) { try { fromDb = await cp.listBackups(seasonId); } catch (e) {} }
@@ -1033,11 +1018,7 @@ export class TauriBackend extends StorageBackend {
         if (onProgress) onProgress(i + 1, files.length, file.name);
         continue;
       }
-      // STREAM in chunks. file.arrayBuffer() on a whole-game film (often
-      // 1-4+ GB) exceeds the WebView's single-buffer limit and threw, the
-      // import silently died, and the game reopened to a dead player
-      // (field-reported). Chunked appends use the same write-file
-      // permission and keep memory flat regardless of film size.
+      // Chunked appends keep large films below the WebView single-buffer limit with bounded memory.
       await this._writeFileStreamed(dest, file);
       result.push(relPath);
       if (onProgress) onProgress(i + 1, files.length, file.name);
@@ -1113,11 +1094,7 @@ export class TauriBackend extends StorageBackend {
     try { return await pathApi.join(await pathApi.appDataDir(), 'seasons', String(this.currentId), 'films', String(gameId)); }
     catch { return this._filmsDir(gameId); }
   }
-  /** Managed film lives under the OWNING season, so the caller supplies it.
-   *  Defaulting to `currentId` is correct only for the open season; a Home or
-   *  library check of a CLOSED season that omitted it was answered from
-   *  whichever season the backend happened to point at, which reported the
-   *  wrong count whenever two seasons reuse a game id. */
+  /* Managed film uses its owning seasonId; default to currentId only for the open season. */
   async listFilmFiles(gameId, seasonId = this.currentId) {
     if (!this._ok() || !seasonId) return [];
     const dir = this._filmsDir(gameId, seasonId);

@@ -48,10 +48,8 @@ export class HomeScreen {
   _store() { return this.app.storage?.seasonStore || null; }
   _data() { return this._store()?.data || null; }
   _games() { return this._data()?.games || []; }
-  // Season kind wins when a season is open; with none open, fall back to the
-  // coach's persisted workspace choice -- the single `_isScoutWorkspace()`
-  // owner on the shell, reused rather than reimplemented here so this can't
-  // diverge from it (the exact class of bug this project's history is about).
+  // Season kind wins while open; otherwise use the shell's persisted workspace choice.
+
   isScout() {
     const data = this._data();
     if (data) return data.kind === 'scout';
@@ -68,13 +66,8 @@ export class HomeScreen {
     const seasonId = this._store()?.currentSeasonId || '';
     const seasonChanged = seasonId !== this._state.seasonId;
     if (seasonChanged) {
-      // A new season starts with no verified film health and no cached
-      // thumbnails of its own -- carrying the OUTGOING season's maps forward
-      // (keyed by bare game id) let a stale frame or a stale "Film linked"
-      // read paint under the new season's identical/reused game ids. The
-      // thumbnail service's own cache is now season-scoped internally, but
-      // reset() is the documented season-switch fence for its in-flight
-      // queue too -- belt-and-braces, not a substitute for that scoping.
+      // Reset film-health and thumbnail state on a season change; bare game ids can repeat across seasons.
+
       this._thumbGen = new Map();
       this.thumbnails?.reset?.();
       this._state = { ...this._state, seasonId, selectedGameId: null, query: '', filter: 'all', sort: 'oldest', filmHealth: {}, thumbnails: {}, thumbSources: {} };
@@ -88,20 +81,7 @@ export class HomeScreen {
     return true;
   }
 
-  /** Called by WorkspaceShell.show() whenever the route changes AWAY from
-   *  Home. This route's Preact tree stays mounted (hidden), never torn down,
-   *  for the app's whole life -- every other route works the same way. The
-   *  season rail and library panel reuse TeamHubScreen's OWN components
-   *  (SeasonRow, WorkspaceChoice), which render Team Hub's exact class names
-   *  and ids. Once genuinely absent stops meaning "reachable on no route"
-   *  and starts meaning "still in the DOM, just display:none", a second copy
-   *  of Team Hub's own markup sitting hidden behind it is EXACTLY the class
-   *  of defect this project's history is about (hidden markup that
-   *  resurfaced, twice, when an overlay revealed the outlet it lived in) --
-   *  here reachable by any unscoped selector, not an overlay revealing it.
-   *  `active` gates that reused content off while Home is not the visible
-   *  route; everything else in this route's own markup (never shared with
-   *  another screen) is safe to stay rendered exactly as it always has. */
+  /* Gate reused Team Hub markup with active while Home is hidden; routes remain mounted. */
   leave() { if (this._state.active) this._set({ active: false }); }
 
   _resolveSelection() {
@@ -181,7 +161,7 @@ export class HomeScreen {
     return String(a.id).localeCompare(String(b.id));
   }
 
-  // -- Identity (2026-08-31 Home naming contract: school/nickname compose) --
+  // Identity
   _activeTeam() {
     const registry = this.app.teamRegistry;
     const id = registry?.activeTeamId?.();
@@ -216,13 +196,7 @@ export class HomeScreen {
     const [a, b] = this.identities(game);
     return [a.name, b.name].filter(Boolean).join(' vs ');
   }
-  /** The school line EXISTS TO ADD THE NAME THE TITLE ABBREVIATED. On a program
-   *  game the title is already the opponent, so this returned the same string
-   *  and every card and the detail panel printed the opponent twice, one line
-   *  apart. It returns a line only when that line says something the title does
-   *  not — a full school name behind a nickname, or a scout game's two sides.
-   *  One strong opponent identity per component; nothing is invented to fill
-   *  the space it leaves. */
+  /* Return a subline only when it adds identity beyond the title; never repeat or invent a name. */
   matchupSchoolLine(game) {
     const line = this.isScout() ? this.fullTitle(game) : (this.identities(game)[1].name || '');
     if (!line) return '';
@@ -265,10 +239,7 @@ export class HomeScreen {
     return labels[this.app.workspace.currentRoute()] || 'Reports';
   }
 
-  /** Per-unit charted progress -- identical formula to the accepted per-unit
-   *  progress rows, ported verbatim (S6-1). `isPlayTagged` is the single
-   *  canonical "is this play charted" predicate shared with Film Room and
-   *  analytics. */
+  /* Use the shared isPlayTagged predicate for per-unit progress. */
   gameSummary(game) {
     const plays = game?.plays || [];
     const tagged = plays.filter(isPlayTagged).length;
@@ -325,9 +296,7 @@ export class HomeScreen {
     return { text: ready ? 'Film linked' : (h.label || 'Film needed'), cls: ready ? 'ws-fact-green' : 'ws-fact-warn', detail };
   }
 
-  /** The selected-game detail panel's Film fact -- a managed copy and a
-   *  linked external folder must never read identically (the exact
-   *  ambiguity that made an earlier smoke unprovable). */
+  /* Distinguish a managed copy from a linked external folder. */
   filmFactView(gameId) {
     const h = this._state.filmHealth[String(gameId)];
     const ready = h && (h.state === 'linked' || h.state === 'managed');

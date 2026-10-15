@@ -9,9 +9,8 @@ export class NativeFilmRoomScreen {
     // last: the Break Down route's cells, and any standalone hosts.
     this._attached = { table: [], controls: [] };
     this._ownRoots = [];
-    // ONE grid subscription for every view (rebuild step 3): the table and its
-    // controls used to subscribe separately, so each grid update built the
-    // shown-plays summary once per view. It is built once and fanned out.
+    // Share one grid subscription and shown-plays summary across all attached views.
+
     this._listeners = new Set();
     this._gridOff = null;
     this._last = null;

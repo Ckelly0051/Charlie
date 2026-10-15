@@ -155,16 +155,7 @@ function PlaySetSummary({ summary }) {
   </section>;
 }
 
-/**
- * THE TABLE'S CONTROLS ARE THEIR OWN REGION (coach direction, 2026-09-24).
- * Title, count, Columns, Watch, saved filters and the filter chips used to sit
- * inside the table section, where they spent two and a half rows of a table
- * that is half the reason Film Room exists. They are a separate root with a
- * separate host in the Break Down composition, so the route decides where they
- * go -- a vertical card beside the film when the table is below it, a bar over
- * the table when it is beside the film or on a phone -- and the table section
- * holds only the table. Same controller, same snapshot, one owner each.
- */
+/* Controls and table are separate regions so the route owns their placement; both use one controller snapshot. */
 /** Attaches a view to its screen for as long as it is mounted. */
 function useAttached(screen, kind, root) {
   useLayoutEffect(() => {
@@ -247,12 +238,8 @@ export function NativeFilmRoom({ screen }) {
   useAttached(screen, 'table', root);
   const [active, setActive] = useState(null);
   const tableRef = useRef(null);
-  // V2-H row windowing state. `viewport` is measured, not assumed, and is
-  // deliberately never reset back to zero once known -- Film Room stays
-  // mounted (just `hidden`) while Chart is showing, so a measurement taken
-  // the first time the table was visible must survive the hide/show cycle,
-  // or every single switch back to Film Room would re-pay a full, unwindowed
-  // layout before the next measurement could shrink it back down.
+  // Keep the last measured viewport while hidden so returning to Film Room stays windowed.
+
   const [scrollTop, setScrollTop] = useState(0);
   // A generous initial guess, not a real measurement -- Film Room mounts
   // while `hidden` (display:none) alongside Chart, so the real height reads
@@ -340,26 +327,12 @@ export function NativeFilmRoom({ screen }) {
     windowStart = Math.floor(scrollTop / rowHeight) - overscanRows;
     windowEnd = Math.ceil((scrollTop + viewport.height) / rowHeight) + overscanRows;
   }
-  // Clamp BEFORE the active row is considered at all: a filter or a game
-  // switch can shrink `total` out from under a scroll position sized for a
-  // much longer list (the reset effect above only covers the game-switch
-  // case explicitly). In testing, a shrinking scroll range also recovers on
-  // its own because the browser re-clamps a scroll container's own
-  // scrollTop when its content shrinks -- but that is implicit platform
-  // behavior this file has no control over, so the windowing math does not
-  // depend on it: clamping here guarantees the scroll window always stays in
-  // range regardless of scroll-event timing, at zero cost to the common case.
+  // Clamp the window when filtering or a game switch shrinks the list; do not depend on browser scroll events.
+
   windowStart = Math.max(0, Math.min(windowStart, Math.max(0, total - 1)));
   windowEnd = Math.max(windowStart, Math.min(windowEnd, total));
-  // The active/focused row is always force-included regardless of scroll
-  // position -- keyboard navigation (`move`/`focusCell` below) must never
-  // race a scroll-driven window update to find the cell it just focused --
-  // but as a SEPARATE, disjoint single-row range, never by expanding the
-  // scroll window to span the gap between it and the active row. Expanding
-  // the window used to render almost the entire table the moment a coach
-  // scrolled far from a still-active row (e.g. row 1 active, scrolled near
-  // row 700 -> a rendered window of rows 0..700), defeating windowing
-  // entirely. See computeRowSegments() above.
+  // Keep the active row in a separate segment so keyboard focus remains reachable without expanding the scroll window.
+
   const segments = computeRowSegments(total, windowStart, windowEnd, activeRowIndex);
 
   const openEditor = (anchor, row, col) => {

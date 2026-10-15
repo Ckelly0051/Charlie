@@ -552,10 +552,7 @@ export class StorageManager {
     if (app?.playbook && !app.playbook.hasStored(teamId) && this.seasonStore.data?.playbook) {
       app.playbook.replace(this.seasonStore.data.playbook, teamId);
     }
-    // A roster belongs to one season and is shared only by that season's games.
-    // Hydration must replace the live roster even when the saved roster is empty;
-    // retaining the prior non-empty value is how JV/Varsity rosters leaked into
-    // one another. `persist:false` prevents a read from scheduling a write.
+    // Replace the live roster from the selected season, even when empty; persist:false prevents hydration from scheduling a write.
     app?.roster?.loadFrom?.(this.seasonStore.data?.roster || [], { persist: false });
     // One post-open seam adopts the Home parent context, so every path that
     // opens a season -- Home, the shell picker, recovery, import -- lands on the
@@ -586,19 +583,11 @@ export class StorageManager {
   /** Capture the live tagger/canvas/gameInfo state into the active game node. */
   commitActive() {
     if (!this.seasonStore || !this.seasonStore.data) return;
-    // CRITICAL: only flush the live tagger into the game it was actually loaded
-    // from. updateActiveGame() writes to whatever activeGameId points at, with no
-    // check that the tagger belongs there — so if the pointer moved (restore /
-    // mid game-switch) while the tagger still holds the previous game, a blind
-    // commit stamps THIS game's plays onto ANOTHER game (the cross-game
-    // corruption that put Lakers tags on the Lancers game). Mismatch, or nothing
-    // loaded → skip the write entirely.
+    // Commit only when the live tagger belongs to the active game; mismatch or no loaded game skips the write.
     if (this._loadedGameId == null || this._loadedGameId !== this.seasonStore.data.activeGameId) return;
     this.seasonStore.updateActiveGame(this._serialize());
     const app = this.deps;
-    // The active season is the roster authority. Unlike the former ambient
-    // localStorage cache, an intentionally empty roster is meaningful and must
-    // replace the prior value rather than retaining players from another season.
+    // The active season owns the roster; an intentionally empty roster replaces the prior value.
     if (app && app.roster) {
       const roster = app.roster.toJSON();
       this.seasonStore.data.roster = Array.isArray(roster) ? roster.map(player => ({ ...player })) : [];
@@ -638,10 +627,7 @@ export class StorageManager {
     this._applySeasonLabels();   // demo name overlay on / off for this season
     const app = this.deps;
     if (app) {
-      // Undo/redo is per-GAME: reset the history on every game load (switch, new,
-      // restore — not just season open) so an Undo after switching games can't
-      // restore the PREVIOUS game's plays into this one. (Cross-game corruption
-      // the integrity harness caught: switchToGame never re-init'd history.)
+      // Reset per-game Undo/Redo on every game load so history cannot cross game boundaries.
       if (app.history && app.history.reset) app.history.reset();
       app.finishHintShown = false;
     }
@@ -652,11 +638,7 @@ export class StorageManager {
     return filmReady;
   }
 
-  /**
-   * Browser build only: film files aren't stored (too large), so reopening a
-   * tagged game shows a dead player with no explanation — tell the coach
-   * exactly what to re-add. Plays re-link automatically by clip name.
-   */
+  /* Browser film is session-only; on reopen, name what must be re-added for automatic relink. */
   _maybeShowRelinkHint(g) {
     const backend = this.seasonStore && this.seasonStore.backend;
     if (!g || !backend || (backend.supportsFilm && backend.supportsFilm())) return;
@@ -717,10 +699,7 @@ export class StorageManager {
   }
   async _autoLoadFilm(gameNode) {
     const backend = this.seasonStore.backend;
-    // Latest-load-wins: capture this load's token; a newer load (or a game
-    // teardown) bumps the sequence, so `stale()` becomes true and this load
-    // aborts before touching the shared player/playlist. Closes the overlapping-
-    // open race where a slow earlier load clobbers a faster later one.
+    // Latest load wins: a newer load or teardown invalidates this token before any shared player/playlist mutation.
     const loadToken = ++this._filmLoadSeq;
     const stale = () => loadToken !== this._filmLoadSeq;
     // Linked film: clips live in the coach's own library folder, referenced in
@@ -789,19 +768,11 @@ export class StorageManager {
     }
   }
 
-  /** Auto-load a LINKED game's film from the coach's library folder (no copy).
-   * `loadToken` is the latest-load-wins guard captured by the caller — always
-   * `_autoLoadFilm` in production. Required (not defaulted): a default of
-   * `++this._filmLoadSeq` would silently invalidate any load already in flight
-   * as a side effect of merely calling this function, which is exactly the
-   * hazard this guard exists to prevent. A direct call (e.g. a test) must
-   * capture its own token the same way _autoLoadFilm does. */
+  /* Load linked film using the required caller-owned loadToken; allocating a token here would invalidate another in-flight load. */
   async _autoLoadLinkedFilm(gameNode, loadToken) {
     const backend = this.seasonStore.backend;
     const stale = () => loadToken !== this._filmLoadSeq;
-    // Same messaging discipline as _autoLoadFilm (F3): every toast/scope-widening
-    // call after an await is guarded by !stale(), not just the final playlist
-    // mutation — a superseded load must not narrate the outgoing game.
+    // Guard messages and scope changes after every await, not just the final playlist mutation.
     try {
       const absDir = await backend.linkedGameDir(gameNode.filmDir);
       if (stale()) return;
@@ -830,9 +801,7 @@ export class StorageManager {
           this.tagger.toast?.(`Film incomplete: ${missing.length} clip${missing.length === 1 ? '' : 's'} missing (${sample}${missing.length > 3 ? ', ...' : ''}). Re-link the folder to repair.`, 12000);
         }
       }
-      // Resolve clip URLs in PARALLEL — an 80-clip game was ~160 serial IPC
-      // round-trips (linkedAbs + linkedFilmUrl per clip) on every reopen. map()
-      // preserves order so the playlist stays in folder order.
+      // Resolve URLs concurrently while preserving folder order.
       const catalogIds = this._catalogClipIdsForFiles(gameNode, filesOnDisk);
       const clips = (await Promise.all(filesOnDisk.map(async (fileRef, i) => {
         const abs = await backend.linkedAbs(absDir, this._fileRefPath(fileRef));
@@ -1841,12 +1810,7 @@ export class StorageManager {
       });
     }
 
-    // Quote EVERY cell and escape embedded quotes ("→""). Previously only the
-    // notes cell escaped, so any formation/custom-tag/player value containing a "
-    // produced a malformed row that broke Excel/Hudl import. Also guard against
-    // CSV formula injection (a leading = + - @ can execute when the file is opened
-    // in a spreadsheet — reachable via an imported season's tag names), but never
-    // mangle a real number, so signed yardage like -5 stays numeric.
+    // Quote every CSV cell and escape embedded quotes. Guard formula-like strings without changing real numbers such as signed yardage.
     const esc = (cell) => {
       let s = String(cell ?? '');
       if (/^[=+\-@\t\r]/.test(s) && !isFinite(Number(s))) s = "'" + s;
@@ -1922,12 +1886,7 @@ export class StorageManager {
       motionstarts: 'motionStart', motionstart: 'motionStart', motionends: 'motionEnd', motionend: 'motionEnd',
       gap: 'gap', rporead: 'rpoRead', rpodefender: 'rpoDefender', rpodecision: 'rpoDecision',
       qbruntype: 'qbRun', qbrun: 'qbRun',
-      // `Unit` has been an EXPORT column all along but was never imported, so every
-      // round-tripped defensive/ST play came back unit-less — and StatsEngine reads a
-      // unit-less play as OFFENSE, silently corrupting every unit-partitioned metric
-      // while the six projected fields still looked perfect.
-      // (`side` is deliberately NOT aliased here — it already means fieldSide below,
-      // and a duplicate key would silently resolve to whichever came last.)
+      // Import Unit explicitly so round-trips preserve cohort membership; side remains the fieldSide alias.
       unit: 'unit', unitside: 'unit',
       qbalignment: 'qbAlignment', qbalign: 'qbAlignment', qbal: 'qbAlignment',
       backfield: 'backfield', backs: 'backfield',

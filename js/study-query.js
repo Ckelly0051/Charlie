@@ -157,43 +157,7 @@ export class StudyQuery {
     return this.registry.metricsEngine();
   }
 
-  /**
-   * runMetrics({ plays, dimension, metricIds, filters?, minSample?, context?, missingAsZero?, allowUnlinkedPlays? })
-   *   -> { dimension, total, metricIds, minSample,
-   *        groups: [{ value, sampleSize, belowMinSample, matchingPlayIds,
-   *                   metrics: { [metricId]: <AnalyticsMetrics shared contract> } }],
-   *        warnings }
-   *
-   * ADDITIVE seam, not a replacement for `run()`. Grouping (dimension value
-   * membership, film-link parity via DIMENSION_CUT/_buildCutFilter, min-sample
-   * warnings) is byte-identical to `run()` -- this method reuses `_groupPlays`
-   * rather than re-deriving cohorts. The only difference is what each group's
-   * measures LOOK like: `run()` returns a flat `{name: number}` object;
-   * `runMetrics()` returns the full AnalyticsMetrics contract per metric
-   * (value/count/eligible/denominator/polarity/state/unlinkedCount/refs),
-   * which is what a future Study consumer needs to disclose an
-   * insufficient-sample, partial-film, or missing-data state honestly
-   * instead of rendering a bare number.
-   *
-   * `minSample`/`allowUnlinkedPlays` are forwarded into EVERY metric() call
-   * as `options`, so a metric's own `state` can be `'insufficient'` on its
-   * own denominator even when the group's raw `sampleSize` clears
-   * `minSample` (a metric can have fewer *eligible* plays than the group has
-   * total plays -- see analytics-metrics.js's docblock). `allowUnlinkedPlays`
-   * defaults to false: a Study consumer gets the honest fail-loud default,
-   * not the legacy `defensivePerformance` compatibility escape hatch.
-   *
-   * `run()` and `compare()` are UNCHANGED by this addition -- per the bounded
-   * analytics-architecture-cleanup scope, Study's current screen is not
-   * redesigned to consume this yet.
-   *
-   * `gradeRole` (Study Phase 3, additive): forwarded into every metric()
-   * call's `options` alongside the rest of `metricOptions` -- required only
-   * by the three grade metrics (avgGrade/positiveGradeRate/
-   * negativeGradeRate), which need to know which `tags.grades` key to read.
-   * `undefined` for every existing caller, so this is a no-op for every
-   * pre-Phase-3 query.
-   */
+  /* Group through the shared _groupPlays path, returning the full AnalyticsMetrics contract per metric. Forward sample, film-link and grade options so each metric reports state for its own denominator. */
   runMetrics({ plays, dimension, metricIds = [], filters = [], minSample = 0, context = {}, missingAsZero = false, allowUnlinkedPlays = false, gradeRole } = {}) {
     if (!Array.isArray(plays)) throw new TypeError('StudyQuery.runMetrics requires a plays array');
     if (!this.registry.getDimension(dimension)) throw new Error(`Unknown Study dimension: ${dimension}`);

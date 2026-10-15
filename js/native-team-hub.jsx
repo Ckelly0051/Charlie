@@ -27,10 +27,7 @@ function arrowFocus(event, selector) {
   items[(index + delta + items.length) % items.length].focus();
 }
 
-/** School/organization and nickname are separate fields (2026-08-31 Home
- *  naming contract) so a compact matchup label can read "Mavericks" while
- *  the full identity ("St. Joseph Mavericks") stays available everywhere
- *  else. Nickname is always optional. */
+/* Separate school and optional nickname preserve both full and compact identity. */
 function TeamFormFields({ school = '', nickname = '' }) {
   return <>
     <div class="gi-hub-field-row">
@@ -59,21 +56,7 @@ export function AddTeamForm({ onSubmit, onCancel }) {
   </form>;
 }
 
-/* J8 — TYPE-TO-CONFIRM FOR DESTRUCTIVE DELETES.
-   Coach: "delete season is a huge potential for data loss. We should have a
-   confirmation click that requires spelling delete in a text box." Confirmed
-   for delete-GAME as well.
-
-   A season is the largest destructible object in the product — six games and
-   440 charted plays in the coach's live data — and it sat behind one `×` at the
-   end of a row, beside an arrow pointing at it (J7). A click plus an OK is not
-   a decision at that size.
-
-   This is IN ADDITION to the existing destructive-overlay rules, not instead of
-   them: the service still forces an explicit Cancel as the default action, and
-   the impact summary above the field still names the games, plays and film
-   affected. The summary is what makes typing the word a real decision rather
-   than a speed bump, so it stays. */
+/* Season and game deletes require typing delete in addition to the impact summary and explicit Cancel default. */
 export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onSubmit }) {
   const [typed, setTyped] = useState('');
   const [error, setError] = useState('');
@@ -105,12 +88,7 @@ export function ConfirmDeleteForm({ impact, phrase = 'delete', confirmLabel, onS
 
 const LEVEL_OPTIONS = ['Varsity', 'JV', 'Freshman', 'Other'];
 
-/** Shared by season and scout creation: Year + a Level select with an
- *  explicit custom option (2026-08-31 Home naming contract — "an explicit
- *  custom level for legitimate alternatives such as JV A/JV B", never a
- *  free-text field masquerading as one of the three standard levels). The
- *  generated label is a preview only; the caller composes the real one so
- *  duplicate detection and display stay in agreement. */
+/* Year/level inputs include an explicit custom level; the caller composes the canonical label for display and duplicate checks. */
 function YearLevelFields({ year, setYear, level, setLevel, customLevel, setCustomLevel }) {
   return <>
     <div class="gi-hub-field-row">

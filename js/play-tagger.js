@@ -1,7 +1,6 @@
 import { countedUnit, gainedFirstDown, isPlayTagged } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
 import { SeasonStore } from './season-store.js';
-import { TagProjection } from './tag-projection.js';
 import { SeasonFormat } from './season-format.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { ChartingDetails } from './charting-details.js';
@@ -29,8 +28,7 @@ export class PlayTagger {
     this.recovery = null;
     this.pendingRecovery = null;
 
-    // Native tagging owns template selection explicitly. This is product state,
-    // not a detached form control pretending the deleted legacy UI still exists.
+    // Native tagging owns template selection as explicit product state.
     this.selectedTemplate = '';
 
     // The unit a NEW play takes (the last unit the coach chose). A play's own
@@ -89,7 +87,6 @@ export class PlayTagger {
     const tagged = this.plays.filter(isPlayTagged).length;
     return `${tagged} / ${total} tagged`;
   }
-
 
   /**
    * Marking start/end is OPTIONAL when film arrives as one clip per play:
@@ -189,21 +186,14 @@ export class PlayTagger {
     const id = this.currentPlayId;
     if (!id) return;
 
-    // Folder/multi-clip mode: the play is backed by a playlist clip. Deleting
-    // it must drop the clip too AND advance to an adjacent clip — NOT unload
-    // the whole player (which orphaned the remaining clips and forced a full
-    // re-upload). Detect that case and delegate to the playlist.
+    // Delegate clip-backed deletion to the playlist so remaining clips and adjacent playback stay loaded.
     const play = this.getPlay(id);
     const clipIdx = (this.playlist && this.playlist.hasClips && play && play.clipId != null)
       ? this.playlist.clips.findIndex(c => c.playId === id)
       : -1;
     const inPlaylist = clipIdx !== -1;
 
-    // Use an in-app modal instead of native confirm(): browsers suppress
-    // repeated confirm() dialogs ("prevent additional dialogs"), which made
-    // delete silently do nothing.
-    // Single-video mode: only the LAST play takes the video with it — deleting
-    // one of several marked plays must not nuke the film and every other play.
+    // Use in-app confirmation; only deleting the last single-video play clears the loaded film.
     const lastSingle = !inPlaylist && this.plays.length <= 1;
     const ok = await this._confirmDialog(
       inPlaylist
@@ -278,9 +268,7 @@ export class PlayTagger {
       this._emit('play-updated', play);
     }
 
-    // Custom-field chips and roster quick-pick chips render outside the core
-    // form and only refresh on play-selected — re-announce the (now blank)
-    // play so they don't stay lit and read as "the clear didn't work".
+    // Re-announce selection to refresh custom-field and roster chips outside the core form.
     if (play) this._emit('play-selected', play);
     if (play && this.toast) {
       this.toast(`Cleared tags on Play ${id}`, {
@@ -329,8 +317,7 @@ export class PlayTagger {
   async saveTemplate() {
     const play = this.getCurrentPlay();
     if (!play) { this.toast?.('Select a play first, then save its tags as a template.'); return; }
-    // In-app prompt: window.prompt() gets suppressed like confirm() does
-    // (Key Decision #8) and then "Save…" silently does nothing.
+    // Use the in-app prompt; native prompts may be suppressed.
     const name = ((await this._promptDialog(
       'Template name', 'Save Template', 'e.g. "Gun Trips Rt / 4-3 Cover 3"')) || '').trim();
     if (!name) return;
@@ -348,9 +335,7 @@ export class PlayTagger {
     if (!play) return false;
     const tpl = this._templateStore()[name];
     if (!tpl) return false;
-    // A template saved before the 2026-09-26 conversion can carry retired values
-    // or an old combined look; those values are not applied (the coach re-saves
-    // the template). Everything current applies.
+    // Ignore retired template values without converting them; apply current values.
     const values = SeasonFormat.currentTagValues(tpl);
     const apply = target => Object.entries(values).forEach(([k, v]) => { target.tags[k] = v; });
     // A template can carry `unit:'special'` + forbidden alignment (saved from a
@@ -379,9 +364,7 @@ export class PlayTagger {
     return true;
   }
 
-  /* Decisions go through the shared overlay service (GRIDIRON-IQ-OVERLAY-SPEC.md),
-     which owns focus, Escape and the shortcut guard. Each resolves like the
-     modal it replaced: a key or null, true/false, or the entered text or null. */
+  /* Shared overlays own focus, Escape and shortcut guards; decisions resolve a key, boolean or text, with null on dismissal. */
   _decide(options) {
     if (!this.overlays) return Promise.resolve('cancel');
     return this.overlays.dialog(options).result;
@@ -947,7 +930,6 @@ export class PlayTagger {
     return true;
   }
 
-
   /** Loss/Sack make yardage negative; everything else positive. Input shows the
    *  magnitude only; play.tags.yardage holds the signed value. */
   _applyYardageSign(play) {
@@ -1004,20 +986,7 @@ export class PlayTagger {
     return classified.size === 1 ? [...classified][0] : '';
   }
 
-
-
-
-
-
-
-
-  /**
-   * THE write of a play's unit, shared by Chart and the Film Room Unit column
-   * (coach, 2026-09-24: either view, equally weighted, last write wins). Stores
-   * the unit, strips the look fields a Special Teams play may not hold, keeps
-   * Chart's form in step when this is the play it shows, and emits the one
-   * update every view and the save path already follow.
-   */
+  /* Chart and Film Room share this unit write: strip forbidden Special Teams alignment and publish one update; the last write wins. */
   setPlayUnit(play, unit) {
     if (!play || !['offense', 'defense', 'special'].includes(unit)) return false;
     // The app carrying the unit onto Chart's next play fills the draft only.
@@ -1042,8 +1011,7 @@ export class PlayTagger {
     return done && typeof done.then === 'function' ? done.then(keep) : keep(done);
   }
 
-  /** Real setters for the two charting-speed toggles. Persist + apply in one
-   *  call, so a native control can drive them without a hidden checkbox. */
+  /* Persist and apply charting-speed toggles in one call. */
   setAutoDD(value) {
     this.autoDD = !!value;
     try { localStorage.setItem('ffa_auto_dd', this.autoDD ? '1' : '0'); } catch (e) {}
@@ -1054,7 +1022,6 @@ export class PlayTagger {
     try { localStorage.setItem('ffa_carry_scheme', this.carryScheme ? '1' : '0'); } catch (e) {}
     return true;
   }
-
 
   nextPlay() {
     const idx = this.plays.findIndex(p => p.id === this.currentPlayId);
@@ -1127,13 +1094,7 @@ export class PlayTagger {
    *  Existing values are never overwritten — a different look the coach
    *  already tagged always wins, and one tap changes any carried chip. */
   applyCarryScheme(prev, next) {
-    // Carry alignment ONLY within the same unit. These fields flip meaning across
-    // a possession change: on an OFFENSE snap defFront/coverage are the DEFENSE
-    // FACED (the opponent's), on a DEFENSE snap they're OUR defense — so carrying
-    // across the boundary leaks our own front/coverage onto the "defense faced"
-    // (e.g. our Maverick front showing up as the opponent's), and an offensive
-    // formation onto a defensive snap. Special teams uses none of these fields.
-    // Same class of bug as the ST "Under Center" leak.
+    // Carry alignment only within one unit: defensive fields describe the opponent on offense but our defense on defensive snaps. Special Teams carries none.
     const pu = countedUnit(prev), nu = countedUnit(next);
     if (nu === 'special' || pu !== nu) return;
     let changed = false;
@@ -1148,10 +1109,7 @@ export class PlayTagger {
     }
   }
 
-  /** The ST tag form hides Formation/Personnel + Front/Coverage/Blitz, so those
-   *  fields can't be set on a special-teams play — any value there is a leak
-   *  (e.g. a formation carried over from an offense snap). Clear them when a play
-   *  is special. Returns true if anything changed. */
+  /* Remove alignment fields a Special Teams play cannot show; return whether anything changed. */
   _stripStAlignment(play) {
     // A run/pass or Fake try charts its look like a scrimmage snap. Chart's
     // draft keeps its look until Save, which drops what the play cannot show.
@@ -1350,7 +1308,6 @@ export class PlayTagger {
     this._emit('play-updated', next);
   }
 
-  // Event system
   on(event, callback) {
     if (!this.listeners[event]) this.listeners[event] = [];
     this.listeners[event].push(callback);
@@ -1374,13 +1331,7 @@ export class PlayTagger {
       && (event === 'plays-loaded' || (event === 'play-updated' && data?.id === this.draft.id) || event === 'play-deleted')) {
       this.draft = null;
     }
-    // LIVE barrier for the ST-alignment invariant (E1-R9): every writer — Film Room
-    // grid, AI vision stamp, suggestion engine, the tag form, copy/template — mutates
-    // a play and then emits play-created/play-updated. Stripping a special play here,
-    // before listeners run, keeps the in-memory object clean for the UI and analytics
-    // that read tagger.plays directly (persist() only cleans the season-store copy).
-    // Unit-conditional and idempotent. The persist/serialize strip is the second
-    // barrier for data at rest.
+    // Strip forbidden Special Teams alignment before listeners read live plays; serialization supplies the data-at-rest barrier.
     if ((event === 'play-updated' || event === 'play-created') && data && data.tags) {
       this._stripStAlignment(data);
     }

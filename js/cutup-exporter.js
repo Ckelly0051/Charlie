@@ -27,10 +27,8 @@ export class CutupExporter {
   async export() {
     if (this.recording) return;
 
-    // A cut-up can only stitch plays with a real, playable region. The old
-    // `p.tags.playType || p.timestamp` was always true (every play has a
-    // timestamp OBJECT), so untagged / zero-length plays were exported and a
-    // zero-length region later stalled the recorder. Require end > start.
+    // Only export plays with a playable region: end must exceed start.
+
     let plays = this.tagger.plays.filter(p =>
       p.timestamp && (p.timestamp.end - p.timestamp.start) > 0.05);
     if (this.filter && this.filter.active) {
@@ -79,7 +77,6 @@ export class CutupExporter {
       throw new Error('No video loaded');
     }
 
-    // Setup canvas at video resolution
     const W = video.videoWidth;
     const H = video.videoHeight;
     const canvas = document.createElement('canvas');
@@ -87,7 +84,6 @@ export class CutupExporter {
     canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // Build composite stream: canvas video + video element audio
     const videoStream = canvas.captureStream(30);
     try {
       const vs = video.captureStream ? video.captureStream() : video.mozCaptureStream?.();
@@ -98,7 +94,6 @@ export class CutupExporter {
       console.warn('Audio capture unavailable:', e);
     }
 
-    // Pick best supported mime type
     const mimeOptions = [
       'video/webm;codecs=vp9,opus',
       'video/webm;codecs=vp8,opus',
@@ -117,7 +112,6 @@ export class CutupExporter {
       this.cancelled = true;
     });
 
-    // rAF draw loop
     let drawing = true;
     const drawFrame = () => {
       if (!drawing) return;
@@ -132,13 +126,11 @@ export class CutupExporter {
         const p = plays[i];
         progress.update(i, plays.length, p);
 
-        // Switch clip if multi-clip mode
         if (p.clipId && this.playlist && this.playlist.hasClips) {
           this.playlist.switchToClipByPlayId(p.id);
           await this._waitForReady(video);
         }
 
-        // Title card
         if (this.showTitleCards) {
           drawing = false;
           await this._drawTitleCard(ctx, W, H, p, i + 1, plays.length);

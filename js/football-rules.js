@@ -132,22 +132,7 @@ function kickoffGroups(plays) {
   return assignments;
 }
 
-/**
- * Group an ordered play list into drives on composite side+number identity,
- * because the two teams each run their own drive sequence: grouping on the raw
- * `driveNumber` tag alone put our Drive 1 and the opponent's Drive 1 in one
- * group. A snap whose side is unknown (special teams, untagged unit) is
- * transparent — it joins the surrounding drive of the same number and can never
- * merge two known sides.
- *
- * Collects nonadjacent assigned drives, orders groups by drive number, and
- * plays by play number within each group. Blank kickoff numbers may join the
- * next drive only inside a bounded kickoff sequence. Terminal kicks/return
- * scores stay separate unless explicitly numbered by the coach; other
- * unassigned plays stay in No drive. No tag writes.
- * Returns `[{ key, side, number, label, plays }]`. `project`
- * maps a play to whatever the caller renders; `mode` selects the labels.
- */
+/* Group by possession side and drive number, order drives numerically and plays by number, without tag writes. Unknown-side snaps cannot merge known sides; only bounded blank kickoffs borrow a number. Returns [{ key, side, number, label, plays }]; project maps plays and mode selects labels. */
 export function groupPlaysByDrive(plays, { project = play => play, mode = 'perspective' } = {}) {
   const kickoff = kickoffGroups(plays || []);
   const groups = [];
@@ -210,14 +195,7 @@ export function playbackOrder(plays) {
   }).map(entry => entry.play);
 }
 
-/**
- * Has the coach put any meaningful tag on this play? The single source of truth
- * for "tagged" across the progress counter, the play selector, and the Film Room
- * grid (they used to disagree — some checked playType ONLY, so a Kick Return or a
- * defensive snap that the coach fully tagged still read as "Untagged"). A play
- * counts as tagged if it carries an offensive play type, a result, a
- * special-teams type, a run/pass call, a formation or receiver set, or any defensive scheme tag.
- */
+/* One shared tagged-play predicate counts offensive, defensive and Special Teams charting. */
 export function isPlayTagged(play) {
   const t = (play && play.tags) || {};
   const special = SpecialTeamsModel.normalize(play?.specialTeams);

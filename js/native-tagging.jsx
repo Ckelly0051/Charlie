@@ -9,12 +9,8 @@ import { ReceiverDetails } from './receiver-details.js';
 import { joinSummary, sectionSummary } from './chart-deck-presentation.js';
 import '../css/native-tagging.css';
 
-// Final Engine Independence: PlayGrid's inline Film Room editor (play-grid.js)
-// used to read its option lists straight off the legacy .tag-section chip
-// DOM (`document.querySelectorAll('#tagFormation .pick')` etc.) -- now
-// deleted. OPTIONS is exported so it stays the single source of a fixed
-// vocabulary field's values, consumed by both the tag form and the grid
-// editor, instead of two copies drifting apart.
+// Export fixed option lists so Chart and Film Room share one vocabulary.
+
 /** The three charting units and their labels: Chart's switch and the Film Room
  *  play card's selector render this one list. */
 export const UNIT_CHOICES = [['offense', 'Offense'], ['defense', 'Defense'], ['special', 'Special Teams']];
@@ -23,10 +19,8 @@ export const OPTIONS = {
   down:['1','2','3','4'], qbAlignment:['Under Center','Pistol','Shotgun'],
   strength:ChartingDetails.LINE_STRENGTHS.slice(), personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
   motion:['Jet','Orbit','Shift','Trade'], runPass:['Run','Pass'],
-  // Play type is LIBRARY-managed, so its vocabulary has one owner
-  // (TagLibrary.DEFINITIONS). This entry is the fallback PlayGrid's inline Film
-  // Room editor uses when no library is wired; carrying its own copy is how a
-  // new built-in could reach the deck and never reach the grid.
+  // Play Type defaults come from TagLibrary.DEFINITIONS, including the grid's fallback.
+
   playType:TagLibrary.DEFINITIONS.playType.slice(),
   playDir:['Left','Middle','Right'],
   coverage:['Cover 0','Cover 1','Cover 2','Cover 3','Cover 4','Cover 5','Cover 6'],
@@ -335,11 +329,7 @@ function SpecialTeams({screen, state}) {
   return <Group screen={screen} state={state} id="special-teams" title="Special Teams" summary={summary}>
     <Choice label="Unit" value={st?.unit} options={ST_UNITS} choose={value => screen.setSpecialUnit(value)}/>
     {isTry ? <TryEditor screen={screen} state={state} st={st}/> : st && <>
-      {/* No Attempt selector. The field-goal units attempt a field goal, and
-          nothing here can author an extra point: `unit:'fieldGoal'` is always
-          the subject attempting, so an opponent XP charted through it scored
-          for us. XP and two-point tries are charted under Try / Defending a
-          Try, which encode the attempting side. */}
+      {/* Field-goal units author only field goals; Try and Defending a Try encode the attempting side for XP/two-point plays. */}
       <Choice label="Outcome" value={st.outcome.status} options={ST_OUTCOMES[st.unit] || []} choose={v => screen.specialAction('status',v)}/>
       <div class="gi-tag-grid">
         {st.unit === 'kickoff' && <Choice label="Type" value={st.isOnside ? 'isOnside' : ''} options={[['isOnside','Onside']]} choose={() => screen.specialAction('toggle','isOnside')}/>}
@@ -504,11 +494,7 @@ export function NativeTagging({screen}) {
         <div class="gi-tag-play-identity"><h2>{state.currentPlayId == null ? 'Select play' : `Play ${state.currentPlayId}`}</h2><p>{state.progress}</p>
           {state.dirty && <p class="gi-tag-unsaved" data-native-unsaved>Unsaved changes</p>}</div>
       </div>
-      {/* F2c — one click, not two. Unit is the single most-used control on this
-          screen and a dropdown made every change a two-step. F2a's perspective
-          control is gone entirely (it is derived from unit + whose film this
-          is), and F2b's direction control moved to the bottom of the form,
-          because it only serves play recognition. */}
+      {}
       <div class="gi-unit-switch" role="group" aria-label="Charting unit" data-native-context="unit">
         {UNIT_CHOICES.map(([value, label]) =>
           <button key={value} type="button" data-unit={value} class={state.unit === value ? 'is-active' : ''}
@@ -604,12 +590,7 @@ export function NativeTagging({screen}) {
           <label class="gi-tag-check"><input type="checkbox" checked={state.autoOcr} onChange={e => screen.setAutoOcr(e.currentTarget.checked)}/> Auto OCR</label>
           <button type="button" onClick={() => screen.runAutoDetect()}>Auto-detect plays</button>
         </div>
-        {/* F2b — Offense direction lives HERE, with the only features that read
-            it. Its three consumers are the heuristic auto-tagger, the optional
-            CV server and the Vision prompt; no report, analytic, export or
-            stored play field reads it, and unset is inert in all three. It is
-            kept for when play recognition is worth using, and kept out of the
-            charting path until then. */}
+        {/* Offense direction is used only by play recognition (heuristics, CV and vision); unset is inert. */}
         <label class="gi-tag-input"><span>Offense direction</span>
           <select data-native-context="direction" value={state.direction} onChange={e => screen.setDirection(e.currentTarget.value)}>
             <option value="">Not set</option><option value="right">Left to right</option><option value="left">Right to left</option>

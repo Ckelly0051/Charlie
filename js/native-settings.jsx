@@ -8,8 +8,7 @@ const DRAW_TOOLS = [['line','Line'],['arrow','Arrow'],['circle','Circle'],['rect
 const DRAW_COLORS = ['#ffffff','#ffff00','#ff4444','#4488ff','#44ff44','#ff8800'];
 const FILTERS = {
   downs:['1','2','3','4'], quarters:['Q1','Q2','Q3','Q4','OT'],
-  // One vocabulary owner. This list had drifted - it was already missing
-  // `Trick Play`, so a cut-up could not filter on a type the deck offers.
+
   playTypes:TagLibrary.DEFINITIONS.playType.slice(),
   results:['Gain','Loss','No Gain','Incomplete','Touchdown','Interception','Fumble','Sack'],
   personnel:['00','01','02','10','11','12','13','20','21','22','23','30','31','32','Jumbo','Goal Line'],
@@ -139,12 +138,8 @@ function PlaybookSettings({ screen, initialName = '' }) {
 
 function TeamSettings({ screen, initialPlayCall = '' }) {
   const profile = screen.teamProfile();
-  // School/nickname are additive companion fields (2026-08-31 Home naming
-  // contract). An existing profile predating them has no `school` — its
-  // intact `teamName` is the honest default, never a heuristic split, so an
-  // unmodified re-save reproduces the exact prior identity. Unsaved values live
-  // on the screen (`teamDraft`) so a tab switch keeps them and closing the
-  // sheet saves them (S105-1).
+  // Prefill school with the intact teamName rather than guessing a split; screen-owned teamDraft survives tab switches and saves on close.
+
   const draft = screen.teamDraft;
   const [school, setSchool] = useState(draft ? draft.school : (profile.school || profile.teamName || ''));
   const [nickname, setNickname] = useState(draft ? draft.nickname : (profile.nickname || ''));

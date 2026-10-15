@@ -182,12 +182,7 @@ export class SqlCatalog {
     const now = new Date().toISOString();
     this.db.run('BEGIN');
     try {
-      // Wipe this season's children EXPLICITLY. We cannot rely on FK ON DELETE
-      // CASCADE: `db.export()` (the A3 dual-write calls it after every save) resets
-      // the connection's `PRAGMA foreign_keys` to OFF, so a bare `DELETE FROM games`
-      // would ORPHAN this season's plays/clips — and on the next save they'd be
-      // re-attached, doubling play rows on every re-save (autosave). Delete children
-      // first, deepest-first, so re-saving fully replaces the season.
+      // Delete children deepest-first: db.export() resets PRAGMA foreign_keys, so cascade cannot prevent orphaned rows.
       this._run('DELETE FROM plays WHERE game_id IN (SELECT id FROM games WHERE season_id = ?)', [id]);
       this._run('DELETE FROM clips WHERE game_id IN (SELECT id FROM games WHERE season_id = ?)', [id]);
       this._run('DELETE FROM games WHERE season_id = ?', [id]);
@@ -346,9 +341,7 @@ export class SqlCatalog {
     return this._all('SELECT id,t,label,games_count,plays_count,season_name FROM backups WHERE season_id = ? ORDER BY t DESC', [seasonId])
       .map(r => ({ id: r.id, t: r.t, label: r.label, seasonName: r.season_name || '', games: r.games_count || 0, plays: r.plays_count || 0 }));
   }
-  // A backup id that was listed under a DIFFERENT season can no longer be
-  // read or deleted just by knowing its id -- the caller's own explicit
-  // seasonId is the only source of scope, never an ambient pointer.
+  // Require explicit seasonId ownership to read or delete a backup.
   getBackup(seasonId, id) { const r = this._get('SELECT body_json FROM backups WHERE id = ? AND season_id = ?', [id, seasonId]); return r ? JSON.parse(r.body_json) : null; }
   deleteBackup(seasonId, id) { this._run('DELETE FROM backups WHERE id = ? AND season_id = ?', [id, seasonId]); }
   _pruneBackups(seasonId) {
@@ -356,13 +349,7 @@ export class SqlCatalog {
     ids.slice(this.RETENTION).forEach(id => this._run('DELETE FROM backups WHERE id = ?', [id]));
   }
 
-  // ---- version history (named save points, scoped season::game) -------------
-  // The version-history migration off localStorage `ffa_versions_<season::game>`:
-  // named/auto save-points become rows keyed by (season_id, game_id), capped at
-  // VMAX per game. `v` is a VersionManager snapshot { id?, label, time, manual,
-  // playCount, data } — its whole-tagger `data` goes to body_json; getVersion
-  // returns exactly that snapshot payload. Prune evicts AUTO-saves before manual
-  // ones (VersionManager's own eviction rule) so a coach's named points survive.
+  // Version rows are scoped by season and game, capped at VMAX. Store the whole VersionManager snapshot; prune automatic saves before manual ones.
   saveVersion(seasonId, gameId, v, { prune = true } = {}) {
     const id = (v && v.id != null) ? String(v.id) : this._newId('ver');
     const existing = this._get('SELECT season_id, game_id FROM versions WHERE id = ?', [id]);

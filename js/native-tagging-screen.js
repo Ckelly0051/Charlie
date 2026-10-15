@@ -223,7 +223,6 @@ export class NativeTaggingScreen {
     };
   }
 
-
   toggleField(key, value) {
     const play = this.tagger?.getCurrentPlay?.();
     if (!play) return false;
@@ -246,8 +245,8 @@ export class NativeTaggingScreen {
   setField(key, value) {
     const play = this.tagger?.getCurrentPlay?.();
     if (!play) return false;
-    // A change that removes the field opening populated details (Motion, or the
-    // Play Direction a Gap sits under) asks first; declining changes nothing.
+    // Removing a field that opens populated details asks first; declining changes nothing.
+
     const outcome = this.tagger.requestTagValue(key, value, { play, beforeWrite:() => this._protectCallOverride(key) });
     if (outcome && typeof outcome.then === 'function') { outcome.then(() => this._queuePublish()); return outcome; }
     this._queuePublish(); return true;
@@ -343,9 +342,7 @@ export class NativeTaggingScreen {
     } else this.setPlayer(role,String(number));
   }
 
-  /** Chart's unit switch. The play's unit is written by PlayTagger.setPlayUnit,
-   *  the same write the Film Room Unit column makes (coach, 2026-09-24: either
-   *  view, equally weighted, last write wins). */
+  /* Chart and Film Room share PlayTagger.setPlayUnit; the last write wins. */
   setUnit(value) {
     const after = ok => {
       if (!ok) { this._queuePublish(); return false; }

@@ -78,9 +78,8 @@ export class PlanExport {
         ? `<tr class="miss"><td>${e(p.gameName)}</td><td colspan="7">${p.invalid ? `Film reference ${e(p.ref)} is invalid` : `Play ${e(p.playId)} — film not found`}</td></tr>`
         : `<tr><td>${e(p.gameName)}</td><td>${e(p.situation)}</td><td>${e(p.look)}</td><td>${e(p.playCall)}</td><td>${e(p.playConcept)}</td><td>${e(p.playType)}</td><td>${e(p.result)}${p.yardage ? ` ${e(p.yardage)}` : ''}</td><td>${e(p.notes)}</td></tr>`
       ).join('') : '<tr><td colspan="8" class="muted">No linked film.</td></tr>';
-      // "Look" (not "Formation") — this column shows the composed alignment +
-      // structure spoken-call phrase (TagProjection.lookLabel), and labeling that
-      // Use the field's own label rather than calling every look a formation.
+      // The column shows a composed look, not just a formation.
+
       return `<section class="item"><h2><span class="num">${i + 1}</span>${e(it.label || 'Untitled item')} <span class="kind">${e(it.kind)}</span></h2>${it.note ? `<p class="note">${e(it.note)}</p>` : ''}<table><thead><tr><th>Game</th><th>Situation</th><th>Look</th><th>Play Call</th><th>Concept</th><th>Play Type</th><th>Result</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></section>`;
     }).join('');
 

@@ -16,10 +16,8 @@ export class HistoryManager {
     this.onRedoEmpty = null;
     this.fallbackCanUndo = null;
     this.fallbackCanRedo = null;
-    // Final Engine Independence: the native shell's Undo/Redo buttons are
-    // real Preact-owned elements, not a relocated legacy #btnUndoAction/
-    // #btnRedoAction DOM node -- they call undoAll()/redoAll() directly and
-    // subscribe to this event to reflect canUndo/canRedo/undoLabel reactively.
+    // Native Undo/Redo subscribes to change events for button state and labels.
+
     this._listeners = {};
 
     tagger.on('play-created', (p) => this._record('Add play ' + (p?.id || '')));
@@ -32,23 +30,13 @@ export class HistoryManager {
     tagger.on('play-selected', () => { if (this.recording) this.lastSnap = this._snapshot(); });
   }
 
-  /** Final Engine Independence: no legacy #btnUndoAction/#btnRedoAction DOM
-   *  binding here anymore -- the native shell's Undo/Redo buttons call
-   *  undoAll()/redoAll() directly and subscribe to the 'change' event
-   *  _updateUI() emits. init() remains the re-baseline entry point storage.js
-   *  calls on every season/game load. */
+  /* Re-baseline on every season/game load. */
   init() {
     this.lastSnap = this._snapshot();
     this._updateUI();
   }
 
-  /**
-   * Clear the undo/redo stack and re-baseline to the current state. Called on
-   * every GAME load (not just season open) — the stack is per-game, so without
-   * this an Undo after switching games would restore the PREVIOUS game's plays
-   * into the current one (cross-game corruption the integrity harness caught).
-   * Unlike init() it does NOT re-bind DOM listeners, so it's safe to call often.
-   */
+  /* Reset per-game history on every game load so Undo cannot restore another game's plays. */
   reset() {
     this.stack = [];
     this.index = -1;
@@ -94,8 +82,7 @@ export class HistoryManager {
   canUndo() { return this.index >= 0 || !!this.tagger.canUndoDraft?.(); }
   canRedo() { return this.index < this.stack.length - 1 || !!this.tagger.canRedoDraft?.(); }
 
-  /** Minimal pub/sub so the native shell's Undo/Redo buttons can reflect
-   *  state without polling or reading a relocated DOM node's own attributes. */
+  /* Publish history state for native Undo/Redo controls. */
   on(event, fn) {
     (this._listeners[event] ||= []).push(fn);
     return () => { this._listeners[event] = (this._listeners[event] || []).filter(f => f !== fn); };

@@ -94,15 +94,14 @@ export class CallSheetBuilder {
 
   _gather(rankMode, bucketSettings = this.defaultConfig().buckets) {
     const all = this._eligiblePlays();
-    // Compute EPA once
+
     const epaMap = new Map();
     all.forEach(p => epaMap.set(p.id, this.advanced.computeEPA(p)));
 
     const score = (p) => {
       if (rankMode === 'yards') return parseInt(p.tags.yardage, 10) || 0;
-      // "Recent" ranks by creation order. p.timestamp is a {start,end} OBJECT,
-      // so the old `p.timestamp || p.id` fed the sort NaN and never reordered;
-      // p.id is monotonic with tagging order and always numeric.
+      // Recent ranks by monotonic play id, not clip-local timestamps.
+
       if (rankMode === 'recent') return p.id || 0;
       const e = epaMap.get(p.id);
       return e == null ? -999 : e;
@@ -152,10 +151,8 @@ export class CallSheetBuilder {
   _playResult(p) {
     const t = p.tags || {};
     const yds = parseInt(t.yardage, 10);
-    // result is a " + "-joined multi-select ("Interception + Touchdown" for a
-    // pick-six, "Fumble + Touchdown" for a scoop-score). The old exact switch
-    // matched none of those and fell through to the raw string. Split and rank
-    // the most salient outcome.
+    // Split joined results and rank the most salient outcome.
+
     const res = StatsEngine.splitResults(t.result);
     const has = v => res.includes(v);
     if (has('Touchdown')) return `TD${isNaN(yds) ? '' : ' ' + yds}`;

@@ -100,8 +100,6 @@ export class CutupPlayer {
     if (settle) settle({ completed: reason === 'complete', reason });
   }
 
-  // --- Banner UI ---
-
   _renderBanner() {
     this._removeBanner();
     const b = document.createElement('div');

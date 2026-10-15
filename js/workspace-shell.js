@@ -124,16 +124,8 @@ export class WorkspaceShell {
       if (host) host.hidden = id !== routeId;
     });
   }
-  /** UX-2/V2-A: three persistent context selectors, not one breadcrumb button.
-   *  All three read the SAME canonical `WorkspaceContext.snapshot()` this class
-   *  already used for the old single breadcrumb — no new context pointer. */
-  /** Read from the ONE owner. This used to prefer `store.data.kind === 'scout'`
-   *  and fall back to a mode-only localStorage key, so the shell,
-   *  TeamHubScreen and that key were three sources for one fact and could
-   *  disagree mid-transition -- which is how a switch could paint a Program
-   *  workspace over a scout season, or the reverse. The workspace mode is now a
-   *  property of the Home parent context, not an inference from which document
-   *  happens to be open. */
+  /* Three context selectors share WorkspaceContext.snapshot(). */
+  /* Read workspace mode from the Home parent context, not the open document's kind. */
   _isScoutWorkspace() {
     return this.app.workspace?.workspaceMode?.() === 'scout';
   }
@@ -159,16 +151,11 @@ export class WorkspaceShell {
   /** Season/game formatting shared with `_switchDetail` (the Game
    *  context-switcher popover, shell-owned). Home keeps its own copies in
    *  HomeScreen/native-home.jsx. */
-  /** Progress is per unit, not just a play count per unit: a coach needs to see
-   *  WHICH side is behind, and "O 24 · D 18 · ST 6" never said that. Charted
-   *  uses the same isPlayTagged predicate as the overall figure, so the unit
-   *  rows always sum to the headline. */
+  /* Per-unit progress uses the same isPlayTagged predicate as the headline. */
   _gameSummary(game){const plays=game?.plays||[];const tagged=plays.filter(isPlayTagged).length;const units={offense:0,defense:0,special:0};const unitTagged={offense:0,defense:0,special:0};plays.forEach(play=>{const unit=countedUnit(play);if(Object.hasOwn(units,unit)){units[unit]++;if(isPlayTagged(play))unitTagged[unit]++;}});const unitProgress=['offense','defense','special'].map(key=>({key,label:key==='offense'?'Offense':key==='defense'?'Defense':'Special Teams',short:key==='offense'?'O':key==='defense'?'D':'ST',total:units[key],tagged:unitTagged[key],pct:units[key]?Math.round(unitTagged[key]/units[key]*100):0}));const gi=game?.gameInfo||{};const hasUs=gi.scoreUs!==''&&gi.scoreUs!=null&&Number.isFinite(Number(gi.scoreUs));const hasThem=gi.scoreThem!==''&&gi.scoreThem!=null&&Number.isFinite(Number(gi.scoreThem));return{total:plays.length,tagged,pct:plays.length?Math.round(tagged/plays.length*100):0,offense:units.offense,defense:units.defense,special:units.special,unitProgress,score:hasUs&&hasThem?`${Number(gi.scoreUs)}–${Number(gi.scoreThem)}`:'Not entered',date:this._dateLabel(gi.date),status:String(game.status||'not_started').replace(/_/g,' ')};}
   _chartedLabel(game){const s=this._gameSummary(game);return s.total?`${s.tagged} of ${s.total} charted`:'0 plays';}
   _dateLabel(value){if(!value)return'';const d=new Date(`${value}T12:00:00`);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});}
-  /** Reports now has a real shell route, so this navigates there instead of
-   *  revealing the classic outlet (which is what used to expose the retired
-   *  top bar underneath). Kept as the named entry point Study links to. */
+
   showAdvancedReports(){ if(!this.root) return; return this.show('reports'); }
   async _openLibrary(){
     if(!this.root)return false;
@@ -230,12 +217,7 @@ export class WorkspaceShell {
    * load every season on every open. It never claims to know a game it has
    * not read.
    */
-  /** V2-A Program selector. Reads the SAME TeamRegistry every other program
-   *  surface (Team Hub) already uses; switching reuses TeamHubScreen.switchTeam
-   *  (commits+persists the outgoing season, closes it, swaps identity+roster) —
-   *  no second program pointer. Lands on Home per the V2-A contract: a program
-   *  switch leaves no season open, so Home's own empty state guides the coach
-   *  to the Season selector next. */
+  /* Switch programs through TeamHubScreen.switchTeam, then show Home with no season open. */
   async _openProgramSwitch(anchor){
     if(!anchor||!this.app.overlays||!this.app.teamRegistry)return;
     const registry=this.app.teamRegistry; const activeId=registry.activeTeamId();
@@ -248,14 +230,7 @@ export class WorkspaceShell {
     const handle=this.app.overlays.popover({title:'Switch program',anchor,returnFocus:anchor,items,variant:'context',placement:'bottom-start'});
     handle.result.finally(()=>{if(anchor.isConnected)anchor.setAttribute('aria-expanded','false');});
   }
-  /** V2-A Season selector — the approved canon (season-switcher-1440x900.png):
-   *  every other season for the ACTIVE program, the current season marked, then
-   *  "+ New season". Reuses the exact canonical open path
-   *  (`StorageManager.openSeasonById` + `show('home')`) the old Home season
-   *  band already used, so switching from any route safely lands on that
-   *  season's Home with no stale game context (V2-A requirement 3) — Home's own
-   *  refresh reads the freshly-opened season fresh, it never carries forward a
-   *  previous season's selected/active game id. */
+  /* List seasons for the active program; the canonical open path lands on Home with fresh game context. */
   async _openSeasonSwitch(anchor){
     if(!anchor||!this.app.overlays)return;
     const store=this.app.storage.seasonStore, currentId=store?.currentSeasonId||'';
@@ -302,10 +277,8 @@ export class WorkspaceShell {
           selected:String(game.id)===activeId,onSelect:()=>this.app.openGame(game.id,{route})});
       });
     }
-    // V2-A: cross-season browsing moved to the dedicated Season context selector
-    // (_openSeasonSwitch, matching the approved season-switcher canon). This
-    // popover stays scoped to the current season's own games, which is what
-    // "Game" means as a context selector.
+    // The Game selector is scoped to the open season; cross-season browsing belongs to the Season selector.
+
     if(!items.length)items.push({key:'none',label:'No games yet',detail:'Create one from Home',disabled:true});
     anchor.setAttribute('aria-expanded','true');
     const handle=this.app.overlays.popover({title:'Switch game',anchor,returnFocus:anchor,items,variant:'context',placement:'bottom-start'});

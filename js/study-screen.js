@@ -23,16 +23,7 @@ export class StudyScreen {
       ...StudyScreen.PENALTY_MEASURE_IDS, ...StudyScreen.SPECIAL_TEAMS_MEASURE_IDS];
   }
 
-  /**
-   * Study expansion Phase 2 (penalties + Special Teams). Both lists ride the
-   * SAME `run()`/`compare()`/`readMeasures()` path every existing flat
-   * measure already uses (never AnalyticsMetrics' offense/defense-polarity
-   * `runMetrics()`/`compareMetrics()` -- that machinery exists specifically
-   * for the five RICH_METRIC_PAIRS concepts, and penalties/Special Teams
-   * aren't that shape). Comparisons, saved views, pivot, and Save-to-Plan all
-   * work for these automatically because they're the same measures, not a
-   * parallel system.
-   */
+  /* Penalty and Special Teams measures use the flat run/compare path, including saved views, pivot and Save-to-Plan. */
   static get PENALTY_MEASURE_IDS() {
     return [
       'penaltyFlaggedPlays', 'penaltyFouls', 'penaltyAccepted', 'penaltyDeclined',
@@ -87,9 +78,6 @@ export class StudyScreen {
    *  have no AnalyticsMetrics equivalent and stay on the `run()`/`compare()`
    *  path. A saved view naming one reopens exactly. */
   static get ADVANCED_MEASURES() { return ['runShare', 'passShare', 'epaPerPlay', 'touchdowns', 'turnovers']; }
-  // Study expansion Phase 2: penalty/Special Teams measures are selectable
-  // primary metrics too -- they ride the same picker + lens grouping as the
-  // flat measures above, not a separate control.
   static get SELECTABLE_METRICS() {
     return [...StudyScreen.RICH_METRIC_IDS, ...StudyScreen.ADVANCED_MEASURES,
       ...StudyScreen.PENALTY_MEASURE_IDS, ...StudyScreen.SPECIAL_TEAMS_MEASURE_IDS];
@@ -115,25 +103,7 @@ export class StudyScreen {
     ];
   }
 
-  /**
-   * Study Phase 3: Player Performance. A dedicated two-step picker (Role,
-   * then a role-scoped Metric) rather than one more entry in the primary
-   * metric dropdown -- the metric VOCABULARY genuinely differs per role
-   * (Completion Rate means nothing for a Tackler; Solo Tackles means nothing
-   * for a Passer), so a flat combined list would either mix unrelated
-   * questions or need per-role filtering logic duplicated at render time.
-   * Each role names: its AnalyticsRegistry player dimension (built on
-   * StatsEngine.effectivePlayers/splitPlayers/countsFootballRoles -- see
-   * analytics-registry.js), the AnalyticsMetrics metric ids it may select
-   * (every one already defined in analytics-metrics.js -- five of them,
-   * successRate/yardsPerPlay/explosiveRate/negativeRate/stopRate/
-   * yardsAllowedPerPlay, are the EXACT SAME formulas team-level Study
-   * concepts already use, reused as-is over a player-scoped cohort), and
-   * whether that role has a `tags.grades` key at all (kicker/returner do
-   * not -- the tag form never exposed a grade control for them, matching
-   * `StatsEngine._individualStats`, so their metric lists omit the three
-   * grade metrics rather than offering a control that can never resolve).
-   */
+  /* Each player role selects its registry dimension, permitted metric ids and optional grade key. Reuse shared formulas over role-scoped cohorts; roles without stored grades offer no grade metrics. */
   static get PLAYER_ROLES() {
     return {
       ballCarrier: {
@@ -157,23 +127,13 @@ export class StudyScreen {
         metrics: ['tackles', 'soloTackles', 'assistedTackles', 'tfl', 'sacksMade', 'stopRate', 'yardsAllowedPerPlay', 'avgGrade', 'positiveGradeRate', 'negativeGradeRate'],
       },
       missedTackler: { name: 'Missed Tackler', dimension: 'playerMissedTackler', gradeRole: null, metrics: ['missedTacklesMade', 'yardsAllowedPerPlay'] },
-      // Special Teams stays deliberately minimal -- see analytics-registry.js's
-      // playerKicker/playerReturner comment for the disclosed scope limit
-      // (Field Goal only, no punting or return-yardage averages this
-      // checkpoint). No grade metrics: kicker/returner have no `tags.grades`
-      // key in the tag model.
+      // Special Teams player metrics cover field goals and returns only; kicker/returner have no stored grades.
       kicker: { name: 'Kicker (FG)', dimension: 'playerKicker', gradeRole: null, metrics: ['completions', 'completionRate'] },
       returner: { name: 'Returner', dimension: 'playerReturner', gradeRole: null, metrics: ['touchdowns'] },
     };
   }
 
-  /** Coach-facing metric names, per role -- the SAME underlying metric id
-   *  (e.g. `yardsPerPlay`, `completionRate`, `completions`) is deliberately
-   *  reused across roles (one formula, several coaching questions), so the
-   *  DISPLAY name is resolved here rather than baked into the metric id.
-   *  Tackler's stopRate/yardsAllowedPerPlay are named "...(plays involving)"
-   *  -- a Study Phase 3 requirement: never imply one player solely caused a
-   *  team-level defensive result. */
+  /* Resolve metric names per role while reusing shared formulas. Tackler labels say plays involving, not sole responsibility for team results. */
   static get PLAYER_METRIC_LABELS() {
     return {
       ballCarrier: {
@@ -201,13 +161,7 @@ export class StudyScreen {
     };
   }
 
-  /**
-   * Dimensions are the axes a question is broken down BY, not the question
-   * itself, so they are grouped by football category rather than forced into
-   * the five lenses — calling a coverage shell an "Efficiency" dimension would
-   * be a label that means nothing. Every dimension keeps its id and its place;
-   * only the surrounding <optgroup> is new.
-   */
+  /* Group dimensions by football category rather than performance lens. */
   static get DIMENSION_GROUPS() {
     return [
       { name: 'Situation', ids: ['down', 'distance', 'fieldZone', 'quarter', 'drive', 'hash'] },
@@ -383,7 +337,7 @@ export class StudyScreen {
     return { values, total: ranked.length, omitted: Math.max(0, ranked.length - values.length) };
   }
 
-  // ---- Study Phase 3: player performance -------------------------------
+  // Player performance
   /** How each player metric's raw number should be displayed. Unlike the
    *  five RICH_METRIC_PAIRS concepts (always a rate or always yards, decided
    *  by one binary), player metrics span four genuinely different shapes:
@@ -653,12 +607,7 @@ export class StudyScreen {
     this.app.tagger.toast?.('Study view deleted');
   }
   _gameName(game) { return game.name || game.gameInfo?.projectName || game.gameInfo?.opponent || 'Current game'; }
-  // `value == null` MUST be checked before `Number()` -- `Number(null) === 0`,
-  // a genuinely finite number, so a bare `Number.isFinite` guard alone treats
-  // an honest "not charted" `null` (Study expansion Phase 2's
-  // `zeroDenominatorPath` coercion in analytics-registry.js) as a real zero
-  // and renders "0%" instead of "-". `undefined` was already caught
-  // (`Number(undefined)` is `NaN`); `null` needed the same explicit catch.
+  // Check null before Number(): Number(null) is zero, but uncharted values must stay missing.
   _pct(value) { if (value == null) return '—'; const n = Number(value); return Number.isFinite(n) ? `${this._number(n)}%` : '—'; }
   _measure(id, value, suffix = true) {
     if (value == null) return '—';
@@ -672,17 +621,7 @@ export class StudyScreen {
     return this._number(n);
   }
 
-  /**
-   * Study expansion Phase 2 -- denominator honesty for the "Plays" column.
-   * Most measures (touchdowns, EPA, run/pass share...) are meaningfully
-   * described by the group's raw play count, unchanged, so this is a no-op
-   * for every measure that predates this checkpoint. A measure that declares
-   * `denominatorMeasure` (a FG%/XP%/touchback% etc. whose real eligible count
-   * is smaller than the group's raw plays -- e.g. 3 FG attempts inside a
-   * 45-play "3rd Down" group) instead shows that exact count, disclosing the
-   * gap ("3 of 45") rather than implying the rate was computed over every
-   * play in the row.
-   */
+  /* Use denominatorMeasure for the eligible Plays count when declared, disclosing the difference from the raw group sample. */
   _measureDenominatorText(measure, m, rawSampleSize) {
     const entry = this.app.analyticsRegistry.getMeasure(measure);
     const denomId = entry?.denominatorMeasure;

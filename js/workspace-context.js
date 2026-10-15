@@ -133,10 +133,8 @@ export class WorkspaceContext {
     // DERIVED here rather than stored -- there is no ambiguity to record.
     if (data.kind === 'scout') {
       const parent = String(data.programSeasonId || '');
-      // An UNASSIGNED scout CLEARS the parent rather than inheriting whatever was
-      // held before it. Keeping the previous parent let an unrelated program
-      // season stand in as this scout's owner, which then answered "return to Our
-      // Program" with a season the scout has no relationship to.
+      // An unassigned scout clears the parent rather than inheriting an unrelated program season.
+
       if (parent) this.setParentSeason(parent);
       else if (this._programSeasonId) { this._programSeasonId = ''; this._persistParent(); }
       this.setWorkspaceMode('scout');
@@ -160,24 +158,13 @@ export class WorkspaceContext {
     return this._programSeasonId;
   }
 
-  /**
-   * PASSIVE re-read of the open document (a re-render, not a navigation).
-   *
-   * It may only adopt the parent, never the mode of a program season: a program
-   * season is legitimately open in EITHER view — Our Program, or its own scout
-   * library while it stays open as the parent. Forcing the mode here is what
-   * silently undid a switch the coach had just made, because `load()` runs on
-   * every pass. A scout still pins the mode, because a scout cannot be open in
-   * Our Program at all.
-   */
+  /* Passive refresh adopts the parent but preserves a program's workspace mode; an open scout pins Opponent Scout mode. */
   syncParentFromOpen(data) {
     if (!data) return this._programSeasonId;
     if (data.kind === 'scout') {
       const parent = String(data.programSeasonId || '');
-      // An UNASSIGNED scout CLEARS the parent rather than inheriting whatever was
-      // held before it. Keeping the previous parent let an unrelated program
-      // season stand in as this scout's owner, which then answered "return to Our
-      // Program" with a season the scout has no relationship to.
+      // An unassigned scout clears the parent rather than inheriting an unrelated program season.
+
       if (parent) this.setParentSeason(parent);
       else if (this._programSeasonId) { this._programSeasonId = ''; this._persistParent(); }
       this.setWorkspaceMode('scout');
@@ -228,12 +215,8 @@ export class WorkspaceContext {
   static resolveScoutParent(scout, seasons) {
     const explicit = String(scout?.programSeasonId || '');
     if (explicit) {
-      // An explicit id is authoritative ONLY while it resolves to a real program
-      // season of this collection. A deleted parent, or a body imported from
-      // another machine carrying a foreign id, otherwise left the scout filed
-      // under a season that does not exist -- present in storage and invisible in
-      // every parent-scoped list. It becomes UNASSIGNED instead, which is the
-      // visible, recoverable state. The stored id is reported, never rewritten.
+      // Only a real program season in this collection validates an explicit parent id; otherwise surface the scout as unassigned without rewriting its stored id.
+
       if (WorkspaceContext.isValidParent(seasons, explicit)) {
         return { status: 'explicit', programSeasonId: explicit, candidates: [explicit] };
       }
@@ -324,11 +307,7 @@ export class WorkspaceContext {
     return { ...result, current: this._route };
   }
 
-  /** An in-flight film operation belongs to a GAME IN A SEASON, not to a bare
-   *  game id. Keyed by id alone, a save running in the open season made every
-   *  other season that reuses that game id report "Checking film…" instead of
-   *  its own settled count — the same identity defect as the managed-film path,
-   *  one layer up. */
+  /* Key in-flight film operations by season and game; game ids can repeat across seasons. */
   static operationKey(seasonId, gameId) { return `${String(seasonId ?? '')}::${String(gameId ?? '')}`; }
 
   /** The season an operation belongs to, captured when it STARTS. Film import
