@@ -120,6 +120,9 @@ log.
   build/discovery/failure behavior belongs to the runner suite. Coverage owners
   and retained browser boundaries are in `docs/TESTING.md`. Reports and
   production code are unchanged; full-gate and installed approval are separate.
+  Focused verification at `66962216`: 15/15 green, zero failed/skipped,
+  clean unchanged source/build/fixtures. Receipt:
+  `artifacts/gate-logs/2026-10-15T19-39-11-202Z-3hnWul/receipt.json`.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:
