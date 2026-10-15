@@ -335,7 +335,9 @@ a reviewed correction named in the diff.
   fails. The full gate budget is 6 minutes of end-to-end wall time on this
   machine; the receipt records non-overlapping setup phases and each
   harness's duration. Over budget, the gate still finishes every check, then
-  the run is red for the coach to decide, not a pass with an explanation.
+  the run is red for the coach to decide, not a pass with an explanation. The
+  runner's own test proves this: a harness scheduled after the budget expires
+  still runs and its result is recorded.
   Never meet a budget by skipping checks or weakening assertions, and never
   raise a deadline merely to hide a slowdown; a genuine scope change gets a
   reviewed deadline change. `tools/run-gate.mjs` enforces per-harness deadlines today; the full
