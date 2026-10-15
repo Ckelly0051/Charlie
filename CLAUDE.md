@@ -331,13 +331,14 @@ a reviewed correction named in the diff.
   responsibility. Pure logic runs in Node; browsers prove interactions,
   rendering and integration. Unrelated tests are not merged just to cut the
   harness count.
-- **Runtime budgets.** A harness that exceeds its deadline fails. The full
-  gate budget is 6 minutes on this machine, recorded in the receipt with time
-  split between product harnesses and setup; over budget is a red result for
-  the coach to decide, not a pass with an explanation. Never meet a budget by
-  skipping checks or weakening assertions, and never raise a timeout merely to
-  absorb a slowdown; a deliberately expanded test may get a reviewed deadline
-  change. `tools/run-gate.mjs` enforces per-harness deadlines today; the full
+- **Runtime budgets.** A harness that exceeds its deadline is stopped and
+  fails. The full gate budget is 6 minutes of end-to-end wall time on this
+  machine; the receipt records non-overlapping setup phases and each
+  harness's duration. Over budget, the gate still finishes every check, then
+  the run is red for the coach to decide, not a pass with an explanation.
+  Never meet a budget by skipping checks or weakening assertions, and never
+  raise a deadline merely to hide a slowdown; a genuine scope change gets a
+  reviewed deadline change. `tools/run-gate.mjs` enforces per-harness deadlines today; the full
   gate budget and its timing split are not enforced until that runner change
   lands.
 - **Audit before structural reduction.** Large reductions (the Reports
