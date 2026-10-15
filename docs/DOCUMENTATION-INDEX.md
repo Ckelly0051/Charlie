@@ -9,6 +9,8 @@ Updated 2026-10-15.
 - `GRIDIRON-IQ-PLAN-V2.md` - forward roadmap.
 - `docs/OPEN-DEFECTS.md` - open defects, pending smoke items, coach decisions.
 - `docs/TESTING.md` - testing tiers and execution rules.
+- `docs/CLEANUP-REPORT-2026-10-15.md` - completed non-Reports cleanup, benefits,
+  coverage accounting and Claude review handoff.
 - `docs/REPORTS-CONTRACTS.md`, `docs/HOME-CONTRACTS.md` - Reports and Home rules.
 - `docs/VISUAL-SYSTEM-RULES.md` - shared palette, typography, navigation,
   selector and dashboard composition rules.
@@ -99,12 +101,13 @@ log.
   commentary are removed. Game creation uses GameScreen only; unused video
   state is gone. Film Room requires live fixtures and fails on browser errors.
   Galleries are opt-in with `--capture`. Two film lifecycle defects remain open.
-  Latest focused verification: 25/25 green at `6850bc49`, zero failed/skipped,
+  Latest focused verification: 24/24 green at `d7d31a4a`, zero failed/skipped,
   clean unchanged source and fixture hashes. Receipt:
-  `artifacts/gate-logs/2026-10-15T06-28-46-074Z-eAmjBe/receipt.json`.
+  `artifacts/gate-logs/2026-10-15T11-43-24-303Z-Cv2nq2/receipt.json`.
   This is not a full gate or release approval. Maintenance is not packaged;
-  installer 118's installed-smoke status is unchanged. Broader cleanup remains
-  in progress; the stats-engine area split stays with the Reports rebuild.
+  installer 118's installed-smoke status is unchanged. This non-Reports cleanup
+  pass is complete and awaits Claude review; remaining Reports cleanup and the
+  stats-engine split stay with its rebuild. See the cleanup report above.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
