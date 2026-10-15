@@ -119,6 +119,8 @@ log.
   browser startup and the synthetic Blob reader are gone. Mounted CSV/export
   delivery coverage remains separate. No production code or coach data changed;
   Reports suites remain outside this pass.
+  Linked-film rehydration also runs in Node with unchanged scenario/assertion
+  coverage; mounted film-linking and playback journeys remain browser-owned.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:

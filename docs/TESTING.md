@@ -121,6 +121,9 @@ identity, sparse/blank rows, structured penalties and atomic mapping refusal.
 It uses the production storage/tagger methods and native Blob, not a browser
 or a fake parser. Mounted CSV wiring remains in `e2e-charting-cutover-deck`;
 native delivery remains in `e2e-file-delivery` and `e2e-export-injection`.
+`e2e-relink-linked` exercises root/name matching, shared marked regions and
+replacement through the real playlist owner in Node; mounted film linking
+remains in `e2e-linked-film` and `e2e-film-storage-setup`.
 
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.

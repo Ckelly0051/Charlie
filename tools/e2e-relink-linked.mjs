@@ -1,25 +1,16 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* REGRESSION (P1-5): PlaylistManager.rehydrateFromDisk must relink a game's
-   saved plays to a linked folder's clips even when the folder ROOT differs from
-   the saved clipPath root (managed import saved 'Game7/endzone/0001'; the linked
-   folder lists 'endzone/0001'). Same-basename clips in different subfolders must
-   still map 1:1 (by folder order), tags preserved, no duplicate clips, no orphans.
-
-   Run after build:  node tools/e2e-relink-linked.mjs */
-import puppeteer from './test-browser.mjs';
+import { PlaylistManager } from '../js/playlist-manager.js';
+/* Linked rehydration handles renamed roots and same-basename subfolders,
+ * preserves shared marked regions and replaces the prior playlist. */
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
-const page = await browser.newPage();
-page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-const URL = TEST_APP_URL;
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
-
-const res = await page.evaluate(async () => {
-  const pl = window.app.tagger.playlist;
+const res = await (async () => {
+  // Use production methods without binding unused DOM controls.
+  const pl = Object.assign(Object.create(PlaylistManager.prototype), {
+    clips: [], activeClipIndex: -1, _nextClipId: 1,
+    _nextPreloadEl: null, _nextPreloadIndex: -1, _undoClips: new Map(),
+  });
 
   // --- Scenario 1: root mismatch + same basename in two subfolders ---
   const plays1 = [
@@ -88,7 +79,7 @@ const res = await page.evaluate(async () => {
   const s5 = { count: pl.clips.length, paths: pl.clips.map(c => c.clipPath), linked: plays5[0].clipId === pl.clips[0]?.id };
 
   return { s1, s2, s3, s4, s5 };
-});
+})();
 
 const { s1, s2, s3, s4, s5 } = res;
 ok(s1.clipCount === 2, 'no duplicate clips created on a root-mismatched relink', JSON.stringify(s1));
@@ -101,5 +92,4 @@ ok(s4.primary === s4.liveId && s4.marked === s4.liveId && s4.clipPlay === 1 && s
 ok(s5.count === 1 && s5.paths[0] === 'linked/Only' && s5.linked, 'linked rehydrate replaces an existing managed playlist instead of appending duplicates', JSON.stringify(s5));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-await browser.close();
 process.exit(fail ? 1 : 0);
