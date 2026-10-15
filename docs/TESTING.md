@@ -35,6 +35,10 @@ ownership; it does not repeat terminal recovery through a private handler.
 shared normalized synthetic season and committed film-reference golden. The
 mounted `e2e-study-screen` journey owns App wiring, browser errors, controls,
 rendering and Watch actions; model parity does not boot another app.
+`e2e-film-load-race` runs real storage orchestration in Node with gated backend
+I/O and playback spies. Each race proves its slow URL gate was reached before
+superseding it. Managed/linked staleness, manifest reuse/invalidation and partial
+resolution remain separate cases; real media and App wiring stay browser-owned.
 `e2e-workspace-shell` checks runtime engine-class privacy; stylesheet reachability
 and Reports native ownership remain in their existing composition/route checks.
 

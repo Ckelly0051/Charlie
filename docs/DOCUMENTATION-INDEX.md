@@ -114,18 +114,12 @@ log.
   pass is complete; Claude review returned no findings (coach, 2026-10-15).
   The subsequent film fixes require separate review. Remaining Reports cleanup and the
   stats-engine split stay with its rebuild. See the cleanup report above.
-- **Test-suite consolidation:** CSV, linked rehydration and failed-save models
-  run in Node; deferred program rollback shares Settings. Home waits for
-  mounted completion and a fresh Retry read. P0 checks runner wiring; actual
-  build/discovery/failure behavior belongs to the runner suite. Coverage owners
-  and retained browser boundaries are in `docs/TESTING.md`. Reports and
-  production code are unchanged; full-gate and installed approval are separate.
-  Catalog persistence shares its missing-catalog scenario without a duplicate
-  database setup; the stale-file reader remains usable to expose regressions.
-  Film terminal recovery shares the real media-error journey; the CORS suite
-  retains retry/buffering/preload coverage and waits for readiness, not a timer.
-  Study query parity runs in Node; the existing mounted Study journey owns
-  App wiring and browser interactions.
+- **Test-suite consolidation:** model tests run in Node; existing mounted
+  journeys retain browser wiring, interactions and media recovery. Study query
+  parity and gated film-load races no longer boot the app. Coverage owners,
+  shared scenarios and readiness waits are mapped in `docs/TESTING.md`.
+  Reports and production code are unchanged; full-gate and installed approval
+  remain separate.
   Latest focused verification at `167617a6`: 7/7 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
   `artifacts/gate-logs/2026-10-15T19-54-06-599Z-lliNN4/receipt.json`.
