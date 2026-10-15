@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-Updated 2026-10-14.
+Updated 2026-10-15.
 
 ## Current authority
 
@@ -93,37 +93,19 @@ log.
   the shortcuts-dialog repair. Charlie Gate visual review is PASS;
   independent packaged-asset inspection and installed smoke are pending.
   Production remains IMPLEMENTED_UNVERIFIED. Checklist: `SMOKE-1.12.0-118.md`.
-- **Post-118 maintenance:** architecture ownership and behavior paths are
-  mapped in `AGENTS.md`, with exact module coverage guarded by `e2e-p0-exit`.
-  Runtime engine privacy now shares the existing shell journey; the redundant
-  off-gate shell diagnostic is removed. These changes are not in installer 118.
-  Obsolete repair-history commentary and false type-floor deferrals are removed;
-  module headers describe current storage/route owners without retired layouts
-  or unvalidated performance claims. The broader cleanup remains in progress.
-  Game creation has one owner, GameScreen: the unused StorageManager.newGame
-  path is removed and its four test callers use the production create/save
-  flow. This runtime deletion changes the bundle; comment-only batches do not.
-  Tag-field model checks now share the DOM-free analytics suite and their UI
-  checks share native Chart; the separate tag-fields browser harness is removed.
-  Film-index serialization and penalty-situation rules share the Node core
-  suite; the separate film-index browser launch is removed. Browser media,
-  persistence and tagging integration checks remain with their existing owners.
-  Reports share rendered-state waits and table clipping.
-  Reports absence checks reuse the existing page traversal; unused raster
-  calculations and unread browser payloads are removed without dropping the
-  distinct front-tendency positive control or visual thresholds. Persistence tests
-  separate basic catalog contracts from import/restore/close races; duplicate
-  matrix sections and repair histories are removed, with shared backend setup.
-  Focused and sensitivity checks cover the consolidation; no full gate or new
-  package has run on the maintenance changes.
-  The testing guide assigns every harness to a behavior row. Film Room requires
-  live editor fixtures and fails on captured browser errors; the fixture guard
-  rejects literal passes labeled as skipped interactions.
-  Canonical Offense/Defense and global-strip galleries are now opt-in via
-  `--capture`; their default runs retain every geometry/data assertion and
-  refuse stray screenshot calls. Clean focused verification covers this policy
-  together with the consolidation. Installer 118's installed-smoke status is
-  unchanged; these maintenance changes are not packaged.
+- **Post-118 maintenance:** ownership is mapped in `AGENTS.md`; every harness
+  is assigned in `docs/TESTING.md`. Pure model checks use existing Node suites;
+  browser journeys retain interaction, media and layout coverage. Duplicate
+  persistence scenarios, Reports traversal, unused calculations and stale
+  commentary are removed. Game creation uses GameScreen only; unused video
+  state is gone. Film Room requires live fixtures and fails on browser errors.
+  Galleries are opt-in with `--capture`. Two film lifecycle defects remain open.
+  Latest focused verification: 25/25 green at `6850bc49`, zero failed/skipped,
+  clean unchanged source and fixture hashes. Receipt:
+  `artifacts/gate-logs/2026-10-15T06-28-46-074Z-eAmjBe/receipt.json`.
+  This is not a full gate or release approval. Maintenance is not packaged;
+  installer 118's installed-smoke status is unchanged. Broader cleanup remains
+  in progress; the stats-engine area split stays with the Reports rebuild.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
