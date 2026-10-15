@@ -158,5 +158,33 @@ console.log('\n== 7. Penalty replays the down in Auto D&D ==');
   ok(stillStops === null, 'possession-ending results still blank the next play');
 }
 
+console.log('\n== 8. Restore-point throttling and season ownership ==');
+{
+  const snapshots = [];
+  const storage = Object.assign(Object.create(StorageManager.prototype), {
+    vc: { paused: false }, _lastSnapAt: 0, _deferredSnapshot: null, _snapshotIdleTimer: null,
+    seasonStore: { currentSeasonId: 'restore-proof',
+      async snapshot(label) { snapshots.push({ label, seasonId: this.currentSeasonId }); } },
+  });
+  storage._maybeSnapshot(false, 'Playback-safe auto');
+  ok(snapshots.length === 0 && storage._deferredSnapshot?.label === 'Playback-safe auto'
+    && storage._deferredSnapshot?.seasonId === 'restore-proof',
+  'Automatic restore point defers during playback and pins the active season');
+  storage.vc.paused = true;
+  ok(storage._flushDeferredSnapshot() && snapshots.length === 1
+    && snapshots.at(-1).label === 'Playback-safe auto' && !storage._deferredSnapshot,
+  'Paused playback flushes the deferred restore point exactly once');
+  storage.vc.paused = false; storage._lastSnapAt = 0;
+  storage._maybeSnapshot(false, 'Superseded auto');
+  storage._maybeSnapshot(true, 'Manual safety point');
+  ok(snapshots.length === 2 && snapshots.at(-1).label === 'Manual safety point' && !storage._deferredSnapshot,
+    'Forced restore point supersedes a deferred automatic point');
+  storage._lastSnapAt = 0;
+  storage._maybeSnapshot(false, 'Old-season auto');
+  storage.seasonStore.currentSeasonId = 'different-season'; storage.vc.paused = true;
+  ok(!storage._flushDeferredSnapshot() && snapshots.length === 2 && !storage._deferredSnapshot,
+    'Deferred restore point never crosses season ownership');
+}
+
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);
