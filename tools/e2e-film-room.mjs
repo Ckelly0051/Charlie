@@ -1,22 +1,7 @@
 import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';
-/* E2E Film Room harness -- drives the built bundle headless through the
-   NATIVE Film Room route/mode (window.app.nativeFilmRoom / native-film-room.jsx,
-   window.app.playGrid's native* API): render on demo data, row click-to-select,
-   chip filters, bulk selection + Watch fallback, saved-column/filter
-   persistence, projected-column editing, switch-team back-out. Run after build:
-     npm run build && node tools/e2e-film-room.mjs
-
-   Final Engine Independence: #playGridSection (the classic inline collapsible
-   breakdown strip and its #pgRows/.pg-row/.pg-chip/.pg-pop markup) is DELETED
-   from index.html entirely. Film Room is now a full native MODE inside the
-   Break Down route (window.app.breakdownWorkspace, toggled via
-   [data-bd-view="film-room"]), sharing the route with Chart mode rather than
-   living as a separate collapsible section below the video. The former
-   "collapse persistence" / "narrow screen defaults collapsed" tests tested a
-   classic-only UI affordance (localStorage ffa_film_room_collapsed) that has
-   no native equivalent -- that concept was already retired by the S5d
-   ownership flip, well before this milestone, and is not reintroduced here. */
+/* Film Room interactions over the built native route: selection, filtering,
+ * editing, saved preferences, cross-surface data and exact film cohorts. */
 import puppeteer from './test-browser.mjs';
 // Plays are current format (legacy excision step 7): each look field is its
 // own field, and an edit writes only the field edited.
@@ -29,6 +14,7 @@ const ok = (cond, label, extra = '') => {
 };
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+try {
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 const errors = [];
@@ -703,36 +689,18 @@ ok(r.autoGain === 'Gain' && r.autoGainSign === '12', 'positive yardage with no r
 ok(r.autoSitCleared && r.sit === '3&7', 'a grid Dn&Dist edit clears _autoSit so Save & Next cannot overwrite it', JSON.stringify(r));
 
 
-// ===================================================================
-// E3b INTERACTIVE tests run LAST on purpose: they drive real clicks and open
-// editors, which changes the grid's selection/focus. Reopen Film Room first --
-// the multi-team section closed the active season on team switch, so it must
-// be re-entered through Team Hub -> Home -> the same game -> Film Room view.
-// ===================================================================
+// Reopen after the team-switch journey before driving real editor interactions.
 await reopenFilmRoom();
 
-// BEHAVIORAL editable proof (E4-2) -- the type check above is a DECLARATION
-// and would stay green even if the editor still refused these columns.
-// Drive the real interactions: E4-2 made qbAlignment/coverageFamily
-// genuinely editable, but OPENING the editor (without picking a chip) must
-// still write nothing -- the same view/cancel-never-writes contract
-// D-projform requires of the tag form.
+// Opening/canceling a real editor must not write; a declared column type is insufficient.
 r = await page.evaluate(() => {
   const tagger = window.app.tagger;
-  const play = tagger.plays[0];
-  // Since 2026-09-24 a defense column is blank on an offensive row in All plays,
-  // so Coverage Family is exercised on a defensive play, as a coach would.
+  const play = tagger.plays.find(p => p.tags?.unit === 'offense');
   const def = tagger.plays.find(p => p.tags?.unit === 'defense');
-  return { skip: !play, playId: play?.id, defId: def?.id ?? play?.id };
+  return { playId: play?.id, defId: def?.id };
 });
-if (r.skip) {
-  ok(true, 'the now-editable columns actually render a cell to interact with (skipped: no play)');
-  ok(true, 'E4-2 BEHAVIORAL: a 2nd click genuinely OPENS the editor on the new columns (skipped: no play)');
-  ok(true, 'E4-2 BEHAVIORAL: Enter also opens the editor (skipped: no play)');
-  ok(true, 'E4-2 BEHAVIORAL: a direct editor() call also produces an editable model (skipped: no play)');
-  ok(true, 'E4-2 BEHAVIORAL: OPENING (never committing) fires no play-updated event (skipped: no play)');
-  ok(true, 'E4-2 BEHAVIORAL: play tags are byte-identical after opening + canceling every interaction (skipped: no play)');
-} else {
+if (r.playId == null || r.defId == null) throw new Error('Film Room editable-look fixture requires offense and defense plays');
+{
   const playId = r.playId, defId = r.defId;
   const playFor = key => (key === 'coverageFamily' ? defId : playId);
   await page.evaluate((id) => window.app.tagger.selectPlay(id), playId);
@@ -779,7 +747,7 @@ if (r.skip) {
   }
   const updatesCount = await page.evaluate(() => window.__giUpdCount);
   const after = await page.evaluate((ids) => JSON.stringify(ids.map(id => window.app.tagger.getPlay(id).tags)), [playId, defId]);
-  r = { skip: false, ...results, updates: updatesCount, unchanged: after === before };
+  r = { ...results, updates: updatesCount, unchanged: after === before };
   await page.evaluate((cols) => { window.app.playGrid.cols = cols; window.app.playGrid._notifyNative(); }, colsBefore);
   await frame();
   if (selBefore != null) { await page.evaluate((id) => window.app.tagger.selectPlay(id), selBefore); await frame(); }
@@ -1263,8 +1231,9 @@ ok(setEq(r.perCol.formationFamily.rendered['Spread'], ['e3b-p3-fixture::9001', '
   'each family play lands in exactly its own rendered group (a single value: a play never appears in two)', JSON.stringify({ trips: r.perCol.formationFamily.rendered['Spread'], bunch: r.perCol.formationFamily.rendered['Wing-T'] }));
 ok(r.shotgunRefs.length > 0 && setEq(r.watchedRefs, r.shotgunRefs.slice().sort()), 'Watch receives EXACTLY the COMPOSITE refs of the selected rendered row group, no more, no fewer', JSON.stringify({ selected: r.shotgunRefs, watched: r.watchedRefs }));
 
+ok(errors.length === 0, 'No console/page errors', errors.slice(0, 10).join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-if (errors.length) { console.log('CONSOLE/PAGE ERRORS:'); errors.slice(0, 10).forEach(e => console.log('  ' + e)); }
-else console.log('No console/page errors.');
-await browser.close();
+} finally {
+  await browser.close();
+}
 process.exit(fail ? 1 : 0);

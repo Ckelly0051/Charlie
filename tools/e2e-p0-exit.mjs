@@ -61,6 +61,16 @@ ok(/exec node tools\/run-gate\.mjs "\$@"/.test(gate)
   'canonical gate builds Vite and discovers every e2e harness');
 
 const toolFiles = (await readdir(resolve(root, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name));
+const testingGuide = await read('docs/TESTING.md');
+const harnessMap = (testingGuide.split('## Harness map')[1] || '').split(/\n## /)[0]
+  .split(/\r?\n/).filter(line => line.startsWith('|')).join('\n');
+const documentedHarnesses = new Set(harnessMap.match(/\be2e-[\w-]+/g) || []);
+const actualHarnesses = new Set(toolFiles.map(name => name.slice(0, -4)));
+const unmappedHarnesses = [...actualHarnesses].filter(name => !documentedHarnesses.has(name));
+const retiredHarnesses = [...documentedHarnesses].filter(name => !actualHarnesses.has(name));
+ok(!unmappedHarnesses.length && !retiredHarnesses.length,
+  'testing guide maps every current harness and names no retired harness',
+  JSON.stringify({ unmappedHarnesses, retiredHarnesses }));
 const browserHarnesses = [];
 const staleBrowserEntries = [];
 for (const name of toolFiles) {

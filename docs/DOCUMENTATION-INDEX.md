@@ -108,6 +108,9 @@ log.
   matrix sections and repair histories are removed, with shared backend setup.
   Focused and sensitivity checks cover the consolidation; no full gate or new
   package has run on the maintenance changes.
+  The testing guide assigns every harness to a behavior row. Film Room requires
+  live editor fixtures and fails on captured browser errors; the fixture guard
+  rejects literal passes labeled as skipped interactions.
   Canonical Offense/Defense and global-strip galleries are now opt-in via
   `--capture`; their default runs retain every geometry/data assertion and
   refuse stray screenshot calls. Clean focused verification covers this policy

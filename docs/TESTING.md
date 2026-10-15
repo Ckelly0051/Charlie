@@ -19,6 +19,7 @@ commit message, not here.
 
 Architecture ownership: `e2e-p0-exit` requires the module map in `AGENTS.md`
 to name every production JS/JSX module exactly once, with no missing files.
+It also checks that this guide names every current harness and no retired one.
 `e2e-workspace-shell` checks runtime engine-class privacy; stylesheet reachability
 and Reports native ownership remain in their existing composition/route checks.
 
@@ -84,14 +85,15 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 
 | Behavior | Harnesses |
 |---|---|
-| Home, season library, scouts | `e2e-home-rail`, `e2e-home-deferred-repair`, `e2e-home-review-repair`, `e2e-home-first-launch`, `e2e-home-breakdown-visual-repair`, `e2e-scout-ownership`, `e2e-v2b-control-center`, `e2e-onboarding` |
+| Home, season library, scouts | `e2e-home-rail`, `e2e-home-deferred-repair`, `e2e-home-review-repair`, `e2e-home-first-launch`, `e2e-home-breakdown-visual-repair`, `e2e-scout-ownership`, `e2e-v2b-control-center`, `e2e-onboarding` , `e2e-home-startup-library` |
 | Team Hub, registry, season workflow | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-native-season` |
 | Shell, context, cross-cutting | `e2e-workspace-shell`, `e2e-workspace-context`, `e2e-game-context`, `e2e-p0-exit`, `e2e-p0-capabilities`, `e2e-responsive-containment`, `e2e-native-overlay`, `e2e-xss-names`, `e2e-copy-standard`, `e2e-design-system`, `e2e-css-ownership`, `audit-design-approvals` |
 | Break Down theater and film | `e2e-breakdown-visual-finish`, `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle`, `e2e-breakdown-viewport`, `e2e-breakdown-a11y`, `e2e-mark-flow`, `e2e-film-load-race`, `e2e-multi-angle`, `e2e-video-cors` |
-| Charting | `e2e-native-tagging` (also real diagram/review overlays: save, cancel, focus, literal analysis text and replacement lifecycle), `e2e-missed-tackles-charting`, `e2e-tagging`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields`, `e2e-st-try-charting` (tries and Special Teams roster ownership), `e2e-charting-details`, `e2e-charting-cutover-deck` |
+| Charting | `e2e-native-tagging` (also real diagram/review overlays: save, cancel, focus, literal analysis text and replacement lifecycle), `e2e-missed-tackles-charting`, `e2e-tagging`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields`, `e2e-st-try-charting` (tries and Special Teams roster ownership), `e2e-charting-details`, `e2e-charting-cutover-deck`, `e2e-charting-save`, `e2e-receiver-look`, `e2e-chart-deck-polish` |
+| Receiver route/release | `e2e-receiver-details`, `e2e-receiver-charting`, `e2e-receiver-write-guards` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout`, `e2e-film-room-columns`, `e2e-film-room-sheet`, `e2e-unit-ownership` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
-| Reports | `e2e-native-reports`, `e2e-missed-tackles-reports`, `e2e-reports-global-strip`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-down-distance`, `e2e-run-gap-report`, `e2e-reports-module-system`, `e2e-reports-view-parity`, `e2e-explosive-labels`, `e2e-self-scout` |
+| Reports | `e2e-native-reports`, `e2e-missed-tackles-reports`, `e2e-reports-global-strip`, `e2e-reports-overview`, `e2e-reports-offense`, `e2e-reports-defense-board`, `e2e-reports-special-teams`, `e2e-reports-players`, `e2e-reports-self-scout`, `e2e-reports-season`, `e2e-reports-matchup`, `e2e-reports-down-distance`, `e2e-run-gap-report`, `e2e-reports-module-system`, `e2e-reports-view-parity`, `e2e-explosive-labels`, `e2e-self-scout` , `e2e-report-builder` |
 | Reports on the canonical season | `e2e-reports-overview-realdata`, `e2e-reports-offense-realdata`, `e2e-reports-defense-realdata`, `e2e-reports-typefloor-realdata` (the only place the type floor is established), `e2e-reports-export-realdata` |
 | Plan | `e2e-plan-contract`, `e2e-plan-export`, `e2e-study-plan` |
 | Shared file delivery | `e2e-file-delivery` (synthetic Tauri save, extensionless HTML rename/default extension, exact returned paths, bytes, cancellation, notification ownership, native failures without anchor fallback and browser downloads); `e2e-export-injection` (all seven consumers share App's save function, no global, History notification owner); `e2e-cutup-prompts` (recorded bytes reach the injected save function). Report content harnesses intercept injected dependencies with `export-capture.mjs`; `e2e-legacy-inventory` pins global save references to zero, with positive/negative controls for direct and optional dot/bracket access. |
@@ -99,11 +101,11 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Linked film consent boundary | `e2e-linked-film-security` (parent paths, machine-owned consent, fresh picker, rollback, canonical alias recursion, rejected file aliases and asset URLs); native `film_paths::tests` (refusal before target lookup, canonical containment, outside junctions, case variants and explicit alias/outside approval) |
 | Stranded markup and CSS | `e2e-stranded-code` (unproduced element IDs, dead selector branches, empty/comment-only CSS blocks and detector controls); semantic orphan comments still require source review |
 | Settings and libraries | `e2e-native-settings`, `e2e-tag-library-settings`, `e2e-playbook-library`, `e2e-tag-library`, `e2e-tag-library-storage`, `e2e-beta-config` |
-| Game form | `e2e-native-game`, `e2e-game-form-context`, `e2e-game-form-visual` |
+| Game form | `e2e-native-game`, `e2e-game-form-context`, `e2e-game-form-visual` , `e2e-game-final` |
 | Football models | `e2e-penalty-contract`, `e2e-special-teams-contract`, `e2e-b2-tries`, `e2e-core` |
-| Analytics and film navigation | `e2e-analytics-registry`, `e2e-analytics-metrics`, `e2e-analytics-projection`, `e2e-parity` (goldens), `e2e-raw-read-audit`, `e2e-cross-game-cutup`, `e2e-film-navigation`, `e2e-pass-loss-and-play-order` |
+| Analytics and film navigation | `e2e-analytics-registry`, `e2e-analytics-metrics`, `e2e-analytics-projection`, `e2e-parity` (goldens), `e2e-raw-read-audit`, `e2e-cross-game-cutup`, `e2e-film-navigation`, `e2e-pass-loss-and-play-order` , `e2e-ambiguous-run-pass` |
 | Film identity and health | `e2e-clip-identity`, `e2e-clip-match`, `e2e-relink-legacy`, `e2e-relink-linked`, `e2e-film-index`, `e2e-film-persist`, `e2e-linked-film`, `e2e-film-clip-set`, `e2e-film-health-realdata`, `e2e-film-storage-setup`, `e2e-addfiles-race`, `e2e-delete-undo-film`, `e2e-data-correctness-batch1` (managed-film path behavior: explicit owner and open-season default, independent of validation or source formatting) |
-| Persistence and catalog | `e2e-sql-catalog`, `e2e-sql-fuzzer`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions`, `e2e-catalog-fuzzer`, `e2e-catalog-safety`, `e2e-revision-fence`, `e2e-snapshot-envelope`, `e2e-projform-durability`, `e2e-season-roster-scope`, `e2e-roster-ownership`, `e2e-operation-diff`, `e2e-integrity` (fuzzed operation sequences), `e2e-context-ownership`, `e2e-startup-sidecar` (startup never imports or touches a leftover season.json) |
+| Persistence and catalog | `e2e-sql-catalog`, `e2e-sql-fuzzer`, `e2e-catalog-persistence`, `e2e-catalog-backend`, `e2e-catalog-versions`, `e2e-catalog-fuzzer`, `e2e-catalog-safety`, `e2e-revision-fence`, `e2e-snapshot-envelope`, `e2e-projform-durability`, `e2e-season-roster-scope`, `e2e-roster-ownership`, `e2e-operation-diff`, `e2e-integrity` (fuzzed operation sequences), `e2e-context-ownership`, `e2e-startup-sidecar` (startup never imports or touches a leftover season.json) , `e2e-failed-save-ownership`, `e2e-save-signal` |
 | Recovery | `e2e-native-recovery`, `e2e-native-mirror-recovery` (real duplicate-ID mirror scan/refusal, identity label, no writes and no recovery action), `e2e-wipe-recovery`, `e2e-restore-point-throttling` |
 | One season format | `e2e-season-format`, `e2e-legacy-inventory` (ratchet: counts only fall), `e2e-legacy-roundtrip`, `tools/compare-builds.mjs <rev>` (on demand: every route at four widths against a baseline build, for changes meant to look the same), `e2e-csv-roundtrip`, `e2e-csv-projection`, `e2e-fixture-contract` |
 | Gate runner | `e2e-gate-runner`, `e2e-gate-receipt` |
@@ -203,6 +205,9 @@ owns navigation. Keep them separate.
   precondition (`liveWrites > 0` before `writesAfterCancel === 0`). Prefer
   counting whether a code path ran over measuring side effects that depend on
   layout or loaded data.
+- **Missing required fixtures fail.** Never report skipped interactions as
+  passes; `e2e-fixture-contract` rejects that pattern. Film Room's editable-look
+  journey requires both offensive and defensive plays before opening editors.
 - **Mutation-test the fix, not only the bug.** Watching an assertion fail on the
   old code proves it detects that bug; removing each defense in turn shows which
   one actually catches it.
