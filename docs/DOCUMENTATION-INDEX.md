@@ -162,6 +162,11 @@ log.
   deadlines still stop hung processes. Only scratch synthetic full runs have
   exercised the new budget; current real full-gate time remains unmeasured.
   Focused runs report timing without enforcing the full budget.
+  Enforcement source: `e553c71f`; focused verification 4/4 green, zero
+  failed/skipped, 24.842 seconds, with clean unchanged source/build/fixtures.
+  Receipt: `artifacts/gate-logs/2026-10-15T13-00-00-491Z-CSSkVN/receipt.json`.
+  Runner review remains separate from the production cleanup's pending
+  installed verification; no new full gate or installer was run.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
