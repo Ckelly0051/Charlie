@@ -68,3 +68,7 @@ smoke approved its visual composition only. History and reasoning:
   `No film linked`, `No games yet`); only a genuinely in-flight check is
   `checking`, keyed by season and game (`WorkspaceContext.operationKey`).
 - `Film needs attention` is reserved for film that cannot be counted.
+- Thumbnail reset resolves queued requests with `null`. Active captures and
+  file lookups cannot populate the cache after reset, even within the same
+  season, or remove a newer request for the same film. Decoding remains bounded
+  by the service's concurrency limit.

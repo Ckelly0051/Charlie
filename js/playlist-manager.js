@@ -288,16 +288,22 @@ export class PlaylistManager {
   /* Probe durations in a capped background pool and update the existing plays' end times. */
   _backfillDurations(clips) {
     const POOL = 8;
+    const playlist = this.clips;
+    const plays = this.tagger.plays;
+    const owns = () => this.clips === playlist && this.tagger.plays === plays;
     let next = 0;
     const worker = async () => {
-      while (next < clips.length) {
+      while (owns() && next < clips.length) {
         const clip = clips[next++];
         const source = clip.assetUrl || clip.file;
         if (!source) continue;
+        const play = plays.find(p => p.clipId === clip.id);
         const dur = await this._probeDuration(source);
+        if (!owns()) return;
+        if (!playlist.includes(clip) || (clip.assetUrl || clip.file) !== source
+          || (play && (!plays.includes(play) || play.clipId !== clip.id))) continue;
         if (dur && dur > 0) {
           clip.duration = dur;
-          const play = this.tagger.plays.find(p => p.clipId === clip.id);
           if (play && play.timestamp && (!play.timestamp.end || play.timestamp.end === 999)) {
             play.timestamp.end = dur;
           }

@@ -1,17 +1,7 @@
 import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
-/* REGRESSION: PlaylistManager.addFiles async play-creation must not leak plays
-   into another game when the active game changes while duration probes are in
-   flight. This is the deterministic form of the cross-game corruption the
-   integrity fuzzer caught only under load (two games sharing a clip name):
-   _autoCreatePlays() awaited per-clip _probeDuration, THEN pushed each play to
-   the LIVE this.tagger.plays — which _deserialize reassigns to the new game's
-   array on a switch, so a late push landed clip A's play in game B.
-
-   We force the interleave by blocking _probeDuration on a gate we release only
-   AFTER switching games. Buggy code pushes into game B; fixed code (await +
-   bound-array guard) does not.
-
-   Run after build:  node tools/e2e-addfiles-race.mjs */
+/* Clip creation is synchronous; metadata probes run afterward. Switch games
+ * with probes blocked to prove the new play stays in its original game.
+ * e2e-clip-match checks duration completion and reset ownership directly. */
 import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;
@@ -52,7 +42,7 @@ const race = await page.evaluate(async (fixture) => {
   await new Promise(r => setTimeout(r, 30));
   sm.switchToGame('gameB');
 
-  // Release the probe; let _autoCreatePlays finish its push phase.
+  // Release the outgoing game's metadata probe.
   releaseGate();
   try { await addP; } catch (e) {}
   await new Promise(r => setTimeout(r, 60));

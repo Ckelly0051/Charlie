@@ -34,6 +34,14 @@ historical gate receipt. Rapid scrubbing remains deferred.
 
 ## Awaiting the next installed smoke
 
+- **Background duration ownership.** Repaired in source after installer 118.
+  Import clips and switch games while metadata is loading; returning must not
+  show another game's duration or overwrite manually set clip boundaries.
+
+- **Home thumbnail cancellation.** Repaired in source after installer 118.
+  Switch seasons while thumbnails are loading; cancelled queued requests must
+  settle, and only current-season/current-source frames may appear.
+
 - **Keyboard Shortcuts text overlaps in installer 117.** Repaired in source
   with bounded, wrapping shortcut chips at unchanged type size. The coach
   deferred verification to the next installed smoke (2026-10-13); accepting
@@ -42,16 +50,6 @@ historical gate receipt. Rapid scrubbing remains deferred.
   `js/native-shortcuts.jsx` and `css/native-shortcuts.css`.
 
 ## Open defects
-
-- **Film duration backfill can cross games.** `PlaylistManager._backfillDurations`
-  looks up the live play list after its probe resolves. Switching games while a
-  probe is pending can apply the old clip's duration to the new game's play
-  when clip IDs repeat. Capture and recheck the owning game/playlist before
-  writing; creation-isolation coverage does not cover duration completion.
-- **Thumbnail reset leaves queued requests pending.**
-  `GameThumbnailService.reset` clears queued jobs without settling their
-  request promises. Resolve cancelled jobs with null before discarding them;
-  displayed-thumbnail freshness alone does not test request settlement.
 
 - **117 packaged-asset inspection.** Still needs independent inspection of
   installer assets against the reviewed build; coach smoke approval is

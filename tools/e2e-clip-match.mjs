@@ -2,6 +2,8 @@
  * clips or merging distinct identities. Exercises the shared matcher directly. */
 import assert from 'node:assert';
 import { planClipMatch, stripDupSuffix, normKey } from '../js/clip-identity.js';
+import { PlaylistManager } from '../js/playlist-manager.js';
+import { GameThumbnailService } from '../js/game-thumbnail.js';
 
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
@@ -110,6 +112,96 @@ ok(normKey('endzone/PLAY 12 (1).mp4') === 'play 12', 'normKey = basename, dup-st
     && r.matches.every(m => m.tier === 'catalog')
     && r.matches.find(m => m.playIndex === 0)?.clipIndex === 1,
     'durable catalog identity wins before misleading filename/path fallbacks', JSON.stringify(r));
+}
+
+const tick = () => new Promise(resolve => setImmediate(resolve));
+for (const change of ['none', 'game', 'reset', 'relink', 'replace', 'retime']) {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const original = { clipId: 1, timestamp: { start: 0, end: 999 } };
+  const replacement = { clipId: 1, timestamp: { start: 0, end: 999 } };
+  const entry = { id: 1, assetUrl: 'film-a' };
+  const tagger = { plays: [original] };
+  const playlist = Object.assign(Object.create(PlaylistManager.prototype), {
+    tagger, clips: [entry], _probeDuration: () => gate,
+  });
+  playlist._backfillDurations([entry]);
+  if (change === 'game') { tagger.plays = [replacement]; playlist.clips = [{ id: 1 }]; }
+  if (change === 'reset') playlist.clips = [];
+  if (change === 'relink') entry.assetUrl = 'film-b';
+  if (change === 'replace') tagger.plays[0] = replacement;
+  if (change === 'retime') original.timestamp.end = 4;
+  release(17);
+  await tick();
+  ok(original.timestamp.end === (change === 'none' ? 17 : change === 'retime' ? 4 : 999)
+    && replacement.timestamp.end === 999,
+    `duration completion respects ${change} ownership and existing timing`);
+  ok(entry.duration === (['none', 'retime'].includes(change) ? 17 : undefined),
+    `duration metadata respects ${change} ownership`);
+}
+{
+  const clips = Array.from({ length: 10 }, (_, id) => ({ id, assetUrl: `film-${id}` }));
+  let release, probes = 0;
+  const gate = new Promise(resolve => { release = resolve; });
+  const playlist = Object.assign(Object.create(PlaylistManager.prototype), {
+    clips, tagger: { plays: [] }, _probeDuration: () => { probes++; return gate; },
+  });
+  playlist._backfillDurations(clips);
+  ok(probes === 8, 'duration pool starts at most eight probes');
+  playlist.clips = [];
+  release(17);
+  await tick();
+  ok(probes === 8, 'reset stops unstarted duration probes');
+}
+
+{
+  const backend = { currentId: 'season-a' };
+  const thumbnails = new GameThumbnailService({ storage: { seasonStore: { backend } } }, { maxConcurrent: 1 });
+  const captures = [];
+  thumbnails._firstFile = async game => ({ key: game.id, url: async () => game.id });
+  thumbnails._capture = url => new Promise(resolve => captures.push({ url, resolve }));
+  const active = thumbnails.request({ id: 'first' });
+  await tick();
+  let queued = 'pending';
+  const waiting = thumbnails.request({ id: 'queued' }).then(value => { queued = value; });
+  await tick();
+  ok(captures.length === 1 && thumbnails._queue.length === 1, 'thumbnail concurrency limit queues the second request');
+  thumbnails.reset();
+  await tick();
+  ok(queued === null, 'reset settles queued thumbnail requests with null');
+  const fresh = thumbnails.request({ id: 'first' });
+  await tick();
+  captures[0].resolve('old-frame');
+  ok(await active === null, 'reset invalidates an active capture even within the same season');
+  await tick();
+  const duplicate = thumbnails.request({ id: 'first' });
+  await tick();
+  ok(captures.length === 2 && captures[1].url === 'first' && thumbnails._pending.size === 1,
+    'old completion neither caches stale film nor removes the fresh pending request');
+  captures[1].resolve('fresh-frame');
+  ok(await fresh === 'fresh-frame' && await duplicate === 'fresh-frame', 'fresh request and its duplicate share the new capture');
+  await tick();
+  ok(await thumbnails.request({ id: 'first' }) === 'fresh-frame' && captures.length === 2,
+    'the fresh thumbnail is cached without decoding a duplicate');
+  backend.currentId = 'season-b';
+  thumbnails.reset();
+  const other = thumbnails.request({ id: 'first' });
+  await tick();
+  captures.at(-1).resolve('other-season');
+  ok(await other === 'other-season', 'another season never reuses the previous season thumbnail');
+  let lookup;
+  thumbnails._firstFile = () => new Promise(resolve => { lookup = resolve; });
+  const duringLookup = thumbnails.request({ id: 'lookup' });
+  thumbnails.reset();
+  lookup({ key: 'lookup', url: async () => 'lookup' });
+  let lookupResult = 'pending';
+  duringLookup.then(value => { lookupResult = value; });
+  await tick();
+  ok(lookupResult === null && captures.length === 3, 'reset during file lookup prevents an obsolete capture from starting');
+  // Drain the unfixed implementation too, so failures cannot strand the harness.
+  if (captures.length > 3) captures.at(-1).resolve('obsolete');
+  await duringLookup;
+  if (queued === null) await waiting;
 }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

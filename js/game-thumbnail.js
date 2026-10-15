@@ -47,34 +47,34 @@ export class GameThumbnailService {
    *  repeatedly; a resolved or in-flight identity is never regenerated. */
   async request(game) {
     const seasonId = this._seasonToken();
+    const pending = this._pending;
     const first = await this._firstFile(game).catch(() => null);
     // _firstFile() itself awaits listFilmFiles/linkedGameDir/listLinkedFilm --
     // a season switch during that lookup means `first` (if any) describes the
     // WRONG season's film; do not even key a cache entry from it.
-    if (this._seasonToken() !== seasonId) return null;
+    if (this._pending !== pending || this._seasonToken() !== seasonId) return null;
     if (!first) return null;
     const key = `${seasonId}::${game.id}:${first.key}`;
     if (this._cache.has(key)) return this._cache.get(key);
     if (this._pending.has(key)) return this._pending.get(key);
-    const promise = new Promise(resolve => {
-      const abort = () => { this._pending.delete(key); resolve(null); };
-      this._queue.push(async () => {
-        if (this._seasonToken() !== seasonId) { abort(); return; }
+    let resolve;
+    const promise = new Promise(done => { resolve = done; });
+    pending.set(key, promise);
+    const current = () => this._pending === pending && this._seasonToken() === seasonId;
+    const finish = value => { pending.delete(key); resolve(value); };
+    this._queue.push({
+      cancel: () => finish(null),
+      run: async () => {
+        if (!current()) { finish(null); return; }
         const url = await first.url().catch(() => null);
-        // first.url() calls backend.filmUrl()/linkedFilmUrl(), which read
-        // the backend's mutable currentId LIVE at call time -- re-check
-        // immediately after, before trusting the resolved URL belongs to
-        // the season this request was made for.
-        if (this._seasonToken() !== seasonId) { abort(); return; }
+        if (!current()) { finish(null); return; }
         const dataUrl = url ? await this._capture(url).catch(() => null) : null;
-        if (this._seasonToken() !== seasonId) { abort(); return; }
+        if (!current()) { finish(null); return; }
         this._cache.set(key, dataUrl);
-        this._pending.delete(key);
-        resolve(dataUrl);
-      });
-      this._drain();
+        finish(dataUrl);
+      },
     });
-    this._pending.set(key, promise);
+    this._drain();
     return promise;
   }
 
@@ -82,7 +82,7 @@ export class GameThumbnailService {
     while (this._active < this._maxConcurrent && this._queue.length) {
       const job = this._queue.shift();
       this._active++;
-      Promise.resolve(job()).finally(() => { this._active--; this._drain(); });
+      Promise.resolve(job.run()).finally(() => { this._active--; this._drain(); });
     }
   }
 
@@ -128,7 +128,7 @@ export class GameThumbnailService {
    *  the new one; the caller's own token guard is the other half of this. */
   reset() {
     this._cache.clear();
-    this._pending.clear();
-    this._queue.length = 0;
+    this._pending = new Map();
+    for (const job of this._queue.splice(0)) job.cancel();
   }
 }

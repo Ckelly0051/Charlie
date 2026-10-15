@@ -100,13 +100,17 @@ log.
   persistence scenarios, Reports traversal, unused calculations and stale
   commentary are removed. Game creation uses GameScreen only; unused video
   state is gone. Film Room requires live fixtures and fails on browser errors.
-  Galleries are opt-in with `--capture`. Two film lifecycle defects remain open.
-  Latest focused verification: 24/24 green at `d7d31a4a`, zero failed/skipped,
+  Galleries are opt-in with `--capture`. The two film lifecycle defects found
+  during cleanup are repaired in source: duration backfill stays with its
+  original playlist/play/source, and thumbnail reset settles queued requests
+  and invalidates stale work. Installed checks await a future package.
+  Cleanup focused verification: 24/24 green at `d7d31a4a`, zero failed/skipped,
   clean unchanged source and fixture hashes. Receipt:
   `artifacts/gate-logs/2026-10-15T11-43-24-303Z-Cv2nq2/receipt.json`.
   This is not a full gate or release approval. Maintenance is not packaged;
   installer 118's installed-smoke status is unchanged. This non-Reports cleanup
-  pass is complete and awaits Claude review; remaining Reports cleanup and the
+  pass is complete; Claude review returned no findings (coach, 2026-10-15).
+  The subsequent film fixes require separate review. Remaining Reports cleanup and the
   stats-engine split stay with its rebuild. See the cleanup report above.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):

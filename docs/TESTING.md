@@ -111,6 +111,11 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Gate runner | `e2e-gate-runner`, `e2e-gate-receipt` |
 | Real data | `e2e-realdata` plus the canonical-season rows above |
 
+`e2e-clip-match` also exercises background film ownership without a browser:
+duration probes across game/reset/relink/play replacement, preservation of
+manual timing, bounded probing, thumbnail queue cancellation, stale active
+captures and lookups, deduplication, cache reuse and season isolation.
+
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.
 Canonical Offense, Defense and the global strip run every geometry/data

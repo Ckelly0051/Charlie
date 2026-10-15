@@ -1,6 +1,6 @@
 # GridIron IQ Cleanup Report
 
-Completed 2026-10-15. Prepared for the coach and Claude's review.
+Completed 2026-10-15. Claude review returned no findings (coach report).
 
 ## Result And Scope
 
@@ -11,8 +11,8 @@ were excluded at the coach's direction. Earlier cleanup commits touched
 Reports tests and comments before that exclusion; no proposed Self-Scout
 advice-code deletion was applied.
 
-Review the complete cleanup from `92b11655` through the commit adding this
-report. Implementation ends at `d7d31a4a`; subsequent changes are documentation.
+The reviewed cleanup range is `92b11655..865c1a05`.
+Cleanup implementation ends at `d7d31a4a`; the range ends with documentation.
 All work is local. Nothing was pushed, tagged, packaged or installed.
 No coach data was written.
 
@@ -148,11 +148,13 @@ not assessed. No full gate or installer was authorized for this cleanup.
   live producers despite static-model false negatives.
 - Parked OCR remains parked. No capabilities, CSP, data format or football
   rule was changed by this cleanup.
-- Two independently reproduced film defects remain in `docs/OPEN-DEFECTS.md`:
-  delayed duration backfill can mutate a different game's matching clip ID;
-  thumbnail reset discards queued requests without settling them. They were
-  logged rather than mixed into this maintenance pass.
+- The two film defects discovered during cleanup are now repaired in source
+  in a separate follow-up: duration completion is bound to its original
+  playlist, play and source; thumbnail reset settles queued work and fences
+  stale completions. They are not in installer 118 and await installed checks
+  listed in `docs/OPEN-DEFECTS.md`. The size table above remains the cleanup
+  comparison, not a measurement of this subsequent defect repair.
 
-Claude should review the runtime removals, moved coverage and test retirement
-accounting first. Full-gate and installed verification remain separate steps
+Claude's cleanup review is complete. The film follow-up needs its own review.
+Full-gate and installed verification remain separate steps
 requiring the coach's authorization; installer 118's acceptance is unchanged.
