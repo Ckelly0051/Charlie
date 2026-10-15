@@ -1,9 +1,8 @@
 import puppeteer from './test-browser.mjs';
 import {mkdirSync} from 'node:fs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
-// The captures below write into `artifacts/`, which is untracked and absent from
-// a clean checkout; without this the harness crashed before asserting anything.
-mkdirSync('artifacts',{recursive:true});
+const capture = process.argv.includes('--capture');
+if(capture) mkdirSync('artifacts',{recursive:true});
 let pass=0,fail=0;
 const ok=(value,label,detail='')=>value?(pass++,console.log(`  PASS  ${label}`)):(fail++,console.log(`  FAIL  ${label}${detail?' -- '+detail:''}`));
 async function scenario(run){
@@ -20,7 +19,7 @@ let r=await scenario(async page=>{
   await page.waitForFunction(()=>document.activeElement?.name==='school');
   const guardedLibrary=await page.evaluate(()=>({route:app.workspace.currentRoute(),teamHubHost:!!document.querySelector('#wsTeamHub'),first:!!document.querySelector('[data-first-launch]')}));
   const responsive=[];
-  for(const width of [1440,1280,768,390]){await page.setViewport({width,height:width>768?900:844});await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));responsive.push(await page.evaluate(()=>({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,first:document.querySelector('[data-first-launch]').getBoundingClientRect().toJSON()})));await page.screenshot({path:`artifacts/home-first-launch-${width}.png`});}
+  for(const width of [1440,1280,768,390]){await page.setViewport({width,height:width>768?900:844});await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));responsive.push(await page.evaluate(()=>({width:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,first:document.querySelector('[data-first-launch]').getBoundingClientRect().toJSON()})));if(capture) await page.screenshot({path:`artifacts/home-first-launch-${width}.png`});}
   await page.setViewport({width:1440,height:900});
   await page.type('[data-first-launch] input[name="school"]','St. Joseph');await page.type('[data-first-launch] input[name="nickname"]','Mavericks');
   const preview=await page.$eval('.first-name-preview strong',node=>node.textContent);

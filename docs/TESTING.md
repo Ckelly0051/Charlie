@@ -119,6 +119,9 @@ when visual evidence is needed; the roster is fictionalized before rendering.
 Default mode refuses a stray screenshot call. Defense replaces its gallery
 under `artifacts/defense-production-realdata/latest/`; Offense and the strip
 use their named artifact directories.
+Break Down viewport, Game form and Home first-launch galleries also require
+`--capture` (Break Down still accepts `GI_BD_SHOTS`). Their default runs retain
+every viewport and assertion without writing the 36 gallery images.
 
 ## Release checkpoint
 

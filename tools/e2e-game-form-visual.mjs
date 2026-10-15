@@ -1,18 +1,11 @@
-/**
- * Add / Edit Game — the visual contract, and the captures behind it.
- *
- * The installed form was the last surface painting from the legacy accent
- * family (`--gi-9` / `--gi-10` / `--gi-los`), so it read blue in an app whose
- * chrome is graphite and whose primary action is gold, with 12px labels and
- * 11.5px helper text under the 12.5px floor. This asserts the rebuilt contract
- * on all four variants at all five release widths AND writes the screenshots,
- * because a computed-geometry pass is not a visual review.
- */
+/* Add/Edit Game geometry, type, focus and palette at every release width.
+ * --capture also writes the gallery for separate visual review. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { mkdirSync } from 'node:fs';
 
 const OUT = 'artifacts/game-form-visual';
+const capture = process.argv.includes('--capture');
 const VIEWPORTS = [[1920, 1080], [1440, 900], [1280, 800], [768, 1024], [390, 844]];
 const LABEL_FLOOR = 12.5;
 
@@ -21,7 +14,7 @@ const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log(`  PASS  ${label}`))
   : (fail++, console.log(`  FAIL  ${label}${detail ? ` -- ${detail}` : ''}`));
 
-mkdirSync(OUT, { recursive: true });
+if (capture) mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
@@ -159,7 +152,7 @@ for (const [variant, setup, mode] of [
     await openForm(mode);
     await new Promise(r => setTimeout(r, 260));
     const m = await measure();
-    await page.screenshot({ path: `${OUT}/${variant}-${w}x${h}.png` });
+    if (capture) await page.screenshot({ path: `${OUT}/${variant}-${w}x${h}.png` });
     const at = `${variant} @ ${w}x${h}`;
     ok(m.present, `${at}: the form renders`);
     ok(m.pageOverflowX <= 1 && m.formOverflowX <= 1, `${at}: no horizontal overflow`, JSON.stringify({ page: m.pageOverflowX, form: m.formOverflowX }));
@@ -199,6 +192,6 @@ await closeForm();
 ok(errors.length === 0, 'zero page errors across every variant and width', errors.slice(0, 3).join(' | '));
 
 await browser.close();
-console.log(`\ncaptures: ${OUT} (${4 * VIEWPORTS.length} images)`);
+if (capture) console.log(`\ncaptures: ${OUT} (${4 * VIEWPORTS.length} images)`);
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 if (fail) process.exit(1);

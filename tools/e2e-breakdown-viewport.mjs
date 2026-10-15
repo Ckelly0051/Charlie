@@ -32,8 +32,8 @@ const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra !== '' ? ' -- ' + JSON.stringify(extra) : ''}`); }
 };
-const SHOTS = process.env.GI_BD_SHOTS || path.join('artifacts', 'breakdown-viewport');
-fs.mkdirSync(SHOTS, { recursive: true });
+const SHOTS = process.env.GI_BD_SHOTS || (process.argv.includes('--capture') ? path.join('artifacts', 'breakdown-viewport') : '');
+if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
 // Relative luminance / contrast, so "visibly distinct" is measured not asserted.
 const lum = rgb => {
@@ -74,7 +74,7 @@ await page.evaluate(async () => {
         driveNumber: String(Math.ceil(id / 4)), formationFamily: 'I-Form', backfield: 'I',
         runPass: unit === 'offense' ? 'Run' : '', playType: unit === 'offense' ? 'Run Inside' : '',
         defFront: unit === 'defense' ? 'Maverick' : '', coverage: unit === 'defense' ? 'Cover 3' : '',
-        stType: unit === 'special' ? 'Punt' : '', result: 'Gain', yardage: '6',
+        result: 'Gain', yardage: '6',
         players: {}, grades: {}, custom: [] } };
   });
   app.tagger.plays = game.plays; app.tagger.nextId = 25;
@@ -149,9 +149,11 @@ for (const [w, h] of VIEWPORTS) {
   for (const unit of UNITS) {
     const s = await measure(w, h, unit);
     const tag = `${w}x${h}`;
-    const file = path.join(SHOTS, `breakdown-${tag}-${unit}.png`);
-    await page.screenshot({ path: file });
-    shots.push(`${file}  (${tag}, ${unit})`);
+    if (SHOTS) {
+      const file = path.join(SHOTS, `breakdown-${tag}-${unit}.png`);
+      await page.screenshot({ path: file });
+      shots.push(`${file}  (${tag}, ${unit})`);
+    }
 
     ok(s.pageOverflow <= 1, `${tag} ${unit}: no page-level horizontal scrolling`, s.pageOverflow);
     ok(s.hscroll.every(h => h.rail),
@@ -330,7 +332,7 @@ const otherRoute = await page.evaluate(async () => {
 ok(!!otherRoute && ratio(otherRoute.bg, otherRoute.bar) >= 1.4 && ratio(otherRoute.border, otherRoute.bar) >= 3,
   'Another route rendering the context bar gets the same surface', otherRoute);
 
-console.log('\n-- screenshots (implementation evidence only) --');
+if (SHOTS) console.log('\n-- screenshots (implementation evidence only) --');
 for (const s of shots) console.log('  ' + s);
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
