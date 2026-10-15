@@ -32,7 +32,7 @@ import { fictionalRoster } from './fictional-player-names.mjs';
  *    tab overflows the page.
  */
 import { APP_URL, gotoApp } from './app-entry.mjs';
-import { reportReady } from './report-test.mjs';
+import { reportReady, reportCapturePolicy } from './report-test.mjs';
 import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -41,6 +41,7 @@ import { CANONICAL_SEASON } from './canonical-season.mjs';
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = CANONICAL_SEASON;
 const OUT = 'artifacts/reports-global-strip';
+const CAPTURE = process.argv.includes('--capture');
 const TABS = ['overview', 'offense', 'defense', 'special', 'players', 'selfscout', 'matchup', 'season'];
 const LABELS = ['Overview', 'Offense', 'Defense', 'Special Teams', 'Players', 'Self-Scout', 'Matchup', 'Season'];
 
@@ -69,10 +70,11 @@ const season = JSON.parse(raw.toString('utf8'));
 season.roster = fictionalRoster(season.roster || []);
 const stPeter = season.games.find(game => /St\. Peter Lutheran/i.test(game.gameInfo?.opponent || ''));
 if (!stPeter) throw new Error('Canonical St. Peter Lutheran game missing');
-mkdirSync(OUT, { recursive: true });
+if (CAPTURE) mkdirSync(OUT, { recursive: true });
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+reportCapturePolicy(page, CAPTURE);
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -307,7 +309,7 @@ for (const [width, height] of [[1440, 900], [1280, 800]]) {
   for (const tab of TABS) {
     await go(tab);
     await page.evaluate(() => document.querySelector('.ws-reports')?.scrollTo(0, 0));
-    await page.screenshot({ path: `${OUT}/${width}-${tab}.png` });
+    if (CAPTURE) await page.screenshot({ path: `${OUT}/${width}-${tab}.png` });
   }
 
   /* 6. Players: one name x after #5 and #42. */
@@ -349,7 +351,7 @@ for (const [width, height] of [[1920, 1080], [1440, 900], [1280, 800]]) {
     ok(gap && Math.abs(gap.left) < 0.5 && Math.abs(gap.right) < 0.5 && Math.abs(gap.top) < 0.5,
       `${width}: the ${tab} report fills its board -- no empty outer frame`, JSON.stringify(gap));
   }
-  if (width === 1920) for (const tab of ['players', 'season']) {
+  if (CAPTURE && width === 1920) for (const tab of ['players', 'season']) {
     await go(tab);
     await page.evaluate(() => document.querySelector('.ws-reports')?.scrollTo(0, 0));
     await page.screenshot({ path: `${OUT}/1920-${tab}.png` });
@@ -400,7 +402,7 @@ for (const [width, height] of [[768, 1024], [390, 844]]) {
         && narrow.stacked !== false,
         `${width}: ${tab}'s bar sits under the strip, inside the viewport, pages above scope and export`, JSON.stringify(narrow));
     }
-    await page.screenshot({ path: `${OUT}/${width}-${tab}.png` });
+    if (CAPTURE) await page.screenshot({ path: `${OUT}/${width}-${tab}.png` });
   }
 }
 

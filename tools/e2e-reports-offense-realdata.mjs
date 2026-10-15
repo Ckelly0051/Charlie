@@ -7,13 +7,13 @@
  * `e2e-reports-offense` owns the deterministic formula, sparse, empty and
  * over-cap regressions on a synthetic fixture; this file owns the evidence.
  *
- * READ-ONLY. The season is read from the registered Documents-mirror path,
+ * READ-ONLY. The season is read from the external canonical fixture,
  * deep-copied, and installed into an in-memory store in a Chromium page whose
  * backend is `BrowserBackend` — the coach's file is never a write target, and
  * the run asserts the source is byte-identical afterwards rather than assuming.
  *
  * EVERY GAME, BOTH DESKTOP RELEASE WIDTHS. The static-composition rule is a
- * claim about all real film, not about one game: the same 26 modules, in the
+ * claim about all real film, not about one game: the same approved modules, in the
  * same order, none over its approved row allocation, no page overflow and no
  * clipped cell — on each of the six games at 1440 and 1280.
  *
@@ -21,7 +21,9 @@
  * the selected game, the scope and the source-integrity result, so a missing,
  * empty or wrong season cannot pass unnoticed.
  */
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
+import { reportReady, reportFrame, reportCapturePolicy } from './report-test.mjs';
+import { fictionalRoster } from './fictional-player-names.mjs';
 import puppeteer from './test-browser.mjs';
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -31,6 +33,7 @@ const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SEASON_NAME = '2025 St. Joseph Mavericks - JV';
 const SOURCE = CANONICAL_SEASON;
 const OUT = 'artifacts/offense-production-realdata';
+const CAPTURE = process.argv.includes('--capture');
 const VIEWPORTS = [[1440, 900], [1280, 800]];
 
 let pass = 0, fail = 0;
@@ -53,6 +56,7 @@ if (!existsSync(SOURCE)) {
 const rawBefore = readFileSync(SOURCE);
 const hashBefore = createHash('sha256').update(rawBefore).digest('hex');
 const season = JSON.parse(rawBefore.toString('utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const games = season.games || [];
 const totalPlays = games.reduce((t, g) => t + (g.plays || []).length, 0);
 const activeId = season.activeGameId || games[0]?.id;
@@ -107,16 +111,16 @@ const PAGE_MODULES = {
 };
 const PAGE_IDS = Object.keys(PAGE_MODULES);
 
-mkdirSync(OUT, { recursive: true });
+if (CAPTURE) mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+reportCapturePolicy(page, CAPTURE);
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 await page.setViewport({ width: 1440, height: 900 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
-await page.goto(TEST_APP_URL, { waitUntil: 'networkidle0' });
-await sleep(700);
+await gotoApp(page, TEST_APP_URL);
 
 /* A DEEP COPY into an in-memory store. The page's backend is BrowserBackend,
    so nothing here can reach the coach's file; the hash check below proves it. */
@@ -135,32 +139,35 @@ for (const g of games) {
     window.app.workspaceShell.show('reports');
     window.app.reportsScreen.selectTab('offense');
   }, g.id);
-  await sleep(900);
+  await reportReady(page, 'offense', '.gi-offense-board');
   for (const [w, h] of VIEWPORTS) {
     await page.setViewport({ width: w, height: h });
-    await sleep(400);
+    await reportFrame(page);
     /* THE SIX PAGES (coach-approved secondary-nav comp, 2026-09-23). The board
        is measured page by page and merged, so every schema assertion below
        still covers the whole board; heights become one height PER PAGE. */
     const parts = [];
     for (const id of PAGE_IDS) {
       await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
-      await sleep(200);
+      await page.waitForFunction(id => document.querySelector('.gi-offense-board')?.dataset.offensePage === id, {}, id);
+      await reportFrame(page);
       const part = await measurePage();
       part.page = id;
       parts.push(part);
       /* Capture at the page's real height. `fullPage` returns only the viewport
          because the route scrolls inside its own container. */
-      const need = await page.evaluate(() => {
-        const b = document.querySelector('.gi-offense-board');
-        return b ? Math.ceil(b.getBoundingClientRect().height) + 320 : 900;
-      });
-      await page.setViewport({ width: w, height: Math.min(need, 8000) });
-      await sleep(300);
-      await page.evaluate(() => document.querySelectorAll('.gi-toast-stack .gi-native-toast').forEach(n => n.remove()));
-      await page.screenshot({ path: `${OUT}/w${games.indexOf(g) + 1}-${w}-${id}.png` });
-      await page.setViewport({ width: w, height: h });
-      await sleep(150);
+      if (CAPTURE) {
+        const need = await page.evaluate(() => {
+          const b = document.querySelector('.gi-offense-board');
+          return b ? Math.ceil(b.getBoundingClientRect().height) + 320 : 900;
+        });
+        await page.setViewport({ width: w, height: Math.min(need, 8000) });
+        await reportFrame(page);
+        await page.evaluate(() => document.querySelectorAll('.gi-toast-stack .gi-native-toast').forEach(n => n.remove()));
+        await page.screenshot({ path: `${OUT}/w${games.indexOf(g) + 1}-${w}-${id}.png` });
+        await page.setViewport({ width: w, height: h });
+        await reportFrame(page);
+      }
     }
     await page.evaluate(() => document.querySelector('[data-reports-secbar] [data-section="identity"]')?.click());
     const r = {
@@ -448,7 +455,7 @@ for (const [width] of VIEWPORTS) {
   DIR_STRENGTH_EXPECTED.map(row => row.name));
   ok(JSON.stringify(cutCounts) === JSON.stringify([10, 2, 2, 5]),
     `${width}: each OLL film cut contains exactly the snaps printed in its row`, JSON.stringify(cutCounts));
-  if (width === 1440) {
+  if (CAPTURE && width === 1440) {
     const module = await page.evaluateHandle(() => [...document.querySelectorAll('.gi-overview-module')]
       .find(node => node.querySelector('header strong')?.textContent.trim() === 'Direction vs Strength'));
     await module.asElement().screenshot({ path: `${OUT}/w5-direction-strength-1440.png` });
@@ -465,7 +472,7 @@ console.log(`  selected    : ${activeGame?.name}`);
 console.log('  scope       : current game, Reports > Offense');
 console.log(`  source      : ${SOURCE}`);
 console.log(`  read-only   : ${hashAfter === hashBefore ? 'CONFIRMED, sha256 unchanged' : 'FAILED — source changed'}`);
-console.log(`  captures    : ${OUT} (${games.length * VIEWPORTS.length * PAGE_IDS.length} images, one per page, ${VIEWPORTS.map(v => v[0]).join(' and ')})`);
+console.log(CAPTURE ? `  captures    : ${OUT}` : '  captures    : off (--capture writes the gallery)');
 observed.filter(o => o.w === 1440).forEach(o =>
   console.log(`  board       : ${o.game.padEnd(38)} ${JSON.stringify(o.heights)}, ${o.titles.length} modules, ${o.absent.length} absent`));
 const moduleRanges = Object.keys(observed.find(o => o.w === 1440)?.moduleHeights || {}).map(name => {

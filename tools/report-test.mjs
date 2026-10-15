@@ -14,6 +14,10 @@ export async function reportFrame(page) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
+export function reportCapturePolicy(page, enabled) {
+  if (!enabled) page.screenshot = async () => { throw new Error('Screenshot galleries require --capture'); };
+}
+
 // Runs in the page: table-layout:fixed can clip text without scroll overflow.
 export function clippedTableText({ selector, allowTitledEllipsis = false, maxLabel = 30 }) {
   return [...document.querySelectorAll(selector)].filter(cell => {

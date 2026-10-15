@@ -110,9 +110,13 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Real data | `e2e-realdata` plus the canonical-season rows above |
 
 Real-data harnesses read copies only and never write coach data. CI runs them
-with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof. The two
-real-data Reports harnesses replace their captures under
-`artifacts/<name>/latest/` on every run.
+with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.
+Canonical Offense, Defense and the global strip run every geometry/data
+assertion by default, without image galleries. Use `--capture` on those scripts
+when visual evidence is needed; the roster is fictionalized before rendering.
+Default mode refuses a stray screenshot call. Defense replaces its gallery
+under `artifacts/defense-production-realdata/latest/`; Offense and the strip
+use their named artifact directories.
 
 ## Release checkpoint
 

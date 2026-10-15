@@ -1,5 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import { clippedTableText } from './report-test.mjs';
+import { clippedTableText, reportCapturePolicy } from './report-test.mjs';
 /**
  * UX-3 responsive shell containment (S6-4b).
  *
@@ -208,6 +208,17 @@ ok(contained.escapeCount === 0 && restored.escapeCount === 0,
 ok(!bare.pageOverflow,
   'The shell contains an over-wide route child instead of letting it scroll the page', JSON.stringify({ pageOverflow: bare.pageOverflow, scrollWidth: bare.scrollWidth, viewportWidth: bare.viewportWidth }));
 
+let imageCalls = 0, refusedImage = false;
+const blockedCamera = { screenshot: async () => { imageCalls++; } };
+reportCapturePolicy(blockedCamera, false);
+try { await blockedCamera.screenshot(); } catch (error) { refusedImage = error.message.includes('--capture'); }
+ok(refusedImage && imageCalls === 0, 'default capture policy refuses before invoking the image writer');
+let enabledCalls = 0;
+const enabledCamera = { screenshot: async () => { enabledCalls++; } };
+const enabledWriter = enabledCamera.screenshot;
+reportCapturePolicy(enabledCamera, true);
+await enabledCamera.screenshot();
+ok(enabledCalls === 1 && enabledCamera.screenshot === enabledWriter, 'explicit capture policy retains the image writer');
 await page.evaluate(() => {
   const table = document.createElement('table'); table.id = 'clipping-probe';
   table.style.cssText = 'position:fixed;left:0;top:0;width:40px;table-layout:fixed;font:13px monospace';

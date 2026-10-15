@@ -20,7 +20,9 @@ import { installExportCapture } from './export-capture.mjs';
  * Chromium measures browser layout. It cannot certify installed WebView2
  * scrollbar rendering; that stays an installed check.
  */
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
+import { reportReady, reportFrame, reportCapturePolicy } from './report-test.mjs';
+import { fictionalRoster } from './fictional-player-names.mjs';
 import puppeteer from './test-browser.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
@@ -28,8 +30,9 @@ import { CANONICAL_SEASON } from './canonical-season.mjs';
 
 const SEASON_ID = '2025-st-joseph-mavericks-jv';
 const SOURCE = CANONICAL_SEASON;
-// One folder, replaced each run, so captures never accumulate.
+// Explicit capture mode replaces its gallery, so images never accumulate.
 const OUT = 'artifacts/defense-production-realdata/latest';
+const CAPTURE = process.argv.includes('--capture');
 const DESKTOP = [[1440, 900], [1280, 900]];
 // Eleven tiles (design-comps/missed-tackles-reports-r2-2026-10-07): Explosive Plays Allowed, then Missed Tackles.
 const KPI_LABELS = ['Total yards allowed', 'Rush yards allowed', 'Pass yards allowed', 'Yards / play', 'Takeaways',
@@ -86,22 +89,25 @@ if (!existsSync(SOURCE)) throw new Error(`Canonical Reports season missing: ${SO
 const raw = readFileSync(SOURCE);
 const before = createHash('sha256').update(raw).digest('hex');
 const season = JSON.parse(raw.toString('utf8'));
+season.roster = fictionalRoster(season.roster || []);
 const games = season.games || [];
 const stPeter = games.find(game => /St\. Peter Lutheran/i.test(game.gameInfo?.opponent || ''));
 if (!stPeter) throw new Error('Canonical St. Peter Lutheran game missing');
-rmSync(OUT, { recursive: true, force: true });
-mkdirSync(OUT, { recursive: true });
+if (CAPTURE) {
+  rmSync(OUT, { recursive: true, force: true });
+  mkdirSync(OUT, { recursive: true });
+}
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 240000 });
 const page = await browser.newPage();
+reportCapturePolicy(page, CAPTURE);
 await installExportCapture(page);
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await sleep(600);
+await gotoApp(page, APP_URL);
 await page.evaluate(data => {
   const store = window.app.storage.seasonStore;
   store.data = store._normalize(JSON.parse(JSON.stringify(data)));
@@ -119,16 +125,19 @@ async function openDefense(gameId, scope) {
     app.reportsScreen.selectTab('defense');
     document.querySelectorAll('.gi-native-toast').forEach(node => node.remove());
   }, gameId);
-  await sleep(250);
+  await reportReady(page, 'defense', '.gi-def2');
   await page.evaluate(s => document.querySelector(`[data-defense-scope="${s}"]`)?.click(), scope);
-  await sleep(350);
+  await page.waitForFunction(scope => window.app.reportsScreen.defenseScope === scope
+    && document.querySelector(`[data-defense-scope="${scope}"]`)?.getAttribute('aria-pressed') === 'true', {}, scope);
+  await reportFrame(page);
   await page.evaluate(() => { document.querySelector('.ws-reports')?.scrollTo(0, 0); document.querySelectorAll('.gi-native-toast').forEach(node => node.remove()); });
 }
 
 const PAGES = ['performance', 'opponent', 'scheme', 'situations'];
 const selectPage = async id => {
   await page.evaluate(s => document.querySelector(`[data-reports-secbar] [data-section="${s}"]`)?.click(), id);
-  await sleep(150);
+  await page.waitForFunction(id => document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.getAttribute('aria-selected') === 'true', {}, id);
+  await reportFrame(page);
 };
 /** The WHOLE board, measured by walking its four pages in order. Each page is
  *  measured on its own; positional keys carry the page so two pages' rows can
@@ -301,7 +310,7 @@ ok(geometry.every(item => JSON.stringify(item.pagesSeen) === JSON.stringify(PAGE
   'each of the four pages renders exactly its own section, in order',
   JSON.stringify(geometry.map(item => ({ pages: item.pagesSeen, sections: item.sectionsByPage })).find(Boolean)));
 ok(geometry.every(item => JSON.stringify(item.kpiPages) === JSON.stringify(['performance'])),
-  'the ten-KPI strip renders once, on the Performance page', JSON.stringify(geometry.map(item => item.kpiPages)));
+  'the eleven-KPI strip renders once, on the Performance page', JSON.stringify(geometry.map(item => item.kpiPages)));
 const repeated = geometry.flatMap(item => item.modules.map(module => module.title)
   .filter((title, i, all) => all.indexOf(title) !== i).map(title => `${item.game}@${item.width}:${title}`));
 ok(repeated.length === 0, 'every Defense module appears on exactly one page', JSON.stringify(repeated.slice(0, 4)));
@@ -880,8 +889,8 @@ ok(await page.evaluate(() => document.querySelector('.gi-def2')?.dataset.def2Pag
   'changing scope keeps the selected page');
 await selectPage('performance');
 
-/* ══ 5. Populated captures of the whole surface ═══════════════════════════ */
-console.log('\n== 5. Captures ==');
+/* ══ 5. Viewport coverage and optional galleries ═════════════════════════ */
+console.log('\n== 5. Viewport coverage ==');
 const captures = [];
 for (const scope of ['season', 'game']) {
   for (const [width, height] of [[1920, 1080], [1440, 900], [1280, 900], [390, 844]]) {
@@ -891,7 +900,7 @@ for (const scope of ['season', 'game']) {
     captures.push({ scope, width, overflow: seen.pageOverflow, boardRight: seen.boardRight,
       tableScroll: seen.modules.filter(module => module.tableWider > 1).length,
       modules: seen.modules.length, columns: new Set(seen.modules.map(module => module.left)).size });
-    for (const id of PAGES) {
+    if (CAPTURE) for (const id of PAGES) {
       await selectPage(id);
       const total = await page.evaluate(() => document.querySelector('.ws-reports').scrollHeight);
       const step = height - 120;
@@ -906,7 +915,7 @@ for (const scope of ['season', 'game']) {
   }
 }
 ok(captures.every(item => item.overflow <= 0 && item.boardRight <= item.width),
-  'no capture width produces page-level horizontal overflow', JSON.stringify(captures.filter(item => item.overflow > 0 || item.boardRight > item.width)));
+  'no checked viewport produces page-level horizontal overflow', JSON.stringify(captures.filter(item => item.overflow > 0 || item.boardRight > item.width)));
 const phone = captures.filter(item => item.width === 390);
 ok(phone.every(item => item.columns === 1 && item.tableScroll > 0),
   'at 390px every module stacks to one column and wide tables scroll inside their own module', JSON.stringify(phone));
@@ -918,6 +927,6 @@ const after = createHash('sha256').update(readFileSync(SOURCE)).digest('hex');
 ok(after === before, 'the canonical season file remains byte-identical');
 await browser.close();
 
-console.log(`\nCaptures: ${OUT}`);
+console.log(CAPTURE ? `\nCaptures: ${OUT}` : '\nCaptures: off (--capture writes the gallery)');
 console.log(`== RESULT: ${pass} passed, ${fail} failed ==`);
 if (fail) process.exit(1);
