@@ -80,9 +80,8 @@ fixes start until the coach closes the list.
    placement "just plain looks bad."
 2. **Try editor: "What happened" label and order.** The label is sloppy
    phrasing for the Bad Snap / Blocked / Defensive Return / Interception /
-   Fumble chips (`js/native-tagging.jsx` TryEditor). "Try events" was
-   rejected (reads as an instruction); proposed: "Play events" (coach to
-   confirm). The group moves to the bottom of the try
+   Fumble chips (`js/native-tagging.jsx` TryEditor). New label (coach):
+   "Attempt modifiers". The group moves to the bottom of the try
    editor, under Points awarded. Note for the fix: Points awarded hides and
    Official return ruling appears when Defensive Return is chosen, so the
    ruling should follow the events group rather than jump above it.
