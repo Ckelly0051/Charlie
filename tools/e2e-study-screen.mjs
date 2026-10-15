@@ -45,6 +45,7 @@ const clearStudyFilters = async () => {
   if (left) throw new Error(`Clear left ${left} Study filter(s) in place`);
 };
 await gotoApp(page, URL);
+ok(await page.evaluate(() => !!window.app.study), 'App exposes window.app.study (StudyQuery)');
 
 await page.evaluate(async () => {
   const app = window.app;

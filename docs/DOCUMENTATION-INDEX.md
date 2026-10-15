@@ -124,6 +124,8 @@ log.
   database setup; the stale-file reader remains usable to expose regressions.
   Film terminal recovery shares the real media-error journey; the CORS suite
   retains retry/buffering/preload coverage and waits for readiness, not a timer.
+  Study query parity runs in Node; the existing mounted Study journey owns
+  App wiring and browser interactions.
   Latest focused verification at `167617a6`: 7/7 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
   `artifacts/gate-logs/2026-10-15T19-54-06-599Z-lliNN4/receipt.json`.

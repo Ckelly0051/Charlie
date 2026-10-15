@@ -1,18 +1,10 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* StudyQuery executor contract + PARITY gate (redesign Phase 2 spine).
-   Proves the pure query engine (window.app.study) that rides on the accepted
-   P0-c AnalyticsRegistry:
-     1. groups a season play set by a dimension and returns per-group
-        `matchingPlayIds` that are BYTE-IDENTICAL to the committed parity golden
-        drilldowns (tools/e2e-parity.mjs) for every report-backed dimension — the
-        "no lost film link" contract, machine-checked;
-     2. AND-across / OR-within filter cohort semantics;
-     3. min-sample warnings, non-cut dimension grouping, and fail-loud guards.
-   Runs against the BUILT bundle using the SHARED synthetic-edge fixture so the
-   golden and this test exercise the identical season. */
-import puppeteer from './test-browser.mjs';
+// Query grouping, filters, metrics and exact composite film refs run on the real
+// model owners. App wiring and mounted interactions live in e2e-study-screen.
+import { StatsEngine } from '../js/stats-engine.js';
+import { AnalyticsRegistry } from '../js/analytics-registry.js';
+import { StudyQuery } from '../js/study-query.js';
+import { SeasonStore } from '../js/season-store.js';
 import fs from 'fs';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import { syntheticEdge } from './fixtures/synthetic-edge.mjs';
 
@@ -20,50 +12,24 @@ const golden = JSON.parse(fs.readFileSync(fileURLToPath(new URL('./parity-golden
 let pass = 0, fail = 0;
 const ok = (c, label, extra = '') => { if (c) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 
-const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
-const page = await browser.newPage();
-page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-const errors = [];
-page.on('pageerror', e => errors.push(e.stack || e.message));
-const APP_URL = TEST_APP_URL;
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 350));
-
-const result = await page.evaluate((fixture) => {
-  const sm = window.app.storage, store = sm.seasonStore, study = window.app.study;
-  if (!study) return { missing: true };
+const result = ((fixture) => {
+  const stats = new StatsEngine(null);
+  const registry = new AnalyticsRegistry(stats);
+  const study = new StudyQuery(registry);
+  const store = new SeasonStore({});
   store.data = store._normalize(JSON.parse(JSON.stringify(fixture)));
   store.currentSeasonId = fixture.id;
   for (const g of store.data.games) for (const p of (g.plays || [])) p.__gid = g.id;
-  sm._loadActiveGame();
-  if (window.app.stats.filter) window.app.stats.filter.active = false;
   const plays = store.data.games.flatMap(g => g.plays || []);
 
-  // Read the canonical mapping DIRECTLY off StudyQuery — no manually-duplicated
-  // dim->cut list to drift out of sync as DIMENSION_CUT grows or changes (review
-  // finding). Confirmed the golden file has drilldowns for all 15 current cut
-  // prefixes via tools/parity-golden/synthetic-edge.json before this went in.
+  // Read the cut mapping from its owner; independently enumerate its expected groups.
   const dims = { ...study.constructor.DIMENSION_CUT };
-  // Unit gate _buildCutFilter applies per cut (case-by-case in stats-engine.js).
-  // There is no introspectable canonical source for this split — it lives only
-  // as the isOff()/isDef() calls inside each stats-engine.js switch case — so
-  // this list is maintained by hand and must be updated if a dimension's gate
-  // changes; needed below so the INDEPENDENT enumeration doesn't count a value
-  // from the wrong unit's plays and produce a false mismatch.
+  // Independent cut-unit expectations must not borrow StudyQuery's own routing rule.
   const OFF_DIMS = new Set(['formationFamily', 'receiverSet', 'gap', 'motionStart', 'motionEnd', 'rpoRead', 'rpoDecision', 'qbRun', 'qbAlignment', 'playType', 'personnel', 'backfield',
     'strength', 'down', 'playDir', 'motion', 'hash', 'runPass']);
-  const registry = window.app.analyticsRegistry;
   const isOff = p => (p.tags.unit || 'offense') === 'offense';
   const isDef = p => p.tags.unit === 'defense';
-  // Review finding 1: BOTH prior checks derived their "expected" value set from
-  // the consumer's own output (Study's q.groups), so a value Study silently
-  // DROPS entirely was invisible to either check — the assertion never even
-  // looked for it. This enumerates the true distinct value set FIRST, straight
-  // off the raw play array via the registry's per-play value extractor (which
-  // StudyQuery.run() never calls directly — Study only reaches it through
-  // registry.values() called from ITS OWN _distinct()/_cohort(), a different
-  // call path than iterating `plays` here), so a dropped group shows up as a
-  // set-membership mismatch instead of silently having nothing to compare against.
+  // Enumerate raw plays, not query output, so a silently dropped group fails.
   const expectedValues = (dim) => {
     const gate = OFF_DIMS.has(dim) ? isOff : isDef;
     const set = new Set();
@@ -75,18 +41,16 @@ const result = await page.evaluate((fixture) => {
     const q = study.run({ plays, dimension: dim, measures: ['sampleSize', 'runShare', 'passShare', 'successRate'] });
     grouped[dim] = { cut, total: q.total, expected: expectedValues(dim), groups: q.groups.map(g => ({
       value: g.value, ids: g.matchingPlayIds, sampleSize: g.sampleSize, measures: g.measures,
-      /* AnalyticsRegistry.matchingRefs computes fresh independent refs. Golden
- * equality alone can hide a shared grouping bug. */
+      // Check registry refs as well as the committed golden.
       registryIds: registry.matchingRefs(plays, cut, g.value),
     })) };
   }
 
-  // Filter semantics: OR within a filter, AND across filters. (isOff/isDef
-  // declared above, reused here — no second declaration.)
+  // OR within a filter, AND across filters.
   const passRun = study.run({ plays, dimension: 'down', filters: [{ dimension: 'runPass', values: ['Run'] }] });
-  const expectRun = plays.filter(p => window.app.stats.constructor.isRun(p)).length;
+  const expectRun = plays.filter(p => StatsEngine.isRun(p)).length;
   const andQ = study.run({ plays, dimension: 'formationFamily', filters: [{ dimension: 'runPass', values: ['Run'] }, { dimension: 'down', values: ['2'] }] });
-  const expectAnd = plays.filter(p => window.app.stats.constructor.isRun(p) && (p.tags.down || '') === '2').length;
+  const expectAnd = plays.filter(p => StatsEngine.isRun(p) && (p.tags.down || '') === '2').length;
   const orQ = study.run({ plays, dimension: 'formationFamily', filters: [{ dimension: 'down', values: ['2', '3'] }] });
   const expectOr = plays.filter(p => ['2', '3'].includes(p.tags.down || '')).length;
 
@@ -113,10 +77,8 @@ const result = await page.evaluate((fixture) => {
   const deferredThrows = (() => { try { study.run({ plays, dimension: 'scoreSituation' }); return false; } catch { return true; } })();
   const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formationFamily' }); return false; } catch { return true; } })();
 
-  // Finding 1: the new dimensions must ROUTE THROUGH the report cut (film-link
-  // parity), not registry membership. On this fixture both paths coincide, so pin
-  // the mapping structurally — removing it must fail here.
-  const DC = window.app.study.constructor.DIMENSION_CUT;
+  // Pin routing where registry membership and cut membership happen to coincide.
+  const DC = StudyQuery.DIMENSION_CUT;
 
   /* runMetrics must group exactly like run; only measure shape differs. stopRate
  * (higher) and yardsAllowedPerPlay (lower) exercise both polarity directions. */
@@ -124,16 +86,8 @@ const result = await page.evaluate((fixture) => {
   const richFormationQ = study.run({ plays, dimension: 'formationFamily', measures: ['sampleSize'] });
   const richTrips = richQ.groups.find(g => g.value === 'Spread');
 
-  // Finding 5 repair: missingAsZero must be proven with STRICT inequality on
-  // a fixture GUARANTEED to differ, not `<=` against whatever a shared
-  // fixture group happens to contain (the original assertion could pass even
-  // if missingAsZero forwarding were silently broken, since Trips' 7 plays
-  // all already carry real yardage). Two hand-built plays -- one with
-  // yardage, one without -- make the honest/legacy denominators provably
-  // different, and this reaches the SAME live, registry-bound metrics engine
-  // Study will actually use (window.app.analyticsRegistry.metricsEngine()),
-  // not a synthetic stand-in.
-  const metricsEngine = window.app.analyticsRegistry.metricsEngine();
+  // One missing yardage guarantees different divisors when missingAsZero is enabled.
+  const metricsEngine = registry.metricsEngine();
   const missingYardageCohort = [
     { id: 9001, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run', yardage: '6' } },
     { id: 9002, __gid: 'g1', tags: { unit: 'offense', down: '1', distance: '10', runPass: 'Run' } }, // a run with no yardage tag at all
@@ -152,11 +106,7 @@ const result = await page.evaluate((fixture) => {
   // fabricated delta. 'Flexbone' is the SAME g2-only, base-empty formation
   // already used and verified below for compare()'s own cmpFlexbone case.
   const cmpMetricsFlexbone = cmpMetrics.rows.find(r => r.value === 'Flexbone');
-  // The decisive case for the delta-safety gate: an impossibly high minSample
-  // forces BOTH sides into state:'insufficient' while denominator > 0 still
-  // gives each a REAL numeric value (unlike Flexbone's denominator:0 -- where
-  // value is null anyway, so a naive `value != null` guard alone would still
-  // pass). Only the explicit ok/partial-film state check can catch this.
+  // Numeric but insufficient samples must not produce a usable delta.
   const cmpMetricsInsufficient = study.compareMetrics({
     base: g1Plays, against: plays, dimension: 'formationFamily', metricIds: ['stopRate'], minSample: 1000,
     labels: { base: 'Game 1', against: 'Season' },
@@ -208,17 +158,16 @@ const result = await page.evaluate((fixture) => {
     defenseFaced: ['down', 'formationFamily', 'runPass'].map(dimension => {
       const defense = plays.filter(p => p.tags?.unit === 'defense');
       const q = study.run({ plays: defense, dimension });
-      const expected = defense.filter(p => window.app.analyticsRegistry.values(dimension, p).length).length;
+      const expected = defense.filter(p => registry.values(dimension, p).length).length;
       return { dimension, groups: q.groups.length, empty: q.groups.filter(g => !g.sampleSize).length,
-        grouped: q.groups.reduce((sum, g) => sum + g.sampleSize, 0), expected, multi: !!window.app.analyticsRegistry.getDimension(dimension).multi };
+        grouped: q.groups.reduce((sum, g) => sum + g.sampleSize, 0), expected, multi: !!registry.getDimension(dimension).multi };
     }),
     fieldZoneGroups: fieldZoneQ.groups.map(g => ({ value: g.value, sampleSize: g.sampleSize })),
     fieldZoneTotal: fieldZoneQ.total,
   };
-}, syntheticEdge());
+})(syntheticEdge());
 
-ok(!result.missing, 'App exposes window.app.study (StudyQuery)');
-if (!result.missing) {
+{
   // 1. PARITY: every group's matchingPlayIds == the committed golden drilldown.
   const gd = golden.season.drill;
   let parityMismatch = '';
@@ -355,7 +304,5 @@ if (!result.missing) {
 
 ok(result.defenseFaced.some(row => row.groups > 0) && result.defenseFaced.every(row => (row.groups > 0 || !row.expected) && row.empty === 0 && (row.multi || row.grouped === row.expected)),
   'Study over defensive plays groups them by the offense they faced: no empty down, formation or run/pass group', JSON.stringify(result.defenseFaced));
-ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-await browser.close();
 process.exit(fail ? 1 : 0);

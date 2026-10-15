@@ -31,6 +31,10 @@ Film recovery's filename, loading/error reset and recovery controls share the
 real media-error journey in `e2e-breakdown-video`. `e2e-video-cors` retains
 asset retry/latching, loading/buffering, playlist CORS policy and preload
 ownership; it does not repeat terminal recovery through a private handler.
+`e2e-study-query` imports the real query/registry/stats owners in Node with the
+shared normalized synthetic season and committed film-reference golden. The
+mounted `e2e-study-screen` journey owns App wiring, browser errors, controls,
+rendering and Watch actions; model parity does not boot another app.
 `e2e-workspace-shell` checks runtime engine-class privacy; stylesheet reachability
 and Reports native ownership remain in their existing composition/route checks.
 
