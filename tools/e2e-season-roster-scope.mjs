@@ -37,7 +37,12 @@ const ids = await page.evaluate(async () => {
     tags: { unit: 'offense', playType: 'Short Pass', result: 'Gain', yardage: '8', players: { passer: '12' }, grades: {}, custom: [] },
   }];
   app.tagger.nextId = 2;
-  app.storage.newGame();
+  app.storage.commitActive();
+  const created = await app.gameScreen.save({}, {
+    mode: 'create', gameId: String(store.data.activeGameId), before: structuredClone(store.data),
+    liveInfo: structuredClone(app.storage.gameInfo), defaultUnit: app.tagger.defaultUnit,
+  });
+  if (!created.ok) throw new Error(created.message);
   const rosterAfterGameSwitch = app.roster.players.map(player => player.name);
   app.storage.commitActive();
   await store.persist();

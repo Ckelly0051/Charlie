@@ -117,7 +117,13 @@ r = await page.evaluate(async () => {
   wrap.scrollTop = wrap.scrollHeight * 0.8;
   wrap.dispatchEvent(new Event('scroll'));
   await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
-  await window.app.storage.newGame();
+  const app = window.app, storage = app.storage, store = storage.seasonStore;
+  storage.commitActive();
+  const created = await app.gameScreen.save({}, {
+    mode: 'create', gameId: String(store.data.activeGameId), before: structuredClone(store.data),
+    liveInfo: structuredClone(storage.gameInfo), defaultUnit: app.tagger.defaultUnit,
+  });
+  if (!created.ok) throw new Error(created.message);
   const g2 = window.app.storage.seasonStore.activeGame();
   g2.plays = Array.from({ length: 12 }, (_, i) => mk(i + 1));
   g2.nextId = 13;

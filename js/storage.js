@@ -1296,26 +1296,6 @@ export class StorageManager {
     return this._loadActiveGame();
   }
 
-  /** Start a fresh blank game in the season and switch to it. */
-  newGame() {
-    this.commitActive();
-    // Don't stack empty husks: if the active game is still blank (no plays,
-    // no film, no identity), "New Game" just re-presents it instead of
-    // leaving a stray "Game N — 0 plays" in the schedule. Tell the coach —
-    // a click that closes the menu and changes nothing reads as broken.
-    const reused = this.seasonStore.isEmptyActive();
-    if (!reused) {
-      const game = this.seasonStore.addGame();
-      game.gameInfo = { ...(game.gameInfo || {}), perspective: 'offense' };
-    } else {
-      this.deps?.tagger?.toast?.('Your current game is still empty — it IS the new game. Load film or tag plays to fill it.');
-    }
-    this.seasonStore.persist();
-    this._clearForNewGame();
-    this._loadActiveGame();
-    return this.seasonStore.activeGame();
-  }
-
   /** Delete a game. Resolves true once the deletion is durable; a failed save
    *  puts the game back, resolves false and never purges its film. */
   async removeGame(id) {

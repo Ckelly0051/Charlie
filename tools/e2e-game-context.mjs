@@ -1,22 +1,4 @@
-/**
- * GameContext contract (S7-d1).
- *
- * Perspective, direction and team identity used to travel through six hidden
- * inputs in `#legacyGameContextState` plus a SYNTHETIC `change` event on
- * `#gamePerspective` that three subscribers listened for — an event bus made of
- * markup, inside the `#app` subtree S7-d8 deletes.
- *
- * `direction` was the sharp edge: `_saveGameInfo()` read it as
- * `getElementById('gameDirection')?.value || ''`, so deleting the input would
- * have written '' over the coach's stored value. Silent data loss, not a
- * visible break.
- *
- * This harness COLD-BOOTS the built app with that markup already absent, which
- * is the only proof the consultation accepts — removing nodes after boot proves
- * nothing, because controllers retain detached references.
- *
- * Read-only with respect to coach data: it runs on the demo season.
- */
+/** GameContext persistence, subscriptions and game-creation defaults on demo data. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
@@ -166,7 +148,13 @@ r = await page.evaluate(async () => {
   // its value across a game load; that is not an owner.
   app.teamRegistry.saveTeamIdentity('Mavericks', '', 'navy');
   app.gameContext.update({ perspective: 'scout' });
-  await app.storage.newGame();
+  const storage = app.storage, store = storage.seasonStore;
+  storage.commitActive();
+  const created = await app.gameScreen.save({}, {
+    mode: 'create', gameId: String(store.data.activeGameId), before: structuredClone(store.data),
+    liveInfo: structuredClone(storage.gameInfo), defaultUnit: app.tagger.defaultUnit,
+  });
+  if (!created.ok) throw new Error(created.message);
   const fresh = app.gameContext.snapshot();
   // Report labels used to read #gameTeamName. They must follow the context now.
   app.gameContext.update({ teamName: 'Bulldogs' });

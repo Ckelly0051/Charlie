@@ -99,8 +99,10 @@ log.
   off-gate shell diagnostic is removed. These changes are not in installer 118.
   Obsolete repair-history commentary and false type-floor deferrals are removed;
   module headers describe current storage/route owners without retired layouts
-  or unvalidated performance claims. Production executable syntax and built
-  assets are unchanged. The broader cleanup remains in progress.
+  or unvalidated performance claims. The broader cleanup remains in progress.
+  Game creation has one owner, GameScreen: the unused StorageManager.newGame
+  path is removed and its four test callers use the production create/save
+  flow. This runtime deletion changes the bundle; comment-only batches do not.
   Tag-field model checks now share the DOM-free analytics suite and their UI
   checks share native Chart; the separate tag-fields browser harness is removed.
   Reports share rendered-state waits and table clipping. Persistence tests
@@ -114,8 +116,8 @@ log.
   Canonical Offense/Defense and global-strip galleries are now opt-in via
   `--capture`; their default runs retain every geometry/data assertion and
   refuse stray screenshot calls. Clean focused verification covers this policy
-  together with the consolidation. Production assets remain byte-identical to
-  installer 118; its installed-smoke status is unchanged.
+  together with the consolidation. Installer 118's installed-smoke status is
+  unchanged; these maintenance changes are not packaged.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and

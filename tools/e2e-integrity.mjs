@@ -2,7 +2,7 @@ import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 /* DATA-INTEGRITY STRESS HARNESS — the test the suite was missing.
    Loads COPIES of the coach's real seasons into the built bundle (headless,
    isolated storage — never touches AppData/Documents) and fuzzes the REAL data
-   path: switchToGame, restoreBackup, newGame, removeGame, addFiles, tag edits,
+   path: switchToGame, restoreBackup, game creation, removeGame, addFiles, tag edits,
    commitActive, persist+reload, plus a "diabolical" desync that points the active
    pointer at a different game and commits. After EVERY operation it re-checks:
      - INTEGRITY : activeGameId valid; no dup game/play ids; NO two games share a
@@ -100,7 +100,16 @@ const campaign = async (fixture, seed, nOps) => {
         return { affected: [store.data.activeGameId] };
       },
       async switchGame() { const old = store.data.activeGameId; sm.switchToGame(pick(store.data.games.map(g => g.id))); return { affected: [old] }; },
-      async newGame() { const before = store.data.games.map(g => g.id); sm.newGame(); return { affected: store.data.games.map(g => g.id).filter(i => !before.includes(i)), added: true }; },
+      async newGame() {
+        const before = store.data.games.map(g => g.id);
+        sm.commitActive();
+        const created = await window.app.gameScreen.save({}, {
+          mode: 'create', gameId: String(store.data.activeGameId), before: structuredClone(store.data),
+          liveInfo: structuredClone(sm.gameInfo), defaultUnit: tagger.defaultUnit,
+        });
+        if (!created.ok) throw new Error(created.message);
+        return { affected: store.data.games.map(g => g.id).filter(i => !before.includes(i)), added: true };
+      },
       async removeGame() { if (store.data.games.length <= 2) return { skip: 1 }; const id = pick(store.data.games.map(g => g.id)); await sm.removeGame(id); return { affected: [id], removed: 1 }; },
       async finish() { const a = store.data.games.find(g => g.id === store.data.activeGameId); if (a) { (a.gameInfo = a.gameInfo || {}).scoreUs = '21'; a.gameInfo.scoreThem = '14'; } if (store.setGameStatus) store.setGameStatus(store.data.activeGameId, 'final'); return { affected: [store.data.activeGameId] }; },
       async snapshot() { await store.snapshot('stress'); return { affected: [] }; },
