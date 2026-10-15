@@ -121,6 +121,8 @@ log.
   Reports suites remain outside this pass.
   Linked-film rehydration also runs in Node with unchanged scenario/assertion
   coverage; mounted film-linking and playback journeys remain browser-owned.
+  Deferred program-scoped playbook rollback shares the Settings journey;
+  failed-save season/game ownership no longer starts a browser.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:

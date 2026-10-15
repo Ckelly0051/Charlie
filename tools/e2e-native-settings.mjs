@@ -27,6 +27,7 @@ await page.waitForFunction(() => window.app?.settingsScreen && window.app?.works
 await page.evaluate(() => {
   window.__TAURI__ = { nativeSettingsTest: true };
   const store = window.app.storage.seasonStore;
+  window.__nativeSettingsPersistence = { backend: store.backend, persist: store.persist };
   const linked = { id:'g-linked', name:'Week 1 vs OL Lakes', filmMode:'linked', filmDir:'OL Lakes 13-13', gameInfo:{ opponent:'OL Lakes' }, plays:[{ id:1, tags:{ unit:'offense', custom:[] } }], clipNames:Array.from({length:82},(_,i)=>`OLL_${i+1}`) };
   const managed = { id:'g-managed', name:'Week 2 vs Refuge', filmMode:'managed', gameInfo:{ opponent:'Refuge' }, plays:[{ id:1, tags:{ unit:'defense', custom:[] } }], clipNames:Array.from({length:12},(_,i)=>`RF_${i+1}`) };
   store.currentSeasonId = 'settings-season';
@@ -360,6 +361,54 @@ const updateText = await page.evaluate(async () => {
 });
 ok(!updateText.fired && !updateText.injected && updateText.version.startsWith('v<svg') && updateText.notes === '<b>Release notes</b>',
   'Updater versions and release notes render as literal text, never injected markup', JSON.stringify(updateText));
+
+// Restore real browser persistence after the presentation fixtures; this case
+// must hold an actual canonical save, not the Settings flow's persist stub.
+await page.click('[data-settings-tab="team"]');
+await page.waitForSelector('[data-playbook-manager]');
+await page.evaluate(() => {
+  const app = window.app, store = app.storage.seasonStore;
+  app.storage._cancelPendingSaves();
+  store.cancelPendingDiskWrite();
+  store.backend = window.__nativeSettingsPersistence.backend;
+  store.persist = window.__nativeSettingsPersistence.persist;
+  store.data = null;
+  store.currentSeasonId = null;
+  store.backend.setCurrentSeason(null);
+  delete window.__TAURI__;
+});
+console.log('\n-- a failed playbook save rolls back only its own program --');
+r = await page.evaluate(async () => {
+  const app = window.app, store = app.storage.seasonStore, pb = app.playbook;
+  const callsOf = team => JSON.parse(localStorage.getItem(`ffa_playbook_${team}`) || 'null')?.calls?.map(c => c.name) || [];
+  await app.storage.createSeason({ name: 'Playbook Owner A', team: 'Owner A', year: '2026' });
+  const teamA = pb._teamId();
+  pb.replace({ version: 1, calls: [{ id: 'a1', name: 'A Call' }] }, teamA);
+  store.data.playbook = pb.snapshot();
+  await store.persist();
+  const seasonA = store.data;
+
+  const realSave = store.backend.saveSeason;
+  let release;
+  try {
+    store.backend.saveSeason = () => new Promise(res => { release = res; });
+    const adding = app.settingsScreen.addPlayCall({ name: 'A New Call' });
+    await new Promise(r => setTimeout(r, 0));
+
+    // Switch program while A's save is still running.
+    store.backend.saveSeason = realSave;
+    const teamB = 'owner-b-' + Date.now();
+    localStorage.setItem('ffa_active_team_id', teamB);
+    pb.replace({ version: 1, calls: [{ id: 'b1', name: 'B Call' }] }, teamB);
+    release(false);
+    const result = await adding;
+    return { teamA, teamB, result: result.ok, aCalls: callsOf(teamA), bCalls: callsOf(teamB), seasonAPlaybook: seasonA.playbook?.calls?.map(c => c.name) };
+  } finally { store.backend.saveSeason = realSave; }
+});
+ok(r.result === false, 'the failed save reports the call as not saved', JSON.stringify(r));
+ok(JSON.stringify(r.bCalls) === '["B Call"]', 'program B keeps its own calls', JSON.stringify(r.bCalls));
+ok(JSON.stringify(r.aCalls) === '["A Call"]', 'program A is rolled back to its prior calls', JSON.stringify(r.aCalls));
+ok(JSON.stringify(r.seasonAPlaybook) === '["A Call"]', 'season A\'s playbook is rolled back too', JSON.stringify(r.seasonAPlaybook));
 ok(errors.length === 0, 'Native Settings journey produces zero page/console errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

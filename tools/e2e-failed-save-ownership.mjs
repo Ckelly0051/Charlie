@@ -1,8 +1,5 @@
-/* Async save failures and rollback retain the starting season/game/program
- * owner. Covers deferred managed-film deletion, restore, linked film and
- * playbook. */
-import puppeteer from './test-browser.mjs';
-import { APP_URL, gotoApp } from './app-entry.mjs';
+/* Async save failures and rollback retain the starting season/game owner.
+ * Covers deferred managed-film deletion, restore and linked film in Node. */
 import { SeasonStore } from '../js/season-store.js';
 import { StorageManager } from '../js/storage.js';
 import { SeasonFormat } from '../js/season-format.js';
@@ -239,43 +236,6 @@ const linkRig = ({ bGameId = 'g9' } = {}) => {
   ok(result === true && store.data.games[0].filmMode === 'linked' && store.data.games[0].filmDir === 'wk1',
     'an undisturbed link still links and saves', JSON.stringify({ result, game: store.data.games[0] }));
 }
-
-console.log('\n-- 4. a failed playbook save rolls back only its own program --');
-const browser = await puppeteer.launch({ args: ['--no-sandbox'], protocolTimeout: 120000 });
-try {
-  const page = await browser.newPage();
-  page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
-  await gotoApp(page, APP_URL);
-  const r = await page.evaluate(async () => {
-    const app = window.app, store = app.storage.seasonStore, pb = app.playbook;
-    const callsOf = team => JSON.parse(localStorage.getItem(`ffa_playbook_${team}`) || 'null')?.calls?.map(c => c.name) || [];
-    await app.storage.createSeason({ name: 'Playbook Owner A', team: 'Owner A', year: '2026' });
-    const teamA = pb._teamId();
-    pb.replace({ version: 1, calls: [{ id: 'a1', name: 'A Call' }] }, teamA);
-    store.data.playbook = pb.snapshot();
-    await store.persist();
-    const seasonA = store.data;
-
-    const realSave = store.backend.saveSeason.bind(store.backend);
-    let release;
-    store.backend.saveSeason = () => new Promise(res => { release = res; });
-    const adding = app.settingsScreen.addPlayCall({ name: 'A New Call' });
-    await new Promise(r => setTimeout(r, 0));
-
-    // The coach switches program while A's save is still running.
-    store.backend.saveSeason = realSave;
-    const teamB = 'owner-b-' + Date.now();
-    localStorage.setItem('ffa_active_team_id', teamB);
-    pb.replace({ version: 1, calls: [{ id: 'b1', name: 'B Call' }] }, teamB);
-    release(false);
-    const result = await adding;
-    return { teamA, teamB, result: result.ok, aCalls: callsOf(teamA), bCalls: callsOf(teamB), seasonAPlaybook: seasonA.playbook?.calls?.map(c => c.name) };
-  });
-  ok(r.result === false, 'the failed save reports the call as not saved', JSON.stringify(r));
-  ok(JSON.stringify(r.bCalls) === '["B Call"]', 'program B keeps its own calls', JSON.stringify(r.bCalls));
-  ok(JSON.stringify(r.aCalls) === '["A Call"]', 'program A is rolled back to its prior calls', JSON.stringify(r.aCalls));
-  ok(JSON.stringify(r.seasonAPlaybook) === '["A Call"]', 'season A\'s playbook is rolled back too', JSON.stringify(r.seasonAPlaybook));
-} finally { await browser.close(); }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);
