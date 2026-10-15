@@ -188,11 +188,8 @@ catch (error) { ok(/requires games/.test(error.message), 'missing dependencies f
     readFile(new URL('../js/stats-engine.js', import.meta.url), 'utf8'),
     readFile(new URL('../js/native-study.jsx', import.meta.url), 'utf8'),
   ]);
-  // Five Plan watch surfaces since S6-3 added section Watch: whole plan, item,
-  // section, presented play, presented item. The count is a deliberate
-  // change-detector — a new playback entry point must be looked at, not merged
-  // silently — but the real guarantee is the two negatives beside it: Plan owns
-  // no player and reaches through no other screen.
+  // Pin all five Plan watch entry points so additions require review.
+  // Plan owns no player and must not reach through another screen.
   ok(!plan.includes('studyScreen._watch') && !/cutupPlayer|crossGameCutup/.test(plan) && (plan.match(/filmNavigation\.watch/g) || []).length === 5,
     'all five Plan watch actions use the shared service and Plan starts no player itself');
   // study-screen.js now shares one thin watch(refs, label) delegate consumed

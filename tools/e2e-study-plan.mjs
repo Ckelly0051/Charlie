@@ -1,9 +1,5 @@
-/* STUDY→PLAN HARNESS (Node) — the data half of Phase 3 step 2. Proves the pure
-   StudyPlan helpers (label / finding / film / planRefs) and that a built finding
-   round-trips through the real SeasonStore plans:[] contract (addPlanItem →
-   normalize → JSON reload) and flattens back to the composite refs CrossGameCutup
-   consumes. Pure — stub backend, no DOM/film. StudyPlan is UNWIRED; the Plan UI
-   wires it. Run:  node tools/e2e-study-plan.mjs */
+/* Study findings round-trip through SeasonStore plans and flatten to the
+ * composite refs consumed by CrossGameCutup. Stub backend; no DOM or film. */
 import assert from 'node:assert';
 import { StudyPlan } from '../js/study-plan.js';
 import { SeasonStore } from '../js/season-store.js';

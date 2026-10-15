@@ -37,14 +37,8 @@ const FILES = [
 // classified as a computed ACK below. The stale-count check forced this update.)
 const ALLOW = [];
 
-// Computed `X.tags[expr]` reads, manually classified as safe (they never route one
-// of the six fields around proj). Identity is (file, EXACT expression text, exact
-// MULTIPLICITY) — E3a-R4 re-review: text alone is not an AST site, so a DUPLICATE
-// of an ACKed expression elsewhere in the same file would inherit the ack silently.
-// `count` pins how many times that expression may appear; a duplicate raises the
-// count and fails until re-classified, and removing one also fails (stale ACK).
-// This is stable under benign edits (text + count unchanged) yet catches the exact
-// duplicate/move bypass R4 names — proven by the sensitivity self-test below.
+/* Computed-read approvals pin file, expression and exact multiplicity.
+ * Duplicating or removing an approved read must fail until reclassified. */
 const ACK = [
   { file: 'js/analytics-registry.js', method: '_buildDimensions', code: 'p?.tags?.[key]', count: 1, reason: "generic tag(key) helper — verified never called with any of the six fields (formationFamily/receiverSet/backfield/strength/coverage/qbAlignment/coverageFamily all bind SE.proj explicitly)" },
   { file: 'js/stats-engine.js', method: 'projField', code: 'p.tags[key]', count: 1, reason: "E3b: projField IS the sanctioned by-key projection seam — it returns proj(p)[key] for the six PROJECTED_FIELDS and reaches this raw read ONLY for non-projected keys. Method-scoped (E3b-P5): this same expression text is forbidden in a display method." },
@@ -66,11 +60,8 @@ const ok = (cond, label, extra = '') => {
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
 
-// E3b: unwrap optional chaining AND the `||`/`??` fallback idiom. `const t =
-// X.tags || {}` is a LogicalExpression, so the rev-1 detector never registered `t`
-// as a tags alias and silently missed every six-field read behind it (it hid
-// call-sheet-builder, plan-export, cutup-exporter and
-// play-filter). The tags member is the LEFT operand.
+/* Unwrap optional chains and logical fallbacks; the tags member is the left
+ * operand in X.tags || {} and X.tags ?? {} aliases. */
 const unwrap = (n) => {
   if (!n) return n;
   if (n.type === 'ChainExpression') return unwrap(n.expression);
@@ -82,10 +73,8 @@ const isTagsMember = (n) => {
   return n && n.type === 'MemberExpression' && !n.computed
     && n.property.type === 'Identifier' && n.property.name === 'tags';
 };
-// The visitor receives the ENCLOSING METHOD name: E3b puts an ALLOWED editor read
-// and a FORBIDDEN display read with identical expression text in the same module
-// (play-grid `_tendency` vs `_openEditor`/`_applyEdit`), so file+expression alone
-// cannot classify them (E3b-P5).
+/* Include the enclosing method in site identity: identical expressions can be
+ * allowed in editors but forbidden in display methods. */
 function walk(node, visit, method = '(top)') {
   if (!node || typeof node !== 'object') return;
   if (Array.isArray(node)) { for (const n of node) walk(n, visit, method); return; }
@@ -110,10 +99,8 @@ function walk(node, visit, method = '(top)') {
 const findings = [];   // hard raw reads
 const flags = [];      // computed tags[expr]
 
-/** Scan ONE source string with the real detector. Extracted so a permanent AST
- *  FIXTURE can drive the same parser path the scanned files do — the sensitivity
- *  tests below only exercise classify(), so without this a regression in
- *  unwrap()/isTagsMember() would leave every test green (E3b review finding 3). */
+/* Parser fixtures drive the same detector as production-source scans;
+ * classify-only tests cannot catch unwrap/isTagsMember regressions. */
 function scanSource(src, rel, sink = { findings, flags }) {
   let ast;
   try { ast = parse(src, { ecmaVersion: 'latest', sourceType: 'module', locations: true }); }
@@ -175,15 +162,9 @@ for (const rel of FILES) {
 
 console.log('\n== E3a raw-read audit (AST) ==');
 
-// PERMANENT PARSER-LEVEL REGRESSION (E3b review finding 3). The sensitivity tests
-// below only exercise classify(); a regression in unwrap()/isTagsMember() would
-// leave them all green. This fixture drives the REAL detector over the exact
-// idioms that must be caught — most importantly `const t = p.tags || {}`, the
-// LogicalExpression alias that hid five consumer files from the rev-1 inventory.
-// NOTE: each probe uses a DISTINCT alias name on purpose. An earlier version reused
-// `t` everywhere, so the ONE bare `const t = p.tags` registered `t` for the whole
-// source and the `|| {}` / `?? {}` probes were detected through THAT — the fixture
-// passed even with the LogicalExpression fix reverted (found by mutating it).
+/* Exercise the real parser over optional/logical/destructured aliases. Each
+ * probe needs a distinct alias name so one bare alias cannot make broken
+ * fallback detection pass. */
 const FIXTURE = `
   export function probeA(p) { const ta = p.tags || {}; return ta.formationFamily; }      // alias via || {}
   export function probeB(p) { const tb = p?.tags ?? {}; return tb.coverage; }      // alias via ?? {}
@@ -217,15 +198,9 @@ for (const a of allowCountBad) console.log(`  FAIL  ALLOW ${a.file} ${a.method}(
 ok(violations.length === 0 && allowCountBad.length === 0,
   `zero un-allowlisted raw reads of the six projected fields (found ${findings.length}, allowlisted ${findings.length - violations.length})`);
 
-// Computed flags — classified by (file, expression text) with EXACT MULTIPLICITY,
-// validated in BOTH directions (E3a-R4 re-review — the observed-groups-only check
-// missed a STALE ACK: if the ACKed expression is removed, no group forms, its
-// count:1 is never validated, and the stale approval could later bless a single
-// new identical-text read elsewhere):
-//   1. every ACK must be observed EXACTLY `count` times — 0 included, so a removed
-//      expression fails the ACK as stale (must be deleted from the ACK list);
-//   2. every observed computed read must be covered by an ACK.
-// Site identity = (file, ENCLOSING METHOD, expression text) + exact multiplicity.
+/* Validate approvals in both directions: every approval must occur exactly
+ * count times, including zero, and every computed read must be approved.
+ * Identity includes file, enclosing method and expression. */
 const siteKey = x => `${x.file}\0${x.method}\0${x.code}`;
 const classify = (fs) => {
   const bad = [];
@@ -255,9 +230,8 @@ for (const f of flags) console.log(`  computed ${f.code} at ${f.file}:${f.line}`
 ok(bad.length === 0, `every computed .tags[expr] is acknowledged by exact site + multiplicity (${flags.length} flagged)`,
   bad.map(b => `${b.file} "${b.code}" — ${b.why}`).join('; '));
 
-// PERMANENT sensitivity self-tests (E3a-R4). Each input includes the real ACKed
-// read (so the ACK itself is satisfied) plus a probe, and asserts the probe alone
-// is caught — proving the ACK neither inherits to nor is bypassed by:
+/* Each self-test supplies the approved read plus a probe, proving the approval
+ * does not hide the probe. */
 const A = ACK[0];
 // A synthetic observation set that satisfies EVERY ACK exactly (count-aware), so a
 // probe added to it is the ONLY thing that can fail. Stays correct as ACKs grow.
@@ -277,9 +251,7 @@ ok(duplicateRead.length === 1 && /found 2/.test(duplicateRead[0].why),
 const staleAck = classify([]);
 ok(staleAck.length === ACK.length && staleAck.every(b => /found 0/.test(b.why)),
   'sensitivity: an ACK whose expression is REMOVED (observed 0) fails as stale');
-// (d) E3b-P5 — METHOD SCOPING. The SAME expression text in a DIFFERENT method must
-//     NOT inherit the ack: play-grid holds an allowed editor read and a forbidden
-//     display read with identical text.
+/* The same expression in another method must not inherit an approval. */
 const otherMethod = classify([...baseline, { file: A.file, method: '_someDisplayMethod', code: A.code, line: 5 }]);
 ok(otherMethod.length === 1 && /_someDisplayMethod/.test(otherMethod[0].why),
   'sensitivity: the SAME expression in a DIFFERENT method is NOT auto-accepted (method-scoped ACK)');

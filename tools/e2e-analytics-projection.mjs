@@ -1,15 +1,9 @@
 import { StatsEngine } from '../js/stats-engine.js';
 import { AnalyticsRegistry } from '../js/analytics-registry.js';
 import { PlayFilter } from '../js/play-filter.js';
-/* BEHAVIORAL look-field tests: every analytics surface reads each look field
-   (formation, QB alignment, backfield, coverage call, coverage family) from its
-   own field, and never counts one as another — an alignment is never a
-   formation, a family is never a coverage call (§19 item 6a). Plays are current
-   format (legacy excision step 7). A surface that mixes fields fails its
-   assertion regardless of how the read was coded, which a grep can't guarantee.
-
-   Runs model contracts in Node; App wiring stays in e2e-native-reports.
-   Run: node tools/e2e-analytics-projection.mjs */
+/* Look fields are independent: alignment is not formation, and coverage family
+ * is not a coverage call. Model contracts run in Node; App wiring is covered
+ * by e2e-native-reports. */
 
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
@@ -97,9 +91,7 @@ const results = (() => {
   const ucKey = big.calls.find(c => c.qb === 'Under Center').key;
   t('cut bigCall(Under Center key) matches only BC1', eq(registry.matchingRefs([BC1, BC2], 'bigCall', ucKey), ['g1::5']), JSON.stringify(registry.matchingRefs([BC1, BC2], 'bigCall', ucKey)));
 
-  // ================= E3b — newly wired display consumers ====================
-  // An ALIGNMENT-ONLY play: no formation charted, so it must be OMITTED from
-  // formation reads (§6.4), never bucketed as "Unknown".
+  // An alignment-only play is omitted from formation reads, not counted as Unknown.
   const ALIGN_ONLY = { id: 9, [g]: 'g1', timestamp: { start: 0, end: 1 }, tags: {
     unit: 'offense', formationFamily: '', qbAlignment: 'Under Center', playType: 'Run Inside', runPass: 'Run',
     result: 'Gain', yardage: '5', down: '1', distance: '10' } };
@@ -110,14 +102,8 @@ const results = (() => {
   t('projField(formation) is BLANK for an alignment-only play', SE.projField(ALIGN_ONLY, 'formationFamily') === '', JSON.stringify(SE.projField(ALIGN_ONLY, 'formationFamily')));
   t('projField reads non-look keys as stored', SE.projField(OFF, 'playType') === 'Short Pass', SE.projField(OFF, 'playType'));
 
-  // The exploratory Formation × Play heat-map tab is retired from the fixed
-  // Reports composition. Field reads remain pinned at their canonical owners
-  // above and in every downstream tendency/EPA assertion below.
-
-  // --- play-filter (drawer "Filter Plays" → cut-up exporter) EQUALITY ---
-  // This filter selects the film the coach exports, so its set must EQUAL the
-  // registry cut set for the same value. OFF is Trips with a Shotgun alignment;
-  // ALIGN_ONLY charts an Under Center alignment and no formation.
+  // Export-filter refs must equal registry refs. OFF has Trips/Shotgun;
+  // ALIGN_ONLY has Under Center with no formation.
   const pf = new PlayFilter(null);
   const filterSet = (formation, plays) => {
     const saved = JSON.parse(JSON.stringify(pf.criteria));

@@ -80,9 +80,7 @@ function makeFs() {
   ok(list2.length === 20 && (await cp.getVersionScoped('s1', 'g1', manualIds[0])) === null, 'when only manual points remain, the OLDEST manual is evicted', JSON.stringify({ n: list2.length }));
 }
 
-// ---- 4. Durability (wired into VersionManager, 2026-09-24) -----------------
-// A save point that never reaches disk is not one: a failed db write rolls the
-// in-memory catalog back and reports failure, for single saves and imports.
+/* VersionManager durability. */
 {
   const fs = makeFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });

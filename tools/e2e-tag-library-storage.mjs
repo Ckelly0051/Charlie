@@ -1,21 +1,7 @@
-/**
- * The installed `Could not save that choice` finding (2026-09-23/24).
- *
- * Root cause, reproduced on a copy of the coach's installed WebView2 profile:
- * localStorage was full to the byte (5,242,879 of Chromium's 5,242,880
- * characters), 99% of it VersionManager's whole-game snapshots under
- * `ffa_versions_<season>::<game>`. Every settings write then threw
- * QuotaExceededError; TagLibrary swallowed it and reported only a failed
- * readback. The repair moves version history into the storage backend and
- * makes library writes name their failure.
- *
- * This harness fills localStorage the same way and proves the add fails with a
- * diagnosable message; then, with the old version keys gone (the one-time move
- * ran on the coach's profile and is deleted, legacy excision Pass 2b row 9),
- * that the add succeeds and reaches the deck immediately for all six library
- * groups, persists across a reload, is scoped to the team, leaves existing
- * charted values unchanged, and that new snapshots never write localStorage.
- */
+/* A full localStorage reports a diagnosable library-write failure. With
+ * capacity available, all six groups update the deck, persist across reloads
+ * and stay program-scoped without changing charted values. Version snapshots
+ * never consume localStorage. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 

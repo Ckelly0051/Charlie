@@ -26,11 +26,8 @@ let r = await page.evaluate(() => ({
   shell: !!document.querySelector('#workspaceShell'),
   active: document.body.classList.contains('ws-shell-active'),
   home: !document.querySelector('#wsHome')?.hidden && !!document.querySelector('[data-first-launch]'),
-  // S7 demolition: #app/#wsClassicOutlet are deleted. Final Engine
-  // Independence deletes #giLegacyEngineHost too -- there is no legacy host
-  // sibling left at all. #giMediaHost (the permanent, accepted native-owned
-  // video/canvas/transport host) remains the one thing that lives outside
-  // the shell root.
+  /* Only the permanent native media host lives outside the shell root; retired
+ * legacy hosts must be absent. */
   legacyHostGone: !document.getElementById('giLegacyEngineHost') && !document.getElementById('app'),
   mediaHostPresent: !!document.getElementById('giMediaHost'),
   breakdownDisabled: document.querySelector('[data-ws-route="breakdown"]')?.disabled,
@@ -43,22 +40,11 @@ let r = await page.evaluate(() => ({
 }));
 ok(r.shell && r.active && r.home && r.legacyHostGone && r.mediaHostPresent, 'Shell mounts with the approved Home setup as its single front door and no legacy host anywhere', JSON.stringify(r));
 
-// NO JS VALUES IN THE CHROME (coach smoke, 2026-07-25). Adding the Reports
-// route without adding its nav icon rendered the literal string "undefined"
-// into all three navs. Scan the shell's own chrome — nav buttons, context bar,
-// headers — for values that mean "a variable escaped into the UI". Scoped to
-// chrome deliberately: report BODIES can legitimately contain odd values from
-// real data, but navigation and context never should.
-// NOTE: uses its own variable — `r` is shared by the assertions that follow.
+/* Scan navigation, context and headers for leaked JS values. Scope to chrome:
+ * report bodies may legitimately contain unusual stored text. */
 const chromeScan = await page.evaluate(() => {
-  // NO \b AROUND `undefined`. Self-review 2026-07-25 mutation-tested this and
-  // found the guard MISSED the very bug it was written for: the real leak
-  // rendered as "undefinedReports" — the value concatenated straight against the
-  // adjacent label, so there is no word boundary after "undefined" and \b failed
-  // to match. A leaked value is almost always glued to neighbouring text, which
-  // is exactly the case boundaries exclude. NaN/null keep boundaries (they are
-  // short enough to appear inside real words); "undefined" and "[object Object]"
-  // are distinctive enough to match bare.
+  /* Match undefined without word boundaries to catch concatenated leaks such as
+ * undefinedReports. NaN/null need boundaries to avoid matching real words. */
   const bad = /undefined|\[object Object\]|\bNaN\b|\bnull\b/;
   const zones = ['.ws-topbar', '.ws-top-nav', '.ws-mobile-head', '.ws-mobile-nav', '.ws-home-head', '.ws-contextbar'];
   const hits = [];
@@ -165,11 +151,8 @@ ok(openCalls.length === 1 && openCalls[0] === 'preview-game',
 // exercising Open Study / Open Reports below.
 await page.evaluate(() => { window.app.openGame = window.__openGameOrig; });
 
-// V2-A: Open Study / Open Reports must act on the PREVIEWED game, not a
-// stale already-active one (Codex review f1a90c2, finding 1). preview-game
-// is active from the Continue Charting click above; switch active back to
-// the OTHER game first, so re-previewing preview-game genuinely previews a
-// non-active game and the assertion cannot pass by coincidence.
+/* Reset the active game before previewing another: Open Study/Reports must use
+ * the preview, not pass accidentally through an already-active game. */
 for (const [action, route] of [['open-study', 'study'], ['open-reports', 'reports']]) {
   await page.evaluate(async () => {
     const store = window.app.storage.seasonStore;
@@ -209,7 +192,7 @@ await page.setViewport({ width: 1280, height: 800 });
 await page.click('.ws-top-nav [data-ws-route="breakdown"]');
 r = await page.evaluate(() => ({
   dedicatedVisible: !document.querySelector('#wsBreakdown')?.hidden,
-  // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion.
+  /* Retired classic outlet must be absent. */
   classicHidden: !document.querySelector('#wsClassicOutlet'),
   homeHidden: document.querySelector('#wsHome')?.hidden,
   route: window.app.workspace.currentRoute(),
@@ -541,16 +524,8 @@ ok(r.loadCompleted && !r.breakdownBeforeLoad && r.activeGameId === 'preview-game
     && r.route === 'breakdown' && r.breakdownVisible && r.settingsVisible && r.moreVisible,
   'Delayed game switch finishes before Break Down renders and keeps Settings/More visible', JSON.stringify(r));
 
-// C1 (binding amendment 2026-07-23): the legacy Season Library SCHEDULE is
-// RETIRED as a game-entry surface. Home is the single place to open a game.
-//
-// S7-c DELETED the overlay that hosted it, so this no longer drives
-// `library._open()` / `library.openSchedule()` and asserts they redirect —
-// those functions do not exist. Both halves of the guarantee are kept:
-//   1. the OUTCOME — opening a season through the canonical path lands on Home;
-//   2. the ABSENCE of the retired surface. Hidden markup is what let this flow
-//      resurface twice when an overlay revealed the classic outlet, so the
-//      check is that it is gone, which cannot be un-hidden.
+/* Opening a season lands on Home, the sole game-entry surface. Retired
+ * schedule markup must be absent, not hidden. */
 r = await page.evaluate(async () => {
   const app = window.app;
   const seasonId = app.storage.seasonStore.currentSeasonId;
@@ -630,9 +605,8 @@ ok(r.route === 'study' && r.study && r.reportsHidden && r.appHidden, 'Study open
 await page.click('[data-study-action="advanced"]');
 r = await page.evaluate(() => ({ stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'), appVisible: !!document.querySelector('#wsClassicOutlet') }));
 ok(r.stats, 'Study keeps Advanced Reports one click away (now the Reports destination)', JSON.stringify(r));
-// S1 REPORTS OWNERSHIP CONTRACT. The visible dashboard is created inside the
-// Preact route, and StatsEngine's own dashboardEl points at exactly that node
-// -- no fallback stand-in exists for it to be confused with.
+/* The route creates the dashboard node, and StatsEngine.dashboardEl must
+ * reference that exact node, not a fallback. */
 r = await page.evaluate(() => ({
   nativeRoute: !!document.querySelector('#wsReports [data-native-reports]#statsDashboard'),
   nativeContent: !!document.querySelector('#wsReports [data-native-report-content] [data-native-main-report]'),
@@ -677,7 +651,7 @@ const reportsLibrary = await page.evaluate(async () => {
     homeVisible: !document.getElementById('wsHome').hidden,
     libraryVisible: !!document.querySelector('#wsHome .library-panel'),
     teamHubHost: !!document.getElementById('wsTeamHub'),
-    // S7 demolition: #wsClassicOutlet is deleted — absence IS "never visible".
+    /* Retired classic outlet must be absent. */
     outletVisible: !!document.getElementById('wsClassicOutlet'),
   };
   return {
@@ -704,9 +678,8 @@ await page.click('.ws-top-nav [data-ws-route="plan"]');
 r = await page.evaluate(() => ({ route: window.app.workspace.currentRoute(), plan: !document.querySelector('#wsPlan')?.hidden, appHidden: !document.querySelector('#wsClassicOutlet'), text: document.querySelector('#wsPlan')?.textContent || '' }));
 ok(r.route === 'plan' && r.plan && r.appHidden && /GAME PLAN/.test(r.text), 'Plan opens the live season plan workspace');
 
-// Finding 2 (2026-07-23): the classic-layout escape hatch is fully retired —
-// there is no "Use classic layout" button and no useClassic() method, so there
-// is exactly one product route. Checked while the shell is mounted.
+/* No classic-layout button or useClassic method may expose a second product
+ * route. */
 r = await page.evaluate(() => ({
   noClassicBtn: !document.querySelector('[data-ws-action="classic"]'),
   noUseClassic: typeof window.app.workspaceShell.useClassic !== 'function',
@@ -715,12 +688,11 @@ r = await page.evaluate(() => ({
 ok(r.noClassicBtn && r.noUseClassic, 'Classic-layout escape hatch fully retired: no "Use classic" button, no useClassic()', JSON.stringify(r));
 ok(r.newGameBtn, 'Home exposes a direct New Game action (finding 4)', JSON.stringify(r));
 
-// S3 ownership regression: Teams and seasons are a Home state, never a second
-// route or a path back to #wsClassicOutlet. Reports remains native too.
+/* Teams and seasons are a Home state, never another route or a classic-outlet
+ * escape. */
 r = await page.evaluate(async () => {
   const shell = window.app.workspaceShell;
-  // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion —
-  // there is no element left to reveal.
+  /* Retired classic outlet must be absent. */
   const outletHidden = () => !document.getElementById('wsClassicOutlet');
   await shell.show('breakdown');
   await shell._openLibrary();
@@ -750,14 +722,8 @@ await page.evaluate(async () => {
   const season = hub.snapshot().railSeasons.find(row => !row.isScout && row.gameCount > 0);
   if (season) await hub.openSeason(season.id);
 });
-// disable() remains as the INTERNAL mount/restore teardown contract (tested
-// lifecycle hygiene). It is not reachable from any product affordance.
-//
-// S7-d2: the media subtree no longer returns to #app, because it now has a
-// PERMANENT home outside it. The guarantee is unchanged — teardown parks every
-// adopted surface with exactly one owner, so re-enable cannot leak into a
-// detached tree — so it is asserted against the permanent host instead of
-// being dropped.
+/* Internal disable/re-enable parks media at its permanent host with one owner;
+ * no product control exposes teardown. */
 await page.evaluate(async () => {
   await window.app.workspaceShell.show('study');
   window.app.studyScreen._openPlanPicker([{
@@ -773,25 +739,16 @@ r = await page.evaluate(() => {
   const dialog = document.querySelector('.ws-plan-picker');
   const pickerWasOpen = !!dialog?.open;
   window.app.workspaceShell.disable();
-  // The permanent media host's real structure since the media-cascade
-  // ownership work (css/media-foundation.css) is #giMediaHost > #videoContainer
-  // (class "video-container") -- the legacy ".video-section" class this
-  // assertion was written against no longer exists anywhere in the app.
+  /* Check the actual media structure: giMediaHost directly owns videoContainer. */
   const media = document.querySelector('#giMediaHost #videoContainer');
   return {
     studyClean: pickerWasOpen && !dialog.open && study.host === null && study._native === null
       && study._nativeMount === null && study._planPicker === null && study._pendingPlanItems.length === 0,
-    // S7 demolition: #app is gone. The tagging/Film-Room backing stores'
-    // permanent, original home is #giLegacyEngineHost — teardown must return
-    // adopted chrome there, not to a container that no longer exists.
+    /* Teardown must not recreate retired presentation containers. */
     restored: media != null
       && !media.closest('#giLegacyEngineHost')
       && document.querySelectorAll('#videoContainer').length === 1
-      // Final Engine Independence: .tag-section AND #playGridSection are
-      // both deleted entirely, not adopted/relocated -- there is no backing
-      // store to return to on teardown any more. Absence is the assertion
-      // now (same "S7 demolition" pattern already applied to
-      // #wsClassicOutlet above).
+      /* Retired tagging and Film Room markup must remain absent after teardown. */
       && document.querySelector('#playGridSection') == null
       && document.querySelector('.tag-section') == null,
     // Final Engine Independence: Undo/Redo/Shortcuts/Settings are the
@@ -1019,13 +976,8 @@ ok(r.factCharted === `${r.summedTagged} / ${r.summedTotal}`,
 ok(r.rows[2].total === '0' && r.rows[2].width === '0%',
   'A unit with no plays reads a real zero rather than a fabricated percentage', JSON.stringify(r.rows[2]));
 
-// Film source: a managed copy and a linked external folder must never read
-// identically -- that ambiguity is exactly what made the 1.12.0-8 smoke
-// unprovable (P0_CRITICAL id home.film-source). V2-A's Home no longer shows
-// the resolved absolute path for a linked folder (that detail lives in Team
-// & Film Settings, disclosed as a deviation from the pre-V2-A "film inbox"),
-// but it still discloses linked-vs-managed by name, and never claims
-// readiness it hasn't confirmed.
+/* Home must distinguish linked film from managed copies without claiming
+ * unconfirmed readiness. Absolute linked paths belong in Team & Film Settings. */
 r = await page.evaluate(async () => {
   const app = window.app;
   const real = app.workspace.filmHealth.bind(app.workspace);
@@ -1151,8 +1103,7 @@ r = await page.evaluate(async () => {
   const mobile = document.querySelector('#wsMobileContext')?.textContent;
   document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
   await new Promise(resolve => setTimeout(resolve, 200));
-  // The canonical rule every other surface uses. The context bar used to run a
-  // second rule that preferred the raw stored `game.name`.
+  /* The context bar uses the same canonical game label as every other surface. */
   return { canonical: store.gameName(game, store.data.games.indexOf(game)), row, bar, mobile, stored: game.name };
 });
 ok(r.row === r.canonical && r.bar === r.canonical && r.mobile === r.canonical,
@@ -1197,13 +1148,9 @@ ok(/2027 JV/.test(r.season) && r.gameRows === 1,
 ok(r.game !== r.staleGame,
   'The prior season\'s game context does not leak into the newly opened season', JSON.stringify(r));
 
-// V2-A: a Home-to-Home season switch (route unchanged throughout) previously
-// left the OLD season's preview id in place, so a game id collision between
-// seasons could carry a stale preview across (Codex review f1a90c2, finding
-// 3). Build two seasons whose games deliberately share the literal id
-// 'preview-game' and prove the destination season's OWN active game is
-// shown, not the source season's stale preview riding through on the id
-// match.
+/* Reuse preview-game across two seasons while staying on Home. The destination
+ * must select its own active game, never retain a stale preview by ID
+ * collision. */
 r = await page.evaluate(async () => {
   const app = window.app, store = app.storage.seasonStore;
   const recA = await app.storage.createSeason({ name: 'Collision A', team: 'Mavericks', year: '2028' });

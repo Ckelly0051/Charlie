@@ -1,9 +1,4 @@
-/* AMBIGUOUS RUN/PASS HARNESS (Node) -------------------------------------------
-   A plain RPO with Run/Pass blank counted as a completed pass (Codex review,
-   2026-10-05). RPO and Play Action are ambiguous (PlayTagger leaves Run/Pass
-   blank for them), so analytics leave them unclassified.
-
-   Run:  node tools/e2e-ambiguous-run-pass.mjs */
+/* RPO and Play Action with blank Run/Pass remain unclassified. */
 import { StatsEngine } from '../js/stats-engine.js';
 
 let pass = 0, fail = 0;
@@ -25,9 +20,8 @@ console.log('\n-- ambiguous play types without Run/Pass stay unclassified --');
     'unambiguous play types still classify with Run/Pass blank');
 }
 
-/* Codex review of ab3f617e: consumers that counted every non-run as a pass, or
-   divided a pass cohort by a different denominator. Fixture: two Play Action
-   snaps with Run/Pass blank, one completed Short Pass, one Run Inside. */
+/* Two unclassified Play Action snaps, one completed Short Pass and one Run
+ * Inside distinguish snap counts from classified run/pass denominators. */
 console.log('\n-- consumers count only charted passes, and shares are of charted run/pass plays --');
 {
   const snap = (id, tags) => ({ id, __gid: 'g', timestamp: { start: 0, end: 5 }, tags: {
@@ -68,9 +62,8 @@ console.log('\n-- consumers count only charted passes, and shares are of charted
   ok(dt && dt.runs === 1 && dt.passes === 1 && dt.runPct === 50, 'scout down & distance: 1 run, 1 pass, 50% run', JSON.stringify(dt));
 }
 
-/* Codex review of 4abd7e7a: a sample of one run plus three Run/Pass-blank RPOs
-   must not qualify a "100% run" warning, and a row with nothing classified
-   must not render as 0R (0%) / 0P (100%). */
+/* One run plus three unclassified RPOs cannot qualify a 100% run warning;
+ * an unclassified-only row must not fabricate a complementary pass share. */
 console.log('\n-- predictability warnings qualify on the classified sample --');
 {
   const snap = (id, tags) => ({ id, timestamp: { start: 0, end: 5 }, tags: {

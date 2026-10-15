@@ -1,5 +1,5 @@
-/* S4-e: the dead season modal is deleted; native Home/Reports retain the live
-   season workflow and aggregate analytics without mutating canonical data. */
+/* Native season workflows and aggregate analytics must not mutate canonical
+ * data. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
@@ -56,7 +56,7 @@ await page.evaluate(() => [...document.querySelectorAll('[data-overlay-id] [role
 await page.waitForFunction(() => window.app.workspace.currentRoute() === 'reports' && document.querySelector('[data-native-reports]'));
 state = await page.evaluate(() => ({
   route: window.app.workspace.currentRoute(),
-  classicHidden: !document.getElementById('wsClassicOutlet'), // S7: outlet deleted; absence is the assertion
+  classicHidden: !document.getElementById('wsClassicOutlet'), /* Retired outlet must be absent. */
   legacy: !!document.getElementById('seasonOverlay'),
 }));
 ok(state.route === 'reports' && state.classicHidden && !state.legacy,

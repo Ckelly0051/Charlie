@@ -3,10 +3,7 @@ import path from 'node:path';
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
-/* S5d Break Down ownership lifecycle.
- * The route owns one native theater and one native deck. Legacy presentation
- * remains only as an off-screen behavior adapter until S7.
- */
+/* Break Down owns one native theater and one native deck. */
 let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log('  PASS  ' + label))
@@ -48,11 +45,9 @@ let state = await page.evaluate(async () => {
     filmRoom: document.querySelectorAll('[data-native-film-room]').length,
     mediaOwner: document.querySelectorAll('[data-breakdown-theater-host] #videoContainer').length,
     legacyVideo: document.querySelectorAll('.breakdown-player-controls, .breakdown-play-strip').length,
-    // Final Engine Independence: .tag-section is deleted from index.html
-    // entirely -- there is no adopted/hidden legacy form to check for
-    // visibility any more. Absence is the assertion now.
+    // Retired form markup must be absent, not merely hidden.
     legacyTagVisible: !!document.querySelector('.tag-section'),
-    // S7 demolition: #wsClassicOutlet is deleted. Absence is the assertion now.
+    /* Retired classic outlet must be absent, not hidden. */
     classicVisible: !!document.getElementById('wsClassicOutlet'),
     dataSame: before === JSON.stringify(app.storage.seasonStore.data),
   };
@@ -106,9 +101,7 @@ state = await page.evaluate(async () => {
   const disabled = {
     native: document.querySelectorAll('[data-native-breakdown-route]').length,
     mediaHome: media.parentElement === app.breakdownTheater._home.parent,
-    // Final Engine Independence: NativeTaggingScreen no longer adopts a
-    // legacy source element to restore -- restore() just releases its host
-    // reference, which the teardown must have cleared by this point.
+    // Teardown must release the native tagging host reference.
     tagRestored: app.nativeTagging.host === null,
   };
   await app.workspaceShell.enable();
@@ -241,13 +234,6 @@ for (const [width, height, dock, minVisibleFilm] of [[1920,1080,'bottom',180],[1
 await page.evaluate(() => window.app.breakdownWorkspace.setFilmLayout({ dock: 'bottom' }, { persist: false }));
 
 console.log('\n== 7. Narrowed Break Down header keeps its context reachable ==');
-// Measured on the coach's real names ("Mavericks / 2025 St. Joseph Mavericks -
-// JV / Week 2 vs ND Prep Fighting Irish") every context segment was HARD clipped
-// once the window narrowed — cut mid-word with no ellipsis and no way to read
-// what was lost. The contract now has an explicit priority: team identity stays
-// whole, the season is dropped outright rather than reduced to an uninformative
-// stub, the game truncates with a real ellipsis, and route navigation is never
-// the thing that gives way.
 await page.evaluate(() => {
   const store = window.app.storage.seasonStore;
   const game = store.activeGame();
@@ -259,11 +245,7 @@ for (const [width, height] of [[1440, 900], [1280, 800], [1180, 800]]) {
   await page.setViewport({ width, height });
   await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
   await new Promise(resolve => setTimeout(resolve, 350));
-  // V2-A replaced the single collapsing breadcrumb with three always-present
-  // context buttons (#wsCtxProgram/#wsCtxSeason/#wsCtxGame). Each value carries
-  // its own unconditional white-space:nowrap + text-overflow:ellipsis, so the
-  // old "team stays whole, season drops, game ellipsizes" priority ladder is
-  // superseded by a simpler, stronger guarantee: no segment ever hard-clips.
+  // All three context values must truncate with ellipsis, never hard-clip.
   const header = await page.evaluate(vp => {
     const shown = el => !!el && el.getClientRects().length > 0;
     const ids = { program: 'wsCtxProgramValue', season: 'wsCtxSeasonValue', game: 'wsCtxGameValue' };
@@ -288,22 +270,9 @@ for (const [width, height] of [[1440, 900], [1280, 800], [1180, 800]]) {
 }
 
 console.log('\n== 8. S7-a: per-game charting context survives a canonical relaunch ==');
-// breakdown.game-context used to be claimed by e2e-s5c-preflight.mjs, which S7
-// retires. That proof read `gamePerspective.value` / `gameDirection.value` — the
-// hidden legacy inputs inside #legacyGameContextState, which S7 DELETES. Porting
-// it unchanged would have left a critical capability pointed at markup that
-// stops existing.
-//
-// This asserts the same guarantee against what survives: the CANONICAL
-// storage.gameInfo, plus the native group titles the coach actually reads
-// ("Opponent Offensive Look" on scout film vs "Our Offensive Look" on our own).
-// The relaunch is preserved — a sentinel set before reload must be gone after —
-// because that is what makes this a durability proof rather than an in-memory
-// identity check.
-// Three guarantees the retired preflight owned that were NOT among the four
-// capability ids. Ported so the retirement costs no coverage — the third is the
-// closeout Lane C rule: a context control must never write game metadata as a
-// side effect.
+// Check canonical game context and rendered group titles across a real reload.
+// The sentinel must disappear to distinguish rehydration from an in-memory check;
+// context edits must preserve unrelated game metadata.
 const ctxOpen = await page.evaluate(async () => {
   const app = window.app, store = app.storage.seasonStore;
   const a = store.activeGame();

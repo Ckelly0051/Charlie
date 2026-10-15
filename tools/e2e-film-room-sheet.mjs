@@ -1,14 +1,6 @@
-/**
- * FILM ROOM: THE PLAY SHEET AND THE SHOWN-PLAYS SUMMARY (coach direction,
- * 2026-09-24). The play card lists every chartable field for the selected play,
- * grouped, with `Not charted` where the unit charts a field nobody filled. The
- * controls card measures the plays on screen through the SAME owners the
- * Reports boards use -- compute() for offense, the Defense board's dashboard and
- * stop rate for defense -- and states only counts for a mix of units.
- * Section 4 binds that to the canonical 2025 JV season (read-only, hash-checked):
- * a whole game filtered to one unit reads exactly what its board reads.
- * Run:  node tools/e2e-film-room-sheet.mjs
- */
+/* The play sheet groups all chartable fields, marking blanks as Not charted.
+ * Shown-play summaries use canonical analytics owners; mixed units show counts
+ * only. Read-only canonical fixtures pin board equality. */
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { APP_URL } from './app-entry.mjs';

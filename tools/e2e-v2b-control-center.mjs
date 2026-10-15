@@ -123,12 +123,9 @@ ok(scout.programRows === 1 && scout.scoutRows === 1 && scout.id !== program.id,
   'Program and scout remain separate canonical seasons', JSON.stringify(scout));
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'v2b-scout-home.png'), fullPage: true });
 
-/* FIXTURE REPOINTED 2026-09-14. This opened the Season Library first -- which
-   closes the season -- and then relied on the toggle restoring one by
-   `lastOpened`. That redirect is retired. The claim ("switching back to Program
-   wins while a scout season is open") is now exercised directly and is stronger
-   for it: the SCOUT stays open, and the toggle returns to that scout's exact
-   stored `programSeasonId`. */
+/* Keep the scout open while switching to Program, and require its exact stored
+ * programSeasonId. Library navigation would close the season and exercise a
+ * different path. */
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
 await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, {}, program.id);
 r = await page.evaluate(() => ({

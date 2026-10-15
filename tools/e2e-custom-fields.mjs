@@ -1,12 +1,6 @@
-/**
- * CUSTOM TAG FIELD EDITOR on the overlay service (rebuilt 2026-09-27 from a
- * hand-built dialog; GRIDIRON-IQ-OVERLAY-SPEC). Driven through the charting
- * deck's real "Edit custom fields" button: the sheet opens as a modal overlay,
- * Save stores the definitions and the deck shows them at once, Escape and
- * Cancel write nothing, a nameless row is dropped, focus returns to the button,
- * and a chip writes the play's value.
- * Run:  node tools/e2e-custom-fields.mjs
- */
+/* The deck opens the modal custom-field editor. Save updates the deck;
+ * Escape/Cancel write nothing, blank names are dropped, focus returns and
+ * chips write the selected play value. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 

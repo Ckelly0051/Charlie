@@ -1,20 +1,8 @@
 import { StatsEngine } from '../js/stats-engine.js';
-/* E3a-4 — cross-tabs with the §6.5 eligible-denominator contract. Two dedicated
-   single-value × single-value cross-tabs: qbAlignment × strength (new, §8a) and
-   coverage-call × coverageFamily. Per §19, each cohort lives in its OWN synthetic
-   game tested at that game scope, so `total` is exactly the cohort and expected
-   counts are unambiguous and immune to unrelated fixture additions.
-
-   §6.5 contract asserted EXACTLY (not just "cells sum to something"):
-     - total    = the game's play count,
-     - eligible = plays with a value on BOTH axes (> 0, positively tested),
-     - omitted  = total − eligible,
-     - a blank-axis play appears in NO cell,
-     - each cell's count equals its expected value, and Σ cells === eligible.
-
-   QB alignment is its own field; the qbAlignment axis reads it directly.
-
-   Run: node tools/e2e-crosstab.mjs */
+/* Each cross-tab cohort has its own synthetic game, isolating expected counts
+ * from unrelated fixtures. Eligible plays have both axes; blanks enter no cell.
+ * Assert exact cells and totals, including sum(cells) = eligible and
+ * omitted = total - eligible, with a positive eligible control. */
 
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {

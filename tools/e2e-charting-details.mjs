@@ -1,7 +1,5 @@
-/* Charting cutover, Step 1 model contract: Formation / Receiver Alignment, Gap, motion
-   path, RPO, QB run and Reverse (docs/archive/plans/GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md, "Approved Break Down
-   charting comp - build contract"). Pure model checks; the deck, Film Room and CSV
-   have their own harnesses. Run: node tools/e2e-charting-details.mjs */
+/* Pure field-model contracts for Formation, Receiver Alignment, Gap, motion,
+ * RPO, QB run and Reverse. UI and CSV behavior have separate harnesses. */
 import { ChartingDetails } from '../js/charting-details.js';
 import { TagLibrary } from '../js/tag-library.js';
 import { TagProjection } from '../js/tag-projection.js';

@@ -1,12 +1,5 @@
-/* CLIP-MATCH HARNESS (Node) — proves the PURE clip↔play matcher (js/clip-identity.js)
-   that the ghost-plays fix (redesign R2/R3) will adopt. The bug it prevents: a clip
-   that fails to relink auto-creates a ghost whole-clip play. These cases pin that a
-   correct matcher leaves ZERO unmatched clips (no ghosts) for the failure modes the
-   current filename match can't handle — Windows `(n)` rename + duplicate basenames —
-   while keeping genuinely-distinct clips distinct. Pure module, not wired into the
-   app; runs green in the standard gate.
-
-   Run:  node tools/e2e-clip-match.mjs */
+/* Match renamed and duplicate-basename clips without creating unmatched ghost
+ * clips or merging distinct identities. Exercises the shared matcher directly. */
 import assert from 'node:assert';
 import { planClipMatch, stripDupSuffix, normKey } from '../js/clip-identity.js';
 

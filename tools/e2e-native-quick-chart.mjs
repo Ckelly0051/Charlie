@@ -1,5 +1,5 @@
-/* S4-d native Quick Chart journey: one owner, keyboard parity, scoped writes,
-   focus return, and responsive sheet behavior. */
+/* Native Quick Chart pins one owner, keyboard parity, scoped writes, focus
+ * return and responsive sheet behavior. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 

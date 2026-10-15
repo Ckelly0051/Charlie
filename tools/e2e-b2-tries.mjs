@@ -64,9 +64,7 @@ test('only an officially resolved try counts as charted progress', () => {
   assert.equal(isPlayTagged(play(6, special(), {}, { penalties: [{ disposition: 'accepted', playCounts: false }] })), false);
   assert.equal(isPlayTagged(play(7, special({ result: 'noPlay', outcome: { score: null } }), {}, { penalties: [{ disposition: 'accepted', playCounts: false }] })), true);
 });
-// The Field Goal unit attempts a field goal and nothing else: the old
-// "extra point on the Field Goal unit" shape was converted once (2026-09-26) and
-// is refused at import, so the model no longer reads it.
+/* Field Goal extra-point shapes are old format and refused at import. */
 test('field goals stay field goals; the Field Goal unit carries no extra point', () => {
   const fg = SpecialTeamsModel.normalize(special({ unit: 'fieldGoal', attemptType: 'fieldGoal', result: undefined, events: undefined, outcome: { status: 'good', score: 'fieldGoal' } }));
   const xp = SpecialTeamsModel.normalize(special({ unit: 'fieldGoal', attemptType: 'extraPoint', result: undefined, events: undefined, outcome: { status: 'good', score: 'extraPoint' } }));
@@ -142,12 +140,8 @@ test('conversion totals use official score, exclude no-play and playCounts false
     play(5, special({ result: 'converted' }), {}, { penalties: [{ disposition: 'accepted', playCounts: false }] }),
   ];
   const stats = Object.create(StatsEngine.prototype)._conversionStats(plays);
-  // refs is additive (Study expansion Phase 2, Codex review finding #1) --
-  // the exact eligible-cohort composite refs behind att/made. This fixture's
-  // plays carry no `__gid`, so StatsEngine._compositeRef can't resolve an
-  // identity and both ref lists are honestly empty.
-  // refs.missed is additive too (Special Teams Presentation Independence) --
-  // the exact complement of made within att; empty here for the same reason.
+  // These bare fixture plays have no __gid, so att/made/missed composite-ref
+  // lists are empty even when their corresponding counts are nonzero.
   assert.deepEqual(stats.two, { att: 3, made: 2, pct: 67, refs: { att: [], made: [], missed: [] } });
   assert.deepEqual(stats.xp, { att: 0, made: 0, pct: 0, refs: { att: [], made: [], missed: [] } });
 });
@@ -237,7 +231,7 @@ test('compute includes untyped ST specialists without admitting untyped ST tackl
   assert.equal(stats.individuals.kickers[0].puntYds, 42);
   assert.deepEqual(stats.individuals.tacklers, []);
 });
-// ---- Run/Pass and Fake tries (coach, 2026-09-27) -------------------------
+/* Run/Pass and Fake tries. */
 test('a run/pass try scores 2 by default and 1 when charted so (youth rules)', () => {
   assert.equal(SpecialTeamsModel.points(special()), 2);
   const one = SpecialTeamsModel.normalize(special({ outcome: { score: 'extraPoint' } }));

@@ -1,17 +1,6 @@
-/* STRANDED CODE GUARD (Node) ----------------------------------------------------
-   Coach rule 2026-10-06 (CLAUDE.md): a replacement removes what it replaces,
-   in the same change. The 2026-10-06 code review found 24 element ids still
-   read by code whose markup had been replaced; that dead layer hid an
-   unreachable Mark as Final. This guard fails when:
-
-     1. production code looks up an element id that no production source
-        creates (getElementById / querySelector('#id')), or
-     2. a stylesheet keeps a selector branch no production source can produce
-        (tools/prune-dead-css.mjs --strict reports any dead branch).
-
-   Only the coach can park code. PARKED names each exception and why.
-
-   Run:  node tools/e2e-stranded-code.mjs */
+/* Fail when production reads an unproduced element ID or a stylesheet retains
+ * an unproducible selector branch. Only explicit coach-parked exceptions
+ * remain. */
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';

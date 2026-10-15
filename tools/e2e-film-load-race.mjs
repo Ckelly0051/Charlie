@@ -1,25 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* P0 regression: latest-film-load-wins. Two overlapping game opens run two
-   overlapping _autoLoadFilm calls. If the FIRST (slow) game's film resolves
-   LAST, it must NOT stamp its video onto the now-active SECOND game — the coach
-   would tag game B while watching game A's film (active=B, loaded=B, film=A).
-   The load captures a monotonic token at entry and re-checks it before every
-   player/playlist mutation; a superseded load aborts. Runs against the built
-   bundle. Mutation check: drop the `!stale()` guard on vc.loadUrl in
-   js/storage.js and this reds (the slow load clobbers).
-
-   TIMING NOTE (self-review finding F1, 2026-07-23): _autoLoadFilm now also
-   checks `stale()` right after its very FIRST await (listFilmFiles), for
-   messaging correctness (F3). If pSlow and pFast were started back-to-back in
-   the same synchronous tick, BOTH loads' token bumps happen before either one's
-   first microtask resumes — so "slow" would go stale at that very first
-   checkpoint and never reach the deep gate (filmUrl/linkedFilmUrl) this test
-   means to exercise, silently defeating the mutation check on the LATER guards
-   (vc.loadUrl, rehydrateFromDisk). Every scenario below inserts a real
-   macrotask yield (setTimeout(0)) between starting slow and starting fast, so
-   slow genuinely progresses — while still current — down to the real gate
-   before fast supersedes it. This matches the real-world shape of the bug: two
-   game-opens separated by actual time, not two calls issued in the same tick. */
+/* Latest film load wins at every async boundary. Gate the slow load at URL
+ * resolution before superseding it, then check player and playlist ownership.
+ * Yield a macrotask between opens: back-to-back calls can cancel the slow load
+ * at listFilmFiles, never exercising the later loadUrl/rehydrate guards. */
 import puppeteer from './test-browser.mjs';
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
@@ -119,7 +102,7 @@ ok(r3.afterFast.length === 1 && r3.afterFast[0][0] === 'asset://fast/c1.mp4',
 ok(r3.calls.length === 1 && r3.calls[0][0] === 'asset://fast/c1.mp4',
   'Multi-clip: the superseded (slow) earlier load never rehydrates the playlist over the active game', JSON.stringify(r3));
 
-// --- V2-H: unchanged managed manifests reuse deterministic asset URLs. ---
+// Unchanged managed manifests reuse deterministic asset URLs.
 const cacheResult = await page.evaluate(async () => {
   const app = window.app;
   app.storage._managedFilmManifests.clear();

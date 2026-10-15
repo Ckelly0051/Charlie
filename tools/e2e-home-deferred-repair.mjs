@@ -157,16 +157,9 @@ let tools = await page.evaluate(() => [...document.querySelectorAll('.rail-tools
 ok(tools.includes('Roster') && tools.some(t => /Edit season details/.test(t)),
   'Program actions are available while a program season is open', tools);
 
-/* RETIRED 2026-09-14, not weakened. These two assertions read:
-     "Opponent Scout restores its most recently used scout season"
-     "Our Program restores the selected program season instead of the season library"
-   Both pinned the REMOVED redirect strategy — a toggle searched the whole team by
-   kind and `lastOpened` and opened the winner, which is the Scout / library /
-   unrelated-season bounce the coach reported. Opponent Scout is now a VIEW of the
-   parent program season: the toggle opens nothing and the coach selects a scout
-   explicitly. `lastOpened` may order scouts inside a parent and can no longer
-   choose one. Their replacement asserts the atomic contract through the same
-   rendered shell buttons. */
+/* Opponent Scout is a view of the parent season: toggling opens no season.
+ * Scouts are selected explicitly within their parent, never by team-wide
+ * lastOpened. */
 await page.click('[data-ws-action="workspace-scout"]');
 await new Promise(r => setTimeout(r, 400));
 shape = await railShape();
@@ -258,15 +251,8 @@ for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280
   ok(reach.headingsInFrame.length === 2
     && /Program Seasons/.test(reach.headingsInFrame[0]) && /Opponent Scouts/.test(reach.headingsInFrame[1]),
     `BOTH tree headings are visible inside the rail frame at ${label}`, reach);
-  /* REPOINTED for the 1.12.0-91 rail repair, not weakened. Equal 112px floors
-     for both trees is the allocation that starved navigation: it reserved a
-     scout pane the same size as the season tree whatever each held, under a
-     tool block taking nearly half the rail, so the installed build showed one
-     year while another season was open. Program Seasons now takes the rail's
-     flexible height and keeps a real floor of its own; the scout pane is
-     content-sized under a cap and is asserted separately (heading, rows and
-     create action visible) in `e2e-home-rail`. The stronger claim is that the
-     SEASON tree can never be the starved one. */
+/* The season tree owns flexible rail height and must not be starved by scouts.
+ * e2e-home-rail separately checks the content-sized scout pane and its cap. */
   const seasonsPane = reach.sectionHeights.find(s => /Program Seasons/.test(s.name));
   const scoutsPane = reach.sectionHeights.find(s => /Opponent Scouts/.test(s.name));
   ok(reach.sectionHeights.length === 2 && seasonsPane.h >= 120 && seasonsPane.h >= scoutsPane.h,
@@ -638,15 +624,7 @@ ok(![...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].some(p => hubCopy.text.includes
   'No superseded phrase renders anywhere in the Home library',
   [...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].filter(p => hubCopy.text.includes(p)));
 
-/* RETIRED 2026-09-14, not weakened: "Program mode restores a program season on
-   Home through the sole workspace switch".
-
-   It pinned the same removed redirect. The block above deliberately opens the
-   Season Library, which closes the open season — that is where the coach ASKED to
-   be. A mode toggle is not a season open, so it must not resurrect a season to
-   fill the gap; the coach picks one from the library they are looking at. The
-   surviving claims are that the toggle stays on Home, invents no season, and
-   still renders exactly one workspace switch. */
+/* A mode toggle from the library stays on Home and invents no open season. */
 const programHero = await page.evaluate(async () => {
   const before = window.app.storage.seasonStore.currentSeasonId || '';
   const changed = await window.app.teamHubScreen.selectWorkspace('program');
@@ -721,13 +699,9 @@ const safeguards = await page.evaluate(async () => {
   const dupe = await hub.createSeason({ year: '2026', level: 'Varsity' });
   await hub.load();
   const after = hub.snapshot().railSeasons.length;
-  /* Destructive delete still requires a typed confirmation. FIXTURE REPOINTED
-     2026-09-14: it must target a program season that owns NO opponent scouts. A
-     parent with scouts is now blocked before the confirm is ever offered --
-     deleting it would strand charted opponent film under a season id that no
-     longer exists, and cascading it would destroy scouting data the coach never
-     agreed to lose. The typed-confirmation claim is unchanged and still live;
-     the owned-scout block has its own coverage in e2e-scout-ownership. */
+/* Use a program season without scouts to exercise typed delete confirmation.
+ * Parents with scouts are blocked earlier; e2e-scout-ownership covers that
+ * refusal. */
   const owners = new Set((await window.app.storage.listSeasons())
     .filter(season => season.kind === 'scout' && season.programSeasonId)
     .map(season => String(season.programSeasonId)));

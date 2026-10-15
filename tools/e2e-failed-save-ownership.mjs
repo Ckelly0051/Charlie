@@ -1,18 +1,6 @@
-/* FAILED-SAVE OWNERSHIP HARNESS (Node + one browser case) ---------------------
-   An async operation must keep the season, game or program it started on all
-   the way through a failed save and its rollback. Each case was reproduced
-   against the committed code before its repair:
-
-     1. Deleting a game whose save failed still purged its managed film when
-        the undo window closed or the coach left the season.
-     2. A season restore that waited on its reads wrote A's restore point into
-        season B, and a failed restore save put A's prior data into B's editor.
-     3. Linking film whose save failed restored the captured season over the
-        season opened meanwhile; a switch before the save wrote A's link into B.
-     4. A failed playbook save rolled back the program active after the await,
-        replacing program B's calls with program A's.
-
-   Run after build:  node tools/e2e-failed-save-ownership.mjs */
+/* Async save failures and rollback retain the starting season/game/program
+ * owner. Covers deferred managed-film deletion, restore, linked film and
+ * playbook. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
 import { SeasonStore } from '../js/season-store.js';

@@ -278,9 +278,7 @@ const refA = await refRoundTrip(seasonA());
   ok((await cp.loadSeason('s1')).data.games[0].plays.length === 3, 're-save with MORE plays grows exactly');
 }
 
-// ---- 12. backup ring lives in the shared db (restore-ring migration) --------
-// Restore points are rows in the library db (not per-season backup JSON files);
-// create/list/get/delete + prune + durability across a reopen.
+// Restore points are catalog rows: exercise CRUD, pruning and reopen durability.
 {
   const fs = trackFs();
   const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });

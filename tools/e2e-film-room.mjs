@@ -3,8 +3,7 @@ import { setupTeamAndDemo } from './hub-setup.mjs';
 /* Film Room interactions over the built native route: selection, filtering,
  * editing, saved preferences, cross-surface data and exact film cohorts. */
 import puppeteer from './test-browser.mjs';
-// Plays are current format (legacy excision step 7): each look field is its
-// own field, and an edit writes only the field edited.
+// Each look field is independent; an edit writes only the edited field.
 
 const URL = TEST_APP_URL;
 let pass = 0, fail = 0;
@@ -61,7 +60,6 @@ const openFilmRoom = async () => {
   }
   await page.evaluate(() => window.app.workspaceShell.show('home'));
   await page.waitForFunction(() => document.getElementById('workspaceShell')?.dataset.route === 'home');
-  // V2-A: no per-row Open button -- preview the row, then Continue charting.
   await page.click('.ws-game-row');
   await page.click('#wsContinueCharting');
   await page.waitForFunction(() => window.app.workspace.currentRoute() === 'breakdown');
@@ -97,10 +95,8 @@ let r = await page.evaluate(() => {
   return { owners, domRows, plays: window.app.tagger.plays.length, visible: snapshot.visible, total: snapshot.total };
 });
 ok(r.owners === 1, 'exactly one native Film Room owner mounted', JSON.stringify(r));
-// V2-H: a game this large (the demo season, 70 plays) is now windowed --
-// the DOM renders only the rows near the current scroll position, not one
-// <tr> per play. The model is the source of truth for "every play has a
-// row"; the DOM only needs to be a genuinely smaller, nonempty subset.
+// The full model counts every play; the windowed DOM must be a smaller,
+// nonempty subset.
 ok(r.visible === r.plays && r.total === r.plays, 'every play is represented in the Film Room model', JSON.stringify(r));
 ok(r.domRows > 0 && r.domRows < r.plays, 'the rendered table is a nonempty, windowed subset of a large game', JSON.stringify(r));
 
@@ -136,10 +132,7 @@ console.log('\n== 4. Filters ==');
 r = await page.evaluate(async () => {
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   const chip = (group, val) => document.querySelector(`.gi-film-filters button[data-filter="${group}:${val}"]`);
-  // V2-H: a large game windows its rendered rows, so a literal DOM <tr> count
-  // is no longer "how many plays match this filter" -- the model's own
-  // visible count is, and is exactly what every comparison below already
-  // means by "rows()".
+  // Filter counts come from the full model, not the windowed DOM row count.
   const rows = () => window.app.playGrid.nativeSnapshot().visible;
   const clearFilters = () => [...document.querySelectorAll('.gi-film-controls-actions button')].find(b => b.textContent.trim() === 'Clear filters')?.click();
   const all = rows();
@@ -218,9 +211,7 @@ r = await page.evaluate(async () => {
   const raf2 = () => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
   document.querySelector('[data-native-film-room] thead input[type="checkbox"]').click();
   await raf2();
-  // V2-H: the checkbox column selects every VISIBLE play in the model, not
-  // just the ones currently windowed into the DOM -- app.playGrid.selected
-  // is the true selection set the Watch button and any bulk action consume.
+  // Select-all must include every filtered model play, not just rendered rows.
   const total = window.app.playGrid.nativeSnapshot().visible;
   const checked = window.app.playGrid.selected.size;
   const label = document.querySelector('[data-film-watch]').textContent;
@@ -299,9 +290,7 @@ r = await page.evaluate(async () => {
   await raf2();
   return { selected: grid.selected.size,
            checked: document.querySelectorAll('[data-native-film-room] tbody td.is-check input:checked').length,
-           // V2-H: a large game's rows are windowed in the DOM -- the model's
-           // own total is "did game 2's plays actually load", not a literal
-           // per-play <tr> count.
+           // Check the loaded game through the full model, not its windowed DOM subset.
            total: grid.nativeSnapshot().total,
            domRows: document.querySelectorAll('[data-native-film-room] tbody tr:not(.gi-film-row-spacer)').length,
            current: document.querySelectorAll('[data-native-film-room] tbody tr.is-current').length,
@@ -313,21 +302,18 @@ ok(r.total > 50, 'game 2 plays render after switch', JSON.stringify(r));
 console.log('\n== 8c. v2: tendency row + inline editing ==');
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
-  // The tendency line is a DISPLAY surface driven by grid.nativeSnapshot() --
-  // read the exact same computed value the native table header renders,
-  // rather than parsing a classic .pg-tend row that no longer exists.
+  /* Read the computed tendency from nativeSnapshot, the same value rendered in
+ * the native header. */
   const formTend = grid.nativeSnapshot().columns.find(c => c.key === 'formationFamily')?.tendency || '';
   const counts = {};
   let total = 0;
-  // E3b: the tendency line is a DISPLAY surface and reads the PROJECTED formation,
-  // so the independent expectation must project too. `total` is therefore the §6.5
-  // ELIGIBLE denominator -- an alignment-only play (projected formation blank) is
-  // omitted rather than counted as a "Shotgun" formation.
+  // The independent tendency expectation uses projected formation and excludes
+  // alignment-only plays from its eligible denominator.
   const SE = window.app.stats.constructor;
   window.app.tagger.plays.forEach(p => {
     const vals = String(SE.projField(p, 'formationFamily') || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     if (!vals.length) return;
-    total++;                                   // ONE per eligible play (§6.5)
+    total++;                                   /* One count per eligible play. */
     vals.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
   });
   const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
@@ -353,17 +339,9 @@ ok(r.multiTend === 'Run Inside 100%', 'tendency denominator counts ELIGIBLE PLAY
 ok(r.subsetTend === 'RPO 67%', 'tendency share of a subset value uses the eligible-play denominator (2/3, not 2/4)', JSON.stringify(r.subsetTend));
 
 console.log('\n== 8c-2. E3b: tendency value/share + eligible denominator across ALL SIX projected columns ==');
-// Review finding (E3b): the P3 contract says "the tendency line must use the
-// SAME projected grouping and eligible denominator" for the projected columns
-// generally, but the prior pass only wired it for the two columns that were
-// editable at the time (formation, coverage) and left the other four
-// (qbAlignment, backfield, strength, coverageFamily -- DISPLAY-ONLY/
-// `proj-readonly` in E3b, made genuinely editable in E4-2) rendering nothing.
-// Whether a column is editable is a separate concern from whether a summary
-// is useful, so _tendency() routes every projected column through the
-// identical enum math. All four are single-value, so the multi-value split
-// is a no-op for them; this is genuinely the SAME calculation, not a parallel
-// one. Fully pure -- unaffected by the classic-DOM deletion.
+/* All projected columns use identical eligible-denominator tendency math,
+ * independently of editability. Splitting a single-value field is a no-op, not
+ * a second formula. */
 r = await page.evaluate(() => {
   const grid = window.app.playGrid;
   const mkDef = (id, coverage, coverageFamily) => ({ id, timestamp: { start: 0, end: 1 }, tags: { unit: 'defense', coverage, coverageFamily } });
@@ -548,9 +526,8 @@ r = await page.evaluate(async () => {
 });
 ok(r.defHeads.includes('Front') && r.defHeads.includes('Cover') && !r.defHeads.includes('Formation'),
   'Defense preset swaps columns', JSON.stringify(r.defHeads));
-// E3b: the Defense preset now carries Coverage Family immediately after Coverage
-// Call (coach-specified placement) -- compared against the real preset array
-// rather than a hardcoded snapshot, so this can't drift silently.
+/* Compare Coverage Family placement with the real Defense preset, not a
+ * duplicate hardcoded snapshot. */
 ok(JSON.stringify(r.saved) === JSON.stringify(r.expected),
   'preset persisted to localStorage', JSON.stringify(r.saved));
 ok(r.withQtr.includes('quarter'), 'setColumn adds a column (persisted)', JSON.stringify(r.withQtr));
@@ -925,14 +902,8 @@ for (const [name, c, oldVal, otherVal, pick] of [
 }
 
 console.log('\n== 8h. E4-2: safe Film Room editing for QB Alignment/Backfield/Strength/Coverage Family ==');
-// These four columns were DISPLAY-ONLY (`proj-readonly`) in E3b, pending the
-// field-level-merge machinery E4/E4-2 built. Proves the same non-writing
-// view/cancel contract D-projform requires of the tag form ALSO holds for the
-// grid's inline editor, now that these cells are real editable enum cells --
-// plus one-step undo/redo for a relationship-free column (Strength) and
-// cross-surface parity (a grid edit is visible identically in the tag form
-// for the currently-loaded play, mounted into a throwaway scratch host since
-// .tag-section/#tagQbAlignment are deleted).
+/* Opening/cancelling inline editors must not write. Strength edits support
+ * one-step Undo/Redo and match the mounted native tag form. */
 r = await page.evaluate(() => {
   const tagger = window.app.tagger;
   const play = tagger.plays[1];
@@ -1079,13 +1050,9 @@ for (const [name, c, stored, otherVal] of [
 }
 
 console.log('\n== 9. E3b-P3: rendered row equality + Watch equality (all 6 projected columns) ==');
-// P3's exact contract (docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §20): Film Room has NO six-field quick
-// filter, so do not add one here -- instead group the RENDERED row IDs by each
-// projected cell value, assert those sets equal AnalyticsRegistry.matchingRefs
-// (an INDEPENDENT computation, not Film Room's own code), then select one exact
-// row set and assert Watch receives the same refs. This is the LAST section
-// (see the E3b-INTERACTIVE banner above) and restores every piece of state it
-// touches.
+// Group rendered row IDs by projected cell value and compare them with the
+// independent AnalyticsRegistry refs, then prove Watch receives that exact set.
+// Restore all state after this interactive check.
 r = await page.evaluate(async () => {
   const grid = window.app.playGrid, tagger = window.app.tagger, registry = window.app.analyticsRegistry;
   const SE = window.app.stats.constructor;

@@ -1,11 +1,6 @@
-/* PLAN CONTRACT HARNESS (Node) — Phase 3 Plan foundation: the backward-compatible
-   season-level `plans: []` data contract on SeasonStore. Verifies it defaults
-   safely on legacy seasons, normalizes defensively while PRESERVING unknown/future
-   keys (so the shape can grow without a migration), survives a JSON round-trip, and
-   that the mutation seam (create/rename/notes/addItem/removeItem/delete) keeps a
-   normalized shape. Pure data — a stub backend, no DOM/disk. NOTHING in the app
-   consumes plans yet (the Plan UI + "save Study finding" land next).
-   Run:  node tools/e2e-plan-contract.mjs */
+/* Season-level plans preserve unknown keys, survive JSON round-trips and stay
+ * normalized through create/rename/notes/item/delete mutations.
+ * Pure data contract: stub backend, no DOM or disk. */
 import assert from 'node:assert';
 import { SeasonStore } from '../js/season-store.js';
 

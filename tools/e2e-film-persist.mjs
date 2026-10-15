@@ -1,15 +1,7 @@
 import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
-/* REGRESSION (P1-2 / P1-3): every film-add path must persist to the desktop
-   library, and a managed import/repair must record filmMode:'managed' (clearing
-   a stale 'linked') while a linked game is never copied.
-   - P1-2: PlaylistManager.addFiles fires the onFilmFiles hook for new files, so
-     the Playlist-panel "Add Clips" button (which bypassed importFilm) now persists.
-   - P1-3: StorageManager.importFilm sets filmMode='managed' + clears filmDir on a
-     managed import, and SKIPS a linked game (referenced in place, never copied).
-   Desktop film I/O is stubbed (backend.supportsFilm/importFilm) so the logic runs
-   in the headless harness.
-
-   Run after build:  node tools/e2e-film-persist.mjs */
+/* Every film-add path persists through the desktop backend. Managed imports
+ * record managed mode and clear filmDir; linked games are never copied.
+ * Desktop film I/O is stubbed. */
 import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;

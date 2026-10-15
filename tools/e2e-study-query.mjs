@@ -75,11 +75,8 @@ const result = await page.evaluate((fixture) => {
     const q = study.run({ plays, dimension: dim, measures: ['sampleSize', 'runShare', 'passShare', 'successRate'] });
     grouped[dim] = { cut, total: q.total, expected: expectedValues(dim), groups: q.groups.map(g => ({
       value: g.value, ids: g.matchingPlayIds, sampleSize: g.sampleSize, measures: g.measures,
-      // Independent second computation, NOT read from the golden file — the D-E3split
-      // standard is "not merely golden-equal": the golden and Study's own grouping
-      // could share the same bug, but AnalyticsRegistry.matchingRefs() is a SEPARATE
-      // code path (its own predicate lookup + its own composite-ref builder) computed
-      // FRESH against these same plays right now, so it can't inherit a stale golden.
+      /* AnalyticsRegistry.matchingRefs computes fresh independent refs. Golden
+ * equality alone can hide a shared grouping bug. */
       registryIds: registry.matchingRefs(plays, cut, g.value),
     })) };
   }
@@ -104,17 +101,15 @@ const result = await page.evaluate((fixture) => {
   // Two-cohort comparison: game 1 (base) vs the whole season (against).
   const g1Plays = store.data.games[0].plays;
   const cmp = study.compare({ base: g1Plays, against: plays, dimension: 'formationFamily', measures: ['sampleSize', 'successRate', 'runShare'], labels: { base: 'Game 1', against: 'Season' } });
-  // Post-E3a projection: 'Shotgun'/'Pistol' are QB ALIGNMENT, not formations, so the
-  // surviving structural formations are used — 'Spread' (both games) and 'Flexbone'
-  // (g2-only), mirroring the base-present / base-empty cohort intent.
+  /* Shotgun/Pistol are QB alignment, not formations. Spread and game-2-only
+ * Flexbone distinguish base-present and base-empty cohorts. */
   const cmpTrips = cmp.rows.find(r => r.value === 'Spread');
   const cmpFlexbone = cmp.rows.find(r => r.value === 'Flexbone'); // g2-only formation
   const cmpMeta = { aTotal: cmp.a.total, bTotal: cmp.b.total, aLabel: cmp.a.label, bLabel: cmp.b.label, valueCount: cmp.rows.length, g1PlayCount: g1Plays.length };
 
   // Guards.
   const unknownThrows = (() => { try { study.run({ plays, dimension: 'nope' }); return false; } catch { return true; } })();
-  // fieldZone graduated to 'ready' in the Study expansion (2026-08-15);
-  // scoreSituation is the dimension that remains deliberately deferred now.
+  /* fieldZone is ready; scoreSituation remains deliberately deferred. */
   const deferredThrows = (() => { try { study.run({ plays, dimension: 'scoreSituation' }); return false; } catch { return true; } })();
   const compareBadArgsThrows = (() => { try { study.compare({ base: plays, against: null, dimension: 'formationFamily' }); return false; } catch { return true; } })();
 
@@ -123,13 +118,8 @@ const result = await page.evaluate((fixture) => {
   // the mapping structurally — removing it must fail here.
   const DC = window.app.study.constructor.DIMENSION_CUT;
 
-  // runMetrics() — the additive AnalyticsMetrics seam (bounded analytics
-  // architecture cleanup). Grouping must be IDENTICAL to run() (same
-  // dimension/cut/parity machinery); only the per-group measure shape differs.
-  // stopRate (higher) + yardsAllowedPerPlay (lower) exercise BOTH polarity
-  // directions -- yardsPerPlay's own default flipped to 'higher' as part of
-  // the Codex review repair (2026-08-14, finding #1: polarity is per unit),
-  // so it can no longer stand in as "the lower-is-better metric" here.
+  /* runMetrics must group exactly like run; only measure shape differs. stopRate
+ * (higher) and yardsAllowedPerPlay (lower) exercise both polarity directions. */
   const richQ = study.runMetrics({ plays, dimension: 'formationFamily', metricIds: ['stopRate', 'yardsAllowedPerPlay'] });
   const richFormationQ = study.run({ plays, dimension: 'formationFamily', measures: ['sampleSize'] });
   const richTrips = richQ.groups.find(g => g.value === 'Spread');
@@ -151,11 +141,8 @@ const result = await page.evaluate((fixture) => {
   const honestYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay');
   const legacyYpp = metricsEngine.metric(missingYardageCohort, 'yardsPerPlay', {}, { missingAsZero: true });
 
-  // compareMetrics() — Study expansion (2026-08-15): the runMetrics() sibling
-  // of compare(). Same game-1-vs-season cohorts as the existing compare()
-  // assertion below, so its 'Spread' row can be checked against the SAME
-  // per-scope golden drilldowns -- proving compareMetrics() is genuinely
-  // additive (compare() is untouched) and film-linked exactly like compare().
+  /* Compare game-1 and season cohorts against the same per-scope golden
+ * drilldowns to pin exact film linkage. */
   const cmpMetrics = study.compareMetrics({
     base: g1Plays, against: plays, dimension: 'formationFamily', metricIds: ['stopRate', 'yardsAllowedPerPlay'],
     labels: { base: 'Game 1', against: 'Season' },
@@ -176,11 +163,8 @@ const result = await page.evaluate((fixture) => {
   });
   const cmpMetricsTripsInsufficient = cmpMetricsInsufficient.rows.find(r => r.value === 'Spread');
 
-  // fieldZone — Study expansion (2026-08-15): a real, ready, unit-agnostic
-  // dimension. Query it directly (not through DIMENSION_CUT/golden parity,
-  // since it is a genuinely new query surface with no existing report
-  // drilldown to match) and confirm it groups + film-links like any other
-  // ready dimension.
+  /* Query fieldZone directly to prove grouping and film linkage without relying
+ * on a report drilldown or golden mapping. */
   const fieldZoneQ = study.run({ plays, dimension: 'fieldZone', measures: ['sampleSize'] });
 
   return {
@@ -253,11 +237,7 @@ if (!result.missing) {
   }
   ok(!parityMismatch, `Every Study group's matchingPlayIds equals the parity golden drilldown (${checked} groups)`, parityMismatch);
 
-  // 1c. E3b — the D-E3split standard: registry-equal, NOT merely golden-equal.
-  // A stale or wrongly-regenerated golden could agree with a buggy Study grouping;
-  // AnalyticsRegistry.matchingRefs is computed FRESH here, off a totally separate
-  // predicate lookup, so it cannot inherit whatever bug the golden might share.
-  // Covers every dimension in `dims` above, INCLUDING qbAlignment/coverageFamily.
+  /* Registry-ref equality is independent of golden-value equality. */
   let registryMismatch = '';
   let registryChecked = 0;
   for (const [dim, block] of Object.entries(result.grouped)) {
@@ -293,8 +273,7 @@ if (!result.missing) {
   const queryFormations = result.grouped.formationFamily.groups.map(g => g.value).sort();
   ok(JSON.stringify(goldFormations) === JSON.stringify(queryFormations), 'Formation query values exactly cover the golden formation drilldowns', JSON.stringify({ goldFormations, queryFormations }));
 
-  // 1b. The two new E3a dimensions map to their canonical cuts (film-link parity,
-  //     not registry membership) — finding 1.
+  /* QB alignment and coverage family map to their canonical film cuts. */
   ok(result.dimCut.qbAlignment === 'qbAlignment' && result.dimCut.coverageFamily === 'coverageFamily',
     'Study routes qbAlignment + coverageFamily through their report cuts', JSON.stringify(result.dimCut));
 
@@ -324,21 +303,16 @@ if (!result.missing) {
   ok(JSON.stringify(result.richGroups) === JSON.stringify(result.richFormationGroups),
     'runMetrics() groups identically to run() for the same dimension (same values, sampleSize, matchingPlayIds)',
     JSON.stringify({ rich: result.richGroups, run: result.richFormationGroups }));
-  // Codex review, 2026-08-14, finding #1: polarity is per unit, not
-  // universal -- stopRate (higher, unambiguous by name) paired with
-  // yardsAllowedPerPlay (lower, the defense-framed sibling) exercises BOTH
-  // directions through the live registry-bound engine, not just the pure
-  // module's own unit tests.
+  /* Polarity is per unit. Exercise stopRate (higher) and yardsAllowedPerPlay
+ * (lower) through the live registry engine. */
   ok(!!result.richTrips && result.richTrips.stopRate.polarity === 'higher' && result.richTrips.yardsAllowedPerPlay.polarity === 'lower',
     'runMetrics() results carry each metric\'s own per-unit polarity', JSON.stringify(result.richTrips));
   ok(!!result.richTrips && JSON.stringify(result.richTrips.stopRate.refs) === JSON.stringify(result.richTrips.matchingPlayIds),
     'runMetrics() metric refs equal the group\'s matchingPlayIds (same composite-ref contract as run())',
     JSON.stringify(result.richTrips));
-  // Codex review, 2026-08-14, finding #5: strict inequality on a fixture
-  // GUARANTEED to differ (two hand-built plays, one with no yardage tag),
-  // not `<=` against a fixture group that might already agree -- the
-  // original assertion could pass even with missingAsZero forwarding
-  // silently broken.
+  /* Use two hand-built plays, one lacking yardage, to guarantee strict
+ * inequality when missingAsZero changes. A non-strict comparison could pass
+ * with broken forwarding. */
   ok(!!result.honestYpp && !!result.legacyYpp
     && result.honestYpp.denominator === 1 && result.honestYpp.value === 6
     && result.legacyYpp.denominator === 2 && result.legacyYpp.value === 3

@@ -81,15 +81,8 @@ const literalFonts = sources.flatMap(({ path, source }) =>
   /font(?:-family)?\s*:[^;]*(?:IBM Plex|system-ui)/i.test(source) ? [path] : []);
 ok(literalFonts.length === 0, 'native styles consume typography tokens instead of local font stacks', literalFonts.join(', '));
 
-/**
- * UX-4 (S6-4b): the SHELL stylesheets join enforcement. They are not `native-*`
- * — they style the workspace the native routes sit inside — and until now they
- * were unenforced, which is how 89 raw colours across 52 near-duplicate hexes
- * accumulated there while the native set stayed at zero. The rule is one step
- * looser than the native rule, and deliberately so: a shell file MAY declare
- * raw colour inside its `:root` token block (that is what a token block is
- * for), and may not use raw colour anywhere else.
- */
+/* Shell styles may declare raw colors only inside :root token blocks, unlike
+ * native styles, which require tokens throughout. */
 const shellCss = ['workspace-shell.css', 'study-screen.css', 'plan-screen.css'].map(name => resolve(root, 'css', name));
 const shellSources = await Promise.all(shellCss.map(async path => ({ path, source: await readFile(path, 'utf8') })));
 // Blank the token block rather than removing it, so reported line numbers still
@@ -116,16 +109,8 @@ const standalone = shellDecls.filter(entry => !/var\(--gi-/.test(entry.value)).m
 ok(shellDecls.length > 12 && standalone.length === 0,
   'every shell colour role derives from a design-system token — one palette, not two', JSON.stringify(standalone));
 
-/**
- * AX-1 (S6-4c). `redesign-stats.css` styles the Reports route, and 115 of its
- * 122 rules were scoped to `.stats-overlay` — the modal the native route
- * retired. The file was linked and loaded, so the dead-stylesheet guard added
- * after 1.12.0-13 passed; the rules simply never matched, and every KPI hero
- * rendered as raw stacked text. That is the fourth instance of this class and
- * the first where the stylesheet WAS reachable, so reachability alone is not a
- * sufficient check: a Reports rule scoped to a container the native route does
- * not have is dead in exactly the same way.
- */
+/* Stylesheet reachability alone does not prove live selectors. Reports styles
+ * must target containers the native route actually produces. */
 const reportCssPath = resolve(root, 'css', 'redesign-stats.css');
 const reportCss = await readFile(reportCssPath, 'utf8');
 const retiredScopes = [...reportCss.matchAll(/([^{}]*\.stats-overlay[^{}]*)\{/g)]

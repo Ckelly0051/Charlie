@@ -98,17 +98,9 @@ async function fuzzOne(seed, ops) {
       const okSave = await cp.saveSeason(id, data);
       fs.state.writeDbFail = false;
       log.push(`op${n} SAVE ${id} v${v} fault=${fault} shape=${JSON.stringify(shape(data))}`);
-      // PC-1 repair (Codex review c51a12c/4ae34e8, finding 2): a faulted save
-      // is now ATOMIC -- CatalogPersistence.saveSeason() performs ZERO writes
-      // anywhere (json, mirror, in-memory catalog) when writeDb() fails, and
-      // rolls the in-memory catalog back to its pre-attempt snapshot. So the
-      // model must stay at whatever it was BEFORE this attempt (a prior
-      // successful shape, or absent if this is the season's first-ever save)
-      // -- only a genuinely successful save advances it. This inverts the
-      // prior assumption here ("whether the db write faulted or not... the
-      // model advances to the new shape"), which described the exact bug:
-      // a faulted save used to still write the json fallback and leave the
-      // in-memory catalog committed to the rejected payload.
+      // Advance the independent model only after a successful save. A writeDb fault
+      // must leave catalog, mirror and sidecars untouched and retain the prior model,
+      // including absence when the first save fails.
       if (!fault) model.set(id, shape(data));
       if (fault) assert.strictEqual(okSave, false, `seed ${seed} op ${n}: faulted save must report false`);
       else assert.strictEqual(okSave, true, `seed ${seed} op ${n}: clean save must report true`);

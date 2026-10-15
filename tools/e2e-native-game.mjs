@@ -1,5 +1,5 @@
-/* S4-c native New/Edit Game journey. Pins one owner, one durable write, and
-   complete fail-closed rollback across create/edit/race paths. */
+/* Native New/Edit Game pins one owner, one durable write and fail-closed
+ * rollback across create/edit/race paths. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 
@@ -78,14 +78,8 @@ ok(r.calls === 1 && r.games === 2, 'Create game performs one durable write and a
 ok(r.dialogClosed, 'Game settings closes after a successful create', JSON.stringify(r));
 ok(r.info.opponent === 'Bravo Bears' && r.info.date === '2026-08-27' && r.info.homeAway === 'away' && r.info.perspective === 'offense', 'Create stores the complete football context', JSON.stringify(r.info));
 ok(JSON.stringify(r.info) === JSON.stringify(r.durableInfo), 'Created game context survives canonical backend reload', JSON.stringify(r));
-/* RETIRED, not repointed: this used to drive the form's `Film source` select to
-   `scout` and assert that a PROGRAM-season create produced a scout game. That is
-   the defect the coach removed on 2026-09-13 -- a program game marked scout
-   leaves `SeasonManager._selfGames()` and silently drops out of our season
-   record, yardage, success rate and turnover margin. The surviving claim is the
-   one that still has a subject: a program season derives a program game, and
-   creating it does not disturb the previous game's film tags. Scout-season
-   creation is covered by e2e-game-form-context section 5. */
+/* A program season derives a program game without disturbing prior film tags.
+ * Scout-season creation is covered by e2e-game-form-context. */
 ok(r.perspective === 'offense' && r.defaultUnit === 'offense' && /I-Form/.test(r.firstIntact), 'A program season derives a program game without mutating prior-game film tags', JSON.stringify(r));
 ok(r.headerButton && /Bravo Bears/.test(r.headerSummary) && /Bravo Bears/.test(r.shellContext), 'Game header remains an edit launcher and reflects the created game', JSON.stringify(r));
 

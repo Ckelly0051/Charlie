@@ -1,14 +1,5 @@
-/**
- * V2-H large-game Film Room performance: proves the windowed row renderer in
- * native-film-room.jsx is functionally identical to rendering every row --
- * scrolling, keyboard navigation far beyond the rendered window, inline
- * editing, and select-all all still operate on the TRUE full play set even
- * though only a subset is ever a real <tr> at once. This is a permanent
- * regression for the V2-H checkpoint that added row windowing after
- * measuring a real, demonstrated bottleneck (a large game's Chart<->Film
- * Room switch cost scaling with total play count): see the checkpoint
- * handoff in docs/archive/CLAUDE-HISTORY-THROUGH-2026-09-02.md / docs/archive/plans/GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md for the measured numbers.
- */
+/* Windowing must preserve full-model scrolling, keyboard navigation, editing
+ * and select-all while keeping the rendered row count bounded. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 
@@ -156,13 +147,8 @@ await page.evaluate(async (n) => {
 await settle(page);
 
 console.log('\n== 6. A far-away active row stays PINNED, not spanned -- the DOM stays bounded ==');
-// Codex review (P1): the active row used to be pinned by EXPANDING the
-// scroll window to cover it, so a coach parked on row 1 who scrolled near
-// the bottom of a 300-play game rendered a window spanning nearly the
-// entire table -- exactly defeating the point of windowing. This proves the
-// disjoint-segment repair: both the active row and the scrolled-to rows
-// render, everything strictly between them does not, and the total DOM row
-// count stays a small, bounded number regardless of how far apart they are.
+// A distant active row and the scrolled window must render as disjoint
+// segments, without rendering the intervening rows.
 r = await page.evaluate(async (n) => {
   const wrap = document.querySelector('.gi-film-table-wrap');
   wrap.scrollTop = 0; wrap.dispatchEvent(new Event('scroll'));
@@ -185,13 +171,8 @@ ok(r.nearBottomPresent, 'the rows actually scrolled to are rendered', JSON.strin
 ok(r.midRowAbsent, 'rows strictly between the active row and the scroll position are NOT rendered', JSON.stringify(r));
 
 console.log('\n== 7. Several scroll events inside one animation frame resolve to the LATEST position ==');
-// Codex review (P2): the scroll handler used to capture scrollTop once and
-// discard it if a frame was already queued, so a fast scrollbar drag could
-// leave the rendered window stuck at whichever position happened to be
-// current for the FIRST event in the batch. These three scrollTop changes
-// are dispatched synchronously, in the same script turn -- strictly before
-// the animation frame queued by the first one can possibly run -- exactly
-// reproducing "several scroll events land before the frame fires".
+// Dispatch all three scroll positions in one script turn, before the queued
+// animation frame, to prove the handler uses the latest position in the batch.
 r = await page.evaluate(async (n) => {
   const wrap = document.querySelector('.gi-film-table-wrap');
   document.activeElement?.blur?.();

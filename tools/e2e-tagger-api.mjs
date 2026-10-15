@@ -1,16 +1,5 @@
-/**
- * THE CHARTING DATA API (legacy excision Pass 2, step 1). PlayTagger writes a
- * play from explicit values — setTagValue, toggleTagValue, setPlayerValue,
- * setGradeValue — instead of mirrored form fields, the pattern behind S99-2
- * (shown and stored units drifting apart).
- *
- * 1. Each rule the write carries, with explicit expected values.
- * 2. (Retired with the field path: the old-path-versus-API agreement check.)
- * 3. Keyboard shortcuts write through the same API.
- * Chart writes the open play's draft (GRIDIRON-IQ-SAVE-CONTRACT.md), so each
- * check reads the draft, `getCurrentPlay()`.
- * Run:  node tools/e2e-tagger-api.mjs
- */
+/* Explicit tag/player/grade writes and keyboard shortcuts use the charting
+ * data API. Chart edits a draft, so assertions read getCurrentPlay(). */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 

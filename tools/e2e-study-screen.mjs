@@ -52,11 +52,9 @@ await page.evaluate(async () => {
   const store = app.storage.seasonStore;
   const g1 = store.activeGame();
   g1.id = 'g-study-1'; g1.name = 'Week 1 vs Rivals'; g1.gameInfo = { opponent: 'Rivals', date: '2026-09-01' };
-  // Study expansion (2026-08-15): distance is real, tagged data on every play
-  // -- AnalyticsMetrics' honest eligibility (`_isSuccessfulPlayEligible`)
-  // requires yardage + down + distance to compute successRate/stopRate; an
-  // omitted distance is exactly the "insufficient data" case the coaching
-  // metrics are built to disclose, not a fixture convenience to skip.
+  /* Supply yardage, down and distance so successRate/stopRate have eligible
+ * data. Missing distance is a meaningful insufficient-data case, not a fixture
+ * shortcut. */
   g1.plays = [
     { id: 1, timestamp: { start: 0, end: 4 }, tags: { unit: 'offense', formationFamily: 'Spread', runPass: 'Run', playType: 'Run Inside', result: 'Gain', yardage: '6', down: '1', distance: '10', custom: [] } },
     { id: 2, timestamp: { start: 5, end: 9 }, tags: { unit: 'offense', formationFamily: 'I-Form', runPass: 'Pass', playType: 'Short Pass', result: 'Incomplete', yardage: '0', down: '2', distance: '4', custom: [] } },
@@ -118,9 +116,8 @@ await page.select('#wsStudyUnit', 'defense');
 r = await page.evaluate(() => ({ summary: document.querySelector('#wsStudySummary')?.textContent, groups: [...document.querySelectorAll('.ws-study-row > strong')].map(el => el.textContent) }));
 ok(/0 matching plays/.test(r.summary) && r.groups.length === 0, 'Unit filter is ANDed into the selected football question', JSON.stringify(r));
 
-// Study expansion (2026-08-15): a coaching metric (offense/defense pair) must
-// never guess a framing from a blank unit -- it fails closed with a visible
-// prompt instead. This is the non-negotiable itself under test, not a gap.
+/* A coaching metric must fail closed with a visible prompt when unit framing
+ * is blank. */
 await page.select('#wsStudyUnit', '');
 await page.select('#wsStudyMeasure', 'negative');
 r = await page.evaluate(() => ({ promptVisible: !document.querySelector('#wsStudyUnitPrompt')?.hidden, rows: document.querySelectorAll('.ws-study-row').length, watchDisabled: document.querySelector('[data-study-action="watch-all"]')?.disabled }));
@@ -383,7 +380,7 @@ await new Promise(r => setTimeout(r, 400));
 // exposed to get there.
 r = await page.evaluate(() => ({
   stats: !document.querySelector('#statsDashboard')?.classList.contains('hidden'),
-  // S7 demolition: outlet deleted; absence is the assertion.
+  /* Retired classic outlet must be absent. */
   outletHidden: !document.querySelector('#wsClassicOutlet'),
   route: window.app.workspace.currentRoute(),
   dashInReportsRoute: !!document.querySelector('#wsReports #statsDashboard'),
@@ -547,8 +544,8 @@ await page.evaluate(() => window.app.workspaceShell.show('plan'));
 r = await page.evaluate(() => ({ overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth, plan:!document.querySelector('#wsPlan')?.hidden, tabs:document.querySelector('.bottom-tabs') ? getComputedStyle(document.querySelector('.bottom-tabs')).display : 'absent' }));
 ok(!r.overflow && r.plan && r.tabs === 'absent', 'Mobile Plan has no page overflow or classic-workflow overlays', JSON.stringify(r));
 const mobilePresentation=await page.evaluate(()=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];const item=store.addPlanItem(plan.id,{kind:'film',label:'Mobile install',refs:['g-study-1::1']});
-// Enough items that the S6-3 strip MUST scroll at 390px — a one-entry strip
-// cannot prove the container owns its overflow instead of the page.
+/* Use enough items to force strip scrolling at 390px; one item cannot prove
+ * container-owned overflow. */
 const extra=['Mobile install 2','Mobile install 3','Mobile install 4','Mobile install 5'].map(label=>store.addPlanItem(plan.id,{kind:'film',label,refs:['g-study-1::2']}));
 app.planScreen.render();document.querySelector('[data-plan-action="present"]').click();const controls=[...document.querySelectorAll('.ws-plan-present>footer .ws-btn')];
 const stripHost=document.querySelector('[data-plan-strip]'),stripButtons=[...document.querySelectorAll('[data-plan-present-jump]')];
@@ -562,14 +559,9 @@ await page.keyboard.press('Escape');
 await page.evaluate(async ids=>{const app=window.app,store=app.storage.seasonStore,plan=store.plans()[0];ids.forEach(id=>store.removePlanItem(plan.id,id));await store.persist();app.planScreen.render();},[mobilePresentation.itemId,...mobilePresentation.extraIds]);
 await capture('study-390x844');
 
-// E3b review finding: qbAlignment/coverageFamily were 'ready' in the registry
-// and fully proven at the query-engine level, but StudyScreen.DIMENSIONS never
-// listed them, so a coach could not select either in the actual product — the
-// direct query tests passing said nothing about reachability through the UI
-// a coach actually uses. Drive the REAL <select> (fires a real 'change' event
-// through _bind(), same as every other selector test in this file) and prove
-// the resulting rows are genuine projected data, not just that the <option>
-// exists.
+/* Drive the real dimension selector and change event for
+ * qbAlignment/coverageFamily. Options alone do not prove reachable queries or
+ * projected row data. */
 await page.setViewport({ width: 1280, height: 800 });
 await page.evaluate(() => {
   // g-study-1 is the ACTIVE game — mutate the LIVE tagger.plays, not
@@ -924,21 +916,13 @@ const picker = await page.evaluate(() => {
     })(),
   };
 });
-// Grouping reorders options, so "the first option" is no longer a stable
-// default — this is a real behaviour change that the harness caught, and the
-// default is now stated in code rather than inherited from list position.
+/* Select the intended default explicitly; option order is not a stable
+ * default. */
 ok(picker.defaultDimension === 'formationFamily' && picker.declaredDefault === 'formationFamily',
   'Study still opens on Formation after the pickers were grouped',
   JSON.stringify({ selected: picker.defaultDimension, declared: picker.declaredDefault }));
-// Study expansion (2026-08-15): the lens grouping changed shape -- the picker
-// now leads with the five offense/defense coaching-metric pairs (the primary
-// non-negotiable of this increment) and keeps the registry-only flat measures
-// as a distinct "Advanced" group, rather than the four football-question
-// lenses this list used before the metric set itself was redesigned.
-// Phase 2 (2026-08-15): "Penalties" and "Special Teams" are added AFTER
-// those two, their own literal-labeled lenses -- the coaching-metric and
-// legacy groups keep their exact prior order and option sets, so this is a
-// real addition, not a reshuffle of what already worked.
+/* Pin lens order and contents: coaching metric pairs, Advanced, Penalties and
+ * Special Teams. */
 ok(picker.measure.groups.join(',') === 'Coaching metrics,Advanced,Penalties,Special Teams',
   'The Study metric picker groups coaching metrics ahead of advanced measures, with Penalties/Special Teams as their own lenses', picker.measure.groups.join(','));
 ok(picker.dimension.groups.join(',') === 'Situation,Offensive look,Defensive call,Outcome & risk,Special Teams,Players,Receiver,Custom',

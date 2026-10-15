@@ -435,12 +435,8 @@ ok(state.minHit >= 44 && state.internal, 'Visible mobile controls meet touch tar
 await page.keyboard.press('Escape');
 if (shotDir) await page.screenshot({ path: path.join(shotDir, 'breakdown-theater-390.png') });
 
-/* ══ 6. The transport row is one aligned row at both release widths ════════
-   The playback-speed select was given an explicit 34px box so it matches the
-   icon commands beside it. Nothing asserted that, so the repair rested on one
-   inspection. The control is PROVED RENDERED first — a zero-box element would
-   satisfy any equal-height check trivially, which is exactly the vacuous result
-   this block exists to refuse. */
+/* Prove the speed control is rendered before comparing transport heights;
+ * zero-size elements would make equal-height assertions vacuous. */
 console.log('\n== 6. Playback-speed geometry matches its transport row ==');
 const transport = [];
 for (const [width, height] of [[1440, 900], [1280, 800]]) {

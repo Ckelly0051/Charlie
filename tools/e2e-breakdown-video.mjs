@@ -62,8 +62,7 @@ await page.click('[data-bd-context="quick"]');
 await page.waitForSelector('[data-native-quick-chart]');
 state=await page.evaluate(()=>({active:window.app.quickChart.isActive,native:!!document.querySelector('[data-native-quick-chart]'),legacy:!!document.getElementById('quickChartPanel')}));
 ok(state.active&&state.native&&!state.legacy,'Quick Chart selector opens one native owner with no legacy panel',JSON.stringify(state));
-// The Our Program / Opponent Scout toggle that used to close Quick Chart is
-// gone (the season decides it); Quick Chart closes from its own panel.
+// Quick Chart closes from its own panel.
 await page.click('[data-overlay-id="quick-chart"] .gi-overlay-close');
 await page.waitForFunction(()=>!window.app.quickChart.isActive);
 
@@ -79,13 +78,8 @@ for(const [width,height] of [[1280,720],[768,1024],[390,844]]){
 }
 console.log('\n== 4. Missing/failed film shows a real, visible recovery message ==');
 await page.setViewport({width:1440,height:900});
-// V2-H: _setPlaceholderText() used to write into a <p> that UIPolish's
-// empty-state rebuild (ui-polish.js _initEmptyStateCTA) detaches from the
-// document moments after VideoController's constructor caches it -- so a
-// failed/missing clip silently fell back to the generic "Add game film"
-// card with no explanation at all, on every single session. Drives the
-// real error path (an invalid src, the genuine `error` event) rather than
-// calling the private method directly, so this can't pass on a broken wire.
+// Dispatch a genuine media error for an invalid source so the recovery message
+// check also exercises the event wiring, not just a private handler.
 state=await page.evaluate(()=>new Promise(resolve=>{
   const vc=window.app.vc;
   vc.video.addEventListener('error',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{

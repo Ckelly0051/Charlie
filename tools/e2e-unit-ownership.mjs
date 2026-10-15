@@ -1,24 +1,6 @@
-/**
- * ONE STORED UNIT, WRITABLE FROM EITHER VIEW (1.12.0-99 smoke, S99-1 / S99-2;
- * coach direction 2026-09-24: "we have to have a way to select the unit from
- * both screens", last write wins).
- *
- * 1. Film Room All plays: the formation-type fields a defensive snap charts
- *    (the offense it faced) and the front-type fields an offensive snap charts
- *    (the defense it faced) display and edit; only Special Teams rows blank the
- *    alignment columns, and only other rows blank the Special Teams columns.
- * 2. A play with no stored unit reads as offense in Chart and Film Room alike,
- *    and choosing its unit in Chart writes it even when the last unit chosen
- *    was that same unit.
- * 3. Film Room's Unit column (like Hudl's ODK) edits the play's unit in the
- *    row, through the same write as Chart; whichever wrote last shows in both.
- * 4. The unit buttons above the table are labeled filters and never write.
- * 5. The lock rule holds in every scope, custom column sets included.
- * 6. Save & Next's carried unit goes through the same write.
- * 7. The keyboard shortcuts, Clear Tags and Save & Next act on the unit on
- *    screen, never the carried one (code review CR-1..3).
- * Run:  node tools/e2e-unit-ownership.mjs
- */
+/* Chart and Film Room write one stored unit through the same API; last write
+ * wins. Filters never write. Blank unit reads as offense; locks depend on the
+ * row unit, including custom column sets and carried units. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 

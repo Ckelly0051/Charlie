@@ -133,9 +133,8 @@ test('season normalization round-trips structured and legacy data', () => {
   assert.equal(reopened.games[0].plays[1].specialTeams.kick.distance, 43);
 });
 
-// The legacy fallback was retired with the old tags (legacy excision, 2026-09-26):
-// structured scoring is the only scoring, and a play carrying only retired tags
-// scores nothing and attributes nothing through them.
+/* Missing structured Special Teams data has no legacy fallback and must remain
+ * unavailable. */
 test('StatsEngine scores the structured event; retired tags score nothing', () => {
   const structured = { tags: { unit: 'special', stType: 'Field Goal', kickOutcome: 'Good', scoreFor: 'us' }, specialTeams: event({ unit: 'fieldGoalBlock', outcome: { status: 'good', score: 'fieldGoal' } }) };
   const legacy = { tags: { unit: 'special', stType: 'XP', kickOutcome: 'Good', scoreFor: 'them' } };
@@ -302,10 +301,8 @@ test('the same block recovered by the opponent scores for the opponent, and an u
 });
 
 test('a loose ball with Possession left BLANK is attributed to nobody, and its points are not lost', () => {
-  /* The deck exposes Possession on these outcomes but does not require it, so a
-     blank is an ordinary incomplete charting state -- not a rare edge case. It
-     used to fall through to the receiving-unit default and award the subject six
-     points. Every loose-ball status fails closed the same way. */
+  /* Blank Possession is an ordinary incomplete charting state. Every loose-ball
+ * status must fail closed instead of assigning points to a default side. */
   const engine = new StatsEngine(null);
   for (const status of ['blocked', 'muffed', 'recovered']) {
     const blank = SpecialTeamsModel.normalize(event({

@@ -64,10 +64,8 @@ const result = (() => {
     penaltyRulings: registry.values('penaltyRuling', play),
     penaltyCounts: registry.values('penaltyPlayCounts', play),
     ref: registry.playRef(play),
-    // Study expansion (2026-08-15): fieldZone is now 'ready', unit-agnostic --
-    // both an offensive AND a defensive snap at the same yard line resolve to
-    // the same band, and the SAME six-band convention the Play Call report's
-    // Field Position dimension already uses (StatsEngine._fieldZone).
+    /* fieldZone is ready and unit-agnostic; its values come from charted yard
+ * lines. */
     fieldZoneAvailability: registry.getDimension('fieldZone')?.availability,
     fieldZoneBands: [
       { yardLine: 5, fieldSide: 'own', unit: 'offense' },   // absYL 5 -> Backed up
@@ -80,14 +78,8 @@ const result = (() => {
     fieldZoneNoYardage: registry.values('fieldZone', { id: 2, __gid: 'gz', tags: { unit: 'offense' } }),
     scoreSituationDeferred: registry.getDimension('scoreSituation')?.availability,
     scoreSituationThrows: (() => { try { registry.values('scoreSituation', play); return false; } catch { return true; } })(),
-    // Codex review, 2026-08-14, finding #4 then finding #2 (re-review):
-    // StatsEngine.metricsEngine() is now the SOLE construction site --
-    // AnalyticsRegistry.metricsEngine() is a thin delegate, not a second
-    // independent cache. Confirm it's real (computes a metric over an
-    // ad-hoc cohort, not just returns an object), stable (repeat calls
-    // return the SAME instance), AND literally the SAME object Reports'
-    // defensivePerformance() resolves via registry.stats.metricsEngine() --
-    // not a structurally-identical but distinct second copy.
+    // The registry and Reports must share the same working, stable metrics-engine
+    // instance, not merely return structurally identical engines.
     metricsEngineSame: registry.metricsEngine() === registry.metricsEngine(),
     metricsEngineIsStatsEngineOwned: registry.metricsEngine() === registry.stats.metricsEngine(),
     metricsEngineStopRate: registry.metricsEngine().metric([standing], 'stopRate'),

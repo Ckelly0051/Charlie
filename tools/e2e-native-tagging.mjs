@@ -138,10 +138,8 @@ state=await page.evaluate(async()=>{const group=[...document.querySelectorAll('.
 ok(state.opened&&state.stayedOpen,'Coach section expansion survives native state updates',JSON.stringify(state));
 
 console.log('\n== 2. Context lifecycle and isolation ==');
-// F2a: perspective is no longer a visible control, so these read the canonical
-// stored value instead of a picker. The guarantee is unchanged and slightly
-// stronger — it now checks what the PRESENTATION is derived from rather than
-// what a control happens to display.
+/* Read canonical stored perspective, from which presentation derives; there is
+ * no perspective picker. */
 state=await page.evaluate(()=>({titles:[...document.querySelectorAll('[data-native-tagging] .gi-tag-group>summary strong')].map(n=>n.textContent.trim()),perspective:app.storage.gameInfo.perspective,unit:document.querySelector('[data-native-context="unit"] button.is-active')?.dataset.unit}));
 ok(state.perspective==='scout'&&state.unit==='offense'&&state.titles.includes('Opponent Formation & Call'),'Native presentation names the charted football subject from stored perspective and unit',JSON.stringify(state));
 state=await page.evaluate(async secondId=>{app.tagger.saveDraft();await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:app.storage.gameInfo.perspective,direction:app.storage.gameInfo.direction,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit,control:!!root.querySelector('[data-native-context="direction"]')}},fixture.secondId);
@@ -215,11 +213,9 @@ ok(state.plays[0].formation==='I-Form'&&state.plays[0].backfield==='I'&&state.pl
 ok(state.other?.defFront==='4-2-5'&&state.other?.coverage==='Cover 3','Charting session leaves the other game byte-semantically isolated',JSON.stringify(state.other));
 
 console.log('\n== 4. Structured football workflows ==');
-// TEST-1 (Codex, 2026-09-25): Chrome's Runtime.callFunctionOn with awaitPromise
-// intermittently reported this long async evaluate's promise 'collected' although
-// the page had completed the section (a fresh call read the full state). So the
-// task starts from a SYNCHRONOUS evaluate, the harness polls a completion flag, a
-// page-task error is re-thrown, and the result is read back. Assertions unchanged.
+/* Start the long page task synchronously and poll completion to avoid Chrome
+ * collecting an awaited evaluation promise. Rethrow page-task errors and read
+ * the completed result. */
 await page.evaluate(fixture=>{window.__s4Done=false;window.__s4Error=null;window.__s4State=null;(async fixture=>{
   app.tagger.saveDraft();await app.storage.switchToGame(fixture.firstId,{persist:false});app.tagger.saveDraft(),app.tagger.selectPlay(1);await app.workspaceShell.show('breakdown');
   const root=()=>document.querySelector('[data-native-tagging]');
@@ -371,8 +367,7 @@ ok(state.libraryLabels.every(row=>row.buttonLeft>=row.precedingRight+4&&Math.abs
 // than squeezing seven labels into equal-width tracks.
 ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,
   'Coverage Call keeps all labels readable in compact wrapping rows',JSON.stringify(state));
-// Coach direction 2026-09-23 tightened the deck rhythm (was 8/12): density from
-// spacing, never from chip text, weight or the 30px chip floor.
+/* Pin deck density through spacing, not smaller chip text or targets. */
 ok(state.bodyCount>=6&&state.pads.length===1&&state.pads[0]==='0/12',
   'Every native charting group has no lead padding and the shared 12px closing rhythm',JSON.stringify(state));
 ok(state.titleFaces.length===1&&/IBM Plex Sans 600/.test(state.titleFaces[0])&&state.descCount===0,
@@ -404,18 +399,9 @@ fold=await page.evaluate(()=>({call:document.querySelector('[data-section=format
 ok(fold.call&&fold.type&&fold.folds===0,'Coach-opened modules remain open together with one disclosure pattern',JSON.stringify(fold));
 
 console.log('\n== 7. S7-a: diagram, OCR and templates on the native surface, across a relaunch ==');
-// These three capability ids used to be claimed by e2e-s5c-preflight.mjs, which
-// S7 retires. The preflight drove LEGACY ids — btnSaveTemplate,
-// btnSetScoreboardRegion, btnReadScoreboard, templateSelect — every one of which
-// S7 deletes, so porting the label without the surface would have left the
-// guarantee resolving to markup that no longer exists.
-//
-// Two things are deliberately preserved from the original proofs:
-//   1. the controls are driven through the NATIVE form a coach actually uses;
-//   2. the RELAUNCH stays. A sentinel set before reload must be absent after,
-//      and the diagram is read back off the REHYDRATED store rather than the
-//      live tagger object — without both, these degrade from durability proofs
-//      into identity checks with their names unchanged.
+/* Drive native controls and retain reload durability proof: the sentinel must
+ * disappear, and the diagram must come from the rehydrated store, not the live
+ * tagger. */
 await page.setViewport({width:1440,height:900});
 await page.evaluate(()=>window.app.workspaceShell.show('breakdown'));
 await page.evaluate(()=>(window.app.tagger.saveDraft(),window.app.tagger.selectPlay(1)));
@@ -639,13 +625,8 @@ ok(state.alerts===0&&state.messages.length===1&&/Select a play first/.test(state
 await page.evaluate(()=>{app.tagger.getCurrentPlay().diagram=JSON.parse(window.__diagramOriginal);});
 
 console.log('\n== 7b. Native Auto-Detect: real scan/progress/results/review/apply, no hidden host ==');
-// Codex review d51c97b/e99d1ac: the prior "Auto-detect plays" click proxied
-// into a permanently hidden #giAutoDetectHost holding progress, settings,
-// results, Review and Apply -- none of it reachable for a real multi-play
-// scan. This proves the replacement (js/auto-detect-screen.js +
-// js/native-autodetect.jsx) is a genuinely visible, reachable workflow, not
-// just that the trigger button's text exists (the exact gap the review named
-// at the old line 47/214 of this file).
+/* Exercise the visible auto-detect workflow through settings, progress, Review
+ * and Apply; a reachable trigger alone does not prove a usable scan. */
 let ad=await page.evaluate(()=>{
   const app=window.app;
   // Stub PlayDetector's signal-processing scan and seek-based apply -- both
@@ -933,11 +914,8 @@ ok(JSON.stringify(state.active)===JSON.stringify(['Jumbo Shift','Maverick']),'Na
 ok(state.value==='Maverick + Jumbo Shift','PlayTagger value round-trips the multi string');
 state=await page.evaluate(async()=>{
   app.workspaceShell.disable();
-  // Final Engine Independence: mount()/restore() no longer adopt, hide, or
-  // observe any legacy source element -- there is none. The real guarantee
-  // left to prove is that a mount+restore cycle leaves the host genuinely
-  // empty (the Preact tree fully unmounts), and that the controller can
-  // mount again afterward -- restore() must not strand it.
+  /* Mount/restore must fully unmount the Preact tree, leave the host empty and
+ * allow remounting. */
   const host=document.createElement('div');host.id='nativeTaggingTestHost';document.body.append(host);
   const mounted=app.nativeTagging.mount(host);
   const populated=host.childElementCount>0;

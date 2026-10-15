@@ -212,10 +212,7 @@ const carry = await page.evaluate(() => {
 check('carry-scheme fills blank formation/personnel', carry.f === 'Wing-T' && carry.p === '21', JSON.stringify(carry));
 check('carry-scheme never overwrites a tagged look', carry.kept === 'Spread' && carry.filled === '21', JSON.stringify(carry));
 
-// Toggle exists and persists. Final Engine Independence: #carrySchemeToggle/
-// .tag-section is deleted -- native-tagging.jsx already has its own real
-// checkbox calling screen.setCarryScheme() (a pre-existing, working native
-// control, not new this checkpoint). Mount the native form to reach it.
+// Mount the native form to exercise the real carry-scheme checkbox.
 await page.evaluate(() => {
   // The earlier "Carry scheme" section (above) set tagger.carryScheme = true
   // directly -- reset to false first so the checkbox starts unchecked and one

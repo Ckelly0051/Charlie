@@ -1,25 +1,9 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { clippedTableText, reportCapturePolicy } from './report-test.mjs';
-/**
- * UX-3 responsive shell containment (S6-4b).
- *
- * The installed 1.12.0-15 smoke reported Study clipping brand/team/nav on the
- * left while controls, KPI cards and charts ran past the right edge. A one-time
- * screenshot audit cannot stop that recurring, so this is the permanent
- * instrument: every shell route, at every reviewed viewport INCLUDING the real
- * installed window size, must contain itself.
- *
- * Three checks per route/viewport:
- *   1. The PAGE never scrolls horizontally.
- *   2. No visible element escapes the viewport horizontally, UNLESS it sits
- *      inside an element that legitimately owns a horizontal scroll (the Study
- *      pivot, the Plan presentation strip). That exemption is why this is a
- *      real containment check and not a blunt geometry assertion — a wide table
- *      inside its own scroller is correct; the same table widening the page is
- *      the defect.
- *   3. The shell's own navigation landmarks stay fully inside the viewport, so
- *      the left-edge clipping the coach reported cannot come back.
- */
+/* Every shell route must contain itself at reviewed viewports, including the
+ * installed window size. No page-level horizontal scroll; wide content is
+ * allowed only inside its own scroller. Navigation landmarks remain fully
+ * visible. */
 import puppeteer from './test-browser.mjs';
 
 const URL = process.env.FFA_APP_URL || TEST_APP_URL;

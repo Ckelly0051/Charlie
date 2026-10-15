@@ -150,9 +150,7 @@ r = await page.evaluate(() => ({
   file: document.querySelector('#videoPlaceholder [data-action="file"]')?.textContent,
   folder: document.querySelector('#videoPlaceholder [data-action="folder"]')?.textContent,
   link: document.querySelector('#videoPlaceholder [data-action="link"]')?.textContent,
-  // #fileLabel was the top-bar text this assertion used to read; it was deleted
-  // with #giLegacyEngineHost. The real coach-facing surface for "what happens
-  // if I drop/add film in linked mode" is the empty-state hint line.
+  // Read linked-mode drop/add guidance from the visible empty-state hint.
   hint: document.querySelector('#videoPlaceholder .empty-hint')?.textContent,
 }));
 ok(r.mode === 'linked' && r.root === 'D:/Football/Film' && r.setRootCalls === 1, 'Existing-library choice saves the selected root once', JSON.stringify(r));
@@ -468,16 +466,8 @@ ok(real.reopenMode === 'linked' && real.reopenDir === 'Refuge 7-13' && real.link
 ok(real.nonTargetsUnchanged,
   'C2 isolation: opening, linking, saving, and reopening Refuge leaves every complete non-target game byte-identical', JSON.stringify(real));
 
-// ===================== S7-b: film loading survives the legacy shell =====
-//
-// The two film pickers lived inside #app, which S7-d deletes. They are the
-// nonvisual hosts the ledger flagged: no coach sees them, but the native empty
-// state and Film settings both click them, so deleting #app from a surface
-// count would have taken film loading with it.
-//
-// These assertions pin the coach-facing path, not the markup: the pickers are
-// outside the legacy tree, the visible actions reach them, and a dropped file
-// still starts an import.
+// Visible film actions must reach the nonvisual file pickers, which remain
+// outside retired shell markup; dropping a file must still start import.
 console.log('\n== S7-b: film loading is independent of the legacy shell ==');
 await page.evaluate(() => window.app.workspaceShell.show('breakdown'));
 await page.waitForSelector('#videoPlaceholder [data-action="file"]');
@@ -508,10 +498,7 @@ let s7b = await page.evaluate(() => {
     folderOutside: outsideLegacy(q('videoFolderInput')),
     opened,
     placeholderLive: onScreen(q('videoPlaceholder')),
-    // #videoDropZone was the only pre-S7-b drop target; it lived inside
-    // #giLegacyEngineHost, which Final Engine Independence deletes outright --
-    // q('videoDropZone') now resolves to null, confirming absence rather than
-    // measuring a 0x0 hidden box.
+    // A retired drop target must be absent, not a hidden zero-size element.
     legacyDropZoneGone: !q('videoDropZone'),
   };
 });
@@ -520,8 +507,7 @@ ok(s7b.fileOutside && s7b.folderOutside,
 ok(s7b.opened.join(',') === 'videoFileInput,videoFolderInput',
   'The native empty-state actions reach the canonical film pickers exactly once each', JSON.stringify(s7b));
 
-// Drop on the live empty state must reach the same files-selected path the
-// pickers use. Bound only to the entombed label before S7-b.
+// The live empty-state drop target must reach the pickers' files-selected path.
 s7b = await page.evaluate(async () => {
   const placeholder = document.getElementById('videoPlaceholder');
   // beforeFilesSelected is the canonical import gate every entry point feeds,

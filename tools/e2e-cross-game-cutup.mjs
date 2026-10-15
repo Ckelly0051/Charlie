@@ -1,8 +1,5 @@
-/* Cross-game cut-up planner contract (redesign — true cross-game playback).
-   Pure module, so this runs in Node directly. Pins the ordered plan a season
-   Study query needs to walk matching plays ACROSS games: game order
-   (chronological), per-game play order (time in one video, play order across clips), honest skip accounting,
-   and backward-compatible single-game behavior. */
+/* Cross-game plans preserve chronological game order, clip-local versus
+ * continuous-video play ordering, skip accounting and single-game behavior. */
 import assert from 'node:assert';
 import { CrossGameCutup } from '../js/cross-game-cutup.js';
 
@@ -25,10 +22,8 @@ const games = [
   ok(p.total === 5 && p.skipped.length === 0, 'all resolvable refs become segments', JSON.stringify(p.total));
   ok(eq(p.games.map(g => g.gameId), ['g2', 'g1']), 'games ordered chronologically (g2 earlier date first)', JSON.stringify(p.games));
   ok(eq(p.games.map(g => g.count), [2, 3]), 'per-game segment counts are correct');
-  // Corrected 2026-10-02 (Codex review of f698ef0b): every play here has its
-  // own clip, so its timestamps are local to that clip. This used to expect
-  // g1 as 2, 1, 3 by clip-local start time, which is the defect: a cut-up
-  // that played the game out of order. Clip plays play in play order.
+  // Each play has its own clip: local timestamps cannot order different clips.
+  // Preserve play order even when clip-local start times differ.
   ok(eq(p.segments.map(s => `${s.gameId}::${s.playId}`), ['g2::1', 'g2::2', 'g1::1', 'g1::2', 'g1::3']),
     'segments ordered by game, then multi-clip plays in play order', JSON.stringify(p.segments.map(s => `${s.gameId}::${s.playId}@${s.start}`)));
   const oneVideo = [{ id: 'v', gameInfo: { date: '2025-09-15' },

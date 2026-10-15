@@ -1,17 +1,6 @@
-/* SNAPSHOT ENVELOPE HARNESS (Node, pure, DOM-free) --------------------------
-   Proves SnapshotEnvelope -- the versioned wrapper PC-3 requires around every
-   Documents-mirror recovery snapshot (Convergence Plan Invariant #5/#6).
-   No fs, no SqlCatalog, no mocking: wrap()/unwrap() are pure functions.
-
-   Checks: a well-formed wrap; a genuine round-trip through JSON.stringify/
-   parse validates ok; tampered content (checksum), tampered declared counts,
-   and identity mismatch are all caught with the exact named reason; a bare
-   legacy pre-envelope season.json is recognized (not silently accepted, not
-   silently invisible -- `old-format`, never read); garbage
-   input never throws; the checksum is key-order-independent (deterministic
-   stringify) and content-sensitive (two different seasons never collide).
-
-   Run:  node tools/e2e-snapshot-envelope.mjs */
+/* Recovery envelopes validate checksums, declared counts and identity across
+ * JSON round-trips; old-format and malformed input fail closed. Checksums are
+ * key-order independent and content-sensitive. */
 import { SnapshotEnvelope } from '../js/snapshot-envelope.js';
 
 let pass = 0, fail = 0;

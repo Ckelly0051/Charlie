@@ -1,20 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* Study expansion Phase 2 -- Penalties + Special Teams coaching analysis.
-   Discriminating proof for the ten requirements of that checkpoint:
-     1. Accepted/declined/offsetting/unresolved/no-play penalties.
-     2. Team and unit perspective.
-     3. Penalty yards and denominator eligibility.
-     4. Every Special Teams phase.
-     5. Tries stay isolated from ordinary FG/offensive efficiency measures.
-     6. Missing structured data never renders as zero.
-     7. Metric refs exactly equal Watch-film refs.
-     8. Cross-game refs remain composite and do not collide.
-     9. Comparisons use identical metric definitions on both sides.
-     10. Existing core Study behavior and parity remain unchanged -- proven by
-         the UNCHANGED e2e-study-screen.mjs, e2e-study-query.mjs, e2e-parity.mjs,
-         and e2e-analytics-registry.mjs suites, not re-tested here.
-   All measures ride the SAME run()/compare()/readMeasures() path every legacy
-   flat measure already used before this checkpoint -- no parallel query engine. */
+/* Penalty and Special Teams measures share the canonical query engine. Pin
+ * eligibility, perspective, missing data, exact composite film refs and
+ * identical measure definitions in comparisons; tries stay outside ordinary
+ * efficiency cohorts. */
 import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;

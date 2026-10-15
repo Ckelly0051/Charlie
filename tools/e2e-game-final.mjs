@@ -1,10 +1,5 @@
-/* MARK AS FINAL LIVES IN GAME SETTINGS -----------------------------------------
-   Code review 2026-10-06: the only way to mark a game Final was a button on the
-   retired games panel, so new games could never count in the season record,
-   and two messages pointed at a "season chip" that does not exist. Coach
-   ruling 2026-10-06: Mark as Final goes in Game settings.
-
-   Run after build:  node tools/e2e-game-final.mjs */
+/* Mark as Final is reachable through Game settings and updates the season
+ * record. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
 

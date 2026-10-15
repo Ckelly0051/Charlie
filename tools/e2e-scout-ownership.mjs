@@ -1,31 +1,6 @@
-/**
- * An opponent scout BELONGS to one program season, and the workspace switch is
- * one atomic transition.
- *
- * Charlie found this at the board on 2026-09-14: entering Opponent Scout from an
- * open program season visibly moved through Opponent Scout, then Home/library,
- * then an automatic redirect into an unrelated season. The cause was three
- * defects stacked:
- *
- *   1. No parent relationship existed. Scouts were independent season records
- *      keyed only by teamId/year/level, and `_workspaceTarget()` substituted
- *      "most recently opened season of that kind" for ownership.
- *   2. The workspace mode had no owner. `TeamHubScreen._state.workspaceMode`,
- *      `localStorage['giq_home_workspace']` and `WorkspaceShell._isScoutWorkspace()`
- *      (which preferred `store.data.kind`) were three sources for one fact.
- *   3. The transition was a SEQUENCE of navigations: set mode -> load() ->
- *      search by lastOpened -> openSeason() -> show('home'), or `_openLibrary()`
- *      when nothing matched. Every intermediate step rendered.
- *
- * `programSeasonId` is now the durable relationship, `WorkspaceContext` is its
- * one owner, and a switch performs one state change and one render.
- *
- * Mutation-verified: team-wide `lastOpened` scout selection, `_openLibrary()`
- * during a toggle, auto-opening a scout on entering Scout mode, omitting
- * `programSeasonId` on create, listing another parent's scouts, and inferring an
- * ambiguous legacy parent each turn a specific section red. Recorded in
- * docs/OPEN-DEFECTS.md.
- */
+/* Scouts belong to one programSeasonId. WorkspaceContext owns the workspace
+ * mode; toggles are atomic and never select scouts through team-wide
+ * lastOpened. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { WorkspaceContext } from '../js/workspace-context.js';
@@ -724,11 +699,8 @@ ok(r.raced === r.other,
   'an overlapping persist and assignment are ordered by the per-season write queue, newest wins', JSON.stringify({ raced: r.raced, expected: r.other }));
 
 console.log('\n== 19. Two unassigned rows cannot transfer a selection ==');
-/* Codex finding, 2026-09-14. The rows were unkeyed with uncontrolled selects, so
-   when one disappeared after assignment Preact reused its DOM node for the next
-   scout -- the season chosen for the ASSIGNED scout stayed selected and could be
-   submitted through the NEXT scout's handler. Driven through the rendered
-   controls, because that reuse is invisible to a controller call. */
+/* Exercise assignment through rendered controls: removing a row must not
+ * transfer its uncontrolled selection to the next scout. */
 r = await page.evaluate(async () => {
   const S = window.app.storage, hub = window.app.teamHubScreen, st = S.seasonStore;
   const teamId = window.app.teamRegistry.activeTeamId();

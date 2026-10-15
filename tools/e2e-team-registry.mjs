@@ -1,16 +1,5 @@
-/**
- * TeamRegistry contract (S7-c).
- *
- * The native Team Hub used to reach into TWELVE private members of the legacy
- * SeasonLibrary overlay. Deleting that overlay on "nothing opens it" would have
- * taken team switching and post-wipe recovery with it. The data moved to
- * TeamRegistry first; this pins the contract at the service, where
- * `e2e-wipe-recovery` and `e2e-native-team-hub` can only exercise it through a
- * journey.
- *
- * Read-only with respect to coach data: every case runs on identity keys and
- * synthetic season metas. No season is written.
- */
+/* Team identity, switching and recovery contracts are pinned at TeamRegistry.
+ * Synthetic identity keys and season metadata only; no season writes. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 

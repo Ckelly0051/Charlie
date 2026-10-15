@@ -1,11 +1,5 @@
-/* SAVE STATE SIGNAL HARNESS (Node) ---------------------------------------------
-   Code review 2026-10-06: the explicit Save season (`saveProject`) and the
-   autosave commit (`_commitAndPersist`) signalled "Saved" before the canonical
-   write finished and never looked at its result, so a failed write still read
-   as saved. "Saved" now follows a durable write; a failed write signals
-   "failed" and Save season returns false without its disk or download steps.
-
-   Run:  node tools/e2e-save-signal.mjs */
+/* Saved follows a durable canonical write. Failure signals failed and prevents
+ * Save season from proceeding to disk or download steps. */
 import { StorageManager } from '../js/storage.js';
 
 let pass = 0, fail = 0;

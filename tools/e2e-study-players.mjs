@@ -1,23 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* Study Phase 3 -- Player Performance Analysis.
-   Discriminating proof for the checkpoint's required verification list:
-     1. One player credited in multiple roles (ballCarrier AND tackler).
-     2. Shared tackles versus solo tackles (the same shared-tackle rule
-        StatsEngine._individualStats already applies).
-     3. Blank grades are excluded from grade denominators (never coerced to 0).
-     4. Exact metric refs equal Watch refs -- both the per-row Watch button
-        and the aggregate "Watch results" action.
-     5. Comparison mode retains player-specific refs on both cohorts.
-     6. Cross-game duplicate play ids remain distinguishable (composite refs).
-     7. Roster labels render safely (a stored-XSS payload name renders inert).
-     8. Insufficient samples never display as zero (real value + "Low sample"
-        badge), and a genuine zero sub-count is never misreported as
-        unavailable.
-     9. Mutation proof for the player-role eligibility gate (a dimension's
-        `.values()` extractor) and the film-ref seam (Watch must consume the
-        metric's own eligible refs, never a group's broader raw sample).
-   Every metric here rides the existing AnalyticsMetrics/StudyQuery/registry
-   engine -- no parallel player-stat formula is added in study-screen.js. */
+/* Player analysis uses canonical metrics/query owners. Pin multi-role
+ * attribution, shared tackles, blank-grade exclusion, polarity-aware ranking,
+ * low-sample/zero distinction, exact composite refs in Watch/comparison, saved
+ * metadata and inert roster labels. */
 import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;

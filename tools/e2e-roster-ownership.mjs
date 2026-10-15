@@ -1,42 +1,6 @@
-/**
- * Roster ownership is SEASON-SCOPED — the enforceable contract.
- *
- * Charlie found the live defect at the board on 2026-09-13: the same roster
- * appeared under every team, year and level. The isolation CODE was correct;
- * three seasons in the live catalog each stored the same 19-player list at rest,
- * written before the 2026-08-29 repair, and every store faithfully rendered what
- * it held. So this file pins both halves — the runtime contract AND the one
- * compatibility boundary that is allowed to promote a legacy game roster, so a
- * normalized season can never silently re-acquire one.
- *
- * The migration architecture this pins (2026-09-13, second pass):
- *   - promotion is VALIDATED across every legacy copy in the season, never
- *     "first non-empty wins";
- *   - a disagreement is surfaced, not resolved by guessing, and leaves the
- *     source data and the absent marker exactly as found;
- *   - a settled conversion REMOVES `roster` from every game node, so ownership
- *     is single, not merely preferred;
- *   - the first legacy open persists roster + marker + removal through the
- *     normal revision-fenced write queue BEFORE exposing the season, and a
- *     second open dispatches no write at all.
- *
- * And a conflict or a failed migration write ABORTS the operation (2026-09-14).
- * Exposing a conflicted season was itself destructive on a path no single open
- * could show: `_normalize` coerced a synthetic `season.roster: []` beside the
- * surviving copies, the next ordinary save persisted it, and the open after that
- * read it as an EXPLICIT season roster and deleted every conflicting copy. Open,
- * import and restore therefore refuse, preserving the prior active season, its
- * live roster, the backend pointer and the source bytes.
- *
- * Every section is written to fail for a specific reason. Mutation-verified:
- * restoring "first non-empty copy wins" reds 7 assertions; keeping the
- * game-level copies reds 10; converting in memory only reds 3; re-exposing
- * `_normalize(original)` after a conflict reds 8 (and reproduces the
- * save-then-reopen deletion in the output); continuing `adopt()` past a conflict
- * reds 4; continuing `restoreBackup()` past one reds 3; reverting the marker
- * check to `roster.length` reds 1; and exposing a target after a failed
- * migration write reds 2. Recorded in docs/OPEN-DEFECTS.md.
- */
+/* Rosters belong to seasons, never games. Open, import and restore refuse
+ * game-level rosters without changing the prior season, backend pointer or
+ * bytes. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 

@@ -1,12 +1,6 @@
-/**
- * FILM ROOM LAYOUT (coach direction, 2026-09-23). Video first: the editable
- * breakdown table docks below the film by default; the coach can move it beside
- * the film, drag or key the split within its limits, reset it, and keep it
- * across reloads. The table itself must not notice: selection, inline editing
- * and large-game row windowing keep working in both docks and at every split,
- * because the windowing re-measures its own scroller when the split moves.
- * Run:  node tools/e2e-film-room-layout.mjs
- */
+/* Film Room docks below film by default and supports either dock, bounded
+ * split changes, reset and reload persistence. Selection, edits and windowed
+ * rows must survive scroller remeasurement. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 

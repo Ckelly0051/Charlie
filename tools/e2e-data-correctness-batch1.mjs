@@ -1,30 +1,7 @@
-/**
- * Repair Batch 1 - data correctness regressions.
- *
- * Three defects, each asserted so that reintroducing it reds a named check:
- *
- *  B1-1  Season film-health counts. Managed film lives under the OWNING season,
- *        so `WorkspaceContext.filmHealth(game, seasonId)` and
- *        `StorageBackend.listFilmFiles(gameId, seasonId)` carry the season id to
- *        the filesystem lookup. Dropping it resolves against
- *        `backend.currentId`, which answers about the open season whenever two
- *        seasons reuse a game id. Fixture: two seasons, SAME game id, different
- *        film on disk.
- *
- *  B1-2  Drive grouping. A drive identity is possession side + drive number,
- *        because each team runs its own sequence. Keying on the raw
- *        `driveNumber` tag merged our Drive 1 with the opponent's Drive 1.
- *        Asserted in the shared owner (football-rules.js), in Breakdown's play
- *        strip, and in Study's `drive` dimension.
- *
- *  B1-3  Field Goal / XP. `unit:'fieldGoal'` is always "the subject
- *        attempting", so an opponent extra point charted there scored for us.
- *        New XP/try authoring exists only under Try / Defending a Try. Existing
- *        `unit:'fieldGoal', attemptType:'extraPoint'` records stay readable.
- *
- * Coach data is never touched: every fixture is synthetic and every store /
- * backend substitution is restored.
- */
+/* Film-health fixtures reuse game IDs across seasons to expose missing owner
+ * scope. Drive identity includes possession side and number. Extra points
+ * belong only to Try/Defending a Try. Synthetic fixtures; substitutions are
+ * restored. */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 import {
@@ -152,8 +129,7 @@ ok(SpecialTeamsModel.scoringTeam(tryEvent('try')) === 'subject' && SpecialTeamsM
 ok(SpecialTeamsModel.scoringTeam(tryEvent('tryDefense')) === 'opponent' && SpecialTeamsModel.points(tryEvent('tryDefense')) === 1,
   'Defending a Try credits the extra point to the other team');
 
-// The retired field-goal-shaped extra point is not read (legacy excision
-// step 7): an extra point exists only under Try and Defending a Try.
+// Extra points belong only to Try or Defending a Try, not Field Goal.
 const historical = SpecialTeamsModel.normalize({
   version: 1, unit: 'fieldGoal', attemptType: 'extraPoint', events: {}, kick: {}, return: {},
   outcome: { status: 'good', score: 'extraPoint' }, players: {},
@@ -431,13 +407,8 @@ ok(result.untouchedHasNoDetails,
   });
   ok(!/Field Goal \/ XP/.test(bundleText), 'The shipped bundle no longer offers a "Field Goal / XP" unit');
 
-  /* The unit NAMES moved to their one owner on 2026-09-19 —
-     `SpecialTeamsModel.UNIT_LABELS` — which the deck, the chyron, the Film Room
-     grid, the Study dimension and the Reports ledger all read. The subject of
-     this assertion is unchanged (the field-goal unit is `Field Goal`, never
-     `Field Goal / XP`); it is asserted at the owner, plus the fact that the deck
-     reads that owner instead of a private copy. The RENDERED unit chips are
-     asserted in `e2e-native-tagging`, which has the charting deck on screen. */
+  /* SpecialTeamsModel.UNIT_LABELS owns unit labels. Pin Field Goal at the owner
+ * and verify the deck consumes it; e2e-native-tagging checks rendered chips. */
   const modelLabels = source('special-teams.js');
   ok(/fieldGoal: 'Field Goal'/.test(modelLabels) && !/Field Goal \/ XP/.test(modelLabels),
     'The unit list presents the field-goal unit as "Field Goal"');

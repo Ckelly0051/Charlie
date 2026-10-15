@@ -1,8 +1,5 @@
-/* E2 — tag-model look read + refusal predicate + normalize defaults/cleanup + carry + ST strip.
- * Implements the E2-scoped rows of docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §10 (tests 1-13,
- * 16-20). Tests 14/15/23/24/25 are E3 (analytics/parity), 21/22 are E4 (library
- * UI); they are intentionally NOT here and are noted at the bottom.
- * Run: node tools/e2e-tag-model.mjs */
+/* Look-field reads, old-shape refusal, normalization, carry rules and Special
+ * Teams stripping share their canonical model owners. */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { TagProjection } from '../js/tag-projection.js';
@@ -26,7 +23,7 @@ const legacyPlay = (id, t = {}) => ({ id, timestamp: { start: 0, end: 1 }, tags:
 
 console.log('\n== E2 tag model ==');
 
-/* ---- §5 the look read and the old-shape predicate ---- */
+/* Look reads and old-shape detection. */
 
 test('1 · a newly created play is born with qbAlignment & coverageFamily = ""', () => {
   // Real creation path: createWholeVideoPlay (loading a video into an empty game).
@@ -81,7 +78,7 @@ test('6 · isCombined passes every current look, a family and a receiver set inc
   }
 });
 
-/* ---- §7 / §7a ST strip single source + invariant ---- */
+/* Special Teams stripping has one owner. */
 
 test('16 · (E1-R9) ST invariant: any op ending unit:special leaves ST keys blank', () => {
   // liveness: forbidden values are PRESENT first, then stripped by the op.
@@ -166,7 +163,7 @@ test('16f · (E2-R1) an OFFENSE Same-as-Last keeps its look (strip is unit-condi
   assert.equal(cur.tags.backfield, 'Power');
 });
 
-/* ---- §7 carry repair ---- */
+/* Carry rules. */
 
 test('17 · (E1-R6) carry fills the four pre-snap fields on a blank offensive target', () => {
   for (const k of ['qbAlignment', 'backfield', 'strength']) {
@@ -206,7 +203,7 @@ test('17c · custom tags are a list: missing becomes [], any other shape is refu
     assert.ok(problems.includes('custom tags not a list'), `custom ${JSON.stringify(custom)} is refused: ${problems}`);
   }
   assert.equal(SeasonFormat.playProblems({ id: 9, tags: { unit: 'offense' } }).length, 0, 'a missing custom key is not a problem');
-});/* ---- §7b bounded, coach-approved ST cleanup ---- */
+});/* Bounded Special Teams cleanup. */
 
 test('18 · (E1-R7b) _normalize clears backfield/strength on ST plays only, nothing else', () => {
   const stWithBoth = legacyPlay(20, { unit: 'special', backfield: 'Power', strength: 'Right' });
@@ -326,7 +323,7 @@ test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapsho
   }
 });
 
-/* ---- §4 the formation is read as charted (the v1.9.15 backfield migration is deleted) ---- */
+/* Formation is read exactly as charted. */
 
 test('19 · a formation is never rewritten into Backfield, with or without a backfield key', () => {
   for (const tags of [{ unit: 'offense', formationFamily: 'Power-I', backfield: '' }, { unit: 'offense', formationFamily: 'Power-I', receiverSet: '3x1' }]) {
@@ -339,7 +336,7 @@ test('19 · a formation is never rewritten into Backfield, with or without a bac
   }
   assert.equal(typeof SeasonStore.migratePlayFormation, 'undefined', 'the migration is deleted');
 });
-/* ---- §20 E3b: lookLabel — the deliberate presentation composition ---- */
+/* lookLabel deliberately composes independent presentation fields. */
 
 test('26 · lookLabel joins alignment, family and receiver set for a current play', () => {
   const t = tags({ unit: 'offense', qbAlignment: 'Shotgun', formationFamily: 'Spread', receiverSet: '3x1' });

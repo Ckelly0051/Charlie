@@ -1,13 +1,5 @@
-/**
- * FILM ROOM COLUMN SETS PER UNIT (coach direction, 2026-09-24). The table keeps
- * four column sets -- Offense, Defense, Special Teams and All plays -- and the
- * unit FILTER picks the one on screen. Editing columns while a unit is shown
- * changes only that unit's set. Sets persist per program. (The coach's old
- * single column list was converted once, legacy excision Pass 2b; the converter
- * and its checks are deleted.) In All plays a
- * unit-specific column is blank, and not editable, on a row of another unit.
- * Run:  node tools/e2e-film-room-columns.mjs
- */
+/* Unit filters select independent column sets, persisted per program.
+ * Unit-ineligible cells remain blank and locked. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 
@@ -97,10 +89,8 @@ const panel = await page.evaluate(() => {
 });
 ok(/Defense columns/.test(panel.title) && panel.scope === 'Columns for Defense', 'the panel names the set it edits', JSON.stringify(panel));
 ok(panel.firstUnits.every(u => u === 'defense') && panel.lastDefense < panel.firstOther, 'defense fields lead the list', JSON.stringify(panel));
-// Codex (c1cce33): the sheet is non-modal. Changing the unit filter behind it
-// closes it, and a write naming the old set is refused.
-// The sheet covers the filter card at this width; the filter can still change
-// underneath it (keyboard, another surface), so drive it through the controller.
+/* The non-modal sheet must retarget when the unit filter changes behind it;
+ * saves apply to the unit currently shown. */
 await page.evaluate(() => window.app.nativeFilmRoom.toggleFilter('unit', 'offense')); await settle(page);
 const moved = await page.evaluate(() => {
   const open = !!document.querySelector('.gi-film-column-list');
@@ -113,9 +103,8 @@ ok(moved.refused === false && !moved.offenseHasHash, 'a column write naming anot
 await page.evaluate(() => window.app.overlays.dismissTop('done')); await settle(page);
 
 console.log('\n== 4. All plays: only a column a unit cannot chart is blank and locked ==');
-/* 1.12.0-99 smoke, S99-1: an offensive snap charts the defense it faced and a
-   defensive snap the offense it faced, so Front and Formation show and edit on
-   both. Only a Special Teams snap, which holds no look fields, blanks them. */
+/* Offense charts the defense faced and defense charts the offense faced, so
+ * both show Front and Formation. Special Teams rows blank look fields. */
 await page.evaluate(() => window.app.nativeFilmRoom.clearFilters()); await settle(page);
 const mixed = await page.evaluate(() => {
   const cell = (id, k) => document.querySelector(`[data-cell="${id}:${k}"]`);

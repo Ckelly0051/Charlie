@@ -96,9 +96,7 @@ const result = await (async () => {
     out.delOkRemoves = calls.remove.length;                    // >= 1
     out.delOkLibDropped = !calls.lib.some(s => s.id === 's1');  // must be true
   }
-  // 3. backup ring delegates to the catalog when flag-ON (restore-ring migration):
-  //    createBackup returns the catalog id + meta; get/delete route by id shape;
-  //    listBackups merges the db ring (no per-season backup JSON file needed).
+  // Backup create/list/get/delete must delegate to the shared catalog ring.
   {
     let created = null;
     const ring = [];
@@ -246,7 +244,7 @@ const result = await (async () => {
   // Recovery ownership comes from the snapshot, never its containing folder.
   {
     const mirrorRoot = 'GridIron IQ/seasons';
-    // A current-format season (legacy excision step 6: recovery refuses old or malformed plays).
+    // Recovery requires a valid current-format season.
 const seasonAData = { id: 's-A', seasonName: 'Season A', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }] }] };
     const envelopeForA = SnapshotEnvelope.wrap('s-A', seasonAData); // internally valid: seasonId==='s-A', data.id==='s-A'
     const seasonCData = { id: 's-C', seasonName: 'Season C', games: [{ id: 'g1', plays: [{ id: 1, tags: { unit: 'offense' } }, { id: 2, tags: { unit: 'defense' } }] }] };

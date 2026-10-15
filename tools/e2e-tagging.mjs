@@ -334,16 +334,8 @@ r = await page.evaluate(() => {
 ok(r.count === 16, 'all 16 result values reachable', JSON.stringify(r));
 ok(r.hasFG, 'rare value (Field Goal) included');
 
-/* LEGACY/IMPORTED PLAY WITH NO tags.custom.
-   SeasonStore._normalize did not backfill `custom`, so a play from an imported
-   or pre-field season file arrives without it. Final Engine Independence: the
-   coach-visible custom-tag add/remove path is now entirely owned by
-   NativeTaggingScreen.addCustomTag/removeCustomTag (native-tagging.jsx's own
-   .gi-tag-custom input), a genuinely separate, DOM-free implementation from
-   PlayTagger's now-fully-dead .tag-section custom-tag machinery (tagChips/
-   customTagInput/_renderCustomTags's write sink -- all deleted this
-   checkpoint; their capability was never lost, only ever served by two
-   parallel paths, and the native one is the one a coach can actually reach). */
+/* Missing tags.custom must not prevent native custom-tag add/remove. Exercise
+ * the visible input and NativeTaggingScreen owner. */
 const beforeErrors = errors.length;
 r = await page.evaluate(() => {
   const app = window.app, out = {};

@@ -1,7 +1,5 @@
-/* Charting cutover, Step 1: the deck and Film Room behaviors of the owned fields
-   (Formation, Receiver Alignment, Gap, motion path, RPO, QB run, Reverse), driven
-   through real clicks. docs/archive/plans/GRIDIRON-IQ-PLAN-V2-THROUGH-2026-10-04.md, "Approved Break Down charting comp -
-   build contract". Run after build: node tools/e2e-charting-cutover-deck.mjs */
+/* Exercise Formation, Receiver Alignment, Gap, motion, RPO, QB run and Reverse
+ * through real deck and Film Room interactions. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 

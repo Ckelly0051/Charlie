@@ -1,16 +1,6 @@
-/* SQLCATALOG ROUND-TRIP HARNESS (Node) ------------------------------------
-   Proves the SQLite persistence layer is LOSSLESS and structurally sound before
-   it's wired into the app. sql.js runs the real schema + queries in Node, so the
-   decompose→save→load→reassemble path is verified here (the desktop Tauri glue is
-   the only piece that still needs a manual smoke test).
-
-   Checks: open→migrate; save/load deep-equals the JSON-normalized season for a
-   synthetic multi-game season AND the coach's real recovered season (when present);
-   clips persist as first-class rows even for a game saved with NO clip arrays (the
-   v1.10.7 wipe is now structurally impossible); persistence survives toBytes()→
-   reopen; deleteSeason cascades; listSeasons/createSeason/backups behave.
-
-   Run:  node tools/e2e-sql-catalog.mjs */
+/* Real sql.js schema/queries preserve normalized seasons, clip rows, backups
+ * and cascades across byte serialization and reopen. Tauri integration
+ * requires installed smoke. */
 import initSqlJs from 'sql.js';
 import assert from 'node:assert';
 import fs from 'node:fs';

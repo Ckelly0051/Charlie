@@ -1,15 +1,7 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* CSV EXPORT/IMPORT of the look fields (docs/archive/plans/GRIDIRON-IQ-TAG-MODEL-THROUGH-2026-10-04.md §20, coach
-   contract). Every look field is its own column: Formation, Receiver Alignment,
-   QB Alignment, Backfield, Strength, Coverage Call, Coverage Family, and the run
-   and motion details (Motion Starts/Ends, Gap, RPO Read/Defender/Decision, QB Run
-   Type). Export writes the stored field; import stores each column in its own
-   field; a blank optional stays blank (never "Unknown" — that reads as a real
-   analytics category). Plays are current format; a combined look, a bare
-   Formation column and an inconsistent detail are refused on import, which
-   e2e-csv-roundtrip and e2e-charting-cutover-csv pin.
-
-   Run after build:  node tools/e2e-csv-projection.mjs */
+/* CSV look and detail columns map to independent stored fields; blank optional
+ * values stay blank rather than becoming an Unknown analytics category.
+ * Import refusal is covered by e2e-csv-roundtrip. */
 import puppeteer from './test-browser.mjs';
 
 let pass = 0, fail = 0;

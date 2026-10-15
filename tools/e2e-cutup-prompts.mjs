@@ -1,10 +1,5 @@
-/* CUT-UP PROMPTS USE THE IN-APP DIALOG (Node) ----------------------------------
-   Code review 2026-10-06: cut-up export asked to start, and to keep a partial
-   video, with the browser's native confirm(), which the app's own notes say
-   can be suppressed and silently return false; its messages used alert().
-   They now go through PlayTagger's in-app confirm and toast.
-
-   Run:  node tools/e2e-cutup-prompts.mjs */
+/* Cut-up export start/partial-video prompts use the in-app dialog; messages
+ * use the injected toast, not native confirm/alert. */
 import { CutupExporter } from '../js/cutup-exporter.js';
 
 let pass = 0, fail = 0;

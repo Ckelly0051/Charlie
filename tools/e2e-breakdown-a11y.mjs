@@ -43,21 +43,14 @@ await page.keyboard.press('Enter');
 await page.waitForSelector('[data-popover-item="game-settings"]');
 await page.focus('[data-popover-item="game-settings"]');
 await page.keyboard.press('Enter');
-// REPOINTED 2026-09-13. This waited on `[name="perspective"]` taking focus --
-// the `Film source` control the coach removed, which now matches nothing and
-// would leave the dialog unfocused. Game settings still owns the rest of the
-// game's context, so the surviving claim is that keyboard activation opens it
-// with focus landing on a real named field and a visible ring.
+// Keyboard activation must open Game settings with focus on a real field
+// and a visible focus ring.
 await page.waitForFunction(() => document.querySelector('[data-overlay-id="game-details"]') && document.activeElement?.name === 'opponent');
 state = await page.evaluate(() => {
   const focused = document.activeElement;
   return {
-    // Final Engine Independence: #tagForm no longer exists. The real,
-    // native-visible scout indicator is native-tagging.jsx's own
-    // .gi-tag-subject line, which renders only when perspective === 'scout' --
-    // checking it verifies the coach-visible presentation, not just the
-    // canonical data field read below. Perspective is now DERIVED from the
-    // owning season, so a program season must still show no scout subject.
+    // Check the rendered scout subject as well as canonical context. A program
+    // season must have no scout subject, since perspective derives from its season.
     scout: !!document.querySelector('.gi-tag-subject'),
     perspective: window.app.gameContext.snapshot().perspective,
     modal: !!document.querySelector('[data-overlay-id="game-details"]'),

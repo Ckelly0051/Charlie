@@ -1,19 +1,6 @@
-/**
- * OLD FILES ARE REFUSED, BEFORE ANY WRITE (legacy excision Pass 2, step 6).
- *
- * The live catalog was converted once (2026-09-26). Every path that brings data
- * in from elsewhere asks SeasonFormat first and refuses an old-format file with
- * a plain message, having written nothing; the file on disk is untouched.
- *
- *   1. SeasonFormat detects each retired shape, and passes current data
- *      (including the generated sample season).
- *   2. Documents-mirror recovery and the first-run JSON import refuse old
- *      seasons (node, with stand-in file systems).
- *   3. In the app: season file import, a single-game save, a season restore
- *      point and a game version are each refused with nothing written; a current
- *      season file still imports; a template applies no retired value.
- * Run:  node tools/e2e-season-format.mjs
- */
+/* Every import, mirror recovery, restore and game-version boundary refuses
+ * retired shapes before writes, preserving disk bytes and current state.
+ * Current seasons and sample data remain accepted. */
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 import { SeasonFormat } from '../js/season-format.js';
@@ -41,7 +28,7 @@ ok(kinds(season('a', [play(1, { unit: 'special' }, { specialTeams: { unit: 'fiel
 ok(kinds(season('a', [play(1, {})], { roster: [] })).includes('game roster'), 'a game node carrying a roster');
 ok(kinds({ plays: [play(1, {})] }).includes('single-game save'), 'a single-game save');
 ok(SeasonFormat.isCurrentSeason(DemoSeason.build()), 'the generated sample season is current', JSON.stringify(kinds(DemoSeason.build()).slice(0, 3)));
-// Codex review of 448c95a: structure is validated, not assumed.
+/* Validate structure, not only recognizable old-format fields. */
 ok(kinds(season('a', [play(1, { unit: null, playType: 'Run Inside' })])).includes('no unit'), 'a charted play whose unit is null');
 ok(kinds(season('a', [play(1, { unit: 'kickoff' })])).includes('no unit'), 'a play whose unit is not one of the three');
 ok(kinds(season('a', [{ id: 1, timestamp: { start: 0, end: 1 }, tags: {} }])).includes('no unit'), 'a play with empty tags');

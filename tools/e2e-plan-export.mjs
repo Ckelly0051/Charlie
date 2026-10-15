@@ -1,9 +1,5 @@
-/* PLAN EXPORT HARNESS (Node) — the data half of Phase 3 Plan export/presentation.
-   Proves PlanExport.build resolves a plan's composite gameId::playId refs against
-   the season games IN PLAN ORDER, pulls play situation/context, flags missing
-   film honestly, and that PlanExport.html renders a standalone doc that ESCAPES
-   every coach-entered string (stored-XSS boundary). Pure, unwired.
-   Run:  node tools/e2e-plan-export.mjs */
+/* Plan export resolves composite refs in plan order, flags missing film and
+ * escapes every coach-entered string at the HTML boundary. Pure Node contract. */
 import assert from 'node:assert';
 import { PlanExport } from '../js/plan-export.js';
 

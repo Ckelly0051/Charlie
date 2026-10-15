@@ -102,27 +102,12 @@ await page.setViewport({ width:1440, height:900 });
 // composition as Program and exposes one primary creation action.
 await page.click('[data-library-season] .library-open');
 await page.waitForFunction(() => window.app.storage.seasonStore.hasCurrent());
-/* RETIRED 2026-09-14, not weakened: "An empty-workspace switch rolls back
-   completely when the open season cannot be saved".
-
-   That assertion pinned the REMOVED transition strategy. A workspace toggle used
-   to save the open season, search the team for the most recently opened season of
-   the destination kind, and open it — so a failed `persist()` had something to
-   roll back. Opponent Scout is now a VIEW of the parent program season: a toggle
-   saves nothing, opens nothing and closes nothing, so there is no write whose
-   failure could revert it. Stubbing `persist` to fail no longer describes any
-   step of the operation, which is why the check could only ever go red.
-
-   What still performs a real open is scout -> Our Program, and THAT is where a
-   refusal must preserve everything. Replacement coverage below drives it through
-   the rendered switch. */
+/* Workspace toggles do not save/open/close seasons. Scout-to-Program opens the
+ * parent, so its refusal must preserve all state through the rendered switch. */
 r = await page.evaluate(async () => {
   const S = window.app.storage, store = S.seasonStore, hub = window.app.teamHubScreen, ctx = window.app.workspace;
-  /* Open a scout that names its parent, from that parent's own scout library.
-     FIXTURE REPOINTED 2026-09-14: a REAL program season must be open first. The
-     sample season can no longer own a scout (it is disposable, and a parent that
-     owns scouts cannot be deleted), so creating one from sample context now
-     fails closed -- which previously left this block with no scout to open. */
+  /* Open a real program season before creating its scout: disposable sample
+ * seasons cannot own scouts. Select the scout through that parent's library. */
   const real = (hub.snapshot().railSeasons || []).find(season => !season.isScout && !season.isDemo);
   if (real && store.currentSeasonId !== real.id) { await S.openSeasonById(real.id); await hub.load(); }
   const parentId = store.currentSeasonId;

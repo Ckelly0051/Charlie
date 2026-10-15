@@ -1,15 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* REAL-DATA E2E — drives the built app against the coach's real season: the
-   frozen canonical fixture (tools/canonical-season.mjs), a read-only, current-
-   format copy of 2025 JV. It read the Documents mirror until 2026-09-27; those
-   files include pre-conversion copies the app now refuses, so seeding them
-   bypassed the refusal and tested a state production cannot reach. Fresh page
-   per game (no state accumulation); each view
-   driven under its own timeout so a hang/slow render is localized to an exact
-   game+view instead of wedging the whole run. Also re-checks the data AFTER
-   normalize to confirm the self-healing strip fired.
-
-   Usage:  node tools/e2e-realdata.mjs */
+/* Use the frozen current-format canonical fixture, not an old Documents mirror
+ * that production would refuse. Fresh pages prevent cross-game state
+ * accumulation; per-view deadlines localize hangs. Check normalized data as
+ * well as rendered views. */
 import puppeteer from './test-browser.mjs';
 import fs from 'fs';
 import path from 'path';

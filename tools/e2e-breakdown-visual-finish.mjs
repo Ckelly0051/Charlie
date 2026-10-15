@@ -1,15 +1,6 @@
-/**
- * BD-UX-1 / BD-UX-2 (2026-10-01): the Break Down visual finish.
- *
- * Selectors: Program / Season / Game render as the shared two-line control
- * (label over value) on Break Down, never the retired single-line 22px band;
- * a real program name is not clipped at 1280; the menus are one titled pattern
- * with a checked current row and gold commands; a narrow viewport keeps all
- * three selectors reachable inside the viewport. Deck: every field label row
- * keeps one rhythm, Gap is a plain field on the deck's inset (it is independent
- * of Play Direction, S107-4), and a stored value the library does not offer is
- * read in full. Geometry here is regression evidence, not visual approval.
- */
+/* Shared two-line context controls and menus must remain reachable at narrow
+ * widths. Gap is independent of Play Direction; unlisted stored values remain
+ * readable. Geometry checks are regression evidence, not visual approval. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 

@@ -90,9 +90,7 @@ for (const route of ['home', 'breakdown', 'study', 'plan', 'reports']) {
   record(route, await scan());
 }
 
-// The retired full-page Team Hub is gone. Exercise both Home library modes:
-// the program library and the empty Scout workspace, then restore the program
-// season before walking Reports.
+// Cover both Home library modes, then restore the program season for Reports.
 await page.evaluate(() => window.app.workspaceShell._openLibrary());
 await new Promise(r => setTimeout(r, 1000));
 record('home/program-library', await scan());
@@ -100,11 +98,8 @@ await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('scout'));
 await new Promise(r => setTimeout(r, 700));
 record('home/scout-library', await scan());
 await page.evaluate(() => window.app.teamHubScreen.selectWorkspace('program'));
-/* FIXTURE REPOINTED 2026-09-14. This waited for a season to become current after
-   the toggle, which only held while a workspace switch restored one by
-   `lastOpened` -- the retired redirect. `_openLibrary()` above deliberately
-   closes the season, so the coach is in the library and the toggle opens
-   nothing; the season to walk Reports with is now opened explicitly. */
+/* Opening the library closes the season. A workspace toggle opens nothing,
+ * so open the Reports fixture season explicitly. */
 await page.evaluate(async () => {
   const hub = window.app.teamHubScreen;
   const program = (hub.snapshot().railSeasons || []).find(season => !season.isScout);
