@@ -335,7 +335,11 @@ a reviewed correction named in the diff.
   gate budget is 6 minutes on this machine, recorded in the receipt with time
   split between product harnesses and setup; over budget is a red result for
   the coach to decide, not a pass with an explanation. Never meet a budget by
-  skipping checks, weakening assertions or raising timeouts.
+  skipping checks or weakening assertions, and never raise a timeout merely to
+  absorb a slowdown; a deliberately expanded test may get a reviewed deadline
+  change. `tools/run-gate.mjs` enforces per-harness deadlines today; the full
+  gate budget and its timing split are not enforced until that runner change
+  lands.
 - **Audit before structural reduction.** Large reductions (the Reports
   rebuild, storage consolidation) start from an audit of what each module
   does. Done means every listed job has moved to its new owner and the old
