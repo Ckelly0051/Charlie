@@ -1,40 +1,6 @@
-/**
- * GameThumbnailService — a small, bounded, lazy thumbnail owner for Home's
- * film cards.
- *
- * Real frames from a game's already-resolved film, through the existing
- * StorageBackend film primitives (`filmUrl`/`listFilmFiles` for managed,
- * `listLinkedFilm`/`linkedFilmUrl` for linked) — the SAME primitives
- * `WorkspaceContext.filmHealth()` already uses. No new film-resolution path,
- * no decode of every video on Home open, no interference with the charting
- * player (a fully separate, detached `<video>` element, never attached to
- * the DOM, never touching `VideoController`/`PlaylistManager`).
- *
- * Bounded: at most `maxConcurrent` decodes run at once, queued in request
- * order. Lazy: `HomeScreen` only calls `request()` for the games actually
- * rendered on screen, never the whole season.
- *
- * Cached by a stable identity built from the SEASON (via the backend's
- * `currentId` at request time), the game's id, and its resolved film
- * mode/dir/first-file name — relinking or changing a game's film changes
- * that identity, so a stale thumbnail is never served for new film, and two
- * seasons that happen to reuse the same game id can never share a cache
- * entry. This is a session-scoped IN-MEMORY cache only (not persisted to
- * disk); a fresh app launch regenerates thumbnails once, which is a
- * disclosed, deliberate simplicity trade for this first pass.
- *
- * The backend's `currentId` is mutable ambient state, and `filmUrl()`/
- * `listFilmFiles()`/`linkedGameDir()`/`linkedFilmUrl()` all read it live at
- * call time (`js/storage-backend.js`) rather than taking a season parameter
- * -- so a request queued while season A is open and not yet EXECUTED by the
- * time the coach switches to season B would otherwise resolve its URL under
- * B's identity. Every async step below re-checks the season captured at
- * request time and ABORTS (resolves null, caches nothing) the instant it no
- * longer matches, rather than trying to force-complete under a season that
- * is no longer the one that asked. The caller (HomeScreen) naturally
- * re-requests thumbnails for whatever season is now open, so an aborted
- * stale request is never a lost thumbnail -- it is superseded by a correct one.
- */
+/* Bounded, lazy thumbnails through the existing backend film primitives.
+ * Uses a detached video node and a session cache keyed by season/game/film identity;
+ * every await rechecks captured season ownership before decoding or caching. */
 export class GameThumbnailService {
   constructor(app, { maxConcurrent = 2, width = 320, height = 180 } = {}) {
     this.app = app;

@@ -1,13 +1,5 @@
-/**
- * clip-identity.js: pure clip-to-play matching. A clip that fails to match
- * must never become a new whole-clip play, and two things defeat a filename
- * match: Windows duplicate-copy renames (`foo (1).mp4`) and genuinely
- * duplicate basenames in saved data.
- *
- * This matcher drives PlaylistManager's add, re-add and rehydrate paths.
- * Catalog identity is the first tier; filename matching is the fallback for
- * older rows and newly selected local files.
- */
+/* Pure clip/play matching: durable catalog identity precedes filename fallback.
+ * Ambiguous basenames and duplicate-copy renames must not create extra plays. */
 
 /** Normalize separators and strip the file extension. */
 export function pathNoExt(p) {

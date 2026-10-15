@@ -1,29 +1,5 @@
-/**
- * ClipAnalyzer — heuristic auto-tagging from a clip's motion data.
- *
- * Given a time window inside the detector's motionData (each sample has
- * {time, motion, cut, audio, cx, cy, spread}), infer as many tag fields
- * as we can with a rule-based approach:
- *
- *   - QB alignment: shotgun / under-center (pre-snap centroid)
- *   - play type:        run / pass / screen / PA   (trajectory shape)
- *   - direction hash:   left / middle / right      (horizontal centroid travel)
- *   - result bucket:    loss / short / medium / big / TD
- *   - yardage estimate: pixel displacement * calibration
- *   - tempo:            quick / normal / long      (play duration)
- *
- * This is a best-effort heuristic layer. Every field comes back with a
- * 0..1 confidence score so the UI can show which fields are shaky and
- * the coach can correct them. For well-framed sideline or endzone film
- * on good broadcast angles this gets ~60-70% of fields right on the
- * first pass, which is the difference between "tag from scratch" and
- * "quickly verify".
- *
- * For a production-grade 95%+ solution, the right move is a Python
- * backend with YOLOv8 player detection + pose estimation — heuristics
- * in this file would be replaced by model outputs but the integration
- * points (tags + confidence) stay the same.
- */
+/* Heuristic suggestions from motion, cuts, audio and centroid data.
+ * Returns tags with confidence/reasons for coach review; accuracy is unvalidated. */
 export class ClipAnalyzer {
   constructor() {
     // Tuning constants. Most are dimensionless (0..1) because all centroid

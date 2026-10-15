@@ -4,22 +4,8 @@ import { countedUnit, isPlayTagged } from './football-rules.js';
 
 const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
 
-/**
- * Native Home controller. Home is the season-scoped game workspace: search/
- * sort/filter/view over the open season's games, plus a selected-game detail
- * panel. Season/program switching, season/scout creation, and team-wide
- * management are NOT duplicated here -- they live on the shell's persistent
- * Program/Season/Game context selectors and the native Team Hub
- * (`TeamHubScreen`), which this class calls directly rather than re-owning
- * that data (2026-08-31 Home rebuild).
- *
- * `selectedGameId` is a PREVIEW, never the canonical active/open game --
- * selecting a row highlights it and populates the detail panel with no
- * side effect on `SeasonStore.data.activeGameId`. Continue Charting / Open
- * Study / Open Reports / Link Film / Game Settings all activate the
- * previewed game through the one authoritative `App.openGame()` seam before
- * acting, so a coach comparing games never leaves the wrong one open.
- */
+/* Season-scoped game list and preview state; Team Hub owns season/program management.
+ * selectedGameId is only a preview. Actions activate it through App.openGame. */
 export class HomeScreen {
   constructor(app, overlays, thumbnails) {
     this.app = app;

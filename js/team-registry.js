@@ -1,34 +1,5 @@
-/**
- * TeamRegistry — the team/season identity layer, extracted from SeasonLibrary.
- *
- * WHY THIS EXISTS (S7-c). SeasonLibrary is the legacy Team Hub overlay, and the
- * overlay itself is dead — nothing opens it. But the module is NOT dead: the
- * native Team Hub reaches into this service for the team registry, team
- * switching, season scoping, post-wipe recovery and
- * checklist state, and settings/workspace-context reach in for three more.
- * Deleting the file on "the overlay is unreachable" would have taken team
- * switching and wipe recovery with it.
- *
- * So the data layer moves here first and the overlay becomes the by-product.
- *
- * CONTRACT
- * - No DOM. Not one getElementById, not one class toggle. Presentation belongs
- *   to whoever calls this.
- * - Public API. The native screens stop reaching through `_`-prefixed privates
- *   of a presentation object.
- * - Dependencies are injected, so the whole surface is testable without a page.
- *
- * STORAGE KEYS OWNED HERE
- *   ffa_teams             registry [{id, teamName, jerseyColor}]
- *   ffa_active_team_id    which one is active
- *   ffa_team_profile      the ACTIVE team's profile — every existing reader
- *                         (Game Info sync, checklist, commitActive) keeps
- *                         working unchanged; switching teams rewrites it
- *   ffa_playbook_<teamId> durable call definitions mirrored into season files
- *   ffa_checklist_dismissed
- * Seasons carry `teamId` in their library meta; metas without one are legacy
- * and belong to the first team.
- */
+/* Injected team/season identity, scoped playbooks, switching and wipe recovery.
+ * Owns team/profile/checklist settings; native screens own presentation. */
 export class TeamRegistry {
   /**
    * @param {object}   deps

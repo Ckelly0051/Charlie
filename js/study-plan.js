@@ -1,18 +1,5 @@
-/**
- * StudyPlan: save a Study finding into a game-plan workspace, and resolve a
- * plan back into a watchable cross-game reel.
- *
- * Pure: no DOM, store or film. Persistence is SeasonStore's (`createPlan`,
- * `addPlanItem`); ordering and film are CrossGameCutup's. This module gives
- * them one label and payload shape, and flattens a plan to the composite
- * `gameId::playId` refs the cross-game player consumes.
- *
- *   const item = StudyPlan.finding({ dimensionName:'Formation', measureName:'Success Rate',
- *       scopeLabel:'full season', groupValue:'Wing-T', sampleSize:18,
- *       dimension:'formationFamily', measure:'successRate', scope:'season', refs:['g1::3','g2::9'] });
- *   seasonStore.addPlanItem(planId, item);              // normalized + persisted
- *   const refs = StudyPlan.planRefs(plan);              // -> CrossGameCutup.plan(refs, games)
- */
+/* Pure finding payloads/labels and plan-to-composite-ref resolution.
+ * SeasonStore persists plans; CrossGameCutup owns reel ordering and film identity. */
 export class StudyPlan {
   /**
    * A stable, human label for a saved finding. A group-scoped finding reads

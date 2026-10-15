@@ -1,10 +1,5 @@
-/**
- * AnalyticsRegistry - pure contracts for the redesign's shared analytics layer.
- *
- * Ready measures select values already produced by StatsEngine.compute().
- * Required concepts without one canonical production meaning stay explicitly
- * `requires-context`; consumers cannot accidentally invent a denominator.
- */
+/* Shared analytics dimensions and measures backed by StatsEngine.
+ * Concepts without a canonical production meaning remain requires-context. */
 import { SpecialTeamsModel } from './special-teams.js';
 import { MissedTackles } from './missed-tackles.js';
 import { PenaltyModel } from './penalty-model.js';

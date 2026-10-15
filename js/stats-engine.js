@@ -1,9 +1,5 @@
-/**
- * StatsEngine - Computes team and individual stats from charted play data.
- *
- * All stats are derived live from the play entries in PlayTagger.
- * Nothing is cached — call compute() whenever you need fresh numbers.
- */
+/* Team/player analytics derived from stored charted plays.
+ * compute() produces a fresh model; the Chart draft is not an analytics source. */
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { MissedTackles } from './missed-tackles.js';
 import { PlayShape } from './play-shape.js';

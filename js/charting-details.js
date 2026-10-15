@@ -1,23 +1,8 @@
 import { MissedTackles } from './missed-tackles.js';
 
-/**
- * The run and motion details a play can carry beside its call, and the rules
- * that tie each detail to the field that opens it. Pure and DOM-free: Chart,
- * Film Room, CSV import and the analytics registry all read it.
- *
- *   Gap            where the ball actually hit (not the called gap). One value,
- *                  independent of the coach's Play Direction.
- *   Motion path    where the motion starts and ends (offense left / middle /
- *                  right), opened by Motion.
- *   RPO            read defender, an optional jersey number and the decision
- *                  (Give / Keep / Throw), opened by the RPO Play Type.
- *   QB run         Designed / Scramble / RPO keeper, opened by the QB Run Play
- *                  Type.
- *
- * Nothing here infers a value: a blank stays uncharted. Motion, RPO and QB-run
- * details need their opening field; removing it clears them in the same write.
- * Gap has no opening-field requirement.
- */
+/* Shared Gap, motion-path, RPO and QB-run vocabulary and visibility rules.
+ * Gap is independent of Play Direction. Motion/RPO/QB-run details require their
+ * opening field; blanks remain uncharted and no values are inferred. */
 export class ChartingDetails {
   static GAPS = Object.freeze(['L-A', 'L-B', 'L-C', 'L-D', 'R-A', 'R-B', 'R-C', 'R-D', 'Center', 'Other']);
   static PATH_POINTS = Object.freeze(['Left', 'Middle', 'Right']);

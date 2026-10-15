@@ -1,58 +1,13 @@
-/**
- * AnalyticsMetrics: pure, DOM-free cohort filtering and metric calculation
- * shared by Reports and Study, so a rate is computed once and returned as one
- * typed result. Formulas that already have one home in stats-engine.js stay
- * there.
- *
- * RESULT CONTRACT (`metric()`):
- *   {
- *     id:           string,              // metric id, e.g. 'stopRate'
- *     value:        number|null,         // null when unavailable
- *     count:        number,              // raw numerator (a play count for rates;
- *                                         // total yards for yardsPerPlay)
- *     eligible:     number,              // plays with real underlying data, never
- *                                         // one classified from a fallback default
- *     denominator:  number,              // divisor actually used for `value`
- *     polarity:     'higher'|'lower',    // fixed by the metric id
- *     state:        'ok'|'insufficient'|'partial-film'|'unavailable',
- *     unlinkedCount: number,             // counted plays with no resolvable film
- *                                         // ref (only with allowUnlinkedPlays)
- *     refs:         string[],            // composite gameId::playId, sorted, deduped
- *   }
- *
- * STATE, in priority order:
- *   'unavailable'   denominator === 0; never a fabricated zero.
- *   'insufficient'  denominator below `options.minSample` (per metric, so one
- *                   group can be insufficient on one metric and ok on another).
- *   'partial-film'  a counted play's film ref could not be resolved
- *                   (only with `allowUnlinkedPlays: true`).
- *   'ok'            otherwise.
- *
- * ELIGIBILITY. A play with no real data for a metric (no yardage; no
- * down/distance for stop/success) is excluded from both `eligible` and
- * `denominator` by default. `missingAsZero: true` opts into the legacy
- * division (`denominator = cohort.length`, missing values fall to each
- * metric's default); `eligible` still reports the true count.
- *
- * POLARITY IS PER UNIT. The same formula is good when our offense produces it
- * and bad when our defense allows it, and this module only sees the cohort it
- * is given. So each metric id names its framing: `explosiveRate`,
- * `yardsPerPlay`, `havocRateAllowed`, `negativeRate` are offense-framed;
- * `explosivesAllowedRate`, `yardsAllowedPerPlay`, `havocRate`,
- * `negativeRateForced` are defense-framed. Each pair shares a formula.
- * `stopRate` and `successRate` are unambiguous by name and complements.
- *
- * FILM. Refs come from each metric's `refSource`, the exact plays that formed
- * `denominator`. A play with no resolvable ref, or a duplicate ref, throws by
- * default; with `allowUnlinkedPlays: true` (used by defensivePerformance so one
- * malformed play cannot fail a report) it is counted in `unlinkedCount` and
- * `state` becomes 'partial-film'. Invariant:
- * `refs.length + unlinkedCount === denominator`.
- *
- * Composite refs follow the `${gameId}::${playId}` rule of
- * AnalyticsRegistry.playRef; it is repeated here so this module needs no
- * registry dependency. Get a bound instance from StatsEngine.metricsEngine().
- */
+/* Shared, DOM-free cohort metrics for Reports and Study.
+ * Results carry value (null when unavailable), count, eligible, denominator,
+ * polarity, state, refs and unlinkedCount. State priority is unavailable,
+ * insufficient, partial-film, then ok.
+ * Missing underlying data is excluded unless missingAsZero is explicitly set;
+ * eligible still counts only real observations. Polarity belongs to the named
+ * offense/defense metric, not the formula alone.
+ * Refs identify the denominator's exact plays; unresolved or duplicate refs
+ * throw unless allowUnlinkedPlays is enabled. refs.length + unlinkedCount equals
+ * denominator. Obtain the bound instance from StatsEngine.metricsEngine(). */
 import { PlayShape } from './play-shape.js';
 
 export const MetricPolarity = Object.freeze({ HIGHER: 'higher', LOWER: 'lower' });

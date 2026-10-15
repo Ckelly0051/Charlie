@@ -1,30 +1,6 @@
-/**
- * CrossGameCutup — the data contract for TRUE cross-game sequential playback.
- *
- * A Study/season query returns composite `gameId::playId` refs that SPAN games,
- * but the film player (CutupPlayer) is game-scoped: it plays plays out of the one
- * currently-loaded game's film. Today Study's Watch therefore picks a single game
- * and drops the rest ("kept N matches across M games"). This module closes that
- * gap WITHOUT faking it: it turns the cross-game refs + the season's games into an
- * ORDERED plan the player walks game-by-game.
- *
- * DELIBERATELY PURE: no film URLs, no backend, no DOM. Ordering + clip identity is
- * data; loading each game's film is the player's job (reuse the proven per-game
- * path — switchToGame → auto-load film → CutupPlayer.start(thatGame's playIds)).
- * That keeps this Node-testable and lets the UI reuse the film layer the A3 smoke
- * validated, instead of a parallel cross-game film resolver.
- *
- * CONSUMPTION (player UI, e.g. a cross-game CutupPlayer):
- *   const plan = app.crossGameCutup.plan(refs, seasonGames);
- *   for (const g of plan.games) {              // games in play order
- *     await app.storage.switchToGame(g.gameId);   // loads that game's film
- *     const ids = plan.segments.filter(s => s.gameId === g.gameId).map(s => s.playId);
- *     await playCutup(ids);                        // CutupPlayer.start(ids), await its end
- *   }
- * plan.segments is the flat, fully-ordered reel; plan.games is the per-game order
- * + counts; plan.skipped lists refs that couldn't be resolved (missing play/clip/
- * timestamp) so the UI can report an honest count.
- */
+/* Pure ordering and identity resolution for composite gameId::playId refs.
+ * Returns a flat reel, per-game order/counts and unresolved refs; playback and
+ * film loading remain with the existing game-scoped film owners. */
 import { playbackOrder } from './football-rules.js';
 
 export class CrossGameCutup {

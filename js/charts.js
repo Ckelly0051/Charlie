@@ -6,12 +6,8 @@ export class Charts {
 
   static _esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  /**
-   * F12a — yardage DISTRIBUTION. The shape of an offense in one mark: where the
-   * mass sits, how long the tail is, and where the line of scrimmage falls. A
-   * table of averages hides all three.
-   * @param {Array<{from:number,to:number,count:number,label:string}>} bins
-   */
+  /** Yardage distribution, including the line of scrimmage and tail.
+   * @param {Array<{from:number,to:number,count:number,label:string}>} bins */
   static histogram(bins, opts = {}) {
     const list = bins || [];
     const total = list.reduce((sum, bin) => sum + bin.count, 0);

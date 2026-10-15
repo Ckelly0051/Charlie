@@ -3,15 +3,8 @@ import { ReportBuilder } from './report-builder.js';
 import { WidgetEditor, NativeReportBuilder } from './native-report-builder.jsx';
 import { ConfirmDeleteForm } from './native-team-hub.jsx';
 
-/**
- * Dashboards controller (docs/REPORTS-CONTRACTS.md > Dashboards). Owns the
- * Dashboards home, which dashboard is open, whether it is open to edit, its
- * edits and their persistence; ReportBuilder owns every number. A dashboard is
- * a canvas of modules, each with its own unit, games and filters. Saved
- * dashboards belong to the season (`data.dashboards`) and are saved with it,
- * like the playbook. A template never changes: editing one saves a new
- * dashboard under a name the coach gives.
- */
+/* Season-owned dashboard state and editing; ReportBuilder owns every number.
+ * Editing a template saves a named dashboard, never changes the template. */
 export class ReportBuilderScreen {
   constructor(app, reports, { saveBlob } = {}) {
     this.saveBlob = saveBlob;

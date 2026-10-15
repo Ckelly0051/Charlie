@@ -1,12 +1,5 @@
-/**
- * Reports Presentation Independence — real Preact tab components.
- *
- * ReportsScreen computes/aggregates (delegating every formula to StatsEngine)
- * and passes the result to these components. No component here recomputes a
- * football value; each reads a pre-computed field off `stats`/a report object
- * and turns it into markup. Film clicks call screen methods directly — no
- * post-render DOM query/rebind pass.
- */
+/* Preact Reports pages render the screen's precomputed models.
+ * Football formulas stay with the engine; film clicks call screen commands. */
 import { useMemo, useState } from 'preact/hooks';
 import { Hero, KpiBand, Module, RowList, DataTable, TileGrid, Watchable, WatchableRefs, ChartBody, EmptyState, ReportSectionBar, DownDistanceChart, RunGapChart } from './native-report-kit.jsx';
 import * as view from './reports-view.js';

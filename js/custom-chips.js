@@ -1,30 +1,6 @@
 import { TagLibrary } from './tag-library.js';
-/**
- * CustomChips — thin owner of the active team's managed charting vocabulary
- * (TagLibrary), plus notifying the surfaces that cache or
- * present that vocabulary (Film Room's grid, the native tag form) when it
- * changes.
- *
- * Final Engine Independence: this class no longer injects/removes chip
- * BUTTONS into any DOM chip group. native-tagging.jsx already reads its
- * managed option lists straight from `TagLibrary` on every
- * publish (native-tagging-screen.js's snapshot() `library()` helper), and
- * the native "Edit library" action opens the dedicated Team & Film Settings
- * library editor (`SettingsScreen`, which calls `library.add`/`.remove`
- * directly) rather than an inline "+" button inside the tag form.
- *
- * What survives is two things that were previously side effects of DOM
- * mutation (a MutationObserver watching the legacy chip group for injected/
- * removed/re-classed buttons): PlayGrid's Film Room needs its column-option
- * cache invalidated, and an ALREADY-MOUNTED native tag form needs to know a
- * value it's currently showing was hidden/added/removed/restored — neither
- * of those is triggered by a play-data event, so both get an explicit
- * subscriber notification here instead.
- *
- * Removing a custom value only drops the affordance; plays already tagged
- * with that value keep it (same as any tag value the coach later stops
- * using).
- */
+/* Managed vocabulary owner and change notifications for the deck and grid.
+ * Removing a library option never rewrites plays already carrying that value. */
 export class CustomChips {
   static GROUPS = [
     { key: 'formationFamily', field: 'formationFamily', label: 'formation' },

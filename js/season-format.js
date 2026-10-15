@@ -3,28 +3,8 @@ import { ChartingDetails } from './charting-details.js';
 import { safeStorageId } from './storage-paths.js';
 import { ReceiverDetails } from './receiver-details.js';
 
-/**
- * The current season format, and the one place that knows the retired shapes.
- *
- * The live catalog was converted once on 2026-09-26. Nothing in the app reads
- * an old shape; every path that brings data in (a season file import, a
- * restore point, a game version, the Documents mirror, a CSV) asks this owner
- * first and refuses an old file before anything is written. The file on disk
- * is unchanged.
- *
- * It detects; it never converts. The checks:
- *   - a charted play with no unit
- *   - a combined look (an alignment inside the Formation, Empty inside
- *     it, a family inside Coverage)
- *   - the retired Formation field (one field that mixed family, receiver and
- *     package words), on a play or as a play call's saved default
- *   - a retired Special Teams tag (stType, kickOutcome, scoreFor, kickDistance,
- *     returnYards, hangTime, kickedTo)
- *   - an extra point stored on a Field Goal unit
- *   - custom tags stored as anything but a list
- *   - a game node carrying its own roster
- *   - a single-game save (plays with no games array)
- */
+/* Detect and refuse malformed identities and retired season shapes before writes.
+ * This owner validates; it never converts or repairs imported coach data. */
 export class SeasonFormat {
   static RETIRED_TAG_KEYS = Object.freeze(['stType', 'kickOutcome', 'scoreFor', 'kickDistance', 'returnYards', 'hangTime', 'kickedTo']);
   static RETIRED_LOOK_KEYS = Object.freeze(['receiverLook', 'receiverSide', 'receiverStrength', 'lineBalance']);

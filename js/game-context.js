@@ -1,34 +1,5 @@
-/**
- * GameContext — the per-game charting context, without the hidden form.
- *
- * WHY THIS EXISTS (S7-d1)
- *
- * Perspective, direction and team identity were passed around through six
- * hidden inputs inside `#legacyGameContextState`, which lives in `#app` and
- * which S7-d8 deletes. Reads went straight to `document.getElementById(...)`
- * and writes went through a SYNTHETIC `change` event on `#gamePerspective`
- * that three separate subscribers listened for. That is an event bus made of
- * markup: delete the markup and every read silently returns `''`.
- *
- * `direction` was the sharp edge. `_saveGameInfo()` read it as
- * `getElementById('gameDirection')?.value || ''`, so once the input is gone it
- * writes an empty string over the coach's stored value — a silent data loss,
- * not a visible break.
- *
- * OWNERSHIP, unchanged by this file
- *   durable  SeasonStore.activeGame().gameInfo
- *   working  StorageManager.gameInfo
- * GameContext owns neither. It is the read/write/notify seam over the working
- * owner, so the DOM stops being the transport.
- *
- * CONTRACT
- *   snapshot()          the current context, as a plain frozen object
- *   update(patch)       merge + persist through the canonical draft path
- *   subscribe(fn)       fn(snapshot) on every change; returns an unsubscribe
- *   notify()            re-publish after something else changed gameInfo
- *
- * No DOM. Not one getElementById.
- */
+/* Read/write/notify seam over StorageManager's working gameInfo.
+ * SeasonStore owns the durable game; context changes use the canonical save path. */
 
 /** The fields this service owns. Everything else on gameInfo belongs to GameScreen. */
 export const CONTEXT_FIELDS = ['perspective', 'direction', 'teamName', 'jerseyColor'];

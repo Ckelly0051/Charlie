@@ -1,11 +1,5 @@
-/**
- * HistoryManager - Unified undo/redo for play data, tags, and game info.
- *
- * Records full snapshots of mutable state after each tagger event.
- * Cheap because plays are small JSON. Capped at maxSize entries.
- * Coexists with CanvasOverlay's local drawing undo (history runs first;
- * if nothing to undo, falls through to canvas).
- */
+/* Bounded snapshot undo/redo for stored play and game state.
+ * Drawing keeps its separate canvas history. */
 export class HistoryManager {
   constructor(tagger, overlays) {
     if (!overlays?.toast) throw new Error('HistoryManager requires the native overlay service.');

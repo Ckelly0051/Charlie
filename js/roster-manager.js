@@ -1,16 +1,6 @@
 import { SpecialTeamsModel } from './special-teams.js';
-/**
- * RosterManager: the team roster and the charting deck's active player role.
- *
- * Owns the roster (jersey #, name, position, side), CSV/paste import and the
- * depth-chart print, all driven from Settings > Roster, and the role the deck's
- * player chips stamp (`activeRole`, defaulted from the selected play's unit).
- * The deck itself renders the chips (native-tagging.jsx).
- *
- * The active season owns the roster. StorageManager hydrates this service when
- * a season opens and writes edits back to that season. Per-play attribution
- * lives on play.tags.players and is handled by PlayTagger.
- */
+/* Active-season roster and deck player-role state; PlayTagger owns attribution.
+ * Storage hydrates/persists roster edits; native views own its controls. */
 export class RosterManager {
   constructor(tagger) {
     this.tagger = tagger;

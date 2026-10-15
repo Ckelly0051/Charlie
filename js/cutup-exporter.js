@@ -1,23 +1,5 @@
-/**
- * CutupExporter - Stitch filtered plays into a single downloadable video.
- *
- * Strategy: real-time MediaRecorder capture from a canvas that mirrors the
- * video element. For each play, seek to start, play through end, drawing
- * frames to the canvas via requestAnimationFrame. Audio is captured from
- * the video element via captureStream() and merged into the recording.
- *
- * Output is .webm (universally supported by browsers, MediaRecorder can't
- * reliably produce mp4). Recording is real-time, so a cut-up of 60 plays
- * averaging 8 seconds each takes ~8 minutes to render.
- *
- * UX:
- *   - Confirmation dialog shows count + estimated render time
- *   - Modal progress overlay with current play, count, progress bar, cancel
- *   - Title cards (optional) overlaid between plays showing play number + tags
- *
- * The title-card look line is TagProjection.lookLabel (a presentation
- * string), not a raw `tags.formation` read.
- */
+/* Real-time canvas/MediaRecorder cut-up export with captured audio and optional title cards.
+ * Produces WebM; recording takes approximately the reel's playback duration. */
 import { TagProjection } from './tag-projection.js';
 
 import { h, render } from 'preact';

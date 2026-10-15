@@ -1,17 +1,5 @@
-/**
- * Reports Presentation Independence — the shared presentation kit.
- *
- * Every Reports tab component in native-report-tabs.jsx is built from these
- * primitives. They own ZERO football computation — every value they render
- * arrives pre-computed from StatsEngine's data methods (js/reports-view.js
- * and StatsEngine's _data*() methods). This file's only job is turning a
- * structured view model into markup, film-click wiring, and sort behavior.
- *
- * Film actions call `screen.watch(refs, label)` directly as a real onClick —
- * there is no post-render DOM query/rebind pass (the old `_bindContent`
- * pattern). A row with no resolvable refs renders with no click affordance
- * at all, never a dead click.
- */
+/* Report view-model primitives, sorting and exact-ref film actions.
+ * No football computation; rows without resolvable refs have no Watch affordance. */
 import { render } from 'preact';
 import { useLayoutEffect, useMemo, useState } from 'preact/hooks';
 import { StatsEngine } from './stats-engine.js';

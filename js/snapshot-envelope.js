@@ -1,16 +1,5 @@
-/**
- * SnapshotEnvelope: the versioned wrapper around every Documents-mirror
- * recovery snapshot. A snapshot is written only after the catalog accepted a
- * commit, or by an explicit coach export; it is never a normal read source.
- *
- * The envelope carries identity, counts and a checksum so the explicit
- * recovery flow can preview a candidate and reject a corrupt, tampered or
- * mismatched one before importing it.
- *
- * Pure and DOM-free, with no hashing library. wrap() never throws on a
- * well-formed season; unwrap() never throws on any input and reports a bad
- * snapshot as `{ ok:false, reason }`.
- */
+/* Recovery/export envelope with identity, counts and a content checksum.
+ * Normal loads never use it as a fallback; unwrap reports invalid input without throwing. */
 export const SnapshotEnvelope = {
   VERSION: 1,
 

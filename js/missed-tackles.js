@@ -1,14 +1,8 @@
 import { countedUnit } from './football-rules.js';
 import { SpecialTeamsModel } from './special-teams.js';
 
-/**
- * Missed tackles (GRIDIRON-IQ-TAG-MODEL.md §3a). On our snaps (defense, kick
- * coverage, Defending a Try) `tags.players.missedTackler` names our players who
- * missed, comma-separated like Tackler(s); each name is one missed tackle, the
- * way Tkl credits a tackle, and there is no count box. On the opponent's snaps
- * (offense, returns, our run/pass try) `tags.missedTackles` is the count of
- * their misses on our ball carrier, '0'-'9'; blank is not charted.
- */
+/* Our defensive/coverage misses name players in players.missedTackler.
+ * Opponent misses use the missedTackles count; blank means uncharted, not zero. */
 export class MissedTackles {
   static COUNTS = Object.freeze(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
   static ROLE = 'missedTackler';

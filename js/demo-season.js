@@ -1,26 +1,5 @@
-/**
- * DemoSeason — a fully-tagged sample season the coach can explore instantly.
- *
- * The #1 onboarding lesson from Hudl / Notion / Krossover: never show a new user
- * a blank canvas. `DemoSeason.build()` returns a complete, realistic season
- * object (the same schema SeasonStore produces) — two finished games of tagged
- * offense AND defense plays, a roster with real names, and final scores — so a
- * first-time coach lands on a populated Stats dashboard, Self-Scout, and Call
- * Sheet in seconds instead of tagging 40 plays first.
- *
- * It's deterministic (seeded RNG) so the demo looks the same every time, and it
- * loads through the exact same code path as real data — nothing about the demo
- * is special-cased downstream, so what the coach explores is the real product.
- *
- * No video is attached (film can't be bundled), so the film player shows its
- * placeholder; the demo's job is the analytics "aha", which need no video.
- *
- * NOTE: the seeded RNG + play-distribution model below is intentionally close
- * to `tools/generate-sample-report.mjs` (a node-only report generator). They're
- * kept separate (browser ES module vs build-time tool, and this one adds a
- * defense loop + multi-game structure), but if you tune the realism here,
- * consider mirroring it there so the demo and the sample report don't drift.
- */
+/* Deterministic sample season using the same schema and analytics as coach data.
+ * Its roster is fictional and it carries no bundled film. */
 
 // Each look stored in its own fields (the same seven looks, in the same order,
 // so the seeded sample is unchanged; the sample's own choice of family and

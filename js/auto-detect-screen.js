@@ -3,14 +3,8 @@ import { AutoDetectContent } from './native-autodetect.jsx';
 import { DetectionReview } from './native-detection-review.jsx';
 import { SeasonFormat } from './season-format.js';
 
-/**
- * Native Auto-Detect operation and state API. The scan (PlayDetector, the
- * vision / local-CV fallback, tag stamping) is owned here with live state
- * (settings, status, progress, results) behind a subscribe()/snapshot() seam;
- * `native-autodetect.jsx` renders it in a NativeOverlayService sheet opened
- * from the deck's "Auto-detect plays" command. The review step
- * (`openReview()`) uses the same overlay owner for its decision dialog.
- */
+/* Owns detection settings, scanning, progress and reviewed tag suggestions.
+ * Native views render its snapshot; the overlay service owns its sheets/dialogs. */
 export class AutoDetectScreen {
   constructor(app, overlays) {
     this.app = app;

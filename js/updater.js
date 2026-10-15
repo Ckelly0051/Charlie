@@ -1,23 +1,5 @@
-/**
- * updater.js — In-app auto-update for the Tauri desktop build.
- *
- * Web build: this is a no-op. There's nothing to update — the GitHub Pages
- * URL always serves the latest, so `init()` returns early when not running
- * under Tauri (`window.__TAURI__` absent).
- *
- * Desktop build: on launch (and on demand via `check(true)`) it asks the
- * GitHub Releases `latest.json` endpoint whether a newer signed build exists.
- * If so, it shows a non-blocking banner — "What's new / Update & Restart /
- * Later". "Update & Restart" downloads + installs the signed update and
- * relaunches. Signature verification (pubkey in tauri.conf.json) is enforced
- * by the plugin, so a tampered update is refused.
- *
- * APIs are reached through `window.__TAURI__` because the app runs with
- * `withGlobalTauri: true`:
- *   - window.__TAURI__.updater.check()  -> Update | null
- *   - update.downloadAndInstall(onEvent)
- *   - window.__TAURI__.process.relaunch()
- */
+/* Signed Tauri update checks, download/install and relaunch; browser builds are no-op.
+ * The updater plugin verifies signatures with the configured public key. */
 import { h, render } from 'preact';
 
 export class Updater {

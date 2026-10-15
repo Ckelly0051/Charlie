@@ -13,14 +13,8 @@ const hasPlayType = (tags, type) => String(tags.playType || '').split(/\s*\+\s*/
 // and no other module already carries display labels for them.
 const ST_SCORE_LABELS = { touchdown: 'Touchdown', fieldGoal: 'Field Goal', extraPoint: 'Extra Point', twoPoint: 'Two-Point', safety: 'Safety' };
 
-/**
- * Native S5a theater controller.
- *
- * Playback, clip identity, drawing, and multi-angle remain owned by their
- * existing domain controllers. This screen owns presentation and commands. It
- * adopts the one canonical media node into a native slot while mounted, then
- * returns it exactly on restore. S5a stays internal until S5d flips the route.
- */
+/* Theater state and commands; domain controllers own playback, clips and drawing.
+ * Mount adopts the canonical video node and restore returns the same node. */
 export class BreakdownTheaterScreen {
   constructor(app) {
     this.app = app;

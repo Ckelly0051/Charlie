@@ -1,16 +1,7 @@
 import { planClipMatch } from './clip-identity.js';
 
-/**
- * PlaylistManager - Manages multiple video clips where each clip is one play.
- *
- * Game film is typically recorded play-by-play as individual clips, not as one
- * continuous video. This module handles:
- * - Loading multiple video files at once (multi-select or folder drop)
- * - Maintaining an ordered playlist of clips
- * - Navigating between clips (prev/next, click-to-select)
- * - Auto-creating a play entry in PlayTagger for each loaded clip
- * - Syncing the active clip with the video player
- */
+/* Ordered per-play clip loading, navigation and video/play synchronization.
+ * Re-added clips reconcile with saved identity before creating a play. */
 export class PlaylistManager {
   constructor(videoController, playTagger) {
     this.vc = videoController;

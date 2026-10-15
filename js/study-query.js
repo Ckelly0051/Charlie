@@ -1,29 +1,10 @@
 import { PenaltyModel } from './penalty-model.js';
 import { countedUnit } from './football-rules.js';
 
-/**
- * StudyQuery: the pure query executor over AnalyticsRegistry. It groups a play
- * set by one dimension, computes the requested registry measures per group
- * from `StatsEngine.compute` over that group's plays, and returns each group's
- * `matchingPlayIds` so every Study result stays film-linked (Watch, cut-ups,
- * Plan).
- *
- * PARITY CONTRACT (tools/e2e-study-query.mjs): for a dimension with a report
- * drilldown (DIMENSION_CUT), a group's `matchingPlayIds` come from the same
- * `_buildCutFilter` predicate the reports use, so a Study query returns exactly
- * the report drilldown's play set. Measures ride on `compute()`, which
- * `e2e-parity` pins. Dimensions without a canonical cut (quarter, result,
- * grade, player role, custom tag or field, drive, distance, unit) group and
- * film-link through the registry's value extractor.
- *
- * RECORD-SCOPED AGGREGATION. `penaltyTeam`, `penaltyFoul`, `penaltyRuling` and
- * `penaltyPhase` group by penalty record: a play joins the group through one
- * matching record but may carry others (an offsetting pair charges both teams
- * on one play). Measures for these groups compute from a view of the plays
- * whose `.penalties` holds only the matching records
- * (`PENALTY_RECORD_FILTER`, `_recordScopedPlays`); the plays themselves, and so
- * `matchingPlayIds` and refs, are untouched. No other dimension is scoped.
- */
+/* DOM-free registry grouping, metrics and exact film refs for Study.
+ * Report-backed dimensions share cut predicates; others use registry extraction.
+ * Penalty dimensions aggregate only matching records through copied play views;
+ * source plays and their film identities remain untouched. */
 export class StudyQuery {
   static get PENALTY_RECORD_FILTER() {
     return {

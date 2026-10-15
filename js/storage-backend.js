@@ -4,36 +4,9 @@ import { SnapshotEnvelope } from './snapshot-envelope.js';
 import { SeasonFormat } from './season-format.js';
 import { safeStorageId } from './storage-paths.js';
 
-/**
- * StorageBackend — the seam between the app and *where bytes live*.
- *
- * The app (SeasonStore) never talks to localStorage / the filesystem directly;
- * it goes through a backend. This is what lets the same UI run as:
- *   - a pure browser app  → BrowserBackend (localStorage + IndexedDB + the
- *                           File System Access API for real disk backups)
- *   - an installed desktop app → TauriBackend (unrestricted local files)
- *   - (future) a cloud-synced app → a network backend, same interface.
- *
- * SEASON LIBRARY (multi-season)
- * -----------------------------
- * The app is library-first, like Hudl: many seasons, each its own file/folder,
- * browsed from a Library screen. The backend therefore manages:
- *   - a library index (list of season metas), and
- *   - per-season storage, scoped to a "current season" set via
- *     `setCurrentSeason(id)`. The classic season ops (loadSeason / saveSeason /
- *     the backup ring) all operate on whatever season is current, so SeasonStore
- *     keeps calling them unchanged.
- *
- * On-disk / storage layout:
- *   Browser:  ffa_library            (index, localStorage)
- *             ffa_season_<id>        (one season per key)
- *             IndexedDB backups      (records tagged with seasonId)
- *   Tauri:    library.json           (index, app-data root)
- *             seasons/<id>/season.json
- *             seasons/<id>/backups/season_<ts>.json
- *
- * `detectBackend()` picks the right implementation for the environment.
- */
+/* Scoped storage boundary: browser season keys/IndexedDB or the shared desktop catalog.
+ * Explicit season/game arguments own operations; desktop film access uses approved
+ * managed/linked paths. Documents mirrors are explicit recovery sources only. */
 export class StorageBackend {
   constructor() { this.RETENTION = 25; this.currentId = null; }
   name() { return 'base'; }

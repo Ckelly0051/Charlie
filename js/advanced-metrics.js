@@ -1,18 +1,6 @@
-/**
- * AdvancedMetrics - Expected Points (EP) and EPA calculations.
- *
- * EP is approximated by a piecewise-linear curve over yard line (1..99 from
- * own goal), with adjustments for down and distance. Coefficients are
- * hand-tuned to match the rough shape of nflfastR-derived EP for high school
- * / college football. Not as precise as a full ML model, but useful for
- * relative comparison: which plays / formations / play types are gaining
- * the most expected points.
- *
- * EPA per play = EP_after_play - EP_before_play.
- *
- * Required tags: yardLine + fieldSide, down, distance, yardage, result.
- * Plays missing any required field are skipped (returns null).
- */
+/* Approximate expected points from a hand-tuned yard-line curve and down/distance.
+ * EPA is the change in expected points; plays lacking required tags are excluded.
+ * This is not a calibrated predictive model. */
 // stats-engine imports THIS module; the cycle is safe because StatsEngine is only
 // referenced at call time, never during module evaluation (and the built bundle
 // shares one scope). Keeps ONE canonical projection helper.

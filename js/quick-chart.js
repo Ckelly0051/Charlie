@@ -1,27 +1,8 @@
 import { h } from 'preact';
 import { NativeQuickChart } from './native-quick-chart.jsx';
 
-/**
- * QuickChart - Rapid keyboard-driven play charting mode.
- *
- * Workflow: watch clip → tag with a few keystrokes → auto-advance.
- * A full 60-play game takes ~5 minutes to chart.
- *
- * Keyboard map (active when quick-chart panel is focused):
- *   Play type:  R = Run Inside, O = Run Outside, P = Short Pass,
- *               M = Medium Pass, D = Deep Pass, S = Screen,
- *               A = Play Action, Q = RPO, B = Option, X = Trick,
- *               H = QB Run, J = Reverse
- *   Result:     G = Gain, L = Loss, N = No Gain, I = Incomplete,
- *               T = Touchdown, U = Turnover (INT), F = Fumble,
- *               W = Sack, E = Penalty
- *   Yardage:    0-9 keys set yards, prefix with minus (-) for negative
- *   Down:       Shift+1..4 = set down
- *   Confirm:    Enter = save play & advance to next clip
- *   Replay:     Backspace = replay current clip
- *   Skip:       Tab = skip this play (no tag, advance)
- *   Undo:       Ctrl+Z = go back to previous clip
- */
+/* Keyboard-driven charting and clip advancement.
+ * The key maps below own its vocabulary; no charting-speed claim is validated. */
 export class QuickChart {
   constructor(videoController, playTagger, playlistManager, overlays) {
     this.vc = videoController;

@@ -3,20 +3,8 @@ import { NativeBreakdownTheater, NativePlayRail } from './native-breakdown-theat
 import { NativeTagging } from './native-tagging.jsx';
 import { NativeFilmRoom, FilmRoomControls } from './native-film-room.jsx';
 
-/*
- * THE BREAK DOWN ROUTE (rebuild, 2026-09-24; docs/archive/plans/BREAKDOWN-REBUILD-PLAN.md).
- * One component owns the toolbar, the composition grid and the splitter, drawn
- * from BreakdownWorkspace's state. It replaced an HTML string whose state was
- * painted by hand (class toggles, aria writes, `hidden` flips), which is why
- * every layout move needed new wiring. The workspace re-renders this
- * synchronously on every change, so the DOM is current the moment a command
- * returns, as it was before.
- *
- * The grid cells keep their `*-host` classes and data hooks: they are the
- * layout's named areas, and the CSS and harnesses address them. The child
- * views render inside them as part of this one tree; each still reads its own
- * controller, and attaches to it for as long as it is mounted.
- */
+/* The Break Down component tree: toolbar, grid, splitter and controller-backed views.
+ * Layout host classes/data hooks identify stable areas for CSS and harnesses. */
 
 const Icon = ({ name }) => <svg aria-hidden="true"><use href={`assets/icons.svg#icon-${name}`} /></svg>;
 

@@ -1,19 +1,5 @@
-/**
- * Pure school/nickname identity helpers — no DOM, no storage.
- *
- * Every identity in the app (our program, an opponent, a scout source-game
- * team) is stored as ONE compatibility field (`teamName` / `opponent` /
- * `sourceTeamA` / `sourceTeamB`) so every existing reader keeps working
- * unchanged. `school` and `nickname` are additive companion fields; the
- * compatibility field is always the composed full identity, never a second
- * source of truth.
- *
- * Never split an existing intact name into school/nickname — that would be
- * exactly the heuristic guessing the data contract forbids. When editing an
- * identity that predates these fields, the caller passes the existing full
- * name as the `school` default (see callers) and leaves `nickname` blank;
- * composing school-only reproduces the original name byte-for-byte.
- */
+/* Compose school/nickname labels without guessing how to split an intact name.
+ * Existing full-name fields remain composed identities, not independent sources. */
 
 /** Compose the full/compatibility identity from its parts. Order matters:
  *  "St. Joseph" + "Mavericks" -> "St. Joseph Mavericks". A blank nickname

@@ -1,18 +1,5 @@
-/**
- * The pre-snap look vocabulary and its one read (GRIDIRON-IQ-TAG-MODEL.md §5).
- *
- * A look is stored in its own fields: formationFamily (the offense's structure,
- * one value), receiverSet (its receiver distribution, one value),
- * qbAlignment,
- * backfield, strength, coverage (the call) and coverageFamily. The old model
- * packed an alignment into formation ("Under Center + Flexbone"), 'Empty' into
- * formation and a family into coverage, and its single Formation field mixed
- * family, receiver and package words; the live data was converted once and old
- * files are refused (js/season-format.js), so this module no longer splits
- * anything. `project()` is the plain read every consumer uses.
- *
- * Pure, DOM-free, Node-testable.
- */
+/* Plain look-field reads and reserved vocabulary for pickers/format validation.
+ * Fields are stored separately; presentation lookLabel composes them without inference. */
 export class TagProjection {
   // QB alignments: their own field, never a Formation or Backfield value.
   static QB_ALIGNMENTS = ['Under Center', 'Shotgun', 'Pistol'];

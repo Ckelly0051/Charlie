@@ -13,16 +13,8 @@ export class SpecialTeamsModel {
     try: 'attempting',
     tryDefense: 'defending',
   });
-  /**
-   * THE COACH-FACING UNIT NAMES, in the model's own order. One owner, because
-   * the deck, the theater chyron, the Film Room grid, the Study dimension and
-   * the Reports ledger each carried their own copy — which is how a renamed unit
-   * reaches the deck and nothing else.
-   *
-   * `puntReturn` reads `Punt Return / Block`: the unit that fields a punt is the
-   * unit that blocks one, and the stored value stays `puntReturn` (§4b's rule
-   * against another field-goal-shaped workaround). There is no `puntBlock` unit.
-   */
+  /* Shared coach-facing unit labels in model order.
+   * puntReturn is both Punt Return and Block; there is no separate puntBlock unit. */
   static UNIT_LABELS = Object.freeze({
     kickoff: 'Kickoff',
     kickoffReturn: 'Kick Return',

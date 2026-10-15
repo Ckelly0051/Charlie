@@ -1,19 +1,5 @@
-/**
- * VisionAnalyzer — analyze football plays by sending key frames to
- * Claude's vision API. Replaces the heuristic centroid-tracking and
- * local YOLO server approaches with a single LLM call that actually
- * understands football.
- *
- * Usage:
- *   const va = new VisionAnalyzer({ apiKey: 'sk-ant-...' });
- *   const result = await va.analyzePlay(videoElement, startTime, endTime, teamCtx);
- *   // result = { tags: { formation, playType, ... }, confidence: {...}, reasons: {...} }
- *
- * Extracts 5 key frames (pre-snap, snap, early action, mid action, end),
- * encodes them as JPEG data URLs, and sends them to the Claude messages
- * API with a structured football-analysis prompt. Response is parsed into
- * the same { tags, confidence, reasons } shape the rest of the app expects.
- */
+/* Reviewed tag suggestions from sampled film frames sent to the configured vision API.
+ * Model output is unverified until the coach reviews it; heuristic/local-CV fallbacks remain separate. */
 import { TagLibrary } from './tag-library.js';
 
 export class VisionAnalyzer {

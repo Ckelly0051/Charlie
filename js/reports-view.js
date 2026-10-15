@@ -1,21 +1,5 @@
-/**
- * Reports Presentation Independence — structured view models.
- *
- * Pure functions only. Every function here takes an already-computed `stats`
- * object (StatsEngine.compute()'s output, or an equivalent report object
- * from generateSelfScout()/generateDefensiveSelfScout()/defensivePerformance()
- * /_playCallAnalysis()) and returns a PLAIN JS OBJECT shaped for a Reports
- * component — never HTML, never a DOM node.
- *
- * No formula, denominator, cohort, or classification is computed here that
- * isn't already present on the `stats`/report object StatsEngine produced.
- * Where a value needs a StatsEngine rule (e.g. `isSuccess`), the StatsEngine
- * instance is passed in explicitly as `engine` — this module never
- * re-derives or duplicates a formula.
- *
- * `SpecialTeamsModel` is imported for its coach-facing UNIT NAMES only, which
- * it owns; no football value comes from here.
- */
+/* Plain Reports view models from precomputed engine models; no markup or DOM.
+ * Formula-dependent formatting receives the engine, never reimplements accounting. */
 import { SpecialTeamsModel } from './special-teams.js';
 
 /** A success or stop rate as printed: a dash when no play was judged

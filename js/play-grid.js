@@ -1,11 +1,6 @@
-/**
- * Film Room state and command model.
- *
- * Owns persisted columns and saved filters, filtered-row/tendency math,
- * selection and cut-up commands, and the football semantics of inline edits.
- * It does not own markup or browser event wiring; NativeFilmRoom is the sole
- * Film Room presentation.
- */import { StatsEngine } from './stats-engine.js';
+/* Film Room columns, filters, selection, tendencies and inline-edit semantics.
+ * NativeFilmRoom owns markup and event wiring. */
+import { StatsEngine } from './stats-engine.js';
 import { TagProjection } from './tag-projection.js';
 import { PlayTagger } from './play-tagger.js';
 

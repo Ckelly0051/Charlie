@@ -1,23 +1,5 @@
-/**
- * BackendClient — thin wrapper around the local Python CV server.
- *
- * The browser app ships with a full in-browser heuristic analyzer, but
- * when the companion `server/app.py` is running on 127.0.0.1:8765 we get
- * real YOLOv8 player detection instead of luminance deltas. This module:
- *
- *   1. Probes /health on startup (and on demand) to decide availability
- *   2. Exposes analyzeClip(file, start, end) — POSTs multipart to /analyze
- *   3. Exposes detectPlays(file) — POSTs to /detect
- *   4. Exposes analyzeBatch(file, windows) — one upload, many windows
- *
- * The response shape matches js/clip-analyzer.js exactly
- * ({ tags, confidence, reasons, extras }) so the backend is a drop-in
- * replacement. If the server is unreachable, callers should fall back to
- * the JS ClipAnalyzer — nothing breaks either way.
- *
- * Users can override the backend URL from the console:
- *   localStorage.setItem('ffa_backend_url', 'http://127.0.0.1:9000');
- */
+/* Client for the optional loopback CV server; failed availability falls back
+ * to the caller's browser analyzer. The configured URL is stored in ffa_backend_url. */
 export class BackendClient {
   constructor(opts = {}) {
     this.baseUrl = opts.baseUrl

@@ -4,13 +4,8 @@ import { MissedTackles } from './missed-tackles.js';
 import { ChartingDetails } from './charting-details.js';
 import { ReceiverDetails } from './receiver-details.js';
 
-/**
- * What a play can hold, read from its own parents: the unit, the Special Teams
- * unit, a try's attempt type, a Fake, and a turnover result. Chart draws these
- * fields, Film Room locks the rest, saving a play drops the rest
- * (`settle`), and the analytics credit only roles a play can hold. A value the
- * play cannot show is never stored (GRIDIRON-IQ-SAVE-CONTRACT.md).
- */
+/* Field/role visibility from unit, Special Teams attempt, Fake and turnover state.
+ * Chart renders the visible shape; Save settles away hidden values before storage. */
 export class PlayShape {
   /** Charted on every play: the Situation group and the play's own records. */
   static ALWAYS = Object.freeze(['unit', 'quarter', 'down', 'distance', 'hash', 'fieldSide', 'yardLine', 'driveNumber',

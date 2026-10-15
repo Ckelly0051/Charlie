@@ -1,32 +1,6 @@
-/**
- * SqlCatalog — SQLite (sql.js/WASM) persistence for the season catalog.
- *
- * WHY: the app persisted a season as one JSON blob and *rebuilt* game-level film
- * metadata from transient in-memory state, which was silently lost (the v1.10.7
- * film-index wipe). A real catalog with clips as first-class rows and
- * transactional writes makes state impossible to half-write or derive away.
- *
- * SCOPE (persistence layer first): this is a drop-in for the SEASON persistence
- * the app already does through StorageBackend — it decomposes the season OBJECT
- * into rows on save and reassembles the SAME object on load. The app, SeasonStore
- * and the in-memory model are unchanged; JSON stays as export/backup. Live SQL
- * reads (play finder, cross-season queries) are a later phase on the same schema.
- *
- * ENGINE: sql.js runs the same schema + queries in Node (so this whole module is
- * unit-tested before ship) and in the Tauri webview (which lazy-loads the wasm).
- * The `SQL` module is INJECTED so loading is environment-specific:
- *     const cat = new SqlCatalog(await initSqlJs({ ... }));
- *     await cat.open(existingBytes);            // or open() for a fresh db
- *     ... cat.saveSeason(data) / cat.loadSeason(id) ...
- *     const bytes = cat.toBytes();              // persist to disk (desktop)
- *
- * LOSSLESSNESS: each parent stores its non-child fields verbatim in a `body_json`
- * column; children (games, plays) live in their own tables (also body_json), and
- * are re-attached on load. Schema v2 makes `clips.clip_id` authoritative and
- * writes that durable identity onto both clipRefs and plays as `catalogClipId`.
- * The transient PlaylistManager `clipId` remains a separate live-session handle.
- * Verified by tools/e2e-sql-catalog.mjs.
- */
+/* Injected sql.js catalog; parent body_json preserves non-child fields while
+ * games, plays and clips have scoped rows. catalogClipId is durable identity;
+ * PlaylistManager.clipId is a separate live-session handle. */
 export class SqlCatalog {
   constructor(SQL) {
     this.SQL = SQL;            // initialized sql.js module (injected)

@@ -1,10 +1,5 @@
-/**
- * Team-scoped offensive play-call vocabulary.
- *
- * This service owns definitions only. Selecting a call and applying its
- * defaults to a play belongs to the charting workflow, where explicit
- * per-play overrides can be preserved deliberately.
- */
+/* Team-scoped call definitions only.
+ * Applying defaults and preserving per-play overrides belongs to charting. */
 export class PlaybookLibrary {
   static VERSION = 1;
   static DEFAULT_KEYS = ['runPass', 'playType', 'playDir', 'formationFamily', 'receiverSet',

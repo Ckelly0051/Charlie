@@ -3,12 +3,8 @@ import { WorkspaceContext } from './workspace-context.js';
 import { h, render } from 'preact';
 import { WorkspaceChrome, GlobalTools } from './native-workspace-chrome.jsx';
 
-/**
- * The one native application shell.
- *
- * It owns navigation and application chrome. Domain controllers expose state
- * and commands directly; no hidden or alternate presentation is mounted.
- */
+/* Native routes and shared application chrome over domain controllers.
+ * No hidden or alternate presentation is mounted. */
 export class WorkspaceShell {
   constructor(app) {
     this.app = app;

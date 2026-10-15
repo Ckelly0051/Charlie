@@ -1,9 +1,5 @@
-/**
- * One playback owner for Study, Reports, and Plan.
- *
- * Callers submit exact composite refs (`gameId::playId`). This service may
- * translate them to game-local ids only after loading the owning game.
- */
+/* Playback owner for exact Study/Reports/Plan gameId::playId refs.
+ * Resolve game-local play ids only after loading their owning game. */
 export class FilmNavigationService {
   constructor(deps) {
     const required = [

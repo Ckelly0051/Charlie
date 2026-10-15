@@ -1,29 +1,6 @@
-/**
- * CatalogPersistence makes the SQLite catalog the one canonical season store on
- * desktop. It owns only orchestration (the canonical write and the recovery
- * mirror); all filesystem access is injected, so the
- * canonical write path is tested in Node (tools/e2e-catalog-persistence.mjs)
- * with a fake fs and real sql.js.
- *
- * Model: one library-wide db (`seasons/library.db`) held open in memory; every
- * save re-exports its bytes to disk.
- *
- * Per-season `season.json` is not data: nothing here reads or writes it, and
- * a leftover file is never imported. The Documents mirror is a recovery snapshot written after a
- * successful commit, never read by a normal load; recovering from it is the
- * explicit, previewed, confirmed recovery flow. A load with no db row returns
- * null; there is no weaker fallback source.
- *
- *   const cp = new CatalogPersistence({ catalog, fs });   // catalog = opened SqlCatalog
- *   await cp.saveSeason(id, seasonObject);
- *   const { data, source } = (await cp.loadSeason(id)) || {};
- *
- * Injected `fs` adapter (all async):
- *   readDb()            -> Uint8Array | null   (null only for a confirmed-absent file;
- *                                                any other failure throws)
- *   writeDb(bytes)      -> void                (canonical write; a failure propagates)
- *   writeMirror(id,data)-> void  (optional)    (Documents recovery snapshot; failures swallowed)
- */
+/* Serializes the shared SQLite catalog and its best-effort recovery mirror.
+ * Filesystem access is injected: readDb returns null only for confirmed absence;
+ * other read/write failures stay visible. Normal loads never read sidecars. */
 export class CatalogPersistence {
   constructor({ catalog, fs }) {
     if (!catalog || typeof catalog.saveSeason !== 'function') throw new TypeError('CatalogPersistence requires a SqlCatalog');

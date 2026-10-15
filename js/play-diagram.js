@@ -1,19 +1,8 @@
 import { h } from 'preact';
 import { DiagramEditor } from './native-play-diagram.jsx';
 
-/**
- * PlayDiagram — schematic X's & O's drawing per play.
- *
- * Distinct from the telestrator (`canvas-overlay.js`, which draws over the
- * video frame): this is a blank-field play diagram a coach draws up and that
- * travels with the play (`play.diagram` = array of shapes in normalized 0..1
- * coords) and prints on the call sheet.
- *
- * Shapes:
- *   { t:'O'|'X', x, y }              offensive / defensive marker
- *   { t:'text', x, y, s }            text label
- *   { t:'route', pts:[{x,y}...], a } polyline; a=true draws an arrowhead
- */
+/* Per-play normalized field diagrams, distinct from video telestration.
+ * Shapes are O/X markers, text labels and routes with optional arrowheads. */
 export class PlayDiagram {
   constructor(tagger, overlays) {
     this.tagger = tagger;

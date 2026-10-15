@@ -2,17 +2,9 @@ import { countedUnit } from './football-rules.js';
 import { PenaltyModel } from './penalty-model.js';
 import { StudyQuery } from './study-query.js';
 
-/**
- * Dashboards: the coach's own reports, built from views, metrics, groupings and
- * filters (docs/REPORTS-CONTRACTS.md > Dashboards). Pure and DOM-free. Every
- * number comes from an existing formula owner: AnalyticsMetrics through
- * `registry.metricsEngine()`, registry measures read off `StatsEngine.compute()`,
- * and `StatsEngine.playersBoard()` for leaders. Filters use StudyQuery's cohort
- * rule. A group holds the plays whose registry value matches, on either unit:
- * the report cut filters are unit-gated (an offense look matches only
- * offensive snaps), and a defensive dashboard groups by the offense it faced.
- * Every value carries the film refs behind it; nothing is estimated.
- */
+/* DOM-free dashboards over existing metric, registry and player-stat owners.
+ * Study cohorts define filters, including offense-faced data on defense;
+ * every returned value carries its exact film refs. */
 export class ReportBuilder {
   static VERSION = 2;
 

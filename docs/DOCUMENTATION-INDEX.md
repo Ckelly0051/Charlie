@@ -98,7 +98,9 @@ log.
   Runtime engine privacy now shares the existing shell journey; the redundant
   off-gate shell diagnostic is removed. These changes are not in installer 118.
   Obsolete repair-history commentary and false type-floor deferrals are removed;
-  production executable syntax and the built assets are unchanged.
+  module headers describe current storage/route owners without retired layouts
+  or unvalidated performance claims. Production executable syntax and built
+  assets are unchanged. The broader cleanup remains in progress.
   Tag-field model checks now share the DOM-free analytics suite and their UI
   checks share native Chart; the separate tag-fields browser harness is removed.
   Reports share rendered-state waits and table clipping. Persistence tests

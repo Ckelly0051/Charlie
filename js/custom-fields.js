@@ -1,21 +1,8 @@
 import { h } from 'preact';
 import { NativeCustomFields } from './native-custom-fields.jsx';
 
-/**
- * CustomFieldsManager: user-defined tag fields.
- *
- * Coaches can add their own categories (e.g. "Coverage Beater", "MOFO/MOFC",
- * "Blitz Pickup") without a code change. Each field is either a set of chip
- * options or a free-text input. Definitions live in localStorage (global,
- * like the roster); per-play values are stored on `play.tags.customFields`
- * so they travel with the project save and appear in CSV export.
- *
- * Field def shape: { id, name, options: string[] }  (options empty => text)
- *
- * The charting deck renders the per-play inputs (native-tagging.jsx) and writes
- * through `_write`; its "Edit custom fields" button opens `openManager`, a sheet
- * on the overlay service (native-custom-fields.jsx).
- */
+/* Coach-defined chip/text fields: definitions in settings, values on play.tags.customFields.
+ * The deck writes the draft; the shared overlay renders the definition editor. */
 export class CustomFieldsManager {
   constructor(tagger) {
     this.tagger = tagger;

@@ -1,27 +1,6 @@
-/**
- * PlayDetector v2 — multi-signal play detection.
- *
- * Signals combined:
- *   • grid-based motion (camera-pan rejected)
- *   • scene-cut detection via luminance histogram delta
- *   • audio envelope (RMS of decoded audio) for whistles / crowd roar
- *
- * Detection strategy:
- *   1. Scan the video by PLAYING it (muted, 4× speed) and sampling frames
- *      via requestVideoFrameCallback. This is ~10-20× faster than seek-per-frame.
- *   2. For each sample, compute per-cell motion on a 6×4 grid inside the
- *      field ROI. Drop frames with uniform motion (camera pan) by checking
- *      grid variance.
- *   3. Compute luminance histogram delta. Large deltas = scene cut.
- *   4. Build a smoothed motion signal. Compute baseline noise from the
- *      quietest 20% of samples. Threshold = baseline + k * stddev (adaptive).
- *   5. Peak-detect plays: look for motion bursts of duration >= minPlay that
- *      peak above threshold, bounded by scene cuts on either side.
- *   6. Refine boundaries to the flanking low-motion points around each peak.
- *
- * The old threshold / sensitivity slider is kept for power users as a
- * "strictness" multiplier applied to the adaptive threshold.
- */
+/* Play windows from adaptive grid motion, scene cuts and audio envelopes.
+ * Reject uniform camera motion, find bursts above baseline, then refine boundaries;
+ * the strictness setting scales the adaptive threshold. */
 export class PlayDetector {
   constructor(videoController, playTagger) {
     this.vc = videoController;

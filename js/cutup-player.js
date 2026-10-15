@@ -1,14 +1,5 @@
-/**
- * CutupPlayer — in-app film cut-up review.
- *
- * Given a set of play IDs (e.g. every play a jersey # was involved in),
- * it plays them back-to-back: seek to play start, let it run, and at the
- * play's end timestamp auto-advance to the next. A floating banner shows
- * the label and position with Prev / Next / Exit controls.
- *
- * Unlike CutupExporter (which renders a downloadable stitched video),
- * this just drives the existing <video> element for instant review.
- */
+/* Sequential review of selected plays through the existing video node.
+ * This is playback, not the stitched recording produced by CutupExporter. */
 import { playbackOrder } from './football-rules.js';
 import { h, render, Fragment } from 'preact';
 

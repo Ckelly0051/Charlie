@@ -1,25 +1,6 @@
-/**
- * Reports > Defense, Revision 2.
- *
- * Four PAGES selected from the shared secondary bar (coach-approved comp,
- * design-comps/reports-secondary-nav-2026-09-23) - Performance, Opponent
- * offense, Scheme & passing, Situations - each its existing numbered section
- * of fixed-height modules; Performance opens with the eleven-KPI strip. Every value comes
- * from `StatsEngine.defenseBoard()`; this file formats and lays out, and derives
- * no football value.
- *
- * MODULE GEOMETRY IS A CONTRACT, not a style. A module's external height is
- * fixed from its allocated rows and never grows with data:
- *
- *   - FIXED schema (a finite football set): exactly its possible rows.
- *   - SUMMARY: one line.
- *   - VARIABLE schema: the next standard height (220 / 300 / 380 / 460) that
- *     holds its allocation. Unused visible capacity renders as `-` rows; data
- *     beyond capacity scrolls inside the module under a sticky header.
- *
- * Half-width modules pair with the next half-width module of the SAME height
- * so a pair's top and bottom edges align; an unmatched module spans the row.
- */
+/* Defense pages render precomputed defenseBoard values, never football formulas.
+ * Fixed schemas allocate all rows; variable modules use standard heights and
+ * internal scrolling. Half-width pairs share a height; unmatched modules span. */
 import { useState } from 'preact/hooks';
 import { Watchable, EmptyState, ReportSectionBar, DownDistanceChart, RunGapChart } from './native-report-kit.jsx';
 import '../css/native-defense-board.css';

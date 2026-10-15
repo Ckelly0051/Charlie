@@ -1,14 +1,5 @@
-/**
- * CallSheetBuilder - Generates a printable wristband-style call sheet and
- * practice script from tagged plays.
- *
- * Output is a styled HTML document opened in a new window that the user prints
- * to PDF (or paper). Formatted to fit a standard wristband insert when the
- * "Wristband" layout is chosen.
- *
- * Buckets pull plays from PlayTagger using situational filters. The user picks
- * how many of each to include; we rank by EPA (if available) then by yards.
- */
+/* Printable call sheets and practice scripts from situational play cohorts.
+ * Candidate calls rank by available EPA, then yards. */
 import { AdvancedMetrics } from './advanced-metrics.js';
 import { PlayDiagram } from './play-diagram.js';
 import { StatsEngine } from './stats-engine.js';

@@ -6,12 +6,8 @@ function Icon({ name }) {
   return <svg aria-hidden="true"><use href={`assets/icons.svg#icon-${name}`} /></svg>;
 }
 
-/**
- * The below-film lower-third. Sits between the stage and the transport, never
- * over the video — the film column is `.gi-theater-stage` (flexes) followed
- * by this fixed-height row, so a chyron pixel can never sit on a video pixel.
- * Renders nothing when no play is selected, rather than an empty shell.
- */
+/* Selected-play lower-third between the film and transport, never over the video.
+ * No selected play means no lower-third. */
 // Native focus+scroll on a tabIndex-0 overflow container is real browser
 // behavior, but it shouldn't be the ONLY path to the cells it hides at
 // narrow widths — an explicit handler makes reaching Result deterministic

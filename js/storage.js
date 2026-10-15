@@ -12,15 +12,8 @@ import { MissedTackles } from './missed-tackles.js';
 import { StatsEngine } from './stats-engine.js';
 import { buildGameHtmlReport } from './html-report.js';
 
-/**
- * StorageManager - Handles save/load/export for projects.
- *
- * The unit of work is a **season** (see season-store.js): one container holding
- * many games, autosaved in place to localStorage so the app no longer spawns a
- * file per game/save. StorageManager bridges the live tagger/canvas/gameInfo
- * state and the season store — committing the active game on every change and
- * loading a game's state when the coach switches games.
- */
+/* Bridge between live game services and the canonical season store.
+ * Commit the loaded game's stored state; switching loads the destination's services and film. */
 export class StorageManager {
   constructor(videoController, playTagger, canvasOverlay, { saveBlob } = {}) {
     this.saveBlob = saveBlob;

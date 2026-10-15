@@ -1,22 +1,5 @@
-/**
- * plan-export.js: pure plan to export serializer. Turns a game plan and the
- * season's games into an ordered, film-linked structure and a self-contained
- * printable HTML document. `build()` feeds both the presentation view and the
- * export, so on-screen and printed output cannot drift; `html()` renders the
- * standalone document.
- *
- *   const exp = PlanExport.build(plan, seasonStore.data.games);
- *   printWindow.document.write(PlanExport.html(exp));   // or feed exp to a view
- *
- * Escaping: plan names, notes, labels and play notes travel in importable
- * seasons, so html() escapes every interpolated string.
- *
- * `look` is TagProjection.lookLabel, a presentation string combining
- * alignment and structure (e.g. "Shotgun Trips"). It is deliberately not
- * called Formation, which would imply Shotgun is a formation; such a
- * combined label is allowed here but never in a column-shaped surface (see
- * tag-projection.js `lookLabel`).
- */
+/* Pure, ordered, film-linked plan serialization shared by the view and HTML export.
+ * Escape all imported text; combined look labels are presentation, not Formation columns. */
 import { TagProjection } from './tag-projection.js';
 
 export class PlanExport {

@@ -1,11 +1,5 @@
-/**
- * NotesManager - play notes, written into the open play's draft.
- *
- * native-tagging.jsx renders its own controlled textarea and calls
- * `setNotes(value)` on every keystroke. Each keystroke is an unsaved change at
- * once (leaving the play asks), and a run of keystrokes is one Undo step
- * (`PlayTagger.typedChange`); Save stores the note with the play.
- */
+/* Each note keystroke changes the draft immediately; Save stores it with the play.
+ * PlayTagger.typedChange groups the typing into one undoable change. */
 export class NotesManager {
   constructor(videoController, playTagger) {
     this.vc = videoController;

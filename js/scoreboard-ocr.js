@@ -1,21 +1,5 @@
-/**
- * ScoreboardOCR: read down/distance/quarter/score from a coach-defined
- * scoreboard region of the video frame using Tesseract.js.
- *
- * Workflow:
- *   1. Set Scoreboard Region: drag a box over the on-screen scoreboard. The
- *      region is saved per video in localStorage as normalized (0..1)
- *      coordinates so it works across resolutions.
- *   2. Read Scoreboard (or auto-read on play start): the frame is captured,
- *      cropped, OCR'd and parsed.
- *   3. Parsed values appear in a confirmation strip to accept or reject.
- *
- * Tesseract.js loads on first use only (~1MB).
- *
- * Parked by the coach (2026-09-27): the confirmation strip and status render
- * into #ocrPreview / #ocrStatus, which no longer exist, so a read shows
- * nothing and is never applied. Kept for future use (docs/OPEN-DEFECTS.md).
- */
+/* Parked OCR prototype: its preview/status hosts do not exist, so reads cannot apply.
+ * Retained at the coach's direction; see docs/OPEN-DEFECTS.md. */
 export class ScoreboardOCR {
   constructor(videoController, playTagger) {
     this.vc = videoController;

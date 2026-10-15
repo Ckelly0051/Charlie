@@ -1,17 +1,6 @@
 import { SeasonFormat } from './season-format.js';
-/**
- * VersionManager: per-game save points (named and automatic), stored by the
- * storage backend: the SQLite catalog on desktop, IndexedDB in a browser,
- * never localStorage (whole-game snapshots would exhaust its quota).
- *
- * Snapshots are taken:
- *   - manually (Settings > Recovery > Save game version, with a label)
- *   - automatically every N play edits (default 10)
- *   - automatically every M minutes if any changes occurred (default 5)
- *
- * Capped at 20 per game by the backend; automatic saves are evicted before
- * named ones. Settings > Recovery is the only presentation owner.
- */
+/* Named/automatic per-game snapshots in catalog or IndexedDB, never localStorage.
+ * Backend eviction keeps named saves ahead of automatic ones; Settings owns the UI. */
 export class VersionManager {
   constructor(storage, tagger, history) {
     this.storage = storage;

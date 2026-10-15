@@ -4,12 +4,8 @@ import '../css/native-breakdown-route.css';
 
 /** Dedicated Break Down route using the canonical production DOM surfaces. */
 export class BreakdownWorkspace {
-  /* FILM ROOM LAYOUT (coach direction, 2026-09-23). Video first: the editable
-     table docks below the film by default. The coach can move it beside the
-     film, drag the split within usable limits, and reset. `video` is the film's
-     share of the split axis (height below, width beside), kept per dock. A few
-     bytes of preference, so it lives in localStorage like the other view
-     settings; version history no longer shares that store. */
+/* Film Room docks below or beside the film. Each dock retains its split ratio
+ * in view preferences; video is the film's share of that dock's split axis. */
   static LAYOUT_KEY = 'ffa_film_room_layout';
   static LAYOUT_DEFAULT = Object.freeze({ dock: 'bottom', bottom: 62, side: 45 });
   static LAYOUT_LIMITS = Object.freeze({ bottom: [40, 75], side: [30, 65] });

@@ -1,10 +1,5 @@
-/**
- * SeasonManager - season-wide analytics composition.
- *
- * The project IS the season (see season-store.js). Native Reports consumes this
- * model for aggregate stats and progression; Team Hub and Home own season and
- * game management. It owns no game data of its own.
- */
+/* Season-wide analytics composition; Home and Team Hub own season/game management.
+ * This service owns no independent game data. */
 // H16 — the season Offense pane renders the same field-zone / spray / quarter
 // visuals the game Offense tab does. They were computed for every play in the
 // season already; nothing rendered them above game scope.

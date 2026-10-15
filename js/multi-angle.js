@@ -1,16 +1,5 @@
-/**
- * MultiAngle — two camera angles of the same game, time-locked.
- *
- * Typical use: sideline (primary) + end zone (secondary). Both videos
- * play/pause/seek in sync; the coach toggles, views side-by-side, or
- * uses picture-in-picture. Tags and drawings attach to the shared play
- * data, not to a specific angle — they show the same snap.
- *
- * View modes:
- *   - single (Toggle):      one angle visible at a time, V key swaps.
- *   - sideBySide:           both angles 50/50, active one has outline.
- *   - pip (Picture-in-Pic): primary full-size, secondary small overlay.
- */
+/* Synchronized sideline/end-zone playback with single, split and picture-in-picture modes.
+ * Tags and drawings belong to the shared play, not a camera angle. */
 export class MultiAngle {
   constructor(vc) {
     this.vc = vc;

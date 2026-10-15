@@ -1,26 +1,6 @@
-/**
- * SeasonStore — the canonical "project = season" data container.
- *
- * One season holds many games; each game is the same per-game object the rest
- * of the app already serializes (plays, gameInfo, annotations, roster, …). The
- * season is the unit of work, so the app stops spawning a file artifact per
- * game / per save.
- *
- * Storage is hybrid (see CLAUDE.md "Season-as-Project"):
- *   1. Canonical store = the browser. The whole season lives under one
- *      localStorage key (`ffa_season`) and is autosaved continuously in place,
- *      so nothing proliferates.
- *   2. Backup / portability = a single Export/Import season file.
- *   3. Durable disk backup = the backend's disk layer. In the browser that's a
- *      bound folder (File System Access API) receiving `season.json` + a ring of
- *      timestamped snapshots; on desktop (Tauri) it's plain app-data files.
- *
- * Where bytes actually live is owned by a StorageBackend (storage-backend.js),
- * so the same SeasonStore runs in the browser or in a native shell unchanged.
- *
- * Video is never stored (too large). Each game references its video filename;
- * the coach re-links the file when they open that game.
- */
+/* Canonical season model: games, roster, plans and scoped/revision-fenced writes.
+ * StorageBackend owns bytes (shared SQLite catalog on desktop, scoped browser
+ * storage on web); film is referenced, not embedded in the season payload. */
 import { detectBackend } from './storage-backend.js';
 import { SpecialTeamsModel } from './special-teams.js';
 import { PenaltyModel } from './penalty-model.js';
