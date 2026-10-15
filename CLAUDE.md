@@ -312,14 +312,34 @@ a reviewed correction named in the diff.
 - **A replacement removes what it replaces, in the same change** (coach,
   2026-10-06). When new code takes over a job, delete the old path, its
   markup, CSS, bindings, tests and comments in that commit, and name what was
-  removed in the commit message. Nothing is left "for later" unless the coach
-  parked it. Every review asks: what did this replace, and is it gone? Enforced
+  removed in the commit message, along with its documentation. A retained
+  duplicate needs a stated reason and a removal checkpoint. Nothing is left
+  "for later" unless the coach parked it. Every review asks: what did this
+  replace, and is it gone? Enforced
   by `e2e-stranded-code` (no lookup of an id nothing creates, no dead CSS) and
   `e2e-legacy-inventory` (no unreferenced names; counts only fall).
 - **Old patterns are fixed when touched.** `docs/OPEN-DEFECTS.md` > Old
   patterns lists them by file. A change that edits a listed file fixes that
   file's items in the same change, or its commit message says why not. Read
   that section before every build.
+- **Account for growth** (coach, 2026-10-15). Every feature brief names what
+  it adds, what it replaces, its test owner and its expected gate impact.
+  Substantial work carries a rough size estimate, not a target. The handoff
+  reports net production and test line changes; a review rejects growth the
+  brief did not account for. Line counts are tracked, never a ratchet.
+- **Reuse test owners; Node first.** A new harness needs a genuinely separate
+  responsibility. Pure logic runs in Node; browsers prove interactions,
+  rendering and integration. Unrelated tests are not merged just to cut the
+  harness count.
+- **Runtime budgets.** A harness that exceeds its deadline fails. The full
+  gate budget is 6 minutes on this machine, recorded in the receipt with time
+  split between product harnesses and setup; over budget is a red result for
+  the coach to decide, not a pass with an explanation. Never meet a budget by
+  skipping checks, weakening assertions or raising timeouts.
+- **Audit before structural reduction.** Large reductions (the Reports
+  rebuild, storage consolidation) start from an audit of what each module
+  does. Done means every listed job has moved to its new owner and the old
+  code is gone, not that a line count was reached.
 - A check must be as strong as its name.
 - Commit the first working pass locally before revising it. Commit at every
   baton pass.
