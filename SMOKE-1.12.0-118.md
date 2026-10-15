@@ -85,3 +85,8 @@ fixes start until the coach closes the list.
    editor, under Points awarded. Note for the fix: Points awarded hides and
    Official return ruling appears when Defensive Return is chosen, so the
    ruling should follow the events group rather than jump above it.
+3. **Players & Grades: number boxes don't line up.** The Ball Carrier,
+   Passer and Receiver jersey inputs start at different horizontal positions
+   because each follows its own label's width (Passer's box sits further
+   right than Receiver's). They should share one column so the boxes, the
+   names beside them and the grades align vertically.
