@@ -1,12 +1,5 @@
-/* Native Home (2026-08-31 rebuild). The season-scoped game workspace:
-   search, sort, filter, and view controls over the open season's games,
-   plus a selected-game detail panel. Everything here is scoped under
-   .ws-home-page so it cannot be defeated by cascade or import order against
-   the pre-existing shell rules it lives beside (ws-home-head, ws-eyebrow,
-   ws-btn, ws-primary, the ws-fact-green/warn/muted trio, ws-phase-row, and
-   ws-bar are the shell's own, reused as-is; everything below is additive,
-   matching the approved comp
-   design-comps/home-workspace-2026-08-31/home.html almost verbatim. */
+/* Season-scoped game workspace and selected-game detail. Scope Home rules under
+   .ws-home-page so shared shell styles cannot override its composition. */
 body.ws-route-home .ws-home{padding:0}
 body.ws-route-home .ws-home>.ws-home-page{max-width:none;margin:0}
 .ws-home-page{min-width:0;height:100%;min-height:0;display:grid;color:var(--gi-bd-strong);font-family:var(--gi-sans)}
@@ -20,11 +13,7 @@ body.ws-route-home .ws-home>.ws-home-page{max-width:none;margin:0}
 .ws-home-page .ws-primary{background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink)}
 body.ws-route-home .ws-contextbar{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:18px}
 body.ws-route-home :is(#wsCtxSeason,#wsCtxGame){display:none}
-/* Wide enough for a real program name. At 250px the inline PROGRAM label, the
-   chevron inset and the value's own box left ~108px for the value, so
-   `St. Joseph Mavericks` ellipsized at BOTH release widths while the shared
-   rules file said no context value may clip. Home shows only this selector, so
-   the row has the room. */
+/* Leave room for the program label, value and chevron without clipping the name. */
 body.ws-route-home #wsCtxProgram{order:2;flex:0 0 340px;min-width:340px;max-width:380px;border:0;display:flex;align-items:center;gap:8px;padding:8px 30px 8px 14px}
 body.ws-route-home #wsCtxProgram .ws-ctx-label{flex:0 0 auto}
 body.ws-route-home #wsCtxProgram .ws-ctx-value{flex:1 1 auto;min-width:0;overflow:hidden;padding:8px 10px;border:1px solid var(--gi-bd-bone);border-radius:var(--gi-radius);text-overflow:ellipsis;white-space:nowrap}
@@ -36,8 +25,7 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-home-page .ws-home-title-lockup{display:flex;align-items:center;gap:14px}.ws-home-page .ws-home-title-lockup>div{min-width:0}.ws-home-page .ws-home-logo{width:64px;height:64px;flex:0 0 64px;object-fit:contain}
 .ws-home-page #wsHomeSummary{margin-top:7px;color:var(--gi-bd-copy);font-size:13px}
 
-/* Approved first-launch Home composition. This is part of Home, not the
-   retired centered Team Hub onboarding panel. */
+/* First-launch Home composition. */
 .ws-home-page .first-launch{width:min(100%,1040px);padding:4px 0 24px}
 .ws-home-page .first-launch>header{margin-bottom:28px}
 .ws-home-page .first-launch>header h1{margin:0;font:600 30px/1.2 var(--gi-sans)}
@@ -77,83 +65,39 @@ body.ws-route-home .ws-workspace-switch .is-scout[aria-pressed=true]{background:
 .ws-empty-panel h3{margin:0 0 8px;font:700 22px/1.2 var(--gi-cond)}
 .ws-empty-panel p{margin:0 0 16px;color:var(--gi-bd-copy);font-size:13px;line-height:1.5}
 
-/* Season rail (2026-08-31 second review repair). A genuine full-height
-   context rail, not an inset card floating in the page: it runs the full
-   height of the route on a hairline right border, flush to the content
-   edge, matching design-comps/home-workspace-2026-08-31/captures/
-   1440-season.png. Rows are the purpose-built RailSeasonRow (see
-   native-home.jsx) -- no Team Hub action buttons squeezed into a 236px
-   column, which is what previously left the season name a 75px sliver. */
+/* The season rail fills the route height with a hairline right border. */
 .ws-home-page .home-with-rail{display:grid;grid-template-columns:224px minmax(0,1fr);align-items:stretch;height:100%;min-height:0}
-/* The rail is bounded by the ROUTE frame, never 100vh. `.ws-home` is a grid
-   item of `.ws-main`'s minmax(0,1fr) row, so it already excludes the shell
-   chrome above it AND the fixed bottom navigation at <=900px -- 100vh
-   overshot that frame by the height of the chrome (118px at desktop, 110px
-   at 768), which pushed `Manage program` and the rail foot off-screen at
-   EVERY width, not just tablet. Home therefore owns no page scroll: the
-   route is the definite-height frame, the game grid scrolls inside
-   `.home-content`, and a long multi-year history scrolls inside
-   `.rail-trees`. Entries are never dropped to avoid scrolling, and every
-   rail action stays reachable without scrolling the main panel. */
+/* Bound the rail to the route frame, never 100vh: shell chrome already occupies
+   part of the viewport. The game grid and each rail tree own bounded scrollports;
+   rail actions remain reachable without scrolling the main panel. */
 body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-year{display:flex;flex-direction:column;gap:14px;min-width:0;height:100%;min-height:0;overflow:hidden;padding:18px 14px;border-right:1px solid var(--gi-bd-line);background:var(--gi-bd-panel)}
 .ws-home-page .home-content{min-height:0;overflow-y:auto}
-/* THE CREATE ACTION MUST STAY INSIDE THE RAIL. At 1280 the rail narrows to
-   190px while the section label kept its full width, pushing the `+` 26px past
-   the rail's right edge where it was clipped and unreachable. The label gives
-   way; the button never does. */
+/* The create button never shrinks; the section label gives way inside a narrow rail. */
 .ws-home-page .rail-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
 .ws-home-page .rail-head .gi-hub-kicker{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ws-home-page .rail-head .icon-btn{flex:none}
-/* Both tree create actions meet the 30px desktop target; the icon, border and
-   restraint are unchanged. */
 .ws-home-page .rail-head .icon-btn{width:30px;height:30px;min-height:30px;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-control);color:var(--gi-bd-strong);font-size:16px;line-height:1}
 .ws-home-page .rail-head .icon-btn:hover{border-color:var(--gi-bd-bone);background:var(--gi-bd-control-active)}
 .ws-home-page .rail-head .icon-btn:active{background:var(--gi-1)}
 .ws-home-page .rail-head .icon-btn:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-home-page .rail-library-link{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:36px;padding:0 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
 .ws-home-page .rail-library-link:hover{color:var(--gi-bd-gold)}
-/* Two permanent trees. Both always render; long histories scroll inside
-   the rail rather than dropping entries out of navigation. */
-/* flex:0 1 auto -- sizes to its content and SHRINKS (scrolls) when the rail
-   is short, but never grows to fill leftover height. A growing tree box is
-   exactly what previously left a large dead gap above the rail tools. */
-/* TWO PERMANENT PANES, not one shared scroll area. A single scroller made
-   Opponent Scouts read as absent or collapsed whenever Program Seasons
-   filled the visible area -- which conflicts with the requirement that both
-   trees stay continuously visible. Each section is its own row, each scrolls
-   its OWN year groups, and both headings therefore always render inside the
-   rail frame. `.rail-trees` grows to claim the rail's free space so the two
-   1fr rows are bounded; the fixed tools and the rail foot keep their own
-   space below it. */
-/* PROGRAM SEASONS OWNS THE FLEXIBLE HEIGHT. Equal `1fr` rows with a 112px
-   floor each gave the season tree about one visible row on an ordinary desktop,
-   which is how the installed build showed 2026 while 2025 JV was the open
-   season. Seasons take the rail's free space; scouts are content-sized under a
-   cap, so a long scout list can never starve the tree above it. */
-/* The scout TRACK is sized, not the section inside it. With an `auto` track the
-   flexible seasons row took everything the container had and squeezed scouts to
-   5px against 92px of content — its only row invisible, which a fixture with no
-   scouts could never show. The track takes the scouts' own content height, up
-   to 34% of the rail, and the pane scrolls inside that. */
+/* Content-sized trees shrink and scroll on short rails but do not grow into spare space. */
+/* Each tree owns a scrollport so both headings stay visible. The bounded
+   .rail-trees region leaves fixed space for tools and the rail footer. */
+/* Program seasons take flexible rail height; scouts stay content-sized under a cap. */
+/* Size the scout grid track, not only its child, to keep the flexible season
+   track from squeezing scouts out of view. */
 .ws-home-page .rail-trees{display:grid;grid-template-rows:minmax(120px,1fr) min(34%,max-content);flex:1 1 auto;gap:14px;min-height:0;overflow:hidden}
-/* `min-width:0` as well as `min-height:0`: a grid item's automatic minimum is
-   its content, so the section refused to shrink below the head's natural width
-   and pushed the create button outside the rail at 1280. */
+/* Grid items need min-width:0 and min-height:0 to shrink below their content size. */
 .ws-home-page .rail-section{display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
-/* Scouts are content-sized UNDER A CAP, and seasons keep a floor of their own.
-   Sized purely to content, a long scout list grew past the season tree and, on
-   a short rail, collapsed it to nothing — the same starvation in the other
-   direction. Seasons take what is left above that cap, never less than 120px. */
+/* Cap scouts and preserve the 120px season floor so neither tree starves the other. */
 .ws-home-page .rail-section.is-scouts{min-height:0}
-/* A SHORT DESKTOP BUYS ITS HEIGHT FROM SPACING, NEVER FROM CONTROLS. At 800px
-   the rail frame is ~682px and the tool block alone was taking 40% of it. The
-   rail's own paddings and gaps give way; every button keeps its 40px target,
-   every row its 54px, and the type does not move. */
+/* Short rails reduce padding and gaps, never control targets, row heights or type. */
 @media (max-height:960px){
   .ws-home-page .rail-year{gap:10px;padding:12px 14px}
-  /* A short rail still shows a scout row whole: 34% of a small box fell six
-     pixels under one heading plus one row. */
+  /* The short-rail scout floor must hold one heading and a complete row. */
   .ws-home-page .rail-trees{gap:6px;grid-template-rows:minmax(120px,1fr) min(46%,max-content)}
   .ws-home-page .rail-section{gap:6px}
   .ws-home-page .rail-groups{gap:8px}
@@ -161,14 +105,10 @@ body.ws-route-home .ws-home{overflow:hidden}
   .ws-home-page .rail-foot{padding-top:8px}
 }
 .ws-home-page .rail-head{flex:none}
-/* ONE SCROLLPORT PER TREE. The rail itself never scrolls, the page never
-   scrolls sideways, and each tree owns its own bounded scroller. */
 .ws-home-page .rail-groups{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;scrollbar-width:thin}
 .ws-home-page .rail-group{display:flex;flex-direction:column;gap:6px}
 .ws-home-page .rail-group-body{display:flex;flex-direction:column;gap:6px;min-width:0}
 .ws-home-page .rail-year-label{margin:0;padding:0}
-/* The year disclosure: a real button, keyboard-operable, with its own focus
-   ring and a count so a folded year still says how much it holds. */
 .ws-home-page .rail-year-toggle{
   display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 10px;
   border:0;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-strong);
@@ -176,18 +116,15 @@ body.ws-route-home .ws-home{overflow:hidden}
 }
 .ws-home-page .rail-year-toggle:hover{background:var(--gi-bd-control)}
 .ws-home-page .rail-year-toggle:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-/* The active year is a heading, not a control: no hover affordance and no
-   pointer, because there is nothing to press. */
+/* The active year heading is not interactive. */
 .ws-home-page .rail-year-toggle.is-static{cursor:default}
 .ws-home-page .rail-year-toggle.is-static:hover{background:none}
 .ws-home-page .rail-year-caret{flex:none;width:12px;color:var(--gi-bd-copy);font-size:12px}
-/* The active heading's alignment comes from an empty spacer of the caret's
-   width, never from a disclosure glyph it cannot honour. */
+/* Align the active heading with a caret-width spacer, not a disclosure glyph. */
 .ws-home-page .rail-year-spacer{flex:none;width:12px}
 .ws-home-page .rail-year-name{overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap}
 .ws-home-page .rail-year-count{margin-left:auto;color:var(--gi-bd-copy);font:600 12.5px/1 var(--gi-sans)}
 .ws-home-page .rail-empty{margin:0;color:var(--gi-bd-copy);font-size:12px}
-/* RailSeasonRow -- one label, one count, one click. */
 .ws-home-page .rail-row{display:flex;align-items:center;gap:10px;width:100%;min-height:54px;padding:8px 10px;border:1px solid transparent;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-strong);text-align:left;cursor:pointer}
 .ws-home-page .rail-row>span{min-width:0}.ws-home-page .rail-row :is(strong,small){display:block}
 .ws-home-page .rail-row:hover{background:var(--gi-bd-control)}
@@ -195,10 +132,8 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .rail-row small{color:var(--gi-bd-copy);font-size:12px}
 .ws-home-page .rail-row.is-current{border-color:var(--gi-bd-bone);background:var(--gi-3);box-shadow:inset 3px 0 var(--gi-bd-gold)}
 .ws-home-page .rail-row.is-current strong{color:var(--gi-bd-strong)}
-/* Anchored, compact, and never an oversized fixed allocation: the tool block
-   keeps its full 40px targets and its own labels, and gives back only the gaps
-   and padding that were spending the tree's height. `flex:none` keeps it
-   reachable at every supported height. */
+/* The tool block keeps its targets and labels; flex:none preserves its height
+   while gaps and padding give space back to the trees. */
 .ws-home-page .rail-tools{display:flex;flex:none;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--gi-bd-line)}
 .ws-home-page .rail-tools button{display:flex;align-items:center;gap:10px;background:none;border:0;min-height:40px;padding:4px 10px;color:var(--gi-bd-strong);font-size:13px;font-weight:600;text-align:left}
 .ws-home-page .rail-scope{padding:0 10px 4px;color:var(--gi-bd-copy);font-size:12px}
@@ -261,11 +196,8 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .library-overview-actions .gi-hub-kicker{margin-bottom:1px}
 .ws-home-page .library-overview-actions button{min-height:38px;padding:0 12px;border:1px solid var(--gi-bd-bone);background:transparent;color:var(--gi-bd-strong);font:600 12px var(--gi-sans)}
 .ws-home-page .library-overview-actions button:hover{background:var(--gi-bd-control)}
-/* Unassigned opponent scouts: identity on the left, one explicit assignment
-   control on the right. The head's title and its supporting line stack rather
-   than running together, and each row's name and details do the same -- the
-   shared `.library-list-head` lays its children inline, which ran the heading
-   straight into its own sentence. */
+/* Stack unassigned scout headings and details explicitly; the shared list header
+   otherwise lays children inline. */
 .ws-home-page .library-unassigned{border-top:1px solid var(--gi-bd-line);margin-top:18px;padding-top:18px}
 .ws-home-page .library-unassigned .library-list-head{align-items:flex-start;display:block}
 .ws-home-page .library-unassigned .library-list-head h3{margin:0 0 4px}
@@ -316,13 +248,8 @@ body.ws-route-home .ws-home{overflow:hidden}
 @media(min-width:1100px){.ws-home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1700px){.ws-home-page .game-grid{grid-template-columns:repeat(4,minmax(0,280px))}}
 
-/* Own alignment explicitly -- the unscoped shell rule (workspace-shell.css
-   .ws-game-row, a 5-column grid predating this card) sets
-   align-items:center. This rule's higher specificity (.ws-home-page
-   .ws-game-row) wins on display/flex-direction, but CSS resolves per
-   property, not per rule -- align-items was never declared here, so the
-   legacy center value still applied and shrank the thumbnail to its own
-   height instead of stretching to the card's full content width. */
+/* Set align-items explicitly: the shared .ws-game-row rule centers children,
+   and overriding display or flex-direction does not reset that property. */
 .ws-home-page .ws-game-row{position:relative;display:flex;flex-direction:column;align-items:stretch;min-width:0;padding:0;border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);background:var(--gi-bd-panel);box-shadow:var(--gi-raise-1);text-align:left;font-weight:400;overflow:hidden;height:auto}
 .ws-home-page .game-card-select{display:flex;flex:1;flex-direction:column;align-items:stretch;width:100%;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer}
 .ws-home-page .ws-game-row:hover{border-color:var(--gi-bd-bone)}
@@ -367,8 +294,6 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .detail-pane{position:sticky;top:0;background:var(--gi-bd-panel);border:1px solid var(--gi-bd-line);border-radius:var(--gi-radius);padding:14px 18px 16px;min-width:0}
 .ws-home-page .detail-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .ws-home-page .detail-top span{color:var(--gi-bd-copy);font-size:12px;overflow-wrap:anywhere}
-/* The overflow action stays an icon button with its accessible label and
-   tooltip; only its target reaches the 30px desktop floor. */
 .ws-home-page .icon-btn{width:30px;height:30px;min-height:30px;padding:0;border:0;border-radius:var(--gi-radius);background:transparent;color:var(--gi-bd-copy)}
 .ws-home-page .detail-top .icon-btn:hover{background:var(--gi-bd-control);color:var(--gi-bd-strong)}
 .ws-home-page .detail-top .icon-btn:active{background:var(--gi-1)}
@@ -385,9 +310,7 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .scoreboard strong{font:600 26px/1.3 var(--gi-cond);font-variant-numeric:tabular-nums}
 .ws-home-page .scoreboard>span{color:var(--gi-bd-copy);font-size:11px}
 .ws-home-page .detail-status{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-/* `Link film` keeps its restrained underlined-command look and gains a real
-   30px target; the padding is pulled back out of the row so the status line
-   does not grow around it. */
+/* Pull Link film target padding back out of the row to preserve status-line height. */
 .ws-home-page .detail-status button{display:inline-flex;align-items:center;border:0;border-radius:var(--gi-radius);background:none;height:auto;min-height:30px;padding:0 8px;margin-right:-8px;color:var(--gi-bd-copy);font-size:12px;text-decoration:underline}
 .ws-home-page .detail-status button:hover{color:var(--gi-bd-strong);background:var(--gi-bd-control)}
 .ws-home-page .detail-status button:active{background:var(--gi-1)}
@@ -400,25 +323,13 @@ body.ws-route-home .ws-home{overflow:hidden}
 .ws-home-page .detail-actions .ws-gold{grid-column:1/-1;background:var(--gi-bd-gold);border-color:var(--gi-bd-gold);color:var(--gi-bd-gold-ink);font-weight:800}
 .ws-home-page .detail-actions .ws-gold:disabled{opacity:.45}
 .ws-home-page .detail-actions button{min-height:38px;font-size:12.5px;white-space:normal}
-/* One shared interaction contract for every selected-game action, so Game
-   Plan, Open Study and Open Reports are identical by construction rather
-   than by three rules kept in sync by hand. Background/border/shadow only:
-   dimensions never move on hover or press. */
+/* Detail action states change paint only, never dimensions. */
 .ws-home-page .detail-actions button:active:not(:disabled){background:var(--gi-1)}
 .ws-home-page .detail-actions button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
-/* Game Plan is an ordinary detail action, sharing Open Study/Open Reports'
-   own `.ws-btn` + `.detail-actions button` typography, dimensions, hover,
-   pressed, and focus states. The retired split Season plans / Open -> row
-   had its own borderless full-width treatment; that CSS is deleted rather
-   than left inert. */
 .ws-home-page .detail-actions [data-ws-action="game-plan"]{grid-column:1/-1}
 body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-scout] .ws-game-row.selected{border-color:var(--gi-bd-cyan);box-shadow:0 0 0 1px var(--gi-bd-cyan)}
 
 .ws-home-page .roster-action{display:flex;align-items:center;gap:12px}
-/* THE TARGET IS THE CONTROL, NOT THE INK. `View roster →` read as a quiet text
-   command but offered a 16px hit area. The type, weight and restraint are
-   unchanged; the button simply owns a real 30px target with its padding inside
-   the existing row, so nothing around it grew. */
 .ws-home-page .roster-action button{
   display:inline-flex;align-items:center;min-height:30px;padding:0 8px;margin-right:-8px;
   border:0;border-radius:var(--gi-radius);background:none;color:var(--gi-bd-copy);
@@ -448,11 +359,8 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .library-season-identity{grid-area:identity}.ws-home-page .library-season-metrics{grid-area:metrics}.ws-home-page .library-film{grid-area:film}.ws-home-page .library-season-actions{grid-area:actions}
   .ws-home-page .library-overview{grid-template-columns:1fr 1fr}.ws-home-page .library-overview-actions{grid-column:1/-1;border-top:1px solid var(--gi-bd-line)}
   .ws-home-page .library-scout-empty{display:grid;grid-template-columns:1fr}
-   /* Once the empty Scout layout stacks, its create panel falls below the fold,
-      so the ONE create action moves to the panel head where it stays in the
-      initial viewport. Swapped here rather than at 700px, which left 768 with its
-      only create action off-screen. Still exactly one: .library-mobile-create
-      renders only in this empty state, and the aside button is hidden with it. */
+   /* When the empty Scout layout stacks, move its sole create action to the head
+      so it stays in the initial viewport; hide the aside action. */
    .ws-home-page .library-mobile-create{display:inline-flex}
    .ws-home-page .library-unassigned-row{grid-template-columns:1fr}
    .ws-home-page .library-assign{align-items:stretch;flex-direction:column}
@@ -462,8 +370,7 @@ body[data-mode=scout] .ws-home-page .ws-game-row.selected,.ws-home-page[data-sco
   .ws-home-page .scout-table-head{grid-template-columns:minmax(150px,1.4fr) repeat(4,minmax(76px,.7fr))}
 }
 @media(max-width:700px){
-  /* The rail stacks above the content here, so the route-frame scroll owner
-     from the desktop rule set is handed back to the page. */
+  /* When the rail stacks above the content, hand route scrolling back to the page. */
   body.ws-route-home .ws-home{overflow-y:auto}
   .ws-home-page,.ws-home-page .home-with-rail{height:auto;min-height:100%}
   .ws-home-page .home-content{overflow-y:visible}

@@ -29,7 +29,6 @@
 .gi-play-import-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:2px}
 @media(max-width:700px){.gi-play-import-mapping{grid-template-columns:1fr}.gi-play-import-source,.gi-play-import-parse{align-items:flex-start;flex-direction:column}.gi-play-import-actions{position:sticky;bottom:-22px;margin:0 -22px -22px;padding:12px 22px;background:var(--gi-2);border-top:1px solid var(--gi-7)}.gi-play-import-actions button{min-height:44px;flex:1}}
 @media(pointer:coarse){.gi-play-import button{min-height:44px}}
-/* ══ S6-6g — DESIGN RULES LAST. Section heading = lower-third plate. ═════════ */
 .gi-play-import-section>header h3{
   display:inline-flex;align-items:center;min-height:22px;margin:2px 0 0;
   padding:0 20px 0 9px;background:var(--gi-3);color:var(--gi-12);

@@ -41,25 +41,17 @@
 .gi-film-save-filter{display:grid;gap:7px;color:var(--gi-11);font:var(--gi-text-label)}
 @media(max-width:900px){.gi-film-column-list{grid-template-columns:1fr}.gi-film-table-wrap thead th{min-width:110px}}
 @media(pointer:coarse){.gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button{min-height:44px}.gi-film-table-wrap th,.gi-film-table-wrap td{height:44px}.gi-film-table-wrap td>button{min-height:44px}.gi-film-table-wrap input[type="checkbox"]{width:20px;height:20px}}
-/* SQUARE. `--gi-radius` is 0 because broadcast graphics are angular; this file
-   hard-coded 3px on every control and 2px on the play badge, so Film Room was
-   the one route with rounded corners. */
 .gi-film-room button,.gi-film-columns button,.gi-film-cell-editor button,
 .gi-film-cell-editor input,.gi-film-save-filter input,
 .gi-film-table-wrap .is-play button span{border-radius:var(--gi-radius)}
 
-/* ONE FOCUS LANGUAGE. Everywhere else focus is the two-ring `--gi-focus`
-   shadow; here it was a flat outline, so tabbing between the deck and the
-   table changed what focus looked like mid-keyboard-pass. */
 .gi-film-room button:focus-visible,.gi-film-columns button:focus-visible,
 .gi-film-cell-editor button:focus-visible,.gi-film-cell-editor input:focus-visible,
 .gi-film-save-filter input:focus-visible,.gi-film-table-wrap td>button:focus-visible{
   outline:none;box-shadow:var(--gi-focus)}
 
-/* THE TABLE'S CONTROLS (2026-09-24). Their own region, placed by the Break Down
-   composition; they style themselves rather than borrowing the table's rules.
-   Base: a bar over the table (table beside the film, or a phone). The route
-   turns it into a vertical card when the table is below the film. */
+/* Break Down places table controls above the table or in a vertical region
+   beside the film. These controls own their styling independently of the table. */
 .gi-film-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-width:0;height:100%;padding:8px 12px;border-bottom:1px solid var(--gi-7);background:var(--gi-2);color:var(--gi-12);font-family:var(--gi-sans)}
 .gi-film-controls-head{display:flex;align-items:baseline;gap:10px;min-width:0}
 .gi-film-controls-head h2{margin:0;font:600 14px var(--gi-sans);white-space:nowrap}
@@ -77,9 +69,8 @@
 .gi-film-filter-group button+button{border-left-width:0}
 .gi-film-filters button.is-active{border-color:var(--gi-12);background:var(--gi-12);color:var(--gi-1);box-shadow:var(--gi-press)}
 @media(pointer:coarse){.gi-film-controls button{min-height:44px}}
-/* The plays on screen, measured. It fills the table-below card's spare height;
-   the bar layouts (table beside the film, a phone) have none to fill and would
-   push the table down, so it shows only in the card (native-breakdown-route.css). */
+/* The play count fills spare height only in the table-below controls region;
+   showing it in bar layouts would push the table down. */
 .gi-film-summary{display:none;min-width:0;padding-top:10px;border-top:1px solid var(--gi-6)}
 .gi-film-summary header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
 .gi-film-summary h3{margin:0;color:var(--gi-12);font:600 12.5px var(--gi-sans)}

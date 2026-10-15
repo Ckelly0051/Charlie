@@ -27,12 +27,8 @@
   padding: 0;
 }
 
-/* The native `hidden` attribute must always win. Author rules that set an
-   explicit `display` (e.g. `.btn { display: inline-flex }`) out-cascade the UA
-   `[hidden] { display:none }` rule, silently defeating `el.hidden = true`
-   toggles — this is what left the Library "Close" button visible-but-dead on
-   first run. One global rule ends the per-element whack-a-mole
-   (`.season-chip[hidden]`, `.breadcrumb[hidden]`, …). */
+/* Author display rules outrank the native hidden rule; hidden elements must
+   stay hidden even when a component declares its own display. */
 [hidden] { display: none !important; }
 
 body {
@@ -103,15 +99,10 @@ body {
   color: var(--text-bright);
 }
 
-/* Collapsible secondary tools inside the Play Tagger panel. Keeps the
-   manual marking, scoreboard OCR, and suggestions available but out of the
-   way so auto-detect + tag review is the focus. */
-
 @keyframes pulse-scan {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
-/* Indeterminate "busy" style used while the AI server is crunching */
 @keyframes ffa-progress-busy {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -296,9 +287,7 @@ body {
     overflow: visible;
     height: auto;
   }
-  /* body-prefixed so these light-theme vars out-rank the dark dashboard
-     palette block (also `.stats-overlay`, but later in the file — equal
-     specificity would let it win even inside @media print). */
+  /* Body specificity keeps print colors above the later stats-overlay palette. */
   .stats-tabs { display: none; }
   .stats-tab-pane { display: block !important; }
   .stat-card {
@@ -418,7 +407,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- Buttons: touch-friendly, subtle depth --- */
 .btn:not(.ws-shell *) {
   min-height: 34px;
   padding: 7px 12px;
@@ -444,7 +432,7 @@ body {
   border-color: #1b4791;
 }
 
-/* --- Input / select polish (also prevents iOS zoom with 16px on mobile) --- */
+/* Use 16px mobile inputs to prevent iOS focus zoom. */
 input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) {
   background: var(--bg-primary);
   color: var(--text);
@@ -464,23 +452,19 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 /* ============  MOBILE: <= 800px  ============ */
 @media (max-width: 800px) {
 
-  /* 16px inputs to prevent iOS auto-zoom */
   input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) { font-size: 16px; padding: 10px 12px; }
 
   .btn:not(.ws-shell *) { min-height: 40px; padding: 9px 12px; font-size: 13px; }
   .btn-sm:not(.ws-shell *) { min-height: 34px; padding: 7px 10px; font-size: 12px; }
 
-  /* Stats overlay full screen */
   .stats-tab { padding: 8px 12px; font-size: 12px; }
 }
 
-/* --- Focus accessibility --- */
 .btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--highlight);
   outline-offset: 1px;
 }
 
-/* --- Card / panel subtle polish --- */
 .stat-card {
   background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-tertiary) 100%);
   border: 1px solid var(--border);
@@ -488,7 +472,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
-/* --- Onboarding hint toast --- */
 .onboard-hint {
   position: fixed;
   left: 50%;
@@ -526,7 +509,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 
 :root {
-  /* Softer, more modern SaaS palette */
   --bg-primary:    #0a0e1a;
   --bg-secondary:  #111827;
   --bg-tertiary:   #1a2236;
@@ -567,7 +549,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   border-color: var(--accent);
 }
 
-/* Stats cards refined */
 .stat-card {
   background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
   border: 1px solid var(--border);
@@ -578,7 +559,6 @@ body { font-size: 14px; letter-spacing: -0.01em; }
 .stat-card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dim); font-weight: 600; }
 .stat-card-value { font-size: 24px; font-weight: 800; color: var(--text-bright); margin-top: 4px; letter-spacing: -0.02em; }
 
-/* Footer with Save & Next */
 @keyframes twBurst {
   0% { opacity: 0; transform: scale(0.6); }
   30% { opacity: 1; transform: scale(1.05); }
@@ -717,9 +697,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   .drr-conf { margin-left: 0; }
 }
 
-/* ===========================================================
-   AUTO-TAG PILLS — shown in the detection review modal
-   =========================================================== */
+/* Auto-tag pills in Detection Review. */
 .drr-tags {
   display: flex;
   flex-wrap: wrap;
@@ -739,9 +717,7 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   font-variant-numeric: tabular-nums;
 }
 
-/* ===========================================================
-   BACKEND STATUS BADGE — top-bar indicator for local CV server
-   =========================================================== */
+/* Local CV server status badge. */
 
 :root {
   --bg-primary:    #e2e6ed;   /* app canvas */
@@ -749,8 +725,8 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   --bg-tertiary:   #e4e8ef;   /* chips, inputs */
   --bg-surface:    #d8dde6;   /* hover */
   --bg-elevated:   #eef1f5;
-  --accent:        #1D4ED8;   /* royal blue */
-  --accent-hover:  #2f4fc4;   /* deeper royal */
+  --accent:        #1D4ED8;
+  --accent-hover:  #2f4fc4;
   --accent-soft:   rgba(16,24,40,0.12);
   --highlight:     #1D4ED8;
   --highlight-hover: #2f4fc4;
@@ -758,19 +734,17 @@ body { font-size: 14px; letter-spacing: -0.01em; }
   --success:       #16a34a;
   --warning:       #d97706;
   --danger:        #dc2626;
-  --text:          #0f172a;   /* slate-900 */
-  --text-dim:      #64748b;   /* slate-500 */
-  --text-bright:   #ffffff;   /* white — for text ON colored fills */
-  --border:        #e2e8f0;   /* slate-200 */
-  --border-bright: #cbd5e1;   /* slate-300 */
+  --text:          #0f172a;
+  --text-dim:      #64748b;
+  --text-bright:   #ffffff;   /* Text on colored fills. */
+  --border:        #e2e8f0;
+  --border-bright: #cbd5e1;
   --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
   --shadow-md: 0 6px 18px rgba(15,23,42,0.10);
   --shadow-lg: 0 16px 40px rgba(15,23,42,0.18);
 }
 
 body { background: var(--bg-primary); color: var(--text); }
-/* Re-show the sidebar at all widths (old design hid it for the removed
-   .tw workspace) and keep sane columns per breakpoint. */
 
 /* --- Buttons --- */
 .btn:not(.ws-shell *) {
@@ -807,26 +781,16 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 }
 
 /* --- Field Strip play markers: data ink on turf --- */
-/* Tagged but not run/pass (special teams, penalty, defense w/o run-pass):
-   gold — the unit-category ink the Film Room grid already uses for ST. */
-/* Genuinely untagged: a chalk ghost, clearly distinct from every tagged
-   marker (it previously shared the gray 'other' and looked identical). */
+/* Tagged markers without Run/Pass use the Special Teams category ink. */
+/* Keep untagged markers visually distinct from tagged categories. */
 
 /* --- Playlist --- */
-/* Generic input focus ring recolor (was rose) */
 input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(.ws-shell *) { box-shadow: 0 0 0 3px var(--accent-soft); }
 
-/* Click-to-film: any stat row that maps to a set of plays. A small ▶ hint
-   appears on hover so it's discoverable as a "watch these plays" control. */
 .cut-row { cursor: pointer; transition: background var(--transition); }
 .cut-row:hover { background: rgba(16,24,40,0.12); }
-/* THE ROW MARKER COSTS THE COLUMN NO WIDTH. Reserved inline it took ~13px off
-   the first cell of every CLICKABLE row while a held row kept none, so a fixed
-   football set rendered two left edges: on Defense's Down & distance the
-   populated rows sat at 56px and the held ones at 43px. Absolutely positioned
-   in the cell's own left inset it still moves no text, because it never
-   occupies any — the same correction the Players and Self-Scout tables already
-   carry. */
+/* Absolutely position the film-row marker inside the cell inset so clickable
+   and non-clickable rows retain the same text alignment. */
 .cut-row td:first-child { position: relative; }
 .cut-row td:first-child::before {
   content: '▶';
@@ -892,7 +856,6 @@ input:focus:not(.ws-shell *), select:focus:not(.ws-shell *), textarea:focus:not(
 .cutup-btn:hover { background: var(--accent); }
 .cutup-exit:hover { background: var(--danger); }
 
-/* ================================================================== */
 .btn:not(.ws-shell *), .cutup-btn {
   touch-action: manipulation;
 }
@@ -905,26 +868,15 @@ body {
   min-height: 100vh;
 }
 
-/* Timeline strip under the video */
-/* THE FIELD STRIP — the play timeline is a football field: a turf band with
-   chalk yard hashes every 10% of its width; plays render as data-ink markers
-   along it. Hashes are pure CSS gradients (never DOM children — a real child
-   inside #timelineBar would defeat the :has(.timeline-bar:empty) collapse). */
-/* Separation between adjacent markers so a dense strip reads as plays,
-   not one smear (active's glow rule overrides this shadow, which is fine). */
+/* Draw field-strip hashes with CSS, never DOM children: a child inside
+   #timelineBar would defeat the :has(.timeline-bar:empty) collapse. */
 
-/* Settings button must be reachable on desktop now that the secondary
-   panels live in the slide-in drawer (it was mobile-only in the old
-   2-column layout). Hidden on small screens where bottom tabs cover it. */
-
-/* ================================================================== */
 @media (min-width: 1100px) {
   html { height: 100vh; overflow: hidden; }
   body { height: 100vh; margin: 0; padding: 0; overflow: hidden; }
 
 }
 
-/* ================================================================== */
 :root {
   --radius-sm: 6px;
   --radius: 8px;
@@ -939,14 +891,11 @@ body {
   --transition: 140ms cubic-bezier(.4,0,.2,1);
 }
 
-/* ---- Work surfaces ---- */
 body { background: var(--canvas); }
 
-/* Stats-dashboard visualizations (field zones, spray, quarter bars) */
 .viz-caption { color: #8b97b0; font-weight: 400; font-size: 11px; }
 .viz-caption { margin: 6px 0 0; }
 
-/* Play diagram (X's & O's) */
 [data-overlay-id="play-diagram"] { place-items: center; }
 [data-overlay-id="play-diagram"] .gi-overlay-panel { width: min(700px, calc(100vw - 20px)); }
 .pd-editor { text-align: left; }
@@ -962,7 +911,6 @@ body { background: var(--canvas); }
 }
 .pd-help { font-size: 11px; color: var(--text-dim, #64748b); margin: 6px 0 4px; }
 
-/* ---- Buttons: consistent depth + smooth motion ---- */
 .btn:not(.ws-shell *) {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
@@ -976,19 +924,16 @@ body { background: var(--canvas); }
 .btn-accent:not(.ws-shell *) { box-shadow: none; }
 .btn-accent:hover:not(.ws-shell *) { box-shadow: 0 4px 16px rgba(16,24,40,0.45); }
 
-/* ---- Inputs: match the crisp chip border + radius ---- */
 input[type="text"]:not(.ws-shell *), input[type="number"]:not(.ws-shell *), input[type="date"]:not(.ws-shell *), select:not(.ws-shell *), textarea:not(.ws-shell *) {
   border-radius: var(--radius-sm);
   border-color: var(--chip-border);
 }
 
-/* ---- Accessible focus ring ---- */
 .btn:focus-visible:not(.ws-shell *), input:focus-visible:not(.ws-shell *), select:focus-visible:not(.ws-shell *), textarea:focus-visible:not(.ws-shell *) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* ================================================================== */
 select:not(.ws-shell *) {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -1007,24 +952,16 @@ select:focus:not(.ws-shell *) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3 6L8 11L13 6' stroke='%233D7BFD' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 }
 
-/* Wrappers — each holds a video (+ canvas on angle 1). Transparent
-   when no second angle is loaded; position:absolute fills container. */
+/* Angle wrappers fill the media container absolutely; an unloaded second angle is transparent. */
 
-/* Subtle app-name "bug" in the top-right of the video, broadcast style.
-   Absolutely positioned → never affects the controls/timeline layout. */
+/* The video wordmark is absolutely positioned so it cannot move controls or timeline. */
 
-/* Run/pass chart colors — only consumed inside the dark dashboard, but
-   harmless globally. The full Gridiron Pro palette (gold accent + dark
-   bg/text/border) is SCOPED to .stats-overlay below — setting it globally
-   leaks into the light tag form and makes chip text unreadable (lesson #12). */
+/* Keep the full dashboard palette scoped to .stats-overlay so it cannot
+   change text contrast in light forms. */
 :root {
   --run-color:  #f97316;
   --pass-color: #38bdf8;
 }
-
-/* Gridiron Pro dashboard palette — blue accents on dark slate (was gold; the
-   coach scrapped it). Scoped to the stats overlay so the light app shell
-   (tag form, top bar) is untouched. */
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -1032,7 +969,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- Stats tabs: underlined gold --- */
+/* Stats tabs. */
 .stats-tabs {
   padding: 0 24px;
   background: var(--bg-secondary);
@@ -1055,7 +992,7 @@ body {
   border-bottom-color: var(--highlight) !important;
 }
 
-/* --- Section headings --- */
+/* Section headings. */
 .stats-section h3 {
   font-size: 12px;
   font-weight: 800;
@@ -1067,7 +1004,7 @@ body {
   margin-bottom: 12px;
 }
 
-/* --- Stat cards: elevated surface --- */
+/* Stat cards. */
 .stat-card {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
@@ -1095,7 +1032,7 @@ body {
   line-height: 1.1;
 }
 
-/* --- Stats tables: refined rows --- */
+/* Stats tables. */
 .stats-table {
   font-size: 12px;
 }
@@ -1120,10 +1057,8 @@ body {
   color: var(--text);
 }
 
-/* --- Tendency matrix hover --- */
 .tm-cell:hover { outline: 1px solid var(--highlight); }
 
-/* --- Two-column layout refinement --- */
 .stats-two-col {
   gap: 20px;
 }
@@ -1131,7 +1066,6 @@ body {
   .stats-two-col { grid-template-columns: 1fr; }
 }
 
-/* --- Film cut hint on rows --- */
 .cut-row {
   cursor: pointer;
   transition: background 0.15s;
@@ -1140,13 +1074,12 @@ body {
   background: rgba(201, 162, 39, 0.06) !important;
 }
 
-/* --- Mobile stats refinement --- */
+/* Mobile stats. */
 @media (max-width: 800px) {
   .stats-tabs { padding: 0 12px; overflow-x: auto; }
   .stat-card-value { font-size: 20px; }
 }
 
-/* ================================================================== */
 .gi-update-banner { position: fixed; right: 18px; bottom: 18px; z-index: 99999;
   max-width: 360px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 .gi-update-card { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border-bright);
@@ -1171,72 +1104,20 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 .gi-update-toast.gi-show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Individual game row in the dropdown */
+/* Film Room inline editing, columns and saved filters. */
+                 /* many columns scroll sideways */
 
-/* Finish-game modal */
-
-/* Games panel in the settings drawer */
-
-/* Widescreen layout for the grid lives INSIDE the TWO-COLUMN block above
-   (grid-template-areas "video tags" / "grid tags") — not in a second
-   @media block here, so there's only one place that owns .main-content
-   rows at that breakpoint. */
-
-/* ====  FILM ROOM v2 — inline editing, columns, saved filters  ===== */
-/* ================================================================== */                 /* many columns scroll sideways */
-
-/* ============================================================
-   TAGGING-SPEED PASS — form guard, rare-result expander, hint
-   ============================================================ */
-
-/* No play selected: dim + block the form so chip taps can't be silently
-   discarded (ChipField lights the chip before _saveField finds no play).
-   The nav bar stays live — Save & Next recovers by jumping to the first play
-   when plays exist but none is selected. */
-/* Disabled form: children are inert but the FORM still receives clicks so a
-   tap on the gray area can explain what to do (a silent dead UI reads as a
-   bug). The nav bar stays fully active (Save & Next can start at play 1). */
+/* Without a selected play, block form edits but leave navigation live so
+   Save & Next can select the first available play. */
+/* Disabled children stay inert; the form still receives explanatory clicks. */
 @keyframes hintPulse {
   0%, 100% { box-shadow: none; }
   50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, .25); }
 }
 
-/* ---- Expand video to full screen — the "watch the play bigger" toggle.
-   Keeps the default size as-is; fullscreen only applies while toggled on. ---- */
-
-/* =====================================================================
-   THE THEATER (v1.10.0) — consolidated token layer. THE winning :root:
-   appended last so it beats the historical blocks above (same proven
-   mechanism the light theme used — edit THIS block, never append another).
-   One identity: the film room, lights off. The video is the brightest
-   object on screen; chrome recedes; data ink glows. The stats dashboard
-   keeps its own scoped palette under .stats-overlay (untouched — e2e pins
-   its literals); the Lobby is already this world.
-   ===================================================================== */
-/* ══════════════════════════════════════════════════════════════════════════
- * ONE PALETTE (S6-4d). This is the LAST `:root` in the file, so it wins the
- * cascade, and it is therefore the block that actually paints the product —
- * `body`, every `.btn`, the video container, the film drop zone, the shared
- * chrome. Everything below it consumes these names.
- *
- * It used to hold a second, hand-tuned palette. That is why S6 could rebuild
- * every route on the design system and the app could still not BE on the
- * design system: the routes were tokenised while the surface underneath them
- * was painted by a parallel set of hexes. Counting stylesheets made the gap
- * look small; it was not, because one `body` rule and one `.btn` rule are
- * reused on every screen in the product.
- *
- * Now every role DERIVES from `design-system/tokens.css`. No selector, no
- * layout and no specificity changed — the names stayed, their sources moved —
- * so the whole legacy tree inherits the system in one place instead of being
- * rewritten 7,751 lines at a time. Same shape as the UX-4 shell fix.
- *
- * `e2e-design-system` enforces this block: every colour role here must resolve
- * to a `--gi-*` token, so a hand-picked hex cannot quietly return.
- * ══════════════════════════════════════════════════════════════════════════ */
+/* This final :root block wins the cascade. Shared color roles derive from
+   design-system/tokens.css; e2e-design-system enforces those mappings. */
 :root {
-  /* Accent — the design system's solid accent, which is also the line-of-
-     scrimmage blue the native routes use for "current". One accent, not two. */
   --accent:            var(--gi-9);
   --accent-hover:      var(--gi-10);
   --accent-soft:       var(--gi-accent-surface);   /* selected-row / key-badge tint */
@@ -1245,8 +1126,6 @@ body {
   --highlight-hover:   var(--accent-hover);
   --highlight-soft:    var(--accent-soft);
 
-  /* Neutrals — the system's surface ladder. `--canvas` is the app floor a
-     coach stares at all night; it is step 1, exactly like the native routes. */
   --canvas:            var(--gi-1);
   --bg-primary:        var(--gi-1);
   --bg-secondary:      var(--gi-2);
@@ -1258,15 +1137,12 @@ body {
   --border-bright:     var(--gi-7);
   --chip-border:       transparent;
 
-  /* Text — the system's 11/12 text pair. */
   --text:              var(--gi-12);
   --text-dim:          var(--gi-11);
   --text-hint:         var(--gi-11);
   --text-bright:       var(--gi-on-solid);
 
-  /* Data ink — reserved for data, never chrome. These are CATEGORICAL, and
-     the system already owns that distinction: a run is a category, not a
-     warning, which is why it must not borrow the amber that means warning. */
+  /* Run/Pass data ink is categorical; do not borrow warning colors. */
   --run-color:         var(--gi-run);
   --run-text:          var(--gi-run);
   --run-soft:          var(--gi-warn-surface);
@@ -1277,12 +1153,10 @@ body {
   --danger:            var(--gi-turnover);
   --warning:           var(--gi-warn);
 
-  /* Geometry — the system is square. Broadcast graphics are angular. */
   --radius:            var(--gi-radius);
   --radius-lg:         var(--gi-radius);
   --radius-sm:         var(--gi-radius);
 
-  /* Shadows — elevation only for floating layers. */
   --shadow-xs:         none;
   --shadow-sm:         0 1px 2px rgba(0,0,0,0.40);
   --shadow-md:         var(--gi-shadow-toast);
@@ -1291,45 +1165,21 @@ body {
   --transition:        var(--gi-quick);
 }
 
-/* Focus: one crisp ring everywhere; no colored glow rings. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* =====================================================================
-   DESIGN REFRESH v2 — typography scale (§3). A tuned scale + tabular
-   numerals; imposed over the historical per-element sizes.
-   ===================================================================== */
 body { font-size: 13px; }
 
-/* Tabular numerals wherever numbers appear (scorebug discipline) */
 .stat-card-value {
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
 }
 
-/* Stat card numerals (light-UI cards; the dark dashboard keeps its own
-   heavier treatment from redesign-stats.css, which loads after this) */
+/* Light stat numerals; redesign-stats.css owns the later dashboard treatment. */
 .stat-card-value { font-size: 24px; font-weight: 650; }
 
-/* =====================================================================
-   DESIGN REFRESH v2 — chips & segmented controls (§4.1). The single
-   biggest upgrade: two legible variants (radio vs checkbox), no borders
-   on idle chips, no glow on selected, dim hotkey badges. Appended last +
-   specificity preserves the selected and idle chip distinction.
-   ===================================================================== */
-/* Single-choice: tonal borderless idle → solid-blue selected. */
-/* Hover restyles only UNSELECTED chips — an active chip must keep its blue
-   fill even while the pointer is still on it (else a just-clicked chip shows
-   the hover fill until you mouse off — no immediate click confirmation). */
+/* Apply hover paint only to unselected chips so selected state stays visible. */
 
-/* Selected chips are ONE consistent style — solid blue — for BOTH single- and
-   multi-select groups. (An earlier pass gave multi-select a tint+border+✓ as a
-   radio-vs-checkbox cue, but in practice it just read as inconsistent.) Multi
-   groups now fall through to the plain .pick.active solid fill above. */
+/* Single- and multi-select groups share .pick.active selected styling. */
 
-/* =====================================================================
-   DESIGN REFRESH v2 — buttons & toolbar & dropzone (§4.2–4.4).
-   Flat solid buttons (no gradients), four tiers, one dashed dropzone.
-   ===================================================================== */
-/* Primary — solid accent, flat (was a 2-stop gradient). */
 .btn-accent:not(.ws-shell *) {
   background: var(--accent); border: 1px solid var(--accent); color: var(--text-bright); box-shadow: none;
 }
@@ -1337,8 +1187,6 @@ body { font-size: 13px; }
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
 
-/* Secondary — white surface, hairline border. Base .btn adopts this so a
-   plain .btn no longer floods solid blue on hover. */
 .btn:not(.ws-shell *), .btn-secondary:not(.ws-shell *) {
   background: var(--surface); border: 1px solid var(--border-bright); color: var(--text);
 }
@@ -1346,16 +1194,10 @@ body { font-size: 13px; }
   background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text);
 }
 
-/* Danger — ghost red; solid red only inside confirm dialogs. */
 .btn-danger:not(.ws-shell *) { background: transparent; border: 1px solid transparent; color: var(--danger); }
 .btn-danger:hover:not(.ws-shell *) { background: var(--danger); border-color: var(--danger); color: var(--text-bright); }
 
-/* Video dropzone (empty state) — ONE dashed card on the dark player, exactly
-   one accent (the primary). No glow tiles, no cyan. */
-
-/* Fix: .btn-accent/.btn-highlight/.btn-demo must beat the base .btn (both are
-   single-class, and .btn is later in source). Raise specificity so the primary
-   fill always wins regardless of order — Save Season stays the one blue button. */
+/* Primary variants need higher specificity than the later base .btn rule. */
 .btn.btn-accent:not(.ws-shell *) {
   background: var(--accent); border-color: var(--accent); color: var(--text-bright);
 }
@@ -1363,85 +1205,26 @@ body { font-size: 13px; }
   background: var(--accent-hover); border-color: var(--accent-hover); color: var(--text-bright);
 }
 
-/* Cards are border-only; shadows are reserved for floating layers. */
 .stat-card { box-shadow: none; }
 
-/* =====================================================================
-   DESIGN REFRESH — post-review polish (user feedback)
-   ===================================================================== */
-/* Chips washed out on the white tag-form panel — darker tonal fill, still
-   borderless (spec §4.1). Active solid-blue + multi-select tinted+✓ unchanged. */
+/* Hide the extra angle row until multi-angle.js sets ang-open. */
 
-/* +Angle moved into the play-control bar; its old standalone row now collapses
-   until a 2nd camera angle is actually loaded (ang-open toggled in multi-angle.js). */
+/* Collapse an empty timeline until film segments render; without :has support
+   the row remains visible. */
 
-/* The timeline strip only carries content when film is loaded (one segment per
-   clip/play). With no film its .timeline-bar is empty and the row is just a
-   gray pad eating vertical space — collapse it until segments render. Degrades
-   gracefully (worst case: the pad stays) where :has is unsupported. */
+/* Keep the timeline under the seek bar; an empty timeline takes no space. */
 
-/* Fold the timeline into the transport line's center column (under the seek
-   bar) instead of its own dedicated row — reclaims the vertical space while
-   keeping the play/clip navigator exactly where film segments render. When
-   there's no film (empty .timeline-bar) it takes no space at all. */   /* on the solid-blue selected chip */
+/* --display derives from --gi-cond. Barlow remains bundled for standalone
+   export and print documents that cannot use the app token sheets. */
+:root { --display: var(--gi-cond); }
 
-/* =====================================================================
-   DESIGN DEEP-DIVE P1 — one broadcast type voice, one wordmark.
-   The condensed display face carries the app's display roles — the scorebug
-   voice it already speaks when it shows stats. Body text, chips and controls
-   stay system: the face is for names, labels-of-record and numerals, never
-   for reading.
-
-   S6-6 — `--display` NOW DERIVES FROM `--gi-cond`, it does not redeclare a
-   face. "One broadcast type voice" was written here and then quietly broken:
-   this stack resolved to Barlow Condensed (css/fonts.css) while the design
-   system's `--gi-cond` resolves to IBM Plex Sans Condensed (design-system/
-   plex.css). BOTH were bundled and BOTH were shipping, so Home, Study and
-   Plan drew their headlines in one condensed face while Reports and the
-   charting deck drew theirs in another. Two voices, neither wrong on its own,
-   and the seam only visible when you put two routes side by side.
-
-   Same shape as the S6-4d palette flip: the NAME stays so every existing
-   consumer keeps working, the SOURCE moves so there is one owner. Nothing was
-   deleted — fonts.css still bundles Barlow for the export/print documents in
-   stats-engine.js, which are standalone files a recipient opens outside the
-   app and which therefore cannot rely on the app's own type tokens.
-   ===================================================================== */
-:root { --display: var(--gi-cond); }         /* dark-surface blue (dashboard palette), was gold #c9a227 */
-
-/* Light-UI stat numerals match the dashboard's. */
 .stat-card-value { font-family: var(--display); font-weight: 700; }
 
-/* =====================================================================
-   DESIGN DEEP-DIVE P2 — THE LOBBY. The library stops being a dialog
-   floating over the dimmed workspace and becomes a full-screen film-room
-   surface: slate, faint chalk yard lines, the team name as a nameplate.
-   Same DOM, same ids — presentation only.
-   ===================================================================== */
-
-/* =====================================================================
-   DESIGN DEEP-DIVE P3 — rail rhythm, dead weight, quiet guidance.
-   ===================================================================== */
-
-/* Rail rhythm: a touch more air between tag groups so sections read as
-   sections while scanning fast. */
-
-/* =====================================================================
-   DESIGN DEEP-DIVE P4 — micro-feedback. State changes, not motion: press
-   states are instant color, the save acknowledgment is a brief ✓ + green
-   settle on the one hottest button. No transforms, no glows.
-   ===================================================================== */
-/* Chip + button press: instant tactile darkening. */
 .btn:active:not(.ws-shell *) { background: var(--bg-tertiary); }
 .btn.btn-accent:active:not(.ws-shell *) { background: var(--accent-hover); }
 
-/* =====================================================================
-   THE THEATER — print re-pin. The app is dark; paper is not. A raw
-   browser print (Ctrl+P) strips backgrounds by default, which would put
-   chalk text on white paper. Re-pin the core tokens to print-legible
-   values. (The call sheet + exported reports are standalone light
-   documents and never touch this.)
-   ===================================================================== */
+/* Browser printing may strip backgrounds, so use print-legible core colors.
+   Standalone call sheets and exported reports own their print styling. */
 @media print {
   :root {
     --canvas: #fff; --bg-primary: #fff; --bg-secondary: #fff; --bg-elevated: #fff;
@@ -1452,32 +1235,9 @@ body { font-size: 13px; }
   }
 }
 
-/* =====================================================================
-   THE THEATER T6 — selection glow. On dark, the selected element is the
-   brightest chrome on screen: a 1px bright ring + a soft halo. This
-   repeals the light theme's "no glow" rule (glow on white was mud; on
-   slate it's how selection reads). Static box-shadow — no motion, so it
-   stands under prefers-reduced-motion. Appended last to beat the several
-   `box-shadow: none` active rules from the historical light layers. */
+/* Keep selection paint after earlier box-shadow:none rules. The static shadow
+   does not require motion under prefers-reduced-motion. */
 
-/* =====================================================================
-   UX PASS U1 — the trust layer.
-   ===================================================================== */
-
-/* =====================================================================
-   UX PASS U2 — convention compliance.
-   ===================================================================== */
-/* × close on the larger modals (Game Settings, Finish Game). */
-
-/* =====================================================================
-   UX PASS U3 — IA: menu groups, grid affordance.
-   ===================================================================== */
-
-/* =====================================================================
-   UX PASS U4 — first-session guidance.
-   ===================================================================== */
-
-/* Get Started checklist pulse — one attention beat after team setup. */
 @keyframes gsPulse {
   0%, 100% { box-shadow: none; }
   50% { box-shadow: 0 0 0 2px var(--accent-border), 0 0 18px rgba(61,123,253,.35); }

@@ -4,21 +4,15 @@
 .ws-study-head h1{font-family:var(--gi-cond);font-size:34px;line-height:1;margin:6px 0;font-weight:800}
 .ws-study-head p{margin:0;color:var(--ws-muted)}
 .ws-study-actions{margin-left:auto;display:flex;gap:8px}
-/* F6a (coach smoke, 1.12.0-19): seven fixed columns squeezed every select
-   below the width of its own longest option, so labels clipped. Let the row
-   wrap at a width where the text actually fits. */
+/* Wrap query controls before their longest option clips. */
 .ws-study-query{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:10px;align-items:end;padding:20px 0 16px;border-bottom:1px solid var(--ws-line)}
 .ws-study-query label{display:grid;gap:6px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase}
 .ws-study-query select{width:100%;height:36px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-field);color:var(--ws-text);padding:0 9px;text-transform:none}
 .ws-study-query select:disabled{opacity:.5;cursor:not-allowed}
-/* S8-3: the concise, always-visible reason Then By is disabled (compare
-   mode) -- not just a hover title, since a disabled control alone doesn't
-   say WHY. */
+/* Show why Then By is disabled without relying on a hover title. */
 .ws-study-query label small{color:var(--ws-muted);font-size:11px;font-weight:500;text-transform:none;line-height:1.3}
 .ws-study-query label small[hidden]{display:none}
-/* S8-2: a unit-specific dimension (Special Teams family) force-selects Unit.
-   Distinct from an ordinary disabled control (e.g. player mode) -- a dashed
-   border reads as "set for you," not "unavailable." */
+/* A dashed border distinguishes a forced unit from an unavailable control. */
 .ws-study-query select.is-unit-forced{opacity:.7;border-style:dashed;cursor:help}
 .ws-study-range{display:flex;align-items:end;gap:9px;padding:10px 0;border-bottom:1px solid var(--ws-line)}
 .ws-study-range[hidden]{display:none}
@@ -28,11 +22,6 @@
 .ws-study-range>span,.ws-study-range>small{color:var(--ws-muted);font-size:12px}
 .ws-study-range>span{padding-bottom:9px}.ws-study-range>small{margin-left:auto;padding-bottom:8px}
 .ws-study-saved{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:end}.ws-study-saved .ws-icon-btn{margin-bottom:1px}
-/* Codex review finding #5: ws-study-players had no CSS rule anywhere --
-   unstyled native controls with no visual relationship to the rest of the
-   query builder. Structurally the same shape as .ws-study-range (a leading
-   label + several field <label>s + a trailing hint), so it shares that
-   rule's layout rather than inventing a parallel one. */
 .ws-study-players{display:flex;align-items:end;gap:9px;padding:10px 0;border-bottom:1px solid var(--ws-line);flex-wrap:wrap}
 .ws-study-players>strong{align-self:center;font-size:12px;text-transform:uppercase;margin-right:4px}
 .ws-study-players label{display:grid;gap:4px;color:var(--ws-muted);font-size:11.5px;font-weight:800;text-transform:uppercase;min-width:150px}
@@ -52,9 +41,7 @@
 .ws-study-summary{display:flex;align-items:baseline;gap:10px;padding:17px 0 12px}
 .ws-study-summary strong{font-size:18px}.ws-study-summary span{color:var(--ws-muted);font-size:12px}
 .ws-study-warning{padding:9px 11px;border-left:3px solid var(--ws-amber);background:var(--ws-warn-surface);color:var(--ws-amber);font-size:12px;margin-bottom:10px}
-/* F7 (coach smoke, 1.12.0-19): `margin:0 0 18px` reset the horizontal margins
-   that `.ws-study>*` uses to center every block, so this one sat 26px left of
-   everything else on the route. The shorthand was the bug. */
+/* Preserve horizontal auto margins that center route blocks. */
 .ws-study-visuals{display:grid;gap:12px;margin:0 auto 18px}.ws-study-kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ws-line);background:var(--ws-nav)}.ws-study-kpis>div{min-width:0;padding:14px 16px;border-left:1px solid var(--ws-line)}.ws-study-kpis>div:first-child{border-left:0}.ws-study-kpis span,.ws-study-kpis small{display:block;color:var(--ws-muted);font-size:11.5px;font-weight:700;text-transform:uppercase}.ws-study-kpis strong{display:block;margin:5px 0 2px;font-size:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-chart{border:1px solid var(--ws-line);background:var(--ws-nav);padding:14px 16px}.ws-study-chart header{display:flex;justify-content:space-between;gap:16px;margin-bottom:8px}.ws-study-chart header span{color:var(--ws-muted);font-size:12px}.ws-study-bar-row,.ws-study-delta-row{display:grid;grid-template-columns:minmax(120px,190px) minmax(120px,1fr) 70px;gap:12px;align-items:center;width:100%;min-height:34px;border:0;border-top:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}.ws-study-bar-row:hover,.ws-study-delta-row:hover{background:var(--ws-raised)}.ws-study-bar-row>span,.ws-study-delta-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ws-study-bar-row>i,.ws-study-delta-row>i{display:block;height:8px;background:var(--ws-raised)}.ws-study-bar-row>i b{display:block;height:100%;background:var(--ws-blue)}.ws-study-delta-row>i{display:flex;justify-content:center;background:linear-gradient(90deg,var(--ws-raised) 49.5%,var(--ws-line-strong) 50%,var(--ws-raised) 50.5%)}.ws-study-delta-row>i b{display:block;height:100%;background:var(--ws-green);margin-left:50%}.ws-study-delta-row>i b.negative{background:var(--ws-red);transform:translateX(-100%);margin-left:50%}.ws-study-bar-row>strong,.ws-study-delta-row>strong{text-align:right;font-variant-numeric:tabular-nums}
 .ws-study-results{border-top:1px solid var(--ws-line)}
 .ws-study-table-head,.ws-study-row{display:grid;grid-template-columns:minmax(150px,1.4fr) .55fr .75fr .9fr .75fr 74px;gap:12px;align-items:center}
@@ -62,8 +49,7 @@
 .ws-study-row{min-height:56px;border-top:1px solid var(--ws-line);padding:8px 0}
 .ws-study-row strong{overflow:hidden;text-overflow:ellipsis}.ws-study-row span{color:var(--ws-text-soft);font-variant-numeric:tabular-nums}
 .ws-study-row.is-small{opacity:.62}.ws-study-row .is-positive{color:var(--ws-green)}.ws-study-row .is-negative{color:var(--ws-red)}
-/* S6-2 pivot. Every cell is a button because every cell plays its own film.
-   Low-sample cells are dimmed and labeled, never hidden. */
+/* Every pivot cell opens its film; low-sample cells stay visible and labeled. */
 .ws-pivot-scroll{overflow-x:auto;max-width:100%}
 .ws-pivot{border-collapse:collapse;width:100%;font-size:12px}
 .ws-pivot-caption{caption-side:top;text-align:left;padding:0 0 8px;color:var(--ws-muted);font-size:12px}
@@ -89,18 +75,11 @@
 @media(max-width:480px){.ws-study-head h1{font-size:29px}.ws-study-actions .ws-btn{white-space:nowrap}.ws-study-query{grid-template-columns:1fr}.ws-study-row{grid-template-columns:minmax(105px,1fr) 38px 68px 64px;font-size:12px}.ws-study-row>:nth-child(3){display:none}}
 .ws-study-kpis span,.ws-study-kpis small{font-size:12px}.ws-study-delta-row.is-favorable>i b{background:var(--ws-green)}.ws-study-delta-row.is-unfavorable>i b{background:var(--ws-red)}
 
-/* ══ S6-6d — DESIGN RULES LAST ══════════════════════════════════════════════
-   In THIS file, not in workspace-shell.css: index.html loads study-screen.css
-   after the shell, so a `.ws-study-*` rule written there loses on source order
-   at equal specificity and does nothing. That was the defect that made six
-   changes in the previous range invisible; it is cheaper to obey the load
-   order than to out-specify it. */
+/* Study loads after workspace-shell.css, so equal-specificity typography
+   overrides belong here rather than in the shell. */
 
 .ws-study-head h1{font:var(--gi-text-display);font-size:34px;letter-spacing:0}
 
-/* THE SIGNATURE, ON STUDY. The query builder, the filter stack and each chart
-   are sections, and they announced themselves with 12px uppercase text. They
-   take the lower-third plate, matching Reports and Home. */
 .ws-study-filter-head>strong,.ws-study-chart>header>strong,.ws-study-range>strong,
 .ws-study-players>strong{
   display:inline-flex;align-items:center;min-height:22px;
@@ -110,23 +89,16 @@
 }
 .ws-study-range>strong,.ws-study-players>strong{align-self:center;margin-right:var(--gi-1x)}
 
-/* Labels take the mono label role. `font-weight:800` uppercase sans was the
-   pre-S6-4e treatment: small type pushed heavy to stay legible, which is what
-   the type scale exists to stop. */
 .ws-study-query label,.ws-study-range label,.ws-study-players label,.ws-study-table-head,
 .ws-study-kpis span,.ws-study-kpis small,.ws-study-chart>header span{
   font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
 .ws-study-kpis strong{font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
 .ws-study-summary strong{font:var(--gi-text-display);font-size:18px}
 
-/* HAIRLINE JOINS. The KPI band already shared seams; the pivot and the chart
-   blocks sat as separate bordered cards with gaps between them. They now read
-   as one board, the way the Reports sections do. */
 .ws-study-visuals{gap:1px;background:var(--gi-6);border:1px solid var(--gi-6)}
 .ws-study-visuals>*{border:0}
 .ws-study-kpis{border:0}
 
-/* One focus language. */
 .ws-pivot-btn:focus-visible,.ws-study-bar-row:focus-visible,
 .ws-study-delta-row:focus-visible,.ws-study-filter-chip:focus-visible{
   outline:none;box-shadow:var(--gi-focus)}
@@ -135,13 +107,8 @@
 .ws-pivot thead th,.ws-pivot tfoot th{
   font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
 .ws-pivot-value{font-family:var(--gi-cond);font-variant-numeric:var(--gi-num-feat)}
-/* J17 — the saved-view control clipped to "Choose a sa". It sits in the query
-   grid's auto-fit track (min 172px) and then gives 34px of that to its delete
-   button, leaving ~130px for a 17-character option. It takes two tracks. */
+/* The saved-view selector spans two tracks to leave room for its delete button. */
 .ws-study-query .ws-study-saved{grid-column:span 2}
-/* S6D answer-first pass: the query is a working instrument, not loose fields
-   floating between the route title and its answer. On phones it remains two
-   columns so the matching-play result reaches the first viewport sooner. */
 .ws-study-query{
   margin-top:var(--gi-5x);padding:var(--gi-4x);border:1px solid var(--gi-6);
   border-left:3px solid var(--gi-los);background:var(--gi-2);
@@ -153,23 +120,15 @@
   .ws-study-query select{min-width:0}
 }
 
-/* Readability floor: supporting copy is prose, not dashboard chrome. */
 .ws-study-filter-head span,.ws-study-filter-values>span,.ws-study-summary span,
 .ws-study-range>span,.ws-study-range>small,.ws-study-players>small,.ws-pivot-caption{
   color:var(--gi-11);font:var(--gi-text-caption);letter-spacing:0;text-transform:none
 }
 
-/* Study expansion (2026-08-15) — coaching-metric additions.
-   `#wsStudyPeriodWrap` is a <label> living inside `.ws-study-query`, which
-   sets `label{display:grid}` at (0,1,1) -- higher specificity than the UA
-   `[hidden]{display:none}` at (0,1,0), the exact defect `.ws-study-range`
-   already had to guard against above. Without this override the "hidden"
-   period-size selector would render as an empty grid cell instead of
-   disappearing. */
+/* The query label display rule outranks the native hidden rule; explicitly
+   hide the period selector so it does not leave an empty grid cell. */
 #wsStudyPeriodWrap[hidden]{display:none}
 
-/* The unit-prompt is informational (a coach hasn't finished the question
-   yet), not a warning about a failed query -- neutral tone, not amber. */
 .ws-study-unit-prompt{
   padding:var(--gi-4x);border:1px solid var(--gi-6);border-left:3px solid var(--gi-los);
   background:var(--gi-2);color:var(--gi-11);font:var(--gi-text-caption);margin-bottom:var(--gi-3x)
@@ -177,9 +136,7 @@
 .ws-study-unit-prompt[hidden]{display:none}
 .ws-study-unit-prompt strong{color:var(--gi-12);font-weight:700}
 
-/* Per-metric state disclosure ('Low sample' / 'No data' / 'Partial film …')
-   -- reuses the row's existing muted/amber vocabulary rather than inventing
-   a new palette. Never a color-only signal: the text itself names the state. */
+/* Metric state names remain textual, never color-only. */
 .ws-study-state{display:inline-block;margin-left:6px;color:var(--ws-amber);font-size:11px;
   text-transform:uppercase;letter-spacing:.02em;font-weight:700;white-space:nowrap}
 .ws-study-row.is-small .ws-study-state{color:var(--ws-text-soft)}

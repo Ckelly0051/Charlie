@@ -19,41 +19,20 @@
 .gi-breakdown-save::before{content:'';display:inline-block;width:6px;height:6px;margin-right:5px;background:var(--gi-ok)}
 .gi-breakdown-save.is-pending::before{background:var(--gi-warn)}
 .gi-breakdown-save.is-failed{color:var(--gi-turnover)}.gi-breakdown-save.is-failed::before{background:var(--gi-turnover)}
-/* One route-owned gutter. Child padding belongs to the film and charting
-   components and must not be counted to manufacture page-level symmetry. */
+/* The route owns the outer gutter; film and charting components own their padding. */
 .gi-breakdown-composition{display:grid;min-width:0;min-height:0;padding-inline:6px;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:minmax(0,1fr) 34px;grid-template-areas:'theater deck' 'rail deck'}
 .gi-breakdown-theater-host,.gi-breakdown-deck,.gi-breakdown-rail-host,.gi-breakdown-tagging-host,.gi-breakdown-film-room-host{min-width:0;min-height:0}
-/* Bound the film on both sides so the route gutter remains visible against two
-   neighboring near-black surfaces. */
+/* Bound the film on both sides to keep the route gutter visible. */
 .gi-breakdown-theater-host{grid-area:theater;overflow:hidden;border-left:1px solid var(--gi-7);border-right:1px solid var(--gi-7);background:var(--gi-film)}
 .gi-breakdown-rail-host{grid-area:rail;overflow:hidden}
 .gi-breakdown-deck{grid-area:deck;overflow:hidden;background:var(--gi-1)}
 .gi-breakdown-tagging-host,.gi-breakdown-film-room-host{width:100%;height:100%;overflow:hidden}
 
-/* SCROLL OWNERSHIP AND SCROLLBAR CHROME.
-
-   The 2026-09-15 installed smoke DISPROVED the first attempt here. It set
-   `scrollbar-width:thin` in the same rules as `::-webkit-scrollbar-button
-   {display:none}` — and Chromium ignores EVERY `::-webkit-scrollbar-*` rule
-   for an element that sets `scrollbar-width` or `scrollbar-color`. So the
-   arrow-button suppression never applied on a runtime that draws classic
-   scrollbars, which is installed WebView2 and never headless Chromium. Both
-   properties are now gone from every Breakdown pane so these rules are the
-   authority. Do not reintroduce `scrollbar-width` here.
-
-   `scrollbar-gutter:stable` is gone too. It reserves the ENVIRONMENT's
-   scrollbar width, which is 0 under overlay scrollbars and ~17px under
-   classic ones — so it produced a different content box in the two runtimes,
-   which is the "fits in the harness, overflows on the installed build"
-   mechanism itself. The deck form instead carries no reserved gutter and its
-   rows are all required to reflow, so a narrower content box costs layout
-   rather than producing a horizontal track.
-
-   HEADLESS CHROMIUM CANNOT VERIFY ANY OF THIS. It renders overlay scrollbars
-   unconditionally: a probe with `::-webkit-scrollbar{width:40px}` measures a
-   0px gutter, and --disable-features=OverlayScrollbar does not change it. The
-   ownership and reflow assertions in e2e-breakdown-viewport are environment-
-   independent; the rendered scrollbar chrome stays an installed check. */
+/* Break Down panes use ::-webkit-scrollbar-* rules. Do not set scrollbar-width
+   or scrollbar-color: Chromium ignores those rules when either property is set.
+   Avoid scrollbar-gutter:stable; overlay and classic scrollbars reserve different
+   widths. Rows must reflow inside the available content box. Headless Chromium
+   cannot verify classic scrollbar chrome; that remains an installed check. */
 .ws-breakdown .gi-native-form,
 .ws-breakdown .gi-player-quick{overflow-x:hidden}
 .ws-breakdown ::-webkit-scrollbar{width:10px;height:10px}
@@ -69,18 +48,13 @@
 .ws-breakdown ::-webkit-scrollbar-thumb{background:var(--gi-6);border:2px solid var(--gi-2)}
 .ws-breakdown ::-webkit-scrollbar-thumb:hover{background:var(--gi-7)}
 .gi-breakdown-tagging-host[hidden],.gi-breakdown-film-room-host[hidden]{display:none}
-/* FILM ROOM: VIDEO FIRST (coach direction, 2026-09-23). The table docks BELOW
-   the film by default, or BESIDE it; `--fr-video` is the film's share of the
-   split axis, set and clamped by BreakdownWorkspace.setFilmLayout(). Pixel
-   floors keep both panes usable at the smallest desktop height/width. The old
-   side-by-side 36% / 64% grid is gone. Below 1001px the stacked phone layout
-   further down owns Film Room, and the layout controls and splitter hide. */
+/* Film Room docks below or beside the film. --fr-video is the split-axis share,
+   clamped by BreakdownWorkspace.setFilmLayout(); pixel floors protect both panes.
+   Below 1001px the phone layout owns the split and hides its controls. */
 .ws-breakdown.is-film-room .gi-breakdown-rail-host{display:none}
 .gi-breakdown-splitter{display:none}
-/* The table's controls are their own area (2026-09-24): one element, placed by
-   the grid — a card right of the film when the table is below it, a bar over
-   the table when it is beside the film or on a phone. Chart and Film focus
-   show none. */
+/* The grid places table controls beside the film for a table-below layout,
+   above the table otherwise. Chart and Film focus hide them. */
 .gi-breakdown-film-controls-host{display:none;grid-area:controls;min-width:0;min-height:0}
 .ws-breakdown.is-film-room .gi-breakdown-route:not(.is-film-focus) .gi-breakdown-film-controls-host{display:block}
 .gi-breakdown-layout{display:none;flex:0 0 auto;gap:0;border:1px solid var(--gi-7)}
@@ -101,8 +75,7 @@
     grid-template-rows:auto minmax(0,1fr);
     grid-template-areas:'theater split controls' 'theater split deck'
   }
-  /* Table below: the controls are a vertical card right of the film, the full
-     height of the top band, so the table below starts at its first row. */
+  /* Table-below controls fill the top band so the table starts at its first row. */
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-controls{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px;padding:12px;overflow-y:auto;border:1px solid var(--gi-7);border-top:2px solid var(--gi-6)}
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-controls-head{flex-direction:column;align-items:flex-start;gap:2px}
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-film-controls-actions{display:grid;grid-template-columns:1fr 1fr;margin-left:0}
@@ -115,8 +88,6 @@
   }
   .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-splitter{cursor:row-resize}
   .ws-breakdown.is-film-room .gi-breakdown-route[data-fr-dock="side"] .gi-breakdown-splitter{cursor:col-resize}
-  /* The grip: a short bar centered on the separator, drawn from the border
-     colour at rest and gold while hovered, focused or dragged. */
   .gi-breakdown-splitter::after{content:'';position:absolute;inset:0;margin:auto;background:var(--gi-7)}
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-splitter::after{width:56px;height:4px}
   .gi-breakdown-route[data-fr-dock="side"] .gi-breakdown-splitter::after{width:4px;height:56px}
@@ -128,15 +99,11 @@
 .gi-breakdown-route.is-film-focus .gi-breakdown-deck,.gi-breakdown-route.is-film-focus .gi-breakdown-rail-host{display:none}
 @media(min-width:1350px) and (max-width:1699.98px){.gi-breakdown-composition{grid-template-rows:minmax(0,1fr) 84px}}
 @media(min-width:1700px){
-  /* The original 340px play rail plus 500px deck left only 1085px for film at
-     1920, below the approved 1150x645 picture budget. Both utility columns
-     remain fully usable at these bounded widths; the recovered space belongs
-     to the primary coaching surface. */
+  /* Bound the utility columns to preserve the approved film picture budget. */
   .gi-breakdown-composition{grid-template-columns:minmax(0,1fr) clamp(280px,15vw,300px) clamp(440px,24vw,460px);grid-template-rows:minmax(0,1fr);grid-template-areas:'theater rail deck'}
 }
-/* Below 1366 the Film Room toolbar is 32px short at 1280 (34 while the save
-   label reads "Saving..."); the group keeps its accessible name and each button
-   its full label, so the visible caption goes and the toolbar gaps tighten. */
+/* Hide the group caption and tighten gaps below 1366px; retain button labels
+   and the accessible group name. */
 @media(max-width:1365px){.gi-breakdown-layout-label{display:none}.gi-breakdown-toolbar{gap:8px}.gi-breakdown-tools{padding-left:8px}}
 @media(max-width:1100px){
   .gi-breakdown-tools{position:relative;margin-left:auto;padding:0;border:0}
@@ -148,12 +115,8 @@
 @media(max-width:1000px){
   .ws-breakdown{overflow:auto}
   .gi-breakdown-route{height:auto;min-height:100%}
-  /* `position:sticky` + a z-index makes this toolbar a STACKING CONTEXT, so the
-     More menu inside it can never outrank a sibling of the toolbar no matter
-     what z-index the menu carries. At 5 the whole toolbar sat under the film
-     empty-state placeholder (media-foundation.css, z-index 10), which left every
-     More command unclickable on a phone with no film loaded. 15 clears the media
-     layer (which tops out at 12) and stays below the theater overlays at 20+. */
+  /* The sticky toolbar creates a stacking context. Its z-index must clear the
+   media layers (up to 12) while staying below theater overlays (20+). */
   .gi-breakdown-toolbar{flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:15;padding:4px 8px}
   .gi-breakdown-composition{grid-template-columns:minmax(0,1fr);grid-template-rows:520px 34px auto;grid-template-areas:'theater' 'rail' 'deck'}
   .gi-breakdown-deck{overflow:visible}
@@ -169,8 +132,6 @@
   .gi-breakdown-composition{grid-template-rows:460px 40px auto}
 }
 
-/* Breakdown uses the shared readable UI roles. Tiny route labels were a
-   leftover from the compact prototype and no longer define production density. */
 .gi-breakdown-toolbar button{font:var(--gi-text-control)}
 .gi-breakdown-save{font:var(--gi-text-label);letter-spacing:0}
 

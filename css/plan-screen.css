@@ -3,15 +3,13 @@
 .ws-plan-toolbar{flex-wrap:wrap}.ws-plan-toolbar .grow{min-width:220px}.ws-plan-present{position:fixed;inset:0;z-index:10020;display:grid;grid-template-rows:64px minmax(0,1fr) 64px;background:var(--ws-ink);color:var(--ws-text);text-align:left}.ws-plan-present>header{display:grid;grid-template-columns:minmax(0,1fr) auto 38px;align-items:center;gap:18px;padding:0 24px;border-bottom:1px solid var(--ws-line);background:var(--ws-nav)}.ws-plan-present>header>div:first-child{display:grid;gap:2px}.ws-plan-present>header span,.ws-plan-present aside>span{color:var(--ws-sel-text);font-size:11.5px;font-weight:800;text-transform:uppercase}.ws-plan-present>header strong{font-size:17px}.ws-plan-present>header>div:nth-child(2){color:var(--ws-muted);font-size:12px;font-weight:800}.ws-plan-present>main{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:32px;min-height:0;padding:34px clamp(24px,5vw,72px);overflow:auto}.ws-plan-present>main>section{min-width:0}.ws-present-kicker{color:var(--ws-sel-text);font-size:12px;font-weight:800;text-transform:uppercase}.ws-plan-present h2{max-width:900px;margin:8px 0 6px;font-family:var(--gi-cond);font-size:clamp(30px,4vw,54px);line-height:1}.ws-present-query{margin:0 0 20px;color:var(--ws-muted);font-size:12px;text-transform:uppercase}.ws-present-note{max-width:760px;margin:0 0 20px;padding-left:12px;border-left:2px solid var(--ws-blue);color:var(--ws-text-soft)}.ws-present-plays{max-width:900px;border-top:1px solid var(--ws-line)}.ws-present-play{display:grid;width:100%;grid-template-columns:minmax(150px,.7fr) minmax(180px,1fr) minmax(180px,1fr);gap:16px;align-items:center;min-height:58px;padding:9px 10px;border:0;border-bottom:1px solid var(--ws-line);background:transparent;color:var(--ws-text);text-align:left}.ws-present-play:not(.is-missing):hover,.ws-present-play:not(.is-missing):focus-visible{background:var(--ws-sel);outline:1px solid var(--ws-sel-line)}.ws-present-play span,.ws-present-play small{color:var(--ws-muted);font-size:12px}.ws-present-play.is-missing{opacity:.7}.ws-present-empty{padding:28px 10px;color:var(--ws-muted);border-top:1px solid var(--ws-line)}.ws-plan-present aside{align-self:start;padding:16px 0 0 20px;border-left:1px solid var(--ws-line)}.ws-plan-present aside p{white-space:pre-wrap;color:var(--ws-text-soft);line-height:1.6}.ws-plan-present>footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:0 24px;border-top:1px solid var(--ws-line);background:var(--ws-nav)}.ws-plan-present>footer .ws-btn:first-child{justify-self:start}.ws-plan-present>footer .ws-btn:last-child{justify-self:end}@media(max-width:800px){.ws-plan-present{grid-template-rows:54px minmax(0,1fr) 62px}.ws-plan-present>header{grid-template-columns:minmax(0,1fr) auto 38px;padding:0 12px}.ws-plan-present>main{display:block;padding:24px 15px}.ws-plan-present h2{font-size:34px}.ws-present-play{grid-template-columns:1fr;gap:3px;padding:11px 8px}.ws-plan-present aside{margin-top:28px;padding:16px 0 0;border-left:0;border-top:1px solid var(--ws-line)}.ws-plan-present>footer{grid-template-columns:1fr 1.25fr 1fr;gap:6px;padding:0 8px}.ws-plan-present>footer .ws-btn{padding:0 8px;font-size:12px}}
 .ws-plan-present h2{font-size:44px}@media(max-width:800px){.ws-plan-present h2{font-size:34px}}
 @media(max-width:800px){.ws-plan-present>footer .ws-btn{height:44px}.ws-plan-present>header .ws-icon-btn{width:40px;height:40px}}
-/* S6-3 plan sections. Runs of the same subject in plan order — the header is a
-   label over the coach's ordering, not a re-sort. */
+/* Section labels follow runs of the same subject in coach order, never a re-sort. */
 .ws-plan-section+.ws-plan-section{margin-top:18px}
 .ws-plan-section-head{display:flex;align-items:center;gap:12px;min-height:34px;padding:0 0 4px}
 .ws-plan-section-head h3{margin:0;font-family:var(--gi-cond);font-size:16px;letter-spacing:.02em;text-transform:uppercase}
 .ws-plan-section-head span{color:var(--ws-muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
 .ws-plan-section-head .ws-btn{margin-left:auto}
-/* S6-3 presentation strip. The overflow container owns the scroll so the strip
-   can never widen the page; the track is the only thing that grows. */
+/* The overflow container owns scrolling; only the presentation track grows. */
 .ws-plan-present{grid-template-rows:64px minmax(0,1fr) auto 64px}
 .ws-plan-strip{min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;border-top:1px solid var(--ws-line);background:var(--ws-ink);scrollbar-width:thin}
 .ws-plan-strip-track{display:flex;gap:8px;width:max-content;padding:10px 24px}
@@ -23,11 +21,6 @@
 .ws-plan-strip-btn.is-current{border-color:var(--ws-blue);background:var(--ws-sel)}
 .ws-plan-strip-btn.is-current span{color:var(--ws-sel-text)}
 @media(max-width:800px){.ws-plan-present{grid-template-rows:54px minmax(0,1fr) auto 62px}.ws-plan-strip-track{gap:6px;padding:8px 12px}.ws-plan-strip-btn{width:172px;min-height:56px}.ws-plan-section-head{flex-wrap:wrap}.ws-plan-section-head .ws-btn{height:44px}}
-
-/* ══ S6-6f — DESIGN RULES LAST ══════════════════════════════════════════════
-   Plan was the last primary route still on the old vocabulary: section heads as
-   plain condensed text, labels as 800-weight uppercase sans, and a presentation
-   view whose kicker used a different tracking from every other eyebrow. */
 
 .ws-plan-section-head h3,.ws-plan-grid h2{
   display:inline-flex;align-items:center;min-height:22px;margin:0 0 var(--gi-2x);
@@ -43,22 +36,14 @@
 .ws-plan-present>header span,.ws-plan-present aside>span,.ws-present-query{
   font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
 
-/* The presented headline is the one place in the app a coach reads from across
-   a room, so it keeps its scale and takes the display face explicitly. */
+/* The presentation headline retains its across-the-room scale. */
 .ws-plan-present h2{font-family:var(--gi-cond);letter-spacing:0}
 
-/* One focus language. */
 .ws-plan-strip-btn:focus-visible,.ws-plan-grip:focus-visible,
 .ws-present-play:focus-visible{outline:none;box-shadow:var(--gi-focus)}
-/* J15 — "PLAN ITEMS0". The source has a space between the label and its count
-   span, but the S6-6f lower-third rule made this h2 `display:inline-flex`, and
-   whitespace between flex ITEMS collapses. My rule, my bug — the gap has to be
-   declared now that the box is a flex container. */
+/* Use an explicit gap: whitespace between inline-flex items collapses. */
 .ws-plan-grid h2 span{margin-left:var(--gi-2x)}
 
-/* S6D answer-first pass: an empty Plan is still a deliberate work state. Keep
-   the existing commands and copy, but anchor them in the same square-edged
-   working surface used by Home, Study and Reports. */
 .ws-plan-empty.large{
   align-content:center;min-height:300px;margin-top:var(--gi-5x);padding:var(--gi-7x);
   border:1px solid var(--gi-6);border-left:3px solid var(--gi-los);

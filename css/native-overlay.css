@@ -56,19 +56,11 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
   .gi-overlay-probe button{min-width:44px;min-height:44px;white-space:nowrap}
 }
 @media(pointer:coarse){.gi-overlay-action,.gi-overlay-close,.gi-native-toast button,.gi-popover-item{min-height:44px}}
-/* S6-4a popover group heading — a label, never a menuitem, so roving arrow keys
-   skip it and it cannot be activated. */
+/* Popover group headings are labels, not menuitems; roving focus skips them. */
 .gi-popover-heading{margin:6px 0 2px;padding:0 10px;color:var(--gi-7);font:800 11.5px/1.4 var(--gi-sans);letter-spacing:.045em;text-transform:uppercase}
 .gi-popover-heading.has-separator{margin-top:10px;padding-top:8px;border-top:1px solid var(--gi-5)}
 .gi-popover-item.is-selected{background:var(--gi-4);box-shadow:inset 3px 0 0 var(--gi-10)}
-/* ══ S6-6e — DESIGN RULES LAST ══════════════════════════════════════════════
-   Overlays open OVER every recomposed route, so a rounded, differently-typed
-   dialog was the most visible seam left in the product: a square Reports page
-   opening a rounded panel. Two token misuses were sitting here as well, and
-   both are real rather than cosmetic — a border token used as text color, and
-   the accent blue used for disabled text, which reads as "clickable". */
 
-/* Panel head takes the route vocabulary: eyebrow plate, condensed title. */
 .gi-overlay-head span{
   display:inline-flex;align-items:center;min-height:20px;
   margin-bottom:6px;padding:0 18px 0 8px;
@@ -77,30 +69,20 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 }
 .gi-overlay-head h2{font-family:var(--gi-cond);font-size:24px;letter-spacing:0}
 
-/* --gi-7 is a BORDER token. Used as text it sat at roughly 3:1 on the panel and
-   read as disabled, on a heading that labels a group of live commands. */
 .gi-popover-heading{color:var(--gi-11);font:var(--gi-text-eyebrow);
   letter-spacing:var(--gi-track-label)}
 
-/* --gi-9 is the SOLID ACCENT — the same blue that means "current" and
-   "interactive" everywhere else. On a disabled item it said the opposite of
-   what the state is. --gi-8 is the border-strong/disabled role. */
 .gi-popover-item:disabled{color:var(--gi-8)}
 
-/* One focus language, matching every route. */
 .gi-overlay-action:focus-visible,.gi-overlay-close:focus-visible,
 .gi-overlay-probe button:focus-visible{outline:none;box-shadow:var(--gi-focus)}
 
-/* Producers retain natural sentence copy; the visual treatment follows the
-   app-wide uppercase status language without mutating accessible text. */
+/* Transform status copy visually without mutating accessible text. */
 .gi-native-toast{font:var(--gi-text-control);text-transform:uppercase}
 .gi-native-toast button{font:var(--gi-text-label);letter-spacing:var(--gi-track-label);
   text-transform:uppercase}
 
-/* BD-UX-2: the Program / Season / Game selector menu. One pattern for all three,
-   titled like the control it opened from, the current row checked in gold, and
-   Season Library / New commands set apart as gold commands. Names wrap rather
-   than truncate so a long program or season name is never cut. */
+/* Context selector menu names wrap so full program and season names remain available. */
 .gi-popover-panel.is-context{width:min(400px,calc(100vw - 16px));padding:6px;border-color:var(--gi-7);background:var(--gi-2)}
 .gi-popover-title{margin:0;padding:6px 9px 9px;border-bottom:1px solid var(--gi-6);color:var(--gi-11);
   font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase}
@@ -119,9 +101,6 @@ body.ws-route-breakdown .gi-toast-stack{bottom:76px}
 .is-context .gi-popover-item.is-command>span{color:var(--gi-bd-gold)}
 .is-context .gi-popover-item.is-command:hover>span,.is-context .gi-popover-item.is-command:focus-visible>span{color:var(--gi-12)}
 @media(pointer:coarse){.is-context .gi-popover-item.is-command{min-height:44px}}
-/* The grouped command menu (shell More, design-comps/breakdown-cleanup-2026-10-05):
-   a title, labeled groups, one-line rows with a grey detail at the right, a
-   neutral hover rule and the version as a footer. */
 .gi-popover-panel.is-menu{width:min(300px,calc(100vw - 16px));padding:6px 0 4px;border-color:var(--gi-7);background:var(--gi-2)}
 .is-menu .gi-popover-title{padding:4px 14px 6px;border-bottom:0}
 .is-menu .gi-popover-heading{margin:0;padding:6px 14px 2px;color:var(--gi-11);font:600 12.5px/1.4 var(--gi-sans);letter-spacing:0;text-transform:none}

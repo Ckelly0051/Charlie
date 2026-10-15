@@ -64,8 +64,6 @@
 .gi-theater-selected-play .gi-selected-call{color:var(--gi-12)}
 .gi-theater-selected-play p{margin:6px 0;color:var(--gi-bd-copy)}
 .gi-theater-selected-play summary{cursor:pointer;color:var(--gi-bd-copy);font:600 11px var(--gi-sans)}
-/* The play sheet (2026-09-24): groups of label/value rows, labels in copy
-   ink, values in primary ink; an uncharted field reads Not charted, dimmed. */
 .gi-sheet-group{margin-top:12px;padding-top:10px;border-top:1px solid var(--gi-6)}
 .gi-sheet-group h3{margin:0 0 6px;color:var(--gi-12);font:600 12.5px var(--gi-sans)}
 .gi-sheet-group dl{display:grid;gap:3px;margin:0}
@@ -77,15 +75,10 @@
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-stage{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:12px;padding:12px;overflow-y:auto}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-media-slot{flex:0 0 auto;width:100%;height:auto;aspect-ratio:16/9}
 .gi-breakdown-theater[data-view="film-room"] .gi-theater-selected-play{flex:0 0 auto}
-/* The play card is the theater's last child, outside the player, so Film
-   focus and fullscreen never carry it. Table beside and phone: it sits under
-   the play actions. */
+/* Keep the play card outside the player so Film focus and fullscreen exclude it. */
 .gi-breakdown-theater[data-view="film-room"]>.gi-theater-selected-play{flex:0 0 auto;max-height:40%;overflow-y:auto}
-/* TABLE BELOW (the default Film Room dock, coach direction 2026-09-24): the
-   card is a full-height column against the table's controls card, from the
-   top of the band down to the table. The film centers in what remains, so its
-   spare width reads as even margins rather than a gap on one side. Every
-   detail shows; a long card scrolls inside itself. */
+/* Table-below layout gives the play card the full top-band height. The film
+   centers in the remaining space; long play details scroll inside the card. */
 @media(min-width:1001px){
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"]{display:grid;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:minmax(0,1fr) auto auto;column-gap:6px}
   .gi-breakdown-route[data-fr-dock="bottom"] .gi-breakdown-theater[data-view="film-room"]>*{grid-column:1}
@@ -147,8 +140,6 @@
 @media(pointer:coarse){.gi-icon-command,.gi-play-command,.gi-theater-actions button,.gi-breakdown-theater select,.gi-plays-toggle,.gi-rail-close{min-height:44px}.gi-icon-command,.gi-play-command{min-width:38px}}
 @media(max-width:620px){.gi-breakdown-theater button,.gi-breakdown-theater select,.gi-theater-media-slot .dropzone-actions button,.gi-plays-toggle,.gi-rail-close,.gi-play-card{min-height:44px}.gi-theater-transport-main .gi-icon-command,.gi-theater-transport-main .gi-play-command{width:38px}.gi-theater-selected-play header{align-items:flex-start}.gi-theater-selected-play header span{line-height:1.5}}
 
-/* Readable theater typography. Geometry stays fixed; this only replaces the
-   prototype's 11px copy with the shared UI hierarchy. */
 .gi-chyron-k{font:var(--gi-text-label);letter-spacing:0}
 .gi-chyron-v{font-size:13.5px}
 .gi-icon-command,.gi-play-command,.gi-theater-command,.gi-theater-actions button,

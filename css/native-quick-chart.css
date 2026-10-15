@@ -17,8 +17,6 @@
 .gi-qc-keys span{white-space:nowrap}.gi-qc-keys kbd{display:inline-grid;min-width:24px;min-height:24px;place-items:center;padding:0 5px;border:1px solid var(--gi-8);border-radius:var(--gi-radius);background:var(--gi-4);color:var(--gi-12);font:700 11.5px var(--gi-mono)}
 @media(min-width:701px){.gi-qc-readout{grid-template-columns:repeat(5,minmax(0,1fr))}.gi-qc-players{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:700px){.gi-qc-keys p{gap:6px}.gi-qc-keys span{font-size:11.5px}.gi-qc-status{min-height:44px}.gi-qc-field{padding:8px}.gi-qc-value{font-size:16px}}
-/* ══ S6-6g — DESIGN RULES LAST. Labels take the shared mono label role; 700
-   sans at 11.5px was the pre-S6-4e treatment. ═══════════════════════════════ */
 .gi-qc-field>span,.gi-qc-players legend,.gi-qc-players label>span{
   color:var(--gi-11);font:var(--gi-text-label);
   letter-spacing:var(--gi-track-label);text-transform:uppercase}

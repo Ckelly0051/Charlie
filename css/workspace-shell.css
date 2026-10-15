@@ -1,14 +1,5 @@
-/* UX-4 (S6-4b): the shell's palette. Measured before this change, the three
-   shell stylesheets carried 89 raw color values across 52 distinct hexes —
-   eleven near-identical dark greys and four near-identical accent blues, each
-   picked by hand at the point of use. That is not a palette, it is improvisation,
-   and it is why the shell and the native routes drifted apart.
-
-   Every SHARED role now resolves to a design-system token, so there is one
-   source of truth rather than two parallel palettes. The handful of genuinely
-   shell-specific roles (the blue-tinted selected surface) are declared HERE, in
-   the one place a raw color is allowed — `e2e-design-system.mjs` enforces that
-   rule for these files, exactly as it already does for the native set. */
+/* Shared shell roles derive from design-system tokens. Shell-specific selected
+   surfaces are defined here; e2e-design-system enforces the palette boundary. */
 :root{
   --ws-ink:var(--gi-1);            /* app background, behind every route      */
   --ws-nav:var(--gi-2);            /* rail, topbar, panel                     */
@@ -28,11 +19,8 @@
   --ws-amber:var(--gi-warn);
   --ws-red:var(--gi-turnover);
   --ws-sel:var(--gi-accent-surface);                /* selected surface — blue-tinted          */
-  /* Program / Season / Game control surface. Neutral graphite, never the
-     blue-tinted --ws-sel. The bar is --ws-ink #0c0c0c and the selectors used to
-     be --ws-nav #181818, a 1.25:1 ratio that read as a label rather than a
-     control. --gi-8 is the edge because it measures 4.1:1 against the bar,
-     clearing the 3:1 a control boundary needs; --gi-7 measured 2.86 and missed. */
+  /* Context selectors use a neutral graphite surface and a --gi-8 boundary
+     with at least 3:1 contrast against the bar. */
   --ws-ctx-surface:var(--gi-4);    /* selector rest                           */
   --ws-ctx-surface-hover:var(--gi-5); /* selector hover                       */
   --ws-ctx-surface-open:var(--gi-5);  /* selector open — no blue              */
@@ -44,15 +32,12 @@
   --ws-top:54px
 }
 body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:100vh;width:100vw;font-family:var(--gi-sans);font-synthesis:none;text-shadow:none;display:block;background:var(--ws-ink);color:var(--ws-text);overflow:hidden}.ws-mobile-brand b{color:var(--ws-blue)}.ws-main{width:100%;height:100vh;min-width:0;min-height:0;display:grid;grid-template-rows:var(--ws-top) minmax(0,1fr)}
-/* Every native destination is a real grid viewport. Keeping this contract on
-   the shell prevents a route-specific stylesheet omission from collapsing an
-   otherwise mounted screen in WebView2. */
+/* Every mounted native destination needs a grid viewport, even without
+   route-specific styles. */
 .ws-home,.ws-breakdown,.ws-study,.ws-reports,.ws-plan-state{min-width:0;min-height:0}
 .ws-study,.ws-reports,.ws-plan-state{overflow-y:auto}.ws-topbar,.ws-mobile-head{height:var(--ws-top);background:var(--ws-nav);border-bottom:1px solid var(--ws-line);display:flex;align-items:center;padding:0 18px;gap:10px}.ws-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}.ws-film-chip{font-size:12px;color:var(--ws-muted);border:1px solid var(--ws-line);padding:6px 9px;border-radius:var(--gi-radius)}.ws-icon-btn{width:34px;height:34px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text)}.ws-more-btn{width:auto;padding:0 10px;font-weight:700}.ws-more-btn span{margin-left:3px;color:var(--ws-muted)}.ws-mobile-head{display:none}.ws-home{overflow:auto;padding:22px 28px 20px;min-width:0}.ws-home>*{max-width:1280px;margin-left:auto;margin-right:auto}.ws-home-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}.ws-eyebrow{font-size:11.5px;color:var(--ws-sel-text);text-transform:uppercase;font-weight:800;letter-spacing:1px}.ws-home h1,.ws-plan-state h1{font-family:var(--gi-cond);font-size:34px;line-height:1;margin:6px 0;font-weight:800}.ws-home-head p{color:var(--ws-muted)}.ws-btn{height:36px;padding:0 13px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);font-weight:700}.ws-btn:hover:not(:disabled),.ws-link:hover{border-color:var(--ws-line-strong);background:var(--ws-hover)}.ws-btn:disabled{opacity:.4;cursor:not-allowed}.ws-btn.ws-primary{background:var(--ws-blue);border-color:var(--ws-blue)}.ws-btn.ws-small{height:30px;padding:0 10px;font-size:12px}.ws-link{margin-left:auto;border:0;background:transparent;color:var(--ws-sel-text);font-size:12px}.ws-plan-state{display:grid;place-items:center;text-align:center}.ws-plan-state span{font-size:12px;letter-spacing:1px;color:var(--ws-sel-text);font-weight:800}.ws-plan-state .ws-btn{margin-top:14px}.ws-mobile-brand{border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}.ws-mobile-head select{margin-left:auto;height:34px;max-width:145px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-raised);color:var(--ws-text);padding:0 8px}
 @media(max-width:900px){.ws-topbar{display:none}.ws-main{height:100vh;grid-template-rows:48px minmax(0,1fr)}.ws-mobile-head{display:flex;height:48px;padding:0 10px}.ws-home{padding:22px 15px}.ws-home-head{display:block}.ws-home-head .ws-home-actions{margin-top:14px}.ws-home h1{font-size:29px}}
 
-/* One desktop route owner. The retired left rail is gone; every destination
-   uses this compact top navigation and mobile keeps its bottom navigation. */
 .ws-mobile-nav{display:none}
 .ws-top-brand{display:block;flex:0 0 auto;border:0;background:transparent;color:var(--ws-text);font-family:var(--gi-cond);font-size:18px;font-weight:800}
 .ws-top-brand b{color:var(--ws-blue)}
@@ -63,19 +48,11 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-top-nav button:focus-visible{outline:0;box-shadow:var(--gi-focus)}
 .ws-top-nav button.active{border-bottom-color:var(--gi-bd-gold);background:transparent;color:var(--ws-text);box-shadow:none}
 .ws-top-nav button.active:focus-visible{box-shadow:var(--gi-focus)}
-/* DISABLED IS A COLOUR, NOT AN OPACITY. On the filled prototype pill a 35%
-   label still had its own backing; on the approved transparent chrome the same
-   opacity composites straight onto the shell and measured 2.2:1 at 18px — and
-   on first launch four of the five routes are disabled, so that is the state a
-   new coach meets. `--gi-8` is the design system's own disabled step and
-   measures 3.7:1 on `--ws-nav`, above the 3:1 minimum, with no layout shift. */
+/* Use the disabled color token, not opacity: transparent controls have no
+   backing surface to preserve text contrast. */
 .ws-top-nav button:disabled{color:var(--gi-8);opacity:1;cursor:not-allowed}
 
-/* Keep the canonical Settings command and global history tools reachable in the compact shell. */
 .ws-global-tools{display:flex;align-items:center;gap:6px}
-/* Final Engine Independence: WorkspaceShell._mountChrome() renders these itself
-   as real .ws-icon-btn elements (shared with Plan/Study) -- there is no adopted
-   legacy .btn/#btnShortcuts to style here any more. */
 @media(max-width:1150px) and (min-width:901px){.ws-top-nav{margin-left:2px}.ws-top-nav button{min-width:86px;padding:0 12px;font-size:15px}.ws-top-nav button span{display:none}}
 
 @media(max-width:900px){
@@ -88,86 +65,32 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 
 .ws-plan-picker{width:min(460px,calc(100vw - 32px));margin:auto;padding:0;border:1px solid var(--ws-line-strong);border-radius:var(--gi-radius);background:var(--ws-nav);color:var(--ws-text);box-shadow:var(--gi-shadow-overlay)}.ws-plan-picker::backdrop{background:var(--gi-scrim);backdrop-filter:blur(2px)}.ws-plan-picker form{display:grid;gap:16px;padding:24px}.ws-plan-picker h2{margin:-8px 0 0;font-size:23px}.ws-plan-picker p{display:grid;gap:4px;margin:0;padding:12px;border-left:3px solid var(--ws-blue);background:var(--ws-raised)}.ws-plan-picker p span{color:var(--ws-muted);font-size:12px}.ws-plan-picker label{display:grid;gap:7px;color:var(--ws-muted);font-size:12px;font-weight:800;text-transform:uppercase}.ws-plan-picker select,.ws-plan-picker input{width:100%;height:42px;border:1px solid var(--ws-line);border-radius:var(--gi-radius);background:var(--ws-ink);color:var(--ws-text);padding:0 11px;font:inherit;text-transform:none}.ws-plan-picker select:focus,.ws-plan-picker input:focus{outline:2px solid var(--ws-sel-text);outline-offset:1px}.ws-plan-picker-name[hidden]{display:none}.ws-plan-picker-actions{display:flex;justify-content:flex-end;gap:9px;padding-top:2px}.ws-plan-picker-actions .ws-btn{min-height:42px}
 @media(max-width:480px){.ws-plan-picker{width:calc(100vw - 20px)}.ws-plan-picker form{padding:20px 16px}.ws-plan-picker-actions .ws-btn{height:44px;flex:1}}
-/* Retired breadcrumb/game-dropdown and breadcrumb-as-switcher rules were
-   deleted here rather than left inert, along with the markup they styled.
-   NOTE for any dead-CSS sweep: `gd-score` MUST survive. It is
-   `_scorePillHtml`'s default class and the live games panel still renders
-   with it, so it reads as dead by name association and is not. */
 
-/* ══ S6-6c — DESIGN RULES LAST ══════════════════════════════════════════════
-   Home carries the shell chrome and was the last big surface still speaking a
-   dialect: `font-weight:800` uppercase labels with 1px tracking, section heads
-   as plain 13px text, and a headline in a different condensed face from the
-   one Reports uses. Tokens were already correct here — S6-4d saw to that. What
-   was missing was the COMPOSITION vocabulary. */
-
-/* Headline takes the display role, so Home and Reports finally agree on what a
-   route title looks like. */
-/* Study and Plan own the same rule in THEIR stylesheets — index.html loads
-   study-screen.css and plan-screen.css after this file, so a `.ws-study-head h1`
-   rule written here would lose on source order and do nothing. */
+/* Study and Plan load after this sheet and own their equal-specificity title rules. */
 .ws-home h1,.ws-plan-state h1{font:var(--gi-text-display);font-size:34px;letter-spacing:0}
-/* The wordmark never wraps or shrinks: the context label beside it is the
-   flexible item and ellipsizes instead. Left shrinkable, a long context
-   squeezed the button to min-content and dropped IQ onto a second line. */
+/* The wordmark never wraps or shrinks; the neighboring context label ellipsizes. */
 .ws-mobile-brand{font-family:var(--gi-cond);flex:0 0 auto;white-space:nowrap}
 
-/* THE SIGNATURE, ON HOME. Every section head becomes a lower-third plate — the
-   same mark Reports gives `.stats-section>h3` and the deck gives its group
-   headers. `--gi-lower-third` is the design system's one diagonal; it reached
-   two surfaces in the last pass and stops at four here. */
-
-/* Labels take the mono label role. 800-weight sans at 11.5px with 1px tracking
-   was the pre-S6-4e treatment; the scale exists so a label is one decision. */
 .ws-eyebrow{
   font:var(--gi-text-label);letter-spacing:var(--gi-track-label);text-transform:uppercase;color:var(--gi-los)}
 
-/* Status marks are 8px SQUARES, the way Team Hub already draws film health.
-   They were circles here, which is the only place in the product a state dot
-   was round. */
-
-/* Typography boundary: native form controls do not inherit by default. */
+/* Native form controls do not inherit typography by default. */
 .ws-shell button,.ws-shell input,.ws-shell select,.ws-shell textarea{
   font-family:var(--gi-sans);font-synthesis:none;text-shadow:none
 }
 .ws-shell .ws-btn{font:var(--gi-text-control)}
 
-/* 1.12.0-47: film health is a status, not neutral chrome. */
 .ws-film-chip.is-ready{border-color:color-mix(in srgb,var(--ws-green) 55%,var(--ws-line));background:color-mix(in srgb,var(--ws-green) 12%,transparent);color:var(--ws-green);font-weight:700}
 .ws-film-chip.is-missing{border-color:color-mix(in srgb,var(--ws-red) 55%,var(--ws-line));background:color-mix(in srgb,var(--ws-red) 12%,transparent);color:var(--ws-red);font-weight:700}
 
-/* ══ V2-A — HOME AND CONTEXT UX (2026-08-23) ═════════════════════════════════
- * Approved canon: design-comps/home-context-v2a-2026-08/{home.html,
- * home-1440x900.png,season-switcher-1440x900.png}. Replaces the old two-band
- * (Film Inbox / Seasons) Home and the single breadcrumb-as-switcher context
- * button. Reuses existing --gi- and --ws- tokens only -- no comp-local
- * palette. (A literal star-slash inside this comment would close it early --
- * write "star slash" out, never the two characters together, in any comment
- * that also mentions a wildcard selector.) */
-
-/* Persistent Program / Season / Game selectors, every route. .ws-main grows a
- * third row for it; Break Down keeps its own compact single-row chrome and
- * compacts this bar via the route-scoped rule further down instead of hiding
- * it, so the SAME three selectors stay reachable everywhere (V2-A req 1).
- * Scoped to >=901px: the mobile .ws-main override earlier in this file (2
- * rows -- mobile-head + content) must keep winning below that, where the
- * contextbar itself is hidden and mobile-head carries the game name instead. */
+/* Desktop .ws-main reserves a row for the persistent context bar. Scope this
+   to >=901px so the mobile two-row grid remains authoritative. */
 @media(min-width:901px){.ws-main{grid-template-rows:var(--ws-top) 64px minmax(0,1fr)}}
-/* The Program track holds a real program name in full. `minmax(170px,…)` left
-   `St. Joseph Mavericks` ellipsized at BOTH release widths while the rules file
-   said no context value may clip: the 14px/30px insets take 44px off the track, so 240px is the floor that holds
-   for a 170px string. The Breakdown override below carries the same floor. */
+/* Reserve 240px for a program name plus label and control insets; keep the
+   same floor in the Break Down override. */
 .ws-contextbar{grid-column:1/-1;display:grid;grid-template-columns:minmax(240px,.7fr) minmax(260px,1.15fr) minmax(230px,1fr) auto;align-items:stretch;border-bottom:1px solid var(--ws-line);background:var(--ws-ink)}
-/* ONE neutral graphite control surface for Program / Season / Game, applied at
-   the shared context-bar owner so every route that renders the bar gets it.
-   Measured before: the selectors sat one ladder step off the bar at a 1.25:1
-   ratio, so the three dropdowns read as labels rather than controls. The surface
-   lifts one graphite step and takes a full border, and it is the BORDER that
-   draws the control boundary at 4.1:1 against the bar. The open state no longer
-   uses the selected-surface role, because that role is the rejected blue-gray
-   role; the existing gold underline stays its marker. Widths, typography,
-   caret and route hierarchy are untouched. Token values live in the :root block
-   above. */
+/* The shared context-bar owner supplies neutral selector surfaces and a
+   contrasting border; the open state retains its gold underline. */
 .ws-ctx{position:relative;min-width:0;border:1px solid var(--ws-ctx-edge);background:var(--ws-ctx-surface);text-align:left;padding:7px 29px 6px 13px;cursor:pointer;color:var(--ws-text)}
 .ws-ctx+.ws-ctx{border-left-width:0}
 .ws-ctx:hover:not(:disabled){background:var(--ws-ctx-surface-hover)}
@@ -183,13 +106,8 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-workspace-switch button.is-active{color:var(--ws-text);box-shadow:inset 0 -3px var(--gi-bd-gold)}
 .ws-workspace-switch button.is-scout{color:var(--gi-bd-cyan)}
 .ws-workspace-switch button:disabled{cursor:not-allowed;opacity:.55}
-/* BD-UX-2: Break Down uses the shared two-line selector (label over full value,
- * caret, gold underline while open); the cramped single-line 22px band it
- * replaced read as a breadcrumb, not as controls. The row is 36px, not the
- * comp's 49px: the film's useful-area floors (e2e-breakdown-viewport, 960x540
- * at 1440x900 and 740x416 at 1280x720) leave 14px for it, so only line-height
- * and padding tighten -- both type sizes stay. Our Program / Opponent Scout
- * lives in the route's own toolbar, so the bar's switch is not repeated. */
+/* Break Down keeps two-line context selectors in a 36px row to preserve film
+   height floors. Tighten padding and line-height, not type sizes. */
 @media(min-width:901px){
   body.ws-shell-active.ws-route-breakdown .ws-main{grid-template-rows:var(--ws-top) 36px minmax(0,1fr)}
   body.ws-shell-active.ws-route-breakdown .ws-ctx{padding-block:2px}
@@ -198,9 +116,8 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
   body.ws-shell-active.ws-route-breakdown .ws-contextbar{grid-template-columns:minmax(240px,.8fr) minmax(260px,1.1fr) minmax(260px,1.25fr)}
   body.ws-shell-active.ws-route-breakdown .ws-workspace-switch{display:none}
 }
-/* Narrow Break Down keeps the same three selectors in one fitted row under the
- * mobile head; a long value ellipsizes in its control and is shown in full in
- * the menu. */
+/* Narrow Break Down keeps all three selectors in one row; full values remain
+   available in their menus. */
 @media(max-width:900px){
   body.ws-shell-active.ws-route-breakdown .ws-main{grid-template-rows:48px 50px minmax(0,1fr)}
   body.ws-shell-active.ws-route-breakdown .ws-mobile-head{grid-row:1}
@@ -210,23 +127,18 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
   body.ws-shell-active.ws-route-breakdown .ws-workspace-switch{display:none}
 }
 
-/* Home page-head actions row (Team & Film Settings / + Add game). */
 .ws-home-head{align-items:center}
 .ws-home-actions{display:flex;gap:9px}
 
-/* Season-record rail: six metrics for the OPEN season, honest zeros when a
- * season is open but empty rather than hidden entirely. */
+/* Show season metrics, including zeros, whenever a season is open. */
 
-/* Two-column season workspace: games list (whole-row preview) + selected-game
- * detail. Below 1150px this collapses to one column, matching the existing
- * classic-workspace responsive convention this file already uses elsewhere. */
+/* Games and selected-game detail share two columns, collapsing below 1150px. */
 .ws-game-row{position:relative;width:100%;min-height:56px;display:grid;grid-template-columns:minmax(210px,1.6fr) 76px 82px minmax(120px,.9fr) 26px;align-items:center;gap:0;border:0;border-bottom:1px solid var(--ws-line);background:transparent;text-align:left;padding:0;cursor:pointer;color:var(--ws-text);font-family:var(--gi-sans)}
 .ws-game-row:hover{background:var(--ws-raised)}
 .ws-game-row.selected{background:var(--ws-sel);box-shadow:inset 4px 0 var(--gi-bd-gold)}
 .ws-game-row:focus-visible{outline:none;box-shadow:var(--gi-focus)}
 .ws-game-row>*{min-width:0;padding:0 12px}
 
-/* Selected-game detail panel. */
 .ws-fact-green{color:var(--ws-green)}
 .ws-fact-warn{color:var(--ws-amber)}
 .ws-fact-muted{color:var(--ws-muted)}
@@ -238,8 +150,7 @@ body.ws-shell-active{background:var(--ws-ink);overflow:hidden}.ws-shell{height:1
 .ws-bar.gold i{background:var(--gi-bd-gold)}
 @media(max-width:900px){
   .ws-contextbar{display:none}
-  /* A 5-column desktop row (name/plays/charted/film/arrow) cannot fit a phone
-   * viewport -- name + film health + the tap arrow are what a coach needs at
-   * a glance; plays/charted are still one tap away in the detail panel. */
+  /* Phone rows show name, film health and the open action; plays and charted
+   counts remain available in game detail. */
   .ws-game-row{grid-template-columns:minmax(0,1fr) auto 20px;min-height:52px}
 }
