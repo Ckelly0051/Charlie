@@ -353,29 +353,8 @@ const geometryAt = async (width, height) => {
       pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
 };
-// Broadcast Density Part 1 (CLAUDE.md, 2026-08-16) adds a REQUIRED live
-// below-film lower-third — the brief's own words: "Add the information strip
-// below the video." A fixed-height row below the stage necessarily takes some
-// picture height from the stage's minmax(...,1fr) row; there is no amount of
-// padding-trimming that makes a visible, legible strip cost zero pixels.
-//
-// CORRECTED (Codex review of 2d4a5df caught the same class of false claim in
-// the sibling e2e-breakdown-geometry.mjs; fixed here for consistency rather
-// than leaving an identical inaccuracy uncorrected two files over). The
-// original comment here compared the post-chyron picture against an
-// unrelated, much older, much smaller historical number (1060x596, from a
-// pre-S5a UX-1 investigation) and called that "still materially exceeds" —
-// true of that stale figure, but not an honest description of what this
-// FILE's own pre-Part-1 threshold actually was. This file's threshold before
-// Part 1 was >=1200x675 (desktop) / >=1500x840 (wide); the measured picture
-// with the required lower-third is smaller than both, a real and modest
-// reduction, same as the split/focus cases in e2e-breakdown-geometry.mjs.
-//
-//   1440 desktop: was >=1200x675 -> measured ~1121x631
-//   1920 wide:    was >=1500x840 -> measured ~1441x811
-// Floors below assert the accepted post-chyron picture budget with a small
-// safety margin, not "still exceeds legacy" — do not lower them further
-// without the same kind of honest re-measurement.
+// The required lower-third consumes picture height. These accepted post-chyron
+// floors include a safety margin; changing them requires reviewed remeasurement.
 const desktop = await geometryAt(1440, 900);
 ok(desktop.picture[0] >= 1100 && desktop.picture[1] >= 615,
   '1440 theater meets the accepted post-chyron picture budget (a small, disclosed reduction from the pre-Part-1 1200x675)', JSON.stringify(desktop));

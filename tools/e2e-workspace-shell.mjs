@@ -418,18 +418,8 @@ await page.waitForFunction(() => !document.querySelector('[data-overlay-id="call
 await page.waitForFunction(() => document.activeElement?.id === 'btnNativeMore');
 ok(r.escaped && r.rawAbsent,
   'Call Sheet live preview and Print share the escaped canonical document, then return focus to More', JSON.stringify(r));
-/* Final Engine Independence: undo/redo/shortcuts/the CV-server badge used to
-   be entombed inside the permanently hidden classic top bar
-   (#wsClassicOutlet, then #giLegacyEngineHost -- both since deleted). Undo,
-   Redo, Shortcuts and Settings are now real native buttons WorkspaceShell
-   itself renders and wires directly into `.ws-global-tools` (data-ws-tool
-   attributes, no adopt/relocate mechanism, no #btn*Action ids at all).
-
-   Reachability is measured as "its box actually lands inside the viewport",
-   NOT `offsetParent !== null` or a non-zero rect: a closed sliding drawer/
-   sheet still reports a laid-out, non-zero box, and both weaker checks would
-   score its contents as reachable. That exact false positive is what an
-   earlier draft of this test produced. */
+/* Shell tools must intersect the viewport. A closed sliding drawer can retain
+ * an offsetParent and nonzero rect without making its controls reachable. */
 const onScreen = sel => page.evaluate(s => [...document.querySelectorAll(s)].some(el => {
   const rect = el.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return false;

@@ -1,23 +1,8 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { createFirstTeam } from './hub-setup.mjs';
-/* E2E mark-flow harness — the only test that drives the REAL coach flow
-   end-to-end: generate an actual video in-page, load it through
-   VideoController.loadFile, click the real native Breakdown Theater Mark
-   Start / Mark End controls, and assert the play is created, auto-selected,
-   the form guard lifts, and a chip click saves. (The other harnesses select
-   plays via the API, which skips exactly the path a "form stays grayed out"
-   field report exercises.)
-
-   Repaired for the post-Final-Engine-Independence architecture: Break Down
-   is one route (`workspaceShell.show('breakdown')`) that mounts the native
-   theater (`[data-native-breakdown-theater]`) and the native tag form
-   (`[data-native-tagging]`) together — there is no standalone tag-form host
-   to mount into, and no permanent `#btnMarkStart`/`#btnMarkEnd` ids. Mark
-   Start/End are now the theater's own `.gi-theater-actions-primary` buttons,
-   found and clicked by their visible text like a coach would, exactly as
-   `e2e-native-tagging.mjs` already drives the same route.
-
-   Run after build:  npm run build && node tools/e2e-mark-flow.mjs */
+/* Generate real video and mark it through the mounted theater controls, rather
+ * than selecting plays by API: creation must select the play, enable the native
+ * form, and allow a chip edit to save. */
 import puppeteer from './test-browser.mjs';
 const URL = TEST_APP_URL;
 const sleep = ms => new Promise(r => setTimeout(r, ms));

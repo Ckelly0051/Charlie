@@ -1,23 +1,6 @@
-/**
- * Play-library vocabulary: the custom-play Add workflow, and `Option` as a
- * built-in offensive play.
- *
- * PL-1  The rendered `Edit library` / `Add to Playbook` controls were DEAD
- *       whenever a settings sheet was already open: `SettingsScreen.open()`
- *       returned the live sheet's result and discarded the requested tab, chart
- *       group and typed play-call name, so the control did nothing and said
- *       nothing. The sheet is non-modal, so reaching the charting deck while it
- *       is up is ordinary use. `open()` now RETARGETS the live sheet.
- *
- * PL-2  `Option` is a built-in offensive play type, owned once by
- *       `TagLibrary.DEFINITIONS.playType` and reached by every consumer through
- *       that owner. It is distinct from `RPO`, ambiguous for run/pass
- *       classification, and not a member of the run/pass-depth exclusive group.
- *
- * Every fixture is a synthetic season on an isolated team id, and every
- * localStorage key it touches is namespaced to that team. No coach season,
- * catalog row or film file is read or written.
- */
+/* An open non-modal Settings sheet must retarget to the requested library field.
+ * Option is distinct from RPO, run/pass-ambiguous, and outside the depth-exclusive group.
+ * Synthetic seasons and localStorage keys are isolated by team id. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { chartDeckControls } from './chart-deck-test.mjs';

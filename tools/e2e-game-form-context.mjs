@@ -1,17 +1,5 @@
-/**
- * Add/Edit Game derives its context from the owning season and asks for none.
- *
- * The form used to carry a selector labeled `Film source` bound to
- * `perspective`, offering `Our game · Offense/Defense/Special Teams` and
- * `Opponent film · Scout`. Neither thing it controlled was a film source, and
- * the Scout option was actively destructive: choosing it inside a Program
- * season produced a program game marked scout, and `SeasonManager._selfGames()`
- * excludes scout games, so that game silently left our record, yardage, success
- * rate and turnover margin. Removed by coach decision 2026-09-13.
- *
- * These assertions fail loudly if the control -- or any other writer of
- * `perspective` from the form -- comes back.
- */
+/* Game context derives from the owning season, not a form selector:
+ * marking a program game as scout would exclude it from program statistics. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL } from './app-entry.mjs';
 import { readFileSync } from 'node:fs';

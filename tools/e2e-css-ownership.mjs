@@ -1,18 +1,6 @@
-/* CSS ownership guard.
- *
- * Every selector branch in the audited stylesheets must have a production
- * presentation owner. A branch is DEAD when an identifier it REQUIRES cannot be
- * produced by any class/id-producing site in production source.
- *
- * This exists because "the stylesheet is reachable from the Vite graph" is not
- * the same as "its rules can match", and because a text search for a class name
- * is not the same as a producer: `.top-bar` once survived a sweep with sixteen
- * occurrences in production source, every one of them a comment recording that
- * the top bar had been deleted, and `.stats-overlay` survived with a single
- * occurrence that was a querySelector READING it. The model in
- * tools/css-ownership.mjs separates producers from readers and comments.
- *
- * Run: node tools/e2e-css-ownership.mjs        (add --list to print branches) */
+/* Selector branches require production class/id producers; readers and comments
+ * do not establish ownership, nor does stylesheet reachability.
+ * Run: node tools/e2e-css-ownership.mjs (--list prints branches). */
 import postcss from 'postcss';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
