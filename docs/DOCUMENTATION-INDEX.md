@@ -124,9 +124,9 @@ log.
   database setup; the stale-file reader remains usable to expose regressions.
   Film terminal recovery shares the real media-error journey; the CORS suite
   retains retry/buffering/preload coverage and waits for readiness, not a timer.
-  Focused verification at `66962216`: 15/15 green, zero failed/skipped,
+  Latest focused verification at `167617a6`: 7/7 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
-  `artifacts/gate-logs/2026-10-15T19-39-11-202Z-3hnWul/receipt.json`.
+  `artifacts/gate-logs/2026-10-15T19-54-06-599Z-lliNN4/receipt.json`.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:
