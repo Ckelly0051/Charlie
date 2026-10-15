@@ -23,6 +23,10 @@ It also checks that this guide names every current harness and no retired one.
 P0 checks CLI-to-runner wiring; `e2e-gate-runner` owns actual build/discovery,
 receipt and exit behavior, including refusal to test a stale bundle after a
 failed build. Those runtime contracts are not source-spelling checks in P0.
+`e2e-catalog-persistence` shares the missing-catalog/stale-sidecar scenario:
+the sidecar contains usable data, but load, save and listing must never read it
+or silently repopulate the catalog. Its filesystem double observes reads and
+forbidden writes directly.
 `e2e-workspace-shell` checks runtime engine-class privacy; stylesheet reachability
 and Reports native ownership remain in their existing composition/route checks.
 

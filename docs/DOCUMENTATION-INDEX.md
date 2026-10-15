@@ -120,6 +120,8 @@ log.
   build/discovery/failure behavior belongs to the runner suite. Coverage owners
   and retained browser boundaries are in `docs/TESTING.md`. Reports and
   production code are unchanged; full-gate and installed approval are separate.
+  Catalog persistence shares its missing-catalog scenario without a duplicate
+  database setup; the stale-file reader remains usable to expose regressions.
   Focused verification at `66962216`: 15/15 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
   `artifacts/gate-logs/2026-10-15T19-39-11-202Z-3hnWul/receipt.json`.

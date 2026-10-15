@@ -6,6 +6,7 @@ import { SqlCatalog } from '../js/sql-catalog.js';
 import { CatalogPersistence } from '../js/catalog-persistence.js';
 
 let pass = 0, fail = 0;
+let anyJsonWriteEverSeen = false;
 const ok = (cond, label, extra = '') => { if (cond) { pass++; console.log(`  PASS  ${label}`); } else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); } };
 const clone = x => JSON.parse(JSON.stringify(x));
 const deepEq = (a, b) => { try { assert.deepStrictEqual(a, b); return true; } catch (e) { return false; } };
@@ -13,39 +14,26 @@ const deepEq = (a, b) => { try { assert.deepStrictEqual(a, b); return true; } ca
 const SQL = await initSqlJs();
 
 // Keep the forbidden sidecar writer observable, rather than failing on a missing method.
-function makeFs() {
-  const state = { db: null, json: new Map(), mirror: new Map(), mirrorFail: false, writeDbFail: false, readDbFail: false, jsonWriteCalls: 0 };
+function trackFs() {
+  const state = { db: null, json: new Map(), mirror: new Map(), mirrorFail: false, writeDbFail: false, readDbFail: false, jsonReads: 0 };
   return {
     state,
     readDb: async () => { if (state.readDbFail) throw new Error('db read down'); return state.db; },
     writeDb: async (bytes) => { if (state.writeDbFail) throw new Error('db write down'); state.db = bytes.slice ? bytes.slice() : new Uint8Array(bytes); },
-    readJson: async (id) => state.json.has(id) ? clone(state.json.get(id)) : null,
-    writeJson: async (id, data) => { state.jsonWriteCalls++; state.json.set(id, clone(data)); },
+    readJson: async (id) => { state.jsonReads++; return state.json.has(id) ? clone(state.json.get(id)) : null; },
+    writeJson: async (id, data) => { anyJsonWriteEverSeen = true; state.json.set(id, clone(data)); },
     writeMirror: async (id, data) => { if (state.mirrorFail) throw new Error('mirror down'); state.mirror.set(id, clone(data)); },
   };
 }
 
-// ---- fixtures (compact multi-game seasons with clips + plays) ----
+// Multi-game seasons with distinct clip identities.
 const mkPlay = (i, clip) => ({ id: i, timestamp: { start: 0, end: 6 }, clipId: i, clipName: clip, clipPath: `Wk/${clip}`, notes: '', annotations: [], tags: { unit: i % 2 ? 'defense' : 'offense', down: String(1 + (i % 4)), distance: '10', formationFamily: 'Spread', qbAlignment: 'Shotgun', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: String(i % 7), players: {}, grades: {}, custom: [] } });
 const mkGame = (gid, n) => ({ id: gid, name: gid, gameInfo: { opponent: gid }, status: 'final', plays: Array.from({ length: n }, (_, i) => mkPlay(i + 1, `${gid}_${i + 1}.mp4`)), annotations: [], nextId: n + 1, currentPlayId: null, videoFileName: '', clipNames: Array.from({ length: n }, (_, i) => `${gid}_${i + 1}.mp4`), isMultiClip: true });
 const season = (id, name, games) => ({ version: 5, type: 'season', id, seasonName: name, activeGameId: games[0].id, teamProfile: { teamName: name }, roster: [], games });
 const seasonA = () => season('s1', 'Alpha', [mkGame('a1', 3), mkGame('a2', 2)]);
 const seasonB = () => season('s2', 'Bravo', [mkGame('b1', 4)]);
 
-// A single fs shared across the whole run, so jsonWriteCalls is the true
-// cumulative count over every scenario below (sections make their own `fs`
-// per block for isolation, so this is a SEPARATE accumulator recording
-// whether ANY makeFs() instance anywhere in this file ever saw a write).
-let anyJsonWriteEverSeen = false;
-const trackFs = () => {
-  const f = makeFs();
-  const origWriteJson = f.writeJson;
-  f.writeJson = async (...args) => { anyJsonWriteEverSeen = true; return origWriteJson(...args); };
-  return f;
-};
-
-// Reference: what a plain SqlCatalog round-trip yields for seasonA (isolates
-// CatalogPersistence orchestration from catalog normalization).
+// Isolate persistence orchestration from catalog normalization.
 async function refRoundTrip(obj) {
   const c = await new SqlCatalog(SQL).open();
   c.setCurrentSeason(obj.id); c.saveSeason(clone(obj));
@@ -94,6 +82,10 @@ const refA = await refRoundTrip(seasonA());
   const result = await cp.loadSeason('s1');
   ok(result === null, 'a missing db returns null -- it is NOT resurrected from a stale season.json', JSON.stringify(result));
   ok(!fs.state.db, 'no self-heal write happens: the db is not silently repopulated from json on a normal load', String(!!fs.state.db));
+  await cp.saveSeason('s2', seasonB());
+  await cp.listSeasons();
+  ok(result === null && fs.state.jsonReads === 0, 'a season.json-only season is absent and the file is never read', JSON.stringify({ absent: result, jsonReads: fs.state.jsonReads }));
+  ok(typeof cp.migrateJsonSeasons !== 'function', 'there is no JSON migration to call');
 }
 
 // Corrupt bytes must never become an empty catalog.
@@ -150,12 +142,6 @@ const refA = await refRoundTrip(seasonA());
     'a Documents-mirror failure never blocks the canonical save; season.json is never written either way');
 }
 
-// ---- 6. db-write failure is ATOMIC: zero mirror/in-memory writes ----------
-// A rejected canonical write must produce ZERO writes anywhere: not the
-// Documents mirror, and the in-memory catalog itself must roll back rather
-// than staying committed to the rejected payload (which a same-session load
-// could read straight back out of memory, even with disk completely
-// untouched).
 {
   const fs = trackFs();
   fs.state.writeDbFail = true;
@@ -196,22 +182,6 @@ const refA = await refRoundTrip(seasonA());
   const gone = await cp2.loadSeason('s1'), kept = await cp2.loadSeason('s2');
   ok(gone === null, 'deleted season is absent from the db');
   ok(kept && kept.data.seasonName === 'Bravo', 'delete leaves other seasons intact');
-}
-
-// ---- 8. a season present only as season.json is not catalog data -----------
-// A leftover per-season file is never read: nothing here calls fs.readJson,
-// and the season stays absent until the coach recovers it explicitly.
-{
-  const fs = trackFs();
-  fs.state.json.set('s1', clone(seasonA()));
-  let jsonReads = 0;
-  fs.readJson = async () => { jsonReads++; return null; };
-  const cp = new CatalogPersistence({ catalog: new SqlCatalog(SQL), fs });
-  const absent = await cp.loadSeason('s1');
-  await cp.saveSeason('s2', seasonB());
-  await cp.listSeasons();
-  ok(absent === null && jsonReads === 0, 'a season.json-only season is absent and the file is never read', JSON.stringify({ absent, jsonReads }));
-  ok(typeof cp.migrateJsonSeasons !== 'function', 'there is no JSON migration to call');
 }
 
 // Delete failure preserves both the live catalog and its recovery mirror.
