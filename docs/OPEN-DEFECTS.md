@@ -141,7 +141,9 @@ proving no change. The split is part of the reports rebuild
 
 ## Structural limits (planning inputs, not defects)
 
-- The six-minute gate budget is enforced, but the current full-gate duration
+- The local six-minute gate target is report-only during consolidation; CI
+  records timing without that threshold. Individual deadlines remain blocking.
+  The current full-gate duration
   after cleanup has not been measured. The prior full receipt predates cleanup
   and budget enforcement; the starting coverage/overlap inventory is
   `docs/GATE-RUNTIME-AUDIT-2026-10-15.md`. Reports consolidation stays with its

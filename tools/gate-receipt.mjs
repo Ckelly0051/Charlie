@@ -9,6 +9,7 @@ const git = promisify(execFile);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const digest = value => hash(JSON.stringify(value));
 export const FULL_GATE_BUDGET_MS = 360000;
+export const BLOCK_FULL_GATE_BUDGET = false;
 
 async function fileIdentity(path, name) {
   try {
@@ -74,14 +75,17 @@ export async function evidenceFile(path, root) {
 }
 
 export function newReceipt({ scope, files, source, fixtures, buildRoot, environment = {},
-  startedAt = new Date().toISOString(), budgetMs = FULL_GATE_BUDGET_MS, phases = [] }) {
+  startedAt = new Date().toISOString(), budgetMs = FULL_GATE_BUDGET_MS,
+  blockBudget = BLOCK_FULL_GATE_BUDGET, phases = [] }) {
   if (!files.length || new Set(files).size !== files.length) throw new Error('Receipt requires a unique nonempty harness plan');
   if (!Number.isFinite(budgetMs) || budgetMs <= 0) throw new Error('Gate budget must be positive');
   return { schemaVersion: 1, startedAt, finishedAt: null,
     scope, state: 'running', outcome: 'incomplete', installedApproval: 'not-assessed',
-    releaseEligible: false, reasons: ['Run has not completed'], source: { before: source, after: null },
+    releaseEligible: false, performanceOutcome: 'not-applicable',
+    reasons: ['Run has not completed'], source: { before: source, after: null },
     fixtures: { before: fixtures, after: null }, build: { root: buildRoot, state: 'not-run', before: null, after: null },
-    timing: { budgetMs: scope === 'full' ? budgetMs : null, wallMs: null, phases },
+    timing: { budgetMs: scope === 'full' && !environment.githubActions ? budgetMs : null,
+      blocking: scope === 'full' && !environment.githubActions && blockBudget, wallMs: null, phases },
     environment, errors: [], results: files.map(file => ({ file, status: 'not-run' })) };
 }
 
@@ -99,7 +103,9 @@ export function finishReceipt(receipt, { source, fixtures, build, exitCode, erro
   timing.harnessMs = receipt.results.reduce((sum, result) => sum + (result.durationMs || 0), 0);
   timing.setupMs = timing.phases.reduce((sum, phase) => sum + phase.durationMs, 0);
   timing.otherMs = Math.max(0, timing.wallMs - timing.harnessMs - timing.setupMs);
-  timing.overBudget = receipt.scope === 'full' && timing.wallMs > timing.budgetMs;
+  const applicable = receipt.scope === 'full' && timing.budgetMs !== null;
+  timing.overBudget = applicable && timing.wallMs > timing.budgetMs;
+  receipt.performanceOutcome = !applicable ? 'not-applicable' : timing.overBudget ? 'over-budget' : 'within-budget';
   timing.slowestHarnesses = receipt.results.filter(result => result.durationMs !== undefined)
     .map(({ file, durationMs }) => ({ file, durationMs })).sort((a, b) => b.durationMs - a.durationMs).slice(0, 10);
   receipt.source.after = source;
@@ -107,7 +113,6 @@ export function finishReceipt(receipt, { source, fixtures, build, exitCode, erro
   receipt.build.after = build;
   if (error) receipt.errors.push(error);
   const reasons = [];
-  if (timing.overBudget) reasons.push(`Full gate exceeded ${timing.budgetMs}ms wall-time budget (${Math.round(timing.wallMs)}ms)`);
   const stable = (a, b) => !!a && !!b && a.sha256 === b.sha256;
   if (!stable(receipt.source.before, source) || receipt.source.before.commit !== source?.commit) reasons.push('Source changed during run');
   if (!stable(receipt.fixtures.before, fixtures)) reasons.push('Fixture identities changed during run');
@@ -124,6 +129,7 @@ export function finishReceipt(receipt, { source, fixtures, build, exitCode, erro
   }
   receipt.state = 'finished';
   receipt.outcome = reasons.length ? 'fail' : receipt.results.some(item => item.status === 'skip') ? 'skipped' : 'pass';
+  if (timing.blocking && timing.overBudget) reasons.push(`Full gate exceeded ${timing.budgetMs}ms wall-time budget (${Math.round(timing.wallMs)}ms)`);
   if (receipt.scope !== 'full') reasons.push('Not a full gate');
   if (receipt.source.before.dirty || source?.dirty) reasons.push('Working tree is dirty');
   if (receipt.results.some(item => item.status === 'skip')) reasons.push('Harnesses skipped');

@@ -140,7 +140,12 @@ export async function runTests() {
       import {writeFileSync} from 'node:fs';
       writeFileSync('first-pid', String(process.pid));
       if (process.env.GIQ_GATE_SYNTHETIC_HANG === '1') { console.log('HUNG_READY'); setInterval(() => {}, 1000); }
-      else { await new Promise(resolve => setTimeout(resolve, 30)); console.log('== RESULT: 1 passed, 0 failed =='); }
+      else {
+        await new Promise(resolve => setTimeout(resolve, 30));
+        const fail = process.env.GIQ_GATE_SYNTHETIC_FAIL === '1';
+        console.log(fail ? '== RESULT: 0 passed, 1 failed ==' : '== RESULT: 1 passed, 0 failed ==');
+        process.exitCode = fail ? 7 : 0;
+      }
     `);
     await writeFile(resolve(root, 'tools', 'e2e-b.mjs'), "console.log('TAIL_EXECUTED');console.log('== RESULT: 1 passed, 0 failed ==');");
     for (const args of [['init', '-q'], ['add', '--', '.gitignore', 'package.json', 'build.mjs', 'tools'],
@@ -148,19 +153,29 @@ export async function runTests() {
       const git = await execute('git', args, process.env, undefined, { cwd: root });
       assert.equal(git.code, 0, git.output);
     }
-    for (const mode of ['control', 'over', 'focused', 'hang']) {
-      const env = { ...process.env, GIQ_GATE_SYNTHETIC_HANG: mode === 'hang' ? '1' : '' };
+    for (const mode of ['control', 'report', 'blocking', 'focused', 'ci',
+      'hang-report', 'hang-blocking', 'hang-ci', 'fail-report', 'fail-blocking', 'fail-ci']) {
+      const hangs = mode.startsWith('hang-'), fails = mode.startsWith('fail-');
+      const ci = mode === 'ci' || mode.endsWith('-ci');
+      const blocking = mode === 'blocking' || mode.endsWith('-blocking');
+      const env = { ...process.env, GITHUB_ACTIONS: ci ? 'true' : '',
+        GIQ_GATE_SYNTHETIC_HANG: hangs ? '1' : '', GIQ_GATE_SYNTHETIC_FAIL: fails ? '1' : '' };
       delete env.GIQ_APP_ROOT; delete env.GIQ_REALDATA_OPTIONAL;
       const child = await execute(process.execPath, ['tools/e2e-gate-runner.mjs', '--budget-probe', root,
-        ['over', 'focused'].includes(mode) ? '1' : '60000', mode], env, undefined, { timeoutMs: 30000 });
+        mode === 'control' ? '60000' : '1', mode], env, undefined, { timeoutMs: 30000 });
       const dirs = (await readdir(resolve(root, 'artifacts', 'gate-logs'))).sort();
       const runDir = resolve(root, 'artifacts', 'gate-logs', dirs.at(-1));
       const receipt = JSON.parse(await readFile(resolve(runDir, 'receipt.json'), 'utf8'));
       check(`synthetic ${mode} run preserves the actual process exit and receipt verdict`, () => {
-        const red = ['over', 'hang'].includes(mode);
+        const red = blocking || hangs || fails;
         assert.equal(child.code, red ? 1 : 0, child.output);
-        assert.equal(receipt.outcome, red ? 'fail' : 'pass');
-        assert.equal(receipt.releaseEligible, mode === 'control');
+        assert.equal(receipt.outcome, hangs || fails ? 'fail' : 'pass');
+        assert.equal(receipt.releaseEligible, !red && mode !== 'focused');
+        assert.equal(receipt.performanceOutcome, ci || mode === 'focused' ? 'not-applicable'
+          : mode === 'control' ? 'within-budget' : 'over-budget');
+        assert.equal(receipt.timing.budgetMs, ci || mode === 'focused' ? null : mode === 'control' ? 60000 : 1);
+        assert.equal(receipt.environment.githubActions, ci);
+        assert.equal(receipt.timing.blocking, blocking && !ci);
         assert.equal(receipt.results.length, 2);
         assert(receipt.results.every(result => result.status !== 'not-run'));
         assert.equal(receipt.fixtures.before.files[0].path, resolve(root, 'tools', 'fixtures', 'synthetic.json'));
@@ -176,20 +191,24 @@ export async function runTests() {
         }
         assert(Math.abs(t.wallMs - t.setupMs - t.harnessMs - t.otherMs) < 0.01);
       });
-      if (mode === 'over') check('a harness scheduled after budget expiry still runs and is durably recorded', () => {
+      if (mode === 'report' || mode === 'blocking') check(`${mode}: a harness scheduled after budget expiry still runs and is durably recorded`, () => {
         assert(receipt.results[1].startedMs > receipt.timing.budgetMs);
         assert.equal(receipt.results[1].status, 'pass');
         assert(readFileSync(resolve(root, receipt.results[1].log.path), 'utf8').includes('TAIL_EXECUTED'));
         assert(receipt.timing.overBudget && child.output.includes('BUDGET EXCEEDED'));
         assert.equal(receipt.timing.slowestHarnesses.length, 2);
       });
-      if (mode === 'hang') check('the real runner stops a hung harness, records elapsed time and runs its successor', () => {
+      if (hangs) check(`${mode}: the real runner stops a hung harness, records elapsed time and runs its successor`, () => {
         const result = receipt.results[0];
         assert(result.timedOut && result.status === 'fail' && result.durationMs >= result.deadlineMs);
         assert(readFileSync(resolve(root, result.log.path), 'utf8').includes('HUNG_READY'));
         assert.equal(receipt.results[1].status, 'pass');
         const pid = Number(readFileSync(resolve(root, 'first-pid'), 'utf8'));
         assert.throws(() => process.kill(pid, 0), /ESRCH/);
+      });
+      if (fails) check(`${mode}: a failed check remains red and its successor still runs`, () => {
+        assert.equal(receipt.results[0].code, 7); assert.equal(receipt.results[0].status, 'fail');
+        assert.equal(receipt.results[1].status, 'pass'); assert(receipt.reasons.includes('Harness failure'));
       });
     }
     const logPath = resolve(scratch, 'failure.log');
@@ -385,7 +404,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       process.exitCode = await main(mode === 'focused' ? ['--only', 'e2e-a.mjs,e2e-b.mjs'] : [], {
         root: process.argv[3], budgetMs: Number(process.argv[4]),
         canonicalFixture: { path: resolve(process.argv[3], 'tools', 'fixtures', 'synthetic.json'), id: 'synthetic' },
-        deadlineFor: mode === 'hang' ? () => 1500 : harnessDeadline,
+        blockBudget: mode === 'ci' || mode === 'blocking' || mode.endsWith('-blocking') ? true : undefined,
+        deadlineFor: mode.startsWith('hang-') ? () => 1500 : harnessDeadline,
       });
     } else if (process.argv[2] === '--log-probe') await logProbe(process.argv[3], process.argv[4]);
     else process.exitCode = process.argv[2] === '--probe' ? await probe(process.argv[3]) : await runTests();

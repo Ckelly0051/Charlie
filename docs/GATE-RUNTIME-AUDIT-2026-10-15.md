@@ -55,15 +55,18 @@ the responsibility to preserve, not a claim that every assertion is unique.
    the same operation.
 4. Measure the current full run only with coach authorization. Use its phase
    timings to distinguish setup costs, a slow harness and runner overhead
-   before another structural reduction. The six-minute budget is a target to
-   enforce, not evidence that the current suite meets it.
+   before another structural reduction. The six-minute local target is
+   report-only during consolidation, not evidence that the suite meets it.
 
 ## Current Enforcement
 
 `tools/run-gate.mjs` retains existing individual deadlines and records setup
-separately from harness execution. `tools/gate-receipt.mjs` owns the six-minute
-full-run verdict. A budget excess does not stop the loop. The existing runner
-tests use scratch-only child processes to prove deadline termination, complete
+separately from harness execution. `tools/gate-receipt.mjs` reports local full
+performance independently of correctness; a timing miss alone does not block
+release during consolidation. CI has no local threshold. The single
+`BLOCK_FULL_GATE_BUDGET` switch is false; blocking mode remains tested and needs
+an explicit rule change. A budget excess never stops the loop. Scratch-only
+child processes prove both modes, CI exemption, deadline/failure enforcement,
 post-expiry collection, an eligible under-budget control and focused exemption.
 No production-app code, coach data, harness inventory, installer or installed
 approval changed.

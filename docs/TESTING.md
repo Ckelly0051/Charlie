@@ -156,18 +156,30 @@ green result line; the runner kills the process tree and continues serially.
 Named exceptions and their reasons live in `tools/run-gate.mjs`; no deadline
 was raised by runtime-budget enforcement.
 
-**Wall-time budget.** Full runs have six minutes, measured with a monotonic
-clock from runner entry through the final evidence checks. Exceeding the budget
-never stops a harness: all results are collected, then the receipt fails and
-the process exits nonzero with `releaseEligible:false` and the ten slowest
-harnesses listed. Focused and self-test runs report timing without enforcing
-the full budget. There is no CLI or environment switch to raise that budget.
-The runner's synthetic test injects a small budget into the same entry point,
-runs real child processes in a scratch repository, and proves a later harness
-runs after expiry. A separate synthetic hang proves deadline termination,
-elapsed-time evidence and continuation; an under-budget control proves the
-synthetic receipt can otherwise qualify. No real full gate is needed for these
-checks.
+**Wall-time target.** Local full runs target six minutes, measured with a
+monotonic clock from runner entry through the final evidence checks. During
+consolidation this is report-only: a timing miss prints `BUDGET EXCEEDED` and
+the ten slowest harnesses, but passing checks retain exit 0 and release
+eligibility. `performanceOutcome` is `within-budget`, `over-budget` or
+`not-applicable`, separate from the correctness `outcome`.
+
+`GITHUB_ACTIONS=true` identifies GitHub Actions: timing is recorded but there
+is no threshold (`timing.budgetMs:null`, `performanceOutcome:not-applicable`).
+Focused and self-test scopes also have no total threshold. Individual deadlines
+and failed checks remain blocking in every environment.
+
+`BLOCK_FULL_GATE_BUDGET` in `tools/gate-receipt.mjs` is the single explicit
+blocking switch, false during consolidation. Enabling it requires the coach's
+rule change after review and a representative run fits the target. In blocking
+mode an over-budget local full run still collects all checks, then exits
+nonzero and denies release eligibility; correctness remains independently
+recorded. No CLI or environment option raises the local target.
+
+The existing runner test uses real child processes and receipts in a scratch
+repository: report-only and blocking over-budget runs, post-expiry continuation,
+CI without a threshold (even with blocking requested), focused exemption,
+an eligible under-budget control, and timeouts/failed checks in both modes and
+CI. No real full gate is needed for these proofs.
 
 **Logs and receipts.** Full stdout/stderr and the build log go to
 `artifacts/gate-logs/<run>/` (gitignored; may contain coach-data diagnostics;

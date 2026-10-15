@@ -202,7 +202,7 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
   return totals.fail ? 1 : 0;
 }
 
-export async function main(args = process.argv.slice(2), { root = ROOT, budgetMs, deadlineFor, canonicalFixture } = {}) {
+export async function main(args = process.argv.slice(2), { root = ROOT, budgetMs, blockBudget, deadlineFor, canonicalFixture } = {}) {
   const origin = performance.now(), startedAt = new Date().toISOString(), phases = [];
   const phase = async (name, run) => {
     const started = performance.now();
@@ -231,8 +231,9 @@ export async function main(args = process.argv.slice(2), { root = ROOT, budgetMs
   const buildRoot = resolve(process.env.GIQ_APP_ROOT || resolve(root, 'dist'));
   const receipt = newReceipt({ scope: selfTest ? 'self-test' : only ? 'focused' : 'full', files,
     source: await phase('source fingerprint', () => sourceIdentity(root)),
-    fixtures: await phase('fixtures', () => fixtureIdentity(root, canonicalFixture)), buildRoot, startedAt, budgetMs, phases,
+    fixtures: await phase('fixtures', () => fixtureIdentity(root, canonicalFixture)), buildRoot, startedAt, budgetMs, blockBudget, phases,
     environment: { node: process.version, platform: process.platform,
+      githubActions: process.env.GITHUB_ACTIONS === 'true',
       appRootOverride: process.env.GIQ_APP_ROOT || null,
       realDataOptional: process.env.GIQ_REALDATA_OPTIONAL === '1',
       freshBrowser: args.includes('--fresh-browser') } });
@@ -274,10 +275,10 @@ export async function main(args = process.argv.slice(2), { root = ROOT, budgetMs
   finishReceipt(receipt, { source, fixtures, build, exitCode, error: failure, wallMs: performance.now() - origin });
   await saveReceipt(receiptPath, receipt);
   console.log(`Wall time: ${(receipt.timing.wallMs / 1000).toFixed(3)}s; setup: ${(receipt.timing.setupMs / 1000).toFixed(3)}s; harnesses: ${(receipt.timing.harnessMs / 1000).toFixed(3)}s; other: ${(receipt.timing.otherMs / 1000).toFixed(3)}s`);
-  if (receipt.timing.overBudget) console.log(`BUDGET EXCEEDED (${receipt.timing.budgetMs}ms); slowest harnesses:\n` +
+  if (receipt.timing.overBudget) console.log(`BUDGET EXCEEDED (${receipt.timing.budgetMs}ms; ${receipt.timing.blocking ? 'blocking' : 'report-only'}); slowest harnesses:\n` +
     receipt.timing.slowestHarnesses.map(result => `  ${Math.round(result.durationMs)}ms  ${result.file}`).join('\n'));
-  console.log(`Receipt: ${receipt.outcome}; release evidence eligible: ${receipt.releaseEligible}; installed approval: not assessed`);
-  return receipt.outcome === 'fail' ? 1 : exitCode;
+  console.log(`Receipt: ${receipt.outcome}; performance: ${receipt.performanceOutcome}; release evidence eligible: ${receipt.releaseEligible}; installed approval: not assessed`);
+  return receipt.outcome === 'fail' || (receipt.timing.blocking && receipt.timing.overBudget) ? 1 : exitCode;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

@@ -156,15 +156,13 @@ log.
 - **Latest full gate:** 166/166 green at `a5238591` (2026-10-14), zero
   skipped or failed; `releaseEligible: true`. Receipt:
   `artifacts/gate-logs/2026-10-14T19-46-40-309Z-96k7d5/receipt.json`.
-  This predates cleanup and runtime-budget enforcement. The runner now
-  enforces six minutes for full runs, records disjoint setup/harness timing,
-  and finishes every result before reporting a budget failure. Individual
-  deadlines still stop hung processes. Only scratch synthetic full runs have
-  exercised the new budget; current real full-gate time remains unmeasured.
-  Focused runs report timing without enforcing the full budget.
-  Enforcement source: `e553c71f`; focused verification 4/4 green, zero
-  failed/skipped, 24.842 seconds, with clean unchanged source/build/fixtures.
-  Receipt: `artifacts/gate-logs/2026-10-15T13-00-00-491Z-CSSkVN/receipt.json`.
+  This predates cleanup and runtime-budget reporting. The runner reports the
+  local six-minute target separately from correctness; an over-budget result
+  alone does not block CI or release during consolidation. GitHub Actions has
+  no threshold. Individual deadlines stay blocking everywhere. The explicit
+  blocking switch is off but remains proven by synthetic tests. Both modes
+  finish every result. Current real full-gate time remains unmeasured;
+  focused runs record timing without a total target.
   Runner review remains separate from the production cleanup's pending
   installed verification; no new full gate or installer was run.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
