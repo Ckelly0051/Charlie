@@ -153,6 +153,21 @@ harness; storage does not survive to the next harness. Chromium recycles after
 `e2e-catalog-fuzzer` and `e2e-sql-fuzzer`; one for the pure analytics model
 checks; five for the build. A timeout or interruption is a failure even after a
 green result line; the runner kills the process tree and continues serially.
+Named exceptions and their reasons live in `tools/run-gate.mjs`; no deadline
+was raised by runtime-budget enforcement.
+
+**Wall-time budget.** Full runs have six minutes, measured with a monotonic
+clock from runner entry through the final evidence checks. Exceeding the budget
+never stops a harness: all results are collected, then the receipt fails and
+the process exits nonzero with `releaseEligible:false` and the ten slowest
+harnesses listed. Focused and self-test runs report timing without enforcing
+the full budget. There is no CLI or environment switch to raise that budget.
+The runner's synthetic test injects a small budget into the same entry point,
+runs real child processes in a scratch repository, and proves a later harness
+runs after expiry. A separate synthetic hang proves deadline termination,
+elapsed-time evidence and continuation; an under-budget control proves the
+synthetic receipt can otherwise qualify. No real full gate is needed for these
+checks.
 
 **Logs and receipts.** Full stdout/stderr and the build log go to
 `artifacts/gate-logs/<run>/` (gitignored; may contain coach-data diagnostics;
@@ -161,6 +176,15 @@ source and served-bundle hashes before and after, fixture and golden hashes,
 every harness's outcome and log hash. `releaseEligible` is true only for a
 clean, complete, fresh-build full gate with zero failures or skips and unchanged
 hashes. `installedApproval` is always `not-assessed`.
+
+`timing` records wall time, each harness's execution interval, and disjoint
+setup phases: build, shared-browser launch/shutdown, context cleanup, fixture
+fingerprints and source/build fingerprints. `otherMs` is the remaining runner
+overhead, not guessed setup. Dedicated browser startup and fixture loading
+inside a harness remain inside that harness's duration. Times are not summed
+across overlapping phases. Older receipts lack this breakdown; do not retrofit
+or reinterpret their release verdicts. Historical slow-suite inventory and
+coverage overlaps: `docs/GATE-RUNTIME-AUDIT-2026-10-15.md`.
 
 A harness is green only when its exit code is 0 **and** its result line is
 clean. Run `--self-test` whenever a gate result is doubted or the runner

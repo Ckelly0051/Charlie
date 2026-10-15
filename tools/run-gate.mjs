@@ -8,13 +8,19 @@ import { buildIdentity, sourceIdentity, fixtureIdentity, evidenceFile,
   newReceipt, recordResult, finishReceipt, saveReceipt } from './gate-receipt.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const DEADLINES = {
+  'e2e-integrity.mjs': 600000, // Seeded cross-game operation sequences check live/store invariants.
+  'e2e-catalog-fuzzer.mjs': 600000, // Serialized catalog failure campaigns exercise durable rollback.
+  'e2e-sql-fuzzer.mjs': 600000, // Seeded SQL mutation/reopen campaigns check retained records.
+  'e2e-analytics-registry.mjs': 60000, // Preserve the existing tighter cap for a DOM-free registry census.
+  'e2e-analytics-projection.mjs': 60000, // Preserve the existing tighter cap for pure projection contracts.
+  'e2e-crosstab.mjs': 60000, // Preserve the existing tighter cap for pure cross-tab calculations.
+};
 export function harnessDeadline(file) {
-  if (['e2e-integrity.mjs', 'e2e-catalog-fuzzer.mjs', 'e2e-sql-fuzzer.mjs'].includes(file)) return 600000;
-  if (['e2e-analytics-registry.mjs', 'e2e-analytics-projection.mjs', 'e2e-crosstab.mjs'].includes(file)) return 60000;
-  return 180000;
+  return DEADLINES[file] ?? 180000;
 }
-async function logDirectory() {
-  const base = resolve(ROOT, 'artifacts', 'gate-logs');
+async function logDirectory(root = ROOT) {
+  const base = resolve(root, 'artifacts', 'gate-logs');
   await mkdir(base, { recursive: true });
   return mkdtemp(resolve(base, `${new Date().toISOString().replace(/[:.]/g, '-')}-`));
 }
@@ -67,10 +73,10 @@ export async function cleanupContexts(browser, timeoutMs = 10000) {
 }
 
 export function execute(command, args, env = process.env, signal,
-  { timeoutMs = 180000, logPath, deadlineScheduler = scheduleDeadline } = {}) {
+  { timeoutMs = 180000, logPath, deadlineScheduler = scheduleDeadline, cwd = ROOT } = {}) {
   return new Promise((resolveResult, reject) => {
     const fd = logPath ? openSync(logPath, 'wx') : null;
-    const child = spawn(command, args, { cwd: ROOT, env, detached: process.platform !== 'win32', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { cwd, env, detached: process.platform !== 'win32', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '', timedOut = false, aborted = false, kill = null, spawnError = null, logError = null, ended = false;
     const logFailure = error => {
       if (logError) return;
@@ -120,8 +126,9 @@ export function execute(command, args, env = process.env, signal,
 
 export async function runHarnesses(files, { freshBrowser = false, recycleEvery = 20,
   launchBrowser = options => puppeteer.launch(options), executeHarness = execute,
-  logDir, deadlineFor = harnessDeadline, cleanupTimeoutMs = 10000, onResult = async () => {} } = {}) {
-  logDir ||= await logDirectory();
+  logDir, deadlineFor = harnessDeadline, cleanupTimeoutMs = 10000, onResult = async () => {},
+  root = ROOT, origin = performance.now(), phase = (name, run) => run() } = {}) {
+  logDir ||= await logDirectory(root);
   console.log(`Full harness logs: ${logDir}`);
   let browser = null, runs = 0, launches = 0;
   const totals = { pass: 0, skip: 0, fail: 0 };
@@ -133,29 +140,30 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
   try {
     for (const [index, file] of files.entries()) {
       if (controller.signal.aborted) throw new Error('Gate interrupted');
-      const source = await readFile(resolve(ROOT, 'tools', file), 'utf8');
+      const source = await readFile(resolve(root, 'tools', file), 'utf8');
       if (!freshBrowser && source.includes("from './test-browser.mjs'") && (!browser || runs >= recycleEvery)) {
-        if (browser) await closeBrowser(browser, cleanupTimeoutMs);
-        browser = await launchBrowser({ args: ['--no-sandbox'] });
+        if (browser) await phase('browser shutdown', () => closeBrowser(browser, cleanupTimeoutMs));
+        browser = await phase('browser launch', () => launchBrowser({ args: ['--no-sandbox'] }));
         runs = 0;
         launches++;
       }
       const env = { ...process.env };
       delete env.GIQ_TEST_BROWSER_ENDPOINT;
       if (browser) env.GIQ_TEST_BROWSER_ENDPOINT = browser.wsEndpoint();
-      const started = Date.now();
-      let result;
-      try { result = await executeHarness(process.execPath, [resolve(ROOT, 'tools', file)], env, controller.signal,
-        { timeoutMs: deadlineFor(file), logPath: resolve(logDir, `${index}-${file}.log`) }); }
+      const started = performance.now();
+      let result, durationMs;
+      try { result = await executeHarness(process.execPath, [resolve(root, 'tools', file)], env, controller.signal,
+        { timeoutMs: deadlineFor(file), logPath: resolve(logDir, `${index}-${file}.log`), cwd: root }); }
       finally {
+        durationMs = performance.now() - started;
         // A crashed child may never call close(). Reclaim every non-default
         // context before the next child, rather than silently leaking state.
         if (browser) {
-          try { await cleanupContexts(browser, cleanupTimeoutMs); }
+          try { await phase('browser context cleanup', () => cleanupContexts(browser, cleanupTimeoutMs)); }
           catch (error) {
             const damaged = browser;
             browser = null;
-            await closeBrowser(damaged, cleanupTimeoutMs);
+            await phase('browser shutdown', () => closeBrowser(damaged, cleanupTimeoutMs));
             result ||= { code: 1, output: '' };
             result.code = 1;
             const diagnostic = `\nCLEANUP FAILED: ${error.message}\n`;
@@ -166,10 +174,10 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
         }
       }
       runs++;
-      const secs = Math.round((Date.now() - started) / 1000);
+      const secs = Math.round(durationMs / 1000);
       const { status, line } = classify(result.output, result.code);
       await onResult({ file, status, code: result.code, resultLine: line,
-        durationMs: Date.now() - started, deadlineMs: deadlineFor(file),
+        startedMs: started - origin, durationMs, deadlineMs: deadlineFor(file),
         timedOut: !!result.timedOut, interrupted: !!result.aborted, logError: result.logError || null,
         logPath: resolve(logDir, `${index}-${file}.log`) });
       totals[status]++;
@@ -177,14 +185,14 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
       if (secs >= 25) slow.push(`  ${secs}s  ${file}`);
       if (status === 'fail') {
         failed.push(file);
-        console.log(`       ${result.timedOut ? 'TIMEOUT; ' : ''}complete output: ${resolve(logDir, `${index}-${file}.log`)}`);
+        console.log(`       ${result.timedOut ? `TIMEOUT after ${Math.round(durationMs)}ms (${deadlineFor(file)}ms deadline); ` : ''}complete output: ${resolve(logDir, `${index}-${file}.log`)}`);
         const assertions = failureEvidence(result.output);
         if (assertions.length) console.log('       assertion failure(s):\n' + assertions.map(line => `       ${line}`).join('\n'));
         console.log(result.output.split(/\r?\n/).slice(-40).map(line => `       ${line}`).join('\n'));
       }
     }
   } finally {
-    try { if (browser) await closeBrowser(browser, cleanupTimeoutMs); }
+    try { if (browser) await phase('browser shutdown', () => closeBrowser(browser, cleanupTimeoutMs)); }
     finally { process.removeListener('SIGINT', interrupt); process.removeListener('SIGTERM', interrupt); }
   }
   if (slow.length) console.log('\n=== harnesses over 25s ===\n' + slow.join('\n'));
@@ -194,8 +202,13 @@ export async function runHarnesses(files, { freshBrowser = false, recycleEvery =
   return totals.fail ? 1 : 0;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
+export async function main(args = process.argv.slice(2), { root = ROOT, budgetMs, deadlineFor, canonicalFixture } = {}) {
+  const origin = performance.now(), startedAt = new Date().toISOString(), phases = [];
+  const phase = async (name, run) => {
+    const started = performance.now();
+    try { return await run(); }
+    finally { phases.push({ name, startedMs: started - origin, durationMs: performance.now() - started }); }
+  };
   const selfTest = args.includes('--self-test');
   if (selfTest && args.length !== 1) throw new Error('--self-test cannot be combined with other options');
   const known = new Set(['--no-build', '--fresh-browser', '--only', '--self-test']);
@@ -207,17 +220,18 @@ async function main() {
       if (!only?.length) throw new Error('--only requires comma-separated harness filenames');
     }
   }
-  let files = (await readdir(resolve(ROOT, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name)).sort();
+  let files = (await readdir(resolve(root, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name)).sort();
   if (selfTest) only = ['e2e-gate-runner.mjs'];
   if (only) {
     for (const file of only) if (!files.includes(file)) throw new Error(`Unknown harness: ${file}`);
     files = files.filter(file => only.includes(file));
   }
-  const logDir = await logDirectory();
+  const logDir = await logDirectory(root);
   const receiptPath = resolve(logDir, 'receipt.json');
-  const buildRoot = resolve(process.env.GIQ_APP_ROOT || resolve(ROOT, 'dist'));
+  const buildRoot = resolve(process.env.GIQ_APP_ROOT || resolve(root, 'dist'));
   const receipt = newReceipt({ scope: selfTest ? 'self-test' : only ? 'focused' : 'full', files,
-    source: await sourceIdentity(ROOT), fixtures: await fixtureIdentity(ROOT), buildRoot,
+    source: await phase('source fingerprint', () => sourceIdentity(root)),
+    fixtures: await phase('fixtures', () => fixtureIdentity(root, canonicalFixture)), buildRoot, startedAt, budgetMs, phases,
     environment: { node: process.version, platform: process.platform,
       appRootOverride: process.env.GIQ_APP_ROOT || null,
       realDataOptional: process.env.GIQ_REALDATA_OPTIONAL === '1',
@@ -230,35 +244,38 @@ async function main() {
       const logPath = resolve(logDir, 'build.log');
       console.log('=== BUILD ===');
       console.log(`Full build log: ${logPath}`);
-      const build = process.platform === 'win32'
-        ? await execute(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], process.env, undefined, { timeoutMs: 300000, logPath })
-        : await execute('npm', ['run', 'build'], process.env, undefined, { timeoutMs: 300000, logPath });
+      const build = await phase('build', () => process.platform === 'win32'
+        ? execute(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm run build'], process.env, undefined, { timeoutMs: 300000, logPath, cwd: root })
+        : execute('npm', ['run', 'build'], process.env, undefined, { timeoutMs: 300000, logPath, cwd: root }));
       console.log(build.output.split(/\r?\n/).slice(-3).join('\n'));
       receipt.build = { ...receipt.build, state: buildAccepted(build) ? 'pass' : 'fail',
         code: build.code, timedOut: !!build.timedOut, logError: build.logError || null,
-        log: await evidenceFile(logPath, ROOT) };
+        log: await evidenceFile(logPath, root) };
       if (!buildAccepted(build)) throw new Error(`BUILD FAILED (exit ${build.code}); refusing to gate a stale bundle.`);
     } else {
       receipt.build.state = selfTest ? 'not-required' : 'skipped';
     }
-    if (!selfTest) receipt.build.before = await buildIdentity(buildRoot);
+    if (!selfTest) receipt.build.before = await phase('build fingerprint', () => buildIdentity(buildRoot));
     await saveReceipt(receiptPath, receipt);
     console.log(only ? '=== FOCUSED HARNESS RUN (not the full gate) ===' : '=== GATE ===');
-    exitCode = await runHarnesses(files, { freshBrowser: args.includes('--fresh-browser'), logDir,
+    exitCode = await runHarnesses(files, { freshBrowser: args.includes('--fresh-browser'), logDir, root, origin, phase, deadlineFor,
       onResult: async result => {
         const { logPath, ...evidence } = result;
-        recordResult(receipt, { ...evidence, log: await evidenceFile(logPath, ROOT) });
+        recordResult(receipt, { ...evidence, log: await evidenceFile(logPath, root) });
         await saveReceipt(receiptPath, receipt);
       } });
   } catch (error) { failure = error.message; console.error(error); }
   let source = null, fixtures = null, build = null;
   try {
-    source = await sourceIdentity(ROOT);
-    fixtures = await fixtureIdentity(ROOT);
-    if (receipt.build.before) build = await buildIdentity(buildRoot);
+    source = await phase('source fingerprint', () => sourceIdentity(root));
+    fixtures = await phase('fixtures', () => fixtureIdentity(root, canonicalFixture));
+    if (receipt.build.before) build = await phase('build fingerprint', () => buildIdentity(buildRoot));
   } catch (error) { failure = [failure, error.message].filter(Boolean).join('; '); exitCode = 1; }
-  finishReceipt(receipt, { source, fixtures, build, exitCode, error: failure });
+  finishReceipt(receipt, { source, fixtures, build, exitCode, error: failure, wallMs: performance.now() - origin });
   await saveReceipt(receiptPath, receipt);
+  console.log(`Wall time: ${(receipt.timing.wallMs / 1000).toFixed(3)}s; setup: ${(receipt.timing.setupMs / 1000).toFixed(3)}s; harnesses: ${(receipt.timing.harnessMs / 1000).toFixed(3)}s; other: ${(receipt.timing.otherMs / 1000).toFixed(3)}s`);
+  if (receipt.timing.overBudget) console.log(`BUDGET EXCEEDED (${receipt.timing.budgetMs}ms); slowest harnesses:\n` +
+    receipt.timing.slowestHarnesses.map(result => `  ${Math.round(result.durationMs)}ms  ${result.file}`).join('\n'));
   console.log(`Receipt: ${receipt.outcome}; release evidence eligible: ${receipt.releaseEligible}; installed approval: not assessed`);
   return receipt.outcome === 'fail' ? 1 : exitCode;
 }

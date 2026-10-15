@@ -340,9 +340,8 @@ a reviewed correction named in the diff.
   still runs and its result is recorded.
   Never meet a budget by skipping checks or weakening assertions, and never
   raise a deadline merely to hide a slowdown; a genuine scope change gets a
-  reviewed deadline change. `tools/run-gate.mjs` enforces per-harness deadlines today; the full
-  gate budget and its timing split are not enforced until that runner change
-  lands.
+  reviewed deadline change. `tools/run-gate.mjs` enforces both; focused
+  `--only` runs report timing without the full-gate budget.
 - **Audit before structural reduction.** Large reductions (the Reports
   rebuild, storage consolidation) start from an audit of what each module
   does. Done means every listed job has moved to its new owner and the old

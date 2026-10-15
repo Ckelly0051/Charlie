@@ -27,8 +27,25 @@ function ready(scope = 'full') {
 }
 const finish = (receipt, changes = {}) => finishReceipt(receipt, { source: { ...source }, fixtures: structuredClone(fixtures), build: structuredClone(build), exitCode: 0, ...changes });
 
+await check('an over-budget full receipt fails even when every harness passed', () => {
+  const receipt = ready();
+  receipt.timing = { budgetMs: 10, phases: [] };
+  finish(receipt, { wallMs: 11 });
+  assert.equal(receipt.outcome, 'fail'); assert.equal(receipt.releaseEligible, false);
+  assert.equal(receipt.timing.overBudget, true);
+  assert(receipt.reasons.some(reason => /budget/i.test(reason)));
+});
+await check('focused timing is reported without enforcing the full budget', () => {
+  const receipt = ready('focused');
+  receipt.timing = { budgetMs: 10, phases: [] };
+  finish(receipt, { wallMs: 11 });
+  assert.equal(receipt.outcome, 'pass'); assert.equal(receipt.timing.wallMs, 11);
+  assert.equal(receipt.timing.overBudget, false); assert.equal(receipt.releaseEligible, false);
+});
+
 await check('complete clean full gate is eligible, never installed approval', () => {
   const receipt = finish(ready());
+  assert.equal(receipt.timing.budgetMs, 360000);
   assert.equal(receipt.outcome, 'pass'); assert.equal(receipt.releaseEligible, true);
   assert.equal(receipt.installedApproval, 'not-assessed'); assert(receipt.finishedAt);
 });

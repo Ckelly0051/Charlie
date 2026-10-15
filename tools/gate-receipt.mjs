@@ -8,6 +8,7 @@ import { CANONICAL_SEASON, CANONICAL_SEASON_ID } from './canonical-season.mjs';
 const git = promisify(execFile);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const digest = value => hash(JSON.stringify(value));
+export const FULL_GATE_BUDGET_MS = 360000;
 
 async function fileIdentity(path, name) {
   try {
@@ -55,8 +56,8 @@ export async function sourceIdentity(root) {
   return { commit, dirty: status.length > 0, sha256: digest(files) };
 }
 
-export async function fixtureIdentity(root) {
-  const fixtures = [{ ...await fileIdentity(CANONICAL_SEASON, CANONICAL_SEASON), id: CANONICAL_SEASON_ID }];
+export async function fixtureIdentity(root, canonical = { path: CANONICAL_SEASON, id: CANONICAL_SEASON_ID }) {
+  const fixtures = [{ ...await fileIdentity(canonical.path, canonical.path), id: canonical.id }];
   for (const name of ['synthetic-edge.json', 'mavericks-6game.json']) {
     fixtures.push(await fileIdentity(resolve(root, 'tools/parity-golden', name), `tools/parity-golden/${name}`));
   }
@@ -72,12 +73,15 @@ export async function evidenceFile(path, root) {
   return result;
 }
 
-export function newReceipt({ scope, files, source, fixtures, buildRoot, environment = {} }) {
+export function newReceipt({ scope, files, source, fixtures, buildRoot, environment = {},
+  startedAt = new Date().toISOString(), budgetMs = FULL_GATE_BUDGET_MS, phases = [] }) {
   if (!files.length || new Set(files).size !== files.length) throw new Error('Receipt requires a unique nonempty harness plan');
-  return { schemaVersion: 1, startedAt: new Date().toISOString(), finishedAt: null,
+  if (!Number.isFinite(budgetMs) || budgetMs <= 0) throw new Error('Gate budget must be positive');
+  return { schemaVersion: 1, startedAt, finishedAt: null,
     scope, state: 'running', outcome: 'incomplete', installedApproval: 'not-assessed',
     releaseEligible: false, reasons: ['Run has not completed'], source: { before: source, after: null },
     fixtures: { before: fixtures, after: null }, build: { root: buildRoot, state: 'not-run', before: null, after: null },
+    timing: { budgetMs: scope === 'full' ? budgetMs : null, wallMs: null, phases },
     environment, errors: [], results: files.map(file => ({ file, status: 'not-run' })) };
 }
 
@@ -88,13 +92,22 @@ export function recordResult(receipt, result) {
   receipt.results[index] = result;
 }
 
-export function finishReceipt(receipt, { source, fixtures, build, exitCode, error = null }) {
+export function finishReceipt(receipt, { source, fixtures, build, exitCode, error = null, wallMs }) {
   receipt.finishedAt = new Date().toISOString();
+  const timing = receipt.timing;
+  timing.wallMs = wallMs ?? Date.parse(receipt.finishedAt) - Date.parse(receipt.startedAt);
+  timing.harnessMs = receipt.results.reduce((sum, result) => sum + (result.durationMs || 0), 0);
+  timing.setupMs = timing.phases.reduce((sum, phase) => sum + phase.durationMs, 0);
+  timing.otherMs = Math.max(0, timing.wallMs - timing.harnessMs - timing.setupMs);
+  timing.overBudget = receipt.scope === 'full' && timing.wallMs > timing.budgetMs;
+  timing.slowestHarnesses = receipt.results.filter(result => result.durationMs !== undefined)
+    .map(({ file, durationMs }) => ({ file, durationMs })).sort((a, b) => b.durationMs - a.durationMs).slice(0, 10);
   receipt.source.after = source;
   receipt.fixtures.after = fixtures;
   receipt.build.after = build;
   if (error) receipt.errors.push(error);
   const reasons = [];
+  if (timing.overBudget) reasons.push(`Full gate exceeded ${timing.budgetMs}ms wall-time budget (${Math.round(timing.wallMs)}ms)`);
   const stable = (a, b) => !!a && !!b && a.sha256 === b.sha256;
   if (!stable(receipt.source.before, source) || receipt.source.before.commit !== source?.commit) reasons.push('Source changed during run');
   if (!stable(receipt.fixtures.before, fixtures)) reasons.push('Fixture identities changed during run');

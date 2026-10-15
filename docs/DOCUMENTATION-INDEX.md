@@ -9,6 +9,8 @@ Updated 2026-10-15.
 - `GRIDIRON-IQ-PLAN-V2.md` - forward roadmap.
 - `docs/OPEN-DEFECTS.md` - open defects, pending smoke items, coach decisions.
 - `docs/TESTING.md` - testing tiers and execution rules.
+- `docs/GATE-RUNTIME-AUDIT-2026-10-15.md` - historical timing evidence,
+  slow-suite responsibilities and overlap inventory for the next test audit.
 - `docs/CLEANUP-REPORT-2026-10-15.md` - completed non-Reports cleanup, benefits,
   coverage accounting and Claude review handoff.
 - `docs/REPORTS-CONTRACTS.md`, `docs/HOME-CONTRACTS.md` - Reports and Home rules.
@@ -154,6 +156,12 @@ log.
 - **Latest full gate:** 166/166 green at `a5238591` (2026-10-14), zero
   skipped or failed; `releaseEligible: true`. Receipt:
   `artifacts/gate-logs/2026-10-14T19-46-40-309Z-96k7d5/receipt.json`.
+  This predates cleanup and runtime-budget enforcement. The runner now
+  enforces six minutes for full runs, records disjoint setup/harness timing,
+  and finishes every result before reporting a budget failure. Individual
+  deadlines still stop hung processes. Only scratch synthetic full runs have
+  exercised the new budget; current real full-gate time remains unmeasured.
+  Focused runs report timing without enforcing the full budget.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned

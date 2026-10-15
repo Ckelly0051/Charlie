@@ -4,12 +4,12 @@ import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import puppeteer from 'puppeteer';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm, rmdir, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, mkdir, readdir, rm, rmdir, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import fs, { readFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 import testBrowser, { canShare, waitForApp } from './test-browser.mjs';
-import { classify, execute, cleanupContexts, closeBrowser, failureEvidence, buildAccepted, runHarnesses, harnessDeadline } from './run-gate.mjs';
+import { classify, execute, cleanupContexts, closeBrowser, failureEvidence, buildAccepted, runHarnesses, harnessDeadline, main } from './run-gate.mjs';
 
 // Only the termination probes defer their deadline until they are running.
 // Ordinary gate children still receive a wall-clock deadline from spawn.
@@ -126,6 +126,72 @@ export async function runTests() {
   check('ordinary browser journeys have a three-minute execution budget', () => assert.equal(harnessDeadline('e2e-native-reports.mjs'), 180000));
   const scratch = await mkdtemp(resolve(tmpdir(), 'giq-gate-deadlines-'));
   try {
+    const root = resolve(scratch, 'synthetic-gate');
+    await mkdir(resolve(root, 'tools', 'fixtures'), { recursive: true });
+    await mkdir(resolve(root, 'tools', 'parity-golden'));
+    await writeFile(resolve(root, '.gitignore'), '/dist/\n/artifacts/\n/first-pid\n');
+    await writeFile(resolve(root, 'package.json'), JSON.stringify({ scripts: { build: 'node build.mjs' } }));
+    await writeFile(resolve(root, 'build.mjs'), "import{mkdirSync,writeFileSync}from'node:fs';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','<title>Synthetic gate</title>');");
+    for (const file of ['synthetic-edge.json', 'mavericks-6game.json']) {
+      await writeFile(resolve(root, 'tools', 'parity-golden', file), '{}');
+    }
+    await writeFile(resolve(root, 'tools', 'fixtures', 'synthetic.json'), '{}');
+    await writeFile(resolve(root, 'tools', 'e2e-a.mjs'), `
+      import {writeFileSync} from 'node:fs';
+      writeFileSync('first-pid', String(process.pid));
+      if (process.env.GIQ_GATE_SYNTHETIC_HANG === '1') { console.log('HUNG_READY'); setInterval(() => {}, 1000); }
+      else { await new Promise(resolve => setTimeout(resolve, 30)); console.log('== RESULT: 1 passed, 0 failed =='); }
+    `);
+    await writeFile(resolve(root, 'tools', 'e2e-b.mjs'), "console.log('TAIL_EXECUTED');console.log('== RESULT: 1 passed, 0 failed ==');");
+    for (const args of [['init', '-q'], ['add', '--', '.gitignore', 'package.json', 'build.mjs', 'tools'],
+      ['-c', 'user.name=Gate Test', '-c', 'user.email=gate@example.invalid', 'commit', '-qm', 'synthetic fixture']]) {
+      const git = await execute('git', args, process.env, undefined, { cwd: root });
+      assert.equal(git.code, 0, git.output);
+    }
+    for (const mode of ['control', 'over', 'focused', 'hang']) {
+      const env = { ...process.env, GIQ_GATE_SYNTHETIC_HANG: mode === 'hang' ? '1' : '' };
+      delete env.GIQ_APP_ROOT; delete env.GIQ_REALDATA_OPTIONAL;
+      const child = await execute(process.execPath, ['tools/e2e-gate-runner.mjs', '--budget-probe', root,
+        ['over', 'focused'].includes(mode) ? '1' : '60000', mode], env, undefined, { timeoutMs: 30000 });
+      const dirs = (await readdir(resolve(root, 'artifacts', 'gate-logs'))).sort();
+      const runDir = resolve(root, 'artifacts', 'gate-logs', dirs.at(-1));
+      const receipt = JSON.parse(await readFile(resolve(runDir, 'receipt.json'), 'utf8'));
+      check(`synthetic ${mode} run preserves the actual process exit and receipt verdict`, () => {
+        const red = ['over', 'hang'].includes(mode);
+        assert.equal(child.code, red ? 1 : 0, child.output);
+        assert.equal(receipt.outcome, red ? 'fail' : 'pass');
+        assert.equal(receipt.releaseEligible, mode === 'control');
+        assert.equal(receipt.results.length, 2);
+        assert(receipt.results.every(result => result.status !== 'not-run'));
+        assert.equal(receipt.fixtures.before.files[0].path, resolve(root, 'tools', 'fixtures', 'synthetic.json'));
+      });
+      check(`synthetic ${mode} run records non-overlapping setup and harness intervals`, () => {
+        const t = receipt.timing;
+        assert(t.wallMs > 0 && t.phases.some(p => p.name === 'build') && t.phases.some(p => p.name === 'fixtures'));
+        const intervals = [...t.phases, ...receipt.results].sort((a, b) => a.startedMs - b.startedMs);
+        for (let i = 0; i < intervals.length; i++) {
+          const end = intervals[i].startedMs + intervals[i].durationMs;
+          assert(end <= t.wallMs);
+          if (i + 1 < intervals.length) assert(end <= intervals[i + 1].startedMs);
+        }
+        assert(Math.abs(t.wallMs - t.setupMs - t.harnessMs - t.otherMs) < 0.01);
+      });
+      if (mode === 'over') check('a harness scheduled after budget expiry still runs and is durably recorded', () => {
+        assert(receipt.results[1].startedMs > receipt.timing.budgetMs);
+        assert.equal(receipt.results[1].status, 'pass');
+        assert(readFileSync(resolve(root, receipt.results[1].log.path), 'utf8').includes('TAIL_EXECUTED'));
+        assert(receipt.timing.overBudget && child.output.includes('BUDGET EXCEEDED'));
+        assert.equal(receipt.timing.slowestHarnesses.length, 2);
+      });
+      if (mode === 'hang') check('the real runner stops a hung harness, records elapsed time and runs its successor', () => {
+        const result = receipt.results[0];
+        assert(result.timedOut && result.status === 'fail' && result.durationMs >= result.deadlineMs);
+        assert(readFileSync(resolve(root, result.log.path), 'utf8').includes('HUNG_READY'));
+        assert.equal(receipt.results[1].status, 'pass');
+        const pid = Number(readFileSync(resolve(root, 'first-pid'), 'utf8'));
+        assert.throws(() => process.kill(pid, 0), /ESRCH/);
+      });
+    }
     const logPath = resolve(scratch, 'failure.log');
     const logged = await execute(process.execPath, ['-e', 'console.log("FIRST");console.error("stderr evidence");console.log("tail\\n".repeat(80));process.exit(7)'], process.env, undefined, { logPath });
     const saved = await readFile(logPath, 'utf8');
@@ -167,9 +233,10 @@ export async function runTests() {
 
   const launched = [], endpoints = [];
   let calls = 0, cleaned = 0;
-  const deadlines = [], recorded = [];
+  const deadlines = [], recorded = [], setupPhases = [];
   const exit = await runHarnesses(Array(3).fill('e2e-native-reports.mjs'), {
     onResult: async result => recorded.push(result),
+    phase: async (name, run) => { setupPhases.push(name); return run(); },
     recycleEvery: 2,
     launchBrowser: async () => {
       const defaultContext = {};
@@ -196,6 +263,11 @@ export async function runTests() {
     ['test-endpoint-0', 'test-endpoint-0', 'test-endpoint-1']));
   check('runner cleans orphan contexts after green and red children', () => assert.equal(cleaned, 3));
   check('runner closes recycled and final Chromium instances', () => assert(launched.every(browser => browser.closed)));
+  check('shared browser launch, shutdown and cleanup are recorded separately from harness execution', () => {
+    for (const [name, count] of [['browser launch', 2], ['browser shutdown', 2], ['browser context cleanup', 3]]) {
+      assert.equal(setupPhases.filter(phase => phase === name).length, count);
+    }
+  });
   check('runner passes deadlines and distinct log paths to every child', () => assert(deadlines.every(item => item.timeoutMs === 180000) && new Set(deadlines.map(item => item.logPath)).size === 3));
   check('receipt callback receives classified outcomes including a timeout after a green line', () => {
     assert.deepEqual(recorded.map(result => result.status), ['pass', 'fail', 'pass']);
@@ -308,6 +380,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       spawn(process.execPath, ['-e', 'const fs=require("node:fs");setInterval(()=>fs.appendFileSync(process.argv[1],"tick\\n"),30)', process.argv[3]], { stdio: 'ignore', windowsHide: true });
       console.log('== RESULT: 1 passed, 0 failed ==');
       setInterval(() => {}, 1000);
+    } else if (process.argv[2] === '--budget-probe') {
+      const mode = process.argv[5];
+      process.exitCode = await main(mode === 'focused' ? ['--only', 'e2e-a.mjs,e2e-b.mjs'] : [], {
+        root: process.argv[3], budgetMs: Number(process.argv[4]),
+        canonicalFixture: { path: resolve(process.argv[3], 'tools', 'fixtures', 'synthetic.json'), id: 'synthetic' },
+        deadlineFor: mode === 'hang' ? () => 1500 : harnessDeadline,
+      });
     } else if (process.argv[2] === '--log-probe') await logProbe(process.argv[3], process.argv[4]);
     else process.exitCode = process.argv[2] === '--probe' ? await probe(process.argv[3]) : await runTests();
   }
