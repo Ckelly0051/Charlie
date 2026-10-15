@@ -655,11 +655,19 @@ result = await page.evaluate(async () => {
   const pane = document.querySelector('[data-pane="defense"]');
   const seasonActive = scopeButton('season')?.classList.contains('active') === true;
   // Each of the four sections is its own page; read every heading in page order.
-  const headings = [];
+  const headings = [], retiredSelfScout = [];
   for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
     document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
     await frame();
     headings.push(...[...pane.querySelectorAll('[data-def2-section] h2')].map(node => node.textContent.trim()));
+    retiredSelfScout.push({
+      page: id, native: !!pane.querySelector('.gi-def2'),
+      legacy: pane.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length,
+      summaries: [...pane.querySelectorAll('.gi-overview-module > header span')]
+        .filter(node => /defensive snaps/i.test(node.textContent)).length,
+      tells: pane.querySelectorAll('.ss-tells tbody tr').length,
+      recommendations: pane.querySelectorAll('.gi-def-recs > .ss-rec').length,
+    });
   }
   // Production by play type lives on the Opponent offense page.
   document.querySelector('[data-reports-secbar] [data-section="opponent"]')?.click();
@@ -711,7 +719,7 @@ result = await page.evaluate(async () => {
     gameByDefault, seasonActive, gameActive, before, after, typeRowsBefore, heldTypeRows, typeModuleHeight, typeSnaps, expectedTypes,
     watchedRunInside, answerHeaderPosition, answerHeadPosition, answerRowsClearHeader,
     // Revision 2's four sections, one per page, read in page order.
-    headings,
+    headings, retiredSelfScout,
     // The fixture's third game is opponent-scout with real defensive-shaped
     // plays; a broken _defenseCohort filter would both inflate the season
     // total past 4 and add "Scout Game" to byGame.
@@ -751,111 +759,34 @@ ok(result.typeRowsBefore.length > 0
 ok(result.answerHeaderPosition === 'static' && result.answerHeadPosition === 'sticky' && result.answerRowsClearHeader,
   'Defense table headers stick inside their own module and never cover the first row at rest', JSON.stringify(result));
 
-console.log('\n== 2c. Defense does not revive the rejected duplicate Self-Scout ==');
-// Both sections used to be a `LegacyWidget` embed of a StatsEngine HTML
-// string, wired by the (now-deleted) `wireGenericCutRows` post-render DOM
-// pass. This proves the replacement: no LegacyWidget/dangerouslySetInnerHTML
-// residue anywhere in the pane (no `data-cut-type` attribute exists -- that
-// was that convention's own marker), every row is a real onClick, a
-// cross-game Defensive Self-Scout tell opens its exact composite cohort
-// (including a bare id reused across games), and the front/coverage names
-// carrying a literal "&" prove the label/tellVal fields are not
-// double-escaped now that they flow through both an HTML-string renderer
-// (Self-Scout tab, Season report) AND this native JSX renderer.
-result = await page.evaluate(async () => {
-  const app = window.app;
-  const originalGames = app.storage.seasonStore.data.games;
-  const originalActiveGameId = app.storage.seasonStore.data.activeGameId;
-  const play = (id, tags) => ({ id, timestamp: { start: id * 4, end: id * 4 + 3 }, tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } });
-  // "Bear & Stack" front spans both games, 5 total snaps -- enough (>=4) to
-  // trigger a defensive self-scout tell, and its own literal "&" exercises
-  // the escaping fix directly. 4 of 5 run Cover 1 (80% >= 70%), so the
-  // byFront grouping tells a Coverage lean; the same 4 Cover-1 snaps share
-  // one front 100% of the time, so the byCov grouping independently tells a
-  // Front lean -- two real, differently-scoped tells from one fixture.
-  app.storage.seasonStore.data.games = [
-    {
-      id: 'a', name: 'Week 1', nextId: 4, gameInfo: { opponent: 'Wildcats', perspective: 'self' },
-      plays: [
-        play(1, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '1', distance: '10', yardage: '6', result: 'Gain' }),
-        play(2, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '2', distance: '8', yardage: '5', result: 'Gain' }),
-        play(3, { defFront: 'Bear & Stack', coverage: 'Cover 3', down: '1', distance: '10', yardage: '7', result: 'Gain' }),
-      ],
-    },
-    {
-      id: 'b', name: 'Week 2', nextId: 4, gameInfo: { opponent: 'Knights', perspective: 'self' },
-      plays: [
-        // Bare id 1 deliberately reused across games -- the same composite-
-        // ref proof section 2b already established, exercised again here for
-        // the Self-Scout tells specifically, not just Scheme Detail.
-        play(1, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '1', distance: '10', yardage: '6', result: 'Gain' }),
-        play(2, { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '3', distance: '4', yardage: '5', result: 'Gain' }),
-        // Padding: pushes the scheme-tagged total to 6 (generateDefensiveSelfScout's
-        // own >=6 gate) without joining the "Bear & Stack" group (n=1, below
-        // the tell minimum of 4) or its Cover 1 group (different coverage).
-        play(3, { defFront: '4-3', coverage: 'Cover 2', down: '2', distance: '6', yardage: '2', result: 'Gain' }),
-      ],
-    },
+// Self-Scout's live tell generation belongs to e2e-reports-self-scout. Defense
+// only owns its absence, checked during the same four-page journey above.
+ok(result.retiredSelfScout.length === 4 && result.retiredSelfScout.every(row => row.native && row.legacy === 0),
+  'Every Defense page remains native with no retired Self-Scout markers', JSON.stringify(result.retiredSelfScout));
+ok(result.retiredSelfScout.every(row => row.summaries === 0 && row.tells === 0),
+  'Defense renders no predictability summary or tendency-tell table', JSON.stringify(result.retiredSelfScout));
+ok(result.retiredSelfScout.every(row => row.recommendations === 0),
+  'Defense renders no generated recommendation prose', JSON.stringify(result.retiredSelfScout));
+
+// Keep the original six-play positive control: general Self-Scout liveness
+// does not prove this front grouping still produces its cross-dimension tell.
+const frontTellFound = await page.evaluate(() => {
+  const play = (id, gid, tags) => ({ id, __gid: gid,
+    timestamp: { start: id * 4, end: id * 4 + 3 },
+    tags: { unit: 'defense', custom: [], players: {}, grades: {}, ...tags } });
+  const plays = [
+    play(1, 'a', { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '1', distance: '10', yardage: '6', result: 'Gain' }),
+    play(2, 'a', { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '2', distance: '8', yardage: '5', result: 'Gain' }),
+    play(3, 'a', { defFront: 'Bear & Stack', coverage: 'Cover 3', down: '1', distance: '10', yardage: '7', result: 'Gain' }),
+    play(1, 'b', { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '1', distance: '10', yardage: '6', result: 'Gain' }),
+    play(2, 'b', { defFront: 'Bear & Stack', coverage: 'Cover 1', down: '3', distance: '4', yardage: '5', result: 'Gain' }),
+    play(3, 'b', { defFront: '4-3', coverage: 'Cover 2', down: '2', distance: '6', yardage: '2', result: 'Gain' }),
   ];
-  app.storage.seasonStore.data.activeGameId = 'a';
-  await app.storage._loadActiveGame();
-  app.reportsScreen.defenseScope = 'season';
-  app.reportsScreen.show();
-  app.reportsScreen.selectTab('defense');
-  const { scoped } = app.reportsScreen._defenseCohort();
-  const defScout = app.stats.generateDefensiveSelfScout(scoped);
-  const pane = document.querySelector('[data-pane="defense"]');
-  const frontTell = defScout.tells.find(t => t.dim === 'vs Front' && t.label === 'Bear & Stack');
-  // The board is four pages now; every absence below is read on all four, so
-  // no page can hide a revived Self-Scout module from this check.
-  let noLegacyMarkers = true, section = null, summaryText = '', frontTellRow = null, watchedFrontTell = null;
-  const recDivs = [], tellRowEls = [];
-  let watched = null;
-  const originalWatch = app.filmNavigation.watch;
-  app.filmNavigation.watch = refs => { watched = refs; return true; };
-  for (const id of ['performance', 'opponent', 'scheme', 'situations']) {
-    document.querySelector(`[data-reports-secbar] [data-section="${id}"]`)?.click();
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-    noLegacyMarkers = noLegacyMarkers && pane?.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length === 0;
-    section = pane?.querySelector('.gi-def2') || section;
-    summaryText ||= [...(pane?.querySelectorAll('.gi-overview-module > header span') || [])]
-      .map(el => el.textContent).find(txt => /defensive snaps/i.test(txt)) || '';
-    recDivs.push(...[...(pane?.querySelectorAll('.gi-def-recs > .ss-rec') || [])].map(el => el.textContent));
-    const rows = [...(pane?.querySelectorAll('.ss-tells tbody tr') || [])];
-    tellRowEls.push(...rows);
-    const row = rows.find(r => r.cells[0]?.textContent.trim() === 'Bear & Stack' && r.cells[1]?.textContent.trim() === 'vs Front');
-    if (row) { frontTellRow = row; row.click(); watchedFrontTell = watched; }
-  }
-  document.querySelector('[data-reports-secbar] [data-section="performance"]')?.click();
-  app.filmNavigation.watch = originalWatch;
-  app.storage.seasonStore.data.games = originalGames;
-  app.storage.seasonStore.data.activeGameId = originalActiveGameId;
-  await app.storage._loadActiveGame();
-  return {
-    noLegacyMarkers,
-    hasSection: !!section,
-    summaryText,
-    tellCount: defScout.tells.length,
-    tellRowCount: tellRowEls.length,
-    recCount: defScout.recommendations.length,
-    recDivCount: recDivs.length,
-    recTextHasAmp: recDivs.some(text => text.includes('Bear & Stack')),
-    recTextDoubleEscaped: recDivs.some(text => text.includes('&amp;')),
-    frontTellFound: !!frontTell,
-    frontTellRowFound: !!frontTellRow,
-    frontTellRefs: frontTell?.refs,
-    watchedFrontTell,
-  };
+  return window.app.stats.generateDefensiveSelfScout(plays).tells
+    .some(tell => tell.dim === 'vs Front' && tell.label === 'Bear & Stack');
 });
-ok(result.noLegacyMarkers && result.hasSection,
-  'Defense remains fully native after removing its duplicate Self-Scout section', JSON.stringify(result));
-ok(result.summaryText === '' && result.tellRowCount === 0,
-  'Defense renders no predictability summary or tendency-tell table', JSON.stringify(result));
-ok(result.recDivCount === 0 && !result.recTextHasAmp && !result.recTextDoubleEscaped,
-  'Defense renders no generated recommendation prose', JSON.stringify(result));
-ok(result.frontTellFound && !result.frontTellRowFound && result.watchedFrontTell == null,
-  'Defensive tendency data remains available to the canonical Self-Scout report but is not duplicated in Defense',
-  JSON.stringify(result));
+ok(frontTellFound, 'The six-play Bear & Stack fixture still generates its defensive front tell');
+
 
 console.log('\n== 2d. Special Teams is season-wide, dense, film-exact, and not LegacyWidget ==');
 // Mirrors 2b/2c's fixture-and-cohort shape for the Special Teams tab: a real
@@ -937,11 +868,6 @@ result = await page.evaluate(async () => {
   const pane = document.querySelector('[data-pane="special"]');
   const noLegacyMarkers = pane?.querySelectorAll('[data-cut-type], [data-cut-val], [data-defense-refs]').length === 0;
   const seasonActive = document.querySelector('[data-reports-secbar] [data-st-scope].active')?.textContent.trim() === 'Full season';
-  // Captured now, before the Current-game click below re-renders the pane --
-  // avoids any doubt about reading a post-unmount/detached reference.
-  const kpiCards = [...(pane?.querySelectorAll('.gi-overview-kpi') || [])].map(node => ({
-    label: node.querySelector('span')?.textContent.trim(), value: node.querySelector('strong')?.textContent.trim(),
-  }));
 
   let watched = null;
   const originalWatch = app.filmNavigation.watch;
@@ -1257,6 +1183,8 @@ result = await page.evaluate(async () => {
   window.__exportCapture = (blob, name) => pending.push(blob.text().then(html => captures.push({ name, html })));
   app.reportsScreen.show();
   app.reportsScreen.selectTab('defense');
+  document.querySelector('[data-reports-secbar] [data-defense-scope="season"]')?.click();
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   // Each report's own export sits at the right of the shared secondary bar.
   document.querySelector('[data-reports-secbar] [data-report-export="defense"]')?.click();
   app.reportsScreen.selectTab('selfscout');

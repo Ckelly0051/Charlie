@@ -32,6 +32,7 @@
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
+import { clippedTableText } from './report-test.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { StatsEngine } from '../js/stats-engine.js';
 import { overviewKpis } from '../js/reports-view.js';
@@ -427,16 +428,9 @@ const board = () => page.evaluate(() => {
     sub: n.querySelector('small')?.textContent.trim(),
   }));
   const boardEl = pane?.querySelector('.gi-overview-board');
-  const rect = boardEl?.getBoundingClientRect();
-  const cs = sel => { const el = pane?.querySelector(sel); return el ? getComputedStyle(el) : null; };
-  const kpiValue = cs('.gi-overview-kpi.is-gold > strong');
-  const modulePanel = cs('.gi-overview-module');
-  const rushRows = [...(byTitle('Rushing')?.querySelectorAll('.gi-overview-rows > div') || [])]
-    .map(d => d.getBoundingClientRect().top);
   return {
     hasPane: !!pane,
     hasBoard: !!boardEl,
-    boardRect: rect ? { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height) } : null,
     sections: modules.map(title),
     metas: Object.fromEntries(modules.map(m => [title(m), m.querySelector('header > span')?.textContent.trim() || ''])),
     kpis: tiles('.gi-overview-kpi'),
@@ -452,7 +446,6 @@ const board = () => page.evaluate(() => {
     bigPlays: tableRows('Top 10 Plays'),
     driveChips: [...(byTitle('Offensive Drives')?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
     defDriveChips: [...(byTitle('Defensive Drives')?.querySelectorAll('.gi-overview-drive') || [])].map(n => n.innerText.replace(/\n/g, '|')),
-    planItems: [...(pane?.querySelectorAll('.gi-overview-plan p') || [])].map(n => n.textContent.trim()),
     absentRows: [...(pane?.querySelectorAll('.is-absent') || [])].map(n => ({
       text: n.textContent.trim(),
       interactive: !!(n.getAttribute('role') || n.getAttribute('tabindex') || n.className.includes('cut-row')),
@@ -461,19 +454,12 @@ const board = () => page.evaluate(() => {
     columns: Object.fromEntries(Object.keys({ 'Snaps by phase': 0, 'Yards by type': 0, 'Down & distance': 0, 'Top 10 Plays': 0 })
       .map(k => [k, cols(k)])),
     text: (pane?.innerText || ''),
-    textOutsidePlan: modules.filter(m => title(m) !== 'Game plan').map(m => m.innerText || '').join('\n')
-      + '\n' + [...(pane?.querySelectorAll('.gi-overview-kpi') || [])].map(n => n.innerText).join('\n'),
     foreign: ['.gi-offense-board', '.gi-selfscout-board', '.gi-matchup-board', '.gi-season-board',
       '.gi-player-module', '.gi-st-board', '.gi-def-board'].filter(sel => !!pane?.querySelector(sel)),
     activeTab: document.querySelector('.gi-reports-tab.active')?.getAttribute('data-report-tab'),
     activeTabText: document.querySelector('.gi-reports-tab.active')?.textContent.trim(),
     screenTab: window.app.reportsScreen.activeTab,
     paneAttr: document.querySelector('[data-native-main-report]')?.getAttribute('data-pane'),
-    type: {
-      goldValue: kpiValue ? { family: kpiValue.fontFamily, size: kpiValue.fontSize, color: kpiValue.color } : null,
-      panelBg: modulePanel ? modulePanel.backgroundColor : null,
-      rushPitch: rushRows.length > 2 ? Math.round((rushRows[rushRows.length - 1] - rushRows[0]) / (rushRows.length - 1)) : 0,
-    },
   };
 });
 
@@ -765,39 +751,7 @@ const analyse = (dataUri, rect) => page.evaluate(async (uri, r) => {
     if (on && start === null) start = y;
     if (!on && start !== null) { if (y - start >= 20) bands.push(y - start); start = null; }
   }
-  /* ROW PITCH, measured inside ONE module column. A row separator is a 1-2px
-     line spanning that module's width; a text line never does. Band gaps span
-     it too, but they are thicker than 2px, so the run-length cap drops them.
-     The modal spacing between separators is the module's row pitch — the
-     measurement a band-gap scan cannot see, and the one a padding or type-size
-     change moves. */
-  const stripW = Math.floor(w / 3);
-  const ruleYs = [];
-  let runStart = null;
-  for (let y = 0; y <= h; y++) {
-    let off = 0;
-    if (y < h) {
-      for (let x = 8; x < stripW - 8; x++) {
-        const i = (y * w + x) * 4;
-        if (`${d[i]},${d[i + 1]},${d[i + 2]}` !== panel) off++;
-      }
-    }
-    const isRule = y < h && off / Math.max(1, stripW - 16) >= 0.7;
-    if (isRule && runStart === null) runStart = y;
-    if (!isRule && runStart !== null) { if (y - runStart <= 2) ruleYs.push(runStart); runStart = null; }
-  }
-  const gaps = ruleYs.slice(1).map((y, i) => y - ruleYs[i]).filter(g => g >= 10 && g <= 60);
-  const tally = new Map();
-  for (const g of gaps) {
-    const k = [...tally.keys()].find(v => Math.abs(v - g) <= 1) ?? g;
-    tally.set(k, (tally.get(k) || 0) + 1);
-  }
-  /* EVERY recurring pitch in the strip, not just the commonest — the modules
-     stacked in one column use different row heights (a RowList row and a table
-     row are not the same), and a change to any one of them must show. */
-  const ranked = [...tally.entries()].filter(([, n]) => n >= 2)
-    .sort((a, b) => a[0] - b[0]).map(([g]) => g);
-  return { w, h, palette, panel, goldPct: +(goldPixels / total * 100).toFixed(3), bands, pitches: ranked, ruleCount: ruleYs.length };
+  return { w, h, palette, goldPct: +(goldPixels / total * 100).toFixed(3), bands };
 }, dataUri, rect);
 
 const uriFor = buf => `data:image/png;base64,${buf.toString('base64')}`;
@@ -835,7 +789,7 @@ const detectBoard = dataUri => page.evaluate(async uri => {
   return null;
 }, dataUri);
 const canonName = key => `${key}-overview.png`;
-const geometry = [], palettes = [];
+const geometry = [];
 for (const [width, height] of VIEWPORTS) {
   const key = `${width}x${height}`;
   await page.setViewport({ width, height });
@@ -882,7 +836,6 @@ for (const [width, height] of VIEWPORTS) {
   const canonTop = canon.palette.slice(0, 3).map(p => p.c);
   const prodAll = prod.palette.map(p => p.c);
   const missing = canonTop.filter(c => !prodAll.includes(c));
-  palettes.push({ key, canonTop, prodTop: prod.palette.slice(0, 3).map(p => p.c), missing });
   ok(missing.length === 0, `${key}: the board paints the approved surface colours`,
     JSON.stringify({ canonical: canonTop, production: prodAll.slice(0, 5) }));
   /* Gold accent: present in both, at a comparable share. */
@@ -976,9 +929,7 @@ const density = await page.evaluate(() => {
     .slice(0, 7).map(d => d.getBoundingClientRect().top);
   return {
     rowPitch: rows.length > 2 ? +((rows[rows.length - 1] - rows[0]) / (rows.length - 1)).toFixed(1) : null,
-    rowHeight: h('.gi-overview-rows > div'),
     kpiBand: h('.gi-overview-kpis'),
-    moduleHeader: h('.gi-overview-module > header'),
     tileRow: h('.gi-overview-tiles > *'),
     type: {
       kpiValue: font('.gi-overview-kpi > strong'),
@@ -1048,19 +999,11 @@ for (const [width, height] of VIEWPORTS) {
   const measured = await page.evaluate(() => {
     const doc = document.documentElement;
     const pane = document.querySelector('[data-pane="overview"]');
-    const clips = [];
-    pane?.querySelectorAll('.gi-overview-module th, .gi-overview-module td, .gi-overview-kpi > span, .gi-overview-module header > strong')
-      .forEach(cell => {
-        if (!cell.getClientRects().length) return;
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        const style = getComputedStyle(cell);
-        const inner = cell.getBoundingClientRect().width
-          - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-        if (range.getBoundingClientRect().width - inner > 1) clips.push(cell.textContent.trim().slice(0, 30));
-      });
-    return { overflow: doc.scrollWidth - doc.clientWidth, clips,
+    return { overflow: doc.scrollWidth - doc.clientWidth,
       sections: [...(pane?.querySelectorAll('.gi-overview-module > header > strong') || [])].map(n => n.textContent.trim()) };
+  });
+  measured.clips = await page.evaluate(clippedTableText, {
+    selector: '[data-pane="overview"] :is(.gi-overview-module th, .gi-overview-module td, .gi-overview-kpi > span, .gi-overview-module header > strong)',
   });
   if (measured.overflow > 0) overflowAt.push(`${width}=${measured.overflow}`);
   if (measured.clips.length) clipped.push(`${width}: ${measured.clips.join(' | ')}`);

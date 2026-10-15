@@ -108,7 +108,10 @@ log.
   Film-index serialization and penalty-situation rules share the Node core
   suite; the separate film-index browser launch is removed. Browser media,
   persistence and tagging integration checks remain with their existing owners.
-  Reports share rendered-state waits and table clipping. Persistence tests
+  Reports share rendered-state waits and table clipping.
+  Reports absence checks reuse the existing page traversal; unused raster
+  calculations and unread browser payloads are removed without dropping the
+  distinct front-tendency positive control or visual thresholds. Persistence tests
   separate basic catalog contracts from import/restore/close races; duplicate
   matrix sections and repair histories are removed, with shared backend setup.
   Focused and sensitivity checks cover the consolidation; no full gate or new

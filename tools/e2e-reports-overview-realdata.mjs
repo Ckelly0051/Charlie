@@ -8,7 +8,7 @@
  * owns the deterministic formula, sparse and empty-state regressions; this
  * file owns the evidence.
  *
- * READ-ONLY. The season is read from the registered Documents-mirror path,
+ * READ-ONLY. The season is read from the registered canonical external fixture,
  * deep-copied, and installed into an in-memory store in a Chromium page whose
  * backend is `BrowserBackend` — the coach's file is never a write target. The
  * run asserts the source is byte-identical afterwards rather than assuming it.
@@ -25,6 +25,7 @@
  */
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
+import { clippedTableText } from './report-test.mjs';
 import { readFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { CANONICAL_SEASON } from './canonical-season.mjs';
@@ -275,8 +276,6 @@ const read = () => page.evaluate(() => {
       .map(tr => [...tr.children].map(td => td.textContent.trim())),
     metas: Object.fromEntries(modules.map(m => [title(m), m.querySelector('header > span')?.textContent.trim() || ''])),
     text: pane?.innerText || '',
-    header: document.querySelector('[data-reports-title]')?.textContent.trim() || '',
-    headerSub: document.querySelector('[data-reports-context]')?.textContent.trim() || '',
   };
 });
 const b = await read();
@@ -486,7 +485,6 @@ ok(prose.length === 0, 'no instructional prose renders on real film', JSON.strin
 console.log('\n== Captures ==');
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
-const shots = [];
 /* Loading a season with no linked film raises the relink toast, which lands
    over the board and would sit in the middle of the evidence. It is expected
    in a headless capture — there is no film folder here — so it is dismissed
@@ -508,21 +506,13 @@ for (const [width, height] of VIEWPORTS) {
   const measured = await page.evaluate(() => {
     const doc = document.documentElement;
     const pane = document.querySelector('[data-pane="overview"]');
-    const clips = [];
-    pane?.querySelectorAll('.gi-overview-module th, .gi-overview-module td, .gi-overview-kpi > span, .gi-overview-module header > strong')
-      .forEach(cell => {
-        if (!cell.getClientRects().length) return;
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        const s = getComputedStyle(cell);
-        const inner = cell.getBoundingClientRect().width - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
-        if (range.getBoundingClientRect().width - inner > 1) clips.push(cell.textContent.trim().slice(0, 30));
-      });
-    return { overflow: doc.scrollWidth - doc.clientWidth, clips,
+    return { overflow: doc.scrollWidth - doc.clientWidth,
       sections: [...(pane?.querySelectorAll('.gi-overview-module > header > strong') || [])].map(n => n.textContent.trim()).length };
   });
+  measured.clips = await page.evaluate(clippedTableText, {
+    selector: '[data-pane="overview"] :is(.gi-overview-module th, .gi-overview-module td, .gi-overview-kpi > span, .gi-overview-module header > strong)',
+  });
   const obscured = await page.evaluate(() => document.querySelectorAll('.gi-toast-stack .gi-native-toast').length);
-  shots.push({ key, ...measured, obscured });
   ok(measured.overflow === 0 && measured.clips.length === 0 && measured.sections === SECTIONS.length,
     `${key}: the real-season board is contained, unclipped and complete`,
     JSON.stringify(measured));
