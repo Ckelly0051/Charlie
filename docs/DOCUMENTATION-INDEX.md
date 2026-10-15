@@ -163,6 +163,11 @@ log.
   blocking switch is off but remains proven by synthetic tests. Both modes
   finish every result. Current real full-gate time remains unmeasured;
   focused runs record timing without a total target.
+  Policy source: `829ebeb6`; focused verification 4/4 green, zero
+  failed/skipped, 35.177 seconds, with clean unchanged source/build/fixtures.
+  Runner 98/98 and receipt 48/48 include both budget modes, CI exemption,
+  post-expiry collection and blocking timeouts/failures in all environments.
+  Receipt: `artifacts/gate-logs/2026-10-15T13-33-28-647Z-J5SZNs/receipt.json`.
   Runner review remains separate from the production cleanup's pending
   installed verification; no new full gate or installer was run.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
