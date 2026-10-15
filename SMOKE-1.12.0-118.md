@@ -112,3 +112,10 @@ fixes start until the coach closes the list.
 7. **Missed Tackles label wraps.** At a narrow window "Missed Tackles"
    breaks onto two lines while every other Players & Grades row label stays
    on one line.
+
+Potential future enhancement (not a defect, coach 2026-10-15): on defensive
+snaps, Offense Faced > Opponent Play suggests our own offensive playbook
+favorites, and picking one applies that call's defaults to the opponent's
+snap (`js/native-tagging.jsx` PlayCallField; the play-call model does not
+specify the source). Consider opponent-specific suggestions (recent opponent
+entries) or our calls without their defaults.
