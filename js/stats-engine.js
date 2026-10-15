@@ -17,52 +17,27 @@ import { SeasonStore } from './season-store.js';
 const SUCCESS_RATE_TIP = 'Share of plays that stay on schedule for the down/distance: 1st down needs 50% of the yards to go, 2nd down 70%, 3rd/4th must convert (plus any TD or made kick). Situation-aware: a 4-yard gain is a success on 1st-and-10 but not on 3rd-and-10.';
 
 export class StatsEngine {
-  /**
-   * Split a (possibly multi-select) formation string into its component
-   * formations. "Trips + Bunch" -> ["Trips", "Bunch"]; blank -> [] (OMITTED per
-   * §6.4 — an alignment-only play falls out of formation analytics, not "Unknown").
-   */
+  // Uncharted formations are omitted, not grouped as Unknown.
   static splitFormations(formation) {
-    // Blank → [] (OMITTED, not imputed): §6.4/§6.5. Formation is optional and
-    // structure-only now; an alignment-only play (projected formation '') must fall
-    // out of formation tendencies/cuts/cross-tabs, never bucket as 'Unknown'.
     return String(formation || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
-  // The one seam every analytics consumer reads a play's look fields through
-  // (GRIDIRON-IQ-TAG-MODEL.md §6): every look field present, blank when
-  // uncharted, without mutating the play. Every reader of the look fields in
-  // this engine and the analytics registry goes through it, never raw p.tags
-  // (enforced by tools/e2e-raw-read-audit.mjs), so Study and the reports agree.
+  // Shared look-field read for Reports and Study; enforced by e2e-raw-read-audit.
   static proj(p) {
     return TagProjection.project(p && p.tags ? p.tags : {});
   }
 
-  /** The by-key twin of `proj`, for display surfaces keyed by a runtime
-   *  column or dimension id (Film Room's `col.key`, EPA's `groupBy(key)`):
-   *  the look read for PROJECTED_FIELDS and the raw tag for everything else. */
   static PROJECTED_FIELDS = ['formationFamily', 'receiverSet', 'backfield', 'strength', 'coverage', 'qbAlignment', 'coverageFamily'];
   static projField(p, key) {
-    // `?? ''` not `|| ''`: a raw passthrough must preserve a legitimate falsy value
-    // (a numeric 0 yard line, a boolean false flag) instead of blanking it. Only
-    // null/undefined become ''.
     if (StatsEngine.PROJECTED_FIELDS.includes(key)) return StatsEngine.proj(p)[key] ?? '';
     return (p && p.tags ? p.tags[key] : undefined) ?? '';
   }
 
-  /**
-   * Split a (possibly multi-select) play-type string into components.
-   * "RPO + Short Pass" -> ["RPO", "Short Pass"]; blank -> ["Unknown"].
-   */
   static splitPlayTypes(playType) {
     const parts = String(playType || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
     return parts.length ? parts : ['Unknown'];
   }
 
-  /**
-   * Split a (possibly multi-select) result string into components.
-   * "Fumble + Touchdown" -> ["Fumble", "Touchdown"]; blank -> [].
-   */
   static splitResults(result) {
     return String(result || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
@@ -71,19 +46,11 @@ export class StatsEngine {
     return String(blitz || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
-  /**
-   * Split a (possibly multi-select) defensive front into its components.
-   * "Maverick + Jumbo Shift" -> ["Maverick", "Jumbo Shift"] — the play is
-   * attributed to both the base front and the shift package in analytics.
-   */
+  // Multi-front plays contribute to each charted front.
   static splitFronts(front) {
     return String(front || '').split(/\s*\+\s*/).map(s => s.trim()).filter(Boolean);
   }
 
-  /**
-   * Check if a play's result includes a specific value. Handles both
-   * single-select ("Touchdown") and multi-select ("Fumble + Touchdown").
-   */
   static hasResult(p, val) {
     if (!p || !p.tags || !p.tags.result) return false;
     return StatsEngine.splitResults(p.tags.result).includes(val);
@@ -692,37 +659,8 @@ export class StatsEngine {
     return n ? hits / n * 100 : null;
   }
 
-  /** How a drive ENDED, read off the play the game charted next.
-   *
-   *  A drive is reconstructed from one unit's snaps, so its last play is the
-   *  last SCRIMMAGE snap — never the punt or the field goal that ended the
-   *  possession, because those are charted as Special Teams. That is why a
-   *  punted drive used to end on "3rd & 8, No Gain" and report `Other`: the
-   *  evidence was in the game, one play later, and this function never looked.
-   *
-   *  Adjacency is the only signal used. Every branch reads the next play's own
-   *  charted kind; possession is never inferred from which side's kick unit was
-   *  charted. A punt on either side of
-   *  the ball still ends this possession in a punt, so the label holds without
-   *  deciding whose punt team was on the field.
-   *
-   *  Anything the next play cannot settle stays `Other`, deliberately. */
-  /** The other unit took the field with no kick between them, so possession
-   *  changed on the snap itself. Two charted facts settle how.
-   *
-   *  A FUMBLE on that snap plus the ball in the other team's hands is a
-   *  turnover. This does NOT guess who recovered, and it does not touch
-   *  `isFumbleLost`/`isFumbleRecovered`, which stay strict because they answer
-   *  a different question and are read by the turnover counts. It reads the
-   *  next play: whoever is on the field now has the ball. That distinction
-   *  matters here, because `tags.fumbleRecovery` is blank on all eleven fumbles
-   *  the coach charted this season — the control exists in the charting deck
-   *  and defaults to `unknown`, so the engine has always, correctly, refused to
-   *  call those fumbles turnovers. Possession changing is separate evidence.
-   *
-   *  Otherwise, fourth down that changes hands is a failed conversion. On any
-   *  earlier down the charting does not say what happened, and it stays
-   *  unlabelled rather than guessed. */
+  // Drive outcomes may use observed possession changes; turnover totals still
+  // require explicit recovery attribution. Unknown early-down endings stay blank.
   static _changeOfPossession(last, next) {
     const changed = countedUnit(next) !== countedUnit(last);
     if (!changed) return null;
@@ -1590,17 +1528,7 @@ export class StatsEngine {
     };
   }
 
-  /**
-   * Performance-first defensive analysis over an explicitly supplied cohort.
-   * Defensive plays describe the opponent's offense, so offensive playType,
-   * run/pass, down, distance and yardage are the dimensions being defended.
-   */
-  /**
-   * The one AnalyticsMetrics instance bound to this StatsEngine, built once and
-   * reused. Reports (`defensivePerformance()`) and Study
-   * (`AnalyticsRegistry.metricsEngine()`) both use it, so their metric
-   * bindings cannot drift apart.
-   */
+  // Reports and Study share this metrics instance and its eligibility rules.
   metricsEngine() {
     if (!this._metricsEngine) {
       this._metricsEngine = new AnalyticsMetrics({
@@ -1609,18 +1537,8 @@ export class StatsEngine {
         isSuccessfulPlay: StatsEngine.isSuccessfulPlay,
         isEligiblePlay: StatsEngine.isSuccessEligible,
         buildCutFilter: (type, val) => this._buildCutFilter(type, val),
-        // Study Phase 3: player performance metrics (soloTackles/
-        // assistedTackles) need to re-derive a play's own tackler list to
-        // classify solo vs. shared credit -- reusing the same static every
-        // other player-attribution consumer uses, never a second parser.
         splitPlayers: StatsEngine.splitPlayers,
-        // "This attempt succeeded" reused across completionRate/completions
-        // for passer/receiver/kicker (see StatsEngine.isMadeAttempt's own
-        // comment for why one function safely covers both a completed pass
-        // and a made structured kick).
         isMadeAttempt: p => StatsEngine.isMadeAttempt(p, StatsEngine.hasResult),
-        // "Did this play score a touchdown", structured or legacy; see
-        // StatsEngine.isScoredTouchdown.
         isScoredTouchdown: p => StatsEngine.isScoredTouchdown(p, StatsEngine.hasResult),
       });
     }
@@ -2480,10 +2398,6 @@ export class StatsEngine {
     };
   }
 
-  /** `${gameId}::${playId}` for a Study-stamped play, or null when the play
-   *  cannot produce a composite ref (matches the fail-open convention every
-   *  other composite-ref site in this file already uses). Shared by
-   *  `_conversionStats`/`_specialTeamsStats`'s Phase-2 refs additions below. */
   static _compositeRef(play) {
     const gid = play?.__gid;
     return (gid != null && play?.id != null) ? `${gid}::${play.id}` : null;
@@ -2910,35 +2824,6 @@ export class StatsEngine {
     };
   }
 
-  /**
-   * G14 — the Negative Plays breakdown.
-   *
-   * The lens this replaces was called "Risk", which named four things that had
-   * ALREADY HAPPENED — that is damage, not exposure. Worse, two of its tiles
-   * overlapped: `negative` is `yardage < 0`, so every sack was counted there AND
-   * again under "Sacks taken", in the same lens, with nothing saying so.
-   *
-   * The coach's resolution, over five rounds:
-   *
-   *   HEADLINE is literal — DISTINCT plays that went wrong, with one percentage
-   *   taken against total plays. ROWS are raw counts with no percentages.
-   *
-   * The two levels deliberately disagree, and that is correct: a strip-sack is
-   * ONE play but TWO events, so 12 snaps can carry 16 events. Dropping the row
-   * percentages is what makes that readable — there is no invitation to add
-   * them up against a total they would not match.
-   *
-   * TURNOVERS STAND ALONE and go first; a turnover is never folded into
-   * anything. Everything that could double-count is BRACKETED under Plays for
-   * Loss, where the indent shows the children are part of the total rather than
-   * additional to it. The coach's case for keeping sacks visible: if all four
-   * turnovers are strip-sacks, calling out the sack is exactly what matters.
-   *
-   * The children are mutually exclusive by precedence (sack > run > pass), so
-   * they sum EXACTLY to their header. `_isLoss` is the same `yardage < 0` rule
-   * `_efficiencyStats` uses, so the row and the `negative` cut filter cannot
-   * drift apart and show one number while playing another.
-   */
   /**
    * Definitions for derived measures, shown where the number appears.
    * Written from the constants the engine computes with, because a definition
@@ -3518,12 +3403,7 @@ export class StatsEngine {
     return { working: working.slice(0, 5), fix: fix.slice(0, 5) };
   }
 
-  /** Study Phase 3: `tags.players` merged with any structured Special Teams
-   *  role attribution (kicker/punter/returner/blocker/recoverer), exactly the
-   *  merge `_individualStats` already performed inline. Extracted so a
-   *  second consumer (AnalyticsRegistry's player dimensions) reads player
-   *  attribution through the SAME merge rather than re-deriving it -- the
-   *  two can never drift apart on a future Special Teams change. */
+  // Nonblank structured Special Teams attribution takes precedence over tags.
   static effectivePlayers(play) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     const structuredPlayers = Object.fromEntries(Object.entries(structured?.players || {})
@@ -3531,15 +3411,8 @@ export class StatsEngine {
     return { ...(play?.tags?.players || {}), ...structuredPlayers };
   }
 
-  /** Study Phase 3: whether a play's football-role attribution (ball
-   *  carrier/passer/receiver) should count at all -- extracted from
-   *  `_individualStats`'s inline gate so AnalyticsRegistry's player
-   *  dimensions apply the EXACT same rule, not a hand-copied one. A fake
-   *  Special Teams play (a run/pass dressed as a kick) counts; an ordinary
-   *  kick/punt/return does not, since those plays' "ball carrier" is the
-   *  kicker/returner, tracked separately. A try never counts, Fake included:
-   *  tries stay out of every player line (GRIDIRON-IQ-SPECIAL-TEAMS-MODEL.md
-   *  §6), and Players reads credits without compute()'s try exclusion. */
+  // Tries never enter player lines, including Fake tries. Other fakes use
+  // scrimmage roles; ordinary kicks use their Special Teams roles.
   static countsFootballRoles(play) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     if (structured && (structured.unit === 'try' || structured.unit === 'tryDefense')) return false;
@@ -3548,14 +3421,7 @@ export class StatsEngine {
       : countedUnit(play) !== 'special' || StatsEngine.isRun(play) || StatsEngine.isPass(play);
   }
 
-  /** "This attempt succeeded", reused by AnalyticsMetrics' completions and
-   *  completion rate across passes, made field goals and legacy kicks:
-   *  - a genuine structured kick: its own `outcome.status === 'good'`;
-   *  - a fake: a real snap dressed as a kick, judged by `tags.result` like any
-   *    pass or run, since its kick status describes a kick that never
-   *    happened;
-   *  - no structured data: `tags.result` (Gain, No Gain, Loss or Touchdown for
-   *    a pass; Good for a legacy kick). */
+  // Fake attempts use the scrimmage result, not the unattempted kick's status.
   static isMadeAttempt(play, hasResult) {
     const structured = SpecialTeamsModel.normalize(play?.specialTeams);
     if (structured && !structured.isFake) return structured.outcome?.status === 'good';
@@ -3807,12 +3673,7 @@ export class StatsEngine {
 
     credits.forEach(player => {
       const num = player.num;
-      /* LONG IS THE LONGEST RESULT, INCLUDING A NEGATIVE ONE. It was clamped at
-         zero, so a back whose only carry lost three yards showed `Long 0` while
-         the film link opened the -3 play: the number and its clip described
-         different things. With no measured play at all the field stays 0, which
-         is the established "nothing to state" value every consumer already
-         renders as an absence. `longRefs` is unchanged, so ties stay linked. */
+      // Long may be negative; zero here means no measured result.
       if (player.roles.has('rushing')) {
         const att = fact(player, 'rushing', 'att'), yards = fact(player, 'rushing', 'yds');
         rushers[num] = { num, attempts: att.n, yards: yards.total, yardPlays: yards.measured, tds: fact(player, 'rushing', 'td').n,
@@ -4182,11 +4043,6 @@ export class StatsEngine {
     return { calls, total, unique: calls.length, to75: callsTo(75), to90: callsTo(90) };
   }
 
-  /**
-   * The subject team's name for report labels. S7-d1: these all read
-   * #gameTeamName, a hidden input inside #app. gameInfo is the canonical owner
-   * and GameContext is the seam over it, so the labels survive its deletion.
-   */
   _subjectName(fallback = '') {
     return this.deps?.gameContext?.snapshot?.().teamName || fallback;
   }
@@ -4791,27 +4647,12 @@ export class StatsEngine {
     return String(this.deps?.storage?.gameInfo?.opponent || '').trim();
   }
 
-  /**
-   * F3 — every charted game is a scouting source.
-   *
-   * The aggregation has always worked; it was only ever REACHABLE for the
-   * active game's opponent, through one button, so a coach with six charted
-   * games saw one scout report and concluded the rest generated nothing.
-   * This lists every opponent with charted film across every season, so the
-   * report exists for all of them and the coach can move between them.
-   *
-   * A head-to-head game counts exactly like scout film: our defensive snaps
-   * carry their offense, our offensive snaps carry the fronts and coverages
-   * they showed. Charting a game IS scouting the team we played.
-   */
   listScoutableOpponents() {
     const byName = new Map();
     this._allSeasonGames().forEach(game => {
       const name = String(game?.gameInfo?.opponent || '').trim();
       if (!name) return;
       const plays = Array.isArray(game.plays) ? game.plays : [];
-      // Coverage is a PROJECTED field — it must be read through `proj` so a
-      // legacy value embedded in another tag is seen the same way everywhere.
       const charted = plays.filter(play => play?.tags && (play.tags.playType || play.tags.runPass
         || play.tags.defFront || StatsEngine.proj(play).coverage || play.tags.unit === 'special')).length;
       if (!charted) return;
@@ -4937,20 +4778,9 @@ export class StatsEngine {
         else if (scout ? unit === 'defense' : unit === 'offense') defPlays.push(play);
       });
     });
-    // Their offense is read from snaps we tagged as DEFENSE, but compute()
-    // partitions run/pass BY UNIT — so present those snaps AS offense or the
-    // overview KPIs (run/pass, run%, avg yards) read 0/0 even though the plays
-    // carry runPass. (formationDetail/downTendency use isRun directly, which is
-    // why the tables were right while the overview was empty.)
+    // compute() partitions by unit; opponent offensive snaps need offense units.
     const asOffense = offPlays.map(p => ({ ...p, tags: { ...p.tags, unit: 'offense' } }));
-    // Their defense = the fronts/coverages we faced on our OFFENSE snaps. Exclude
-    // our OWN custom fronts — they can never be the opponent's call, so any
-    // occurrence here is carry leak from our defensive snaps (the "Maverick
-    // shows up in their fronts" bug). SeasonStore.OUR_DEF_ONLY_FRONTS is
-    // already the canonical source for this exact list (used by
-    // stripStAlignment's sibling cleanup) — reuse it instead of reading the
-    // DOM (S7 demolition; the chip markup is not a required runtime
-    // dependency) or duplicating the list a third place.
+    // Our custom fronts cannot be attributed to the opposing defense.
     const ourOnly = new Set(SeasonStore.OUR_DEF_ONLY_FRONTS);
     const frontCounts = {}, covCounts = {};
     defPlays.forEach(p => {
@@ -5056,20 +4886,11 @@ export class StatsEngine {
    *  the opponent's offense. Ties break on play order, then ours first, so the
    *  list is deterministic when the same yardage appears on both sides. */
   static topPlaysBothSides(offPlays, defPlays, limit) {
-    /* MEASURED yardage only. `parseInt(blank) || 0` would admit an unmeasured
-       snap as a 0-yard play, which then renders with an empty Yds cell — a
-       ranked row that states nothing. 55 of the canonical season's 328
-       classified plays carry no yardage, so this is the difference between a
-       leaderboard and a list with holes in it. A play with no yardage is not a
-       small gain; it is an unanswered question, and it does not rank. */
+    // Unmeasured yardage does not rank as a zero-yard gain.
     const measured = (plays, side) => (plays || [])
       .filter(StatsEngine.countsForYards)
       .map(p => ({ p, side, yds: StatsEngine.playYards(p) }));
-    /* ONE order index across both cohorts. Numbering each side from zero made a
-       cross-side tie compare two unrelated cohort positions, so "ties break on
-       play order" was not true of the only case where a tie-break matters.
-       Charted order is game order: the same game/timestamp key
-       `_reconstructDrives` sorts by. */
+    // Ties use game/charted order across both cohorts, not each cohort's index.
     const gameOf = p => p.__seasonGameIdx ?? 0;
     const timeOf = p => ((p.timestamp && p.timestamp.start) ?? p.id ?? 0);
     return [...measured(offPlays, 'us'), ...measured(defPlays, 'them')]
@@ -5969,11 +5790,7 @@ export class StatsEngine {
   }
 
   generateDefensiveSelfScout(playsOverride = null) {
-    // Source defensive plays directly, NOT via _currentPlays() — that gates on
-    // an offensive playType, which silently dropped defensive snaps tagged with
-    // only Front/Coverage/Blitz (no offensive play type), leaving the section
-    // thin even when the defense was fully tagged. Apply the active filter so
-    // filtered views still narrow correctly.
+    // Defensive scheme-only snaps remain eligible without an offensive play type.
     let all = playsOverride;
     if (!all) {
       all = (this.tagger ? this.tagger.plays : []).filter(p => p && p.tags);
@@ -6549,9 +6366,7 @@ ${covRows ? `<table><thead><tr><th>Coverage</th><th>#</th><th>Yds</th><th>Avg</t
     try { return !window.__TAURI__; } catch { return true; }
   }
 
-  /* Fallback delivery: a standalone HTML file that prints itself on open. The
-     coach gets a PDF through the system print dialog, which is what the popup
-     was trying to do — it just uses a real file instead of a blocked window. */
+  // Standalone HTML opens the system print dialog without a writable popup.
   _downloadPrintable(title, bodyHtml, extraClass) {
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${Charts._esc(title)}</title>
 ${this._exportFontFace()}
@@ -6561,8 +6376,6 @@ ${this._printStyles ? this._printStyles() : ''}
 </body></html>`;
     const name = `${(this._gameTitle() || 'game-report').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.html`;
     try {
-      // `_download` is the same seam exportHtmlReport uses — the one delivery
-      // path that already works on desktop.
       this.deps?.storage?._download?.(new Blob([html], { type: 'text/html' }), name);
       this.deps?.overlays?.toast?.({ message: `Report saved as ${name} — open it and print to PDF.` });
     } catch (error) {
@@ -6571,18 +6384,6 @@ ${this._printStyles ? this._printStyles() : ''}
   }
 
   _openPrintWindow(title, bodyHtml, extraClass) {
-    /* H4 — "Export Game Report to PDF does nothing."
-     *
-     * This opened a popup and printed from it. WebView2 in the installed app
-     * does not hand back a usable window, and the `alert` written as the
-     * fallback is suppressed there too — so the whole path failed in complete
-     * silence. Nothing threw, which is why the gate stayed green and why my
-     * first guess (a regression in the new render code) was wrong.
-     *
-     * On desktop the report is written to a real file and opened with the
-     * system handler, which is the same delivery the HTML export already uses
-     * and the coach has never reported broken. The browser keeps the popup.
-     */
     const w = this._canOpenPrintWindow() ? window.open('', '_blank') : null;
     if (!w) { this._downloadPrintable(title, bodyHtml, extraClass); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${Charts._esc(title)}</title>
