@@ -114,19 +114,12 @@ log.
   pass is complete; Claude review returned no findings (coach, 2026-10-15).
   The subsequent film fixes require separate review. Remaining Reports cleanup and the
   stats-engine split stay with its rebuild. See the cleanup report above.
-- **Test-suite consolidation:** CSV encoding, independent columns and atomic
-  import refusal share the existing Node `e2e-csv-roundtrip` owner; duplicate
-  browser startup and the synthetic Blob reader are gone. Mounted CSV/export
-  delivery coverage remains separate. No production code or coach data changed;
-  Reports suites remain outside this pass.
-  Linked-film rehydration also runs in Node with unchanged scenario/assertion
-  coverage; mounted film-linking and playback journeys remain browser-owned.
-  Deferred program-scoped playbook rollback shares the Settings journey;
-  failed-save season/game ownership no longer starts a browser.
-  Home rail/startup waits now require mounted completion; Retry requires a
-  fresh read rather than reusing the previous callback. Geometry and failure
-  assertions remain in their original owners. Final focused verification is
-  separate from full-gate and installed approval.
+- **Test-suite consolidation:** CSV, linked rehydration and failed-save models
+  run in Node; deferred program rollback shares Settings. Home waits for
+  mounted completion and a fresh Retry read. P0 checks runner wiring; actual
+  build/discovery/failure behavior belongs to the runner suite. Coverage owners
+  and retained browser boundaries are in `docs/TESTING.md`. Reports and
+  production code are unchanged; full-gate and installed approval are separate.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:

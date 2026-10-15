@@ -50,15 +50,8 @@ ok(Boolean(appVersion) && appVersion === cargoVersion && appVersion === lockVers
   JSON.stringify({ appVersion, cargoVersion, lockVersion, tauri: tauriConfig.version }));
 const gateRunner = await read('tools/run-gate.mjs');
 ok(/exec node tools\/run-gate\.mjs "\$@"/.test(gate)
-  && /await execute\('npm', \['run', 'build'\],/.test(gateRunner)
-  && /npm run build/.test(gateRunner)
-  && /await readdir\(resolve\(ROOT, 'tools'\)\)/.test(gateRunner)
-  && gateRunner.includes("filter(name => /^e2e-.*\\.mjs$/.test(name)).sort()")
-  && /if \(!buildAccepted\(build\)\)[^\n]*throw new Error/.test(gateRunner)
-  && /exitCode = await runHarnesses\(files,/.test(gateRunner)
-  && /finishReceipt\(receipt, \{ source, fixtures, build, exitCode, error: failure \}\)/.test(gateRunner)
-  && /return receipt\.outcome === 'fail' \? 1 : exitCode/.test(gateRunner),
-  'canonical gate builds Vite and discovers every e2e harness');
+  && gateRunner.includes('process.exitCode = await main()'),
+  'canonical gate forwards CLI arguments to the tested Node runner');
 
 const toolFiles = (await readdir(resolve(root, 'tools'))).filter(name => /^e2e-.*\.mjs$/.test(name));
 const testingGuide = await read('docs/TESTING.md');

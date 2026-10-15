@@ -131,7 +131,7 @@ export async function runTests() {
     await mkdir(resolve(root, 'tools', 'parity-golden'));
     await writeFile(resolve(root, '.gitignore'), '/dist/\n/artifacts/\n/first-pid\n');
     await writeFile(resolve(root, 'package.json'), JSON.stringify({ scripts: { build: 'node build.mjs' } }));
-    await writeFile(resolve(root, 'build.mjs'), "import{mkdirSync,writeFileSync}from'node:fs';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','<title>Synthetic gate</title>');");
+    await writeFile(resolve(root, 'build.mjs'), "import{mkdirSync,writeFileSync}from'node:fs';if(process.env.GIQ_GATE_SYNTHETIC_BUILD_FAIL==='1')process.exit(7);mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','<title>Synthetic gate</title>');");
     for (const file of ['synthetic-edge.json', 'mavericks-6game.json']) {
       await writeFile(resolve(root, 'tools', 'parity-golden', file), '{}');
     }
@@ -154,18 +154,31 @@ export async function runTests() {
       assert.equal(git.code, 0, git.output);
     }
     for (const mode of ['control', 'report', 'blocking', 'focused', 'ci',
-      'hang-report', 'hang-blocking', 'hang-ci', 'fail-report', 'fail-blocking', 'fail-ci']) {
+      'hang-report', 'hang-blocking', 'hang-ci', 'fail-report', 'fail-blocking', 'fail-ci', 'build-fail']) {
       const hangs = mode.startsWith('hang-'), fails = mode.startsWith('fail-');
       const ci = mode === 'ci' || mode.endsWith('-ci');
       const blocking = mode === 'blocking' || mode.endsWith('-blocking');
       const env = { ...process.env, GITHUB_ACTIONS: ci ? 'true' : '',
-        GIQ_GATE_SYNTHETIC_HANG: hangs ? '1' : '', GIQ_GATE_SYNTHETIC_FAIL: fails ? '1' : '' };
+        GIQ_GATE_SYNTHETIC_HANG: hangs ? '1' : '', GIQ_GATE_SYNTHETIC_FAIL: fails ? '1' : '',
+        GIQ_GATE_SYNTHETIC_BUILD_FAIL: mode === 'build-fail' ? '1' : '' };
       delete env.GIQ_APP_ROOT; delete env.GIQ_REALDATA_OPTIONAL;
+      if (mode === 'build-fail') await rm(resolve(root, 'first-pid'), { force: true });
       const child = await execute(process.execPath, ['tools/e2e-gate-runner.mjs', '--budget-probe', root,
         mode === 'control' ? '60000' : '1', mode], env, undefined, { timeoutMs: 30000 });
       const dirs = (await readdir(resolve(root, 'artifacts', 'gate-logs'))).sort();
       const runDir = resolve(root, 'artifacts', 'gate-logs', dirs.at(-1));
       const receipt = JSON.parse(await readFile(resolve(runDir, 'receipt.json'), 'utf8'));
+      if (mode === 'build-fail') {
+        check('a failed build cannot run any harness against a pre-existing stale bundle', () => {
+          assert.equal(child.code, 1); assert.equal(receipt.outcome, 'fail');
+          assert.equal(receipt.releaseEligible, false); assert.equal(receipt.build.state, 'fail');
+          assert.equal(receipt.build.code, 7);
+          assert(receipt.results.every(result => result.status === 'not-run'));
+          assert(readFileSync(resolve(root, 'dist', 'index.html'), 'utf8').includes('Synthetic gate'));
+          assert.equal(fs.existsSync(resolve(root, 'first-pid')), false);
+        });
+        continue;
+      }
       check(`synthetic ${mode} run preserves the actual process exit and receipt verdict`, () => {
         const red = blocking || hangs || fails;
         assert.equal(child.code, red ? 1 : 0, child.output);

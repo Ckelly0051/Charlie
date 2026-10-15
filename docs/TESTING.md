@@ -20,6 +20,9 @@ commit message, not here.
 Architecture ownership: `e2e-p0-exit` requires the module map in `AGENTS.md`
 to name every production JS/JSX module exactly once, with no missing files.
 It also checks that this guide names every current harness and no retired one.
+P0 checks CLI-to-runner wiring; `e2e-gate-runner` owns actual build/discovery,
+receipt and exit behavior, including refusal to test a stale bundle after a
+failed build. Those runtime contracts are not source-spelling checks in P0.
 `e2e-workspace-shell` checks runtime engine-class privacy; stylesheet reachability
 and Reports native ownership remain in their existing composition/route checks.
 
@@ -116,21 +119,15 @@ duration probes across game/reset/relink/play replacement, preservation of
 manual timing, bounded probing, thumbnail queue cancellation, stale active
 captures and lookups, deduplication, cache reuse and season isolation.
 
-`e2e-csv-roundtrip` is the Node owner for CSV encoding, formula safety, column
-identity, sparse/blank rows, structured penalties and atomic mapping refusal.
-It uses the production storage/tagger methods and native Blob, not a browser
-or a fake parser. Mounted CSV wiring remains in `e2e-charting-cutover-deck`;
-native delivery remains in `e2e-file-delivery` and `e2e-export-injection`.
-`e2e-relink-linked` exercises root/name matching, shared marked regions and
-replacement through the real playlist owner in Node; mounted film linking
-remains in `e2e-linked-film` and `e2e-film-storage-setup`.
-Failed-save season/game ownership runs entirely in Node. The deferred playbook
-rollback case shares the existing `e2e-native-settings` browser journey, which
-also retains immediate-save failure and mounted Playbook controls.
-Home rail expansion waits for the model's expected season count and mounted
-rows before measuring layout. Startup library waits for mounted loading,
-ready and error states; Retry must issue a fresh read and release callback.
-These completion checks belong to the existing rail/startup owners, not sleeps.
+`e2e-csv-roundtrip` owns encoding, formula safety, column identity, sparse rows,
+penalties and atomic mapping refusal in Node using the real storage/tagger and
+native Blob. Mounted CSV wiring stays in `e2e-charting-cutover-deck`; delivery
+stays in `e2e-file-delivery` and `e2e-export-injection`. `e2e-relink-linked` owns
+rehydration in Node; mounted linking stays in `e2e-linked-film` and
+`e2e-film-storage-setup`. Failed-save season/game ownership is Node-only;
+immediate and deferred program rollback share `e2e-native-settings`.
+Home rail waits for expected mounted rows before geometry checks. Startup
+waits for mounted loading/ready/error; Retry requires a fresh read and callback.
 
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.
