@@ -68,4 +68,13 @@ fixed. Record recurrence without reopening that investigation.
 
 ## Findings
 
-Not assessed in the installed app.
+Smoke in progress (coach, 2026-10-15). Findings are logged as reported; no
+fixes start until the coach closes the list.
+
+1. **Edit library spacing (persistent).** Play Type: the Edit library button
+   sits alone at the far right of the label row, above the chip rows and
+   disconnected from both its label and its chips, leaving a dead band of
+   space across the row. This recurs on every library field. The coach
+   understands why it happens (the button is pinned to the label row's right
+   edge) and wants a better way to place it within the module: the current
+   placement "just plain looks bad."
