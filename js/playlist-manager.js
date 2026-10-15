@@ -38,8 +38,6 @@ export class PlaylistManager {
       }
     });
 
-    // Prev/next clip
-
     // Drop handling is centralized in VideoController → files-selected → App.
     // No duplicate handler here — that caused double-adds.
   }
@@ -152,12 +150,8 @@ export class PlaylistManager {
     // The hook no-ops on the browser build and skips linked games (never copied).
     if (this.onFilmFiles && acceptedFiles.length) { try { this.onFilmFiles(acceptedFiles); } catch (e) {} }
 
-    // Auto-create play entries for each new clip. MUST be awaited: it probes
-    // durations asynchronously, THEN pushes plays to this.tagger.plays — if the
-    // caller (or a game switch) proceeds before it finishes, a late push lands
-    // the new clip's play in the WRONG game (the cross-game corruption the
-    // integrity fuzzer caught under load). Awaiting makes addFiles atomic for
-    // its callers (e.g. the desktop importFilm persist path commits after).
+    // Create plays before activating a clip. Duration probes run separately in
+    // the background; _autoCreatePlays pushes the new plays synchronously.
     await this._autoCreatePlays();
 
     // If nothing is playing, activate the first clip — except after a save
@@ -490,9 +484,6 @@ export class PlaylistManager {
     this._nextPreloadIndex = nextIndex;
     this._releaseObjectUrlsExcept([index, nextIndex]);
   }
-  /**
-   * Switch the video player to show a specific clip by index.
-   */
   /** Point the tagger at a play WITHOUT re-seeking — the caller has already
    *  loaded the media. One owner, because the undo reconcile has to restore the
    *  selection `switchToClip` would otherwise overwrite. */

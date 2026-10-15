@@ -43,6 +43,16 @@ historical gate receipt. Rapid scrubbing remains deferred.
 
 ## Open defects
 
+- **Film duration backfill can cross games.** `PlaylistManager._backfillDurations`
+  looks up the live play list after its probe resolves. Switching games while a
+  probe is pending can apply the old clip's duration to the new game's play
+  when clip IDs repeat. Capture and recheck the owning game/playlist before
+  writing; creation-isolation coverage does not cover duration completion.
+- **Thumbnail reset leaves queued requests pending.**
+  `GameThumbnailService.reset` clears queued jobs without settling their
+  request promises. Resolve cancelled jobs with null before discarding them;
+  displayed-thumbnail freshness alone does not test request settlement.
+
 - **117 packaged-asset inspection.** Still needs independent inspection of
   installer assets against the reviewed build; coach smoke approval is
   separate evidence.

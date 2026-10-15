@@ -22,10 +22,9 @@ export class VideoController {
     // The loaded film's display name.
     this.currentFileName = '';
     this.objectUrl = null;
-    // Loop playback. loopRegion = { start, end }; loopMode = 'play' | 'ab' | null.
+    // Loop playback. loopRegion = { start, end }; loopMode = 'play' | null.
     this.loopRegion = null;
     this.loopMode = null;
-    this._abA = null;
     this.listeners = {};
     // Cross-origin handling for the desktop asset protocol. corsBlocked latches
     // true only once a no-crossOrigin RETRY is confirmed to load (see
@@ -134,13 +133,6 @@ export class VideoController {
 
   }
 
-  /**
-   * Point the <video> at a non-blob URL (desktop asset protocol), applying the
-   * crossOrigin attribute unless a confirmed prior CORS failure proved the
-   * protocol doesn't serve CORS headers. SINGLE owner of that decision — both
-   * loadUrl (single-video) and the multi-clip playlist path call this so the
-   * two can never drift.
-   */
   _setLoadState(state = '', text = '') {
     if (!this.loadState) return;
     if (!state) {
@@ -166,6 +158,7 @@ export class VideoController {
     if (title) title.textContent = error && text ? 'Film unavailable' : 'Add game film';
   }
 
+  /** Apply the shared CORS policy for single-video and playlist asset URLs. */
   setSrc(url) {
     this._setLoadState('loading', 'Loading film');
     if (this.corsBlocked) this.video.removeAttribute('crossorigin');
@@ -244,7 +237,6 @@ export class VideoController {
     this._setLoadState();
     this._setPlaceholderText(`Couldn't play ${name}. Re-link the film or use MP4, MOV, or WebM.`, { error: true });
     this.placeholder.classList.remove('hidden');
-    // remember:false — an error message is not the film's name.
     if (src && (src.includes('asset.localhost') || src.startsWith('asset:'))) {
       const detail = `Video load failed (asset protocol) | Error code: ${code} | Message: ${msg} | URL: ${src.slice(0, 300)}`;
       console.warn('ASSET-DIAG:', detail);
@@ -395,7 +387,6 @@ export class VideoController {
     if (!r || !(r.end > r.start)) { this.clearLoop(); return; }
     this.loopRegion = { start: r.start, end: r.end };
     this.loopMode = 'play';
-    this._abA = null;
     this._updateLoopUI();
     if (this.video.currentTime < r.start || this.video.currentTime >= r.end) {
       this.video.currentTime = r.start;
@@ -406,7 +397,6 @@ export class VideoController {
   clearLoop() {
     this.loopRegion = null;
     this.loopMode = null;
-    this._abA = null;
     this._updateLoopUI();
   }
 
