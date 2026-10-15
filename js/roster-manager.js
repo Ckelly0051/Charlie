@@ -21,8 +21,7 @@ export class RosterManager {
 
   /**
    * Open a printable depth chart: the roster grouped by side (Offense / Defense /
-   * Other) and position, players ordered by jersey #. Read-only — the order is
-   * the roster order; explicit per-position reordering is a future nicety.
+   * Other) and position, players ordered by jersey #. Does not change the roster.
    */
   exportDepthChart() {
     if (!this.players.length) { this.notify?.('Add players to the roster first.'); return; }
@@ -63,9 +62,7 @@ export class RosterManager {
   }
 
   _bind() {
-    // Default the stamped role to the play's unit (defense → tackler, ST →
-    // kicker/returner) — otherwise every defensive series silently stamps Ball
-    // Carrier until the coach remembers to pick the Tackler role first.
+    // Follow the selected play's unit when choosing the stamping role.
     if (this.tagger) {
       this.tagger.on('play-selected', (play) => {
         this._defaultRoleForUnit(play?.tags?.unit);
@@ -81,8 +78,7 @@ export class RosterManager {
 
   /** Pick the natural stamping role for the play's unit. */
   _defaultRoleForUnit(unit) {
-    // Defense with an INT/Fumble result → the next # the coach taps is almost
-    // always the defender who made the takeaway, not a tackler.
+    // Default a defensive turnover to takeaway attribution.
     const cur = this.tagger?.getCurrentPlay();
     const turnover = unit === 'defense' && /Interception|Fumble/.test(String(cur?.tags?.result || ''));
     const wanted = unit === 'defense' ? (turnover ? 'takeaway' : 'tackler')
@@ -142,10 +138,8 @@ export class RosterManager {
     if (!text || !text.trim()) return 0;
 
     const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length === 0) return 0;
-
     // Detect delimiter: tab > semicolon > comma
-    const firstLines = lines.slice(0, Math.min(3, lines.length)).join('\n');
+    const firstLines = lines.slice(0, 3).join('\n');
     let delim = ',';
     if (firstLines.includes('\t')) delim = '\t';
     else if (firstLines.includes(';')) delim = ';';
@@ -164,25 +158,21 @@ export class RosterManager {
     let colMap = null; // { num: idx, name: idx, pos: idx, side: idx }
     let dataStart = 0;
 
-    if (rows.length > 0) {
-      const firstRow = rows[0].map(c => c.toLowerCase().replace(/[^a-z#]/g, ''));
-      const detected = {};
-      for (const [field, aliases] of Object.entries(headerAliases)) {
-        const idx = firstRow.findIndex(cell => aliases.includes(cell));
-        if (idx !== -1) detected[field] = idx;
-      }
-      // Consider it a header if at least "num" or "name" was found
-      if (detected.num !== undefined || detected.name !== undefined) {
-        colMap = detected;
-        dataStart = 1;
-      }
+    const firstRow = rows[0].map(c => c.toLowerCase().replace(/[^a-z#]/g, ''));
+    const detected = {};
+    for (const [field, aliases] of Object.entries(headerAliases)) {
+      const idx = firstRow.findIndex(cell => aliases.includes(cell));
+      if (idx !== -1) detected[field] = idx;
+    }
+    // Consider it a header if at least "num" or "name" was found
+    if (detected.num !== undefined || detected.name !== undefined) {
+      colMap = detected;
+      dataStart = 1;
     }
 
     let count = 0;
     for (let i = dataStart; i < rows.length; i++) {
       const cells = rows[i];
-      if (cells.length === 0 || (cells.length === 1 && !cells[0])) continue;
-
       let num, name, pos, side;
 
       if (colMap) {

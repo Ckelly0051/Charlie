@@ -142,10 +142,8 @@ export class TeamRegistry {
   }
 
   /**
-   * Removing the last team returns the app to first run. Every identity key
-   * this service owns is cleared together — leaving one behind is what
-   * produced the "registry without a profile" state `ensureRegistry()` has to
-   * self-heal. Season files are NOT touched.
+   * Clear the identity keys together when removing the last team.
+   * Season files are not touched.
    */
   clearIdentity() {
     for (const key of ['ffa_team_profile', 'ffa_active_team_id', 'ffa_checklist_dismissed', 'ffa_seen_stats']) {
@@ -160,8 +158,7 @@ export class TeamRegistry {
    * - A profile with no registry becomes the first registry team. This is how
    *   a first team is created: saveTeamIdentity() with no active team writes
    *   only the profile.
-   * - A registry with no active profile (partial clear / old bug) re-adopts a
-   *   team, so pills and profile never disagree.
+   * - A registry with no active profile re-adopts a team.
    * - Game Info edits write ffa_team_profile directly, so mirror those back
    *   into the active registry entry or the pills show a stale name/color.
    */
@@ -194,16 +191,9 @@ export class TeamRegistry {
   }
 
   /**
-   * Post-wipe auto-recovery. A desktop app update (or a browser storage clear
-   * that spares the season files) can wipe localStorage identity while the
-   * seasons survive on disk. Without this the app showed
-   * FIRST-RUN SETUP over the coach's data, and the rebuilt registry's new
-   * teamId matched no season, so every season was filtered out of view. That
-   * was field-reported as "you deleted my season".
-   *
-   * Each season file carries teamProfile, so identity is fully
-   * reconstructable: rebuild one registry entry per distinct stamped teamId,
-   * KEEPING the original ids so the metas still match.
+   * Rebuild local identity from surviving season files after a storage wipe.
+   * Recover one registry entry per stamped teamId, keeping the original ids
+   * so existing season metadata still resolves to the same teams.
    */
   async recoverFromWipe() {
     try {

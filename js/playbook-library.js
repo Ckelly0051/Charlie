@@ -67,7 +67,7 @@ export class PlaybookLibrary {
   snapshot() { return this.load(); }
   hasStored(teamId = this._teamId()) { try { return this.storage?.getItem(this.key(teamId)) != null; } catch { return false; } }
   replace(raw, teamId = this._teamId()) { return this._write(this._normalize(raw || this._blank()), teamId); }
-  list() { return this.load().calls.map(call => ({ ...call, defaults: { ...call.defaults } })); }
+  list() { return this.load().calls; }
   get(id) { return this.list().find(call => call.id === id) || null; }
   _slug(name) { return String(name || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'play'; }
   _availableId(name, calls = this.load().calls) {
