@@ -89,7 +89,8 @@ fixes start until the coach closes the list.
    Passer and Receiver jersey inputs start at different horizontal positions
    because each follows its own label's width (Passer's box sits further
    right than Receiver's). They should share one column so the boxes, the
-   names beside them and the grades align vertically.
+   names beside them and the grades align vertically. Seen at full width
+   and at a narrow window (Passer's box right of Receiver's).
 4. **Route & Release on defense (scope addition).** Charting a defensive
    snap against a pass offers no Route & Release; the coach wants it there.
    As built this was deliberate: the decided design charts only our offense's
@@ -103,3 +104,11 @@ fixes start until the coach closes the list.
    report's content area is horizontally narrower than every other board.
    Not fixed in this smoke: the coach assigned it to the Reports rebuild,
    recorded in `GRIDIRON-IQ-PLAN-V2.md` step 3.
+6. **Label-to-chip spacing varies by field.** A label row with an Edit
+   library button is taller, so its chips start further below the label
+   than on fields without one (defense: Coverage Family's chips sit closer
+   to their label than Coverage Call's or Blitz's). Same root cause as
+   finding 1; fix them together.
+7. **Missed Tackles label wraps.** At a narrow window "Missed Tackles"
+   breaks onto two lines while every other Players & Grades row label stays
+   on one line.
