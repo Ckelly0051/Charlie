@@ -120,9 +120,9 @@ log.
   shared scenarios and readiness waits are mapped in `docs/TESTING.md`.
   Reports and production code are unchanged; full-gate and installed approval
   remain separate.
-  Latest focused verification at `167617a6`: 7/7 green, zero failed/skipped,
+  Latest focused verification at `625b1dd5`: 9/9 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
-  `artifacts/gate-logs/2026-10-15T19-54-06-599Z-lliNN4/receipt.json`.
+  `artifacts/gate-logs/2026-10-15T22-25-10-694Z-lM7Fmi/receipt.json`.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:
