@@ -88,7 +88,7 @@ Change behavior at its owner, not at a consumer.
 | What a play can hold; Chart's draft and Save | `js/play-shape.js`, `js/play-tagger.js` (`GRIDIRON-IQ-SAVE-CONTRACT.md`) |
 
 No test-only production API: nothing publishes engine classes on `globalThis`
-(`e2e-p0-exit`, `tools/audit-shell-deps.mjs`). A harness imports the owning
+(`e2e-p0-exit`, `e2e-workspace-shell`). A harness imports the owning
 module or goes through `window.app`.
 
 ---

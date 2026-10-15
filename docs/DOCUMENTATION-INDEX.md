@@ -93,6 +93,10 @@ log.
   the shortcuts-dialog repair. Charlie Gate visual review is PASS;
   independent packaged-asset inspection and installed smoke are pending.
   Production remains IMPLEMENTED_UNVERIFIED. Checklist: `SMOKE-1.12.0-118.md`.
+- **Post-118 maintenance:** architecture ownership and behavior paths are
+  mapped in `AGENTS.md`, with exact module coverage guarded by `e2e-p0-exit`.
+  Runtime engine privacy now shares the existing shell journey; the redundant
+  off-gate shell diagnostic is removed. These changes are not in installer 118.
 - **Latest coach-accepted installer: `1.12.0-117`** (smoke PASS, 2026-10-14,
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and

@@ -17,6 +17,11 @@ commit message, not here.
 
 ## Choosing what to run
 
+Architecture ownership: `e2e-p0-exit` requires the module map in `AGENTS.md`
+to name every production JS/JSX module exactly once, with no missing files.
+`e2e-workspace-shell` checks runtime engine-class privacy; stylesheet reachability
+and Reports native ownership remain in their existing composition/route checks.
+
 Whole Chart deck: `e2e-chart-deck-polish` checks section state across edits,
 Save and navigation; keyboard disclosure and shortcut/live feedback; real Yards
 focus without auto-closing modules; control retention and replacement removal;

@@ -1,6 +1,5 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* Phase 1 shell/Home contract. The flag is opt-in; classic launch remains the
-   default. This test drives the built bundle through real route adapters. */
+/* Shell/Home contracts through the built native routes. */
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
 
@@ -1440,6 +1439,23 @@ ok(disabledContrast.disabled && disabledContrast.ratio >= 3,
   'a disabled route label stays at or above 3:1 against its own background',
   JSON.stringify(disabledContrast));
 
+const engineGlobals = await page.evaluate(() => {
+  const app = window.app;
+  const live = {
+    StatsEngine: app.stats?.constructor,
+    SeasonStore: app.storage?.seasonStore?.constructor,
+    StorageManager: app.storage?.constructor,
+    PlayTagger: app.tagger?.constructor,
+    StudyScreen: app.studyScreen?.constructor,
+    WorkspaceShell: app.workspaceShell?.constructor,
+  };
+  const leaked = Object.entries(live).filter(([name, type]) => type && globalThis[name] === type).map(([name]) => name);
+  for (const name of ['TauriBackend', 'Charts', 'TagProjection', 'SnapshotEnvelope']) {
+    if (typeof globalThis[name] !== 'undefined') leaked.push(name);
+  }
+  return leaked;
+});
+ok(engineGlobals.length === 0, 'engine classes stay private at runtime', engineGlobals.join(', '));
 ok(errors.length === 0, 'No page errors', errors.join(' | '));
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 await browser.close();

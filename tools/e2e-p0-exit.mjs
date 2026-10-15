@@ -82,6 +82,15 @@ ok(browserHarnesses.length >= 41 && staleBrowserEntries.length === 0,
 
 const cssFiles = (await readdir(resolve(root, 'css'))).filter(name => name.endsWith('.css'));
 const jsFiles = (await readdir(resolve(root, 'js'))).filter(name => /\.(?:js|jsx)$/.test(name));
+const architecture = await read('AGENTS.md');
+const moduleSection = architecture.split('## Module map')[1]?.split('## Behavior and change impact')[0] || '';
+const mappedModules = [...moduleSection.matchAll(/`([a-z][a-z0-9-]*\.(?:js|jsx))`/g)].map(match => match[1]);
+const unmapped = jsFiles.filter(name => !mappedModules.includes(name));
+const nonexistent = mappedModules.filter(name => !jsFiles.includes(name));
+const duplicates = mappedModules.filter((name, index) => mappedModules.indexOf(name) !== index);
+ok(jsFiles.length > 0 && unmapped.length === 0 && nonexistent.length === 0 && duplicates.length === 0,
+  'architecture module map names every production module exactly once',
+  JSON.stringify({ unmapped, nonexistent, duplicates }));
 const viteSources = [
   await read('index.html'),
   ...await Promise.all(jsFiles.map(name => read(`js/${name}`))),

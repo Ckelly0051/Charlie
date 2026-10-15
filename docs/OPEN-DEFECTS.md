@@ -78,16 +78,6 @@ historical gate receipt. Rapid scrubbing remains deferred.
   keep 12px cells (`gi-off-narrow-fit`). Recomposing that band so the exception
   can be deleted is open.
 
-- **Off-gate persistence matrix lock corrected (2026-10-12).** No product
-  defect: an intentionally empty season-owned roster must replace the prior
-  roster (`CLAUDE.md` > Roster; `StorageManager.commitActive`). The old lock
-  combined that with the playbook's still-valid empty-cache protection and
-  supplied retired `window.app` dependencies. Its positive control failed at
-  HEAD. The replacement injects dependencies, checks roster clearing, playbook
-  preservation, populated updates and copied roster objects. Matrix: 108/108;
-  independently restoring a nonempty-roster guard or removing the playbook
-  guard produces 107/108. No app code or coach data changed.
-
 ## Old patterns to fix when touched
 
 Working code built the old way. A change that edits one of these files fixes
