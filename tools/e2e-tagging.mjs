@@ -2,7 +2,7 @@ import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
 import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
 /* Keyboard and charting workflows through the mounted native deck: empty-play
  * guard, Yards/Enter, auto-Gain, drawing shortcuts, Skip vs Save & Next,
- * penalty down replay, clip marks and the More results selector. */
+ * clip marks and the More results selector. Pure situation rules live in e2e-core. */
 import puppeteer from './test-browser.mjs';
 import { chartDeckControls } from './chart-deck-test.mjs';
 
@@ -251,24 +251,6 @@ ok(unitCarryOne.id === r.ids[1] && unitCarryOne.stored === 'offense' && unitCarr
 ok(unitCarryCharted.id === r.ids[3] && unitCarryCharted.stored === 'special'
    && unitCarryCharted.shown === 'special' && unitCarryCharted.stUnit === 'punt',
    'Save & Next preserves a genuinely charted next play with a different unit', JSON.stringify(unitCarryCharted));
-
-console.log('\n== 8. Penalty replays the down in Auto D&D ==');
-r = await page.evaluate(() => {
-  const t = window.app.tagger;
-  const sit = t.computeNextSituation({ tags: {
-    down: '2', distance: '7', result: 'Penalty', yardage: '5',
-    unit: 'offense', fieldSide: 'own', yardLine: '40',
-  }});
-  const stillStops = t.computeNextSituation({ tags: {
-    down: '2', distance: '7', result: 'Interception', yardage: '0', unit: 'offense',
-  }});
-  return { sit, stillStops };
-});
-ok(r.sit && r.sit.down === '2' && r.sit.distance === '7',
-   'penalty pre-fills the SAME down & distance (replay)', JSON.stringify(r.sit));
-ok(r.sit && r.sit.fieldSide === 'own' && r.sit.yardLine === 40,
-   'penalty keeps the previous spot', JSON.stringify(r.sit));
-ok(r.stillStops === null, 'possession-ending results still blank the next play');
 
 console.log('\n== 9. markEnd feedback instead of silent no-op ==');
 r = await page.evaluate(() => {

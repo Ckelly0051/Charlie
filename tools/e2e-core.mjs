@@ -11,6 +11,8 @@
 import { StatsEngine } from '../js/stats-engine.js';
 import { Charts } from '../js/charts.js';
 import { isPlayTagged } from '../js/football-rules.js';
+import { PlayTagger } from '../js/play-tagger.js';
+import { StorageManager } from '../js/storage.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, label, extra = '') => {
@@ -101,6 +103,60 @@ console.log('\n== 5. isPlayTagged — one canonical "is this play tagged?" rule 
 ok(r.offense && r.stKickReturn && r.defenseScheme, 'offense, special-teams (Kick Return), and defense plays all read as TAGGED', JSON.stringify(r));
 ok(r.runPassOnly && r.formationOnly, 'a run/pass call or a formation alone counts as tagged', JSON.stringify(r));
 ok(!r.ddOnly && !r.blank, 'down/distance pre-fill alone (or nothing) is NOT tagged', JSON.stringify(r));
+
+console.log('\n== 6. Film index survives unloaded and partially loaded playlists ==');
+{
+  // Exercise the production serializer without constructor event wiring or disk I/O.
+  const sm = Object.assign(Object.create(StorageManager.prototype), {
+    tagger: { plays: Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1, timestamp: { start: 0, end: 10 + i },
+      tags: { unit: 'offense', playType: 'Run Inside', result: 'Gain', custom: [] },
+      annotations: [], notes: '', clipName: `IMG_${100 + i}`,
+      clipPath: `Sorrows/IMG_${100 + i}`, clipId: 500 + i,
+    })) },
+    canvas: { annotations: [] }, _removedClipIds: new Set(),
+    playlist: { clips: [], get hasClips() { return this.clips.length > 0; } },
+  });
+  const a = sm._serialize();
+  ok(a.clipRefs.length === 8, 'A: film index keeps all 8 clips when film NOT loaded');
+  ok(a.clipNames.length === 8, 'A: clipNames length 8');
+  ok(a.isMultiClip === true, 'A: isMultiClip stays true (not flipped to single-video)');
+  ok(JSON.stringify(a.clipPaths) === JSON.stringify(sm.tagger.plays.map(p => p.clipPath)),
+    'A: clipPaths match the plays');
+  sm.playlist.clips = [0, 1, 2].map(i => ({
+    id: i + 1, name: `IMG_${100 + i}`, clipPath: `Sorrows/IMG_${100 + i}`,
+    file: null, assetUrl: 'x', duration: 10 + i, playId: i + 1,
+  }));
+  const b = sm._serialize();
+  ok(b.clipRefs.length === 8, 'B: partial playlist (3 loaded) still indexes all 8 clips');
+  ok(b.isMultiClip === true, 'B: isMultiClip true');
+  sm.tagger.plays = Array.from({ length: 5 }, (_, i) => ({
+    id: i + 1, timestamp: { start: i * 10, end: i * 10 + 8 },
+    tags: { unit: 'offense', custom: [] }, annotations: [], notes: '',
+    clipName: '', clipPath: '', clipId: null,
+  }));
+  sm.playlist.clips = [];
+  const c = sm._serialize();
+  ok(c.clipRefs.length === 0, 'C: true single-video game stays 0 clips');
+  ok(c.isMultiClip === false, 'C: single-video stays isMultiClip=false');
+}
+
+console.log('\n== 7. Penalty replays the down in Auto D&D ==');
+{
+  const tagger = new PlayTagger(null);
+  const sit = tagger.computeNextSituation({ tags: {
+    down: '2', distance: '7', result: 'Penalty', yardage: '5',
+    unit: 'offense', fieldSide: 'own', yardLine: '40',
+  } });
+  const stillStops = tagger.computeNextSituation({ tags: {
+    down: '2', distance: '7', result: 'Interception', yardage: '0', unit: 'offense',
+  } });
+  ok(sit && sit.down === '2' && sit.distance === '7',
+    'penalty pre-fills the SAME down & distance (replay)', JSON.stringify(sit));
+  ok(sit && sit.fieldSide === 'own' && sit.yardLine === 40,
+    'penalty keeps the previous spot', JSON.stringify(sit));
+  ok(stillStops === null, 'possession-ending results still blank the next play');
+}
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail ? 1 : 0);

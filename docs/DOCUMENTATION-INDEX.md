@@ -105,6 +105,9 @@ log.
   flow. This runtime deletion changes the bundle; comment-only batches do not.
   Tag-field model checks now share the DOM-free analytics suite and their UI
   checks share native Chart; the separate tag-fields browser harness is removed.
+  Film-index serialization and penalty-situation rules share the Node core
+  suite; the separate film-index browser launch is removed. Browser media,
+  persistence and tagging integration checks remain with their existing owners.
   Reports share rendered-state waits and table clipping. Persistence tests
   separate basic catalog contracts from import/restore/close races; duplicate
   matrix sections and repair histories are removed, with shared backend setup.
