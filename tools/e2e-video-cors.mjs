@@ -1,15 +1,6 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-/* E2E harness — VideoController cross-origin retry logic. Covers the desktop
-   asset-protocol playback path that the other harnesses (blob URLs / API play
-   selection) never exercise. Drives the error/promote handlers directly with
-   video.load() stubbed, so the assertions are deterministic without a real
-   asset:// server or a real CORS failure.
-
-   The regression this guards: a corrupt clip must NOT latch corsBlocked (which
-   would taint the canvas for every later good clip), while a genuine CORS
-   failure (retry succeeds) MUST latch it so a 69-clip game retries once.
-
-   Run after build:  npm run build && node tools/e2e-video-cors.mjs */
+// Simulated asset-protocol retries distinguish corruption from confirmed CORS
+// failure. Real media-error recovery belongs to e2e-breakdown-video.
 import puppeteer from './test-browser.mjs';
 
 const URL = TEST_APP_URL;
@@ -18,7 +9,6 @@ const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
@@ -32,7 +22,7 @@ page.on('pageerror', e => { if (!expected(e.message)) errors.push('PAGEERROR: ' 
 page.on('console', m => { if (m.type() === 'error' && !expected(m.text())) errors.push(m.text()); });
 
 await page.goto(URL, { waitUntil: 'networkidle0' });
-await sleep(500);
+await page.waitForFunction(() => !!window.app?.playlist && !!window.app?.vc?.loadState);
 
 // All assertions run in-page against the live VideoController instance, with
 // video.load() stubbed to a no-op so no real network load fires async errors
@@ -130,8 +120,8 @@ r = await page.evaluate((ASSET, ASSET2) => {
 ok(r.open.cross === 'anonymous' && r.open.loaded === 1, 'setSrc sets crossorigin when not blocked + calls load', JSON.stringify(r.open));
 ok(r.blocked.cross === null && r.blocked.loaded === 2, 'setSrc omits crossorigin when corsBlocked', JSON.stringify(r.blocked));
 
-console.log('\n== 5b. Coach-facing load, buffering, error, and reset states ==');
-r = await page.evaluate((ASSET, ASSET2) => {
+console.log('\n== 5b. Loading and buffering states ==');
+r = await page.evaluate((ASSET) => {
   const vc = window.app.vc;
   vc.video.load = () => {};
   vc.corsBlocked = false;
@@ -141,32 +131,13 @@ r = await page.evaluate((ASSET, ASSET2) => {
   const buffering = { visible: !vc.loadState.classList.contains('hidden'), state: vc.loadState.dataset.state, text: vc.loadStateText.textContent };
   vc.video.dispatchEvent(new Event('canplay'));
   const ready = { hidden: vc.loadState.classList.contains('hidden') };
-  vc.corsBlocked = true;
-  vc.currentFileName = 'Broken clip';
-  vc.video.removeAttribute('crossorigin');
-  vc.video.setAttribute('src', ASSET2);
-  vc._handleMediaError();
-  // V2-H: the coach-facing status text now lives at a stable, live-queried
-  // id (#videoPlaceholderStatus) rather than a <p> UIPolish's empty-state
-  // rebuild used to detach from the document moments after the constructor
-  // cached it -- that stale cache was WHY a real failure never showed a
-  // message at all. See video-controller.js _setPlaceholderText().
-  const statusEl = () => vc.placeholder.querySelector('#videoPlaceholderStatus');
-  const titleEl = () => vc.placeholder.querySelector('#dropzoneTitle');
-  const failed = { stateHidden: vc.loadState.classList.contains('hidden'), placeholderVisible: !vc.placeholder.classList.contains('hidden'), message: statusEl()?.textContent || '', title: titleEl()?.textContent };
-  vc.unloadVideo();
-  const reset = { stateHidden: vc.loadState.classList.contains('hidden'), message: statusEl()?.textContent || '', hidden: statusEl()?.hidden, title: titleEl()?.textContent };
-  return { loading, buffering, ready, failed, reset };
-}, ASSET, ASSET2);
+  return { loading, buffering, ready };
+}, ASSET);
 ok(r.loading.visible && r.loading.state === 'loading' && r.loading.text === 'Loading film',
    'source changes show an explicit loading state', JSON.stringify(r.loading));
 ok(r.buffering.visible && r.buffering.state === 'buffering' && r.buffering.text === 'Buffering film',
    'waiting playback shows an explicit buffering state', JSON.stringify(r.buffering));
 ok(r.ready.hidden, 'canplay clears the transient load state', JSON.stringify(r.ready));
-ok(r.failed.stateHidden && r.failed.placeholderVisible && r.failed.message.includes("Couldn't play Broken clip") && r.failed.message.includes('Re-link the film') && r.failed.title === 'Film unavailable',
-   'terminal media failure shows a useful recovery message in the player', JSON.stringify(r.failed));
-ok(r.reset.stateHidden && r.reset.hidden && r.reset.message === '' && r.reset.title === 'Add game film',
-   'unload restores the honest empty state', JSON.stringify(r.reset));
 console.log('\n== 6. Multi-clip switchToClip delegates to setSrc (corsBlocked honored) ==');
 r = await page.evaluate((ASSET) => {
   const vc = window.app.vc;

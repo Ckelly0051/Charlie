@@ -122,6 +122,8 @@ log.
   production code are unchanged; full-gate and installed approval are separate.
   Catalog persistence shares its missing-catalog scenario without a duplicate
   database setup; the stale-file reader remains usable to expose regressions.
+  Film terminal recovery shares the real media-error journey; the CORS suite
+  retains retry/buffering/preload coverage and waits for readiness, not a timer.
   Focused verification at `66962216`: 15/15 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
   `artifacts/gate-logs/2026-10-15T19-39-11-202Z-3hnWul/receipt.json`.

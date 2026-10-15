@@ -85,6 +85,7 @@ state=await page.evaluate(()=>new Promise(resolve=>{
   vc.video.addEventListener('error',()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const status=vc.placeholder.querySelector('#videoPlaceholderStatus');
     resolve({
+      loadStateHidden:vc.loadState.classList.contains('hidden'),
       placeholderVisible:!vc.placeholder.classList.contains('hidden'),
       statusHidden:status?.hidden,
       statusText:status?.textContent||'',
@@ -94,19 +95,23 @@ state=await page.evaluate(()=>new Promise(resolve=>{
     });
   })),{once:true});
   vc.corsBlocked=true; // skip the CORS-retry branch -- go straight to the real failure path
-  vc.video.src='data:video/mp4;base64,AAAA';
-  vc.video.load();
+  vc.currentFile=null;
+  vc.currentFileName='Broken clip';
+  vc.setSrc('data:video/mp4;base64,AAAA');
+  if(vc.loadState.classList.contains('hidden')) throw new Error('Failure fixture never entered loading');
 }));
-ok(state.placeholderVisible&&!state.statusHidden&&state.isError,'A genuine media error shows a visible, styled recovery message',JSON.stringify(state));
-ok(state.statusText.startsWith("Couldn't play")&&state.statusText.includes('Re-link the film'),'The message names the failure and the fix, not a generic empty state',JSON.stringify(state));
+ok(state.loadStateHidden&&state.placeholderVisible&&!state.statusHidden&&state.isError,'A genuine media error shows a visible, styled recovery message',JSON.stringify(state));
+ok(state.statusText.startsWith("Couldn't play")&&state.statusText.includes("Couldn't play Broken clip")&&state.statusText.includes('Re-link the film'),'The message names the failure and the fix, not a generic empty state',JSON.stringify(state));
 ok(state.title==='Film unavailable','A real failure swaps the title instead of reading like a fresh empty state',JSON.stringify(state));
 ok(state.dropzoneStillThere,'Add Video / Add Folder stay reachable as the actual recovery actions',JSON.stringify(state));
 state=await page.evaluate(()=>{
+  window.app.vc.video.dispatchEvent(new Event('waiting'));
+  if(window.app.vc.loadState.classList.contains('hidden')) throw new Error('Unload fixture never entered buffering');
   window.app.vc.unloadVideo();
   const status=window.app.vc.placeholder.querySelector('#videoPlaceholderStatus');
-  return {statusHidden:status?.hidden,statusText:status?.textContent||'',title:window.app.vc.placeholder.querySelector('#dropzoneTitle')?.textContent};
+  return {loadStateHidden:window.app.vc.loadState.classList.contains('hidden'),statusHidden:status?.hidden,statusText:status?.textContent||'',title:window.app.vc.placeholder.querySelector('#dropzoneTitle')?.textContent};
 });
-ok(state.statusHidden&&state.statusText===''&&state.title==='Add game film','Unloading clears the failure message and title back to the neutral empty state',JSON.stringify(state));
+ok(state.loadStateHidden&&state.statusHidden&&state.statusText===''&&state.title==='Add game film','Unloading clears the failure message and title back to the neutral empty state',JSON.stringify(state));
 ok(errors.length===0,'Native Breakdown journey has zero page errors',errors.join(' | '));
 await browser.close();
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
