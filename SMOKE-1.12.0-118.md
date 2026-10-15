@@ -90,3 +90,12 @@ fixes start until the coach closes the list.
    because each follows its own label's width (Passer's box sits further
    right than Receiver's). They should share one column so the boxes, the
    names beside them and the grades align vertically.
+4. **Route & Release on defense (scope addition).** Charting a defensive
+   snap against a pass offers no Route & Release; the coach wants it there.
+   As built this was deliberate: the decided design charts only our offense's
+   identified target (`docs/RECEIVER-CHARTING-RESEARCH-PROPOSAL.md`; the
+   defense-side model has no opponent receiver role). Adding it needs design
+   decisions before any build: an opponent target number on defensive snaps
+   (not from our roster), how it binds and is cleared like the offensive
+   detail, the defensive Study dimensions, and whether Target/Catch zones
+   (checkpoint 2) follow on defense too.
