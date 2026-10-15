@@ -332,16 +332,21 @@ a reviewed correction named in the diff.
   rendering and integration. Unrelated tests are not merged just to cut the
   harness count.
 - **Runtime budgets.** A harness that exceeds its deadline is stopped and
-  fails. The full gate budget is 6 minutes of end-to-end wall time on this
-  machine; the receipt records non-overlapping setup phases and each
-  harness's duration. Over budget, the gate still finishes every check, then
-  the run is red for the coach to decide, not a pass with an explanation. The
-  runner's own test proves this: a harness scheduled after the budget expires
-  still runs and its result is recorded.
+  fails, everywhere (local and CI). The full gate target is 6 minutes of
+  end-to-end wall time on this machine; the receipt records non-overlapping
+  setup phases, each harness's duration and a `performanceOutcome` separate
+  from correctness. CI records its timing without that local target.
+  During test-suite consolidation (coach, 2026-10-15) the total budget is
+  report-only: an over-budget run with every check passing keeps its exit
+  code and release eligibility, and its receipt says `over-budget`. Blocking
+  enforcement turns on, by an explicit rule change, once the consolidation is
+  reviewed and a representative full run fits the target; it is not deferred
+  indefinitely and installers get no routine timing waivers. The runner's own
+  tests keep the blocking mode proven: over budget, every check still runs (a
+  harness scheduled after expiry runs and is recorded) and the run is red.
   Never meet a budget by skipping checks or weakening assertions, and never
   raise a deadline merely to hide a slowdown; a genuine scope change gets a
-  reviewed deadline change. `tools/run-gate.mjs` enforces both; focused
-  `--only` runs report timing without the full-gate budget.
+  reviewed deadline change. Focused `--only` runs report timing only.
 - **Audit before structural reduction.** Large reductions (the Reports
   rebuild, storage consolidation) start from an audit of what each module
   does. Done means every listed job has moved to its new owner and the old
