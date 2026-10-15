@@ -78,3 +78,10 @@ fixes start until the coach closes the list.
    understands why it happens (the button is pinned to the label row's right
    edge) and wants a better way to place it within the module: the current
    placement "just plain looks bad."
+2. **Try editor: "What happened" label and order.** The label is sloppy
+   phrasing for the Bad Snap / Blocked / Defensive Return / Interception /
+   Fumble chips (`js/native-tagging.jsx` TryEditor). Proposed label: "Try
+   events" (coach to confirm). The group moves to the bottom of the try
+   editor, under Points awarded. Note for the fix: Points awarded hides and
+   Official return ruling appears when Defensive Return is chosen, so the
+   ruling should follow the events group rather than jump above it.
