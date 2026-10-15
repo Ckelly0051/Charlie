@@ -123,6 +123,10 @@ log.
   coverage; mounted film-linking and playback journeys remain browser-owned.
   Deferred program-scoped playbook rollback shares the Settings journey;
   failed-save season/game ownership no longer starts a browser.
+  Home rail/startup waits now require mounted completion; Retry requires a
+  fresh read rather than reusing the previous callback. Geometry and failure
+  assertions remain in their original owners. Final focused verification is
+  separate from full-gate and installed approval.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:

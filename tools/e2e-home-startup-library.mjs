@@ -1,12 +1,5 @@
-/* HOME AT STARTUP SHOWS THE LIBRARY, NOT FIRST-RUN (SMOKE-110 finding 1)
-   Installed 1.12.0-110: with three seasons in the program, Home opened on
-   "Get started" and "Start the football year here / Create first season"
-   until the coach clicked Season library. Home rendered from TeamHubScreen's
-   state before that state had ever loaded: the rail read its empty team list
-   as "no team" and the library panel read its empty season list as "no
-   seasons".
-
-   Run after build:  node tools/e2e-home-startup-library.mjs */
+/* Startup library distinguishes loading, ready and failed catalog reads from
+ * first-run state. Retry must issue a fresh read and render the saved seasons. */
 import puppeteer from './test-browser.mjs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
 
@@ -18,6 +11,19 @@ try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
   page.on('dialog', async d => { try { await d.dismiss(); } catch {} });
+  const waitForLibrary = async status => {
+    await page.waitForFunction(expected => {
+      const app = window.app;
+      const panel = document.querySelector('[data-native-home] .library-panel');
+      if (!app?.homeScreen?.snapshot?.().active || app.teamHubScreen.snapshot().status !== expected
+        || !panel?.getClientRects().length) return false;
+      if (expected === 'loading') return !!panel.querySelector('[data-library-loading]');
+      if (expected === 'error') return !!panel.querySelector('[data-library-error] button');
+      return app.teamHubScreen.snapshot().seasons?.length >= 2
+        && panel.querySelectorAll('[data-library-season]').length >= 2;
+    }, { timeout: 8000 }, status);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  };
   await gotoApp(page, APP_URL);
   // Two program seasons, then the library with no season open (startup is
   // library-first, so this is the state every launch begins in).
@@ -27,8 +33,7 @@ try {
     await app.storage.createSeason({ name: '2026 Startup Varsity', team: 'Startup', year: '2026', level: 'Varsity' });
   });
   await page.reload({ waitUntil: 'networkidle0' });
-  await page.waitForFunction(() => window.app?.homeScreen?.snapshot?.().active);
-  await new Promise(r => setTimeout(r, 400));
+  await waitForLibrary('ready');
   const settled = await page.evaluate(() => ({
     open: !!window.app.storage.seasonStore.currentSeasonId,
     seasons: window.app.teamHubScreen.snapshot().seasons?.length || 0,
@@ -50,6 +55,7 @@ try {
       const real = storage.listSeasons.bind(storage);
       storage.__held = true;
       storage.listSeasons = () => new Promise((resolve, reject) => {
+        window.__listReadCount = (window.__listReadCount || 0) + 1;
         window.__releaseList = () => resolve(real());
         window.__rejectList = () => reject(new Error('catalog read failed'));
       });
@@ -57,7 +63,7 @@ try {
   });
   await page.reload({ waitUntil: 'networkidle0' });
   await page.waitForFunction(() => window.app?.homeScreen?.snapshot?.().active && window.__releaseList);
-  await new Promise(r => setTimeout(r, 300));
+  await waitForLibrary('loading');
   const loading = await read();
   ok(loading.status === 'loading', 'fixture: the hub is still loading', loading.status);
   ok(!/Get started/.test(loading.rail), 'while loading, the rail does not offer Get started', loading.rail);
@@ -65,27 +71,36 @@ try {
   ok(/Loading seasons/.test(loading.panel), 'while loading, the library says it is loading', loading.panel);
 
   await page.evaluate(() => window.__releaseList());
-  await new Promise(r => setTimeout(r, 300));
+  await waitForLibrary('ready');
   const done = await read();
   ok(done.status === 'ready' && /2025 Startup JV/.test(done.panel) && /2026 Startup Varsity/.test(done.panel) && !/Get started/.test(done.rail),
     'once loaded, the library and rail list both seasons', done);
 
-  // Codex review of 8ac3db8c: a FAILED first read must say so and offer Retry,
-  // not show "Loading seasons…" forever.
+  // A failed first read shows an error and Retry, never an endless loading state.
   await page.reload({ waitUntil: 'networkidle0' });
   await page.waitForFunction(() => window.app?.homeScreen?.snapshot?.().active && window.__rejectList);
   await page.evaluate(() => window.__rejectList());
-  await new Promise(r => setTimeout(r, 300));
+  await waitForLibrary('error');
   const failed = await read();
   ok(failed.status === 'error', 'fixture: the first season read failed', failed.status);
   ok(!/Loading seasons/.test(failed.panel) && /could not be loaded|did not load/i.test(failed.panel) && /Retry/.test(failed.panel),
     'a failed first read shows an error with Retry instead of loading forever', failed.panel);
   ok(!/Get started/.test(failed.rail) && !/Start the football year here|Create first season/.test(failed.panel),
     'a failed first read never falls back to first-run', failed);
+  const readsBeforeRetry = await page.evaluate(() => {
+    window.__retryReleaseBefore = window.__releaseList;
+    return window.__listReadCount;
+  });
   await page.evaluate(() => [...document.querySelectorAll('.library-panel button')].find(b => b.textContent.trim() === 'Retry')?.click());
-  await page.waitForFunction(() => window.__releaseList);
+  await page.waitForFunction(previous => window.__listReadCount > previous
+    && typeof window.__releaseList === 'function' && window.__releaseList !== window.__retryReleaseBefore,
+  { timeout: 8000 }, readsBeforeRetry);
+  const freshRetry = await page.evaluate(previous => window.__listReadCount > previous
+    && window.__releaseList !== window.__retryReleaseBefore, readsBeforeRetry);
+  ok(freshRetry, 'Retry issues a fresh catalog read with a new release callback');
+  await waitForLibrary('loading');
   await page.evaluate(() => window.__releaseList());
-  await new Promise(r => setTimeout(r, 300));
+  await waitForLibrary('ready');
   const retried = await read();
   ok(retried.status === 'ready' && /2025 Startup JV/.test(retried.panel), 'Retry loads the seasons', retried);
 } finally { await browser.close(); }

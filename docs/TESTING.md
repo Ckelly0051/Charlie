@@ -127,6 +127,10 @@ remains in `e2e-linked-film` and `e2e-film-storage-setup`.
 Failed-save season/game ownership runs entirely in Node. The deferred playbook
 rollback case shares the existing `e2e-native-settings` browser journey, which
 also retains immediate-save failure and mounted Playbook controls.
+Home rail expansion waits for the model's expected season count and mounted
+rows before measuring layout. Startup library waits for mounted loading,
+ready and error states; Retry must issue a fresh read and release callback.
+These completion checks belong to the existing rail/startup owners, not sleeps.
 
 Real-data harnesses read copies only and never write coach data. CI runs them
 with `GIQ_REALDATA_OPTIONAL=1`, which is an explicit skip, not proof.

@@ -1,12 +1,5 @@
-/**
- * Home rail: navigation gets the rail's flexible height.
- *
- * The 1.12.0-91 installed screenshot showed the Program Seasons tree holding
- * one visible year (2026) while the OPEN season was 2025 JV, because both trees
- * held an equal `1fr` with a 112px floor under a tool block that took nearly
- * half the rail. These assertions are behavioural: what a coach can see and
- * reach, measured, not which selectors or declarations exist.
- */
+/* Home rail: navigation owns the flexible height. Measure visible seasons,
+ * independently scrolling trees and reachable actions, not selector presence. */
 import { APP_URL } from './app-entry.mjs';
 import { createFirstTeam } from './hub-setup.mjs';
 import puppeteer from './test-browser.mjs';
@@ -40,14 +33,25 @@ const modelSeasons = () => page.evaluate(() =>
 const railRows = () => page.evaluate(() =>
   document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-row').length);
 /** Unfold every year, so a DOM count means "all seasons". */
-const expandAllYears = async () => {
-  await page.evaluate(async () => {
+const expandAllYears = async expected => {
+  await page.waitForFunction(count => {
+    const seasons = (window.app.teamHubScreen.snapshot().railSeasons || []).filter(season => !season.isScout);
+    const section = document.querySelector('[data-rail-section="Program Seasons"]');
+    const mountedCount = [...(section?.querySelectorAll('.rail-year-count') || [])]
+      .reduce((sum, node) => sum + Number(node.textContent), 0);
+    return seasons.length === count && mountedCount === count && section.getClientRects().length > 0;
+  }, { timeout: 8000 }, expected);
+  await page.evaluate(() => {
     const folded = [...document.querySelectorAll('[data-rail-section="Program Seasons"] .rail-year-toggle')]
       .filter(t => t.getAttribute('aria-expanded') === 'false');
     folded.forEach(t => t.click());
-    await new Promise(r => setTimeout(r, 200));
   });
-  await sleep(250);
+  await page.waitForFunction(count => {
+    const section = document.querySelector('[data-rail-section="Program Seasons"]');
+    return section && !section.querySelector('.rail-year-toggle[aria-expanded="false"]')
+      && section.querySelectorAll('.rail-row').length === count;
+  }, { timeout: 8000 }, expected);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 };
 
 /** Create seasons through the real service owner, never by poking state, and
@@ -62,7 +66,7 @@ async function addSeasons(specs) {
   }, specs);
   await page.evaluate(() => window.app.workspaceShell.show('home'));
   for (let attempt = 0; attempt < 30; attempt++) {
-    if (await modelSeasons() === want) { await expandAllYears(); return want; }
+    if (await modelSeasons() === want) { await expandAllYears(want); return want; }
     await sleep(200);
   }
   throw new Error(`rail never showed ${want} seasons (saw ${await modelSeasons()})`);
