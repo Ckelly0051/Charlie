@@ -8,7 +8,6 @@ Updated 2026-10-15.
 - `AGENTS.md` - architecture and module map.
 - `GRIDIRON-IQ-PLAN-V2.md` - forward roadmap.
 - `docs/OPEN-DEFECTS.md` - open defects, pending smoke items, coach decisions.
-- `docs/CODEX-JOB-2026-10-12.md` - Codex's current assignment (deleted when it closes).
 - `docs/TESTING.md` - testing tiers and execution rules.
 - `docs/REPORTS-CONTRACTS.md`, `docs/HOME-CONTRACTS.md` - Reports and Home rules.
 - `docs/VISUAL-SYSTEM-RULES.md` - shared palette, typography, navigation,
@@ -110,7 +109,7 @@ log.
   `SMOKE-1.12.0-117.md`): Dashboards rev 2 (`e68bb5ef`):
   a canvas of modules, each with its own unit, games and filters; Open and
   Edit; every action on the picker page; typed delete. Focused harnesses
-  green. The Codex job in `docs/CODEX-JOB-2026-10-12.md` is built in source:
+  green. Completed source repairs include:
   native views/shared overlays, HTML save filters, the current roster contract
   and film path checks. Mirror recovery distinguishes invalid IDs; export
   consumers share one injected save function without a window global.
