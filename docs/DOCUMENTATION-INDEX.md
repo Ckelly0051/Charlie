@@ -122,9 +122,9 @@ log.
   mapped in `docs/TESTING.md`; decisions and limits are in
   `docs/TEST-SUITE-CONSOLIDATION-AUDIT.md`. Production is unchanged, Reports
   remains excluded, and full-gate/installed approval remain separate.
-  Latest focused verification at `625b1dd5`: 9/9 green, zero failed/skipped,
+  Latest focused verification at `6c61762f`: 23/23 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
-  `artifacts/gate-logs/2026-10-15T22-25-10-694Z-lM7Fmi/receipt.json`.
+  `artifacts/gate-logs/2026-10-16T04-07-08-382Z-4hqrE8/receipt.json`.
 - **Film lifecycle follow-up:** source fix `cbe0f47f`; fresh-build focused
   verification **12/12 green**, zero failed/skipped, 23.670 seconds. Source
   stayed clean and unchanged; fixture hashes were unchanged. Receipt:

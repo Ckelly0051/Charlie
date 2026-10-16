@@ -35,6 +35,9 @@ No production behavior, coach data, release budget or acceptance threshold chang
 | Break Down visual finish | Context selectors, menu placement/focus, long off-library chips and narrow reachability exceed generic containment. Font/layout and published-field completion replace timers. |
 | Game-form visual | Program/scout, create/edit and viewport variants exercise different controls. Score-pair styling, focus and action reachability remain; form focus and fonts/layout replace timers. |
 | Special Teams try charting | Attempt-specific roles, points, loss confirmation and specialist roster ownership remain. The extra timer after two render frames is removed. |
+| Play library | Retains retargeting an already-open Settings sheet and program-scoped vocabulary/defaults. A model-only library test cannot prove the visible editor retargets. |
+| Home/Break Down visual repair | Retains computed icon/score/action styles and real hover interaction; these are not implied by containment or merely finding the controls. |
+| Missed-tackles charting | Retains real per-unit controls, blanks versus zero, player/count ownership, grid edits and saved charting. Model counters alone cannot prove those writes and controls. |
 | Study screen, native tagging, library storage and projection durability | Retain real interaction, overlay lifecycle, reload/Save or quota boundaries. Pure-query/model moves do not replace these browser contracts. |
 | Gate runner | Synthetic process, deadline, receipt, logging and mode contracts remain distinct; shortening timeouts or dropping policy combinations would remove coverage. |
 
