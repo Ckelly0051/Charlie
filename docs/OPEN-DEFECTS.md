@@ -146,8 +146,10 @@ proving no change. The split is part of the reports rebuild
   The current full-gate duration
   after cleanup has not been measured. The prior full receipt predates cleanup
   and budget enforcement; the starting coverage/overlap inventory is
-  `docs/GATE-RUNTIME-AUDIT-2026-10-15.md`. Reports consolidation stays with its
-  rebuild; do not delete checks just to meet the budget.
+  `docs/GATE-RUNTIME-AUDIT-2026-10-15.md`. The bounded non-Reports consolidation
+  is complete and accepted. No mixed-harness audit is scheduled before the
+  Reports rebuild; Reports-related consolidation stays with that rebuild.
+  Do not delete checks just to meet the budget.
 - Settings live in localStorage: the quota failed once,
   settings do not travel with a season, and nothing syncs them. Blocks the
   mobile companion.

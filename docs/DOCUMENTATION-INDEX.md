@@ -1,6 +1,6 @@
 # GridIron IQ Documentation Index
 
-Updated 2026-10-15.
+Updated 2026-10-16.
 
 ## Current authority
 
@@ -10,7 +10,7 @@ Updated 2026-10-15.
 - `docs/OPEN-DEFECTS.md` - open defects, pending smoke items, coach decisions.
 - `docs/TESTING.md` - testing tiers and execution rules.
 - `docs/GATE-RUNTIME-AUDIT-2026-10-15.md` - historical timing evidence,
-  slow-suite responsibilities and overlap inventory for the next test audit.
+  slow-suite responsibilities and disposition; bounded non-Reports work is closed.
 - `docs/CLEANUP-REPORT-2026-10-15.md` - completed non-Reports cleanup, benefits,
   coverage accounting and Claude review handoff.
 - `docs/REPORTS-CONTRACTS.md`, `docs/HOME-CONTRACTS.md` - Reports and Home rules.
@@ -117,7 +117,7 @@ log.
 - **Test-suite consolidation:** model tests run in Node; existing mounted
   journeys retain browser wiring, interactions and media recovery. Study query
   parity and gated film-load races no longer boot the app. The bounded
-  non-Reports audit is complete: duplicate cases and the cross-area repair
+  non-Reports audit is complete and coach-accepted: duplicate cases and the cross-area repair
   harness are retired; retained journeys use observed completion. Coverage is
   mapped in `docs/TESTING.md`; decisions and limits are in
   `docs/TEST-SUITE-CONSOLIDATION-AUDIT.md`. Production is unchanged, Reports

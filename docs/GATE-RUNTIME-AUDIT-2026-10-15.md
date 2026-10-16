@@ -40,7 +40,7 @@ the responsibility to preserve, not a claim that every assertion is unique.
 | `e2e-copy-standard` | 23.927 | Route-wide visible label/caption census with non-vacuity coverage | Board suites' copy assertions and repeated traversal; not just Reports |
 | `e2e-reports-typefloor-realdata` | 23.063 | Canonical exact font census, both widths, with explicit Offense narrow-cell exceptions | Board clipping/geometry and navigation traversal; this is the designated typography owner |
 
-## Audit Order
+## Disposition
 
 1. Preserve these responsibilities before moving or deleting a check. Assign
    each guarantee one owner; retain rendered integration checks where they
@@ -49,9 +49,10 @@ the responsibility to preserve, not a claim that every assertion is unique.
    to the Reports rebuild, per the coach; none was changed here. Reuse a
    populated traversal for shared assertions where practical, not independent
    full-board walks for every shared concern.
-3. The bounded non-Reports disposition is recorded in
+3. The bounded non-Reports consolidation is complete and accepted, recorded in
    `docs/TEST-SUITE-CONSOLIDATION-AUDIT.md`. Distinct workflow/race and seeded
    integrity coverage remains; duplicate cases and unnecessary settling do not.
+   No mixed-harness audit is scheduled before the Reports rebuild.
 4. Measure the current full run only with coach authorization. Use its phase
    timings to distinguish setup costs, a slow harness and runner overhead
    before another structural reduction. The six-minute local target is

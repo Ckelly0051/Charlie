@@ -8,6 +8,11 @@ setup or waiting proves anything. It is not a claim that every test in the
 repository is minimal. Reports-specific consolidation belongs to its rebuild.
 No production behavior, coach data, release budget or acceptance threshold changes.
 
+The coach accepted this bounded work after independent review and a green rerun
+of all 18 affected harnesses. This batch is closed. No mixed-harness audit is
+scheduled before the Reports rebuild; Reports-related harness changes wait for
+that work. Completion does not automatically enable the blocking runtime budget.
+
 ## Removed Or Reassigned
 
 | Item | Decision and retained guarantee |
