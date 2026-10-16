@@ -108,7 +108,7 @@ parked. `docs/VISUAL-SYSTEM-RULES.md` is the contract.
 | Team Hub, registry, season workflow | `e2e-native-team-hub`, `e2e-team-registry`, `e2e-native-season` |
 | Shell, context, cross-cutting | `e2e-workspace-shell`, `e2e-workspace-context`, `e2e-game-context`, `e2e-p0-exit`, `e2e-p0-capabilities`, `e2e-responsive-containment`, `e2e-native-overlay`, `e2e-xss-names`, `e2e-copy-standard`, `e2e-design-system`, `e2e-css-ownership`, `audit-design-approvals` |
 | Break Down theater and film | `e2e-breakdown-visual-finish`, `e2e-native-breakdown-theater`, `e2e-breakdown-video`, `e2e-breakdown-geometry`, `e2e-breakdown-lifecycle`, `e2e-breakdown-viewport`, `e2e-breakdown-a11y`, `e2e-mark-flow`, `e2e-film-load-race`, `e2e-multi-angle`, `e2e-video-cors` |
-| Charting | `e2e-native-tagging` (also real diagram/review overlays: save, cancel, focus, literal analysis text and replacement lifecycle), `e2e-missed-tackles-charting`, `e2e-tagging`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-field-fixes`, `e2e-unit-ownership`, `e2e-custom-fields`, `e2e-st-try-charting` (tries and Special Teams roster ownership), `e2e-charting-details`, `e2e-charting-cutover-deck`, `e2e-charting-save`, `e2e-receiver-look`, `e2e-chart-deck-polish` |
+| Charting | `e2e-native-tagging` (also real diagram/review overlays: save, cancel, focus, literal analysis text and replacement lifecycle), `e2e-missed-tackles-charting`, `e2e-tagging`, `e2e-tag-model`, `e2e-tag-projform`, `e2e-tagger-api`, `e2e-native-quick-chart`, `e2e-play-call-charting`, `e2e-play-library`, `e2e-unit-ownership`, `e2e-custom-fields`, `e2e-st-try-charting` (tries and Special Teams roster ownership), `e2e-charting-details`, `e2e-charting-cutover-deck`, `e2e-charting-save`, `e2e-receiver-look`, `e2e-chart-deck-polish` |
 | Receiver route/release | `e2e-receiver-details`, `e2e-receiver-charting`, `e2e-receiver-write-guards` |
 | Film Room | `e2e-native-film-room`, `e2e-film-room`, `e2e-film-room-virtualization`, `e2e-film-room-layout`, `e2e-film-room-columns`, `e2e-film-room-sheet`, `e2e-unit-ownership` |
 | Study | `e2e-study-screen`, `e2e-study-query`, `e2e-study-players`, `e2e-study-penalties-st`, `e2e-crosstab` |
@@ -245,7 +245,17 @@ separate. Integrity prefers the canonical fixture from
 one.
 
 **Coverage consolidation.** Combine observations, not distinct failure
-contracts. `e2e-explosive-labels` owns Reports wording across pages and scopes;
+contracts. Situation/penalty enforcement, takeaway attribution and carry rules
+belong to `e2e-core`; shared-clip re-add belongs to `e2e-relink-legacy`; the
+carry preference and Takeaway input belong to `e2e-native-tagging`.
+Exact rendered Home order owns its implied pairwise comparisons; concurrent
+duplicate-season refusal belongs to `e2e-home-review-repair`. CSV look equality
+belongs to `e2e-csv-roundtrip`; off-library chip readability to
+`e2e-breakdown-visual-finish`; Y focus/disclosure to `e2e-chart-deck-polish`.
+Historical conversion-impact counts are not recurring model regressions.
+The bounded audit and keep/remove decisions are in
+`docs/TEST-SUITE-CONSOLIDATION-AUDIT.md`.
+`e2e-explosive-labels` owns Reports wording across pages and scopes;
 `e2e-reports-typefloor-realdata` owns the font-size census; the Offense and
 Defense real-data harnesses own multi-game content; `e2e-reports-global-strip`
 owns navigation. Keep them separate.

@@ -1,7 +1,7 @@
 import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
-import { setupTeamAndDemo, createFirstTeam } from './hub-setup.mjs';
+import { setupTeamAndDemo } from './hub-setup.mjs';
 /* Keyboard and charting workflows through the mounted native deck: empty-play
- * guard, Yards/Enter, auto-Gain, drawing shortcuts, Skip vs Save & Next,
+ * guard, Yards/Enter, Loss signing, drawing shortcuts, Skip vs Save & Next,
  * clip marks and the More results selector. Pure situation rules live in e2e-core. */
 import puppeteer from './test-browser.mjs';
 import { chartDeckControls } from './chart-deck-test.mjs';
@@ -12,7 +12,7 @@ const ok = (cond, label, extra = '') => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
   else { fail++; console.log(`  FAIL  ${label}${extra ? '  -- ' + extra : ''}`); }
 };
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const completion = { timeout: 15000 };
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = chartDeckControls(await browser.newPage());
@@ -35,12 +35,6 @@ const formState = () => page.evaluate(() => {
   const el = document.querySelector('.gi-native-tagging');
   return { disabled: !!el && el.classList.contains('is-disabled'), headline: el?.querySelector('h2')?.textContent || '' };
 });
-const clickChip = (field, text) => page.evaluate((f, t) => {
-  const btn = [...document.querySelectorAll(`[data-native-field="${f}"] .gi-tag-chips button`)]
-    .find(b => b.textContent.trim() === t);
-  if (btn) btn.click();
-  return !!btn;
-}, field, text);
 const clickSaveNext = () => page.evaluate(() => {
   const btn = document.querySelector('.gi-tag-nav button.is-primary');
   if (btn) btn.click();
@@ -54,15 +48,22 @@ const clickSkip = () => page.evaluate(() => {
 
 console.log('\n== 1. Setup: team + demo season + open game ==');
 await page.goto(URL, { waitUntil: 'networkidle0' });
-await sleep(600);
-// Team/season setup lives in the library overlay, opened from the shell Home.
+await page.waitForFunction(() => window.app?.teamHubScreen && window.app?.nativeTagging
+  && document.querySelector('[data-first-launch] input[name="school"]'), completion);
 await setupTeamAndDemo(page);
-await sleep(900);
-// Open game 1 from the shell Home game list (the sole game-entry route).
-// V2-A: no per-row Open button -- preview the row, then Continue charting.
+await page.waitForSelector('.ws-game-row', completion);
 await page.evaluate(() => document.querySelector('.ws-game-row')?.click());
+await page.waitForFunction(() => {
+  const button = document.getElementById('wsContinueCharting');
+  return button && !button.disabled && button.getClientRects().length > 0;
+}, completion);
 await page.evaluate(() => document.getElementById('wsContinueCharting')?.click());
-await sleep(700);
+await page.waitForFunction(() => {
+  const app = window.app, store = app?.storage?.seasonStore;
+  return app?.workspace.currentRoute() === 'breakdown'
+    && !!store?.data?.activeGameId && app.storage._loadedGameId === store.data.activeGameId
+    && app.tagger.plays.length > 0 && !!document.querySelector('#wsBreakdown [data-native-tagging]');
+}, completion);
 ok(await page.evaluate(() => window.app.workspace.currentRoute() === 'breakdown'),
   'setup: opening a game from Home genuinely lands in Break Down');
 await mountNativeForm();
@@ -83,7 +84,11 @@ await page.focus('[data-native-field="yardage"] input');
 await page.evaluate(() => { document.querySelector('[data-native-field="yardage"] input').value = ''; });
 await page.type('[data-native-field="yardage"] input', '8');
 await page.keyboard.press('Enter');
-await sleep(150);
+await page.waitForFunction(({ aId, bId }) => {
+  const t = window.app.tagger;
+  return t.currentPlayId === bId && Math.abs(parseInt(t.getPlay(aId)?.tags.yardage, 10)) === 8
+    && document.activeElement !== document.querySelector('[data-native-field="yardage"] input');
+}, completion, r);
 r = await page.evaluate((prev) => {
   const t = window.app.tagger;
   const a = t.getPlay(prev.aId);
@@ -97,7 +102,7 @@ ok(r.cur === r.expected, 'Enter in yardage advanced to the next play', JSON.stri
 ok(r.savedMag === 8, 'typed yardage committed before advancing', JSON.stringify(r));
 ok(r.blurred, 'input blurred so shortcuts work on the next play');
 
-console.log('\n== 4. Positive yardage auto-fills Gain when result is blank ==');
+console.log('\n== 4. Explicit Loss overrides and re-signs yardage ==');
 r = await page.evaluate(() => {
   const t = window.app.tagger;
   t.selectPlay(t.plays[5].id);
@@ -106,28 +111,15 @@ r = await page.evaluate(() => {
   // blank the result, then enter yardage like a coach would
   t.setTagValue('result', '');
   t.setTagValue('yardage', '7');
-  const afterPositive = { result: p.tags.result, yardage: p.tags.yardage };
   // explicit result still wins: switch to Loss, yardage goes negative
   t.setTagValue('result', 'Loss');
   const afterLoss = { result: p.tags.result, yardage: p.tags.yardage };
   t.saveDraft();
-  return { afterPositive, afterLoss };
+  return { afterLoss };
 });
-ok(r.afterPositive.result === 'Gain' && r.afterPositive.yardage === '7',
-   'blank result + positive yards -> Gain', JSON.stringify(r.afterPositive));
 ok(r.afterLoss.result === 'Loss' && r.afterLoss.yardage === '-7',
    'explicit Loss overrides and re-signs yardage', JSON.stringify(r.afterLoss));
 
-console.log('\n== 5. Y hotkey jumps to yardage ==');
-await page.evaluate(() => {
-  const t = window.app.tagger;
-  t.selectPlay(t.plays[6].id);
-  document.activeElement && document.activeElement.blur();
-});
-await page.keyboard.press('y');
-r = await page.evaluate(() => ({ focused: document.activeElement === document.querySelector('[data-native-field="yardage"] input') }));
-ok(r.focused, 'Y focuses the yardage input', JSON.stringify(r));
-await page.keyboard.press('Escape');
 await page.evaluate(() => document.activeElement && document.activeElement.blur());
 
 console.log('\n== 6. Digits no longer arm drawing tools while tagging ==');
@@ -259,13 +251,11 @@ r = await page.evaluate(() => {
   let toasted = '';
   const orig = t.toast;
   t.toast = (m) => { toasted = m; };
-  // 9a. NO film loaded: marks guard with "load film first" (UX pass U4) —
-  // never a silent no-op, never a bogus play.
+  // Missing film must produce feedback without creating a play.
   t.pendingStart = null;
   t.markEnd();
   const noFilm = { toasted, count: t.plays.length };
-  // 9b/9c. Film "loaded" (the src attribute is what setSrc/loadUrl set and
-  // unloadVideo removes): the ordering toasts fire as before.
+  // A src attribute enables the mark-order guards without loading real film.
   t.vc.videoElement.setAttribute('src', 'blob:test-stub');
   toasted = '';
   t.pendingStart = null;
@@ -288,17 +278,13 @@ ok(r.badEnd.count === r.before && /after/i.test(r.badEnd.toasted),
    'end before start -> toast, no play', JSON.stringify(r.badEnd));
 
 console.log('\n== 10. Rare-result "More" dropdown ==');
-// The old expandable chip section is now a <select> (native-tagging.jsx's
-// ResultField): RESULT_MORE options live inside it, and its own placeholder
-// option's text shows "(N)" when N rare results are currently active on the
-// play — the coach-visible replacement for the old expand/auto-open state.
+// The placeholder counts active rare results; each selected option is labeled.
 await page.evaluate(() => { window.app.tagger.selectPlay(window.app.tagger.plays[0].id); });
 r = await page.evaluate(() => {
   const select = document.querySelector('[data-native-field="result"] .gi-tag-more-select');
   const options = [...select.options].map(o => o.textContent);
   return { placeholder: select.options[0].textContent, rareCount: select.options.length - 1, options };
 });
-ok(r.placeholder === 'More', 'placeholder reads plain "More" while no rare result is active', JSON.stringify(r));
 ok(r.rareCount === 8, 'all eight rare (overflow) results are present in the dropdown', JSON.stringify(r));
 
 // Selecting a rare result (Field Goal) through the dropdown sets it, and the
@@ -308,7 +294,12 @@ r = await page.evaluate(() => {
   select.value = 'Field Goal';
   select.dispatchEvent(new Event('change', { bubbles: true }));
 });
-await sleep(50);
+await page.waitForFunction(() => {
+  const select = document.querySelector('[data-native-field="result"] .gi-tag-more-select');
+  return (window.app.tagger.getCurrentPlay()?.tags.result || '').includes('Field Goal')
+    && select?.options[0].textContent === 'More (1)'
+    && [...select.options].find(o => o.value === 'Field Goal')?.textContent === 'Selected: Field Goal';
+}, completion);
 r = await page.evaluate(() => {
   const t = window.app.tagger;
   const select = document.querySelector('[data-native-field="result"] .gi-tag-more-select');
@@ -324,8 +315,7 @@ ok(r.selectedOptionText === 'Selected: Field Goal', 'the active option is visibl
 
 console.log('\n== 11. Grid editor still offers every result value ==');
 r = await page.evaluate(() => {
-  // Final Engine Independence: the grid reads Result's option list from the
-  // same RESULT_OPTIONS constant native-tagging.jsx exports, not the DOM.
+  // The grid reads the shared result vocabulary, not the deck DOM.
   const grid = window.app.playGrid, PG = grid.constructor;
   grid._optionCache = {};
   const opts = grid._options(PG.COLUMNS.find(c => c.key === 'result'));
@@ -334,8 +324,7 @@ r = await page.evaluate(() => {
 ok(r.count === 16, 'all 16 result values reachable', JSON.stringify(r));
 ok(r.hasFG, 'rare value (Field Goal) included');
 
-/* Missing tags.custom must not prevent native custom-tag add/remove. Exercise
- * the visible input and NativeTaggingScreen owner. */
+/* Missing tags.custom must not prevent the native add path or chip rendering. */
 const beforeErrors = errors.length;
 r = await page.evaluate(() => {
   const app = window.app, out = {};
@@ -348,7 +337,10 @@ r = await page.evaluate(() => {
   out.custom = app.tagger.getCurrentPlay().tags.custom;
   return out;
 });
-await new Promise(res => setTimeout(res, 120));
+await page.waitForFunction(() => {
+  const chips = document.querySelectorAll('.gi-tag-custom button');
+  return chips.length === 1 && chips[0].textContent.includes('Blitz Alert');
+}, completion);
 r.chips = await page.evaluate(() => document.querySelectorAll('.gi-tag-custom button').length);
 ok(r.addOk && Array.isArray(r.custom) && r.custom.includes('Blitz Alert') && r.chips === 1 && errors.length === beforeErrors,
   'A play with no tags.custom survives BOTH the render and the native addCustomTag write path',

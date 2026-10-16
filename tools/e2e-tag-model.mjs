@@ -1,7 +1,6 @@
 /* Look-field reads, old-shape refusal, normalization, carry rules and Special
  * Teams stripping share their canonical model owners. */
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import { TagProjection } from '../js/tag-projection.js';
 import { SeasonStore } from '../js/season-store.js';
 import { PlayTagger } from '../js/play-tagger.js';
@@ -18,7 +17,7 @@ const tags = (o = {}) => ({
   motion: '', runPass: '', playType: '', result: '', yardage: '', coverage: '',
   defFront: '', blitz: '', unit: 'offense', players: {}, grades: {}, ...o,
 });
-// A play object whose tags OMIT qbAlignment/coverageFamily entirely (legacy shape).
+// Missing look keys are valid uncharted values.
 const legacyPlay = (id, t = {}) => ({ id, timestamp: { start: 0, end: 1 }, tags: tags(t) });
 
 console.log('\n== E2 tag model ==');
@@ -92,7 +91,7 @@ test('16 · (E1-R9) ST invariant: any op ending unit:special leaves ST keys blan
   const changed = pt._stripStAlignment(st);
   assert.equal(changed, true, 'strip should report a change (present-then-stripped)');
   for (const k of SeasonStore.ST_ALIGNMENT_KEYS) assert.equal(st.tags[k], '', `${k} not stripped`);
-  // and _normalize does it retroactively too
+  // The same cleanup applies at the season boundary.
   const st2 = legacyPlay(2, { unit: 'special', qbAlignment: 'Pistol', backfield: 'Single' });
   SeasonStore.stripStAlignment(st2);
   assert.equal(st2.tags.qbAlignment, '');
@@ -119,8 +118,7 @@ test('16c · (E1-R9 mutation) ST_ALIGNMENT_KEYS single source includes the 4 new
 });
 
 test('16d · (E2-R1) Same-as-Last onto an ST result strips forbidden fields', () => {
-  // A legacy ST source carrying forbidden alignment. Copying it forward must not
-  // reproduce those values on the resulting ST play (E1-R9 invariant, any op).
+  // Copying a dirty source must not reproduce forbidden Special Teams values.
   const src = legacyPlay(40, {
     unit: 'special', formationFamily: 'Spread', qbAlignment: 'Shotgun',
     backfield: 'Power', strength: 'Right', coverage: 'Cover 3', coverageFamily: 'Zone',
@@ -217,35 +215,8 @@ test('18 · (E1-R7b) _normalize clears backfield/strength on ST plays only, noth
   assert.equal(defKeep.tags.backfield, 'I'); assert.equal(defKeep.tags.strength, 'Right');
 });
 
-test('18b · (E1-R7b) real fixture impact is EXACTLY 12 backfield / 1 strength / 0 other', () => {
-  const REAL = 'C:/Users/charl/Downloads/GridIronIQ-mavericks-2025-RECOVERED.json';
-  if (!fs.existsSync(REAL)) { console.log('        (real fixture absent — skipped)'); return; }
-  const data = JSON.parse(fs.readFileSync(REAL, 'utf-8'));
-  const plays = (data.games || []).flatMap(g => g.plays || []);
-  // "0 other" must be MEASURED, not asserted by omission — the coach authorized
-  // clearing backfield/strength only, and this test must FAIL if the strip list is
-  // ever broadened to delete anything else the real special plays actually carry.
-  const OTHER = SeasonStore.ST_ALIGNMENT_KEYS.filter(k => k !== 'backfield' && k !== 'strength');
-  let bfCleared = 0, strCleared = 0, otherCleared = 0;
-  const otherKeys = new Set();
-  plays.forEach(p => {
-    if ((p.tags?.unit) !== 'special') return;
-    const before = { ...p.tags };
-    SeasonStore.stripStAlignment(p);
-    if (before.backfield && !p.tags.backfield) bfCleared++;
-    if (before.strength && !p.tags.strength) strCleared++;
-    OTHER.forEach(k => { if (before[k] && !p.tags[k]) { otherCleared++; otherKeys.add(k); } });
-  });
-  assert.equal(bfCleared, 12, `expected 12 backfield cleared, got ${bfCleared}`);
-  assert.equal(strCleared, 1, `expected 1 strength cleared, got ${strCleared}`);
-  assert.equal(otherCleared, 0, `authorized boundary broadened: ${otherCleared} other clears (${[...otherKeys].join(', ')})`);
-});
-
 test('18c · (E2-R3) persist() strips ST alignment before saving — structural choke', () => {
-  // The E1-R9 invariant must hold at the WRITE boundary, not just on load — so a
-  // leak from ANY writer (grid inline edit, AI stamp, suggestion engine) can never
-  // reach disk, present or future. persist() is the single choke all saves flow
-  // through.
+  // Leaked values must be removed before the backend sees the season.
   const saved = [];
   const backend = {
     saveSeason: (_seasonId, d) => { saved.push(JSON.parse(JSON.stringify(d))); return true; },
@@ -254,7 +225,7 @@ test('18c · (E2-R3) persist() strips ST alignment before saving — structural 
   const store = new SeasonStore(backend);
   store.currentSeasonId = 's1';
   store.data = { version: 5, type: 'season', activeGameId: 'g1', games: [{ id: 'g1', plays: [
-    // a special play a grid/AI/suggestion edit has leaked onto (liveness: values present)
+    // Values are present before serialization, not already blank.
     { id: 1, tags: { unit: 'special', formationFamily: 'Spread', coverage: 'Cover 3',
       backfield: 'Power', strength: 'Right', qbAlignment: 'Shotgun', coverageFamily: 'Zone',
       players: {}, grades: {} } },
@@ -272,9 +243,7 @@ test('18c · (E2-R3) persist() strips ST alignment before saving — structural 
 });
 
 test('18d · (E2-R3b) _emit sanitizes a special play before listeners see it (LIVE barrier)', () => {
-  // Every writer (grid, AI stamp, suggestion, form, …) mutates a play then emits
-  // play-updated/created. Stripping at that seam keeps the LIVE object — which UI
-  // and analytics read directly — clean, not just the persisted copy.
+  // Listeners must see the cleaned live play, not just a clean serialized copy.
   const pt = Object.create(PlayTagger.prototype);
   pt.listeners = {};
   let seen = null;
@@ -297,9 +266,7 @@ test('18d-2 · (E2-R3b) _emit leaves an OFFENSE play untouched', () => {
 });
 
 test('18e · (E2-R3b) every durable-write path sanitizes this.data (json/snapshot/saveNow/bindDisk)', () => {
-  // persist() is not the only serialization path — the fix claimed it was. Backups,
-  // downloads, and disk binding must sanitize too, or forbidden ST values reach a
-  // restore point or an exported file.
+  // Backups, downloads and disk binding share the serialization invariant.
   const backend = {
     saveSeason: () => true, diskStatus: () => ({ bound: false }),
     createBackup: () => ({ id: 'b' }), listBackups: () => [],
@@ -334,7 +301,6 @@ test('19 · a formation is never rewritten into Backfield, with or without a bac
     assert.equal(p.tags.backfield, '', 'a missing backfield is a blank string, never inferred');
     assert.equal(p.tags.strength, '');
   }
-  assert.equal(typeof SeasonStore.migratePlayFormation, 'undefined', 'the migration is deleted');
 });
 /* lookLabel deliberately composes independent presentation fields. */
 
@@ -365,5 +331,4 @@ test('26e · lookLabel is a display seam only — it never mutates the input', (
 });
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
-console.log('   (E3 owns tests 14/15/23/24/25; E4 owns 21/22 — not in this harness)');
 if (fail) process.exit(1);

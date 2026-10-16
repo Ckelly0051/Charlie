@@ -8,9 +8,7 @@ let pass=0, fail=0;
 const ok=(value,label,detail='')=>value?(pass++,console.log('  PASS  '+label)):(fail++,console.log('  FAIL  '+label+(detail?' -- '+detail:'')));
 const browser=await puppeteer.launch({args:['--no-sandbox']});
 const page=chartDeckControls(await browser.newPage());
-// A unit change that would remove charted values asks first (GRIDIRON-IQ-SAVE-CONTRACT.md;
-// e2e-charting-save proves the prompt). These sections chart across units, so
-// the coach's answer here is always Change unit.
+// e2e-charting-save owns cancellation; this cross-unit journey accepts the change.
 await page.evaluateOnNewDocument(()=>{new MutationObserver(()=>{const ok=[...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b=>b.textContent.trim()==='Change unit');if(ok)ok.click();}).observe(document,{childList:true,subtree:true});});
 const errors=[];
 const screenshotPath=process.env.GIQ_NATIVE_TAGGING_SCREENSHOT||'';
@@ -41,9 +39,6 @@ let state=await page.evaluate(()=>{
   const fields=[...root.querySelectorAll('[data-native-field]')].map(n=>n.dataset.nativeField).sort();
   const controls=[...root.querySelectorAll('button,select,input,textarea,summary')].filter(n=>n.getClientRects().length);
   const text=root.textContent;
-  // Final Engine Independence: there is no legacy .tag-section markup left to
-  // hide/adopt/observe -- PlayTagger writes plays from explicit values. The stronger, real guarantee is that .tag-section is
-  // genuinely ABSENT from the document, not merely hidden off-screen.
   return{roots:document.querySelectorAll('[data-native-tagging]').length,legacyFormAbsent:!document.querySelector('.tag-section'),
     ids:[...root.querySelectorAll('[id]')].map(n=>n.id),proxy:root.querySelectorAll('[data-native-tag-proxy]').length,fields,controls:controls.length,
     context:[...root.querySelectorAll('[data-native-context]')].map(n=>n.dataset.nativeContext).sort(),
@@ -56,12 +51,6 @@ ok(fixture.mounted&&state.roots===1&&state.legacyFormAbsent,'One native owner mo
 ok(state.proxy===0&&!state.ids.some(id=>id.startsWith('tag')||id.startsWith('btn')),'Visible markup is Preact-owned, not a legacy clone',JSON.stringify({ids:state.ids,proxy:state.proxy}));
 const expectedFields=['backfield','blitz','coverage','coverageFamily','defFront','distance','down','driveNumber','fieldSide','formationFamily','hash','motion','receiverSet','personnel','playDir','playType','qbAlignment','quarter','result','runPass','strength','yardLine','yardage'];
 ok(expectedFields.every(field=>state.fields.includes(field)),'Every standard offense/defense/situation field has a native owner',JSON.stringify(state.fields));
-// F2 (coach smoke, 1.12.0-19): the charting header carries the UNIT and nothing
-// else. Perspective is derived — charting our own game the perspective IS the
-// unit, and on opponent film the subject is the charted team either way — so
-// the control was pure extra clicking. Direction moved to More Tools with the
-// only features that read it. This assertion now pins the smaller contract on
-// purpose: an extra context control reappearing in the header is a regression.
 ok(state.context.join(',')==='direction,unit','Charting context is unit plus the relocated direction control, with no perspective picker',JSON.stringify(state.context));
 ok(state.contextInHeader.join(',')==='unit','The charting header itself carries only the unit control',JSON.stringify(state.contextInHeader));
 ok(state.unitButtons===3&&state.unitSelects===0,'Unit is a one-click segmented control, not a dropdown',JSON.stringify({buttons:state.unitButtons,selects:state.unitSelects}));
@@ -92,8 +81,6 @@ const inference=await page.evaluate(()=>{
   return{custom,compoundCustom,standard};
 });
 ok(inference.custom.playType==='Fake Run Pass'&&inference.custom.runPass===''&&inference.compoundCustom===''&&inference.standard==='Run','Custom Play Types never infer Run/Pass while exact standard types retain safe auto-classification',JSON.stringify(inference));
-// Roles now carry football labels ("Tackler(s)") rather than camel-cased field
-// names ("ball Carrier"). Match the label a coach reads.
 ok(['Ball Carrier','Passer','Receiver','Tackler(s)','Takeaway'].every(role=>state.players.includes(role))&&state.notes>0&&state.custom&&state.penalties,'Every production offense, defense, player, custom, note, and situation control remains present in the native form',JSON.stringify(state));
 ok(!state.playersOpen,'Players & Grades starts closed under the single initial Situation policy',JSON.stringify({open:state.playersOpen}));
 state=await page.evaluate(()=>{
@@ -144,14 +131,8 @@ state=await page.evaluate(()=>({titles:[...document.querySelectorAll('[data-nati
 ok(state.perspective==='scout'&&state.unit==='offense'&&state.titles.includes('Opponent Formation & Call'),'Native presentation names the charted football subject from stored perspective and unit',JSON.stringify(state));
 state=await page.evaluate(async secondId=>{app.tagger.saveDraft();await app.storage.switchToGame(secondId,{persist:false});await new Promise(r=>setTimeout(r,0));const root=document.querySelector('[data-native-tagging]');return{perspective:app.storage.gameInfo.perspective,direction:app.storage.gameInfo.direction,opponent:app.storage.gameInfo.opponent,unit:app.tagger.defaultUnit,control:!!root.querySelector('[data-native-context="direction"]')}},fixture.secondId);
 ok(state.perspective==='defense'&&state.direction==='right'&&state.opponent==='Beta'&&state.unit==='defense','Native context follows game switch without inheritance',JSON.stringify(state));
-// F2a: perspective is now written by CHANGING THE UNIT, which is the whole
-// point — one control, one click, and the perspective follows. Direction is
-// still explicit, from its new home in More Tools.
 state=await page.evaluate(async firstId=>{app.tagger.saveDraft();await app.storage.switchToGame(firstId,{persist:false});await new Promise(r=>setTimeout(r,0));const before={...app.storage.gameInfo};document.querySelector('[data-native-context="unit"] button[data-unit="offense"]').click();await new Promise(r=>setTimeout(r,0));const d=document.querySelector('[data-native-context="direction"]');d.value='right';d.dispatchEvent(new Event('change',{bubbles:true}));(app.tagger.saveDraft(),app.storage.commitActive());await app.storage.seasonStore.persist();return{before,after:{...app.storage.gameInfo}}},fixture.firstId);
-// SCOUT IS STICKY, and this is the case that proves it. Game one is opponent
-// film: selecting Offense must NOT quietly turn it into our own game, because
-// perspective is a property of the FILM, decided at game setup. On our own
-// game the derivation does fire — asserted immediately below.
+// Unit changes derive our perspective but cannot change a scout film's owner.
 ok(state.after.perspective==='scout'&&state.after.direction==='right'&&state.after.opponent===state.before.opponent&&state.after.week===state.before.week&&state.after.gameType===state.before.gameType,'Opponent film keeps its perspective when the unit changes, and no other metadata moves',JSON.stringify(state));
 state=await page.evaluate(async()=>{
   app.gameContext.update({perspective:'offense'});
@@ -162,8 +143,6 @@ state=await page.evaluate(async()=>{
   document.querySelector('[data-native-context="unit"] button[data-unit="special"]').click();
   await new Promise(r=>setTimeout(r,0));
   const afterSpecial=app.storage.gameInfo.perspective;
-  // Leave the form on Offense: the 20-play session below charts offensive
-  // fields, which only render for the offense unit.
   document.querySelector('[data-native-context="unit"] button[data-unit="offense"]').click();
   await new Promise(r=>setTimeout(r,0));
   return{before:before.perspective,afterDefense,afterSpecial,restored:app.storage.gameInfo.perspective,opponent:app.storage.gameInfo.opponent===before.opponent};
@@ -315,10 +294,7 @@ ok(state.report?.blocked===1&&state.report?.td===1&&state.report?.n===1&&state.r
 ok(state.board?.us===6&&state.board?.them===0,'the scoreboard owner awards six to us and none to the opponent',JSON.stringify(state.board));
 
 console.log('\n== 6. Charting deck density, type ownership and Coverage Call ==');
-// The completed body gives fields an intentional 8px lead and 12px close:
-// enough separation to scan without returning to the old 12/16px dead air.
-// Titles remain true Plex Sans 600. Pin the result on the DEFENSIVE unit,
-// where Coverage Call is the primary group rather than a collapsed secondary.
+// Measure Coverage Call on defense, where it is the primary group.
 await page.setViewport({width:1440,height:900});
 await page.evaluate(()=>window.app.workspaceShell.show('breakdown'));
 await page.evaluate(()=>window.app.breakdownWorkspace?._setView?.('chart'));
@@ -363,8 +339,6 @@ if(process.env.GIQ_NATIVE_TAGGING_DEFENSE_SCREENSHOT)
   await (await page.$('[data-native-tagging]')).screenshot({path:process.env.GIQ_NATIVE_TAGGING_DEFENSE_SCREENSHOT});
 ok(state.libraryLabels.every(row=>row.buttonLeft>=row.precedingRight+4&&Math.abs(row.buttonRight-row.rowRight)<=.5),
   'Defense Edit library controls align at the right edge without overlapping labels',JSON.stringify(state.libraryLabels));
-// The approved comp uses content-sized vocabulary chips, wrapping rather
-// than squeezing seven labels into equal-width tracks.
 ok(state.covCount>=7&&state.covRows>=1&&state.covRows<=2&&state.covOverflow<=0&&state.covFont>=12,
   'Coverage Call keeps all labels readable in compact wrapping rows',JSON.stringify(state));
 /* Pin deck density through spacing, not smaller chip text or targets. */
@@ -491,9 +465,7 @@ ok(state.label==='Delete play'&&new RegExp(`Delete Play ${state.id}\\?`).test(de
   &&deleteAfter.count===state.count&&deleteAfter.id===state.id,
   'The deck Delete play asks before deleting the selected play, and Cancel keeps it',JSON.stringify({state,deletePrompt,deleteAfter}));
 
-// --- Diagram: the editor seam and the scoped write ---
-// Not capability-id assertions, but guarantees the retired preflight owned and
-// nothing else claimed. Ported so the retirement costs no coverage.
+// Diagram editing is scoped to its selected play.
 state=await page.evaluate(()=>{
   window.__diagramOpen=0;
   const original=window.app.playDiagram.openEditor.bind(window.app.playDiagram);
@@ -554,8 +526,6 @@ ok(state.fresh&&state.after===diagramBefore.json
    &&/class="cs-diagram"/.test(state.html)&&/data:image\/png/.test(state.html),
   'A relaunched saved play diagram remains byte-stable and produces its Call Sheet thumbnail',
   JSON.stringify({fresh:state.fresh,match:state.after===diagramBefore.json,html:(state.html||'').slice(0,60)}));
-// The relaunch above left a freshly booted page. Section 5 measures the mounted
-// route, so put the coach back where they were before handing over to it.
 await page.evaluate(async()=>{await window.app.storage._loadActiveGame();
   window.app.tagger.saveDraft(),window.app.tagger.selectPlay(1);await window.app.workspaceShell.show('breakdown');});
 await page.waitForFunction(()=>document.querySelector('[data-native-tagging]')?.getBoundingClientRect().width>0);
@@ -629,15 +599,8 @@ console.log('\n== 7b. Native Auto-Detect: real scan/progress/results/review/appl
  * and Apply; a reachable trigger alone does not prove a usable scan. */
 let ad=await page.evaluate(()=>{
   const app=window.app;
-  // Stub PlayDetector's signal-processing scan and seek-based apply -- both
-  // are pre-existing PlayDetector logic this milestone does not touch;
-  // headless has no real decodable video for the real motion pipeline to
-  // read. What's under test is that the visible panel's buttons reach these
-  // real methods and that the round-trip result is genuinely on screen.
+  // Stub signal processing, not panel commands or result presentation.
   window.__adCalls={scan:0,apply:0};
-  // Headless has no real decodable video loaded (no src). AutoDetectScreen's
-  // guard only needs a truthy duration to proceed to the (stubbed) scan --
-  // real playback/decode is PlayDetector's own scan() internals, untouched.
   Object.defineProperty(app.vc.video,'duration',{value:300,configurable:true});
   const fakePlays=[{start:200,end:205,peak:1,confidence:0.9},{start:210,end:215,peak:1,confidence:0.9}];
   app.detector.scan=async()=>{window.__adCalls.scan++;app.detector.detectedPlays=fakePlays;
@@ -820,11 +783,7 @@ ok(state.origin.gameId===fixture.firstId&&state.before===state.after&&state.stal
    &&/expired because the active game changed/.test(state.resultText)&&!state.canApply&&!state.canReview,
   'A pending scan is fenced to its starting season/game and expires without mutating the game opened meanwhile',JSON.stringify(state));
 
-// The optional local server (server/analyzer.py) is a third backend. Whatever
-// any backend returns passes through the one stamping boundary, so a retired
-// key or a wrong-field look value (formation 'Shotgun', backfield 'Pistol',
-// coverage 'Man') is dropped, never stored as an old-format play, while its
-// current values still stamp. No vision key, so the server path runs.
+// The server backend also passes through the shared stamping/format boundary.
 state=await page.evaluate(async()=>{
   const saved={key:app.vision.apiKey,avail:app.backend.isAvailable,batch:app.backend.analyzeBatch,file:app.vc.currentFile};
   app.vision.apiKey='';
@@ -851,10 +810,7 @@ ok(state.formation===''&&state.backfield===''&&state.coverage===''&&!state.stTyp
   'A backend reporting old-format look values (formation Shotgun, backfield Pistol, coverage Man) or a retired key stamps none of them',JSON.stringify(state));
 ok(state.playType==='Run Inside'&&state.hash==='Left','The same backend result still stamps its current-format values',JSON.stringify(state));
 
-// server/analyzer.py writes each look value into its own field. Python is not
-// part of this gate (the server needs OpenCV), so the mapping is pinned in
-// source: the tags, confidence and reasons are keyed by _look_field, which
-// routes every QB alignment and 'Empty' out of formation.
+// OpenCV is outside this gate; pin the server's look-field mapping at its source.
 {
   const py=fs.readFileSync(new URL('../server/analyzer.py',import.meta.url),'utf8');
   const look=py.match(/def _look_field[\s\S]*?return "formationFamily"/)?.[0]||'';
@@ -871,6 +827,39 @@ await page.evaluate(()=>{
 });
 await page.waitForFunction(()=>!document.querySelector('[data-overlay-id="auto-detect"]'));
 ok(true,'Closing Auto-Detect leaves no overlay behind',JSON.stringify(ad));
+
+console.log('\n== Carry preference and Takeaway input ==');
+const carryBefore = await page.evaluate(() => {
+  const app = window.app, t = app.tagger;
+  const before = { enabled: t.carryScheme, stored: localStorage.getItem('ffa_carry_scheme') };
+  t.discardDraft(); t.carryScheme = false;
+  localStorage.setItem('ffa_carry_scheme', '0');
+  t.plays = [{ id: 9902, timestamp: { start: 0, end: 4 }, notes: '', annotations: [], tags: t.constructor.blankTags({ unit: 'defense' }) }];
+  t.currentPlayId = null; t.selectPlay(9902);
+  return before;
+});
+const toggle = await page.evaluate(() => {
+  const label = [...document.querySelectorAll('.gi-tag-check')].find(l => /Carry formation to next play/.test(l.textContent));
+  const el = label?.querySelector('input[type="checkbox"]');
+  if (!el) return { exists: false };
+  if (el.checked) return { exists: true, stored: '(unexpectedly pre-checked)' };
+  el.click();
+  return { exists: true, stored: localStorage.getItem('ffa_carry_scheme') };
+});
+ok(toggle.exists && toggle.stored === '1', 'carry-scheme toggle wired + persisted', JSON.stringify(toggle));
+const roleInput = await page.evaluate(() => {
+  const nativeInput = !!document.querySelector('input[aria-label="takeaway player number"]');
+  window.app.nativeTagging.setActiveRole('takeaway');
+  window.app.nativeTagging.setPlayer('takeaway', '44');
+  const wrote = window.app.tagger.getCurrentPlay()?.tags.players?.takeaway === '44';
+  return { nativeInput, wrote };
+});
+ok(roleInput.nativeInput && roleInput.wrote, 'Takeaway role input present + genuinely tags the play', JSON.stringify(roleInput));
+await page.evaluate(before => {
+  window.app.tagger.carryScheme = before.enabled;
+  if (before.stored === null) localStorage.removeItem('ffa_carry_scheme');
+  else localStorage.setItem('ffa_carry_scheme', before.stored);
+}, carryBefore);
 
 console.log('\n== 5. Responsive geometry and exact restore ==');
 state=await page.evaluate(()=>{const root=document.querySelector('[data-native-tagging]');return{overflow:document.documentElement.scrollWidth-innerWidth,width:root.getBoundingClientRect().width,data:JSON.stringify(app.storage.seasonStore.data)}});

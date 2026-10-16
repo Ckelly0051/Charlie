@@ -46,6 +46,37 @@ const rep = await page.evaluate(async () => {
       };
     };
 
+    out.sharedClip = await (async () => {
+      const t = window.app.tagger;
+      const pl = window.app.playlist;
+      pl.reset();
+      // Simulate a reopened save: plays exist with clipName + stale clipIds.
+      t.plays.length = 0;
+      t.plays.push(
+        { id: 1, timestamp: { start: 0, end: 12 }, tags: { down: '1', distance: '10', playType: 'Run Inside', runPass: 'Run', result: 'Gain', yardage: '5', unit: 'offense', custom: [] }, notes: '', clipName: 'clip_01', clipId: 7 },
+        { id: 2, timestamp: { start: 0, end: 10 }, tags: { down: '2', distance: '5', playType: '', runPass: '', result: '', yardage: '', unit: '', custom: [] }, notes: '', clipName: 'clip_02', clipId: 8 },
+        // Extra play marked inside clip_01 — shares its stale clipId, no clipName.
+        { id: 3, timestamp: { start: 4, end: 9 }, tags: { down: '', distance: '', custom: [] }, notes: '', clipId: 7 }
+      );
+      t.nextId = 4;
+      t.currentPlayId = 2;
+      const before = t.plays.length;
+      const files = [
+        new File([new Uint8Array(64)], 'clip_01.mp4', { type: 'video/mp4' }),
+        new File([new Uint8Array(64)], 'clip_02.mp4', { type: 'video/mp4' }),
+      ];
+      await pl.addFiles(files);
+      const c1 = pl.clips.find(c => c.name === 'clip_01');
+      const c2 = pl.clips.find(c => c.name === 'clip_02');
+      return {
+        playCount: t.plays.length, before,
+        c1Play: c1 && c1.playId, c2Play: c2 && c2.playId,
+        p3Follows: t.plays.find(p => p.id === 3).clipId === c1.id,
+        tagsKept: t.plays[0].tags.playType === 'Run Inside',
+      };
+    })();
+
+
     out.intentionalNew = await run(
       ['IMG_6251','IMG_6252','IMG_6253'].map(name => ({ name })),
       ['St Peter/IMG_6251.mp4','St Peter/IMG_6252.mp4','St Peter/IMG_6253.mp4','St Peter/IMG_9999.mp4'],
@@ -67,6 +98,11 @@ const rep = await page.evaluate(async () => {
 });
 
 console.log('\nSafe folder re-add / ghost-play prevention ---------------------');
+const relink = rep.sharedClip;
+ok(relink.playCount === relink.before, 're-upload creates NO duplicate plays', JSON.stringify(relink));
+ok(relink.c1Play === 1 && relink.c2Play === 2, 'clips re-linked to saved plays by name', JSON.stringify(relink));
+ok(relink.p3Follows === true, 'extra play inside a clip follows the stale clipId');
+ok(relink.tagsKept === true, 'tags survive the re-link');
 if (rep.err) console.log('  IN-PAGE ERROR:', rep.err);
 ok(rep.intentionalNew?.playCount === 4 && rep.intentionalNew?.linked === 3 && rep.intentionalNew?.dialogs.length === 1, 'a genuinely new clip creates a play only after explicit Add as new choice', JSON.stringify(rep.intentionalNew));
 ok(rep.windowsRename?.playCount === 1 && rep.windowsRename?.linked === 1 && rep.windowsRename?.dialogs.length === 0, 'Windows (n)-renamed film relinks without a ghost or prompt', JSON.stringify(rep.windowsRename));

@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, waitForApp } from './app-entry.mjs';
 /* Shell/Home contracts through the built native routes. */
 import puppeteer from './test-browser.mjs';
 import { mkdir } from 'node:fs/promises';
@@ -11,6 +11,20 @@ const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 1280, height: 800 });
 await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell_v2', '1'));
+await page.evaluateOnNewDocument(() => {
+  window.__waitForShell = async (ready, label, layout = true) => {
+    let timer;
+    try {
+      await Promise.race([
+        (async () => {
+          while (!ready()) await new Promise(requestAnimationFrame);
+          if (layout) await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        })(),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`Timed out: ${label}`)), 10000); }),
+      ]);
+    } finally { clearTimeout(timer); }
+  };
+});
 const errors = [];
 const screenshotDir = process.env.FFA_SHELL_SCREENSHOTS || '';
 const capture = async name => {
@@ -19,8 +33,9 @@ const capture = async name => {
   await page.screenshot({ path: `${screenshotDir}/${name}.png`, fullPage: false });
 };
 page.on('pageerror', e => errors.push(e.stack || e.message));
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(r => setTimeout(r, 700));
+await page.goto(URL, { waitUntil: 'domcontentloaded' });
+await waitForApp(page);
+await page.evaluate(() => window.__waitForShell(() => true, 'startup layout'));
 
 let r = await page.evaluate(() => ({
   shell: !!document.querySelector('#workspaceShell'),
@@ -61,11 +76,6 @@ const chromeScan = await page.evaluate(() => {
   };
 });
 ok(chromeScan.hits.length === 0, 'No JS value (undefined/NaN/null/[object Object]) leaks into shell chrome', JSON.stringify(chromeScan.hits));
-// Mutation-verified in self-review: removing ONLY the reports icon leaves the
-// '•' fallback, which the old version of this assertion happily accepted while
-// claiming "renders a real icon". Every registered route must carry its own
-// icon; the fallback exists to stop a JS value reaching the UI, not to be a
-// silently acceptable resting state.
 ok(chromeScan.navLabels.length >= 5 && chromeScan.navLabels.every(l => l && !/undefined/.test(l)),
   'Every shell nav button renders a label with no leaked value', JSON.stringify(chromeScan.navLabels));
 ok(chromeScan.navIcons.length >= 5 && chromeScan.navIcons.every(i => i && i !== '•'),
@@ -140,15 +150,14 @@ ok(r.continueText === 'Open selected game',
 ok(r.openCardText === 'Open game',
   'Selecting a Home card reveals a direct yellow Open game command on that card', JSON.stringify(r));
 await page.click('.ws-game-row.selected .game-card-open');
-await new Promise(res => setTimeout(res, 400));
+await page.evaluate(() => window.__waitForShell(() => window.app.workspace.currentRoute() === 'breakdown'
+  && window.app.storage.seasonStore.data.activeGameId === 'preview-game'
+  && document.querySelector('#wsBreakdown')?.hidden === false, 'card game opened'));
 const openCalls = await page.evaluate(() => window.__openGameCalls);
 ok(openCalls.length === 1 && openCalls[0] === 'preview-game',
   'The card-level Open game command opens exactly the previewed game through the canonical App.openGame command', JSON.stringify(openCalls));
 
-// Restore the real App.openGame (the "Continue charting" proof above
-// deliberately stubbed it to a single-argument shape to count calls, which
-// would silently drop the {route} option any later caller passed) BEFORE
-// exercising Open Study / Open Reports below.
+// Restore the route-aware App.openGame before the preview route commands.
 await page.evaluate(() => { window.app.openGame = window.__openGameOrig; });
 
 /* Reset the active game before previewing another: Open Study/Reports must use
@@ -165,7 +174,10 @@ for (const [action, route] of [['open-study', 'study'], ['open-reports', 'report
   // the detail-action corner. Wait for it to leave before a real mouse click.
   await page.waitForFunction(() => !document.querySelector('.gi-toast-stack')?.children.length);
   await page.click(`[data-ws-action="${action}"]`);
-  await new Promise(res => setTimeout(res, 400));
+  if (route === 'reports') await new Promise(res => setTimeout(res, 400));
+  else await page.evaluate(expected => window.__waitForShell(() => window.app.workspace.currentRoute() === expected
+    && window.app.storage.seasonStore.data.activeGameId === 'preview-game'
+    && document.querySelector('#wsStudy')?.hidden === false, 'preview Study opened'), route);
   const outcome = await page.evaluate(() => ({
     route: window.app.workspace.currentRoute(),
     activeGameId: window.app.storage.seasonStore.data.activeGameId,
@@ -484,8 +496,7 @@ ok(!r.legacyBadgeExists && r.analysisStatus,
 await page.click('[data-overlay-id="team-film-settings"] [data-overlay-action="done"]');
 await page.waitForFunction(() => !document.querySelector('[data-overlay-id="team-film-settings"]'));
 await capture('breakdown-tools-1280x800');
-// Linked-film reload can be slower under CPU/GPU or disk pressure. The route
-// must wait for switchToGame() instead of racing shell render against it.
+// Break Down must wait for the deliberately delayed game load.
 r = await page.evaluate(async () => {
   const app = window.app;
   await app.workspaceShell.show('home');
@@ -503,11 +514,11 @@ r = await page.evaluate(async () => {
     if (route === 'breakdown' && !loadCompleted) breakdownBeforeLoad = true;
     return originalShow.call(this, route);
   };
-  // V2-A: no per-row Open button -- previewing a Home row, then explicit
-  // Continue Charting, is the one way to open a game.
+  // Open the preview through Home's real Continue command.
   document.querySelector('[data-ws-preview="preview-game"]')?.click();
   document.getElementById('wsContinueCharting')?.click();
-  await new Promise(resolve => setTimeout(resolve, 650));
+  await window.__waitForShell(() => loadCompleted && app.workspace.currentRoute() === 'breakdown'
+    && document.getElementById('wsBreakdown')?.hidden === false, 'delayed game switch');
   app.storage._loadActiveGame = originalLoad;
   app.workspaceShell.show = originalShow;
   return {
@@ -579,19 +590,33 @@ r = await page.evaluate(async () => {
 ok(r.loads === 0 && r.active === 'preview-game' && r.route === 'breakdown',
   'Re-opening the active game is idempotent — no extra film load, stays in Break Down', JSON.stringify(r));
 
-// Stale Home async (slow film-health from a prior game) cannot pull the
-// workspace off the game the coach actually opened next (amendment proof item 4).
+// A prior game's slow film-health tail cannot displace the newly opened game.
 r = await page.evaluate(async () => {
   const app = window.app;
   const A = app.storage.seasonStore.data.games.find(g => g.id !== 'preview-game').id;
   await app.openGame(A);
   const origHealth = app.workspace.filmHealth;
-  app.workspace.filmHealth = async (g) => { await new Promise(res => setTimeout(res, 160)); return { state: 'ready', label: `HEALTH ${g.id}`, expected: 0, found: 0 }; };
+  let entered = false, completed = false;
+  const pendingHealth = [];
+  app.workspace.filmHealth = (g) => {
+    if (g.id === A) entered = true;
+    const result = (async () => {
+      await new Promise(res => setTimeout(res, 160));
+      if (g.id === A) completed = true;
+      return { state: 'ready', label: `HEALTH ${g.id}`, expected: 0, found: 0 };
+    })();
+    pendingHealth.push(result);
+    return result;
+  };
   const homePromise = app.workspaceShell.show('home');   // A-context refreshHome, slow tail
-  await new Promise(res => setTimeout(res, 15));
+  // Do not spend layout frames here: B must open while A is still pending.
+  await window.__waitForShell(() => entered, 'A film-health entered', false);
+  if (completed) throw new Error('A film-health completed before opening B');
   await app.openGame('preview-game');                    // open B before the tail resolves
   await homePromise.catch(() => {});
-  await new Promise(res => setTimeout(res, 260));         // let the stale A tail settle
+  await window.__waitForShell(() => completed, 'A film-health completed', false);
+  await Promise.all(pendingHealth);
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   app.workspace.filmHealth = origHealth;
   return { route: app.workspace.currentRoute(), active: app.storage.seasonStore.data.activeGameId, breakdownVisible: !document.getElementById('wsBreakdown')?.hidden };
 });
@@ -751,11 +776,6 @@ r = await page.evaluate(() => {
       /* Retired tagging and Film Room markup must remain absent after teardown. */
       && document.querySelector('#playGridSection') == null
       && document.querySelector('.tag-section') == null,
-    // Final Engine Independence: Undo/Redo/Shortcuts/Settings are the
-    // shell's OWN native buttons rendered inside .ws-global-tools -- there is
-    // no adopted legacy element to "restore". disable() removes this.root
-    // (and every native chrome button with it), and #giLegacyEngineHost does
-    // not exist in the document at all any more.
     chromeGone: !document.querySelector('[data-ws-tool]') && !document.getElementById('giLegacyEngineHost'),
   };
 });
@@ -765,11 +785,6 @@ ok(r.studyClean, 'disable() unmounts native Study, closes its modal, and clears 
 await page.setViewport({ width: 768, height: 1024 });
 await page.evaluate(() => window.app.workspaceShell.enable());
 
-// mount -> restore -> mount. disable() is asserted above and enable() right
-// here, but nothing re-checked that the shell's own chrome buttons come back
-// on the second mount with exactly one owner each and a live history
-// subscription -- leaving a duplicated button set or a leaked subscription
-// after a lifecycle cycle, with every other assertion still green.
 r = await page.evaluate(() => ({
   toolsPresent: ['undo', 'redo', 'shortcuts', 'settings']
     .every(key => document.querySelectorAll(`[data-ws-tool="${key}"]`).length === 1),
@@ -780,12 +795,6 @@ r = await page.evaluate(() => ({
 ok(r.toolsPresent && r.inTools && r.optionalStatusNotPrime && r.nativeMoreRebuilt,
   'Re-enabling rebuilds shell chrome exactly once, with no leftover legacy status badge', JSON.stringify(r));
 
-// The history subscription from the FIRST mount must not still be live --
-// otherwise an undo/redo state change on this (second) mount would double-
-// fire _syncHistoryButtons via two live subscriptions. Every one of history's
-// registered listeners calls this.[_syncHistoryButtons] on the SAME shell
-// instance, so overriding it once catches a leaked duplicate from either
-// mount, not just the current one.
 r = await page.evaluate(() => {
   const shell = window.app.workspaceShell;
   let fired = 0;
@@ -949,15 +958,14 @@ r = await page.evaluate(async () => {
   await store.persist();
   await app.storage._loadActiveGame();
   await app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 700));
+  await window.__waitForShell(() => document.querySelectorAll('#wsPhaseRows .ws-phase-row').length === 3
+    && document.getElementById('wsFactCharted')?.textContent === '4 / 7', 'Home progress rendered');
 
   // Canonical truth recomputed here, independent of the renderer.
   const canon = { offense: [0, 0], defense: [0, 0], special: [0, 0] };
   game.plays.forEach(p => { const u = p.tags.unit; canon[u][1]++; if (p.tags.playType && p.tags.result) canon[u][0]++; });
 
-  // V2-A: per-unit progress moved from a standalone Home widget into the
-  // selected-game detail panel's #wsPhaseRows (bar-encoded pct, not a
-  // rendered N/M fraction), and the single game here is auto-selected.
+  // The single game is auto-selected; phase rows encode progress as bar widths.
   const rows = [...document.querySelectorAll('#wsPhaseRows .ws-phase-row')].map(row => ({
     short: row.querySelector('b')?.textContent,
     total: row.querySelector('span:last-child')?.textContent,
@@ -985,20 +993,20 @@ r = await page.evaluate(async () => {
     persistent: true, mode: 'linked', expected: 3, found: 3, missing: 0, progress: null,
     action: 'open', detail: '', path: 'D:\\Football\\Film\\Holy Family' });
   await app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 700));
+  await window.__waitForShell(() => /linked/i.test(document.getElementById('wsFactFilm')?.textContent || ''), 'linked film rendered');
   const linkedText = document.getElementById('wsFactFilm')?.textContent || '';
   const linkedClass = document.getElementById('wsFactFilm')?.className || '';
   app.workspace.filmHealth = async () => ({ state: 'managed', label: 'Managed film ready', ready: true,
     persistent: true, mode: 'managed', expected: 3, found: 3, missing: 0, progress: null,
     action: 'open', detail: '', path: '' });
   await app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 700));
+  await window.__waitForShell(() => /managed/i.test(document.getElementById('wsFactFilm')?.textContent || ''), 'managed film rendered');
   const managedText = document.getElementById('wsFactFilm')?.textContent || '';
   app.workspace.filmHealth = async () => ({ state: 'missing', label: 'Film needed', ready: false,
     persistent: false, mode: 'managed', expected: 3, found: 0, missing: 3, progress: null,
     action: 'repair', detail: '', path: '' });
   await app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 700));
+  await window.__waitForShell(() => /Film needed/.test(document.getElementById('wsFactFilm')?.textContent || ''), 'missing film rendered');
   const missingText = document.getElementById('wsFactFilm')?.textContent || '';
   const missingClass = document.getElementById('wsFactFilm')?.className || '';
   app.workspace.filmHealth = real;
@@ -1039,10 +1047,6 @@ ok(Object.values(r).every(entry => entry.tag === 'BUTTON' && entry.menu === 'men
 await page.evaluate(() => window.app.workspaceShell.show('reports'));
 await page.click('#wsCtxGame');
 await page.waitForSelector('.gi-popover-item', { timeout: 5000 });
-// The popover moves initial focus on a requestAnimationFrame, so the items
-// existing does not mean focus has landed. Measuring straight after the
-// selector resolved was a race that reported `focused: undefined` roughly one
-// run in ten. Wait for the condition the assertion is about.
 await page.waitForFunction(
   () => !!document.activeElement?.closest?.('.gi-popover-panel'),
   { timeout: 5000 },
@@ -1126,10 +1130,13 @@ r = await page.evaluate(async () => {
   await app.workspaceShell.show('study');
   const staleGame = document.querySelector('#wsCtxGameValue')?.textContent;
   await app.workspaceShell._openSeasonSwitch(document.getElementById('wsCtxSeason'));
-  await new Promise(res => setTimeout(res, 250));
+  await window.__waitForShell(() => [...document.querySelectorAll('.gi-popover-item')].some(b => /2027 JV/.test(b.textContent || '')), 'season switch menu');
   const rows = [...document.querySelectorAll('.gi-popover-item')].filter(b => /2027 JV/.test(b.textContent || ''));
   rows[0]?.click();
-  await new Promise(res => setTimeout(res, 400));
+  await window.__waitForShell(() => String(app.storage.seasonStore.currentSeasonId) === String(rec.id)
+    && app.workspace.currentRoute() === 'home' && document.getElementById('wsHome')?.hidden === false
+    && /2027 JV/.test(document.getElementById('wsCtxSeasonValue')?.textContent || '')
+    && document.querySelectorAll('.ws-game-row').length === 1, 'season switch Home');
   return {
     route: app.workspace.currentRoute(),
     seasonId: app.storage.seasonStore.currentSeasonId,
@@ -1158,7 +1165,8 @@ r = await page.evaluate(async () => {
   store.data.activeGameId = 'preview-game';
   await store.persist();
   await app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 300));
+  await window.__waitForShell(() => app.homeScreen.snapshot().seasonId === recA.id
+    && document.querySelector('.ws-game-row')?.dataset.gameId === 'preview-game', 'Collision A Home');
   document.querySelector('.ws-game-row')?.click();
   const previewedBefore = (app.homeScreen?.selectedGameId || null);
   // The colliding id ('preview-game') is deliberately NOT season B's active
@@ -1178,12 +1186,15 @@ r = await page.evaluate(async () => {
   // finding named, where `show()`'s own previousRoute!=='home' guard cannot
   // fire because the route never changes.
   await app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 200));
+  await window.__waitForShell(() => app.homeScreen.snapshot().seasonId === recA.id
+    && document.querySelector('.ws-game-row')?.dataset.gameId === 'preview-game', 'Collision A reopened');
   await app.workspaceShell._openSeasonSwitch(document.getElementById('wsCtxSeason'));
-  await new Promise(res => setTimeout(res, 250));
+  await window.__waitForShell(() => [...document.querySelectorAll('.gi-popover-item')].some(b => /Collision B/.test(b.textContent || '')), 'Collision B menu');
   const row = [...document.querySelectorAll('.gi-popover-item')].find(b => /Collision B/.test(b.textContent || ''));
   row?.click();
-  await new Promise(res => setTimeout(res, 400));
+  await window.__waitForShell(() => store.currentSeasonId === recB.id
+    && app.homeScreen.snapshot().seasonId === recB.id
+    && document.querySelector('.ws-game-row.selected')?.dataset.gameId === 'b-active', 'Collision B Home');
   return {
     previewedBefore,
     seasonId: store.currentSeasonId, targetId: recB.id,
@@ -1280,10 +1291,12 @@ await page.evaluate(async (team, seasonName, gameName) => {
 const navGeometry = [];
 for (const [width, height] of [[1440, 900], [1280, 800]]) {
   await page.setViewport({ width, height });
-  await sleep(350);
+  await page.evaluate(() => window.__waitForShell(() => document.fonts.status === 'loaded', 'navigation layout'));
   for (const route of ['home', 'breakdown', 'study', 'reports', 'plan']) {
     await page.evaluate(name => window.app.workspaceShell.show(name), route);
-    await sleep(250);
+    if (route === 'reports') await sleep(250);
+    else await page.evaluate(name => window.__waitForShell(() => window.app.workspace.currentRoute() === name
+      && document.getElementById('workspaceShell')?.dataset.route === name, 'navigation route'), route);
     navGeometry.push({ width, route, ...await page.evaluate((team, seasonName, gameName) => {
       /* The shell's OWN writer, with the longest canonical values. The context
          bar reads the team registry rather than the season store, so writing

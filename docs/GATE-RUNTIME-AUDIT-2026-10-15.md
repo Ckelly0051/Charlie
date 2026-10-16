@@ -49,10 +49,9 @@ the responsibility to preserve, not a claim that every assertion is unique.
    to the Reports rebuild, per the coach; none was changed here. Reuse a
    populated traversal for shared assertions where practical, not independent
    full-board walks for every shared concern.
-3. Outside Reports, inspect repeated route setup in copy checks and overlap
-   between randomized and deterministic persistence scenarios. Do not drop
-   isolation or failure-path checks merely because a fuzzer sometimes visits
-   the same operation.
+3. The bounded non-Reports disposition is recorded in
+   `docs/TEST-SUITE-CONSOLIDATION-AUDIT.md`. Distinct workflow/race and seeded
+   integrity coverage remains; duplicate cases and unnecessary settling do not.
 4. Measure the current full run only with coach authorization. Use its phase
    timings to distinguish setup costs, a slow harness and runner overhead
    before another structural reduction. The six-minute local target is

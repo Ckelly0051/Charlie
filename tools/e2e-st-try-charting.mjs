@@ -1,18 +1,5 @@
-/**
- * TRY CHARTING (coach, 2026-09-27). Driven through the real charting deck:
- *   - Attempt offers Kick XP, Run/Pass and Fake; a Fake is a run/pass try with
- *     isFake.
- *   - A run/pass try can score 1 (youth rules) or 2; a kick 1 or 2.
- *   - A kicked try has no Returner: Try (Kick) is Kicker only, Defending a Try
- *     (Kick) is Blocker only.
- *   - Run/Pass and Fake show the offensive options of an offensive snap (Try) or
- *     the defensive options of a defensive snap (Defending a Try), and the look
- *     is kept rather than stripped; Film Room locks none of its cells.
- *   - Switching back to Kick XP asks first, then saves the kicked try without
- *     the run/pass detail.
- * The analytics exclusion is pinned in e2e-b2-tries.
- * Run:  node tools/e2e-st-try-charting.mjs
- */
+// Try attempts, youth points, loss confirmations and roster ownership through
+// the real deck. Analytics exclusion belongs to e2e-b2-tries.
 import { APP_URL } from './app-entry.mjs';
 import puppeteer from './test-browser.mjs';
 
@@ -20,7 +7,7 @@ let pass = 0, fail = 0;
 const ok = (condition, label, detail = '') => condition
   ? (pass++, console.log('  PASS  ' + label))
   : (fail++, console.log('  FAIL  ' + label + (detail ? ' -- ' + detail : '')));
-const settle = page => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 60)))));
+const settle = page => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();

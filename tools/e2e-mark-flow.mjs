@@ -1,13 +1,11 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 import { createFirstTeam } from './hub-setup.mjs';
 /* Generate real video and mark it through the mounted theater controls, rather
  * than selecting plays by API: creation must select the play, enable the native
  * form, and allow a chip edit to save. */
 import puppeteer from './test-browser.mjs';
 const URL = TEST_APP_URL;
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-const browser = await puppeteer.launch({ args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 let pass = 0, fail = 0;
 const ok = (cond, label) => {
   if (cond) { pass++; console.log(`  PASS  ${label}`); }
@@ -21,18 +19,14 @@ try {
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
-  await page.goto(URL, { waitUntil: 'networkidle0' });
-  await sleep(600);
+  await gotoApp(page, URL);
 
   // Team setup + create a real (non-demo) season, like a coach would.
   await createFirstTeam(page);
-  await sleep(400);
   const seasonSetup = await page.evaluate(async () => {
     const app = window.app;
     await app.storage.createSeason({ year: '2026', team: 'Mavericks', level: 'Varsity' });
-    // The real coach path: open Break Down. This mounts the native theater
-    // (Mark Start/End live here) and the native tag form together as one
-    // route, matching e2e-native-tagging.mjs's own proven setup.
+    // Marking and charting share the mounted Break Down route.
     await app.workspaceShell.show('breakdown');
     return {
       hasSeason: app.storage.seasonStore.hasCurrent(),
@@ -40,13 +34,15 @@ try {
       formMounted: !!document.querySelector('#wsBreakdown [data-native-tagging]'),
     };
   });
-  await sleep(300);
+  await page.waitForSelector('.gi-theater-actions-primary button', { visible: true });
+  const layout = () => page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+  await layout();
 
   // Generate a real 4s video in-page and load it through VideoController.
-  // The canonical <video id="videoPlayer"> is a permanent, boot-lifetime
-  // element (the theater's media slot adopts it, never re-creates it), so
-  // it is reachable the same way regardless of which route is active.
-  const loaded = await page.evaluate(async () => {
+  await page.evaluate(async () => {
     const canvas = document.createElement('canvas');
     canvas.width = 320; canvas.height = 180;
     const ctx = canvas.getContext('2d');
@@ -67,7 +63,13 @@ try {
     const blob = new Blob(chunks, { type: 'video/webm' });
     const file = new File([blob], 'test_film.webm', { type: 'video/webm' });
     window.app.vc.loadFile(file);
-    await new Promise(r => setTimeout(r, 800));
+  });
+  await page.waitForFunction(() => {
+    const v = document.getElementById('videoPlayer');
+    return v.readyState >= 2 && Number.isFinite(v.duration) && v.duration > 0 && !v.seeking;
+  }, { timeout: 15000 });
+  await layout();
+  const loaded = await page.evaluate(() => {
     const v = document.getElementById('videoPlayer');
     return { duration: v.duration, ready: v.readyState };
   });
@@ -80,6 +82,26 @@ try {
     const form = document.querySelector('[data-native-tagging]');
     const actions = document.querySelector('.gi-theater-actions-primary');
     const t = window.app.tagger;
+    const layout = async () => {
+      await document.fonts.ready;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    };
+    const seek = target => new Promise((resolve, reject) => {
+      const finish = error => {
+        clearTimeout(timer);
+        v.removeEventListener('seeked', onSeeked);
+        v.removeEventListener('error', onError);
+        error ? reject(error) : resolve();
+      };
+      const onSeeked = () => {
+        if (!v.seeking && v.readyState >= 2 && Math.abs(v.currentTime - target) < 0.05) finish();
+      };
+      const onError = () => finish(new Error('Film failed while seeking'));
+      const timer = setTimeout(() => finish(new Error(`Film did not seek to ${target}`)), 10000);
+      v.addEventListener('seeked', onSeeked);
+      v.addEventListener('error', onError);
+      v.currentTime = target;
+    });
 
     const clickControl = text => {
       const button = [...actions.querySelectorAll('button')].find(b => b.textContent.trim() === text);
@@ -98,10 +120,9 @@ try {
 
     // 2. First manual mark re-times the placeholder instead of adding a play.
     clickControl('[ Mark start');
-    v.currentTime = 2.5;
-    await new Promise(r => setTimeout(r, 400));
+    await seek(2.5);
     clickControl('] Mark end');
-    await new Promise(r => setTimeout(r, 400));
+    await layout();
     const afterMark = {
       plays: t.plays.length,
       start: t.plays[0].timestamp.start,
@@ -110,20 +131,18 @@ try {
       disabled: document.querySelector('[data-native-tagging]').classList.contains('is-disabled'),
     };
 
-    // 3. Chip click saves to the (re-timed) play, on the native offense unit
-    // (the fixture plays default to offense, where Play Type is shown).
+    // 3. Chart the re-timed play through its native chip.
     const chip = [...document.querySelectorAll('[data-native-field="playType"] .gi-tag-chips button')]
       .find(b => b.textContent.trim() === 'Run Inside');
     chip.click();
-    await new Promise(r => setTimeout(r, 150));
+    await layout();
     const chipSaved = t.getCurrentPlay()?.tags.playType;
 
     // 4. A second mark now ADDS a play (placeholder already consumed).
     clickControl('[ Mark start');
-    v.currentTime = Math.min(v.duration - 0.1, 3.6);
-    await new Promise(r => setTimeout(r, 400));
+    await seek(Math.min(v.duration - 0.1, 3.6));
     clickControl('] Mark end');
-    await new Promise(r => setTimeout(r, 300));
+    await layout();
 
     return { onLoad, afterMark, chipSaved, finalPlays: t.plays.length };
   });

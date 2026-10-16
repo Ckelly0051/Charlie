@@ -1,4 +1,4 @@
-import { APP_URL as TEST_APP_URL } from './app-entry.mjs';
+import { APP_URL as TEST_APP_URL, gotoApp } from './app-entry.mjs';
 import { clippedTableText, reportCapturePolicy } from './report-test.mjs';
 /* Every shell route must contain itself at reviewed viewports, including the
  * installed window size. No page-level horizontal scroll; wide content is
@@ -28,8 +28,11 @@ await page.evaluateOnNewDocument(() => localStorage.setItem('ffa_workspace_shell
 const errors = [];
 page.on('pageerror', error => errors.push(error.stack || error.message));
 await page.setViewport(VIEWPORTS[0]);
-await page.goto(URL, { waitUntil: 'networkidle0' });
-await new Promise(resolve => setTimeout(resolve, 500));
+await gotoApp(page, URL);
+const layout = () => page.evaluate(async () => {
+  await document.fonts.ready;
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+});
 
 await page.evaluate(async () => {
   const app = window.app;
@@ -127,11 +130,19 @@ const measure = async route => page.evaluate(routeId => {
 for (const viewport of VIEWPORTS) {
   console.log(`\n== ${viewport.name} ==`);
   await page.setViewport({ width: viewport.width, height: viewport.height });
-  await new Promise(resolve => setTimeout(resolve, 220));
   for (const route of ROUTES) {
     await page.evaluate(routeId => window.app.workspaceShell.show(routeId), route);
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    await new Promise(resolve => setTimeout(resolve, 260));
+    if (route === 'reports') {
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await new Promise(resolve => setTimeout(resolve, 260));
+    } else {
+      await page.waitForFunction(routeId => {
+        const host = document.querySelector(`#ws${routeId[0].toUpperCase()}${routeId.slice(1)}`) || document.querySelector(`.ws-${routeId}`);
+        return window.app.workspace.currentRoute() === routeId && host && !host.hidden
+          && host.querySelectorAll('*').length >= 10 && (host.innerText || '').trim().length >= 60;
+      }, { timeout: 8000 }, route);
+      await layout();
+    }
     const result = await measure(route);
     ok(result.hostFound && result.nodes >= 10 && result.text >= 60,
       `${route} renders real content to measure at ${viewport.name}`, JSON.stringify({ nodes: result.nodes, text: result.text }));

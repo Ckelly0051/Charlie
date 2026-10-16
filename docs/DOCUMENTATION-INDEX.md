@@ -116,10 +116,12 @@ log.
   stats-engine split stay with its rebuild. See the cleanup report above.
 - **Test-suite consolidation:** model tests run in Node; existing mounted
   journeys retain browser wiring, interactions and media recovery. Study query
-  parity and gated film-load races no longer boot the app. Coverage owners,
-  shared scenarios and readiness waits are mapped in `docs/TESTING.md`.
-  Reports and production code are unchanged; full-gate and installed approval
-  remain separate.
+  parity and gated film-load races no longer boot the app. The bounded
+  non-Reports audit is complete: duplicate cases and the cross-area repair
+  harness are retired; retained journeys use observed completion. Coverage is
+  mapped in `docs/TESTING.md`; decisions and limits are in
+  `docs/TEST-SUITE-CONSOLIDATION-AUDIT.md`. Production is unchanged, Reports
+  remains excluded, and full-gate/installed approval remain separate.
   Latest focused verification at `625b1dd5`: 9/9 green, zero failed/skipped,
   clean unchanged source/build/fixtures. Receipt:
   `artifacts/gate-logs/2026-10-15T22-25-10-694Z-lM7Fmi/receipt.json`.

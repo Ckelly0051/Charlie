@@ -7,7 +7,7 @@
 // selector merely exists.
 import puppeteer from './test-browser.mjs';
 import { readFileSync } from 'node:fs';
-import { APP_URL } from './app-entry.mjs';
+import { gotoApp } from './app-entry.mjs';
 import { setupTeamAndDemo } from './hub-setup.mjs';
 
 let passed = 0, failed = 0;
@@ -18,14 +18,61 @@ const ok = (cond, label, evidence) => {
 
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
+page.setDefaultTimeout(8000);
+// Shared by page-side journeys too; a missed completion always rejects.
+await page.evaluateOnNewDocument(() => {
+  window.__repairWait = (predicate, label = 'Home render') => new Promise((resolve, reject) => {
+    let frame;
+    const timer = setTimeout(() => {
+      cancelAnimationFrame(frame);
+      reject(new Error(`Timed out waiting for ${label}`));
+    }, 8000);
+    const check = () => {
+      try {
+        if (predicate()) { clearTimeout(timer); resolve(); }
+        else frame = requestAnimationFrame(check);
+      } catch (error) { clearTimeout(timer); reject(error); }
+    };
+    check();
+  });
+  window.__repairFrames = async () => {
+    let frames = 0;
+    await window.__repairWait(() => ++frames > 2 && document.fonts.status === 'loaded', 'layout frames and fonts');
+  };
+  window.__repairHome = async (expected = {}) => {
+    await window.__repairWait(() => {
+      const app = window.app, state = app?.homeScreen?.snapshot();
+      const hub = app?.teamHubScreen?.snapshot();
+      const root = document.querySelector('[data-native-home]');
+      const mode = expected.mode || hub?.workspaceMode;
+      const id = expected.seasonId ?? app?.storage?.seasonStore?.currentSeasonId;
+      const games = root?.querySelectorAll('#wsGameList .ws-game-row');
+      const store = app?.storage?.seasonStore;
+      const showGames = id && store?.data?.games?.length && (store.data.kind === 'scout' || mode === 'program');
+      const railIds = [...(root?.querySelectorAll('.rail-row') || [])].map(row => row.dataset.seasonId).sort();
+      return app?.workspaceShell?.root?.dataset.route === 'home' && state?.active
+        && state.status === 'ready' && hub?.status === 'ready' && root?.getClientRects().length
+        && (app.storage.seasonStore.currentSeasonId || '') === (id || '')
+        && railIds.join() === hub.railSeasons.map(row => row.id).sort().join()
+        && hub.workspaceMode === mode
+        && document.querySelector(`[data-ws-action="workspace-${mode}"]`)?.classList.contains('is-active')
+        && (!showGames || (root.querySelector('.sort')?.value === state.sort
+          && [...games].map(g => g.dataset.gameId).sort().join() === app.homeScreen.filteredGames().map(g => g.id).sort().join()
+          && root.querySelector('#wsGameList').classList.contains('list') === (state.view === 'list')));
+    }, 'mounted Home season, mode and controls');
+    await window.__repairFrames();
+  };
+});
+const homeReady = expected => page.evaluate(e => window.__repairHome(e), expected);
+const layoutFrames = () => page.evaluate(() => window.__repairFrames());
+try {
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.teamHubScreen);
+await gotoApp(page);
 await setupTeamAndDemo(page, 'St. Joseph Mavericks');
 await page.evaluate(() => window.app.workspaceShell.show('home'));
-await new Promise(r => setTimeout(r, 300));
+await homeReady();
 
 // ---------------------------------------------------------------------------
 console.log('\n== 1. Persistent Program Seasons + Opponent Scouts rails ==');
@@ -55,6 +102,7 @@ ok(built.railPrograms >= 2 && built.railScouts === 3,
   'The rail collection is the COMPLETE team collection, not the main-panel filter', built);
 ok(built.mainPanel < built.railTotal,
   'The main-panel collection stays filtered and is a strict subset of the rail collection', built);
+await homeReady();
 
 const railShape = async () => page.evaluate(() => {
   const sections = [...document.querySelectorAll('.rail-section')];
@@ -92,13 +140,13 @@ ok(shape.empties.flat().length === 0, 'No empty-state text renders while both tr
 
 // Mode change must not remove either tree.
 await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('scout'); });
-await new Promise(r => setTimeout(r, 250));
+await homeReady({ mode: 'scout' });
 shape = await railShape();
 ok(shape.workspaceMode === 'scout', 'Workspace mode really changed to scout', shape);
 bothVisible(shape, 'after switching the workspace to Opponent Scout');
 
 await page.evaluate(async () => { await window.app.teamHubScreen.selectWorkspace('program'); });
-await new Promise(r => setTimeout(r, 250));
+await homeReady({ mode: 'program' });
 bothVisible(await railShape(), 'after switching the workspace back to Program');
 
 // Scout rows must stay distinguishable. Level is an identity breakpoint: the
@@ -128,8 +176,7 @@ const clickRailRow = async (seasonId, when) => {
   }, sel);
   ok(before.width > 0 && before.height > 0, `The rail row is a real rendered, clickable target ${when}`, before);
   await page.click(sel);
-  await page.waitForFunction(id => window.app.storage.seasonStore.currentSeasonId === id, { timeout: 8000 }, seasonId);
-  await new Promise(r => setTimeout(r, 400));
+  await homeReady({ seasonId });
   return before;
 };
 
@@ -161,7 +208,7 @@ ok(tools.includes('Roster') && tools.some(t => /Edit season details/.test(t)),
  * Scouts are selected explicitly within their parent, never by team-wide
  * lastOpened. */
 await page.click('[data-ws-action="workspace-scout"]');
-await new Promise(r => setTimeout(r, 400));
+await homeReady({ mode: 'scout', seasonId: programId });
 shape = await railShape();
 ok(shape.workspaceMode === 'scout' && shape.openSeasonId === programId && shape.openKind !== 'scout',
   'The rendered switch enters Opponent Scout with the PARENT program season still open', { shape, programId });
@@ -177,16 +224,15 @@ ok(scopedScouts.parent === programId,
 ok(scopedScouts.listed.every(id => id !== programId) && scopedScouts.listed.length <= 3,
   'The Opponent Scout view lists scouts scoped to that parent and no program season', JSON.stringify(scopedScouts));
 await page.click('[data-ws-action="workspace-program"]');
-await new Promise(r => setTimeout(r, 400));
+await homeReady({ mode: 'program', seasonId: programId });
 shape = await railShape();
 ok(shape.workspaceMode === 'program' && shape.openSeasonId === programId && shape.openKind !== 'scout',
   'Returning to Our Program leaves that same program season open -- no second open, no library', { shape, programId });
 
 // Returning Home from another route keeps both trees.
 await page.evaluate(async () => { await window.app.workspaceShell.show('reports'); });
-await new Promise(r => setTimeout(r, 250));
 await page.evaluate(async () => { await window.app.workspaceShell.show('home'); });
-await new Promise(r => setTimeout(r, 300));
+await homeReady();
 bothVisible(await railShape(), 'after leaving Home and returning');
 
 // Isolated data after each open.
@@ -215,10 +261,10 @@ await page.evaluate(async () => {
   const program = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo);
   if (program) await hub.openSeason(program.id);
 });
-await new Promise(r => setTimeout(r, 400));
+await homeReady();
 for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280, 800], ['768x900', 768, 900]]) {
   await page.setViewport({ width, height });
-  await new Promise(r => setTimeout(r, 350));
+  await layoutFrames();
   const reach = await page.evaluate(() => {
     const rail = document.querySelector('.rail-year').getBoundingClientRect();
     const nav = document.querySelector('.ws-mobile-nav');
@@ -270,7 +316,7 @@ for (const [label, width, height] of [['1440x900', 1440, 900], ['1280x800', 1280
   await page.evaluate(() => { document.querySelector('.home-content').scrollTop = 0; });
 }
 await page.setViewport({ width: 1440, height: 900 });
-await new Promise(r => setTimeout(r, 300));
+await layoutFrames();
 
 // Reload with scout mode persisted -- both trees must come back. FIXTURE
 // REPOINTED 2026-09-14: the durable owner of the workspace mode is
@@ -285,7 +331,7 @@ await page.evaluate(() => {
 await page.reload({ waitUntil: 'networkidle0' });
 await page.waitForFunction(() => window.app?.teamHubScreen);
 await page.evaluate(async () => { await window.app.workspaceShell.show('home'); });
-await page.waitForFunction(() => document.querySelectorAll('.rail-section').length === 2, { timeout: 15000 }).catch(() => {});
+await homeReady({ mode: 'scout' });
 shape = await railShape();
 ok(shape.workspaceMode === 'scout', 'Scout workspace mode genuinely persisted across the reload', shape);
 bothVisible(shape, 'after a reload with scout mode persisted');
@@ -301,7 +347,7 @@ const emptyCase = await page.evaluate(async () => {
   if (programs.length) await hub.openSeason(programs[0].id);
   for (const s of scouts) await hub._storage().deleteSeason(s.id);
   await hub.load();
-  await new Promise(r => setTimeout(r, 250));
+  await window.__repairHome();
   const sections = [...document.querySelectorAll('.rail-section')];
   return {
     sections: sections.length,
@@ -316,24 +362,16 @@ ok(emptyCase.sections === 2 && emptyCase.programRows >= 2 && emptyCase.programEm
 ok(emptyCase.scoutRows === 0 && emptyCase.scoutEmptyText === 'None yet',
   'The empty Opponent Scouts rail uses concise copy distinct from the main workspace', emptyCase);
 
-// Long histories scroll inside the rail; entries are never dropped. The rail
-// is TWO PERMANENT PANES rather than one shared scroller: a single scroll
-// area let Program Seasons fill the visible space so Opponent Scouts read as
-// absent, which conflicts with the requirement that both trees stay
-// continuously visible. Each section owns its own scroller, so a long history
-// in one tree can never push the other out of view.
+// Keep the two-pane and independent-scroll contracts: e2e-home-rail's
+// long-history geometry does not directly assert both scrollers' overflow.
 const scrollCase = await page.evaluate(() => {
   const trees = document.querySelector('.rail-trees');
   const cs = getComputedStyle(trees);
   const sections = [...document.querySelectorAll('.rail-section')];
-  const groups = sections.map(s => s.querySelector('.rail-groups'));
   return {
     display: cs.display,
     rowCount: cs.gridTemplateRows.split(/\s+/).filter(Boolean).length,
-    treesOverflow: cs.overflowY,
-    groupOverflow: groups.map(g => getComputedStyle(g).overflowY),
-    groupScrolls: groups.map(g => g.scrollHeight > g.clientHeight),
-    rows: document.querySelectorAll('.rail-row').length,
+    groupOverflow: sections.map(s => getComputedStyle(s.querySelector('.rail-groups')).overflowY),
   };
 });
 ok(scrollCase.display === 'grid' && scrollCase.rowCount === 2,
@@ -373,7 +411,7 @@ const seedOrder = async () => page.evaluate(async fixture => {
   return true;
 }, ORDER_FIXTURE);
 await seedOrder();
-await new Promise(r => setTimeout(r, 300));
+await homeReady();
 
 const rendered = async () => page.evaluate(() => ({
   sort: window.app.homeScreen.snapshot().sort,
@@ -394,22 +432,13 @@ ok(order.options.length === 2 && /Newest first/.test(order.options.find(o => o.s
   '"Newest first" remains available as an explicit alternate, never the default', order.options);
 ok(order.ids.join() === EXPECTED_OLDEST.join(),
   'Cards render earliest game first, through scrimmage/preseason/Weeks 1,2,10/postseason/duplicate dates/undated', order);
-ok(order.ids.slice(0, 8).every(id => id !== 'g-undated-a' && id !== 'g-undated-b'),
-  'Dated games all precede undated games', order);
-ok(order.ids.indexOf('g-dupA') < order.ids.indexOf('g-dupB'),
-  'Same-date games break the tie on valid numeric week ascending', order);
-ok(order.ids.indexOf('g-w2') < order.ids.indexOf('g-w10'),
-  'Week 10 sorts after Week 2 (numeric, never lexical)', order);
-ok(order.ids.indexOf('g-scrim') < order.ids.indexOf('g-pre'),
-  'A no-week scrimmage and a zero-week preseason game still sort by their real dates', order);
-ok(order.ids.indexOf('g-undated-b') < order.ids.indexOf('g-undated-a'),
-  'Within undated games, a valid week precedes a missing week', order);
+// Exact ID equality above owns every chronological edge in ORDER_FIXTURE.
 ok(order.stored.join() === ORDER_FIXTURE.map(f => f[0]).join(),
   'The stored games array is never reordered in place', order);
 
 // Newest first is a true reversal of the dated block, undated still last.
 await page.evaluate(() => window.app.homeScreen.setSort('newest'));
-await new Promise(r => setTimeout(r, 200));
+await homeReady();
 order = await rendered();
 // Newest first reverses the DATE order. The same-date tiebreaker is defined
 // as valid numeric week ASCENDING in both directions -- it is a tiebreaker,
@@ -418,25 +447,21 @@ order = await rendered();
 const EXPECTED_NEWEST = ['g-post', 'g-w10', 'g-dupA', 'g-dupB', 'g-w2', 'g-w1', 'g-pre', 'g-scrim', 'g-undated-b', 'g-undated-a'];
 ok(order.ids.join() === EXPECTED_NEWEST.join(),
   'Newest first reverses the dated games while keeping the same-date week tiebreaker ascending', order);
-ok(order.ids.indexOf('g-dupA') < order.ids.indexOf('g-dupB'),
-  'Same-date week ordering stays ascending under Newest first', order);
-ok(order.ids.slice(-2).every(id => id.startsWith('g-undated')),
-  'Undated games stay last under Newest first, never jumping to the front', order);
 
 // Search / filter / view preserve the selected relative order.
 await page.evaluate(() => window.app.homeScreen.setSort('oldest'));
 await page.evaluate(() => window.app.homeScreen.setView('list'));
-await new Promise(r => setTimeout(r, 200));
+await homeReady();
 order = await rendered();
 ok(order.ids.join() === EXPECTED_OLDEST.join(), 'List view preserves the selected order', order);
 await page.evaluate(() => window.app.homeScreen.setView('grid'));
 await page.evaluate(() => window.app.homeScreen.setQuery('g-w'));
-await new Promise(r => setTimeout(r, 200));
+await homeReady();
 order = await rendered();
 ok(order.ids.join() === ['g-w1', 'g-w2', 'g-w10'].join(), 'Search preserves the selected order', order);
 await page.evaluate(() => window.app.homeScreen.setQuery(''));
 await page.evaluate(() => window.app.homeScreen.setFilter('chart'));
-await new Promise(r => setTimeout(r, 200));
+await homeReady();
 order = await rendered();
 ok(order.ids.join() === EXPECTED_OLDEST.join(), 'Filters preserve the selected order', order);
 await page.evaluate(() => window.app.homeScreen.setFilter('all'));
@@ -444,9 +469,8 @@ await page.evaluate(() => window.app.homeScreen.setFilter('all'));
 // An explicitly selected sort survives a route return WITHIN the same season.
 await page.evaluate(() => window.app.homeScreen.setSort('newest'));
 await page.evaluate(async () => { await window.app.workspaceShell.show('reports'); });
-await new Promise(r => setTimeout(r, 200));
 await page.evaluate(async () => { await window.app.workspaceShell.show('home'); });
-await new Promise(r => setTimeout(r, 250));
+await homeReady();
 order = await rendered();
 ok(order.sort === 'newest', 'Returning Home within the same season preserves an explicitly selected sort', order);
 
@@ -455,7 +479,7 @@ const reset = await page.evaluate(async () => {
   const hub = window.app.teamHubScreen;
   const other = hub.snapshot().railSeasons.find(s => s.id !== window.app.storage.seasonStore.currentSeasonId);
   await hub.openSeason(other.id);
-  await new Promise(r => setTimeout(r, 250));
+  await window.__repairHome({ seasonId: other.id });
   return window.app.homeScreen.snapshot().sort;
 });
 ok(reset === 'oldest', 'Opening a different season resets the sort to oldest first', { reset });
@@ -463,7 +487,7 @@ ok(reset === 'oldest', 'Opening a different season resets the sort to oldest fir
 // ---------------------------------------------------------------------------
 console.log('\n== 3. Game Plan action ==');
 await seedOrder();
-await new Promise(r => setTimeout(r, 300));
+await homeReady();
 const plan = await page.evaluate(() => {
   const actions = [...document.querySelectorAll('.detail-actions button')];
   const gp = actions.find(b => b.textContent.trim() === 'Game Plan');
@@ -496,9 +520,15 @@ const stateParity = async label => {
   await page.evaluate((s, i) => document.querySelectorAll(s)[i].scrollIntoView({ block: 'center' }), sel, idx);
   const box = await page.evaluate((s, i) => { const r = document.querySelectorAll(s)[i].getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }, sel, idx);
   await page.mouse.move(box.x, box.y);
-  await new Promise(r => setTimeout(r, 80));
+  await page.waitForFunction((s, i) => {
+    const button = document.querySelectorAll(s)[i];
+    return button.matches(':hover') && button.getAnimations().every(a => a.playState === 'finished');
+  }, {}, sel, idx);
+  await layoutFrames();
   const after = await page.evaluate((s, i) => { const b = document.querySelectorAll(s)[i], c = getComputedStyle(b), r = b.getBoundingClientRect(); return { bg: c.backgroundColor, border: c.borderColor, w: r.width, h: r.height }; }, sel, idx);
   await page.mouse.move(0, 0);
+  await page.waitForFunction((s, i) => !document.querySelectorAll(s)[i].matches(':hover')
+    && document.querySelectorAll(s)[i].getAnimations().every(a => a.playState === 'finished'), {}, sel, idx);
   return { before, after, changed: before.bg !== after.bg || before.border !== after.border, stable: Math.abs(before.w - after.w) < 0.5 && Math.abs(before.h - after.h) < 0.5 };
 };
 const gpHover = await stateParity('Game Plan');
@@ -522,12 +552,13 @@ ok(focusRing.gp !== 'none' && focusRing.gp !== focusRing.rest && focusRing.gp ==
 const planRoute = await page.evaluate(async () => {
   const btn = [...document.querySelectorAll('.detail-actions button')].find(b => b.textContent.trim() === 'Game Plan');
   btn.click();
-  await new Promise(r => setTimeout(r, 400));
+  await window.__repairWait(() => window.app.workspace.currentRoute() === 'plan'
+    && document.querySelector('#wsPlan')?.getClientRects().length, 'mounted Plan route');
   return window.app.workspace.currentRoute();
 });
 ok(planRoute === 'plan', 'Game Plan opens the existing Plan route', { planRoute });
 await page.evaluate(async () => { await window.app.workspaceShell.show('home'); });
-await new Promise(r => setTimeout(r, 250));
+await homeReady();
 
 // ---------------------------------------------------------------------------
 console.log('\n== 4/5. Approved copy renders; superseded phrases are absent ==');
@@ -581,7 +612,7 @@ const scoutHome = await page.evaluate(async () => {
   await hub.load();
   const scout = hub.snapshot().railSeasons.find(s => s.isScout);
   await hub.openSeason(scout.id);
-  await new Promise(r => setTimeout(r, 350));
+  await window.__repairHome({ seasonId: scout.id });
   return document.querySelector('#wsHomeSummary')?.textContent || '';
 });
 ok(/source game/.test(scoutHome) && !/isolated/.test(scoutHome),
@@ -594,7 +625,7 @@ const scoutEmpty = await page.evaluate(async () => {
   store.data.games = [];
   store.data.activeGameId = '';
   await window.app.homeScreen.show('reports');
-  await new Promise(r => setTimeout(r, 250));
+  await window.__repairWait(() => document.querySelector('.ws-empty-panel h3'), 'scout empty panel');
   const panel = document.querySelector('.ws-empty-panel');
   return { h3: panel?.querySelector('h3')?.textContent || '', p: panel?.querySelector('p')?.textContent || '' };
 });
@@ -605,7 +636,8 @@ ok(scoutEmpty.h3 === 'No source games yet' && scoutEmpty.p === 'Add a source gam
 const hubCopy = await page.evaluate(async () => {
   await window.app.teamHubScreen.selectWorkspace('scout');
   await window.app.workspaceShell._openLibrary();
-  await new Promise(r => setTimeout(r, 450));
+  await window.__repairHome({ mode: 'scout' });
+  await window.__repairWait(() => document.querySelector('.library-panel-head h2'), 'season library');
   return {
     route: document.getElementById('workspaceShell')?.dataset.route || '',
     teamHubHost: !!document.getElementById('wsTeamHub'),
@@ -628,7 +660,7 @@ ok(![...SUPERSEDED, ...TEAM_HUB_ONLY_SUPERSEDED].some(p => hubCopy.text.includes
 const programHero = await page.evaluate(async () => {
   const before = window.app.storage.seasonStore.currentSeasonId || '';
   const changed = await window.app.teamHubScreen.selectWorkspace('program');
-  await new Promise(r => setTimeout(r, 350));
+  await window.__repairHome({ mode: 'program' });
   return {
     before, changed,
     route: document.getElementById('workspaceShell')?.dataset.route || '',
@@ -660,19 +692,24 @@ const dialogCopy = await page.evaluate(async () => {
     cancel?.click();
   });
   const out = {};
-  hub.openCreateSeason(null); await new Promise(r => setTimeout(r, 300));
-  out.create = grab(); close(); await new Promise(r => setTimeout(r, 200));
+  const mounted = async id => {
+    await window.__repairWait(() => document.querySelector(`[data-overlay-id="${id}"] .gi-hub-dialog-form`), `dialog ${id}`);
+    await window.__repairFrames();
+  };
+  const closed = () => window.__repairWait(() => !document.querySelector('[data-overlay-id] .gi-hub-dialog-form'), 'dialog dismissal');
+  hub.openCreateSeason(null); await mounted('team-hub-create-season');
+  out.create = grab(); close(); await closed();
 
   const program = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo);
-  await hub.openSeason(program.id); await new Promise(r => setTimeout(r, 300));
-  window.app.homeScreen.openEditSeason(null); await new Promise(r => setTimeout(r, 350));
-  out.edit = grab(); close(); await new Promise(r => setTimeout(r, 200));
+  await hub.openSeason(program.id); await window.__repairHome({ seasonId: program.id });
+  window.app.homeScreen.openEditSeason(null); await mounted('team-hub-edit-season');
+  out.edit = grab(); close(); await closed();
 
-  window.app.homeScreen.openSeasonSetup(null); await new Promise(r => setTimeout(r, 350));
-  out.guide = grab(); close(); await new Promise(r => setTimeout(r, 200));
+  window.app.homeScreen.openSeasonSetup(null); await mounted('team-hub-season-setup');
+  out.guide = grab(); close(); await closed();
 
-  hub.openCreateScout(null); await new Promise(r => setTimeout(r, 300));
-  out.scout = grab(); close(); await new Promise(r => setTimeout(r, 200));
+  hub.openCreateScout(null); await mounted('team-hub-create-scout');
+  out.scout = grab(); close(); await closed();
   return out;
 });
 ok(/^Season for/.test(dialogCopy.create.intro), 'Create-season intro renders the approved copy', dialogCopy.create);
@@ -693,12 +730,9 @@ console.log('\n== 6. Safeguards unchanged ==');
 const safeguards = await page.evaluate(async () => {
   const hub = window.app.teamHubScreen;
   await window.app.workspaceShell.show('home');
-  await new Promise(r => setTimeout(r, 200));
-  // Validation still refuses a duplicate season identity.
+  await window.__repairHome();
+  // e2e-home-review-repair owns serialized duplicate-season refusal.
   const before = hub.snapshot().railSeasons.length;
-  const dupe = await hub.createSeason({ year: '2026', level: 'Varsity' });
-  await hub.load();
-  const after = hub.snapshot().railSeasons.length;
 /* Use a program season without scouts to exercise typed delete confirmation.
  * Parents with scouts are blocked earlier; e2e-scout-ownership covers that
  * refusal. */
@@ -706,20 +740,19 @@ const safeguards = await page.evaluate(async () => {
     .filter(season => season.kind === 'scout' && season.programSeasonId)
     .map(season => String(season.programSeasonId)));
   const program = hub.snapshot().railSeasons.find(s => !s.isScout && !s.isDemo && !owners.has(String(s.id)));
-  hub.deleteSeason(program.id, null);
-  await new Promise(r => setTimeout(r, 350));
+  const deletion = hub.deleteSeason(program.id, null);
+  await window.__repairWait(() => document.querySelector('[data-overlay-id] input[name="confirm"]'), 'typed delete dialog');
   const panel = document.querySelector('[data-overlay-id] .gi-overlay-panel');
   const danger = [...(panel?.querySelectorAll('button') || [])].find(b => /Delete/.test(b.textContent));
   const confirmField = !!panel?.querySelector('input[name="confirm"]');
   const disabled = !!danger?.disabled;
   const stillThere = hub.snapshot().railSeasons.length;
   [...(panel?.querySelectorAll('button') || [])].find(b => /Cancel/.test(b.textContent))?.click();
-  await new Promise(r => setTimeout(r, 200));
+  await window.__repairWait(() => !document.querySelector('[data-overlay-id] input[name="confirm"]'), 'delete cancellation');
+  await deletion;
   await hub.load();
-  return { before, after, dupeOk: dupe?.ok, confirmField, disabled, stillThere, final: hub.snapshot().railSeasons.length };
+  return { before, confirmField, disabled, stillThere, final: hub.snapshot().railSeasons.length };
 });
-ok(safeguards.dupeOk === false && safeguards.after === safeguards.before,
-  'Duplicate-season validation still refuses and creates nothing', safeguards);
 ok(safeguards.confirmField && safeguards.disabled,
   'Season deletion still requires a typed confirmation before it can arm', safeguards);
 ok(safeguards.final === safeguards.before,
@@ -727,6 +760,8 @@ ok(safeguards.final === safeguards.before,
 
 ok(errors.length === 0, 'No page errors across the whole journey', errors);
 
-await browser.close();
 console.log(`\n== RESULT: ${passed} passed, ${failed} failed ==`);
-process.exit(failed > 0 ? 1 : 0);
+process.exitCode = failed > 0 ? 1 : 0;
+} finally {
+  await browser.close();
+}

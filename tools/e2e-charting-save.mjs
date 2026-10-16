@@ -1,16 +1,5 @@
-/* CHARTING SAVE ------------------------------------------------------------------
-   GRIDIRON-IQ-SAVE-CONTRACT.md. Chart edits a draft of the open play; the
-   stored play, the reports and the disk change only on Save, which keeps
-   exactly what the play can show (PlayShape). A parent change (unit, Special
-   Teams unit, try attempt) is a Save that asks first only when it would remove
-   values the coach charted; values the app filled in never ask. Leaving a play
-   with unsaved changes (another play, clip navigation, a typed note) asks
-   Stay, Discard or Save. Film Room edits are saves. A tackle counts where the
-   play shows Tackler(s): defense, kick coverage, or an offensive turnover,
-   which also names our missed tacklers; any change of possession holds the
-   opponent's tacklers, credited to no one of ours.
-
-   Run after build:  node tools/e2e-charting-save.mjs */
+// Draft/Save, provenance, loss confirmations, recovery and clip navigation.
+// Contract: GRIDIRON-IQ-SAVE-CONTRACT.md.
 import puppeteer from './test-browser.mjs';
 import { APP_URL, gotoApp } from './app-entry.mjs';
 import { PlayShape } from '../js/play-shape.js';
@@ -74,8 +63,13 @@ try {
     app.tagger.carryScheme = true;
     await app.workspaceShell.show('breakdown');
   });
-  const settle = (ms = 200) => new Promise(r => setTimeout(r, ms));
-  const select = async id => { await page.evaluate(id => window.app.tagger.selectPlay(id), id); await settle(); };
+  const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const select = async id => {
+    await page.evaluate(id => window.app.tagger.selectPlay(id), id);
+    await page.waitForFunction(id => window.app.tagger.currentPlayId === id
+      || [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].some(button => button.textContent.trim() === 'Stay'), { timeout: 8000 }, id);
+    await settle();
+  };
   const state = () => page.evaluate(() => {
     const app = window.app, t = app.tagger;
     const live = t.getPlay(t.currentPlayId);
@@ -93,6 +87,8 @@ try {
   });
   const click = async selector => { await page.click(selector); await settle(); };
   const clickDialog = async label => {
+    await page.waitForFunction(label => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')]
+      .some(button => button.textContent.trim() === label), { timeout: 8000 }, label);
     await page.evaluate(label => [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === label)?.click(), label);
     await settle();
   };
@@ -214,10 +210,10 @@ try {
     t.draft = null; t.recovery = null;
     app.storage._deserialize(game);
     t.selectPlay(2); t.getCurrentPlay();
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const buttons = [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].map(b => b.textContent.trim());
     [...document.querySelectorAll('.gi-overlay-layer.is-modal button')].find(b => b.textContent.trim() === 'Restore')?.click();
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return { buttons, restored: t.getCurrentPlay().tags.yardage, stored: t.getPlay(2).tags.yardage, dirty: t.hasUnsavedChanges() };
   });
   ok(offered.buttons.join() === 'Discard,Restore' && offered.restored === '40' && offered.stored === '4' && offered.dirty,
@@ -272,10 +268,10 @@ try {
     const app = window.app, kept = app.roster.players;
     app.roster.players = Array.from({ length: 30 }, (_, i) => ({ num: String(i + 1), name: `P${i + 1}`, side: 'D' }));
     app.tagger.selectPlay(1); app.nativeTagging.refresh?.();
-    await new Promise(r => setTimeout(r, 250));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const toggle = [...document.querySelectorAll('.gi-player-roster-toggle')].find(b => /Show roster/.test(b.textContent));
     toggle?.click();
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const quick = document.querySelector('.gi-player-quick');
     const row = quick ? parseFloat(getComputedStyle(quick.querySelector('button')).height) : 0;
     const out = quick ? { height: quick.clientHeight, scroll: quick.scrollHeight, row } : null;
@@ -320,9 +316,9 @@ try {
     await app.storage.switchToGame(game.id);
     const clip = name => new File([new Blob([new Uint8Array(32)])], name, { type: 'video/mp4' });
     await app.playlist.addFiles([clip('CLIP_A.mp4'), clip('CLIP_B.mp4')]);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     app.playlist.switchToClip(0);
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return { count: app.playlist.clips.length, current: app.tagger.currentPlayId, index: app.playlist.activeClipIndex };
   });
   await page.evaluate(() => window.app.tagger.setTagValue('down', '2')); await settle();

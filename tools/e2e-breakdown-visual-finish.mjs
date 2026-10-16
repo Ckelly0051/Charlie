@@ -2,20 +2,23 @@
  * widths. Gap is independent of Play Direction; unlisted stored values remain
  * readable. Geometry checks are regression evidence, not visual approval. */
 import puppeteer from './test-browser.mjs';
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
 
 let pass = 0, fail = 0;
 const ok = (value, label, detail = '') => value
   ? (pass++, console.log('  PASS  ' + label))
   : (fail++, console.log('  FAIL  ' + label + (detail ? ' -- ' + (typeof detail === 'string' ? detail : JSON.stringify(detail)) : '')));
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
+const layout = () => page.evaluate(async () => {
+  await document.fonts.ready;
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+});
 const errors = [];
 page.on('pageerror', error => errors.push(error.stack || error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
+await gotoApp(page, APP_URL);
 await page.waitForFunction(() => window.app?.breakdownWorkspace && document.querySelector('[data-native-home]'));
 await page.evaluate(async () => {
   localStorage.setItem('ffa_teams', JSON.stringify([{ id: 'sjm', teamName: 'St. Joseph Mavericks' }, { id: 'dev', teamName: 'St. Joseph Academy Mavericks Freshman-Sophomore Development Program' }]));
@@ -32,7 +35,8 @@ await page.evaluate(async () => {
   app.tagger.selectPlay(1);
   await app.workspaceShell.show('breakdown');
 });
-await sleep(600);
+await page.waitForSelector('[data-native-field="formationFamily"] button.is-off-library');
+await layout();
 
 const selectors = () => page.evaluate(() => [...document.querySelectorAll('.ws-ctx')].map(button => {
   const rect = button.getBoundingClientRect(), label = button.querySelector('.ws-ctx-label'), value = button.querySelector('.ws-ctx-value');
@@ -46,7 +50,7 @@ const selectors = () => page.evaluate(() => [...document.querySelectorAll('.ws-c
 
 console.log('\n== BD-UX-2: closed selectors ==');
 for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 800]]) {
-  await page.setViewport({ width: w, height: h }); await sleep(250);
+  await page.setViewport({ width: w, height: h }); await layout();
   const s = await selectors();
   ok(s.length === 3 && s.every(c => c.labelShown && c.labelAbove), `${w}: Program, Season and Game each show their label above the value`, s);
   ok(s.every(c => c.labelFont >= 12.5 && c.valueFont >= 13), `${w}: selector type is not shrunk`, s.map(c => [c.labelFont, c.valueFont]));
@@ -55,9 +59,16 @@ for (const [w, h] of [[1920, 1080], [1440, 900], [1280, 800]]) {
 }
 
 console.log('\n== BD-UX-2: one menu pattern ==');
-await page.setViewport({ width: 1440, height: 900 }); await sleep(200);
+await page.setViewport({ width: 1440, height: 900 }); await layout();
 const openMenu = async id => {
-  await page.click(`#${id}`); await sleep(400);
+  await page.click(`#${id}`);
+  await page.waitForFunction(id => {
+    const panel = document.querySelector('.gi-popover-panel');
+    return panel?.querySelector('[role="menuitem"]')
+      && panel.contains(document.activeElement)
+      && document.getElementById(id)?.getAttribute('aria-expanded') === 'true';
+  }, {}, id);
+  await layout();
   return page.evaluate(id => {
     const panel = document.querySelector('.gi-popover-panel');
     const anchor = document.getElementById(id).getBoundingClientRect();
@@ -71,7 +82,14 @@ const openMenu = async id => {
       longName: items.some(item => /Development Program|Fall Championship Schedule/.test(item.textContent) && item.scrollWidth <= item.clientWidth + 1) };
   }, id);
 };
-const close = async id => { await page.keyboard.press('Escape'); await sleep(250); return page.evaluate(id => ({ focus: document.activeElement?.id, expanded: document.getElementById(id).getAttribute('aria-expanded'), open: !!document.querySelector('.gi-popover-panel') }), id); };
+const close = async id => {
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(id => !document.querySelector('.gi-popover-panel')
+    && document.activeElement?.id === id
+    && document.getElementById(id)?.getAttribute('aria-expanded') === 'false', {}, id);
+  await layout();
+  return page.evaluate(id => ({ focus: document.activeElement?.id, expanded: document.getElementById(id).getAttribute('aria-expanded'), open: !!document.querySelector('.gi-popover-panel') }), id);
+};
 const program = await openMenu('wsCtxProgram');
 ok(program.context && program.title === 'Switch program' && program.current.length === 1 && program.current[0].check && program.checks === 1, 'Program menu: titled, the current program checked once', program);
 ok(program.commands.join() === '+ New program' && program.longName, 'Program menu: New program is a command and a long program name is shown whole', program);
@@ -85,29 +103,35 @@ await close('wsCtxSeason');
 const game = await openMenu('wsCtxGame');
 ok(game.context && game.title === 'Switch game' && game.current.length === 1 && game.current[0].check && game.commands.length === 0, 'Game menu: same pattern, the open game checked', game);
 await close('wsCtxGame');
-const otherPopover = await page.evaluate(async () => {
+await page.evaluate(() => {
   const anchor = document.getElementById('btnNativeMore');
   window.app.workspaceShell._openMore(anchor);
-  await new Promise(resolve => setTimeout(resolve, 300));
+});
+await page.waitForFunction(() => {
+  const panel = document.querySelector('.gi-popover-panel');
+  return panel?.querySelector('[role="menuitem"]') && panel.contains(document.activeElement);
+});
+await layout();
+const otherPopover = await page.evaluate(() => {
   const panel = document.querySelector('.gi-popover-panel');
   const result = { context: panel?.classList.contains('is-context'), menu: panel?.classList.contains('is-menu'), title: panel?.querySelector('.gi-popover-title')?.textContent,
     groups: [...(panel?.querySelectorAll('.gi-popover-heading') || [])].map(node => node.textContent) };
   window.app.overlays.close?.(window.app.overlays.snapshot().overlays.at(-1)?.id, 'cancel');
   return result;
 });
-// design-comps/breakdown-cleanup-2026-10-05: More is the titled, grouped menu.
+await page.waitForFunction(() => !document.querySelector('.gi-popover-panel'));
 ok(otherPopover.context === false && otherPopover.menu === true && otherPopover.title === 'More'
   && JSON.stringify(otherPopover.groups) === JSON.stringify(['This game', 'Season', 'Export', 'Tools']),
   'More is the grouped command menu; only the three selectors take the context pattern', otherPopover);
 
 console.log('\n== BD-UX-2: narrow ==');
-await page.setViewport({ width: 390, height: 844 }); await sleep(400);
+await page.setViewport({ width: 390, height: 844 }); await layout();
 const narrow = await selectors();
 ok(narrow.length === 3 && narrow.every(c => c.w > 0 && c.left >= -1 && c.right <= 391 && c.h >= 44), '390: all three selectors are reachable inside the viewport at a touch height', narrow);
 const narrowMenu = await openMenu('wsCtxSeason');
 ok(narrowMenu.context && narrowMenu.left >= 0, '390: the Season menu opens on screen', narrowMenu);
 await close('wsCtxSeason');
-await page.setViewport({ width: 1440, height: 900 }); await sleep(300);
+await page.setViewport({ width: 1440, height: 900 }); await layout();
 
 console.log('\n== BD-UX-1: deck rhythm ==');
 const deck = await page.evaluate(() => {
@@ -133,9 +157,11 @@ ok(deck.off && deck.off.text === 'Trey Open Wide' && deck.off.active && !deck.of
 const LONG = 'Doubles Tight Bunch Right Unbalanced Over Wing Slot Trade Motion Formation';
 await page.evaluate(long => { const t = window.app.tagger, p = t.getCurrentPlay(); p.tags.formationFamily = long; t._emit('play-updated', p); }, LONG);
 for (const [w, h] of [[1440, 900], [768, 1024], [390, 844]]) {
-  await page.setViewport({ width: w, height: h }); await sleep(350);
+  await page.setViewport({ width: w, height: h });
+  await page.waitForFunction(long => document.querySelector('[data-native-field="formationFamily"] button.is-off-library')?.textContent.trim() === long, {}, LONG);
+  await layout();
   await page.evaluate(() => document.querySelector('[data-native-tagging] [data-native-field="formationFamily"] button.is-off-library')?.scrollIntoView({ block: 'center' }));
-  await sleep(150);
+  await layout();
   if (process.env.GI_BD_SHOTS) await page.screenshot({ path: `${process.env.GI_BD_SHOTS}/long-formation-${w}.png` });
   const long = await page.evaluate(() => {
     const off = document.querySelector('[data-native-tagging] [data-native-field="formationFamily"] button.is-off-library');

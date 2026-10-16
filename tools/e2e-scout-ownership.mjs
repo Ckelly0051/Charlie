@@ -2,7 +2,7 @@
  * mode; toggles are atomic and never select scouts through team-wide
  * lastOpened. */
 import puppeteer from './test-browser.mjs';
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, waitForApp } from './app-entry.mjs';
 import { WorkspaceContext } from '../js/workspace-context.js';
 
 let pass = 0, fail = 0;
@@ -51,8 +51,23 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => window.app?.storage && window.app?.teamHubScreen && window.app?.workspace);
+await page.evaluateOnNewDocument(() => {
+  window.__waitForScout = async (ready, label, layout = true) => {
+    let timer;
+    try {
+      await Promise.race([
+        (async () => {
+          while (!ready()) await new Promise(requestAnimationFrame);
+          if (layout) await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        })(),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`Timed out: ${label}`)), 10000); }),
+      ]);
+    } finally { clearTimeout(timer); }
+  };
+});
+await page.goto(APP_URL, { waitUntil: 'domcontentloaded' });
+await waitForApp(page);
+await page.evaluate(() => window.__waitForScout(() => true, 'startup layout'));
 
 /* Two program seasons for one team, same year, different levels. */
 const built = await page.evaluate(async () => {
@@ -275,21 +290,14 @@ ok(r.soloStored === '' && r.ambigStored === '',
   'NEITHER inference was written to disk -- reading is not assigning', JSON.stringify(r));
 
 console.log('\n== 9. The RENDERED rail rows open their exact season ==');
-/* Driven through real DOM clicks, not controller calls, because the defect this
-   pins was invisible to a controller call: `openSeason()` answered "is this
-   season already open?" from the clicked ROW's cached `current` flag. A row
-   carries that flag from the `load()` that built it, and `load()` cancels itself
-   when a newer one starts (`_loadToken`), so a superseded pass left rows still
-   flagged current for a season the coach had navigated away from -- and the
-   click then skipped the open and reported success. The rail row looked dead,
-   intermittently, depending on which load won the race. The store is now the
-   authority for that question. */
+/* Use real rail clicks with deliberately stale row flags: the canonical open
+   season, not the cached row's `current` flag, must decide whether to open. */
 r = await page.evaluate(async (ids) => {
   const S = window.app.storage, hub = window.app.teamHubScreen;
   await S.openSeasonById(ids.jv);
   await hub.load();
   await window.app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 400));
+  await window.__waitForScout(() => !!document.querySelector(`.rail-row[data-season-id="${ids.varsity}"]`), 'season rail rendered');
   const click = async id => {
     const sel = `.rail-row[data-season-id="${id}"]`;
     const node = document.querySelector(sel);
@@ -299,7 +307,9 @@ r = await page.evaluate(async (ids) => {
     // assertion fails if the cached flag is ever trusted again.
     hub._state.railSeasons = (hub._state.railSeasons || []).map(row => ({ ...row, current: true }));
     node.click();
-    await new Promise(res => setTimeout(res, 900));
+    await window.__waitForScout(() => S.seasonStore.currentSeasonId === id
+      && window.app.homeScreen.snapshot().seasonId === id
+      && document.querySelector(`.rail-row[data-season-id="${id}"]`)?.classList.contains('is-current'), 'clicked season Home');
     return {
       clicked: true, rendered: box.width > 0 && box.height > 0,
       open: S.seasonStore.currentSeasonId,
@@ -491,14 +501,15 @@ r = await page.evaluate(async (scoutId) => {
   return { parent, owned: owned.map(s => s.id) };
 }, unassignedId);
 const deleteDialog = await page.evaluate(async () => {
-  await new Promise(res => setTimeout(res, 300));
+  await window.__waitForScout(() => [...document.querySelectorAll('[data-overlay-id] button, .gi-overlay-panel button')]
+    .some(b => /close/i.test(b.textContent)), 'blocked-delete dialog');
   const panel = document.querySelector('[data-overlay-id], .gi-overlay-panel');
   const text = panel?.textContent || '';
   const button = [...(panel?.querySelectorAll('button') || [])].find(b => /close/i.test(b.textContent));
   const hasButton = !!button;
   if (button) button.click();
-  await new Promise(res => setTimeout(res, 250));
   const deleted = await window.__deleteResult;
+  await window.__waitForScout(() => !panel?.isConnected, 'blocked-delete dialog closed');
   const S = window.app.storage;
   const metas = await S.listSeasons();
   return {
@@ -555,7 +566,7 @@ r = await page.evaluate(async () => {
   await hub.load();
   await hub.selectWorkspace('scout');
   await window.app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 500));
+  await window.__waitForScout(() => !!document.querySelector(`[data-unassigned-scout="${rec.id}"] select`), 'unassigned scout rendered');
   const row = document.querySelector(`[data-unassigned-scout="${rec.id}"]`);
   const select = row?.querySelector('select');
   const options = [...(select?.querySelectorAll('option') || [])].map(o => ({ value: o.value, text: o.textContent }));
@@ -564,7 +575,8 @@ r = await page.evaluate(async () => {
   // Drive the REAL control: choose the season, submit the form.
   if (select) { select.value = parent; select.dispatchEvent(new Event('change', { bubbles: true })); }
   if (button) button.click();
-  await new Promise(res => setTimeout(res, 900));
+  await window.__waitForScout(() => !document.querySelector(`[data-unassigned-scout="${rec.id}"]`)
+    && hub.snapshot().seasons.some(s => s.id === rec.id), 'rendered assignment completed');
   const meta = (await S.listSeasons()).find(m => m.id === rec.id) || {};
   return {
     scoutId: rec.id, parent,
@@ -670,19 +682,32 @@ r = await page.evaluate(async () => {
   const realSave = st.backend.saveSeason.bind(st.backend);
   let release = null;
   const held = new Promise(res => { release = res; });
+  let persistEntered = false, assignmentEntered = false;
   let first = true;
   st.backend.saveSeason = async (id, data) => {
-    if (id === rec.id && first) { first = false; await held; }
+    if (id === rec.id && first) { first = false; persistEntered = true; await held; }
     return realSave(id, data);
   };
+  const realEnqueue = st._enqueueWrite;
+  st._enqueueWrite = function (id, run) {
+    const result = realEnqueue.call(this, id, run);
+    if (id === rec.id && persistEntered) assignmentEntered = true;
+    return result;
+  };
   const racePersist = st.persist(rec.id, frozen);   // in flight, carrying NO parent
-  await new Promise(res => setTimeout(res, 50));
-  const raceAssign = st.assignScoutParent(rec.id, other);
-  await new Promise(res => setTimeout(res, 50));
-  release();
-  await Promise.all([racePersist, raceAssign]);
-  await st.drainWrites(rec.id);
-  st.backend.saveSeason = realSave;
+  let raceAssign;
+  try {
+    await window.__waitForScout(() => persistEntered, 'stale persist entered', false);
+    assignmentEntered = false;
+    raceAssign = st.assignScoutParent(rec.id, other);
+    await window.__waitForScout(() => assignmentEntered, 'assignment queued behind persist', false);
+  } finally {
+    release();
+    await Promise.all([racePersist, raceAssign]);
+    await st.drainWrites(rec.id);
+    st.backend.saveSeason = realSave;
+    st._enqueueWrite = realEnqueue;
+  }
   const raced = String((await st.peekSeason(rec.id))?.programSeasonId || '');
   return {
     scoutId: rec.id, parent, other, assigned, liveAfterAssign, persisted,
@@ -721,7 +746,7 @@ r = await page.evaluate(async () => {
   await hub.load();
   await hub.selectWorkspace('scout');
   await window.app.workspaceShell.show('home');
-  await new Promise(res => setTimeout(res, 500));
+  await window.__waitForScout(() => [first, second].every(id => document.querySelector(`[data-unassigned-scout="${id}"] select`)), 'two unassigned rows rendered');
   const rowOf = id => document.querySelector(`[data-unassigned-scout="${id}"]`);
   const before = { first: !!rowOf(first), second: !!rowOf(second) };
   // 1-2. Choose a parent for the FIRST scout through its own control, assign it.
@@ -729,15 +754,26 @@ r = await page.evaluate(async () => {
   sel.value = parent;
   sel.dispatchEvent(new Event('change', { bubbles: true }));
   rowOf(first).querySelector('button[type="submit"]').click();
-  await new Promise(res => setTimeout(res, 1200));
+  await window.__waitForScout(() => !rowOf(first) && !!rowOf(second)
+    && hub.snapshot().seasons.some(s => s.id === first), 'first row assignment completed');
   const metas = await S.listSeasons();
   const stored = id => String(metas.find(m => m.id === id)?.programSeasonId || '');
   // 4. The surviving row's selector must be blank.
   const survivor = rowOf(second);
   const survivorValue = survivor?.querySelector('select')?.value ?? '(no row)';
   // 5. Submitting it with nothing chosen must assign nothing.
-  survivor?.querySelector('button[type="submit"]')?.click();
-  await new Promise(res => setTimeout(res, 900));
+  const realAssign = hub.assignScoutFromHome;
+  let blankSubmitCompleted = false;
+  hub.assignScoutFromHome = async function (...args) {
+    const result = await realAssign.apply(this, args);
+    blankSubmitCompleted = true;
+    return result;
+  };
+  try {
+    survivor?.querySelector('button[type="submit"]')?.click();
+    await window.__waitForScout(() => blankSubmitCompleted, 'blank submit completed');
+    await st.drainWrites(second);
+  } finally { hub.assignScoutFromHome = realAssign; }
   const after = await S.listSeasons();
   return {
     first, second, parent, before, survivorValue,

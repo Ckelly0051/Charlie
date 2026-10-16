@@ -1,7 +1,7 @@
 /* Add/Edit Game geometry, type, focus and palette at every release width.
  * --capture also writes the gallery for separate visual review. */
 import puppeteer from './test-browser.mjs';
-import { APP_URL } from './app-entry.mjs';
+import { APP_URL, gotoApp } from './app-entry.mjs';
 import { mkdirSync } from 'node:fs';
 
 const OUT = 'artifacts/game-form-visual';
@@ -17,10 +17,14 @@ const ok = (condition, label, detail = '') => condition
 if (capture) mkdirSync(OUT, { recursive: true });
 const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
+const layout = () => page.evaluate(async () => {
+  await document.fonts.ready;
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+});
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(APP_URL, { waitUntil: 'networkidle0' });
+await gotoApp(page, APP_URL);
 await page.waitForFunction(() => window.app?.storage && window.app?.gameScreen);
 
 /* The legacy blue family, by COMPUTED value: a token rename would otherwise
@@ -30,6 +34,11 @@ const LEGACY_BLUES = ['rgb(43, 111, 255)', 'rgb(90, 146, 255)'];
 const openForm = async mode => {
   await page.evaluate(m => { window.app.gameScreen.open({ mode: m }); }, mode);
   await page.waitForSelector('[data-native-game-form]', { timeout: 8000 });
+  await page.waitForFunction(() => {
+    const form = document.querySelector('[data-native-game-form]');
+    return form?.querySelector('.gi-game-actions .is-primary') && form.contains(document.activeElement);
+  }, { timeout: 8000 });
+  await layout();
 };
 const closeForm = async () => {
   await page.evaluate(() => {
@@ -37,7 +46,7 @@ const closeForm = async () => {
     const cancel = [...(form?.querySelectorAll('button') || [])].find(b => /^cancel$/i.test(b.textContent.trim()));
     if (cancel) cancel.click();
   });
-  await page.waitForFunction(() => !document.querySelector('[data-native-game-form]'), { timeout: 8000 }).catch(() => {});
+  await page.waitForFunction(() => !document.querySelector('[data-native-game-form]'), { timeout: 8000 });
 };
 
 const measure = () => page.evaluate(blues => {
@@ -83,12 +92,7 @@ const measure = () => page.evaluate(blues => {
     pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     formOverflowX: form.scrollWidth - form.clientWidth,
     withinViewport: Math.round(dialogRect.right) <= innerWidth + 1 && Math.round(dialogRect.left) >= -1,
-    // "Reachable" means reachable, not "visible without scrolling": a tall form
-    // on a phone legitimately scrolls inside `.gi-overlay-body`, the panel's own
-    // scroll owner. Proven by SCROLLING to the primary and re-measuring, rather
-    // than by comparing against a scrollHeight on whichever ancestor happened to
-    // be picked -- the layer is not the scroller, and reading it as one made
-    // this look like a containment failure at 390 when it was a bad probe.
+    // Tall phone forms scroll inside the overlay body; prove action reachability.
     actionsInsideDialog: (() => {
       const primary = form.querySelector('.gi-game-actions .is-primary');
       if (!primary) return false;
@@ -101,11 +105,7 @@ const measure = () => page.evaluate(blues => {
       return !!body && body.scrollHeight > body.clientHeight + 1;
     })(),
     belowFloor, legacy, primaryBg, clipped, actions, monotonic, lastIsPrimary,
-    /* The score fields must be the SAME control as every other field, and must
-       sit together. Both were caught by looking at the capture, not by any
-       assertion: a global number-input rule outranked the form's own element
-       selector and painted them as unbordered filled bars, and an `auto`
-       separator track threw them to opposite ends of the dialog. */
+    // Score fields share the other controls' treatment and sit together.
     score: (() => {
       const us = form.querySelector('[name="scoreUs"]');
       const them = form.querySelector('[name="scoreThem"]');
@@ -150,7 +150,6 @@ for (const [variant, setup, mode] of [
   for (const [w, h] of VIEWPORTS) {
     await page.setViewport({ width: w, height: h });
     await openForm(mode);
-    await new Promise(r => setTimeout(r, 260));
     const m = await measure();
     if (capture) await page.screenshot({ path: `${OUT}/${variant}-${w}x${h}.png` });
     const at = `${variant} @ ${w}x${h}`;
