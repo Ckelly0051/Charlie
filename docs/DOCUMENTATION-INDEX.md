@@ -164,23 +164,19 @@ log.
   dependency repairs are complete in source; remaining upstream maintenance
   warnings are in `docs/OPEN-DEFECTS.md`. Rapid scrubbing remains
   deferred. Coach approval authorizes no push, tag or publication.
-- **Latest full gate:** 166/166 green at `a5238591` (2026-10-14), zero
-  skipped or failed; `releaseEligible: true`. Receipt:
-  `artifacts/gate-logs/2026-10-14T19-46-40-309Z-96k7d5/receipt.json`.
-  This predates cleanup and runtime-budget reporting. The runner reports the
-  local six-minute target separately from correctness; an over-budget result
-  alone does not block CI or release during consolidation. GitHub Actions has
-  no threshold. Individual deadlines stay blocking everywhere. The explicit
-  blocking switch is off but remains proven by synthetic tests. Both modes
-  finish every result. Current real full-gate time remains unmeasured;
-  focused runs record timing without a total target.
-  Policy source: `829ebeb6`; focused verification 4/4 green, zero
-  failed/skipped, 35.177 seconds, with clean unchanged source/build/fixtures.
-  Runner 98/98 and receipt 48/48 include both budget modes, CI exemption,
-  post-expiry collection and blocking timeouts/failures in all environments.
-  Receipt: `artifacts/gate-logs/2026-10-15T13-33-28-647Z-J5SZNs/receipt.json`.
-  Runner review remains separate from the production cleanup's pending
-  installed verification; no new full gate or installer was run.
+- **Latest full gate:** 161/161 green at `47819adf` (2026-10-16), zero
+  skipped or failed; `releaseEligible: true`; `performanceOutcome:
+  over-budget` (report-only). Receipt:
+  `artifacts/gate-logs/2026-10-16T04-29-40-218Z-SmJztw/receipt.json`.
+  Wall time 1,017s (setup 6s) against the 360s local target, versus 990s
+  for 166 harnesses on 2026-10-14: the non-Reports consolidation did not
+  measurably shorten the gate. Reports-area harnesses (29) take 526s of
+  harness time, everything else (132) 485s; the slowest are Explosive
+  labels and Reports Offense (62s each), Players (51s), Defense real-data
+  (39s), the global strip (38s) and Season (32s). Over budget does not block
+  CI or release during consolidation; per-harness deadlines stay blocking
+  everywhere and the blocking switch stays off until a representative full
+  run fits the target.
 - **Organize pass (2026-10-04):** finished plans, old smoke records, the full
   defect history and the full roadmap history moved to `docs/archive/`;
   accumulated test captures moved out of `artifacts/`; dead code, orphaned
